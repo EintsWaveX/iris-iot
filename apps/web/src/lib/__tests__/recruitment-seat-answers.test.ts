@@ -157,4 +157,75 @@ describe("AnswerSaver", () => {
     await saver.flush();
     expect(send).toHaveBeenCalledTimes(1);
   });
+
+  describe("flush before a hand-in", () => {
+    it("waits for a save in flight and re-sends the newer value of that question", async () => {
+      const gate: (() => void)[] = [];
+      const sent: unknown[] = [];
+      const send = vi.fn(async (b: { q: number; value: unknown }) => {
+        sent.push(b.value);
+        await new Promise<void>((ok) => gate.push(ok));
+        return { ok: true as const, rev: sent.length, at: 1 };
+      });
+      const { saver } = make(send as never);
+      saver.set(5, { pick: "a" });
+      await vi.advanceTimersByTimeAsync(500);
+      expect(sent).toEqual([{ pick: "a" }]);
+      // The candidate changes the answer while the first save is still in flight.
+      saver.set(5, { pick: "b" });
+      let clean: boolean | null = null;
+      const flushing = saver.flush().then((c) => (clean = c));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(clean).toBe(null);
+      gate.shift()!();
+      await vi.advanceTimersByTimeAsync(0);
+      // Only after the first save returned does the newest value go out.
+      expect(sent).toEqual([{ pick: "a" }, { pick: "b" }]);
+      gate.shift()!();
+      await flushing;
+      expect(clean).toBe(true);
+    });
+
+    it("sends the newest value of a question changed while another was in flight", async () => {
+      const gate: (() => void)[] = [];
+      const sent: { q: number; value: unknown }[] = [];
+      const send = vi.fn(async (b: { q: number; value: unknown }) => {
+        sent.push({ q: b.q, value: b.value });
+        await new Promise<void>((ok) => gate.push(ok));
+        return { ok: true as const, rev: sent.length, at: 1 };
+      });
+      const { saver } = make(send as never);
+      saver.set(1, { pick: "a" });
+      saver.set(2, { pick: "x" });
+      await vi.advanceTimersByTimeAsync(500);
+      saver.set(2, { pick: "y" });
+      gate.shift()!();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(sent.find((x) => x.q === 2)?.value).toEqual({ pick: "y" });
+      const flushing = saver.flush();
+      for (let i = 0; i < 6; i++) {
+        await vi.advanceTimersByTimeAsync(0);
+        gate.splice(0).forEach((g) => g());
+      }
+      expect(await flushing).toBe(true);
+      expect(sent.filter((x) => x.q === 2).at(-1)?.value).toEqual({ pick: "y" });
+    });
+
+    it("says no while a dirty answer could not be sent (offline)", async () => {
+      const send = vi.fn(async () => ({ ok: false as const, offline: true as const }));
+      const { saver } = make(send);
+      saver.set(3, { pick: "z" });
+      expect(await saver.flush()).toBe(false);
+      saver.dispose();
+    });
+
+    it("says yes when nothing is dirty, and when the server refused (time is over)", async () => {
+      const ok = vi.fn(async () => ({ ok: true as const, rev: 1, at: 1 }));
+      expect(await make(ok).saver.flush()).toBe(true);
+      const closed = vi.fn(async () => ({ ok: false as const, kode: "waktu_habis" }));
+      const { saver } = make(closed);
+      saver.set(3, { pick: "z" });
+      expect(await saver.flush()).toBe(true);
+    });
+  });
 });

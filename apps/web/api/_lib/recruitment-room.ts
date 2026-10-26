@@ -1399,40 +1399,68 @@ async function pinjamKit({ req, res, s, db, edisi, p }: Ctx) {
   });
 }
 
+/** A room with a part under way: its seats are not moved (the same rule as `room-move`). */
+export function ruangBerjalan(state: RoomState, now: number): boolean {
+  const v = roomView(state, now).view;
+  return (
+    v === "part-running" || v === "livecode-running" || v === "part-paused" || v === "part-ended"
+  );
+}
+
 /**
  * After a candidate's tes_tulis assignment changed (Plotting's move, Auto Isi
- * and its Urungkan, a decided request, a pick, room-move): their real seat
- * follows to the room of the new slot, when both exist (W1's ruling,
- * 2026-10-24). A practice seat stays where it is. With no room to follow to
- * (the slot has none yet, or the candidate was taken out) a seat that never
- * drew, handed in or struck is dropped, since the check-in makes it again;
- * one that did is kept where it is, because its draw is the candidate's and
- * Susulan needs it. Pass the transaction the assignment was written in.
+ * and its Urungkan, a decided request, a pick): their real seat follows to
+ * the room of the new slot, when both exist (W1's ruling, 2026-10-24). A
+ * practice seat stays where it is. With no room to follow to (the slot has
+ * none yet, or the candidate was taken out) a seat that never drew, handed in
+ * or struck is dropped, since the check-in makes it again; one that did is
+ * kept where it is, because its draw is the candidate's and Susulan needs it.
+ *
+ * A seat is never touched while its current room, or the room it would go
+ * to, has a part running (the rule `pindahKursi` applies): it stays where it
+ * is and Panitia use `room-move` once that room is between parts. Returns
+ * `{ tetap: true }` then, so the caller can say so in its audit line and
+ * answer. Pass the transaction the assignment was written in.
  */
 export async function sinkronKursi(
   db: Pick<Db, "select" | "update" | "delete">,
   candidateId: number,
   slotId: number | null,
-) {
+  now = Date.now(),
+): Promise<{ tetap: boolean }> {
+  const kursi = await db
+    .select({
+      id: recExamSeat.id,
+      roomId: recExamSeat.roomId,
+      draw: recExamSeat.draw,
+      done: recExamSeat.done,
+    })
+    .from(recExamSeat)
+    .where(and(eq(recExamSeat.candidateId, candidateId), eq(recExamSeat.rehearsal, false)));
+  if (!kursi.length) return { tetap: false };
+  let tujuan: { id: number; state: RoomState } | null = null;
   if (slotId !== null) {
-    const [room] = await db
-      .select({ id: recExamRoom.id })
+    [tujuan = null] = await db
+      .select({ id: recExamRoom.id, state: recExamRoom.state })
       .from(recExamRoom)
       .where(and(eq(recExamRoom.slotId, slotId), eq(recExamRoom.rehearsal, false)))
       .limit(1);
-    if (room) {
-      await db
-        .update(recExamSeat)
-        .set({ roomId: room.id })
-        .where(and(eq(recExamSeat.candidateId, candidateId), eq(recExamSeat.rehearsal, false)));
-      return;
-    }
   }
-  const kursi = await db
-    .select({ id: recExamSeat.id, draw: recExamSeat.draw, done: recExamSeat.done })
-    .from(recExamSeat)
-    .where(and(eq(recExamSeat.candidateId, candidateId), eq(recExamSeat.rehearsal, false)));
+  let tetap = false;
   for (const k of kursi) {
+    const [dari] = await db
+      .select({ state: recExamRoom.state })
+      .from(recExamRoom)
+      .where(eq(recExamRoom.id, k.roomId))
+      .limit(1);
+    if ((dari && ruangBerjalan(dari.state, now)) || (tujuan && ruangBerjalan(tujuan.state, now))) {
+      tetap = true;
+      continue;
+    }
+    if (tujuan) {
+      await db.update(recExamSeat).set({ roomId: tujuan.id }).where(eq(recExamSeat.id, k.id));
+      continue;
+    }
     if (Object.keys(k.draw).length || Object.keys(k.done).length) continue;
     const kena = await db
       .select({ id: recStrike.id })
@@ -1442,6 +1470,7 @@ export async function sinkronKursi(
     if (kena.length) continue;
     await db.delete(recExamSeat).where(eq(recExamSeat.id, k.id));
   }
+  return { tetap };
 }
 
 async function pindahKursi({ req, res, s, db, edisi, p }: Ctx) {
@@ -1476,14 +1505,7 @@ async function pindahKursi({ req, res, s, db, edisi, p }: Ctx) {
   if (ada) {
     const dari = await muatRuang(db, edisi.id, ada.roomId);
     if (dari) {
-      const v = roomView(dari.room.state, now).view;
-      if (
-        v === "part-running" ||
-        v === "livecode-running" ||
-        v === "part-paused" ||
-        v === "part-ended"
-      )
-        return void tolak(res, "ruang_berjalan", 409);
+      if (ruangBerjalan(dari.room.state, now)) return void tolak(res, "ruang_berjalan", 409);
     }
   }
   let seat = ada ?? null;

@@ -175,7 +175,12 @@ export default function Runner({
 
   async function handIn() {
     setBusy(true);
-    await saver.flush();
+    // Every dirty answer must be on the server first, the newest value of each.
+    if (!(await saver.flush())) {
+      setBusy(false);
+      toast(t.handIn.unsent, "warn");
+      return false;
+    }
     const r = await submitPart(key);
     setBusy(false);
     if (!r.ok) {

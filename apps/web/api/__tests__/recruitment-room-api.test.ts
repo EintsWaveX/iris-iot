@@ -1040,10 +1040,50 @@ describe("moving a seat", () => {
 
 describe("a real seat follows its assignment", () => {
   it("moves to the room of the new slot", async () => {
-    rows.room = [{ id: 7 }];
-    await sinkronKursi((await import("../../src/lib/db")).getDb() as never, 101, 3);
+    rows.room = [{ id: 7, state: newRoomState() }];
+    rows.seat = [{ id: 11, roomId: 6, draw: {}, done: {} }];
+    const r = await sinkronKursi((await import("../../src/lib/db")).getDb() as never, 101, 3);
     const w = tulis.find((x) => x.op === "update" && x.tabel === "seat");
     expect(w?.nilai).toEqual({ roomId: 7 });
+    expect(r.tetap).toBe(false);
+  });
+  it("stays put while a part runs in its room, in the room it would go to, or for a seat with nowhere to go", async () => {
+    const t0 = Date.now() - 1000;
+    const berjalan: RoomState = {
+      ...newRoomState(),
+      stage: "parts",
+      cur: "logika",
+      runs: {
+        logika: {
+          durMs: 900_000,
+          usedMs: 0,
+          mark: t0,
+          state: "running",
+          pausedAt: null,
+          extra: {},
+          startedAt: t0,
+          endedAt: null,
+          endedBy: null,
+          leftAtSkip: 0,
+          reopened: 0,
+        },
+      },
+    };
+    const db = (await import("../../src/lib/db")).getDb() as never;
+    rows.seat = [{ id: 11, roomId: 6, draw: {}, done: {} }];
+    rows.strike = [];
+    // Its own room is running.
+    let n = 0;
+    rows.room = () => (++n === 1 ? [{ id: 7, state: newRoomState() }] : [{ state: berjalan }]);
+    expect((await sinkronKursi(db, 101, 3)).tetap).toBe(true);
+    // The room it would go to is running.
+    n = 0;
+    rows.room = () => (++n === 1 ? [{ id: 7, state: berjalan }] : [{ state: newRoomState() }]);
+    expect((await sinkronKursi(db, 101, 3)).tetap).toBe(true);
+    // Taken out of the evening while its room runs: even an untouched seat is not deleted.
+    rows.room = [{ state: berjalan }];
+    expect((await sinkronKursi(db, 101, null)).tetap).toBe(true);
+    expect(tulis).toEqual([]);
   });
   it("drops an untouched seat when the new slot has no room, or the candidate is taken out", async () => {
     rows.room = [];

@@ -122,7 +122,7 @@ export default function GradeTab({ lang, roomId }: { lang: Lang; roomId: number 
 function Row({ lang, s, onOpen }: { lang: Lang; s: GradeSeat; onOpen: () => void }) {
   const L = LC[lang].grade;
   const run = (r: GradeSeat["lastCompile"]) =>
-    r ? `${r.ok ? L.ok : L.bad} ${clock(r.at).slice(0, 5)}` : "-";
+    r ? `${r.ok ? L.ok : L.bad} ${clock(r.at).slice(0, 5)}${r.n > 1 ? ` (${r.n}x)` : ""}` : "-";
   return (
     <tr>
       <td className="num">{s.no}</td>

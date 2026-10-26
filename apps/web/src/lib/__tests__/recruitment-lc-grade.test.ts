@@ -4,6 +4,7 @@ import { DEFAULT_RUBRIC_ROWS } from "../recruitment/lc-defaults";
 import {
   canSubmit,
   peerView,
+  runTerakhir,
   sameRubricRows,
   validateSheet,
   type StoredSheet,
@@ -91,5 +92,32 @@ describe("sameRubricRows", () => {
       false,
     );
     expect(sameRubricRows(DEFAULT_RUBRIC_ROWS, rest)).toBe(false);
+  });
+});
+
+describe("runTerakhir", () => {
+  const run = (at: number, ok: boolean, kind: "compile" | "flash" = "compile") => ({
+    at,
+    kind,
+    board: 1 as const,
+    ok,
+    ms: 10,
+  });
+  it("shows the latest compile, not the oldest, with how many there were", () => {
+    // The seat stores its runs oldest first.
+    const runs = [run(1000, false), run(2000, false), run(3000, true), run(2500, true, "flash")];
+    expect(runTerakhir(runs, "compile")).toEqual({ at: 3000, ok: true, n: 3 });
+    expect(runTerakhir(runs, "flash")).toEqual({ at: 2500, ok: true, n: 1 });
+  });
+  it("takes the newest by time even if the list order is not", () => {
+    expect(runTerakhir([run(3000, true), run(1000, false)], "compile")).toEqual({
+      at: 3000,
+      ok: true,
+      n: 2,
+    });
+  });
+  it("is null when the seat never compiled or flashed", () => {
+    expect(runTerakhir([], "compile")).toBeNull();
+    expect(runTerakhir([run(1, true)], "flash")).toBeNull();
   });
 });

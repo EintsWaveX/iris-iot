@@ -153,16 +153,37 @@ export async function nomorKursi(db: Db, room: RecExamRoomRow): Promise<Map<numb
 
 const JAM = 3600;
 
-/** A seat's gateway token. Its expiry is fixed by the room's evening, so the token (and the header) never changes between compiles. */
+const HARI = 24 * JAM;
+
+/**
+ * When a seat's gateway token expires, in seconds. A real room's is 8 hours
+ * after its evening ends, so it never changes between compiles. A practice
+ * room has no evening and is used on any day after it was made, so its expiry
+ * follows the day of use (UTC) instead of the day it was created: the start of
+ * that day plus 32 hours, which leaves 8 hours or more at any moment of the
+ * day and changes only when the day does (a header compiled yesterday shows
+ * stale today, which asks for one recompile).
+ */
+export function kedaluwarsaToken(
+  room: Pick<RecExamRoomRow, "createdAt">,
+  slot: Pick<RecSlotRow, "endsAt"> | null,
+  now = Date.now(),
+): number {
+  if (slot) return Math.floor(slot.endsAt.getTime() / 1000) + 8 * JAM;
+  const nowSec = Math.floor(Math.max(now, room.createdAt.getTime()) / 1000);
+  return nowSec - (nowSec % HARI) + HARI + 8 * JAM;
+}
+
+/** A seat's gateway token. Its expiry (see `kedaluwarsaToken`) holds still between compiles, so the header does not change. */
 export async function tokenKursi(
   room: RecExamRoomRow,
   slot: RecSlotRow | null,
   seatId: number,
+  now = Date.now(),
 ): Promise<string> {
   const secret = gatewaySecret();
   if (!secret) return "";
-  const base = (slot?.endsAt ?? room.createdAt).getTime() / 1000;
-  return signLcClaim({ r: room.id, s: seatId, exp: Math.floor(base) + 8 * JAM }, secret);
+  return signLcClaim({ r: room.id, s: seatId, exp: kedaluwarsaToken(room, slot, now) }, secret);
 }
 
 /* ---------------------------------------------------------------- hotspots */

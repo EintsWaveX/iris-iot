@@ -4,6 +4,7 @@
  * when, never the values, so two graders do not anchor on each other). Pure.
  */
 import type { FieldError, Rubric, RubricRow } from "./exam-types.js";
+import type { LcRun } from "./lc-types.js";
 
 export interface StoredSheet {
   grader: string;
@@ -61,4 +62,23 @@ export function sameRubricRows(a: readonly RubricRow[], b: readonly RubricRow[])
       return r.key === x.key && r.label === x.label && r.max === x.max && r.weight === x.weight;
     })
   );
+}
+
+/**
+ * The newest compile or flash of a seat for the grading list, and how many
+ * the seat has run (of the newest 50 it keeps). The seat stores its runs
+ * oldest first, so the first match is the oldest; the latest is by time.
+ */
+export function runTerakhir(
+  runs: readonly LcRun[],
+  kind: LcRun["kind"],
+): { at: number; ok: boolean; n: number } | null {
+  let last: LcRun | null = null;
+  let n = 0;
+  for (const r of runs) {
+    if (r.kind !== kind) continue;
+    n++;
+    if (!last || r.at >= last.at) last = r;
+  }
+  return last ? { at: last.at, ok: last.ok, n } : null;
 }
