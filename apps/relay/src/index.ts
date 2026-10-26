@@ -1,17 +1,17 @@
 /**
- * Konsol Pi relay (Phase 9 Stage 9).
+ * Konsol PC relay (Phase 9 Stage 9).
  *
  *   GET  /web/:kanal?tiket=...   the browser (WebSocket)
- *   GET  /pi/:kanal?tiket=...    the Pi's bridge (WebSocket, it dials out)
+ *   GET  /pc/:kanal?tiket=...    the PC's bridge (WebSocket, it dials out)
  *   POST /tutup/:kanal           the IRIS API closes a room (cut off, reject)
  *
  * Tickets are signed by the IRIS API (src/lib/konsol.ts in apps/web) with
  * the shared KONSOL_RELAY_SECRET: 60 seconds, one end, one room, one nonce.
- * Each room (a Durable Object per kanal) takes one Pi and any number of
+ * Each room (a Durable Object per kanal) takes one PC and any number of
  * people (2026-10-05: the owner and those who joined), refuses a nonce it
  * has seen, and closes everything at the console's hard end or after 10
  * minutes without a frame from anyone. It stores nothing else: no frames,
- * no transcript (the Pi keeps the terminal record).
+ * no transcript (the PC keeps the terminal record).
  *
  * One person controls at a time: the first in, then whoever the controller
  * gives it to ("beri"); the others ask ("minta"). When the controller
@@ -20,13 +20,13 @@
  * RFB, and the bridge gives only the controller a password that isn't view
  * only.
  *
- * Between the relay and the Pi, frames carry the viewer: binary frames
- * start with a 2-byte viewer id (0 from the Pi = every viewer), text from
- * the Pi is "\0ke:<id>:<text>" and text from a viewer "\0web:<id>:<text>".
- * The relay's own notes to the Pi start with "\0relay:" (web-masuk:<id>,
- * web-keluar:<id>, kendali:<id>, tutup:<why>). A viewer gets the Pi's bytes
+ * Between the relay and the PC, frames carry the viewer: binary frames
+ * start with a 2-byte viewer id (0 from the PC = every viewer), text from
+ * the PC is "\0ke:<id>:<text>" and text from a viewer "\0web:<id>:<text>".
+ * The relay's own notes to the PC start with "\0relay:" (web-masuk:<id>,
+ * web-keluar:<id>, kendali:<id>, tutup:<why>). A viewer gets the PC's bytes
  * as they are, plus "\0relay:ruang:{json}" (who is in, who controls, who
- * asked, whether the Pi is there) and "\0relay:ditolak"; it sends
+ * asked, whether the PC is there) and "\0relay:ditolak"; it sends
  * "\0relay:minta", "batal", "beri:<id>" and "tolak:<id>".
  *
  * Live updates (Phase 9, after the deploy) share this Worker:
@@ -44,7 +44,7 @@
  *   GET  /aliran/<ruang>?tiket=...   a page in a running session (WebSocket)
  *   POST /aliran/<ruang>/kirim       the IRIS API, signed: {"m": [...]}
  *
- * <ruang> is "sesi-<id>" or "pi" (the Server pages). The ticket names the
+ * <ruang> is "sesi-<id>" or "pc" (the Server pages). The ticket names the
  * room, the role and the Praktikan's group; the room passes each message
  * only to the sockets allowed to see it (src/lib/aliran.ts in apps/web).
  *
@@ -115,7 +115,7 @@ const ALIRAN_KIRIM_MAKS = 64 * 1024;
 
 const KANAL_RE = /^[A-Za-z0-9_-]{16,64}$/;
 const KONTROL = "\u0000relay:";
-/** Frames from the browser held while the Pi hasn't joined yet. */
+/** Frames from the browser held while the PC hasn't joined yet. */
 const ANTRE_MAKS = 64 * 1024;
 /**
  * Data centers near the lab. Indonesian providers send some connections
@@ -134,8 +134,8 @@ const DEKAT = new Set([
   "SGN",
   "HAN",
 ]);
-/** The Pi may use its ticket this many times, to move off a far route. */
-const PI_SAMBUNG_MAKS = 5;
+/** The PC may use its ticket this many times, to move off a far route. */
+const PC_SAMBUNG_MAKS = 5;
 
 type Bingkai = string | ArrayBuffer;
 
@@ -201,7 +201,7 @@ export default {
     if (!kanal || !KANAL_RE.test(kanal)) return teks(404, "tidak ditemukan");
     if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
       return teks(503, "relay belum diatur");
-    // Every frame crosses the room twice (page to Pi and back), so it has to
+    // Every frame crosses the room twice (page to PC and back), so it has to
     // live near both, which are in Indonesia. Without the hint Cloudflare
     // sometimes made a room far away (2026-10-05: 185 ms from the page
     // instead of 35). The hint only counts when the room is first made.
@@ -223,7 +223,7 @@ export default {
     }
 
     if (
-      (ujung === "web" || ujung === "pi") &&
+      (ujung === "web" || ujung === "pc") &&
       req.headers.get("Upgrade") === "websocket"
     ) {
       const cek = await cekTiket(
@@ -381,7 +381,7 @@ interface Web {
   pintu: string;
 }
 
-/** 2-byte viewer id in front of a frame to or from the Pi. */
+/** 2-byte viewer id in front of a frame to or from the PC. */
 function tandai(id: number, f: Bingkai): ArrayBuffer {
   const isi =
     typeof f === "string" ? new TextEncoder().encode(f) : new Uint8Array(f);
@@ -394,7 +394,7 @@ function tandai(id: number, f: Bingkai): ArrayBuffer {
 
 export class Ruang {
   private webs = new Map<number, Web>();
-  private pi: WebSocket | null = null;
+  private pc: WebSocket | null = null;
   private nextId = 1;
   /** Who controls the console (the only one whose input reaches it). */
   private pengendali: number | null = null;
@@ -404,14 +404,14 @@ export class Ruang {
   private antre: ArrayBuffer[] = [];
   private antreBytes = 0;
   /** One chain per direction keeps frames in order while Blobs are read. */
-  private kePi: Promise<void> = Promise.resolve();
+  private kePc: Promise<void> = Promise.resolve();
   private kePeramban: Promise<void> = Promise.resolve();
   private terakhirWeb = Date.now();
   private akhir = 0;
   private tutup = false;
   /** The Cloudflare data center this room runs in (for lag checks). */
   private colo = "";
-  private piPintu = "";
+  private pcPintu = "";
 
   constructor(
     private ctx: DurableObjectState,
@@ -433,11 +433,11 @@ export class Ruang {
       return teks(410, "ruang sudah ditutup");
     const peran = req.headers.get("x-peran");
     const nonce = req.headers.get("x-nonce") ?? "";
-    if (peran !== "web" && peran !== "pi") return teks(400, "peran");
+    if (peran !== "web" && peran !== "pc") return teks(400, "peran");
     // A page's nonce works once, ever (kept until the room is cleaned up).
-    // The Pi's works a few times inside its minute, to move off a far route.
+    // The PC's works a few times inside its minute, to move off a far route.
     const dipakai = Number(await this.ctx.storage.get(`n:${nonce}`)) || 0;
-    if (dipakai && (peran !== "pi" || dipakai >= PI_SAMBUNG_MAKS))
+    if (dipakai && (peran !== "pc" || dipakai >= PC_SAMBUNG_MAKS))
       return teks(403, "tiket sudah dipakai");
     await this.ctx.storage.put(`n:${nonce}`, dipakai + 1);
     this.akhir = Math.max(
@@ -456,9 +456,9 @@ export class Ruang {
       ?.trim();
 
     const pintu = req.headers.get("x-pintu") ?? "";
-    if (peran === "pi") {
-      this.piPintu = pintu;
-      this.pasangPi(sisi);
+    if (peran === "pc") {
+      this.pcPintu = pintu;
+      this.pasangPc(sisi);
     } else
       this.pasangWeb(sisi, {
         nim: req.headers.get("x-nim") ?? "",
@@ -475,14 +475,14 @@ export class Ruang {
     });
   }
 
-  /* --------------------------------------------------------- the Pi */
+  /* --------------------------------------------------------- the PC */
 
-  private pasangPi(sisi: WebSocket) {
-    this.pi?.close(4000, "diganti");
-    this.pi = sisi;
+  private pasangPc(sisi: WebSocket) {
+    this.pc?.close(4000, "diganti");
+    this.pc = sisi;
     sisi.addEventListener("message", (e) => {
       this.kePeramban = this.kePeramban.then(async () => {
-        if (this.pi !== sisi) return;
+        if (this.pc !== sisi) return;
         const f = await bingkai(e.data);
         if (typeof f === "string") {
           // "\0ke:<id>:<text>": a note for one viewer, or 0 for all.
@@ -496,8 +496,8 @@ export class Ruang {
         this.keWeb((b[0] << 8) | b[1], f.slice(2));
       });
     });
-    sisi.addEventListener("close", () => this.lepasPi(sisi));
-    sisi.addEventListener("error", () => this.lepasPi(sisi));
+    sisi.addEventListener("close", () => this.lepasPc(sisi));
+    sisi.addEventListener("error", () => this.lepasPc(sisi));
     // Who controls first, so the bridge hands each viewer the right
     // password the first time.
     sisi.send(`${KONTROL}kendali:${this.pengendali ?? 0}`);
@@ -509,11 +509,11 @@ export class Ruang {
     this.kabari();
   }
 
-  private lepasPi(ws: WebSocket) {
-    if (this.pi !== ws) return;
-    this.pi = null;
-    // Without the Pi there is nothing to show: every page asks again.
-    for (const w of [...this.webs.values()]) w.ws.close(4001, "pi-keluar");
+  private lepasPc(ws: WebSocket) {
+    if (this.pc !== ws) return;
+    this.pc = null;
+    // Without the PC there is nothing to show: every page asks again.
+    for (const w of [...this.webs.values()]) w.ws.close(4001, "pc-keluar");
   }
 
   private keWeb(id: number, f: Bingkai) {
@@ -524,10 +524,10 @@ export class Ruang {
     this.webs.get(id)?.ws.send(f);
   }
 
-  /** To the Pi, or held until it joins. */
-  private kePiKirim(f: string | ArrayBuffer) {
-    if (this.pi) {
-      this.pi.send(f);
+  /** To the PC, or held until it joins. */
+  private kePcKirim(f: string | ArrayBuffer) {
+    if (this.pc) {
+      this.pc.send(f);
       return;
     }
     if (typeof f === "string") return;
@@ -552,7 +552,7 @@ export class Ruang {
       this.webs.delete(lama.id);
       if (this.pengendali === lama.id) this.pengendali = id;
       this.minta = this.minta.map((x) => (x === lama.id ? id : x));
-      this.pi?.send(`${KONTROL}web-keluar:${lama.id}`);
+      this.pc?.send(`${KONTROL}web-keluar:${lama.id}`);
       lama.ws.close(4000, "diganti");
     }
     this.webs.set(id, w);
@@ -560,27 +560,27 @@ export class Ruang {
     if (this.pengendali === null) this.pengendali = id;
     sisi.addEventListener("message", (e) => {
       this.terakhirWeb = Date.now();
-      this.kePi = this.kePi.then(async () => {
+      this.kePc = this.kePc.then(async () => {
         if (this.webs.get(id) !== w) return;
         const f = await bingkai(e.data);
         if (typeof f === "string") {
           if (f.startsWith(KONTROL))
             return this.perintah(w, f.slice(KONTROL.length));
           // Text (the terminal's size, still here) only from whoever controls.
-          if (this.pengendali === id) this.kePiKirim(`\u0000web:${id}:${f}`);
+          if (this.pengendali === id) this.kePcKirim(`\u0000web:${id}:${f}`);
           return;
         }
         // The terminal takes keys from whoever controls only. A screen gets
-        // every viewer's RFB (each has its own connection on the Pi, and
+        // every viewer's RFB (each has its own connection on the PC, and
         // only the controller's has the password that isn't view only).
         if (this.terminal && this.pengendali !== id) return;
-        this.kePiKirim(tandai(id, f));
+        this.kePcKirim(tandai(id, f));
       });
     });
     sisi.addEventListener("close", () => this.lepasWeb(w));
     sisi.addEventListener("error", () => this.lepasWeb(w));
-    this.pi?.send(`${KONTROL}kendali:${this.pengendali ?? 0}`);
-    this.pi?.send(`${KONTROL}web-masuk:${id}`);
+    this.pc?.send(`${KONTROL}kendali:${this.pengendali ?? 0}`);
+    this.pc?.send(`${KONTROL}web-masuk:${id}`);
     this.kabari();
   }
 
@@ -588,16 +588,16 @@ export class Ruang {
     if (this.webs.get(w.id) !== w) return;
     this.webs.delete(w.id);
     this.minta = this.minta.filter((x) => x !== w.id);
-    // A closed tab counts from when it left: the Pi isn't kept open alone.
+    // A closed tab counts from when it left: the PC isn't kept open alone.
     this.terakhirWeb = Date.now();
-    this.pi?.send(`${KONTROL}web-keluar:${w.id}`);
+    this.pc?.send(`${KONTROL}web-keluar:${w.id}`);
     if (this.pengendali === w.id) {
       // Control goes to the owner when they are here, else whoever came
       // first.
       const sisa = [...this.webs.values()].sort((a, b) => a.masuk - b.masuk);
       this.pengendali = (sisa.find((x) => x.pemilik) ?? sisa[0])?.id ?? null;
       this.minta = this.minta.filter((x) => x !== this.pengendali);
-      this.pi?.send(`${KONTROL}kendali:${this.pengendali ?? 0}`);
+      this.pc?.send(`${KONTROL}kendali:${this.pengendali ?? 0}`);
     }
     if (!this.webs.size) {
       this.antre = [];
@@ -622,7 +622,7 @@ export class Ruang {
     ) {
       this.pengendali = ke;
       this.minta = this.minta.filter((x) => x !== ke);
-      this.pi?.send(`${KONTROL}kendali:${ke}`);
+      this.pc?.send(`${KONTROL}kendali:${ke}`);
     } else if (aksi === "tolak" && this.pengendali === w.id) {
       this.minta = this.minta.filter((x) => x !== ke);
       this.webs.get(ke)?.ws.send(`${KONTROL}ditolak`);
@@ -654,9 +654,9 @@ export class Ruang {
             pengendali: this.pengendali,
             minta: this.minta,
             orang,
-            pi: this.pi !== null,
+            pc: this.pc !== null,
             ...(this.colo ? { colo: this.colo } : {}),
-            pintu: { aku: w.pintu, pi: this.piPintu },
+            pintu: { aku: w.pintu, pc: this.pcPintu },
           })}`,
         );
       } catch {
@@ -668,13 +668,13 @@ export class Ruang {
   private async selesai(alasan: string) {
     this.tutup = true;
     try {
-      this.pi?.send(`${KONTROL}tutup:${alasan}`);
+      this.pc?.send(`${KONTROL}tutup:${alasan}`);
     } catch {
       /* already gone */
     }
-    this.pi?.close(4003, alasan);
+    this.pc?.close(4003, alasan);
     for (const w of this.webs.values()) w.ws.close(4003, alasan);
-    this.pi = null;
+    this.pc = null;
     this.webs.clear();
     // Keep the nonces an hour past the end, then forget the room.
     await this.ctx.storage.put("tutup", Date.now());
@@ -689,9 +689,9 @@ export class Ruang {
     }
     if (this.akhir && now > this.akhir) return this.selesai("batas");
     // Idle: no frame from any viewer, or nobody at all, for 10 minutes.
-    if (this.pi && now - this.terakhirWeb > DIAM_MENIT * 60_000)
+    if (this.pc && now - this.terakhirWeb > DIAM_MENIT * 60_000)
       return this.selesai("diam");
-    if (!this.webs.size && !this.pi) {
+    if (!this.webs.size && !this.pc) {
       // Nobody connected: keep the nonces until the ticket window is long past.
       await this.ctx.storage.setAlarm(now + 600_000);
       return;
@@ -848,7 +848,7 @@ interface Lampiran {
 }
 
 /**
- * One running session's streams (or the Server pages' `pi` room). Sockets
+ * One running session's streams (or the Server pages' `pc` room). Sockets
  * hibernate, so a quiet room costs nothing; "ping" is answered without
  * waking it. Each message reaches only the sockets allowed to see it
  * (bolehTerima, src/lib/aliran.ts). Nothing is stored but the nonces of

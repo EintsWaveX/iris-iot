@@ -1,5 +1,5 @@
 /**
- * Konsol Pi (Phase 9 Stage 9): the rules and the ticket format, shared by
+ * Konsol PC (Phase 9 Stage 9): the rules and the ticket format, shared by
  * the API (Vercel, Node), the relay (Cloudflare Worker) and the tests. Pure
  * and browser safe: the HMAC uses WebCrypto, which all three have.
  *
@@ -13,7 +13,7 @@
  *   closes after 10 minutes idle and 60 minutes at most.
  * - Tickets: `base64url(payload).base64url(hmac)`, HMAC-SHA256 over the
  *   first part with KONSOL_RELAY_SECRET. 60 seconds for the browser; the
- *   Pi's is longer because it rides the next heartbeat. Each carries a
+ *   PC's is longer because it rides the next heartbeat. Each carries a
  *   nonce the relay accepts once, the room (kanal), the server, the person
  *   and the hard end of the console.
  */
@@ -24,7 +24,7 @@ export { acakId };
 
 export const KONSOL_TARGET = ["terminal", ":0", ":1"] as const;
 export type KonsolTarget = (typeof KONSOL_TARGET)[number];
-/** What a new console may open: the terminal and the Pi's own screen (what
+/** What a new console may open: the terminal and the PC's own screen (what
  *  the HDMI shows). ":1" (a virtual desktop) only names older history rows. */
 export const KONSOL_BUKA = ["terminal", ":0"] as const;
 
@@ -47,8 +47,8 @@ export const DIAM_MENIT = 10;
 export const BATAS_MENIT = 60;
 /** The browser's ticket. */
 export const TIKET_WEB_DETIK = 60;
-/** The Pi's ticket: it waits for the agent's next heartbeat (60 s idle). */
-export const TIKET_PI_DETIK = 180;
+/** The PC's ticket: it waits for the agent's next heartbeat (60 s idle). */
+export const TIKET_PC_DETIK = 180;
 /** Terminal output kept for Audit. */
 export const TRANSKRIP_MAKS = 256 * 1024;
 
@@ -114,13 +114,13 @@ export function sisaDetikKonsol(r: KonsolBaris, now = Date.now()): number | null
 
 export interface Tiket {
   v: 1;
-  /** Which end: the browser or the Pi. */
-  p: "web" | "pi";
+  /** Which end: the browser or the PC. */
+  p: "web" | "pc";
   /** The relay room. */
   k: string;
   /** server.id */
   s: number;
-  /** The person (web) or "" (pi). */
+  /** The person (web) or "" (pc). */
   u: string;
   /** Their name and code, for the others in the room (web). */
   nm?: string;

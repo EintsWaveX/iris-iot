@@ -1,6 +1,6 @@
 /* Perburuan LoRa IRIS, part 1: the shell, joining, the Hunt screen and
    the Team screen. Ported from the Phase 9 mockup (screens-hunt.js) and
-   wired to the real protocol: every number here comes from the Pi's frame.
+   wired to the real protocol: every number here comes from the PC's frame.
 
    The rules are the server's: each group hunts its own beacon, groups are
    compared only by the share of their own distance closed or by finish
@@ -106,7 +106,7 @@
         ${!bare && (member || asisten) && html`<span class=${"hbar__g" + (asisten && !member ? " hbar__g--a" : "")} style=${`--g:var(--group-${asisten && !member ? 0 : g})`}>${asisten && !member ? html`<${Icon} n="shield-check" sm /><span>${L("Asisten", "Assistant")}</span>` : html`<i></i>${W < 640 ? H.gname(g) : H.gfull(g)}`}</span>`}
         <span class="grow"></span>
         <${HClock} compact=${W < 640} />
-        <span class="hbar__link" data-tip=${live ? L("Tersambung ke Pi lewat IRIS_IOT", "Connected to the Pi over IRIS_IOT") : L("Menyambung ulang ke Pi", "Reconnecting to the Pi")} tabindex="0"><span class=${"dot " + (live ? "dot--ok dot--pulse" : "dot--warn")}></span></span>
+        <span class="hbar__link" data-tip=${live ? L("Tersambung ke PC lewat IRIS_IOT", "Connected to the PC over IRIS_IOT") : L("Menyambung ulang ke PC", "Reconnecting to the PC")} tabindex="0"><span class=${"dot " + (live ? "dot--ok dot--pulse" : "dot--warn")}></span></span>
         <${IconBtn} icon="sliders-horizontal" label=${L("Tampilan", "Display")} onClick=${() => setDisp(true)} />
       </header>
       ${!bare && W >= 900 && html`<nav class="htabs" aria-label=${L("Perburuan", "Hunt")}>${tabs.map((t) => html`<button type="button" aria-current=${tab === t.k ? "page" : undefined} onClick=${() => H.go(t.k)}><${Icon} n=${t.i} />${H.title(L(...t.l))}</button>`)}</nav>`}
@@ -303,7 +303,7 @@
       }
       H.go("hunt");
     };
-    /* a NIM from the web's QR link signs in as soon as the Pi answers */
+    /* a NIM from the web's QR link signs in as soon as the PC answers */
     useEffect(() => {
       if (!H.urlNim || step !== "nim" || N.status !== "live" || noSession) return;
       const v = H.urlNim;
@@ -322,7 +322,7 @@
         tak_ada_sesi: L("Belum ada sesi yang berjalan. Tunggu asisten memulainya.", "No session is running yet. Wait for the assistant to start it."),
         nim_cacat: L("NIM hanya berisi angka dan huruf, 4 sampai 20 karakter.", "A NIM has only digits and letters, 4 to 20 characters."),
         terlalu_sering: L("Terlalu banyak percobaan. Panggil asisten.", "Too many tries. Call an assistant."),
-      }[err] || (err ? L("Tidak tersambung ke Pi. Cek Wi-Fi IRIS_IOT, lalu coba lagi.", "Not connected to the Pi. Check the IRIS_IOT Wi-Fi, then try again.") : null);
+      }[err] || (err ? L("Tidak tersambung ke PC. Cek Wi-Fi IRIS_IOT, lalu coba lagi.", "Not connected to the PC. Check the IRIS_IOT Wi-Fi, then try again.") : null);
       body = html`<form class="card card--raised hjoin" onSubmit=${submit}>
         <span class="eyebrow">${L("Selamat datang di perburuan", "Welcome to the hunt")}</span>
         <h1 class="h-title">${H.T("Masuk dengan NIM", "Sign in with your NIM")}</h1>
@@ -330,7 +330,7 @@
         <label class="field"><span class="label">NIM</span><input class="input hnim mono" inputmode="numeric" autocomplete="off" maxlength="20" id="h-nim" value=${nim} onInput=${(e) => setNim(e.target.value.replace(/[^0-9A-Za-z]/g, "").toUpperCase())} placeholder="1032230310" />
           ${msg && html`<span class="error"><${Icon} n="warning" sm />${msg}</span>`}</label>
         <${Btn} type="submit" kind="primary" lg block icon="arrow-right" disabled=${nim.length < 4 || busy}>${busy ? L("Mencari", "Looking Up") : L("Masuk", "Sign In")}</${Btn}>
-        <span class="hint">${L("Tanpa internet. Kamu tersambung ke Pi lewat Wi-Fi IRIS_IOT.", "No internet. You're connected to the Pi over the IRIS_IOT Wi-Fi.")}</span>
+        <span class="hint">${L("Tanpa internet. Kamu tersambung ke PC lewat Wi-Fi IRIS_IOT.", "No internet. You're connected to the PC over the IRIS_IOT Wi-Fi.")}</span>
         <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya Asisten", "I'm an Assistant")}</button>
       </form>`;
     } else if (step === "reveal") {
@@ -486,7 +486,7 @@
     const head = html`<div class="hhead"><span class="row" style="gap:8px">${member ? html`<${Badge}><${Icon} n=${ROLES[role].i} sm />${L(...ROLES[role].l)}</${Badge}>` : html`<${Badge} tone="ok"><${Icon} n="eye" sm />${L("Melihat sebagai asisten", "Viewing as an assistant")}</${Badge}>`}<span class="hint">${sisa != null ? L(`Arena ${arena()} m · sisa ${sisa} menit`, `Arena ${arena()} m · ${sisa} minutes left`) : L(`Arena ${arena()} m`, `Arena ${arena()} m`)}</span></span>${!member && html`<${GroupPick} g=${g} />`}</div>`;
     if (!row)
       return html`<${H.HuntApp} tab="hunt"><div class="hpage__in">${head}
-        <section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menunggu hunter kelompokmu", "Waiting for your group's hunter")} body=${L("Pi belum menerima paket dari hunter kelompok ini. Nyalakan papan hunter dan pastikan tersambung ke IRIS_IOT.", "The Pi hasn't had a packet from this group's hunter yet. Power the hunter board and make sure it's on IRIS_IOT.")} /></section></div></${H.HuntApp}>`;
+        <section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menunggu hunter kelompokmu", "Waiting for your group's hunter")} body=${L("PC belum menerima paket dari hunter kelompok ini. Nyalakan papan hunter dan pastikan tersambung ke IRIS_IOT.", "The PC hasn't had a packet from this group's hunter yet. Power the hunter board and make sure it's on IRIS_IOT.")} /></section></div></${H.HuntApp}>`;
     const band = row.jarak_dekat != null ? [metres(row.jarak_dekat), metres(row.jarak_jauh)] : null;
     const trend = H.trend10(g);
     const sw = f && f.sapuan ? f.sapuan[String(g)] : null;

@@ -114,7 +114,7 @@ export function bacaHasilSiap(keluaran: string | null | undefined): HasilSiap | 
 export const AGEN_PROTOKOL_TERBARU = 9;
 
 /** Where the IRIS_IOT hotspot comes from (agent protocol 5): a router in
- *  Access Point mode on the Pi's LAN port, or the Pi's own Wi-Fi radio. */
+ *  Access Point mode on the PC's LAN port, or the PC's own Wi-Fi radio. */
 export const AP_SUMBER = ["kabel", "wifi"] as const;
 export type ApSumber = (typeof AP_SUMBER)[number];
 
@@ -158,7 +158,7 @@ const rows = (v: unknown): Record<string, unknown>[] =>
     .map(obj)
     .filter((x): x is Record<string, unknown> => !!x);
 
-/** The heartbeat's `kondisi` block (the "Pi right now" cards). */
+/** The heartbeat's `kondisi` block (the "PC right now" cards). */
 export interface Kondisi {
   inti: number | null;
   beban: number[] | null;
@@ -167,9 +167,9 @@ export interface Kondisi {
   disk: [number, number] | null;
   jaringan: { antarmuka: string; masuk: number; keluar: number } | null;
   jamSelisihMs: number | null;
-  /** Konsol Pi's screen: "siap", or why it can't open (2026-10-07). */
+  /** Konsol PC's screen: "siap", or why it can't open (2026-10-07). */
   layar: LayarKonsol | null;
-  /** The Pi's clock minus the site's, in seconds, measured by the site on
+  /** The PC's clock minus the site's, in seconds, measured by the site on
    *  each heartbeat (chrony's own offset can't see a wrong reference). */
   selisihDetik: number | null;
 }
@@ -389,7 +389,7 @@ export interface HasilPembaruan {
 
 /** The package manager behind the Updates card's system packages row:
  *  agent protocol 6 builds since 2026-10-14 send infoSistem.distro
- *  ({ keluarga, pengelola }); before that every Pi ran apt. */
+ *  ({ keluarga, pengelola }); before that every PC ran apt. */
 export function pengelolaPaket(info: Record<string, unknown> | null | undefined): string {
   const p = str(obj(info?.distro)?.pengelola);
   return ["apt", "dnf", "yum", "pacman", "zypper"].includes(p) ? p : "apt";
@@ -512,7 +512,7 @@ export function barisPembaruan(
 
 /* ------------------------------------------------- One-line install */
 
-/** What the one-line install (public/pasang-pi.sh) reports as it goes, the
+/** What the one-line install (public/pasang-pc.sh) reports as it goes, the
  *  step it is starting: the token checked, the bundle, provisioning, then
  *  enrolment (2026-10-08). */
 export const TAHAP_PASANG = ["mulai", "bundel", "pasang", "daftar"] as const;
@@ -520,7 +520,7 @@ export type TahapPasang = (typeof TAHAP_PASANG)[number];
 
 export interface Pasang {
   tahap: TahapPasang;
-  /** The Pi already had an agent: only enrolment, nothing reinstalled. */
+  /** The PC already had an agent: only enrolment, nothing reinstalled. */
   ulang: boolean;
   /** The installer's own failure line, or null while it runs. */
   gagal: string | null;
@@ -543,21 +543,21 @@ export function bacaPasang(raw: unknown): Pasang | null {
   };
 }
 
-/** The wizard's Activation rows: the Pi runs the line, the bundle,
+/** The wizard's Activation rows: the PC runs the line, the bundle,
  *  provisioning, the agent's activation, its first heartbeat. */
 export const LANGKAH_PASANG = 5;
 
 export interface PosisiPasang {
   /** The row in progress (0 to 4); LANGKAH_PASANG once all are done. */
   langkah: number;
-  /** Rows 1 and 2 were skipped: the Pi already had an agent. */
+  /** Rows 1 and 2 were skipped: the PC already had an agent. */
   lewati: boolean;
   gagal: string | null;
 }
 
 /** Where an install stands, from its reports, the server's newest enrolment
  *  and its newest heartbeat. A heartbeat only counts after that enrolment,
- *  so a Pi that is moving servers is not "done" by its old beats, and an
+ *  so a PC that is moving servers is not "done" by its old beats, and an
  *  enrolment only counts after `perintahPada`, when the wizard made the
  *  command it is waiting on (null: whatever enrolled last). */
 export function posisiPasang(
@@ -579,7 +579,7 @@ export function posisiPasang(
   return { langkah: p.ulang && langkah < 3 ? 3 : langkah, lewati: p.ulang, gagal: p.gagal };
 }
 
-/** A command sent to the Pi with no report back expires after this long */
+/** A command sent to the PC with no report back expires after this long */
 export const PERINTAH_TERKIRIM_KEDALUWARSA_MENIT = 5;
 /** A command the agent never picked up expires after this long */
 export const PERINTAH_MENUNGGU_KEDALUWARSA_MENIT = 30;

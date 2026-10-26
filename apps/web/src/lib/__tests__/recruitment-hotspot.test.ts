@@ -209,7 +209,7 @@ describe("a hotspot as typed", () => {
     expect(validHotspot("Pixel", undefined)).toEqual([]);
   });
   it("refuses control characters", () => {
-    expect(validHotspot("Pi\nxel", "kata-sandi")).toEqual([{ field: "ssid", kode: "ssid_salah" }]);
+    expect(validHotspot("PC\nxel", "kata-sandi")).toEqual([{ field: "ssid", kode: "ssid_salah" }]);
     expect(validHotspot("Pixel", "kata\nsandi")).toEqual([{ field: "pass", kode: "sandi_salah" }]);
   });
 });

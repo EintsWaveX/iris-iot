@@ -513,7 +513,7 @@ export function rencanaTerima(p: {
   return out;
 }
 
-/** The baseline a verified save leaves: its rows (the Pi's tp..l2) as SeeLabs keeps them. */
+/** The baseline a verified save leaves: its rows (the PC's tp..l2) as SeeLabs keeps them. */
 export function dasarDariBaris(
   baris: {
     nim: string;

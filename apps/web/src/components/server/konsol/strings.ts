@@ -1,4 +1,4 @@
-/** Konsol Pi's words (Phase 9 Stage 9, mockup v-console). Casual Indonesian
+/** Konsol PC's words (Phase 9 Stage 9, mockup v-console). Casual Indonesian
  *  that keeps the English terms, no dashes, title case for headers and
  *  buttons, sentence case for hints. */
 import { dict } from "../../../lib/app";
@@ -110,9 +110,9 @@ export const K = dict({
     openAnyway: "Tetap Buka",
     // connecting
     connTicket: "Meminta tiket ke server IRIS…",
-    connPi: "Menunggu PC Server menyambung ke relay. Biasanya di bawah 30 detik.",
+    connPc: "Menunggu PC Server menyambung ke relay. Biasanya di bawah 30 detik.",
     connSlow: "PC Server belum menyambung. Mungkin agennya lambat atau PC Server sedang offline.",
-    callPi: "Panggil PC Server Lagi",
+    callPc: "Panggil PC Server Lagi",
     reconnect: "Sambung Lagi",
     lost: "Sambungan ke PC Server terputus.",
     replaced: "Kamu membuka konsol ini di tab lain.",
@@ -268,7 +268,7 @@ export const K = dict({
     ctlMoved: (who: string) => `Kendali pindah ke ${who}.`,
     ctlYours: "Kamu sekarang memegang kendali.",
     termWatch: "Hanya melihat. Minta kendali untuk mengetik.",
-    waitingPi: "Menunggu PC Server",
+    waitingPc: "Menunggu PC Server",
     joinLink: "Lihat atau Gabung",
     leave: "Keluar",
   },
@@ -366,10 +366,10 @@ export const K = dict({
     wait: "Wait for the Session to End",
     openAnyway: "Open Anyway",
     connTicket: "Getting a ticket from the IRIS server…",
-    connPi: "Waiting for the PC Server to join the relay. Usually under 30 seconds.",
+    connPc: "Waiting for the PC Server to join the relay. Usually under 30 seconds.",
     connSlow:
       "The PC Server hasn't joined yet. Its agent may be slow, or the PC Server is offline.",
-    callPi: "Call the PC Server Again",
+    callPc: "Call the PC Server Again",
     reconnect: "Reconnect",
     lost: "The connection to the PC Server dropped.",
     replaced: "You opened this console in another tab.",
@@ -520,7 +520,7 @@ export const K = dict({
     ctlMoved: (who: string) => `Control moved to ${who}.`,
     ctlYours: "You're in control now.",
     termWatch: "Watching only. Ask for control to type.",
-    waitingPi: "Waiting for the PC Server",
+    waitingPc: "Waiting for the PC Server",
     joinLink: "View or Join",
     leave: "Leave",
   },
@@ -613,9 +613,9 @@ export const K = dict({
     wait: "等下课",
     openAnyway: "仍然打开",
     connTicket: "正在向 IRIS 服务器申请票据…",
-    connPi: "等待 PC 服务器连接中继。通常不到 30 秒。",
+    connPc: "等待 PC 服务器连接中继。通常不到 30 秒。",
     connSlow: "PC 服务器还没有连接。可能代理较慢，或 PC 服务器处于离线状态。",
-    callPi: "再次呼叫 PC 服务器",
+    callPc: "再次呼叫 PC 服务器",
     reconnect: "重新连接",
     lost: "与 PC 服务器的连接断开了。",
     replaced: "你在另一个标签页打开了这个控制台。",
@@ -762,7 +762,7 @@ export const K = dict({
     ctlMoved: (who: string) => `控制已交给 ${who}。`,
     ctlYours: "现在由你控制。",
     termWatch: "仅观看。申请控制后才能输入。",
-    waitingPi: "等待 PC 服务器",
+    waitingPc: "等待 PC 服务器",
     joinLink: "查看或加入",
     leave: "离开",
   },

@@ -1,7 +1,7 @@
 /**
  * The element in full screen, if any (2026-10-06). The browser shows only
  * that element and what is inside it, so a dialog, tooltip, menu or toast
- * portalled to <body> vanishes while Konsol Pi is full screen. Layers
+ * portalled to <body> vanishes while Konsol PC is full screen. Layers
  * portal here instead whenever something is full screen.
  */
 import { useEffect, useState } from "react";

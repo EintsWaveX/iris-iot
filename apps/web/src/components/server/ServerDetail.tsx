@@ -5,7 +5,7 @@
  * with its agent protocol and bundle, the Compact/Full switch (Full only
  * with the full right, remembered in this browser), the location, LAN,
  * heartbeat, uptime and notes, and a glance row (services, the last Ready
- * check, site updates, the Pi clock) with Run the Ready Check and Pi
+ * check, site updates, the PC clock) with Run the Ready Check and PC
  * Console. The tab line follows. The detail is polled every 6 s and handed
  * to the tab.
  */
@@ -111,7 +111,7 @@ function daftar(items: string[], lang: Lang): string {
   return new Intl.ListFormat(localeOf(lang), { type: "conjunction" }).format(items);
 }
 
-/** "40 ms", "2,1 s", "2 min" for the Pi clock's offset. */
+/** "40 ms", "2,1 s", "2 min" for the PC clock's offset. */
 function selisih(ms: number, lang: Lang): string {
   const a = Math.abs(ms);
   if (a < 1000) return `${Math.round(a)} ms`;
@@ -136,7 +136,7 @@ import Overview from "./Overview";
 import Ready from "./Ready";
 import Settings from "./Settings";
 import Enroll from "./Enroll";
-import KonsolPi, { KonsolBanner } from "./konsol/KonsolPi";
+import KonsolPc, { KonsolBanner } from "./konsol/KonsolPc";
 import { konsolBerakhirPada, type KonsolData } from "./konsol/data";
 import { S } from "./strings";
 import { S12 } from "./server12Strings";
@@ -228,7 +228,7 @@ export default function ServerDetail({
     return t.length ? Math.min(...t) : null;
   }, [data?.perintah]);
   useBatas(habis, ["server"]);
-  // Phase 9 Stage 9: Konsol Pi's state, for the tab and the banner.
+  // Phase 9 Stage 9: Konsol PC's state, for the tab and the banner.
   const konsol = usePoll(
     async () => {
       const d = await getJson<KonsolData | { ok: false }>(`/api/server/${id}?aksi=konsol`);
@@ -554,7 +554,7 @@ export default function ServerDetail({
           />
         )}
         {tab === "konsol" && bisa.konsol && (
-          <KonsolPi
+          <KonsolPc
             lang={lang}
             serverId={id}
             serverNama={s.nama}

@@ -2,7 +2,7 @@
  * The rules a candidate's sketch and the generated iris_seat.h must meet
  * (EXAM-ENGINE 9.4). The API applies them before it queues a compile job so a
  * bad sketch never waits in line; the PC agent applies the same ones again
- * (orangepi/agent/kompilasi.py), because the agent never trusts the site.
+ * (pc/agent/kompilasi.py), because the agent never trusts the site.
  * Pure and browser safe.
  *
  * A regex over source text is a first gate, not the wall: the compile itself

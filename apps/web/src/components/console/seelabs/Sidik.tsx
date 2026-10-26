@@ -1,4 +1,4 @@
-/** A Pi key fingerprint ("53B1:F24B:..."), which wraps only after a colon so
+/** A PC key fingerprint ("53B1:F24B:..."), which wraps only after a colon so
  *  no group of four is split on a narrow screen. */
 export default function Sidik({ nilai, className = "" }: { nilai: string; className?: string }) {
   const kelompok = nilai.split(":");

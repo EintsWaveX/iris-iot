@@ -202,7 +202,7 @@ def main() -> None:
             IRIS_WS_KEY=str(key_file),
             PYTHONUNBUFFERED="1",
         )
-        children.append(subprocess.Popen([sys.executable, str(ASO / "orangepi" / "modul3" / "modul3_bridge.py")], env=env))
+        children.append(subprocess.Popen([sys.executable, str(ASO / "pc" / "modul3" / "modul3_bridge.py")], env=env))
         check("the bridge connects", until(lambda: "server: connected" in status()))
 
         got: list[tuple[bytes, bytes]] = []

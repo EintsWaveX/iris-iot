@@ -3,7 +3,7 @@
  * Browser-safe: the score sheet, the API and the tests share it.
  *
  * SeeLabs (athena.ptrkr.moe) has no API: it is Laravel + Livewire. IRIS puts
- * scores in through the robot (a signed-in session on the Pi), which also
+ * scores in through the robot (a signed-in session on the PC), which also
  * reads back what SeeLabs holds. There is no copy-and-paste path.
  *
  * SeeLabs pays one account once per session and takes at most two sessions

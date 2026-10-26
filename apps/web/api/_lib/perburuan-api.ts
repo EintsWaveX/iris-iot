@@ -4,10 +4,10 @@
  * reads their own group; an Asisten reads the group they view as
  * (?kelompok=, Lihat Sebagai Praktikan).
  *
- * The hunt itself lives on the Pi's offline hotspot, so this only reports:
+ * The hunt itself lives on the PC's offline hotspot, so this only reports:
  * the state of the round, where phones join (hotspot or lab LAN address,
  * the same rule as the Console's session bar), the Wi-Fi to join (SSID and
- * passphrase the agent read from the Pi at run time; shown only while the
+ * passphrase the agent read from the PC at run time; shown only while the
  * hotspot is on), who in the group has joined, and the result.
  */
 import { and, desc, eq, gte, isNotNull, sql } from "drizzle-orm";
@@ -39,7 +39,7 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
   }
 
   const db = getDb();
-  // The Pi running the hunt is the one that reported a summary lately;
+  // The PC running the hunt is the one that reported a summary lately;
   // there is only ever one hunt at a time.
   const [srv] = await db
     .select({
@@ -77,7 +77,7 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
   const url = `http://${host}:${PORT_HUNT}/`;
   const wifi = ap && srv?.hotspot ? srv.hotspot : null;
 
-  // The same roster the Pi got (sesi.ts's jadwalModul4Hari): the group's
+  // The same roster the PC got (sesi.ts's jadwalModul4Hari): the group's
   // members, so names and the hunt's NIMs line up.
   const nama = await db
     .select({ nim: anggotaT.nim, nama: anggotaT.nama })
@@ -104,7 +104,7 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
     ok: true,
     aktif: true,
     keadaan: keadaanPerburuan(ringkas, nomor, perburuan),
-    piTerhubung: !!ringkas,
+    pcTerhubung: !!ringkas,
     // The hunt's own roster doesn't hold this NIM (a late roster change):
     // the step says to ask the Asisten instead of showing a link that fails.
     terdaftar: who.role !== "praktikan" || !g || g.anggota.some((a) => a.nim === who.nim),

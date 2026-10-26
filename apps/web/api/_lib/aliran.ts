@@ -1,7 +1,7 @@
 /**
  * Session streams, the API side (Phase 12): signs the ticket a page needs to
  * enter its room (GET /api/session/aliran) and sends the data the API holds
- * into a room: Pi heartbeats and readings, blank results, hands, hints.
+ * into a room: PC heartbeats and readings, blank results, hands, hints.
  * The plain topic signals (siaran.ts) still go out as well, for pages that
  * are not in the room.
  */
@@ -30,7 +30,7 @@ import {
 /** Rooms that had nobody in them, until when (ms), on this warm instance */
 const kosong = new Map<string, number>();
 const KOSONG_MS = 15_000;
-/** Streams skipped while a room is empty; events always go. Only the Pi
+/** Streams skipped while a room is empty; events always go. Only the PC
  *  room's beats: a session room is rarely empty, and skipping its readings
  *  left the first Live viewer after a quiet spell without them for 15 s. */
 const ALIRAN_DERAS = new Set(["denyut"]);
@@ -127,7 +127,7 @@ export async function nomorDariId(kelompokId: number): Promise<number | null> {
 // ---------- Tickets ----------
 
 /**
- * GET /api/session/aliran?ruang=sesi|pi[&kelompok=N]
+ * GET /api/session/aliran?ruang=sesi|pc[&kelompok=N]
  * A ticket for the running session's room (Asisten, or a Praktikan signed
  * in to it, who gets their own group), or for the Server pages' room
  * (Asisten). `kelompok`: an Asisten holding that group (Lihat Sebagai
@@ -143,14 +143,14 @@ export async function handleAliranGet(req: ApiRequest, res: ApiResponse) {
   const ruangMinta = req.query.ruang;
   const exp = Math.floor(Date.now() / 1000) + ALIRAN_TIKET_DETIK;
 
-  if (ruangMinta === "pi") {
+  if (ruangMinta === "pc") {
     const s = requireRole(req, res, "asisten");
     if (!s) return;
     const tiket = await tandaTiketAliran(
-      { v: 1, p: "aliran", r: "pi", peran: "asisten", g: null, u: s.nim, exp, n: acakId() },
+      { v: 1, p: "aliran", r: "pc", peran: "asisten", g: null, u: s.nim, exp, n: acakId() },
       env.secret,
     );
-    res.status(200).json({ ok: true, url: `${env.relay}/aliran/pi`, tiket, ruang: "pi" });
+    res.status(200).json({ ok: true, url: `${env.relay}/aliran/pc`, tiket, ruang: "pc" });
     return;
   }
   if (ruangMinta !== "sesi") {

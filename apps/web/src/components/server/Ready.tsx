@@ -1,6 +1,6 @@
 /**
  * The Ready check tab (Phase 9 Stage 5; Phase 10 grid, mockup s12-server):
- * the head card runs diag.siap (the Pi's own preflight) for a module; one
+ * the head card runs diag.siap (the PC's own preflight) for a module; one
  * card per module below shows that module's newest result, each check with
  * its one-line fix and, where the site can do it, a fix button, and Check
  * This Module. The check history and the Updates card run underneath.
@@ -122,7 +122,7 @@ export default function Ready({
   const umum = hasil ? hasil.cek.filter((c) => modulCek(c.id) === null) : [];
   const umumGagal = umum.filter((c) => c.status === "gagal").length;
 
-  /** The check history: beside the Pi's checks, or alone before any run. */
+  /** The check history: beside the PC's checks, or alone before any run. */
   const riwayat = (cls: string) => (
     <section className={`panel ${cls}`}>
       <h2 className="panel__title">{t.readyHist}</h2>
@@ -249,8 +249,8 @@ export default function Ready({
             <section className="panel s12readypi">
               <div className="panel__head">
                 <div className="stack stack--sm">
-                  <h2 className="panel__title">{w.piTitle}</h2>
-                  <span className="hint">{w.piSub}</span>
+                  <h2 className="panel__title">{w.pcTitle}</h2>
+                  <span className="hint">{w.pcSub}</span>
                 </div>
                 {hasil && (
                   <span className={`pill ${umumGagal ? "pill--warn" : "pill--ok"}`}>

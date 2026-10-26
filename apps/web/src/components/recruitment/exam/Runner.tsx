@@ -199,7 +199,7 @@ export default function Runner({
   const flaggedList = items
     .map((x, i) => (flags.has(x.q) && !voided.has(x.q) ? i : -1))
     .filter((i) => i >= 0);
-  const pi = tv.plan.findIndex((p) => p.key === key);
+  const pc = tv.plan.findIndex((p) => p.key === key);
   const timer = <Timer left={left} frozen={paused} lang={lang} big />;
 
   const cells = (strip: boolean) => (
@@ -257,7 +257,7 @@ export default function Runner({
             <b className="r3top__part">
               <span className="r3top__long">{t.part[key].l}</span>
               <span className="r3top__short">{t.part[key].s}</span>{" "}
-              <span className="hint">· {t.run.partOf(pi + 1, tv.plan.length)}</span>
+              <span className="hint">· {t.run.partOf(pc + 1, tv.plan.length)}</span>
             </b>
           </div>
         </div>

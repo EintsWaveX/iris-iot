@@ -128,7 +128,7 @@ export const RB = dict({
         "Sudah disimpan, tapi waktu dibaca ulang nilainya belum sama. Cek di SeeLabs.",
       segel_rusak:
         "Kunci PC Server berubah, jadi kata sandi lama tidak bisa dibuka. Hubungkan lagi akunmu.",
-      pi_diam: "PC Server tidak menjawab. Robot mencoba lagi sendiri.",
+      pc_diam: "PC Server tidak menjawab. Robot mencoba lagi sendiri.",
     } as Record<string, string>,
     retryAt: (jam: string) => `Dicoba lagi pukul ${jam}`,
     tryAgain: "Coba Lagi",
@@ -330,7 +330,7 @@ export const RB = dict({
       tak_terverifikasi: "Saved, but the read-back didn't show the same scores. Check in SeeLabs.",
       segel_rusak:
         "The PC Server's key changed, so the old password can't be opened. Connect your account again.",
-      pi_diam: "The PC Server didn't answer. The robot tries again by itself.",
+      pc_diam: "The PC Server didn't answer. The robot tries again by itself.",
     } as Record<string, string>,
     retryAt: (jam: string) => `Tried again at ${jam}`,
     tryAgain: "Try Again",
@@ -519,7 +519,7 @@ export const RB = dict({
         "SeeLabs 拒绝了这次保存，通常是因为今天已有其他账号录入了该小组。SeeLabs 的原话：",
       tak_terverifikasi: "已保存，但回读时成绩不一致。请在 SeeLabs 中检查。",
       segel_rusak: "PC 服务器的密钥已变，旧密码无法解开。请重新连接你的账号。",
-      pi_diam: "PC 服务器没有回应。机器人会自己再试。",
+      pc_diam: "PC 服务器没有回应。机器人会自己再试。",
     } as Record<string, string>,
     retryAt: (jam: string) => `将于 ${jam} 重试`,
     tryAgain: "重试",

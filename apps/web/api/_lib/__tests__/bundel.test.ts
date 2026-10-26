@@ -9,7 +9,7 @@ const { privateKey, publicKey } = generateKeyPairSync("ed25519");
 const pem = publicKey.export({ type: "spki", format: "pem" }).toString();
 const tanda = sign(null, zip, privateKey);
 
-describe("Pi bundle signature", () => {
+describe("PC bundle signature", () => {
   it("accepts the signing key's signature and nothing else", () => {
     expect(tandaSah(zip, tanda, pem)).toBe(true);
     expect(tandaSah(Buffer.concat([zip, Buffer.from("x")]), tanda, pem)).toBe(false);
@@ -18,12 +18,12 @@ describe("Pi bundle signature", () => {
     expect(tandaSah(zip, tanda)).toBe(false);
   });
 
-  it("ships the same public key as the Pi's bundel.pub", () => {
+  it("ships the same public key as the PC's bundel.pub", () => {
     expect(BUNDEL_PUB).toContain("MCowBQYDK2VwAyEAFQ2KYNT9tPyJC52+GY5cGnNESAHH00MiEqvMb4xXhdM=");
   });
 
   it("gives the one-line installer the same key", () => {
-    const skrip = readFileSync(new URL("../../../public/pasang-pi.sh", import.meta.url), "utf8");
+    const skrip = readFileSync(new URL("../../../public/pasang-pc.sh", import.meta.url), "utf8");
     expect(skrip).toContain(BUNDEL_PUB);
   });
 });

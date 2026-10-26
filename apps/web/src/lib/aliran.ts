@@ -3,14 +3,14 @@
  * (apps/relay, the Aliran room) and the pages. Pure and browser safe.
  *
  * A running session has one relay room, `sesi-<id>`, and the Server pages
- * share one more, `pi`. A page enters with a ticket the API signs for one
+ * share one more, `pc`. A page enters with a ticket the API signs for one
  * room, one role and, for a Praktikan, their own group. Inside, the room
  * passes each message only to those allowed to see it (`bolehTerima`):
  * - an Asisten sees everything;
  * - a Praktikan sees board telemetry of every group (the Live room's group
  *   picker allows it today), and serial lines, blank results and hints of
  *   their own group only;
- * - the `pi` room takes Asisten only.
+ * - the `pc` room takes Asisten only.
  * A group's laptop sends its board lines and readings up its own socket
  * (`saringNaik` checks them, and the group comes from the ticket, never
  * from the page). The API sends the rest with a signed POST.
@@ -23,14 +23,14 @@ import { bacaTanda, tandaiJson } from "./tanda.js";
 
 /** A room ticket lives this long; a reconnect asks for a new one */
 export const ALIRAN_TIKET_DETIK = 60;
-export const ALIRAN_RUANG_RE = /^(sesi-[1-9]\d{0,8}|pi)$/;
+export const ALIRAN_RUANG_RE = /^(sesi-[1-9]\d{0,8}|pc)$/;
 
 export type PeranAliran = "asisten" | "praktikan";
 
 export interface TiketAliran {
   v: 1;
   p: "aliran";
-  /** The room: "sesi-<id>" or "pi" */
+  /** The room: "sesi-<id>" or "pc" */
   r: string;
   peran: PeranAliran;
   /** The group this socket belongs to and may send for (null: none) */
@@ -80,7 +80,7 @@ export async function cekTiketAliran(
     return { ok: false, kode: "format" };
   if (t.r !== ruang) return { ok: false, kode: "ruang" };
   // The Server pages' room is for Asisten only
-  if (t.r === "pi" && t.peran !== "asisten") return { ok: false, kode: "ruang" };
+  if (t.r === "pc" && t.peran !== "asisten") return { ok: false, kode: "ruang" };
   if (nowSec > t.exp) return { ok: false, kode: "kedaluwarsa" };
   return { ok: true, tiket: t };
 }
@@ -90,11 +90,11 @@ export async function cekTiketAliran(
 // ---------- Messages ----------
 
 /**
- * tel       board readings of a group (laptop for Module 1, the Pi for 2 to 4)
+ * tel       board readings of a group (laptop for Module 1, the PC for 2 to 4)
  * serial    a group laptop's raw board lines
  * jawaban   a blank was checked (the group's own answer, never the key)
  * petunjuk  a hint was asked for, cancelled or answered
- * denyut    a Pi heartbeat (the `pi` room)
+ * denyut    a PC heartbeat (the `pc` room)
  */
 export const JENIS_ALIRAN = ["tel", "serial", "jawaban", "petunjuk", "denyut"] as const;
 export type JenisAliran = (typeof JENIS_ALIRAN)[number];

@@ -1,7 +1,7 @@
 /**
  * Session streams, the page side (Phase 12): one socket per room per tab,
  * to the relay's session room (`sesi`, while a session runs) or the Server
- * pages' room (`pi`). Each enters with a ticket from GET /api/session/aliran.
+ * pages' room (`pc`). Each enters with a ticket from GET /api/session/aliran.
  * Messages carry their data (src/lib/aliran.ts), so a view updates from the
  * message itself instead of asking the API again.
  *
@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import type { JenisAliran, PesanAliran } from "./aliran";
 import { dengar, useSiaran, type Topik } from "./siaran";
 
-export type RuangAliran = "sesi" | "pi";
+export type RuangAliran = "sesi" | "pc";
 
 /** live: open; putus: should be open, trying again; mati: no room (no
  *  session, or the relay isn't set up) */
@@ -69,7 +69,7 @@ const PONG_MS = 8_000;
 const koneksi = new Map<string, Koneksi>();
 
 function kunciDari(o: OpsiAliran): string | null {
-  if (o.ruang === "pi") return "pi";
+  if (o.ruang === "pc") return "pc";
   if (!o.sesiId) return null;
   return `sesi:${o.sesiId}:${o.kelompok ?? ""}`;
 }

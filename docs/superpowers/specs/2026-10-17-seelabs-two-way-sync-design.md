@@ -1,7 +1,7 @@
 # SeeLabs two-way sync (read-back into IRIS) — design
 
 Asked 2026-10-16/17. Builds on the Phase 14 robot (IRIS ASO
-`orangepi/agent/seelabs.py`, iris-iot `api/_lib/seelabs-robot.ts`), which
+`pc/agent/seelabs.py`, iris-iot `api/_lib/seelabs-robot.ts`), which
 today only goes one way: after Kirim Nilai, or an edit after it, IRIS saves
 a group's scores in SeeLabs and reads them back to verify. Nothing that
 changes in SeeLabs ever reaches IRIS. Practicum has not started yet (first
@@ -121,7 +121,7 @@ Results 2026-10-17 ~01:15 WIB (NUE's account, through athena, read only):
 
 ## How it works
 
-### The read job (Pi agent)
+### The read job (PC agent)
 
 A new job kind `baca` (read only), next to uji/nilai/jaga/kelompok:
 
@@ -132,15 +132,15 @@ A new job kind `baca` (read only), next to uji/nilai/jaga/kelompok:
   unless Stage 0 says otherwise.
 - Result `bukti`: `{nilai: [{praktikum, klp, modul, baris: [{nim, presensi,
   tp, ta, praktikum, jurnal}]}], bap: [...] | null}`. Values as SeeLabs
-  shows them, no rounding on the Pi.
+  shows them, no rounding on the PC.
 - Never calls a SeeLabs action that changes anything (no Input Ulang, no
   Hapus, no Kelompok actions). Tests prove only GET pages and
   `wire:model` filter updates are sent.
-- Protocol bump (7 to 8) so the site only sends `baca` to a Pi that knows it.
+- Protocol bump (7 to 8) so the site only sends `baca` to a PC that knows it.
 
 ### Scheduling (site)
 
-- `harianBilaPerlu`'s neighbour, called from the Pi heartbeat: queue a
+- `harianBilaPerlu`'s neighbour, called from the PC heartbeat: queue a
   `baca` per connected account when its last read is older than the
   current interval (5 min in practicum hours, 60 min otherwise; nightly
   one with all modules). The existing one-waiting-job-per-thing unique

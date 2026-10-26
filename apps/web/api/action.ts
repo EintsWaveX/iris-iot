@@ -4,7 +4,7 @@
  *                    | { tipe: "perintah_batal", id }              (P6.7)
  *                    | { tipe: "perintah_hapus", serverId }        (Phase 9)
  *                    | { tipe: "riwayat_hapus", serverId }         (Phase 9)
- *                    | { tipe: "konsol_*", ... }  (Phase 9 Stage 9, Konsol Pi;
+ *                    | { tipe: "konsol_*", ... }  (Phase 9 Stage 9, Konsol PC;
  *                      see _lib/konsol.ts, rights by badge there)
  *   — assistant-only for all three. Phase 9 removed "adopsi" and
  *   "perangkat" with the Devices tab; the perangkat table stays.
@@ -24,7 +24,7 @@
  * an action to an argv list (server-lib.ts) -- an action neither side
  * recognises is refused at both ends, on purpose. Delivery happens on the
  * agent's next heartbeat (api/agent/index.ts), not immediately -- there is
- * no inbound path to the Pi to deliver it any faster.
+ * no inbound path to the PC to deliver it any faster.
  */
 import type { ApiRequest, ApiResponse } from "./_lib/http.js";
 import { cekHak } from "./_lib/hak.js";
@@ -61,7 +61,7 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  // Konsol Pi opens only through its own approved ticket flow.
+  // Konsol PC opens only through its own approved ticket flow.
   if (aksi === "konsol.buka") {
     res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "konsol" });
     return;
@@ -184,7 +184,7 @@ async function handlePerintahUlang(req: ApiRequest, res: ApiResponse, session: S
 
 /**
  * "perintah_batal" (P6.7): only ever cancels a command still `menunggu` --
- * one already claimed (`terkirim`) may be mid-execution on the Pi right
+ * one already claimed (`terkirim`) may be mid-execution on the PC right
  * now, and there is no way to interrupt a subprocess that is already
  * running there, so pretending to cancel it here would just lie about
  * what actually happens.
@@ -218,7 +218,7 @@ const SALINAN_MAKS = 500;
 /**
  * "perintah_hapus" (Phase 9 Stage 5): "Kosongkan log" on All commands.
  * Removes the server's finished commands (one still queued or on its way to
- * the Pi stays, its result has to land somewhere), after a compact copy of
+ * the PC stays, its result has to land somewhere), after a compact copy of
  * them goes into the audit log.
  */
 async function handlePerintahHapus(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -310,7 +310,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (!session) return;
 
   const body = jsonBody(req);
-  // Konsol Pi checks its own rights (the DEV badge, the Pencipta).
+  // Konsol PC checks its own rights (the DEV badge, the Pencipta).
   if (typeof body.tipe === "string" && body.tipe.startsWith("konsol_"))
     return handleKonsolAksi(req, res, session, body.tipe);
   // Phase 9: commands need the Server right, except the few an Asisten

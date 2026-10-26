@@ -70,7 +70,7 @@ export interface Kalimat {
   teks: string;
   jenis: JenisAudit | "lain";
   danger?: boolean;
-  /** Konsol Pi: the terminal record, shown on request. */
+  /** Konsol PC: the terminal record, shown on request. */
   transkrip?: string;
 }
 
@@ -738,7 +738,7 @@ function jamDariIso(iso: unknown): string {
       });
 }
 
-/** "PK-0007", as the Konsol Pi summary card names it. */
+/** "PK-0007", as the Konsol PC summary card names it. */
 const pk = (id: unknown) => `PK-${String(Number(id) || 0).padStart(4, "0")}`;
 
 export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {

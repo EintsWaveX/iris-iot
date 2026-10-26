@@ -75,7 +75,7 @@ vi.mock("../berjalan", () => ({
 }));
 vi.mock("../siap-mulai", () => ({
   cekSiapMulai: async () => ({
-    cek: [{ id: "pi", status: "gagal", keras: false }],
+    cek: [{ id: "pc", status: "gagal", keras: false }],
     serverId: 13,
   }),
 }));
@@ -260,7 +260,7 @@ describe("the lab clock's start", () => {
       sesiId: 41,
       jenis: "mulai",
       aktor: "otomatis",
-      detail: { otomatis: true, dipaksa: { alasan: "Dimulai otomatis", gagal: ["pi"] } },
+      detail: { otomatis: true, dipaksa: { alasan: "Dimulai otomatis", gagal: ["pc"] } },
     });
     expect(audit.filter((x) => x.aksi === "sesi_mulai")).toHaveLength(1);
     expect(audit.some((x) => x.aksi === "sesi_otomatis_tolak")).toBe(false);

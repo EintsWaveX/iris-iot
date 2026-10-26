@@ -411,7 +411,7 @@ export default function AsistenCommands({
         group: t.go,
         label: t.servers,
         hint: "G S",
-        keywords: ["orange pi", "pi"],
+        keywords: ["pc", "pc"],
         run: go("/servers"),
       },
       {

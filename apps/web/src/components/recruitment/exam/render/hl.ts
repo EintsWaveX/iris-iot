@@ -41,8 +41,8 @@ export function highlightBlanks(src: string, lang: CodeLang): BlankItem[][] {
   )) {
     tok.text.split("\n").forEach((line, li) => {
       if (li > 0) out.push([]);
-      line.split(MARK).forEach((piece, pi) => {
-        if (pi > 0) out[out.length - 1].push({ blank: ns[next++] });
+      line.split(MARK).forEach((piece, pc) => {
+        if (pc > 0) out[out.length - 1].push({ blank: ns[next++] });
         if (piece) out[out.length - 1].push({ text: piece, kind: tok.kind });
       });
     });

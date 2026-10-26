@@ -21,7 +21,7 @@ Read this file first, then your own prompt file. If anything here conflicts with
   If unrelated unfinished work sits on the branch, ship from a temporary worktree with a cherry-pick instead.
 - **Committing:** stage paths **explicitly**, never `git commit -a` or `git add .`. Keep the rig-only `apps/web/src/lib/db.ts` patch and `apps/web/public/rig-test/` out of every commit.
 - **Commit message:** `web: ...` / `relay: ...` / `docs: ...`, written as plain prose of what changed and why, ending with the attribution lines the system gives you.
-- **The PC agent** lives in a different repo: `C:\Users\EintsWaveX\Downloads\IRIS ASO\orangepi\agent` (deploy = push its `main`; the agent updates through the signed bundle and Updates card). The same staging rules apply.
+- **The PC agent** lives in a different repo: `C:\Users\EintsWaveX\Downloads\IRIS ASO\pc\agent` (deploy = push its `main`; the agent updates through the signed bundle and Updates card). The same staging rules apply.
 - **Migrations:** the next free number is `0048`. Check `apps/web/drizzle/` first, since another session may have taken it. Production migrations are applied **by hand after a `pg_dump`**, and only on the user's go.
 - **No credentials in code**, ever (no passwords, tokens, MQTT passwords, rig suffixes). Run `PYTHONUTF8=1 python scripts/check_secrets.py` before every commit.
 

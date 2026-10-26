@@ -5,7 +5,7 @@ import { SLOT_MULAI, hariIniWib, idHuntSusulan } from "../jadwal";
 
 // Stage 18: apps/modul4/server.py's own JADWAL_MULAI tuple must name the
 // exact same four clock times as SLOT_MULAI here, since the schedule that
-// api/agent/index.ts now pushes to the Pi (jadwalModul4Hari()) is matched
+// api/agent/index.ts now pushes to the PC (jadwalModul4Hari()) is matched
 // against server.py's own JADWAL["sesi"][slot.id] by slot number alone --
 // a silent drift between the two would misfile a session at the wrong time
 // on the scoreboard without either side ever raising an error.

@@ -1603,7 +1603,7 @@ button.rp-stat:focus-visible {
   text-align: right;
 }
 
-/* Phase 9 Stage 9: a Konsol Pi terminal record, from the Audit line. */
+/* Phase 9 Stage 9: a Konsol PC terminal record, from the Audit line. */
 .rp-transkrip {
   background: #0b0f17;
   border-radius: var(--radius-md);

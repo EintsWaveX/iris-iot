@@ -231,9 +231,9 @@ export const sesi = pgTable(
     // scheduler) never asked for one; the scheduler will always set it.
     slot: integer("slot"),
     // True only for Module 4: the one part of the practicum that
-    // needs the Orange Pi running as its own access point rather than as a
+    // needs the PC running as its own access point rather than as a
     // campus network client. A single wlan0 cannot be both at once (see
-    // orangepi/README.md section 7.0's provisioning notes), so the
+    // pc/README.md section 7.0's provisioning notes), so the
     // scheduler must know which slots need AP mode ahead of time rather
     // than leaving it to memory.
     butuhAp: boolean("butuh_ap").notNull().default(false),
@@ -921,7 +921,7 @@ export const audit = pgTable(
 );
 
 /**
- * Phase 2 — one row per registered Orange Pi. `alamatLan` is the fixed LAN
+ * Phase 2 — one row per registered PC. `alamatLan` is the fixed LAN
  * address boards and phones use to reach it (192.168.4.1 under the router
  * topology the Phase 2 plan settled on) — distinct from whatever public IP
  * the router happens to have, which is irrelevant to anyone on the practicum
@@ -944,12 +944,12 @@ export const server = pgTable("server", {
   // agent reports.
   catatan: text("catatan"),
   lokasi: text("lokasi"),
-  // 0032: who looks after this Pi (a name, division or contact), set in the
+  // 0032: who looks after this PC (a name, division or contact), set in the
   // Pengaturan tab and shown beside Lokasi on the server's card.
   penanggungJawab: text("penanggung_jawab"),
   // The bundle SHA pair the agent reads from its own BUNDLE.txt (see
-  // orangepi/build_bundle.py and agent.py's _agen_versi()) and reports on
-  // every heartbeat, so "is this Pi actually running what I just shipped"
+  // pc/build_bundle.py and agent.py's _agen_versi()) and reports on
+  // every heartbeat, so "is this PC actually running what I just shipped"
   // is answered by the dashboard instead of trusted on faith.
   agenVersi: text("agen_versi"),
   // The hourly system-info block P6.7 adds to the agent's heartbeat
@@ -971,7 +971,7 @@ export const server = pgTable("server", {
   // the agent, for the Praktikan's Perburuan step. Only the newest is kept.
   perburuan: jsonb("perburuan").$type<Record<string, unknown>>(),
   perburuanPada: timestamp("perburuan_pada", { withTimezone: true }),
-  // The hotspot the Pi runs for Module 4, read by the agent from its own
+  // The hotspot the PC runs for Module 4, read by the agent from its own
   // hostapd file at run time ({ ssid, sandi }), for the join QR.
   hotspot: jsonb("hotspot").$type<{ ssid: string; sandi: string | null }>(),
 });
@@ -1092,10 +1092,10 @@ export const perintah = pgTable(
  *
  * `tx`/`rx` are "HH:MM:SS:MS" strings, matching every module's own
  * on-device print format, not a computed duration -- deliberately, since
- * Modules 2 and 3 only ever see the *arrival* side (the Pi has no visibility
+ * Modules 2 and 3 only ever see the *arrival* side (the PC has no visibility
  * into when an ESP32 or Pico W actually sent), so `tx` is null and `delayMs`
  * stays null for both; the web UI labels their delay column "from your
- * serial output" rather than showing a number the Pi cannot actually know.
+ * serial output" rather than showing a number the PC cannot actually know.
  * Module 4's hunter/beacon exchange both sides directly over LoRa, so it's
  * the only module where `tx`, `rx`, and `delayMs` are all populated.
  */
@@ -1139,9 +1139,9 @@ export const telemetriLog = pgTable(
   {
     id: serial("id").primaryKey(),
     sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
-    // P6.2 (0006): which Pi this row came from -- the plain history table
+    // P6.2 (0006): which PC this row came from -- the plain history table
     // never recorded this before (only telemetriTerkini did, since it's
-    // keyed by serverId), so a lab with more than one Pi had no way to
+    // keyed by serverId), so a lab with more than one PC had no way to
     // attribute a row in /reports to the box that actually sent it. Nullable
     // and set null (not cascade) on delete for the same reason percobaanMasuk
     // .sesiId is: a history row outlives the server registration if that
@@ -1158,7 +1158,7 @@ export const telemetriLog = pgTable(
     nilai: jsonb("nilai").$type<Record<string, number>>(),
     // P6.2 (0006, fixes half of B8): when the agent actually measured this
     // reading (its own diukurPada), distinct from dicatatPada below, which
-    // is only ever this row's INSERT time. A Pi that spooled readings while
+    // is only ever this row's INSERT time. A PC that spooled readings while
     // offline and sent them all in one later heartbeat used to have every
     // one of them recorded as having happened at that single flush moment.
     diukurPada: timestamp("diukur_pada", { withTimezone: true }),
@@ -1407,7 +1407,7 @@ export const seelabsEkspor = pgTable(
     payloadHash: text("payload_hash").notNull(),
     disalinPada: timestamp("disalin_pada", { withTimezone: true }).notNull().defaultNow(),
     disimpanPada: timestamp("disimpan_pada", { withTimezone: true }),
-    /** Phase 14: how it reached SeeLabs, "robot" (the Pi saved and read it
+    /** Phase 14: how it reached SeeLabs, "robot" (the PC saved and read it
      *  back, or since 2026-10-17 read a SeeLabs change back into IRIS) or
      *  "tangan" (marked by hand, before the manual path went away). */
     cara: text("cara", { enum: ["robot", "tangan"] }),
@@ -1421,9 +1421,9 @@ export const seelabsEkspor = pgTable(
 /* --------------------------------------------- Phase 14: SeeLabs robot */
 
 /**
- * An Asisten's SeeLabs password, sealed in their browser to the robot Pi's
+ * An Asisten's SeeLabs password, sealed in their browser to the robot PC's
  * RSA key (RSA-OAEP-256 over {nim, sandi}). The site can't open it; only
- * that Pi can, for one job at a time. A new Pi key turns every row into
+ * that PC can, for one job at a time. A new PC key turns every row into
  * kunci_lain until its owner connects again.
  */
 export const seelabsAkses = pgTable("seelabs_akses", {
@@ -1433,7 +1433,7 @@ export const seelabsAkses = pgTable("seelabs_akses", {
   segel: text("segel").notNull(),
   sidikKunci: text("sidik_kunci").notNull(),
   /** menunggu_uji until the first sign-in worked, then aktif; ditolak when
-   *  SeeLabs refused the password; kunci_lain when the Pi key changed. */
+   *  SeeLabs refused the password; kunci_lain when the PC key changed. */
   status: text("status", { enum: ["menunggu_uji", "aktif", "ditolak", "kunci_lain"] })
     .notNull()
     .default("menunggu_uji"),
@@ -1449,7 +1449,7 @@ export const seelabsAkses = pgTable("seelabs_akses", {
 
 /**
  * The robot's queue. `isi` holds only what SeeLabs needs and nothing secret
- * (class, KLP, module, rows, slots); the seal is joined in when the Pi claims
+ * (class, KLP, module, rows, slots); the seal is joined in when the PC claims
  * the job. A failure that a retry can fix (tak_terjangkau, seelabs_galat)
  * goes back to antre with a later `jalanPada`; anything else stays gagal.
  */
@@ -1764,15 +1764,15 @@ export const serialCermin = pgTable(
 );
 
 /**
- * Phase 9 Stage 9 (0019): Konsol Pi, the terminal and the Pi's screens in the
+ * Phase 9 Stage 9 (0019): Konsol PC, the terminal and the PC's screens in the
  * Server page. Since 2026-10-05 any active Asisten may ask; the Pencipta,
  * the Inti and DEV open without an approver (lib/konsol.ts). One row per request, from the
- * ask to the end; `transkrip` is the terminal output the Pi's bridge kept
+ * ask to the end; `transkrip` is the terminal output the PC's bridge kept
  * (trimmed), reported on a later heartbeat. Approval, a forced open during a
  * session and every end reason are kept here and in Audit.
  */
-export const konsolPi = pgTable(
-  "konsol_pi",
+export const konsolPc = pgTable(
+  "konsol_pc",
   {
     id: serial("id").primaryKey(),
     serverId: integer("server_id")
@@ -1803,17 +1803,17 @@ export const konsolPi = pgTable(
     transkrip: text("transkrip"),
   },
   (t) => [
-    index("konsol_pi_server_status_idx").on(t.serverId, t.status),
-    check("konsol_pi_target", sql`${t.target} in ('terminal', ':0', ':1')`),
+    index("konsol_pc_server_status_idx").on(t.serverId, t.status),
+    check("konsol_pc_target", sql`${t.target} in ('terminal', ':0', ':1')`),
     check(
-      "konsol_pi_status",
+      "konsol_pc_status",
       sql`${t.status} in ('diminta', 'disetujui', 'ditolak', 'aktif', 'selesai', 'kedaluwarsa', 'diputus')`,
     ),
   ],
 );
 
 /**
- * Konsol Pi (2026-10-05): everyone besides the owner who is let into an open
+ * Konsol PC (2026-10-05): everyone besides the owner who is let into an open
  * console. The Pencipta, the Inti (Admin tier) and DEV join without asking
  * (tanpa_persetujuan); anyone else asks, and the owner or one of those
  * answers. Who controls inside the room is the relay's (apps/relay).
@@ -1824,7 +1824,7 @@ export const konsolPeserta = pgTable(
     id: serial("id").primaryKey(),
     konsolId: integer("konsol_id")
       .notNull()
-      .references(() => konsolPi.id, { onDelete: "cascade" }),
+      .references(() => konsolPc.id, { onDelete: "cascade" }),
     nim: text("nim").notNull(),
     status: text("status", { enum: ["diminta", "disetujui", "ditolak"] })
       .notNull()
@@ -1841,13 +1841,13 @@ export const konsolPeserta = pgTable(
   ],
 );
 
-/** Every ticket nonce issued for Konsol Pi (the relay refuses a reused one). */
+/** Every ticket nonce issued for Konsol PC (the relay refuses a reused one). */
 export const konsolTiketNonce = pgTable("konsol_tiket_nonce", {
   nonce: text("nonce").primaryKey(),
   konsolId: integer("konsol_id")
     .notNull()
-    .references(() => konsolPi.id, { onDelete: "cascade" }),
-  peran: text("peran", { enum: ["web", "pi"] }).notNull(),
+    .references(() => konsolPc.id, { onDelete: "cascade" }),
+  peran: text("peran", { enum: ["web", "pc"] }).notNull(),
   dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -1858,7 +1858,7 @@ export const konsolKeberatan = pgTable(
     id: serial("id").primaryKey(),
     konsolId: integer("konsol_id")
       .notNull()
-      .references(() => konsolPi.id, { onDelete: "cascade" }),
+      .references(() => konsolPc.id, { onDelete: "cascade" }),
     nim: text("nim").notNull(),
     jenis: text("jenis", { enum: ["oke", "tanya", "tolak"] }).notNull(),
     teks: text("teks"),

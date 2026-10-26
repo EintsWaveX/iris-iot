@@ -83,7 +83,7 @@ const RINCI = JSON.stringify({
     { unit: "modul4.service", keadaan: "berhenti", sejak: "", mulaiUlang: 0, memori: null },
   ],
   proses: [{ pid: 812, cpu: 6.1, memori: 38912000, nama: "python3 agent.py" }],
-  paket: { kernel: "6.6.98", os: "Orange Pi 1.1.0", angka: 3 },
+  paket: { kernel: "6.6.98", os: "PC 1.1.0", angka: 3 },
   galatJurnal24j: 104,
   konfigAp: [
     ["SSID", "IRIS_IOT", false],
@@ -99,7 +99,7 @@ describe("bacaRinci", () => {
     expect(r.mount).toHaveLength(1);
     expect(r.antarmuka[0].uplink).toBe(true);
     expect(r.ntp.selisihMs).toBe(-6.1);
-    expect(r.paket).toEqual({ kernel: "6.6.98", os: "Orange Pi 1.1.0" });
+    expect(r.paket).toEqual({ kernel: "6.6.98", os: "PC 1.1.0" });
     expect(r.galatJurnal24j).toBe(104);
   });
 

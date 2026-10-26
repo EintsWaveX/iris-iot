@@ -12,7 +12,7 @@
  * made the write refreshes its other panels at once, relay or not
  * (2026-10-07).
  *
- * Pi heartbeats (api/agent) send only when something a page shows changed.
+ * PC heartbeats (api/agent) send only when something a page shows changed.
  */
 import type { ApiHandler, ApiRequest, ApiResponse } from "./http.js";
 import { ambilAntre, kirimRelay } from "./aliran.js";

@@ -1,5 +1,5 @@
 /**
- * Konsol Pi (Phase 9 Stage 9; rooms and joining since 2026-10-05): the API
+ * Konsol PC (Phase 9 Stage 9; rooms and joining since 2026-10-05): the API
  * side. Rules and tickets live in src/lib/konsol.ts; this file is the
  * database and the flow.
  *
@@ -11,8 +11,8 @@
  *      | "konsol_batal" | "konsol_tiket" | "konsol_putus" | "konsol_keberatan"
  *      | "konsol_gabung" | "konsol_gabung_jawab" | "konsol_gabung_batal"
  *      | "konsol_kendali" }
- * Heartbeat: the agent reports `konsol: [{kanal, status, ...}]` from the Pi
- * bridge (mulai when the Pi joined the relay, selesai with the transcript).
+ * Heartbeat: the agent reports `konsol: [{kanal, status, ...}]` from the PC
+ * bridge (mulai when the PC joined the relay, selesai with the transcript).
  *
  * Who: every active Asisten may ask for a console or to join an open one.
  * The Pencipta, the Inti (Admin tier) and DEV do both without an approver
@@ -21,9 +21,9 @@
  * person controls at a time, which the relay keeps (konsol_kendali only
  * writes the hand-over to Audit).
  *
- * Nothing here talks to the Pi directly: opening queues the agent command
+ * Nothing here talks to the PC directly: opening queues the agent command
  * `konsol.buka` (delivered on the next heartbeat), and cutting off asks the
- * relay to close the room, which ends the bridge on the Pi.
+ * relay to close the room, which ends the bridge on the PC.
  */
 import { createHmac } from "node:crypto";
 import { and, desc, eq, gte, inArray, ne } from "drizzle-orm";
@@ -35,7 +35,7 @@ import {
   asisten,
   konsolKeberatan,
   konsolPeserta,
-  konsolPi,
+  konsolPc,
   konsolTiketNonce,
   perintah,
   server,
@@ -45,7 +45,7 @@ import { bacaKondisi } from "../../src/lib/server-shared.js";
 import { verifyAsistenLogin, writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import {
   BATAS_MENIT,
-  TIKET_PI_DETIK,
+  TIKET_PC_DETIK,
   TIKET_WEB_DETIK,
   TRANSKRIP_MAKS,
   acakId,
@@ -70,7 +70,7 @@ export function konsolEnv(): { relay: string; secret: string } | null {
   return { relay: relay.replace(/\/+$/, ""), secret };
 }
 
-type Row = typeof konsolPi.$inferSelect;
+type Row = typeof konsolPc.$inferSelect;
 type Peserta = typeof konsolPeserta.$inferSelect;
 
 /** Brings a row's status up to date (expiry, the 60 minute cap). */
@@ -82,7 +82,7 @@ async function segarkan(r: Row): Promise<Row> {
     selesai: r.selesai ?? new Date(),
     alasanSelesai: r.alasanSelesai ?? (s === "selesai" ? "batas_waktu" : "kedaluwarsa"),
   };
-  await getDb().update(konsolPi).set(set).where(eq(konsolPi.id, r.id));
+  await getDb().update(konsolPc).set(set).where(eq(konsolPc.id, r.id));
   if (s === "selesai") await tutupRelay(r.kanal);
   return { ...r, ...set };
 }
@@ -184,9 +184,9 @@ export async function handleKonsolGet(res: ApiResponse, serverId: number, nim: s
     (
       await db
         .select()
-        .from(konsolPi)
-        .where(eq(konsolPi.serverId, serverId))
-        .orderBy(desc(konsolPi.id))
+        .from(konsolPc)
+        .where(eq(konsolPc.serverId, serverId))
+        .orderBy(desc(konsolPc.id))
         .limit(20)
     ).map(segarkan),
   );
@@ -206,7 +206,7 @@ export async function handleKonsolGet(res: ApiResponse, serverId: number, nim: s
         peserta: diAktif.filter((p) => p.status === "disetujui").map((p) => publikPeserta(p, n)),
       }
     : null;
-  // Whether the Pi said it can show its own screen (2026-10-07); null when
+  // Whether the PC said it can show its own screen (2026-10-07); null when
   // an older agent never said.
   const [srv] = await db
     .select({ kondisi: server.kondisi })
@@ -241,7 +241,7 @@ export async function handleKonsolGet(res: ApiResponse, serverId: number, nim: s
   };
   const mine =
     rows.find((r) => r.nim === nim && (TERBUKA.includes(r.status) || r === rows[0])) ?? null;
-  // Join requests I can answer, on any open console of this Pi.
+  // Join requests I can answer, on any open console of this PC.
   const gabung = orang
     ? peserta
         .filter((p) => p.status === "diminta")
@@ -323,7 +323,7 @@ async function pemeriksa(nim: string) {
     .map((d) => ({ kode: d.kode, nama: d.kode ? `${d.nama} (${d.kode})` : d.nama }));
 }
 
-/** For the nav dot: what waits for this person on any Pi. The Pencipta,
+/** For the nav dot: what waits for this person on any PC. The Pencipta,
  *  the Inti and DEV: requests to answer, and consoles one of them opened
  *  that they haven't looked at. Anyone: requests to join a console they
  *  own (or, for those three, any console). */
@@ -335,8 +335,8 @@ export async function konsolMenunggu(nim: string): Promise<number> {
   const since = new Date(Date.now() - 60 * 60_000);
   const rows = await db
     .select()
-    .from(konsolPi)
-    .where(and(inArray(konsolPi.status, TERBUKA), gte(konsolPi.dimintaPada, since)));
+    .from(konsolPc)
+    .where(and(inArray(konsolPc.status, TERBUKA), gte(konsolPc.dimintaPada, since)));
   let n = 0;
   if (istimewa) {
     const terbuka = rows.filter((r) => {
@@ -392,7 +392,7 @@ type Body = Record<string, unknown>;
 async function muatRow(id: unknown): Promise<Row | null> {
   const n = Number(id);
   if (!Number.isInteger(n) || n <= 0) return null;
-  const [r] = await getDb().select().from(konsolPi).where(eq(konsolPi.id, n)).limit(1);
+  const [r] = await getDb().select().from(konsolPc).where(eq(konsolPc.id, n)).limit(1);
   return r ? segarkan(r) : null;
 }
 
@@ -443,8 +443,8 @@ export async function handleKonsolAksi(
       (
         await db
           .select()
-          .from(konsolPi)
-          .where(and(eq(konsolPi.serverId, serverId), inArray(konsolPi.status, TERBUKA)))
+          .from(konsolPc)
+          .where(and(eq(konsolPc.serverId, serverId), inArray(konsolPc.status, TERBUKA)))
       ).map(segarkan),
     );
     if (open.some((r) => TERBUKA.includes(r.status)))
@@ -454,7 +454,7 @@ export async function handleKonsolAksi(
     if (sesi && paksa.length < 5)
       return void res.status(200).json({ ok: false, kode: "ada_sesi", sesi });
     const [row] = await db
-      .insert(konsolPi)
+      .insert(konsolPc)
       .values({
         serverId,
         nim: session.nim,
@@ -527,7 +527,7 @@ export async function handleKonsolAksi(
     const setuju = tipe === "konsol_setujui";
     const catatan = teks(body.catatan);
     const hasil = await db
-      .update(konsolPi)
+      .update(konsolPc)
       .set(
         setuju
           ? { status: "disetujui", disetujuiOleh: session.nim, disetujuiPada: new Date() }
@@ -538,7 +538,7 @@ export async function handleKonsolAksi(
               alasanSelesai: catatan || "ditolak",
             },
       )
-      .where(and(eq(konsolPi.id, r.id), eq(konsolPi.status, "diminta")))
+      .where(and(eq(konsolPc.id, r.id), eq(konsolPc.status, "diminta")))
       .returning();
     if (!hasil.length) return void res.status(200).json({ ok: false, kode: "sudah_dijawab" });
     await writeAudit(session.nim, setuju ? "konsol_setujui" : "konsol_tolak", {
@@ -553,9 +553,9 @@ export async function handleKonsolAksi(
     if (r.status !== "diminta" && r.status !== "disetujui")
       return void res.status(200).json({ ok: false, kode: "tidak_bisa_dibatalkan" });
     await db
-      .update(konsolPi)
+      .update(konsolPc)
       .set({ status: "selesai", selesai: new Date(), alasanSelesai: "dibatalkan" })
-      .where(eq(konsolPi.id, r.id));
+      .where(eq(konsolPc.id, r.id));
     await writeAudit(session.nim, "konsol_batal", { id: r.id });
     return void res.status(200).json({ ok: true });
   }
@@ -625,35 +625,35 @@ export async function handleKonsolAksi(
       env.secret,
     );
     await db.insert(konsolTiketNonce).values({ nonce: webNonce, konsolId: r.id, peran: "web" });
-    // The Pi joins once, when the owner first opens the console, or again
-    // when someone in the room says the Pi side is gone (ulangPi).
+    // The PC joins once, when the owner first opens the console, or again
+    // when someone in the room says the PC side is gone (ulangPc).
     let antre = false;
-    if ((r.status === "disetujui" && pemilik) || body.ulangPi === true) {
-      const piNonce = acakId();
-      const pi = await tandaTiket(
+    if ((r.status === "disetujui" && pemilik) || body.ulangPc === true) {
+      const pcNonce = acakId();
+      const pc = await tandaTiket(
         {
           v: 1,
-          p: "pi",
+          p: "pc",
           k: r.kanal,
           s: r.serverId,
           u: "",
           t: r.target as "terminal",
-          exp: now + TIKET_PI_DETIK,
+          exp: now + TIKET_PC_DETIK,
           end,
-          n: piNonce,
+          n: pcNonce,
         },
         env.secret,
       );
-      await db.insert(konsolTiketNonce).values({ nonce: piNonce, konsolId: r.id, peran: "pi" });
+      await db.insert(konsolTiketNonce).values({ nonce: pcNonce, konsolId: r.id, peran: "pc" });
       await db.insert(perintah).values({
         serverId: r.serverId,
         aksi: "konsol.buka",
-        argumen: { kanal: r.kanal, relay: env.relay, tiket: pi, target: r.target },
+        argumen: { kanal: r.kanal, relay: env.relay, tiket: pc, target: r.target },
         dimintaOleh: session.nim,
       });
       antre = true;
       if (r.status === "disetujui")
-        await db.update(konsolPi).set({ status: "aktif", mulai }).where(eq(konsolPi.id, r.id));
+        await db.update(konsolPc).set({ status: "aktif", mulai }).where(eq(konsolPc.id, r.id));
       await writeAudit(session.nim, "konsol_buka", { id: r.id, target: r.target });
     }
     return void res.status(200).json({
@@ -683,14 +683,14 @@ export async function handleKonsolAksi(
       return void res.status(200).json({ ok: false, kode: "sudah_selesai" });
     const alasan = teks(body.alasan) || (pemilik ? "diakhiri" : "diputus");
     await db
-      .update(konsolPi)
+      .update(konsolPc)
       .set({
         status: pemilik ? "selesai" : "diputus",
         selesai: new Date(),
         alasanSelesai: alasan,
         diputusOleh: pemilik ? null : session.nim,
       })
-      .where(eq(konsolPi.id, r.id));
+      .where(eq(konsolPc.id, r.id));
     const relay = await tutupRelay(r.kanal);
     await writeAudit(session.nim, pemilik ? "konsol_akhiri" : "konsol_putus", {
       id: r.id,
@@ -714,14 +714,14 @@ export async function handleKonsolAksi(
     await writeAudit(session.nim, `konsol_${jenis}`, { id: r.id, teks: isi });
     if (jenis === "tolak" && TERBUKA.includes(r.status)) {
       await db
-        .update(konsolPi)
+        .update(konsolPc)
         .set({
           status: "diputus",
           selesai: new Date(),
           alasanSelesai: isi,
           diputusOleh: session.nim,
         })
-        .where(eq(konsolPi.id, r.id));
+        .where(eq(konsolPc.id, r.id));
       await tutupRelay(r.kanal);
     }
     return void res.status(200).json({ ok: true });
@@ -759,16 +759,16 @@ export async function terimaLaporanKonsol(serverId: number, raw: unknown): Promi
     if (!laporanValid(item)) continue;
     const [r] = await db
       .select()
-      .from(konsolPi)
-      .where(and(eq(konsolPi.kanal, item.kanal), eq(konsolPi.serverId, serverId)))
+      .from(konsolPc)
+      .where(and(eq(konsolPc.kanal, item.kanal), eq(konsolPc.serverId, serverId)))
       .limit(1);
     if (!r) continue;
     if (item.status === "mulai") {
       if (r.status === "disetujui")
         await db
-          .update(konsolPi)
+          .update(konsolPc)
           .set({ status: "aktif", mulai: r.mulai ?? new Date() })
-          .where(eq(konsolPi.id, r.id));
+          .where(eq(konsolPc.id, r.id));
       continue;
     }
     const transkrip =
@@ -778,7 +778,7 @@ export async function terimaLaporanKonsol(serverId: number, raw: unknown): Promi
       : null;
     const tetap = r.status === "diputus" || r.status === "ditolak";
     await db
-      .update(konsolPi)
+      .update(konsolPc)
       .set({
         ...(tetap
           ? {}
@@ -790,7 +790,7 @@ export async function terimaLaporanKonsol(serverId: number, raw: unknown): Promi
         transkrip,
         transkripBytes: bytes,
       })
-      .where(eq(konsolPi.id, r.id));
+      .where(eq(konsolPc.id, r.id));
     await writeAudit(r.nim, "konsol_selesai", {
       id: r.id,
       serverId,
@@ -802,14 +802,14 @@ export async function terimaLaporanKonsol(serverId: number, raw: unknown): Promi
   }
 }
 
-/** A request, an approved or an open console on this Pi keeps the agent
+/** A request, an approved or an open console on this PC keeps the agent
  *  on the fast beat: "Open" doesn't wait for the idle minute, and the
  *  bridge's end-of-console report lands within seconds. */
 export async function konsolSiaga(serverId: number): Promise<boolean> {
   const rows = await getDb()
-    .select({ id: konsolPi.id })
-    .from(konsolPi)
-    .where(and(eq(konsolPi.serverId, serverId), inArray(konsolPi.status, TERBUKA)))
+    .select({ id: konsolPc.id })
+    .from(konsolPc)
+    .where(and(eq(konsolPc.serverId, serverId), inArray(konsolPc.status, TERBUKA)))
     .limit(1);
   return rows.length > 0;
 }

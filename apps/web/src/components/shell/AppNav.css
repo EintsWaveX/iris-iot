@@ -188,7 +188,7 @@
   width: 7px;
 }
 
-/* Phase 9 Stage 9: a Konsol Pi request waiting for this DEV. */
+/* Phase 9 Stage 9: a Konsol PC request waiting for this DEV. */
 .appnav__live-dot--warn {
   background: var(--warn);
 }

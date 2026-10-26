@@ -31,11 +31,11 @@ const T = dict({
     totOk: (tot: boolean) => (tot ? "Mode TOT aktif" : "Mode TOT mati"),
     modulOk: (m: number, tot: boolean) =>
       tot ? `Modul ${m} dipakai untuk TOT` : `Modul ${m} sudah dibuka`,
-    piOk: "PC Server online",
-    piBad: "PC Server offline",
-    piSkip: "Modul ini tidak butuh PC Server",
-    piLast: (s: string) => `Detak terakhir ${s} lalu.`,
-    piNever: "Belum ada detak dari PC Server.",
+    pcOk: "PC Server online",
+    pcBad: "PC Server offline",
+    pcSkip: "Modul ini tidak butuh PC Server",
+    pcLast: (s: string) => `Detak terakhir ${s} lalu.`,
+    pcNever: "Belum ada detak dari PC Server.",
     svcOk: (u: string) => `Layanan ${u} berjalan`,
     svcBad: (u: string) => `Layanan ${u} tidak berjalan`,
     svcSkip: (u: string) => `Layanan ${u} belum bisa dicek`,
@@ -62,11 +62,11 @@ const T = dict({
     totOk: (tot: boolean) => (tot ? "TOT Mode is on" : "TOT Mode is off"),
     modulOk: (m: number, tot: boolean) =>
       tot ? `Module ${m} used for TOT` : `Module ${m} is open`,
-    piOk: "PC Server online",
-    piBad: "PC Server offline",
-    piSkip: "This module doesn't need the PC Server",
-    piLast: (s: string) => `Last heartbeat ${s} ago.`,
-    piNever: "No heartbeat from the PC Server yet.",
+    pcOk: "PC Server online",
+    pcBad: "PC Server offline",
+    pcSkip: "This module doesn't need the PC Server",
+    pcLast: (s: string) => `Last heartbeat ${s} ago.`,
+    pcNever: "No heartbeat from the PC Server yet.",
     svcOk: (u: string) => `Service ${u} running`,
     svcBad: (u: string) => `Service ${u} not running`,
     svcSkip: (u: string) => `Service ${u} can't be checked yet`,
@@ -92,11 +92,11 @@ const T = dict({
     desc: "有些事项还没准备好。先处理好，或者写明原因后仍然开始。",
     totOk: (tot: boolean) => (tot ? "TOT 模式已开启" : "TOT 模式已关闭"),
     modulOk: (m: number, tot: boolean) => (tot ? `模块 ${m} 用于 TOT` : `模块 ${m} 已开放`),
-    piOk: "PC 服务器在线",
-    piBad: "PC 服务器离线",
-    piSkip: "这个模块不需要 PC 服务器",
-    piLast: (s: string) => `最后一次心跳在 ${s} 前。`,
-    piNever: "还没有收到 PC 服务器的心跳。",
+    pcOk: "PC 服务器在线",
+    pcBad: "PC 服务器离线",
+    pcSkip: "这个模块不需要 PC 服务器",
+    pcLast: (s: string) => `最后一次心跳在 ${s} 前。`,
+    pcNever: "还没有收到 PC 服务器的心跳。",
     svcOk: (u: string) => `服务 ${u} 正在运行`,
     svcBad: (u: string) => `服务 ${u} 没有运行`,
     svcSkip: (u: string) => `服务 ${u} 暂时无法检查`,
@@ -184,16 +184,16 @@ export default function StartCheck({
   for (const c of data?.cek ?? []) {
     if (c.id === "tot") rows.push({ status: c.status, judul: t.totOk(tot) });
     else if (c.id === "modul") rows.push({ status: c.status, judul: t.modulOk(modul, tot) });
-    else if (c.id === "pi") {
+    else if (c.id === "pc") {
       if (c.status === "lewat") continue;
       rows.push({
         status: c.status,
-        judul: c.status === "ok" ? t.piOk : t.piBad,
+        judul: c.status === "ok" ? t.pcOk : t.pcBad,
         detail:
           c.status === "gagal"
             ? c.umurDetik == null
-              ? t.piNever
-              : t.piLast(umur(t, c.umurDetik))
+              ? t.pcNever
+              : t.pcLast(umur(t, c.umurDetik))
             : undefined,
         aksi:
           c.status === "gagal" ? (

@@ -2,11 +2,11 @@
   "modul": 2,
   "bahasa": "en",
   "judul": "WebSocket",
-  "topik": "WebSocket Communication with a Local Server",
-  "tagline": "An ESP32 sends sensor data to a Python server over local Wi-Fi.",
+  "topik": "WebSocket Communication through the ws.irisiotlab.com Gateway",
+  "tagline": "An ESP32 sends sensor data to a Python server through the ws.irisiotlab.com gateway.",
   "fakta": ["ESP32", "DHT22", "PC Server"],
   "ringkasan": [
-    "An ESP32 reads a DHT22 sensor and sends its reading to a WebSocket server running on an PC Server, over the same local Wi-Fi network.",
+    "An ESP32 reads a DHT22 sensor and sends its reading to a WebSocket server running on a PC Server and reached through ws.irisiotlab.com, so the ESP32 only needs Wi-Fi with Internet access.",
     "The server tells each group's board apart by its connection path, so several groups can share one server without disturbing each other."
   ],
   "toolchain": [
@@ -26,7 +26,7 @@
     },
     {
       "nama": "PC Server",
-      "jumlah": "1x, as the local server"
+      "jumlah": "1x, as the server, reached through ws.irisiotlab.com"
     },
     {
       "nama": "DHT22 Sensor",
@@ -51,7 +51,7 @@
       ["DHT (GND)", "GND"]
     ],
     "catatan": [
-      "The PC Server needs no additional circuit at all. The WebSocket server runs entirely in software, so the PC Server only needs to be on the same Wi-Fi network as the ESP32.",
+      "The PC Server needs no additional circuit at all. The WebSocket server runs entirely in software, and is reached through ws.irisiotlab.com, so the ESP32 only needs to be on a Wi-Fi network with Internet access.",
       "A DHT22 must not be read more often than once every 2 seconds. A tighter interval returns NAN."
     ]
   },
@@ -59,9 +59,9 @@
     "Installing the DHT sensor library and Adafruit Unified Sensor libraries through the Arduino IDE Library Manager",
     "Installing the WebSockets library by Markus Sattler through the Arduino IDE Library Manager",
     "Preparing a websockets virtual environment on the PC Server (python3 -m venv, then pip install \"websockets>=13\")",
-    "Noting the PC Server's IP address with hostname -I",
+    "Noting the server address ws.irisiotlab.com and connecting the ESP32 to Wi-Fi with Internet access",
     "Using your own group's path for WS_PATH",
-    "Matching the port and path values across both program files"
+    "Matching the path across both program files, and using WS_PORT 80 (the gateway port) on the ESP32"
   ],
   "berkas": [
     {
@@ -85,11 +85,11 @@
     },
     {
       "nama": "Transport",
-      "nilai": "TCP, port WS_PORT"
+      "nilai": "TCP, port WS_PORT (80, gateway)"
     },
     {
       "nama": "Network",
-      "nilai": "IP, one hop"
+      "nilai": "IP via the gateway"
     },
     {
       "nama": "Data link",

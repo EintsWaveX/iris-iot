@@ -1,6 +1,6 @@
 /**
  * The Overview tab (Phase 9 Stage 5; Phase 10 grid, mockup s12-server):
- * the Pi right now, then rows of equal height on one 12 column grid:
+ * the PC right now, then rows of equal height on one 12 column grid:
  * [Chart 8 | Ready 4], [Services 8 | Quick actions 4], the Full view's
  * cards, and [History and commands 8 | Updates 4]. Every command says it
  * runs on the next heartbeat; nothing pretends it already happened.
@@ -37,7 +37,7 @@ import {
 import { detikLabel, durasiLabel, modulLabel } from "../../lib/labels";
 import type { Perintah } from "../console/types";
 import Gauges from "./Gauges";
-import PiFull from "./PiFull";
+import PcFull from "./PcFull";
 import Updates from "./Updates";
 import ZoomChart, { useZoom } from "./ZoomChart";
 import {
@@ -129,7 +129,7 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
   const netLast = terakhirDari(data, "diag.jaringan");
   const netRun = sedangBerjalan(data, "diag.jaringan");
   const syncRun = sedangBerjalan(data, "jam.selaraskan");
-  // The Pi's clock against the site's (measured on each heartbeat): a
+  // The PC's clock against the site's (measured on each heartbeat): a
   // minute or more apart is shown, whatever chrony thinks.
   const jam = jamServer(bacaKondisi(data.server.kondisi));
   const jauh = jam.meleset;
@@ -249,7 +249,7 @@ function ChartCard({ lang, id }: { lang: Lang; id: number }) {
   const [rentang, setRentang] = useState("24h");
   const [h, setH] = useState<Riwayat | null>(null);
   const segar = useSegar(["server"]);
-  // Each beat joins the chart as it lands, so its latest reading is the Pi's
+  // Each beat joins the chart as it lands, so its latest reading is the PC's
   // now: the last hour slides, a longer (sampled down) range just grows.
   useDenyutLangsung(true, (d) => {
     if (d.serverId !== id) return;
@@ -490,7 +490,7 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
 }
 
 /** Each module's last Ready check (mockup ReadySnap): Module 1 needs no
- *  Pi; 2 to 4 read their newest run, or the newest run of every module. */
+ *  PC; 2 to 4 read their newest run, or the newest run of every module. */
 function ReadySnap({ lang, id, data, refresh, siapa, onTab }: Props) {
   const t = S[lang];
   const w = S12[lang];
@@ -500,7 +500,7 @@ function ReadySnap({ lang, id, data, refresh, siapa, onTab }: Props) {
   const run = (modul: string) =>
     void kirim(id, "diag.siap", modul ? { modul } : {}, lang, t.readyWait).then(refresh);
   const rows = (["1", "2", "3", "4"] as const).map((m) => {
-    if (m === "1") return { m, tone: "idle" as const, sub: w.noPi };
+    if (m === "1") return { m, tone: "idle" as const, sub: w.noPc };
     const r = runs.find((x) => (x.argumen?.modul ?? "") === m || !x.argumen?.modul);
     if (!r) return { m, tone: "warn" as const, sub: w.notChecked };
     const h = bacaHasilSiap(r.keluaran);
@@ -577,7 +577,7 @@ type Baris =
   | { k: "ev"; pada: string; teks: string; tone: "ok" | "warn" | "danger" }
   | { k: "cmd"; pada: string; p: Perintah };
 
-/** Events on the Pi and commands from the site in one list (mockup
+/** Events on the PC and commands from the site in one list (mockup
  *  Activity), filtered All, Commands or Events, with Retry and Cancel
  *  where a command allows it and both full lists one press away. */
 function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd }: Props) {
@@ -732,7 +732,7 @@ function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
   );
 }
 
-/** A silent Pi: one card with when it was last heard, the last values it
+/** A silent PC: one card with when it was last heard, the last values it
  *  sent and what to check, in place of empty gauges and an empty chart. */
 function OfflineCard({ lang, data, bisa, onTab }: Props) {
   const t = S[lang];
@@ -829,7 +829,7 @@ export default function Overview(p: Props) {
           <div className="seplabel">
             <span>{t.fullSep}</span>
           </div>
-          <PiFull
+          <PcFull
             lang={p.lang}
             id={p.id}
             data={p.data}
