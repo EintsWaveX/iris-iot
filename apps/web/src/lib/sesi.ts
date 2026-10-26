@@ -256,7 +256,7 @@ export interface JadwalModul4 {
       { nama: string; aktif: boolean; anggota: Array<{ nim: string; nama: string }> }
     >;
     /** When the Asisten pressed Mulai Perburuan for this slot's running
-     *  session (until Selesai): the Pi's hunt starts this round at once,
+     *  session (until Selesai): the PC's hunt starts this round at once,
      *  whatever its clock window says (2026-10-09). */
     berburu?: string;
   }>;
@@ -265,10 +265,10 @@ export interface JadwalModul4 {
 /**
  * Today's Module 4 slots, in the exact shape apps/modul4/server.py's own
  * jadwal_set()/jadwal_muat() already expect (`{hari, sesi: [{id, mulai,
- * regu}]}`) -- so the Pi-side import (Stage 18) can hand each slot straight
+ * regu}]}`) -- so the PC-side import (Stage 18) can hand each slot straight
  * to that same validated write path rather than re-deriving it. Includes
  * NIMs: unlike publicRoster() this never reaches a student's browser, only
- * an authenticated agent's heartbeat response, and the Pi's own scoreboard
+ * an authenticated agent's heartbeat response, and the PC's own scoreboard
  * already carries NIMs for its assistant-only "papan lengkap" view.
  *
  * Returns null when today has no Module 4 session at all, so the heartbeat
@@ -288,7 +288,7 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
   const withSlot = slots.filter((s): s is Baris & { slot: number } => s.slot !== null);
   // Phase 9: a Module 4 Praktikum Susulan has no slot, so it borrows the
   // nearest free one (idHuntSusulan) and keeps its own start time; before,
-  // it never reached the Pi and its Praktikan couldn't join the hunt.
+  // it never reached the PC and its Praktikan couldn't join the hunt.
   const dipakai = new Set(withSlot.map((s) => s.slot));
   const susulan = slots
     .filter((s) => s.slot === null)
@@ -312,9 +312,9 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
     // dropped its own -- see that function's docblock. The `regu` KEY on the
     // object below is deliberately left alone even so: it is apps/modul4/'s
     // own wire format (jadwal_set()/jadwal_muat()), not a database name, and
-    // renaming it would break the Pi-side import this function feeds.
+    // renaming it would break the PC-side import this function feeds.
     const kelompokSesi: JadwalModul4["sesi"][number]["regu"] = {};
-    // An ended session hands its slot back empty (2026-10-09): the Pi's hunt
+    // An ended session hands its slot back empty (2026-10-09): the PC's hunt
     // refuses a NIM that sits in two slots of the day, so a re-run of the
     // same people (a TOT rehearsal, a session ended by mistake) was locked
     // out of the hunt until the ended slot let them go.

@@ -3,10 +3,10 @@
   "bahasa": "en",
   "judul": "MQTT",
   "topik": "MQTT Connectivity with MicroPython, Raspberry Pi Pico W, and Eclipse Mosquitto",
-  "tagline": "Two boards exchange data through an Eclipse Mosquitto broker.",
+  "tagline": "Two boards exchange data through an Eclipse Mosquitto broker at broker.irisiotlab.com.",
   "fakta": ["Pi Pico W", "Mosquitto"],
   "ringkasan": [
-    "Two Raspberry Pi Pico W boards exchange data through an Eclipse Mosquitto broker running on an PC Server: one board publishes a potentiometer's position, and the other subscribes to the same topic and records every value that arrives.",
+    "Two Raspberry Pi Pico W boards exchange data through an Eclipse Mosquitto broker running on a PC Server and reached through broker.irisiotlab.com: one board publishes a potentiometer's position, and the other subscribes to the same topic and records every value that arrives.",
     "Every group uses its own topic and mqtt_client_id, so many groups can share one broker without disturbing each other."
   ],
   "toolchain": [
@@ -22,7 +22,7 @@
     },
     {
       "nama": "PC Server",
-      "jumlah": "1x, as the Mosquitto broker"
+      "jumlah": "1x, as the Mosquitto broker, reached through broker.irisiotlab.com"
     },
     {
       "nama": "10 kOhm Potentiometer",
@@ -49,15 +49,16 @@
     "catatan": [
       "The Pico W's ADC input only tolerates up to 3.3 V, so the potentiometer's top leg must be fed from 3V3(OUT) (physical pin 36), not from the 5 V VBUS.",
       "Its middle leg (the wiper) must land on one of the ADC pins, that is GP26, GP27 or GP28.",
-      "The Eclipse Mosquitto broker runs on the PC Server and needs no additional circuit. The Subscriber only records the values that arrive, so the second Pico W just needs to be on the same Wi-Fi network as the Publisher."
+      "The Eclipse Mosquitto broker runs on the PC Server, is reached through broker.irisiotlab.com, and needs no additional circuit. The Subscriber only records the values that arrive, so the second Pico W just needs to be on a Wi-Fi network with Internet access."
     ]
   },
   "persiapan": [
     "Installing the mosquitto and mosquitto-clients packages on the PC Server (sudo apt install)",
     "Enabling broker autostart: sudo systemctl enable mosquitto.service",
-    "Noting the PC Server's IP address with hostname -I",
+    "Noting the broker address broker.irisiotlab.com and connecting the Pico W to Wi-Fi with Internet access",
     "Editing /etc/mosquitto/mosquitto.conf, adding listener 1883 and allow_anonymous true",
     "Restarting the service: sudo systemctl restart mosquitto.service",
+    "Using port 80 (the WebSocket gateway port), not 1883, in the Publisher and Subscriber programs",
     "Installing the micropython-umqtt.simple library on both Pico W boards through Thonny",
     "Powering the potentiometer from 3V3(OUT), not VBUS, and wiring its wiper to GP26"
   ],
@@ -83,11 +84,11 @@
     },
     {
       "nama": "Transport",
-      "nilai": "TCP to broker"
+      "nilai": "TCP (WebSocket, port 80) to the broker"
     },
     {
       "nama": "Network",
-      "nilai": "IP via broker"
+      "nilai": "IP via the gateway and broker"
     },
     {
       "nama": "Data link",

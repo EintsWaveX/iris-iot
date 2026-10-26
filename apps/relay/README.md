@@ -1,7 +1,7 @@
-# Konsol Pi relay
+# Konsol PC relay
 
-A Cloudflare Worker with one Durable Object room per approved Pi console
-(Phase 9 Stage 9). The browser and the Pi's bridge both dial in over WSS
+A Cloudflare Worker with one Durable Object room per approved PC console
+(Phase 9 Stage 9). The browser and the PC's bridge both dial in over WSS
 with a 60-second, single-use ticket that the IRIS API signs; the room pairs
 them and passes their frames through. It stores no frames and no
 transcript. See the header of `src/index.ts` for the protocol.
@@ -31,8 +31,8 @@ give the API `KONSOL_RELAY_URL=ws://127.0.0.1:8788` plus the same
 5. Add the exact `wss://iris-konsol.<subdomain>.workers.dev` origin to
    `connect-src` in `apps/web/vercel.json`. Without it the browser's CSP
    blocks the console.
-6. On the Pi, rerun the agent installer with the relay it may dial:
+6. On the PC, rerun the agent installer with the relay it may dial:
    `sudo ./agent/install.sh --konsol-relay wss://iris-konsol.<subdomain>.workers.dev`
-   (IRIS ASO `orangepi/`). It installs `konsol_bridge.py`,
+   (IRIS ASO `pc/`). It installs `konsol_bridge.py`,
    `iris-konsol@.service` and the exact sudoers lines. The bridge only dials
-   out, so no port opens on the Pi.
+   out, so no port opens on the PC.

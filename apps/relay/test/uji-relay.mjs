@@ -37,7 +37,7 @@ function buka(path) {
   // Cloudflare, so on a CI runner abroad every room would be turned back as
   // "jauh" (far from the lab). The suite tests rooms, not the runner's
   // location: room sockets come in as a side's last try does.
-  if (/^\/(web|pi)\//.test(path)) path += `${path.includes("?") ? "&" : "?"}jauh=boleh`;
+  if (/^\/(web|pc)\//.test(path)) path += `${path.includes("?") ? "&" : "?"}jauh=boleh`;
   return new Promise((resolve) => {
     const ws = new WebSocket(`${WS}${path}`);
     ws.binaryType = "arraybuffer";
@@ -110,8 +110,8 @@ try {
   const k = id();
   const bad = await buka(`/web/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k }) + "x")}`);
   cek("a bad signature is refused", bad.refused === true);
-  const peran = await buka(`/pi/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k }))}`);
-  cek("a browser ticket can't join as the Pi", peran.refused === true);
+  const peran = await buka(`/pc/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k }))}`);
+  cek("a browser ticket can't join as the PC", peran.refused === true);
   const lain = await buka(`/web/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k: id() }))}`);
   cek("a ticket for another room is refused", lain.refused === true);
   const lewat = await buka(
@@ -119,7 +119,7 @@ try {
   );
   cek("an expired ticket is refused", lewat.refused === true);
 
-  // The owner first: their keys wait for the Pi, tagged with their id.
+  // The owner first: their keys wait for the PC, tagged with their id.
   const kontrol = (m) => teks(m).startsWith("\u0000relay:");
   const ruangDari = (s) => {
     const r = s.msgs.map(teks).filter((m) => m.startsWith("\u0000relay:ruang:"));
@@ -133,45 +133,45 @@ try {
   const r1 = ruangDari(web);
   cek(
     "the first one in controls",
-    r1 && r1.pengendali === r1.aku && r1.orang[0]?.nama === "Ani (ANI)" && r1.pi === false,
+    r1 && r1.pengendali === r1.aku && r1.orang[0]?.nama === "Ani (ANI)" && r1.pc === false,
     JSON.stringify(r1),
   );
   web.ws.send(new Uint8Array([108, 115, 13]));
   await tunggu(100);
-  const pi = await buka(`/pi/${k}?tiket=${encodeURIComponent(tiket({ p: "pi", k }))}`);
-  cek("the Pi joins", !pi.refused);
-  await sampai(() => pi.msgs.length >= 3);
+  const pc = await buka(`/pc/${k}?tiket=${encodeURIComponent(tiket({ p: "pc", k }))}`);
+  cek("the PC joins", !pc.refused);
+  await sampai(() => pc.msgs.length >= 3);
   const a = r1.aku;
   cek(
-    "the Pi hears who is in and who controls",
-    teks(pi.msgs[0]) === `\u0000relay:kendali:${a}` && teks(pi.msgs[1]) === `\u0000relay:web-masuk:${a}`,
-    JSON.stringify(pi.msgs.slice(0, 2).map(teks)),
+    "the PC hears who is in and who controls",
+    teks(pc.msgs[0]) === `\u0000relay:kendali:${a}` && teks(pc.msgs[1]) === `\u0000relay:web-masuk:${a}`,
+    JSON.stringify(pc.msgs.slice(0, 2).map(teks)),
   );
-  const b2 = new Uint8Array(pi.msgs[2] instanceof ArrayBuffer ? pi.msgs[2] : []);
+  const b2 = new Uint8Array(pc.msgs[2] instanceof ArrayBuffer ? pc.msgs[2] : []);
   cek(
-    "keys sent before the Pi joined arrive, tagged with the sender",
+    "keys sent before the PC joined arrive, tagged with the sender",
     b2.length === 5 && ((b2[0] << 8) | b2[1]) === a && Buffer.from(b2.slice(2)).toString() === "ls\r",
   );
-  pi.ws.send(new Uint8Array([0, 0, 0x68, 0x69]));
+  pc.ws.send(new Uint8Array([0, 0, 0x68, 0x69]));
   await sampai(() => data(web).length >= 1);
   cek("output for everyone reaches the owner, untagged", data(web)[0] === "hi");
-  await sampai(() => ruangDari(web)?.pi === true);
-  cek("the owner hears the Pi is in", ruangDari(web)?.pi === true);
+  await sampai(() => ruangDari(web)?.pc === true);
+  cek("the owner hears the PC is in", ruangDari(web)?.pc === true);
 
   const lagi = await buka(`/web/${k}?tiket=${encodeURIComponent(webT)}`);
   cek("a ticket works once", lagi.refused === true);
 
-  // The Pi's ticket works a few times (to move off a far route), then no more.
+  // The PC's ticket works a few times (to move off a far route), then no more.
   const kUlang = id();
-  const piT2 = tiket({ p: "pi", k: kUlang });
+  const pcT2 = tiket({ p: "pc", k: kUlang });
   const kali = [];
   for (let i = 0; i < 6; i++) {
-    const s = await buka(`/pi/${kUlang}?tiket=${encodeURIComponent(piT2)}`);
+    const s = await buka(`/pc/${kUlang}?tiket=${encodeURIComponent(pcT2)}`);
     kali.push(s.refused === true);
     if (!s.refused) s.ws.close();
   }
   cek(
-    "the Pi's ticket works five times, then is refused",
+    "the PC's ticket works five times, then is refused",
     kali.slice(0, 5).every((x) => !x) && kali[5] === true,
     JSON.stringify(kali),
   );
@@ -185,14 +185,14 @@ try {
   const rb = ruangDari(b);
   const bid = rb.aku;
   cek("they see who controls", rb.pengendali === a && rb.orang.length === 2, JSON.stringify(rb));
-  await sampai(() => pi.msgs.some((m) => teks(m) === `\u0000relay:web-masuk:${bid}`));
-  cek("the Pi hears them come in", pi.msgs.some((m) => teks(m) === `\u0000relay:web-masuk:${bid}`));
-  const sebelum = pi.msgs.length;
+  await sampai(() => pc.msgs.some((m) => teks(m) === `\u0000relay:web-masuk:${bid}`));
+  cek("the PC hears them come in", pc.msgs.some((m) => teks(m) === `\u0000relay:web-masuk:${bid}`));
+  const sebelum = pc.msgs.length;
   b.ws.send(new Uint8Array([0x72, 0x6d]));
   b.ws.send('{"t":"r","c":80,"r":24}');
   await tunggu(300);
-  cek("a watcher's keys and size don't reach the terminal", pi.msgs.length === sebelum);
-  pi.ws.send(new Uint8Array([0, 0, 0x6f, 0x6b]));
+  cek("a watcher's keys and size don't reach the terminal", pc.msgs.length === sebelum);
+  pc.ws.send(new Uint8Array([0, 0, 0x6f, 0x6b]));
   await sampai(() => data(b).includes("ok"));
   cek("output for everyone reaches the watcher", data(b).includes("ok"));
 
@@ -206,18 +206,18 @@ try {
   web.ws.send(`\u0000relay:beri:${bid}`);
   await sampai(() => ruangDari(b)?.pengendali === bid);
   cek("control moves when the controller gives it", ruangDari(web)?.pengendali === bid);
-  await sampai(() => pi.msgs.some((m) => teks(m) === `\u0000relay:kendali:${bid}`));
-  cek("the Pi hears who controls now", pi.msgs.some((m) => teks(m) === `\u0000relay:kendali:${bid}`));
+  await sampai(() => pc.msgs.some((m) => teks(m) === `\u0000relay:kendali:${bid}`));
+  cek("the PC hears who controls now", pc.msgs.some((m) => teks(m) === `\u0000relay:kendali:${bid}`));
   b.ws.send(new Uint8Array([0x70, 0x77, 0x64]));
   b.ws.send('{"t":"r","c":100,"r":30}');
   await sampai(() =>
-    pi.msgs.some((m) => teks(m) === `\u0000web:${bid}:{"t":"r","c":100,"r":30}`),
+    pc.msgs.some((m) => teks(m) === `\u0000web:${bid}:{"t":"r","c":100,"r":30}`),
   );
-  const kb = pi.msgs.find(
+  const kb = pc.msgs.find(
     (m) => m instanceof ArrayBuffer && ((new Uint8Array(m)[0] << 8) | new Uint8Array(m)[1]) === bid,
   );
   cek(
-    "the new controller's keys and size reach the Pi",
+    "the new controller's keys and size reach the PC",
     kb && Buffer.from(new Uint8Array(kb).slice(2)).toString() === "pwd",
   );
   web.ws.send("\u0000relay:minta");
@@ -230,7 +230,7 @@ try {
   );
 
   // A note for one person only.
-  pi.ws.send(`\u0000ke:${bid}:{"t":"siap"}`);
+  pc.ws.send(`\u0000ke:${bid}:{"t":"siap"}`);
   await sampai(() => data(b).includes('{"t":"siap"}'));
   cek(
     "a note for one person reaches them alone",
@@ -241,8 +241,8 @@ try {
   b.ws.close();
   await sampai(() => ruangDari(web)?.pengendali === a && ruangDari(web)?.orang.length === 1);
   cek("when the controller leaves, the owner controls again", ruangDari(web)?.pengendali === a);
-  await sampai(() => pi.msgs.some((m) => teks(m) === `\u0000relay:web-keluar:${bid}`));
-  cek("the Pi hears them leave", pi.msgs.some((m) => teks(m) === `\u0000relay:web-keluar:${bid}`));
+  await sampai(() => pc.msgs.some((m) => teks(m) === `\u0000relay:web-keluar:${bid}`));
+  cek("the PC hears them leave", pc.msgs.some((m) => teks(m) === `\u0000relay:web-keluar:${bid}`));
 
   // A reload: a fresh ticket for the same person takes over their place.
   const web2 = await buka(
@@ -266,11 +266,11 @@ try {
     headers: { "x-konsol-ts": String(ts), "x-konsol-tanda": tanda },
   });
   cek("the API closes the room", tutup.ok);
-  await sampai(() => web2.closed !== null && pi.closed !== null);
-  cek("both ends are closed with 4003", web2.closed === 4003 && pi.closed === 4003);
+  await sampai(() => web2.closed !== null && pc.closed !== null);
+  cek("both ends are closed with 4003", web2.closed === 4003 && pc.closed === 4003);
   cek(
-    "the Pi is told why",
-    pi.msgs.some((m) => teks(m) === "\u0000relay:tutup:diputus"),
+    "the PC is told why",
+    pc.msgs.some((m) => teks(m) === "\u0000relay:tutup:diputus"),
   );
   const sesudah = await buka(`/web/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k }))}`);
   cek("a closed room stays closed", sesudah.refused === true);
@@ -357,8 +357,8 @@ try {
   const kedua = await buka(`/aliran/sesi-7?tiket=${encodeURIComponent(ulangT)}`);
   cek("a ticket works once", !pertama.refused && kedua.refused === true);
   if (!pertama.refused) pertama.ws.close();
-  const piPraktikan = await masuk("pi", { peran: "praktikan", g: 2 });
-  cek("the pi room refuses a Praktikan", piPraktikan.refused === true);
+  const pcPraktikan = await masuk("pc", { peran: "praktikan", g: 2 });
+  cek("the pc room refuses a Praktikan", pcPraktikan.refused === true);
   // The signature's first character changes: its last one carries only 4
   // bits, so A to D there decode alike and a forgery passed 1 run in 16.
   const asli = tiketAliran({});
@@ -445,7 +445,7 @@ try {
   r = await kirimGabung({ t: ["jawaban"] }, { tanda: "0".repeat(64) });
   cek("a wrong signature is refused (combined)", r.status === 403);
   r = await kirimGabung({ r: { "konsol-1": [{ j: "tel", g: 1, d: [] }] } });
-  cek("a room name that isn't a session or pi is refused", r.status === 400);
+  cek("a room name that isn't a session or pc is refused", r.status === 400);
   r = await kirimGabung({ r: { "sesi-7": [{ j: "kunci", g: 1, d: {} }] } });
   cek("an unknown kind is refused (combined)", r.status === 400);
   halaman.ws.close();

@@ -1,7 +1,7 @@
 /**
  * Phase 14: sealing a SeeLabs password in the Asisten's own browser, before
  * it ever leaves the page. RSA-OAEP with SHA-256 (WebCrypto) to the robot
- * Pi's 3072-bit public key, over {"nim", "sandi"}: only that Pi can open it,
+ * PC's 3072-bit public key, over {"nim", "sandi"}: only that PC can open it,
  * and only for that NIM. The site stores the seal, never the password.
  *
  * The fingerprint is worked out here from the key itself, not taken from
@@ -27,7 +27,7 @@ function keBase64(data: ArrayBuffer): string {
   return btoa(biner);
 }
 
-/** The first 16 bytes of SHA-256 over the key, as eight groups: what the Pi prints too. */
+/** The first 16 bytes of SHA-256 over the key, as eight groups: what the PC prints too. */
 export async function sidikKunci(spkiBase64: string): Promise<string> {
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", dariBase64(spkiBase64)));
   const hex = Array.from(hash.slice(0, 16), (b) => b.toString(16).padStart(2, "0"))

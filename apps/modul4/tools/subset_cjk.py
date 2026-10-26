@@ -2,7 +2,7 @@
 """
 The Mandarin typeface, cut down to the characters the hunt actually says.
 
-The full Noto Sans SC is 17 MB; the page is one file served from the Pi to
+The full Noto Sans SC is 17 MB; the page is one file served from the PC to
 twenty-five phones over one hotspot. So this keeps only the CJK characters
 and full-width punctuation that appear in src/i18n/zh.json and in the few
 Mandarin strings written straight into the scripts, at two weights (400 for

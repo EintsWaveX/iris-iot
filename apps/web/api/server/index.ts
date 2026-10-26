@@ -1,10 +1,10 @@
 /**
- * POST /api/server   { nama, kode }   — assistant-only. Registers a new Pi
+ * POST /api/server   { nama, kode }   — assistant-only. Registers a new PC
  *   and returns a one-time enrollment token (30-minute TTL) to hand to
  *   whoever is installing the agent. The token is shown exactly once here;
  *   it is never retrievable again, only re-issued via POST /api/server/:id.
  *
- * GET  /api/server   — assistant-only. Every registered Pi with its most
+ * GET  /api/server   — assistant-only. Every registered PC with its most
  *   recent heartbeat, for the server list view.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
@@ -29,7 +29,7 @@ const KODE_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
 async function handlePost(req: ApiRequest, res: ApiResponse) {
   const session = requireRole(req, res, "asisten");
   if (!session) return;
-  // Phase 9: registering a Pi is the full Server view (Admin and DEV).
+  // Phase 9: registering a PC is the full Server view (Admin and DEV).
   if (!(await cekHak(res, session.nim, "full"))) return;
 
   const body = jsonBody(req);
@@ -91,7 +91,7 @@ async function handleGet(req: ApiRequest, res: ApiResponse) {
   const sesiMulaiPada = running ? (running.mulaiPada ?? running.dibuatPada) : null;
 
   // Latest heartbeat per server, one query per row is fine at this scale
-  // (one Pi today, a handful even at full Phase 2 scope) -- a lateral join
+  // (one PC today, a handful even at full Phase 2 scope) -- a lateral join
   // would be the right call at a size this project will not reach.
   const daftar = await Promise.all(
     rows.map(async (s) => {

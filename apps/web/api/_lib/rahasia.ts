@@ -3,9 +3,9 @@
  * 2026-10-13). AES-256-GCM, a fresh 96-bit IV each time, and the owner's
  * NIM as additional data, so a value moved onto another row fails to open.
  *
- * The SeeLabs seal is already RSA-OAEP-3072 to the robot Pi's key, which
+ * The SeeLabs seal is already RSA-OAEP-3072 to the robot PC's key, which
  * the site never has; this wraps it a second time, so a copy of the
- * database alone opens nothing even with the Pi's key. The key is
+ * database alone opens nothing even with the PC's key. The key is
  * DATA_KUNCI (32 bytes, hex or base64) or, without it, derived from
  * SESSION_SECRET with HKDF, the same way lms.ts keys the LMS token.
  */

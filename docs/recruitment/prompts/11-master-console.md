@@ -43,3 +43,5 @@ Read `_RULES.md`, `EXAM-ENGINE.md` sections 5, 6 and 10, the signed-off console 
 - Rig: a Master on one context and 10 seats from 10's runner. Run the full Phase 1 with pause, skip, reopen, +5 min to one seat and a handover mid-part.
 - Record a video for the user.
 - Handoff.
+
+**Ruling 2026-10-24:** Room setup hotspots: a hotspot may be owned by a candidate's seat (EXAM-ENGINE 9.6a, WAVE3.md); the console groups boards by hotspot either way.

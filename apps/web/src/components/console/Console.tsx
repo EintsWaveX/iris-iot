@@ -628,7 +628,7 @@ export default function Console({ lang }: { lang: Lang }) {
         sesi={sesi}
         servers={servers.data}
         onDrawer={() => {
-          // One lab Pi and no session server picked: go straight to it.
+          // One lab PC and no session server picked: go straight to it.
           const list = servers.data?.list ?? [];
           if (!servers.data?.detail && list.length === 1)
             location.assign(href(lang, `/servers?id=${list[0].id}`));

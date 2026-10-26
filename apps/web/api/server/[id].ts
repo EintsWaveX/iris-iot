@@ -18,7 +18,7 @@
  * POST   /api/server/:id   — assistant-only. Issues a fresh one-time
  *   enrollment token (30-minute TTL) and returns it once, the same shape
  *   POST /api/server gives at registration. Without it, a token that
- *   expired before the Pi was set up, or a Pi reinstalled from scratch
+ *   expired before the PC was set up, or a PC reinstalled from scratch
  *   (whose /etc/iris-agent/config.json went with it), could only be fixed
  *   by deleting the server and losing its whole history. Enrolling with
  *   the new token replaces the agent key, so an old install stops being
@@ -30,7 +30,7 @@
  *   timeline, all computed in server-lib.ts's pure history functions.
  *
  * GET    /api/server/konsol (Phase 9 Stage 9) — Konsol requests waiting on
- *   this DEV, for the nav's dot. GET ?aksi=konsol is one Pi's console.
+ *   this DEV, for the nav's dot. GET ?aksi=konsol is one PC's console.
  * PATCH  /api/server/:id   (P6.7) — assistant-only. Edits any subset of
  *   nama/lokasi/catatan/alamatLan (the server centre's Pengaturan tab).
  */
@@ -80,7 +80,7 @@ const PERINTAH_PER_HALAMAN = 20;
 
 async function handleGet(_req: ApiRequest, res: ApiResponse, id: number, full: boolean) {
   const db = getDb();
-  // A silent Pi runs no sweep of its own: the page that asks at a
+  // A silent PC runs no sweep of its own: the page that asks at a
   // command's expiry (Phase 12) sees it expired.
   await sweepPerintahKedaluwarsa();
   const [row] = await db.select().from(server).where(eq(server.id, id)).limit(1);
@@ -154,7 +154,7 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number, full: b
     },
     // 2026-10-08: the one-line install's progress, for the wizard.
     pasang: await bacaRekamPasang(id),
-    // Stage 5: what the Updates card compares the Pi's bundle with. Set on
+    // Stage 5: what the Updates card compares the PC's bundle with. Set on
     // Vercel; null in local runs, where the card shows the SHA only.
     situsIot: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     // 2026-10-07: the newest bundle CI published, what Update installs.
@@ -360,7 +360,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (!session) return;
 
   // Phase 9 Stage 9: the nav's dot for DEVs, Konsol requests waiting on
-  // them across every Pi (0 for everyone else).
+  // them across every PC (0 for everyone else).
   if (req.query.id === "konsol" && req.method === "GET") {
     res.status(200).json({ ok: true, menunggu: await konsolMenunggu(session.nim) });
     return;
@@ -381,7 +381,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "konsol") return handleKonsolGet(res, id, session.nim);
     return handleGet(req, res, id, full);
   }
-  // Phase 9: settings, removing a Pi and new enrolment tokens are the full
+  // Phase 9: settings, removing a PC and new enrolment tokens are the full
   // Server view (Admin and DEV).
   if (!(await cekHak(res, session.nim, "full"))) return;
   if (req.method === "PATCH") return handlePatch(req, res, id, session.nim);

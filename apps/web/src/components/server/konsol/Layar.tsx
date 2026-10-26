@@ -1,10 +1,10 @@
 /**
- * Konsol Pi's screen (mockup v-console "screen"): noVNC on the relay. noVNC
+ * Konsol PC's screen (mockup v-console "screen"): noVNC on the relay. noVNC
  * takes a WebSocket-like channel, so Saluran hands it the relay's binary
  * frames only (the bridge's JSON notes stay with the page). Only the one
  * in control of the room uses the mouse and keyboard (never on a phone);
  * the bridge gives everyone else a view-only password, so that holds on the
- * Pi too. The VNC password comes in the bridge's ready frame, and a new one
+ * PC too. The VNC password comes in the bridge's ready frame, and a new one
  * comes whenever control moves, which logs noVNC in again.
  *
  * Under KDE on Wayland (protokol "guac", 2026-10-15) the frames are guacd's

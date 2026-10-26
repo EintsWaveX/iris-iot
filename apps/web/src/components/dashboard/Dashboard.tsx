@@ -768,7 +768,7 @@ function Summary({
   }
   const info = modules.find((m) => m.modul === modul);
   const rows = (cap.rows ?? []).filter((r) => r.sesiId === sesi);
-  // The Pi's own average when it has one, else the saved journal table's.
+  // The PC's own average when it has one, else the saved journal table's.
   const paket = rows.find((r) => r.jenis === "paket");
   const delay =
     h.delayRata ?? (paket ? (rataJurnal(modul, paket.baris as JRow[])[0] ?? null) : null);

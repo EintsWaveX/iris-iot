@@ -1,6 +1,6 @@
 /**
  * The server list (Phase 9 Stage 5, mockup v-list): status tiles with a
- * tinted wash, a labelled separator, then one card per Pi (location and LAN
+ * tinted wash, a labelled separator, then one card per PC (location and LAN
  * address, 24-hour CPU and temperature sparklines, services in module
  * order) and the register card with its slow colour sweep.
  */

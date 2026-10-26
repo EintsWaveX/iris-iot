@@ -3,7 +3,7 @@ import type { Lang } from "./kelas";
  * Stage 11's simulator: plausible per-group message traffic for all four
  * modules, generated entirely client-side. Modelled on the RSSI-with-noise,
  * occasional-loss approach `apps/modul4/tools/fake_hunt.py` already uses to drive
- * the Orange Pi scoreboard without real boards, generalized here across
+ * the PC scoreboard without real boards, generalized here across
  * BLE/WebSocket/MQTT/LoRa rather than LoRa alone. Nothing in this file talks
  * to a server -- Stage 11's own gate is "renders and animates from the
  * simulator with no server"; a real telemetry relay is Stage 15's job, and
@@ -17,7 +17,7 @@ export interface Reading {
   /** The stored row's id (telemetri_log), when it came from the API */
   id?: number;
   /** HH:MM:SS:MS, the sending side's clock -- null for real Module 2/3
-   *  telemetry, since the Pi only ever observes the arrival side (see
+   *  telemetry, since the PC only ever observes the arrival side (see
    *  telemetry-live.ts). Always set for simulated readings and for real
    *  Module 4 data, which exchanges both timestamps over LoRa directly. */
   tx: string | null;
@@ -170,7 +170,7 @@ export function describeLayers(reading: Reading, lang: Lang = "id"): string[] {
   const lost = reading.rx === null;
   const pick = <T>(id: T, en: T, zh: T): T => (lang === "zh" ? zh : lang === "en" ? en : id);
   // Real Module 2/3 telemetry has arrived (not lost) but carries no delay
-  // figure at all -- the Pi only ever observes the arrival side, never the
+  // figure at all -- the PC only ever observes the arrival side, never the
   // ESP32/Pico W's own send time. Simulated readings and Module 4's real
   // data always have one when not lost.
   const delayText = (satuan: string) =>

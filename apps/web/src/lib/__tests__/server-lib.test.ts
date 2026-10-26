@@ -34,7 +34,7 @@ describe("batasLuringDetik", () => {
   });
 
   it("allows the idle interval when no session is running", () => {
-    // A flat window equal to the session pace would mark a healthy Pi offline
+    // A flat window equal to the session pace would mark a healthy PC offline
     // for most of every idle interval.
     const pada = new Date("2026-09-24T01:00:00Z");
     expect(batasLuringDetik(pada, null)).toBeGreaterThan(INTERVAL_IDLE_SEC);

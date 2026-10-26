@@ -1,8 +1,8 @@
 /**
  * Phase 14: the SeeLabs robot's queue, behind /api/session/robot and the
- * Pi's heartbeat (api/agent). The rules live in src/lib/seelabs-robot.ts.
+ * PC's heartbeat (api/agent). The rules live in src/lib/seelabs-robot.ts.
  *
- * GET  ?kunci=1      the approved Pi key the browser seals a password to
+ * GET  ?kunci=1      the approved PC key the browser seals a password to
  * GET  (none)        my connection, plus my latest jobs
  * GET  ?sesiId=      the robot's state for each group of a session
  * GET  ?baca=        the read-back's state for each group of a session (2026-10-17)
@@ -17,12 +17,12 @@
  * POST { aksi: "periksa", semua? }                 Periksa Sekarang: read SeeLabs back now
  * POST { aksi: "kirim_ulang", sesiId, kelompok }   Kirim Ulang ke SeeLabs (the scorer, Admin)
  * POST { aksi: "robot", nyala }                    the kill switch       (Pencipta, Admin)
- * POST { aksi: "kunci", setujui: sidik }           approve the Pi's key  (Pencipta, Admin)
+ * POST { aksi: "kunci", setujui: sidik }           approve the PC's key  (Pencipta, Admin)
  * POST { aksi: "alamat", alamat }                  kampus or athena      (Pencipta, Admin)
  * POST { aksi: "sufiks", sufiks }                  the Laboran default's suffix (Pencipta, Admin)
  *
- * The seal arrives RSA-OAEP-3072 to the Pi's key and is kept wrapped again
- * with AES-256-GCM (rahasia.ts); it is unwrapped only into the Pi's job.
+ * The seal arrives RSA-OAEP-3072 to the PC's key and is kept wrapped again
+ * with AES-256-GCM (rahasia.ts); it is unwrapped only into the PC's job.
  */
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, ne, or, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
@@ -396,7 +396,7 @@ export async function antreJaga(db: Db, nim: string, oleh: string, paksa: boolea
   if (!paksa && akses.jagaSidik === sidik)
     return { antre: false as const, alasan: "sama", tanpaMinggu };
   // The same set already waiting or running (the sidik is kept only once
-  // the Pi reports): every Jadwal or Penugasan save checks covers now.
+  // the PC reports): every Jadwal or Penugasan save checks covers now.
   if (!paksa) {
     const [menunggu] = await db
       .select({ id: seelabsTugas.id })
@@ -464,11 +464,11 @@ export async function harianBilaPerlu(db: Db): Promise<void> {
     await antreJaga(db, a.nim, "robot", false);
 }
 
-/* -------------------------------------------------------- the Pi side */
+/* -------------------------------------------------------- the PC side */
 
 /** This server's agent protocol when it is the approved robot, speaks protocol 6 and still
  *  has the approved key; else null. */
-async function piRobot(db: Db, serverId: number, kunci: KunciRobot | null): Promise<number | null> {
+async function pcRobot(db: Db, serverId: number, kunci: KunciRobot | null): Promise<number | null> {
   if (!kunci || kunci.serverId !== serverId) return null;
   const [s] = await db
     .select({ info: server.infoSistem })
@@ -483,7 +483,7 @@ async function piRobot(db: Db, serverId: number, kunci: KunciRobot | null): Prom
 }
 
 /**
- * Jobs a Pi could take now, for the heartbeat's pace: "kerja" (a save or
+ * Jobs a PC could take now, for the heartbeat's pace: "kerja" (a save or
  * another job someone waits on: the fast pace), "baca" (only reads, which
  * run every minute: a quarter-minute pace), or null.
  */
@@ -491,7 +491,7 @@ export async function adaTugasRobot(db: Db, serverId: number): Promise<"kerja" |
   const aturan = await aturanRobot(db);
   if (!aturan.nyala || aturan.kunci?.serverId !== serverId) return null;
   // Only kinds this agent can take, or an old agent would beat fast forever.
-  const protokol = await piRobot(db, serverId, aturan.kunci);
+  const protokol = await pcRobot(db, serverId, aturan.kunci);
   if (protokol === null) return null;
   const rows = await db
     .select({ jenis: seelabsTugas.jenis })
@@ -508,7 +508,7 @@ export async function adaTugasRobot(db: Db, serverId: number): Promise<"kerja" |
   return rows.length ? (rows[0].jenis === "baca" ? "baca" : "kerja") : null;
 }
 
-export interface TugasPi {
+export interface TugasPc {
   id: number;
   jenis: string;
   akun: string;
@@ -520,13 +520,13 @@ export interface TugasPi {
 }
 
 /**
- * Claims up to KLAIM_PER_DENYUT due jobs for the robot Pi, each with its
+ * Claims up to KLAIM_PER_DENYUT due jobs for the robot PC, each with its
  * account's seal unwrapped. A job whose seal was made for another key, or
  * can't be unwrapped, fails here as segel_rusak and never leaves the site.
  */
-export async function ambilTugas(db: Db, serverId: number): Promise<TugasPi[]> {
+export async function ambilTugas(db: Db, serverId: number): Promise<TugasPc[]> {
   const aturan = await aturanRobot(db);
-  const protokol = aturan.nyala ? await piRobot(db, serverId, aturan.kunci) : null;
+  const protokol = aturan.nyala ? await pcRobot(db, serverId, aturan.kunci) : null;
   if (protokol === null) return [];
   await sapuDiambil(db);
 
@@ -576,7 +576,7 @@ export async function ambilTugas(db: Db, serverId: number): Promise<TugasPi[]> {
     .leftJoin(asisten, eq(asisten.nim, seelabsTugas.akunNim))
     .where(inArray(seelabsTugas.id, ids))
     .orderBy(sql`(${seelabsTugas.jenis} = 'baca')`, asc(seelabsTugas.id));
-  const keluar: TugasPi[] = [];
+  const keluar: TugasPc[] = [];
   for (const { t, a, akun } of rows) {
     if (!(await akunMasihSah(db, t))) {
       await pindahAkun(db, t, t.oleh);
@@ -611,7 +611,7 @@ export async function ambilTugas(db: Db, serverId: number): Promise<TugasPi[]> {
   return keluar;
 }
 
-/** A claimed job the Pi never answered goes back to the queue (or ends after its tries). */
+/** A claimed job the PC never answered goes back to the queue (or ends after its tries). */
 async function sapuDiambil(db: Db): Promise<void> {
   const batas = new Date(Date.now() - BATAS_DIAMBIL_DETIK * 1000);
   const basi = await db
@@ -619,12 +619,12 @@ async function sapuDiambil(db: Db): Promise<void> {
     .from(seelabsTugas)
     .where(and(eq(seelabsTugas.status, "diambil"), lte(seelabsTugas.diambil, batas)));
   for (const b of basi) {
-    const lanjut = setelahGagal("pi_diam", b.percobaan, new Date());
+    const lanjut = setelahGagal("pc_diam", b.percobaan, new Date());
     await db
       .update(seelabsTugas)
       .set({
         ...lanjut,
-        galatKode: "pi_diam",
+        galatKode: "pc_diam",
         ...(lanjut.status === "gagal" ? { selesai: new Date() } : {}),
       })
       .where(and(eq(seelabsTugas.id, b.id), eq(seelabsTugas.status, "diambil")));
@@ -663,7 +663,7 @@ function bacaHasil(v: unknown): HasilMasuk | null {
   };
 }
 
-/** The Pi's results from `hasilSeelabs`; returns true when anything changed. */
+/** The PC's results from `hasilSeelabs`; returns true when anything changed. */
 export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Promise<boolean> {
   if (!Array.isArray(masuk) || !masuk.length) return false;
   let berubah = false;
@@ -974,7 +974,7 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
         pada: server.infoSistemPada,
       })
       .from(server);
-    const kunciPi = servers
+    const kunciPc = servers
       .map((s) => ({
         serverId: s.id,
         nama: s.nama,
@@ -1018,7 +1018,7 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
             pada: aturan.kunci.pada,
           }
         : null,
-      kunciPi: kunciPi.map((k) => ({
+      kunciPc: kunciPc.map((k) => ({
         serverId: k.serverId,
         nama: k.nama,
         sidik: k.info!.sidik,
@@ -1254,7 +1254,7 @@ export async function handleRobotPost(req: ApiRequest, res: ApiResponse, session
       await tulisSet(db, KUNCI_ROBOT.sufiks, { sufiks: body.sufiks }, session.nim);
       await writeAudit(session.nim, "seelabs_robot", { sufiks: true });
     } else {
-      // Approving a key: the Pi that reports exactly this fingerprint.
+      // Approving a key: the PC that reports exactly this fingerprint.
       const sidik = typeof body.setujui === "string" ? body.setujui : "";
       const servers = await db.select({ id: server.id, info: server.infoSistem }).from(server);
       const cocok = servers

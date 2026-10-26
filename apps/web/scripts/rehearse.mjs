@@ -191,7 +191,7 @@ async function tot() {
     nyala = cek("Mode TOT switches on", on.json.ok === true, on.json.kode);
     if (!nyala) return;
 
-    // Module 1 needs no Pi, so the lab check passes without one.
+    // Module 1 needs no PC, so the lab check passes without one.
     const modul = Number(opt("--modul", "1"));
     let start = await a.minta("/api/session", { jenis: "tot", modul, durasiMenit: 30 });
     if (start.json.kode === "belum_siap") {

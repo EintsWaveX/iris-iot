@@ -16,12 +16,17 @@ import {
   recEdition,
   recEvent,
   recEventLog,
+  recExamRoom,
+  recExamSeat,
   recSlot,
   recSlotAssignment,
   recSlotChange,
   recStageResult,
+  recStrike,
 } from "../../src/lib/schema";
 import { EVENT_SEED, PICK_SEED } from "../../src/lib/recruitment/seed";
+import { newRoomState } from "../../src/lib/recruitment/room";
+import type { RoomState } from "../../src/lib/recruitment/exam-types";
 
 type Rows = Record<string, unknown[] | ((sel: unknown) => unknown[])>;
 const tabelNama = new Map<unknown, string>([
@@ -38,6 +43,9 @@ const tabelNama = new Map<unknown, string>([
   [recSlot, "slot"],
   [recSlotAssignment, "assignment"],
   [recSlotChange, "change"],
+  [recExamRoom, "room"],
+  [recExamSeat, "seat"],
+  [recStrike, "strike"],
 ]);
 
 let rows: Rows = {};
@@ -243,6 +251,36 @@ async function panggil(
 }
 
 const pada = (s: string) => vi.setSystemTime(new Date(`${s}+07:00`));
+
+/** A room whose Logika part is running right now: its seats must not be moved. */
+const RUANG_BERJALAN = (): RoomState => {
+  const t0 = Date.now() - 1000;
+  return {
+    ...newRoomState(),
+    stage: "parts",
+    cur: "logika",
+    runs: {
+      logika: {
+        durMs: 900_000,
+        usedMs: 0,
+        mark: t0,
+        state: "running",
+        pausedAt: null,
+        extra: {},
+        startedAt: t0,
+        endedAt: null,
+        endedBy: null,
+        leftAtSkip: 0,
+        reopened: 0,
+      },
+    },
+  };
+};
+/** The target room is read first, then each seat's current room. */
+const RUANG_URUT = (...baris: unknown[][]) => {
+  let n = 0;
+  return () => baris[Math.min(n++, baris.length - 1)]!;
+};
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -1062,6 +1100,99 @@ describe("Plotting", () => {
     });
   });
 
+  it("moves the candidate's real seat to the room of the new Tes Tulis slot, or drops it", async () => {
+    panitia("ketua");
+    rows.candidate = [KANDIDAT()];
+    rows.slot = [SLOT(1, { capacity: 5 })];
+    rows.assignment = (sel) => (sel && "n" in (sel as object) ? [{ n: 0 }] : []);
+    rows.room = RUANG_URUT([{ id: 7, state: newRoomState() }], [{ id: 6, state: newRoomState() }]);
+    rows.seat = [{ id: 11, roomId: 6, draw: {}, done: {} }];
+    const ke = await panggil("POST", "slot-set", {
+      body: { op: "move", candidateId: 7, stage: "tes_tulis", toSlot: 1 },
+    });
+    expect(ke.body.ok).toBe(true);
+    expect(tulis.find((w) => w.tabel === "seat" && w.op === "update")?.nilai).toEqual({
+      roomId: 7,
+    });
+
+    // Taken out of the slot altogether: the untouched seat is dropped.
+    tulis.length = 0;
+    rows.room = [];
+    rows.seat = [{ id: 11, draw: {}, done: {} }];
+    const keluar = await panggil("POST", "slot-set", {
+      body: { op: "move", candidateId: 7, stage: "tes_tulis", toSlot: null },
+    });
+    expect(keluar.body.ok).toBe(true);
+    expect(tulis.some((w) => w.tabel === "seat" && w.op === "delete")).toBe(true);
+
+    // Another stage's slot never touches the exam seat.
+    tulis.length = 0;
+    rows.room = [{ id: 7 }];
+    rows.room = [{ id: 7, state: newRoomState() }];
+    rows.slot = [SLOT(2, { stage: "wawancara" })];
+    rows.assignment = (sel) => (sel && "n" in (sel as object) ? [{ n: 0 }] : []);
+    await panggil("POST", "slot-set", {
+      body: { op: "move", candidateId: 7, stage: "wawancara", toSlot: 2 },
+    });
+    expect(tulis.some((w) => w.tabel === "seat")).toBe(false);
+  });
+
+  it("moves the seat when a request for another evening is approved", async () => {
+    panitia("admin");
+    rows.change = [
+      {
+        m: { id: 3, candidateId: 7, stage: "tes_tulis", fromSlot: 1, toSlot: 2, status: "open" },
+        edisi: 1,
+      },
+    ];
+    rows.slot = [SLOT(2, { capacity: 3 })];
+    rows.assignment = (sel) =>
+      sel && "n" in (sel as object) ? [{ n: 0 }] : [{ id: 5, slotId: 1 }];
+    rows.room = RUANG_URUT([{ id: 8, state: newRoomState() }], [{ id: 7, state: newRoomState() }]);
+    rows.seat = [{ id: 11, roomId: 7, draw: {}, done: {} }];
+    const r = await panggil("POST", "slot-decide", { body: { id: 3, approve: true } });
+    expect(r.body).toMatchObject({ ok: true, status: "approved" });
+    expect(tulis.find((w) => w.tabel === "seat" && w.op === "update")?.nilai).toEqual({
+      roomId: 8,
+    });
+  });
+
+  it("leaves a seat alone while its room, or the room it would go to, has a part running", async () => {
+    panitia("admin");
+    const buka = () => {
+      tulis.length = 0;
+      rows.change = [
+        {
+          m: { id: 3, candidateId: 7, stage: "tes_tulis", fromSlot: 1, toSlot: 2, status: "open" },
+          edisi: 1,
+        },
+      ];
+      rows.slot = [SLOT(2, { capacity: 3 })];
+      rows.assignment = (sel) =>
+        sel && "n" in (sel as object) ? [{ n: 0 }] : [{ id: 5, slotId: 1 }];
+      rows.seat = [{ id: 11, roomId: 7, draw: { logika: { at: 1 } }, done: {} }];
+    };
+    // Mid-evening in the seat's own room: the slot moves, the seat does not.
+    buka();
+    rows.room = RUANG_URUT(
+      [{ id: 8, state: newRoomState() }],
+      [{ id: 7, state: RUANG_BERJALAN() }],
+    );
+    const a = await panggil("POST", "slot-decide", { body: { id: 3, approve: true } });
+    expect(a.body).toMatchObject({ ok: true, status: "approved", kursiTetap: [7] });
+    expect(tulis.some((w) => w.tabel === "assignment" && w.op === "update")).toBe(true);
+    expect(tulis.some((w) => w.tabel === "seat")).toBe(false);
+    // The evening it moves to has already started.
+    buka();
+    rows.room = RUANG_URUT(
+      [{ id: 8, state: RUANG_BERJALAN() }],
+      [{ id: 7, state: newRoomState() }],
+    );
+    const b = await panggil("POST", "slot-decide", { body: { id: 3, approve: true } });
+    expect(b.body).toMatchObject({ ok: true, kursiTetap: [7] });
+    expect(tulis.some((w) => w.tabel === "seat")).toBe(false);
+  });
+
   it("closes and extends the window through the calendar, logged", async () => {
     panitia("akademik");
     pada("2026-11-12T10:00:00");
@@ -1163,6 +1294,37 @@ describe("Plotting", () => {
     expect(masuk[0].nilai).toEqual([
       expect.objectContaining({ candidateId: 8, slotId: 2, via: "auto" }),
     ]);
+  });
+
+  it("keeps real seats in step with Auto Isi and its Urungkan", async () => {
+    panitia("akademik");
+    pada("2026-11-15T09:00:00");
+    rows.candidate = [KANDIDAT(8, "101022300002", "approved")];
+    rows.result = [HASIL({ id: 2, candidateId: 8 })];
+    rows.slot = [SLOT(2)];
+    rows.room = [{ id: 8, state: newRoomState() }];
+    rows.seat = [{ id: 11, roomId: 6, draw: {}, done: {} }];
+    rows.assignment = (sel) => {
+      if (sel && "n" in (sel as object)) return [];
+      if (sel && "c" in (sel as object)) return [];
+      return [];
+    };
+    const r = await panggil("POST", "slot-autofill", { body: { stage: "tes_tulis" } });
+    expect(r.body).toMatchObject({ ok: true, placed: 1 });
+    expect(tulis.find((w) => w.tabel === "seat" && w.op === "update")?.nilai).toEqual({
+      roomId: 8,
+    });
+
+    // Urungkan takes the placed candidate out: the untouched seat goes with it.
+    tulis.length = 0;
+    rows.room = [];
+    rows.seat = [{ id: 11, draw: {}, done: {} }];
+    rows.assignment = (sel) => (sel && "c" in (sel as object) ? [{ c: 8 }] : []);
+    const u = await panggil("POST", "slot-autofill", {
+      body: { stage: "tes_tulis", undo: "2026-11-15T02:00:00.000Z" },
+    });
+    expect(u.body.ok).toBe(true);
+    expect(tulis.some((w) => w.tabel === "seat" && w.op === "delete")).toBe(true);
   });
 
   it("gives the board to Panitia with names, and the candidate's list never carries them", async () => {

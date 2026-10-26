@@ -1,9 +1,9 @@
 /**
- * The Overview's Full part (Phase 9 Stage 5, mockup v-over PiFull), from
+ * The Overview's Full part (Phase 9 Stage 5, mockup v-over PcFull), from
  * diag.rinci: per-core CPU, memory and swap, every mount; interfaces, the
  * hotspot, NTP and DNS; services with uptime, restarts and memory; the top
  * processes, versions and the journal's error count. Opening Full asks the
- * Pi for a fresh report when the last one is older than five minutes, and
+ * PC for a fresh report when the last one is older than five minutes, and
  * again whenever a newer heartbeat shows a service in another state than
  * the report does, so the services table keeps up with History.
  */
@@ -48,7 +48,7 @@ function Meter({ l, p, txt, tone }: { l: ReactNode; p: number; txt: string; tone
 
 const pct = (u: number, t: number) => (t > 0 ? Math.round((u / t) * 100) : 0);
 
-export default function PiFull({
+export default function PcFull({
   lang,
   id,
   data,

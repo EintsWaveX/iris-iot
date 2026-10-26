@@ -1044,7 +1044,7 @@ button.qa__b[aria-disabled="true"] {
   gap: 10px;
 }
 
-/* The wizard's Activate rows (2026-10-08): one line per step the Pi reports. */
+/* The wizard's Activate rows (2026-10-08): one line per step the PC reports. */
 .srv-prog {
   display: grid;
   gap: 2px;

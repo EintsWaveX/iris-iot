@@ -7,7 +7,7 @@ rationale, schema, failure-mode analysis — was meant to live at
 `~/.claude/plans/rebuild-iris-aso-practicum-reflective-simon.md`, but that
 same filename got reused and overwritten by the later Phase 4 (monorepo
 move + cosmic redesign) planning pass, so the granular Strand C rationale
-(Firebase rules, the RTDB schema, the auth-bridge token flow, the Pi
+(Firebase rules, the RTDB schema, the auth-bridge token flow, the PC
 heartbeat protocol change) no longer exists anywhere — confirmed by
 grepping every saved plan file on 2026-09-22. Steps 5-9 need that replanned
 on Opus before Sonnet executes them; this file's condensed strand
@@ -20,7 +20,7 @@ step 4's roster-paste/session-lifecycle rewire are done and verified as of
 2026-09-22, steps 3 and 4 both against a real (throwaway local) Postgres
 instance, not just typecheck/tests — see the verification notes under each
 step below for exactly what was and wasn't exercised. Steps 5 onward (all of
-Strand C, plus B's remaining Pi-sync and contract-migration steps) are still
+Strand C, plus B's remaining PC-sync and contract-migration steps) are still
 ahead and blocked on the replan above.
 
 ---
@@ -37,7 +37,7 @@ ahead and blocked on the replan above.
   editable. `unique(anggota.nim)` replaces `unique(tanggal, nim)`, which is
   what makes "one roster, four modules" possible at all. Also fixes:
   `regu.aktif` gets a real writer, a real end-session path is added, and the
-  Pi's separate `modul4/jadwal.json` roster rides the agent's existing
+  PC's separate `modul4/jadwal.json` roster rides the agent's existing
   heartbeat instead of being entered twice.
 - **C — Live practicum session.** Neon stays the record; Firebase RTDB is a
   disposable live buffer, deleted at session end, so the two can't silently
@@ -64,9 +64,9 @@ of B/C, which is why it's first.
 | 2   | CI gate: compile all 8 journals + every sketch, assert page counts and blank counts | —      | ✅ Done — `journals` CI job runs both `check_journal_pages.py` and `check_sketches.py`; both confirmed green locally                                                                                                                                                                                                              |
 | 3   | Schema + backfill + read-path switch (migrations 0002–0003)                         | B      | ✅ Done — verified against a real (throwaway local) Postgres, not just typecheck (see note below)                                                                                                                                                                                                                                 |
 | 4   | Roster UI + start/end session (still on existing Astro page)                        | B      | ✅ Done — see "step 4" below                                                                                                                                                                                                                                                                                                      |
-| 5   | Pi roster sync via agent heartbeat (B3)                                             | B      | ☐ Blocked — needs replanning (see header note)                                                                                                                                                                                                                                                                                    |
+| 5   | PC roster sync via agent heartbeat (B3)                                             | B      | ☐ Blocked — needs replanning (see header note)                                                                                                                                                                                                                                                                                    |
 | 6   | React islands migration of the dashboard                                            | —      | ✅ Discharged by Phase 4 Stage 4 (Toast/Tabs/Modal converted; the rest of the CSP-hash motivation for this step no longer applies -- see step 4's note below)                                                                                                                                                                     |
-| 7   | Firebase rules + auth bridge + live session (answers last)                          | C      | 🗑️ Retired — Strand C's whole Firebase RTDB approach was dropped (see the plan's own decision table); live data instead reaches the web via Stage 20's Pi-agent heartbeat writing straight to Neon (`telemetri_terkini`/`telemetri_log`), with groupmates' editors polling the existing draft endpoint instead of writing to RTDB |
+| 7   | Firebase rules + auth bridge + live session (answers last)                          | C      | 🗑️ Retired — Strand C's whole Firebase RTDB approach was dropped (see the plan's own decision table); live data instead reaches the web via Stage 20's PC-agent heartbeat writing straight to Neon (`telemetri_terkini`/`telemetri_log`), with groupmates' editors polling the existing draft endpoint instead of writing to RTDB |
 | 8   | History view (Neon query once step 7 exists)                                        | C      | ✅ Done, by a different route — built as Phase 6 Stage P6.8's `/reports` page (session list, per-session report, module overview, audit viewer, CSV export), reading straight from Neon's `telemetri_log`/`percobaan_masuk` rather than depending on step 7's now-retired RTDB                                                    |
 | 9   | Contract migration (0004): archive old tables, drop fallback                        | B      | ☐ Not started                                                                                                                                                                                                                                                                                                                     |
 

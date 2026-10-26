@@ -1,16 +1,16 @@
 /**
  * The lab check a session start runs (2026-10-05). Before this a session
  * started whatever state the lab was in: a stopped Mosquitto or an offline
- * Pi only showed once students hit errors. Pure and free of the database,
+ * PC only showed once students hit errors. Pure and free of the database,
  * so the API (api/_lib/siap-mulai.ts) and the console share it.
  *
  * Each check is `ok`, `gagal` or `lewat` (doesn't apply, or can't be known
- * because the Pi is offline). A `keras` failure can't be forced past: a
+ * because the PC is offline). A `keras` failure can't be forced past: a
  * closed module and the wrong Mode TOT side were refusals before this and
  * stay so. The rest the Asisten fixes, or forces with a reason.
  */
 
-export type IdCekMulai = "tot" | "modul" | "pi" | "layanan" | "hotspot";
+export type IdCekMulai = "tot" | "modul" | "pc" | "layanan" | "hotspot";
 
 export interface CekMulai {
   id: IdCekMulai;
@@ -18,15 +18,15 @@ export interface CekMulai {
   keras: boolean;
   /** The practicum service this module needs (layanan only). */
   layanan?: string;
-  /** The service's state as the Pi last reported it (layanan only). */
+  /** The service's state as the PC last reported it (layanan only). */
   keadaan?: string;
-  /** Seconds since the Pi's last heartbeat (pi only). */
+  /** Seconds since the PC's last heartbeat (pc only). */
   umurDetik?: number | null;
   /** Hotspot: on now, or queued with this start. */
   diantre?: boolean;
 }
 
-/** The service each module needs on the Pi. Module 1 is Bluetooth between
+/** The service each module needs on the PC. Module 1 is Bluetooth between
  *  the board and a phone and needs nothing there. */
 export const LAYANAN_MODUL: Record<number, string> = {
   2: "modul2-ws",
@@ -42,8 +42,8 @@ export interface FaktaMulai {
   modeTot: boolean;
   modulTerbuka: number[];
   butuhAp: boolean;
-  /** The one enrolled Pi, or null when none (or several) are enrolled. */
-  pi: {
+  /** The one enrolled PC, or null when none (or several) are enrolled. */
+  pc: {
     umurDetik: number | null;
     batasLuringDetik: number;
     layanan: Record<string, string> | null;
@@ -63,17 +63,17 @@ export function cekMulai(f: FaktaMulai): CekMulai[] {
     keras: true,
   });
 
-  const butuhPi = f.modul in LAYANAN_MODUL;
-  const online = !!f.pi && f.pi.umurDetik !== null && f.pi.umurDetik <= f.pi.batasLuringDetik;
+  const butuhPc = f.modul in LAYANAN_MODUL;
+  const online = !!f.pc && f.pc.umurDetik !== null && f.pc.umurDetik <= f.pc.batasLuringDetik;
   out.push({
-    id: "pi",
-    status: !butuhPi ? "lewat" : online ? "ok" : "gagal",
+    id: "pc",
+    status: !butuhPc ? "lewat" : online ? "ok" : "gagal",
     keras: false,
-    umurDetik: f.pi?.umurDetik ?? null,
+    umurDetik: f.pc?.umurDetik ?? null,
   });
 
   const unit = LAYANAN_MODUL[f.modul];
-  const keadaan = unit ? f.pi?.layanan?.[unit] : undefined;
+  const keadaan = unit ? f.pc?.layanan?.[unit] : undefined;
   out.push({
     id: "layanan",
     status: !unit || !online ? "lewat" : aktif(keadaan) ? "ok" : "gagal",

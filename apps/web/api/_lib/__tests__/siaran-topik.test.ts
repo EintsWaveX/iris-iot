@@ -67,23 +67,36 @@ const BACA: Record<string, string[]> = {
     "qr-token",
     "results",
     "slots",
+    // S3 (2026-10-24), the reads of api/_lib/recruitment-s3.ts
+    "test-ticket",
+    "lc-bin",
+    "lc-ticket",
+    "exam-config",
+    "bank-export",
+    "room-ticket",
+    "room-log",
+    "lc-room",
+    "lc-rubric",
+    "lc-topics",
+    "lc-templates",
+    "score-stats",
   ],
 };
 
-const RUTE: Record<string, string> = {
-  session: "api/session/[aksi].ts",
-  modul: "api/modul/[aksi].ts",
-  presentasi: "api/presentasi/[aksi].ts",
-  auth: "api/auth/[aksi].ts",
-  tp: "api/tp/[aksi].ts",
-  profil: "api/profil/[aksi].ts",
-  recruitment: "api/recruitment/[aksi].ts",
+const RUTE: Record<string, string[]> = {
+  session: ["api/session/[aksi].ts"],
+  modul: ["api/modul/[aksi].ts"],
+  presentasi: ["api/presentasi/[aksi].ts"],
+  auth: ["api/auth/[aksi].ts"],
+  tp: ["api/tp/[aksi].ts"],
+  profil: ["api/profil/[aksi].ts"],
+  recruitment: ["api/recruitment/[aksi].ts", "api/_lib/recruitment-s3.ts"],
 };
 
 /** Every action name a route dispatches on: `aksi === "x"` comparisons and
  *  the keys of its handler tables. */
-function aksiDari(file: string): Set<string> {
-  const src = readFileSync(join(WEB, file), "utf8");
+function aksiDari(files: string[]): Set<string> {
+  const src = files.map((f) => readFileSync(join(WEB, f), "utf8")).join(String.fromCharCode(10));
   const out = new Set<string>();
   for (const m of src.matchAll(/aksi\s*===\s*"([a-z0-9-]+)"/g)) out.add(m[1]);
   for (const m of src.matchAll(/^\s*"([a-z0-9-]+)":\s*handle\w+,$/gm)) out.add(m[1]);
@@ -103,8 +116,8 @@ describe("siaran topics", () => {
   it("lists every write each route accepts, and nothing it doesn't", () => {
     const hilang: string[] = [];
     const basi: string[] = [];
-    for (const [rute, file] of Object.entries(RUTE)) {
-      const ada = aksiDari(file);
+    for (const [rute, files] of Object.entries(RUTE)) {
+      const ada = aksiDari(files);
       for (const a of ada) {
         if (!BACA[rute].includes(a) && !(`${rute}:${a}` in TOPIK_TULIS))
           hilang.push(`${rute}:${a}`);

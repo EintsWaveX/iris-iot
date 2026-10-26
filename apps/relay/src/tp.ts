@@ -10,9 +10,12 @@
  * A put is checked against its ticket byte for byte (size, SHA-256, the
  * PDF header) before it is kept, so the API can trust what it confirms.
  */
+import { LC_BIN_MAKS, isiCocok, putBebas } from "../../web/src/lib/recruitment/lc-r2.ts";
 import {
   TP_BERKAS_MAKS,
+  REK_BANK_RE,
   TP_MIME,
+  awalOk,
   bacaTiketTp,
   sha256Hex,
 } from "../../web/src/lib/tp-r2.ts";
@@ -67,8 +70,6 @@ function json(req: Request, status: number, isi: unknown) {
   });
 }
 
-const PDF_AWAL = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
-
 /** A name safe inside a Content-Disposition header. */
 function namaAman(nama: string): string {
   return nama.replace(/[^\w.\- ]+/g, "_").slice(0, 120) || "berkas";
@@ -99,24 +100,36 @@ async function unggah(req: Request, env: EnvTp, b: R2Bucket, url: URL) {
     "tp-put",
   );
   if (!t) return jawab(req, 403, "tiket ditolak");
+  // The PC agent's upload (Live Coding): its size and hash are measured here and the API compares them with what the agent reported
+  const bebas = putBebas(t);
+  const maks = bebas ? LC_BIN_MAKS : TP_BERKAS_MAKS;
   const panjang = Number(req.headers.get("content-length"));
-  if (Number.isFinite(panjang) && panjang > 0 && panjang !== t.n)
+  if (!bebas && Number.isFinite(panjang) && panjang > 0 && panjang !== t.n)
     return jawab(req, 400, "ukuran salah");
-  if (t.n > TP_BERKAS_MAKS) return jawab(req, 413, "terlalu besar");
+  if (Number.isFinite(panjang) && panjang > maks) return jawab(req, 413, "terlalu besar");
+  if (t.n > maks) return jawab(req, 413, "terlalu besar");
   const isi = new Uint8Array(await req.arrayBuffer());
-  if (isi.length !== t.n) return jawab(req, 400, "ukuran salah");
-  if (!PDF_AWAL.every((c, i) => isi[i] === c))
-    return jawab(req, 415, "bukan pdf");
-  if ((await sha256Hex(isi)) !== t.s) return jawab(req, 400, "isi berubah");
+  if (isi.length > maks) return jawab(req, 413, "terlalu besar");
+  if (!bebas && isi.length !== t.n) return jawab(req, 400, "ukuran salah");
+  if (!isiCocok(t.k, isi)) return jawab(req, 415, t.k.includes("/lc/") ? "bukan citra" : "bukan pdf");
+  // A bank picture (prompt 09) is checked by its own header, whatever isiCocok lets by.
+  if (REK_BANK_RE.test(t.k) && !awalOk(t.k, isi)) return jawab(req, 415, "bukan gambar");
+  const hash = await sha256Hex(isi);
+  if (!bebas && hash !== t.s) return jawab(req, 400, "isi berubah");
   // The same bytes again (a retry) are already there.
   const ada = await b.head(t.k);
   if (!ada)
     await b.put(t.k, isi, {
-      sha256: t.s,
-      httpMetadata: { contentType: TP_MIME.pdf },
+      sha256: hash,
+      // A picture keeps its own type; anything else stays as it was.
+      httpMetadata: {
+        contentType: bebas
+          ? TP_MIME.bin
+          : (TP_MIME[t.k.slice(t.k.lastIndexOf(".") + 1)] ?? TP_MIME.pdf),
+      },
       customMetadata: { halaman: String(t.h) },
     });
-  return json(req, 201, { ok: true, k: t.k });
+  return json(req, 201, { ok: true, k: t.k, ...(bebas ? { n: isi.length, sha256: hash } : {}) });
 }
 
 async function baca(req: Request, env: EnvTp, b: R2Bucket, url: URL) {
@@ -129,7 +142,8 @@ async function baca(req: Request, env: EnvTp, b: R2Bucket, url: URL) {
   const o = await b.get(t.k, { range: req.headers, onlyIf: req.headers });
   if (!o) return jawab(req, 404, "berkas hilang");
   const mime = Object.values(TP_MIME).includes(t.m) ? t.m : TP_MIME.bin;
-  const aman = mime === TP_MIME.pdf || mime.startsWith("image/");
+  // SVG can carry script when opened on its own, so it is served sandboxed like the rest.
+  const aman = mime === TP_MIME.pdf || (mime.startsWith("image/") && mime !== TP_MIME.svg);
   const h: Record<string, string> = {
     "content-type": mime,
     "content-disposition": `${t.d === "u" || !aman ? "attachment" : "inline"}; filename="${namaAman(t.nm)}"`,

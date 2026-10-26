@@ -3,8 +3,8 @@
  * reports what is installed (its protocol, the bundle's commits, apt's
  * upgradable count) and the site compares that with what is newest: the
  * bundle CI built, signed and published. Since 2026-10-07 each row that is
- * behind has an Update button that sends the command to the Pi: the three
- * bundle rows install that one signed bundle (root on the Pi checks the
+ * behind has an Update button that sends the command to the PC: the three
+ * bundle rows install that one signed bundle (root on the PC checks the
  * signature first), the apt row runs apt upgrade. Never during a session.
  */
 import { useState } from "react";
@@ -54,7 +54,7 @@ export default function Updates({
   const s = data.server;
   const terbit = data.bundelTerbit;
   const rows = barisPembaruan(s.infoSistem, s.agenVersi, data.situsIot, terbit);
-  // apt, dnf, pacman or zypper: whatever the Pi's Linux uses (agent infoSistem.distro)
+  // apt, dnf, pacman or zypper: whatever the PC's Linux uses (agent infoSistem.distro)
   const pm = pengelolaPaket(s.infoSistem);
   const checking = sedangBerjalan(data, "info.segarkan");
   const hasil = {

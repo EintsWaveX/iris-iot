@@ -1,6 +1,6 @@
 """
 PERBURUAN LoRa IRIS — papan skor (Modul 4)
-Perangkat: Orange Pi 4 PRO, dijalankan sebagai access point "IRIS_IOT"
+Perangkat: PC Server, dijalankan sebagai access point "IRIS_IOT"
 
 Satu proses melayani tiga hal sekaligus pada port yang sama:
 
@@ -8,7 +8,7 @@ Satu proses melayani tiga hal sekaligus pada port yang sama:
     GET  /roster.json   nama anggota kelompok sesi berjalan (TANPA NIM)
     GET  /jejak.json    jejak 1 Hz tiap kelompok + peristiwa, untuk tayangan ulang
     GET  /jejak.csv     jejak yang sama sebagai CSV, untuk diunduh asisten
-    GET  /telemetri.json  baris per kelompok (mentah + RSSI halus, jarak, tren) untuk agent Orange Pi (loopback saja)
+    GET  /telemetri.json  baris per kelompok (mentah + RSSI halus, jarak, tren) untuk agent PC (loopback saja)
     GET  /ringkas.json  ringkasan perburuan per kelompok (status, anggota, peristiwa) untuk agent (loopback saja)
     GET  /foto/<berkas> foto klaim yang diunggah sebuah kelompok
     WS   /beacon        beacon melaporkan tiap nomor paket yang dipancarkan
@@ -281,8 +281,8 @@ WS_MAX_SIZE = 1 << 20
 
 JADWAL_PATH = HERE / "jadwal.json"
 ROSTER_PATH = HERE / "roster.json"   # berkas v1; dibuang bila ditemukan
-# Ditulis oleh agent Orange Pi (Stage 18) dari respons denyut jantungnya
-# sendiri -- lihat orangepi/agent/agent.py dan apps/web/api/agent/index.ts's
+# Ditulis oleh agent PC (Stage 18) dari respons denyut jantungnya
+# sendiri -- lihat pc/agent/agent.py dan apps/web/api/agent/index.ts's
 # jadwalModul4Hari(). Bukan di bawah /home karena systemd unit agent
 # memasang ProtectHome=true.
 JADWAL_IMPOR_PATH_BAWAAN = pathlib.Path("/var/lib/iris-agent/bagi/jadwal-modul4.json")
@@ -321,7 +321,7 @@ HISTORY_CAP = 160
 
 
 def timestamp() -> str:
-    """Jam dinding Orange Pi dalam format HH:MM:SS:MS."""
+    """Jam dinding PC dalam format HH:MM:SS:MS."""
     now = datetime.now()
     return f"{now:%H:%M:%S}:{now.microsecond // 1000:03d}"
 
@@ -1318,7 +1318,7 @@ def _menit(jam: str) -> int:
 
 def sesi_kosong(idx: int, jam: str) -> dict:
     # sumber: None sampai terisi sekali, lalu "web" (impor Stage 18) atau
-    # "pi" (tempelan manual asisten) -- lihat jadwal_impor()'s docstring
+    # "pc" (tempelan manual asisten) -- lihat jadwal_impor()'s docstring
     # untuk aturan siapa boleh menimpa siapa.
     return {"id": idx, "mulai": jam, "regu": {}, "sumber": None}
 
@@ -1490,7 +1490,7 @@ def jadwal_muat() -> None:
         return
 
     # Rencana kemarin bukan rencana hari ini. Nama praktikan tidak boleh
-    # menginap semalam di Orange Pi tanpa ada yang memintanya.
+    # menginap semalam di PC tanpa ada yang memintanya.
     if data.get("hari") != hari_ini():
         print(f"[{timestamp()}] jadwal tersimpan dari hari lain, dibuang")
         JADWAL_PATH.unlink(missing_ok=True)
@@ -1508,7 +1508,7 @@ def jadwal_muat() -> None:
                 "id": i + 1,
                 "mulai": jam if JAM_RE.match(jam) else JADWAL_MULAI[i],
                 "regu": entry.get("regu") if isinstance(entry.get("regu"), dict) else {},
-                "sumber": sumber if sumber in ("web", "pi") else None,
+                "sumber": sumber if sumber in ("web", "pc") else None,
             })
         while len(JADWAL["sesi"]) < len(JADWAL_MULAI):
             n = len(JADWAL["sesi"])
@@ -1621,7 +1621,7 @@ def jadwal_set(sid, patch: dict) -> tuple[bool, str]:
     entry["regu"] = regu
     # Tempelan manual selalu menang atas impor web berikutnya -- lihat
     # jadwal_impor()'s docstring.
-    entry["sumber"] = "pi"
+    entry["sumber"] = "pc"
     JADWAL["rev"] += 1
     JADWAL["hari"] = hari_ini()
     jadwal_simpan()
@@ -1630,7 +1630,7 @@ def jadwal_set(sid, patch: dict) -> tuple[bool, str]:
 
 
 def jadwal_impor(path: pathlib.Path) -> int | None:
-    """Tarik jadwal Modul 4 hari ini dari berkas yang ditulis agent Orange Pi
+    """Tarik jadwal Modul 4 hari ini dari berkas yang ditulis agent PC
     (Stage 18), diisi dari respons denyut jantungnya sendiri
     (jadwalModul4Hari() pada apps/web).
 
@@ -1642,8 +1642,8 @@ def jadwal_impor(path: pathlib.Path) -> int | None:
     server yang dinyalakan ulang di tengah perburuan tidak menghapus
     rondenya. Mengembalikan nomor sesi yang harus dimulai, atau None.
 
-    Sebuah sesi yang sumber-nya sudah "pi" -- pernah ditempel manual di
-    Orange Pi sejak impor terakhir -- DILEWATI, bukan ditimpa: kotak tempel
+    Sebuah sesi yang sumber-nya sudah "pc" -- pernah ditempel manual di
+    PC sejak impor terakhir -- DILEWATI, bukan ditimpa: kotak tempel
     tetap menjadi cadangan luring yang berlaku penuh begitu asisten
     menyentuhnya, persis seperti sebelum Stage 18 ada. Sesi yang gagal
     validasi (mis. NIM ganda) dilewati dan dicatat ke konsol tanpa
@@ -1672,7 +1672,7 @@ def jadwal_impor(path: pathlib.Path) -> int | None:
         if isinstance(berburu, str) and berburu and berburu != JADWAL.get("berburu"):
             JADWAL["berburu"] = berburu
             mulai_sekarang = entry["id"]
-        if entry.get("sumber") == "pi":
+        if entry.get("sumber") == "pc":
             continue
 
         patch = slot.get("regu") if isinstance(slot.get("regu"), dict) else {}
@@ -1864,11 +1864,11 @@ def process_request(connection: ServerConnection, request) -> Response | None:
 
     if path == "/telemetri.json":
         # Stage 20: baris mentah per kelompok (tx/rx/delay_ms/rssi/snr), untuk
-        # agent Orange Pi sendiri meneruskannya ke situs web lewat denyut
+        # agent PC sendiri meneruskannya ke situs web lewat denyut
         # jantungnya -- bukan untuk proyektor maupun ponsel di hotspot. Loopback
         # saja: menolak siapa pun selain 127.0.0.1 memastikan itu tetap begitu
-        # meski port ini kebetulan tersambung dari luar Pi (mis. lewat dongle
-        # uplink Stage 19, yang membuat Pi ini terjangkau dari Wi-Fi kampus).
+        # meski port ini kebetulan tersambung dari luar PC (mis. lewat dongle
+        # uplink Stage 19, yang membuat PC ini terjangkau dari Wi-Fi kampus).
         ip = peer_ip(connection)
         if ip not in ("127.0.0.1", "::1"):
             return connection.respond(
@@ -2783,7 +2783,7 @@ async def penjaga_sesi() -> None:
 
 
 def cetak_token() -> None:
-    """Token hanya muncul di konsol Orange Pi, tempat operator berada."""
+    """Token hanya muncul di konsol PC, tempat operator berada."""
     isi = f"  TOKEN ASISTEN:  {' '.join(TOKEN)}  "
     garis = "-" * len(isi)
     print(f"[{timestamp()}] +{garis}+")
@@ -2802,7 +2802,7 @@ async def main(host: str, port: int) -> None:
         await sesi_mulai(mulai_web, "Mulai Perburuan dari web")
 
     # Kalau server dinyalakan di tengah jam sebuah sesi, sesi itulah yang
-    # berlaku. Tanpa ini asisten harus menekan "mulai" setiap kali Orange Pi
+    # berlaku. Tanpa ini asisten harus menekan "mulai" setiap kali PC
     # dinyalakan ulang di tengah praktikum.
     terjadwal = sesi_terjadwal_sekarang()
     if (JADWAL["aktif"] is None and terjadwal is not None
@@ -2858,7 +2858,7 @@ if __name__ == "__main__":
              f"(bawaan {','.join(JADWAL_MULAI)})")
     parser.add_argument(
         "--jadwal-impor", default=None, metavar="PATH", dest="jadwal_impor",
-        help="berkas jadwal Modul 4 yang ditulis agent Orange Pi "
+        help="berkas jadwal Modul 4 yang ditulis agent PC "
              f"(bawaan {JADWAL_IMPOR_PATH_BAWAAN})")
     args = parser.parse_args()
 
@@ -2883,5 +2883,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nPapan skor dihentikan.")
     finally:
-        # Tidak meninggalkan jejak: foto praktikan tidak menginap di Pi.
+        # Tidak meninggalkan jejak: foto praktikan tidak menginap di PC.
         shutil.rmtree(UPLOAD_DIR, ignore_errors=True)

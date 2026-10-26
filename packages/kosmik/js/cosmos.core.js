@@ -729,7 +729,7 @@
     // slow (a 53fps roster against a 6fps game screen), because the large
     // additive blit falls off the fast path.
     ctx.globalCompositeOperation = "source-over";
-    for (var pi = 0; pi < planets.length; pi++) drawPlanet(planets[pi]);
+    for (var pc = 0; pc < planets.length; pc++) drawPlanet(planets[pc]);
 
     // Additive blending is what makes the star field glow rather than sit
     // flat on the background.

@@ -1,7 +1,7 @@
 /**
  * The site's clock on the page (Phase 12). Much of what a page shows turns
  * over at a known moment rather than on a write: a session's time runs out,
- * a Pi passes its silence limit, an Asisten goes offline, a request expires.
+ * a PC passes its silence limit, an Asisten goes offline, a request expires.
  * The page already holds those moments as server timestamps, so it arms a
  * timer for each and acts at that instant, with no relay and no timer poll.
  *

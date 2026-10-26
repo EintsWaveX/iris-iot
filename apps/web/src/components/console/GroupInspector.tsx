@@ -494,7 +494,7 @@ function InspectorCards(p: InspectorProps) {
   const tel = useTelemetry(modul, g.nomor, false, 2000, null, false, p.sesiId);
   const records = useMemo(() => {
     const s = new LiveRecords(modul);
-    for (const r of tel.history) s.pi(r);
+    for (const r of tel.history) s.pc(r);
     return s.list();
   }, [modul, tel.history]);
   const rows = records.slice(-40);

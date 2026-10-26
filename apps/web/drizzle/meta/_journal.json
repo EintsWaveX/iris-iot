@@ -358,6 +358,34 @@
       "when": 1792841908016,
       "tag": "0050_rec_account",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792858183521,
+      "tag": "0051_recruitment_s3_exam",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792911047720,
+      "tag": "0052_recruitment_s3_livecode",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792945421777,
+      "tag": "0053_recruitment_s3_score",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793000000000,
+      "tag": "0054_pi_to_pc",
+      "breakpoints": true
     }
   ]
 }

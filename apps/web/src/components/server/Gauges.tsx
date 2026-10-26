@@ -1,5 +1,5 @@
 /**
- * "The Pi right now" (Phase 9 Stage 5, mockup v-over PiGauges): six
+ * "The PC right now" (Phase 9 Stage 5, mockup v-over PcGauges): six
  * numbers from the newest heartbeat and its `kondisi` block. CPU, memory,
  * temperature, storage and network open their own chart (range switch,
  * the limit band, now/lowest/highest/average, the latest readings and a
@@ -234,7 +234,7 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
   };
   const beban = k?.beban?.map((v) => angka(v, lang, 2)).join(" · ");
 
-  // v is null while the Pi has not reported it: the card says Belum ada once
+  // v is null while the PC has not reported it: the card says Belum ada once
   // (no unit after it, no "no data" line under it).
   const cards: { m: Metrik; v: string | null; unit: string; sub: string; warn?: boolean }[] = [
     {

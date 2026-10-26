@@ -6,3 +6,6 @@ src/data/asisten.json
 .impeccable/
 .remember/
 api/_lib/__tests__/fixtures/
+src/lib/recruitment/seed-bank.ts
+src/lib/__tests__/fixtures/
+scripts/rec-bank/*.md

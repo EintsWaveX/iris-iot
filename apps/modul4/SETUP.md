@@ -1,25 +1,25 @@
 > **Where this lives.** This directory is `apps/modul4` in the `iris-iot`
 > repository, moved here from `IRIS ASO/modul4/` with its git history
 > preserved (see that stage's commit for how). Every path below is written
-> relative to the Orange Pi's install root (`/home/orangepi/IRIS-ASO`), not
+> relative to the PC's install root (`/home/orangepi/IRIS-ASO`), not
 > relative to this repo checkout — `modul4/server.py` here means
-> `/home/orangepi/IRIS-ASO/modul4/server.py` on the Pi. The Pi never clones
+> `/home/orangepi/IRIS-ASO/modul4/server.py` on the PC. The PC never clones
 > either repo directly; it receives a generated bundle built by
-> `IRIS ASO/orangepi/build_bundle.py`, which pulls this directory's built
+> `IRIS ASO/pc/build_bundle.py`, which pulls this directory's built
 > output straight from a local `iris-iot` checkout. See that script and
-> `IRIS ASO/orangepi/README.md` for the actual deploy path.
+> `IRIS ASO/pc/README.md` for the actual deploy path.
 
 # Perburuan LoRa IRIS — papan skor (Modul 4)
 
 Papan skor web untuk permainan berburu beacon LoRa. Berjalan seluruhnya pada
-Orange Pi 4 PRO; tidak memerlukan Internet, akun, maupun proses deploy.
+PC Server; tidak memerlukan Internet, akun, maupun proses deploy.
 
 ```
 Beacon 1 ─┐                             ┌── papan skor (proyektor)
 Hunter 1 ─┤                             ├── ponsel tiap kelompok
 Beacon 2 ─┤                             ├── ponsel/laptop asisten
 Hunter 2 ─┤   LoRa 920 MHz, 5 pasang    │
-   ...    ├── (sync word + slot ────────┼─ Wi-Fi ─→ Orange Pi 4 PRO
+   ...    ├── (sync word + slot ────────┼─ Wi-Fi ─→ PC Server
 Beacon 5 ─┤    sendiri per pasangan)    │            (AP + DHCP + NTP + server)
 Hunter 5 ─┘                             └            http://192.168.4.1:8080
 ```
@@ -30,18 +30,18 @@ mengetikkan token satu kali, proyektor memakai `?stage=1`.
 
 ---
 
-## 1. Menyalakan hotspot pada Orange Pi
+## 1. Menyalakan hotspot pada PC
 
-Modul 2 dan Modul 3 menjalankan Orange Pi sebagai *client* Wi-Fi kampus.
+Modul 2 dan Modul 3 menjalankan PC sebagai *client* Wi-Fi kampus.
 Modul 4 memerlukannya sebagai *access point*. Satu antarmuka `wlan0` tidak
 dapat menjadi keduanya sekaligus, kecuali sebuah **dongle Wi-Fi USB kedua**
-terpasang sebagai uplink terpisah -- lihat `orangepi/README.md` bagian 7.0.
+terpasang sebagai uplink terpisah -- lihat `pc/README.md` bagian 7.0.
 Dengan dongle, `wlan0` menjadi access point sementara dongle tetap
 tersambung ke Wi-Fi kampus, dan perburuan tetap terjangkau situs web secara
 langsung. Tanpa dongle, perilaku lama berlaku:
 
 > **Tanpa dongle uplink, Modul 4 dan Modul 2/3 tidak dapat dijalankan pada
-> sesi yang sama.** Jadwalkan keduanya terpisah, dan kembalikan mode Pi
+> sesi yang sama.** Jadwalkan keduanya terpisah, dan kembalikan mode PC
 > sesudahnya. `opi_ap_on.sh` mendeteksi dongle secara otomatis setiap kali
 > dijalankan -- tidak ada yang perlu diubah pada perintah di bawah ini.
 
@@ -56,9 +56,9 @@ Nilai bawaannya:
 |---|---|
 | SSID | `IRIS_IOT` |
 | Kata sandi | `13015954` |
-| Alamat Pi | `192.168.4.1` |
+| Alamat PC | `192.168.4.1` |
 | Rentang DHCP | `192.168.4.10` – `192.168.4.60` |
-| Server NTP | `192.168.4.1` (Pi itu sendiri) |
+| Server NTP | `192.168.4.1` (PC itu sendiri) |
 | Papan skor | `http://192.168.4.1:8080` |
 
 Nilai-nilai ini juga tertulis di dalam `hunter.ino` dan `beacon.ino`. Kalau
@@ -67,15 +67,15 @@ jalankan ulang generatornya — jangan menyunting berkas hasil bangkitan.
 
 ### Jam
 
-Hotspot ini tidak memiliki jalur ke Internet, sehingga Pi menjadi sumber waktu
-bagi seluruh papan. **Setel jam Pi sebelum mode AP dinyalakan**, selagi masih
+Hotspot ini tidak memiliki jalur ke Internet, sehingga PC menjadi sumber waktu
+bagi seluruh papan. **Setel jam PC sebelum mode AP dinyalakan**, selagi masih
 ada Internet:
 
 ```bash
 sudo systemctl restart chrony && chronyc tracking
 ```
 
-Jam mutlak Pi boleh saja meleset beberapa detik. Yang penting Beacon dan Hunter
+Jam mutlak PC boleh saja meleset beberapa detik. Yang penting Beacon dan Hunter
 berangkat dari *satu* sumber waktu, sehingga selisih keduanya tetap sahih —
 dan selisih itulah yang dicatat praktikan.
 
@@ -83,8 +83,8 @@ dan selisih itulah yang dicatat praktikan.
 
 ## 2. Membangun dan menjalankan papan skor
 
-Di Orange Pi papan skor berjalan sebagai `modul4.service` dan dikirim lewat
-`IRIS ASO/orangepi/deploy.sh --modul 4`; perintah di bawah ini untuk
+Di PC papan skor berjalan sebagai `modul4.service` dan dikirim lewat
+`IRIS ASO/pc/deploy.sh --modul 4`; perintah di bawah ini untuk
 menjalankannya dengan tangan.
 
 ### Sumber berkas (klien Phase 9)
@@ -151,7 +151,7 @@ rapat dengan RSSI yang mengikuti jarak (di dalam jangkauan). Peralihan dari
 
 ### Token asisten
 
-Di Orange Pi, `modul4.service` membaca token tetap dari
+Di PC, `modul4.service` membaca token tetap dari
 `/var/lib/iris-modul4/token` (dibuat sekali oleh `opi_provision.sh`, mode 0600),
 jadi token **tidak** berganti saat layanan dinyalakan ulang. Dijalankan dengan
 tangan tanpa `--token`, server membangkitkan token enam huruf dan mencetaknya:
@@ -481,8 +481,8 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
 ## 6. Hal yang paling sering salah
 
 - **Papan skor kosong padahal hunter menyala.** Papan itu belum bergabung ke
-  `IRIS_IOT`, atau Pi masih dalam mode client. Serial Monitor hunter akan
-  menggantung pada titik-titik "Menyambung ke hotspot Orange Pi".
+  `IRIS_IOT`, atau PC masih dalam mode client. Serial Monitor hunter akan
+  menggantung pada titik-titik "Menyambung ke hotspot PC".
 - **Semua kelompok terbaca "MEMBARA" sekaligus.** `BEACON_TX_POWER` terisi 20,
   bukan 2. Pada daya penuh gradien sinyalnya rata dan permainannya mustahil.
 - **Beacon "Hening" pada HUD.** Papan Beacon kehilangan Wi-Fi atau mati; radio
@@ -505,8 +505,8 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
   tangga panas jatuh di dalam beberapa meter pertama. Naikkan `--arena`, dan
   naikkan pula `BEACON_TX_POWER` bila kelompok terjauh memang tidak menerima
   apa pun.
-- **Kolom delay kosong.** Salah satu papan gagal menyelaraskan jam ke Pi.
-  Periksa bahwa Pi benar-benar melayani NTP dan jamnya sudah disetel.
+- **Kolom delay kosong.** Salah satu papan gagal menyelaraskan jam ke PC.
+  Periksa bahwa PC benar-benar melayani NTP dan jamnya sudah disetel.
 - **Halaman menampilkan "Papan skor belum dibangun".** `modul4/build.py` belum
   dijalankan, sehingga `modul4/public/index.html` belum ada.
 - **"NIM ini tidak terdaftar di sesi yang sedang berjalan".** Tiga sebab, dan
@@ -548,7 +548,7 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
   panjang atau rapatkan jamnya lewat `--sesi-jam`.
 - **Jadwal kosong padahal kemarin sudah diisi.** Rencana dari hari lain
   sengaja dibuang saat server dimuat: nama praktikan tidak menginap semalam
-  di Orange Pi.
+  di PC.
 - **Fonta terlihat berbeda dari `games/`.** Instrument Serif dan IBM Plex
   diambil dari Google Fonts, yang tidak dapat dijangkau dari hotspot tanpa
   Internet, sehingga halaman jatuh ke Georgia/system-ui/Consolas. Tata

@@ -46,3 +46,5 @@ Read `_RULES.md`, `EXAM-ENGINE.md` sections 1 to 3, 5 to 7 and 10, the signed-of
 - Rig: 10 simulated seats (Playwright contexts) through the three parts with a fake Master (11's API, or direct state writes until 11 lands).
 - The phone-width layout still works, but candidates sit on laptops: optimise for 1280 to 1680 and short laptop screens (1280×600).
 - Handoff.
+
+**Ruling 2026-10-24:** The seat page lets a candidate type their own phone hotspot (SSID and password, sealed; EXAM-ENGINE 9.6a, WAVE3.md).

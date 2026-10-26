@@ -1,8 +1,8 @@
 /**
- * Konsol Pi (Phase 9 Stage 9): the shapes GET /api/server/:id?aksi=konsol
+ * Konsol PC (Phase 9 Stage 9): the shapes GET /api/server/:id?aksi=konsol
  * returns, the actions, and useSambung, the browser's end of the relay.
  *
- * The relay passes the Pi's frames on. From the Pi's bridge, binary frames
+ * The relay passes the PC's frames on. From the PC's bridge, binary frames
  * are the terminal's output or the RFB stream, and text frames are its
  * notes: {"t":"siap",...} each time the page joins (and, on a screen, again
  * whenever control moves), or {"t":"galat","kode":...}. From the page,
@@ -60,7 +60,7 @@ export interface PesertaRow {
 export interface KonsolData {
   ok: true;
   siap: boolean;
-  /** Whether the Pi can show its own screen; null when it never said. */
+  /** Whether the PC can show its own screen; null when it never said. */
   layar?: LayarKonsol | null;
   /** Opens and joins without an approver (the Pencipta, the Inti, DEV). */
   dev: boolean;
@@ -106,14 +106,14 @@ export interface Ruang {
   pengendali: number | null;
   minta: number[];
   orang: { id: number; nim: string; nama: string; pemilik: boolean }[];
-  pi: boolean;
+  pc: boolean;
 }
 
 const KONTROL = "\u0000relay:";
 
 export type Keadaan =
   | { k: "tiket" }
-  | { k: "pi"; sejak: number }
+  | { k: "pc"; sejak: number }
   | { k: "siap"; sandi?: string }
   | { k: "galat"; kode: string }
   | { k: "putus"; kode: number; alasan: string };
@@ -122,7 +122,7 @@ interface Opsi {
   id: number;
   /** Called for every binary frame (terminal output, RFB). */
   onData: (d: ArrayBuffer) => void;
-  /** Called when the Pi side says it's ready, once per join. */
+  /** Called when the PC side says it's ready, once per join. */
   onSiap?: (o: Record<string, unknown>) => void;
   /** The console ended on the relay (cut off, idle, the cap), with why. */
   onTutup?: (why: string) => void;
@@ -131,8 +131,8 @@ interface Opsi {
 }
 
 /** One live connection to the relay for an approved console. `kirim` sends
- *  a frame; `sambung(ulangPi)` asks for a fresh ticket (and, when the Pi side
- *  is gone, for the Pi to join again). */
+ *  a frame; `sambung(ulangPc)` asks for a fresh ticket (and, when the PC side
+ *  is gone, for the PC to join again). */
 export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
   const [keadaan, setKeadaan] = useState<Keadaan>({ k: "tiket" });
   const [ruang, setRuang] = useState<Ruang | null>(null);
@@ -145,12 +145,12 @@ export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
   const pindah = useRef(0);
 
   const sambung = useCallback(
-    async (ulangPi = false) => {
+    async (ulangPc = false) => {
       const g = ++gen.current;
       ws.current?.close(1000);
       ws.current = null;
       setKeadaan({ k: "tiket" });
-      const r = await aksiKonsol("konsol_tiket", { id, ulangPi });
+      const r = await aksiKonsol("konsol_tiket", { id, ulangPc });
       if (g !== gen.current) return;
       if (!r.ok || typeof r.url !== "string") {
         setKeadaan({ k: "galat", kode: String(r.kode ?? "jaringan") });
@@ -160,7 +160,7 @@ export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
       const s = new WebSocket(pindah.current >= 3 ? `${r.url}&jauh=boleh` : r.url);
       s.binaryType = "arraybuffer";
       ws.current = s;
-      setKeadaan({ k: "pi", sejak: Date.now() });
+      setKeadaan({ k: "pc", sejak: Date.now() });
       s.onmessage = (e) => {
         if (ws.current !== s) return;
         if (typeof e.data === "string") {

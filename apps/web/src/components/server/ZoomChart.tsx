@@ -197,8 +197,8 @@ export default function ZoomChart({
         onDoubleClick={zoom.reset}
       >
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-          {panels.map((p, pi) => {
-            const top = pi * (ph + GAP);
+          {panels.map((p, pc) => {
+            const top = pc * (ph + GAP);
             const { d, y } = path(p, top);
             const by = p.batas !== undefined ? y(p.batas) : null;
             return (
@@ -233,11 +233,11 @@ export default function ZoomChart({
           })}
           {hover && <line x1={x(hi)} x2={x(hi)} y1="0" y2={H} className="zchart__cross" />}
         </svg>
-        {panels.map((p, pi) => (
+        {panels.map((p, pc) => (
           <span
             key={p.k}
             className="zchart__panel"
-            style={{ top: `${((pi * (ph + GAP)) / H) * 100}%` }}
+            style={{ top: `${((pc * (ph + GAP)) / H) * 100}%` }}
           >
             {p.judul}
           </span>

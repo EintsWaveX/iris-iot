@@ -580,8 +580,8 @@ export default function BlankFile(p: Props) {
     const out: Item[][] = [[]];
     let b = 0;
     for (const tok of tokens) {
-      tok.text.split(BLANK_MARK).forEach((part, pi) => {
-        if (pi > 0 && bl[b]) out[out.length - 1].push({ t: "blank", seg: bl[b++] });
+      tok.text.split(BLANK_MARK).forEach((part, pc) => {
+        if (pc > 0 && bl[b]) out[out.length - 1].push({ t: "blank", seg: bl[b++] });
         part.split("\n").forEach((piece, li) => {
           if (li > 0) out.push([]);
           if (piece) out[out.length - 1].push({ t: "tok", tok, text: piece });

@@ -15,7 +15,7 @@ export interface Denyut extends Heartbeat {
   jaringan?: number | null;
 }
 
-/** A Pi heartbeat as the `pi` room carries it (api/agent, Phase 12) */
+/** A PC heartbeat as the `pc` room carries it (api/agent, Phase 12) */
 export interface DenyutAliran {
   serverId: number;
   denyut: Denyut & { pada: string };
@@ -23,14 +23,14 @@ export interface DenyutAliran {
   kondisiPada?: string | null;
 }
 
-/** Hears every Pi's heartbeat as it lands, for the Server pages; while the
+/** Hears every PC's heartbeat as it lands, for the Server pages; while the
  *  room is down, `cadangan` (the page's refetch) stands in every 10 s */
 export function useDenyutLangsung(
   on: boolean,
   fn: (d: DenyutAliran) => void,
   cadangan?: () => void,
 ): StatusAliran {
-  const status = useAliran({ ruang: "pi", aktif: on }, ["denyut"], (m) => {
+  const status = useAliran({ ruang: "pc", aktif: on }, ["denyut"], (m) => {
     const d = m.d as DenyutAliran | null;
     if (d && typeof d.serverId === "number" && d.denyut) fn(d);
   });
@@ -38,7 +38,7 @@ export function useDenyutLangsung(
   return status;
 }
 
-/** A server row with this beat (and its "Pi right now" numbers) in it */
+/** A server row with this beat (and its "PC right now" numbers) in it */
 export function denganDenyut<T extends { id: number; denyutTerakhir?: unknown }>(
   row: T,
   d: DenyutAliran,
@@ -100,11 +100,11 @@ export interface Riwayat {
 
 /** What the signed-in Asisten may do here. */
 export interface Bisa {
-  /** Control the Pi (services, hotspot, commands). */
+  /** Control the PC (services, hotspot, commands). */
   server: boolean;
-  /** The Full view, settings, clearing logs, registering a Pi. */
+  /** The Full view, settings, clearing logs, registering a PC. */
   full: boolean;
-  /** Konsol Pi: every Asisten may ask or join (2026-10-05). */
+  /** Konsol PC: every Asisten may ask or join (2026-10-05). */
   konsol: boolean;
   /** Opens and joins without an approver: the Pencipta, the Inti, DEV. */
   istimewa: boolean;

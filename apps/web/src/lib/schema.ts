@@ -28,6 +28,34 @@ import {
   date,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
+import type {
+  ExamConfig,
+  Question,
+  RoomState,
+  RubricRow,
+  SeatDraw,
+  Value,
+} from "./recruitment/exam-types.js";
+import {
+  FORMATS,
+  LANGS,
+  PART_KEYS,
+  PHASE1_PARTS,
+  PROTOCOLS,
+  type PartKey,
+} from "./recruitment/exam-types.js";
+import type { KitBoard, RoomHotspot, SeatCheckin } from "./recruitment/room-types.js";
+import type { ScoreRow, StatRow } from "./recruitment/score-api.js";
+import {
+  JOB_STATUS,
+  LC_VARIANTS,
+  TEMPLATE_KEYS,
+  TOPIC_STATUS,
+  type LcBoard,
+  type LcMqtt,
+  type LcRun,
+  type LcSpin,
+} from "./recruitment/lc-types.js";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
 import type { TeksTiga } from "./profil.js";
 import { KELAS } from "./kelas.js";
@@ -203,9 +231,9 @@ export const sesi = pgTable(
     // scheduler) never asked for one; the scheduler will always set it.
     slot: integer("slot"),
     // True only for Module 4: the one part of the practicum that
-    // needs the Orange Pi running as its own access point rather than as a
+    // needs the PC running as its own access point rather than as a
     // campus network client. A single wlan0 cannot be both at once (see
-    // orangepi/README.md section 7.0's provisioning notes), so the
+    // pc/README.md section 7.0's provisioning notes), so the
     // scheduler must know which slots need AP mode ahead of time rather
     // than leaving it to memory.
     butuhAp: boolean("butuh_ap").notNull().default(false),
@@ -893,7 +921,7 @@ export const audit = pgTable(
 );
 
 /**
- * Phase 2 — one row per registered Orange Pi. `alamatLan` is the fixed LAN
+ * Phase 2 — one row per registered PC. `alamatLan` is the fixed LAN
  * address boards and phones use to reach it (192.168.4.1 under the router
  * topology the Phase 2 plan settled on) — distinct from whatever public IP
  * the router happens to have, which is irrelevant to anyone on the practicum
@@ -916,12 +944,12 @@ export const server = pgTable("server", {
   // agent reports.
   catatan: text("catatan"),
   lokasi: text("lokasi"),
-  // 0032: who looks after this Pi (a name, division or contact), set in the
+  // 0032: who looks after this PC (a name, division or contact), set in the
   // Pengaturan tab and shown beside Lokasi on the server's card.
   penanggungJawab: text("penanggung_jawab"),
   // The bundle SHA pair the agent reads from its own BUNDLE.txt (see
-  // orangepi/build_bundle.py and agent.py's _agen_versi()) and reports on
-  // every heartbeat, so "is this Pi actually running what I just shipped"
+  // pc/build_bundle.py and agent.py's _agen_versi()) and reports on
+  // every heartbeat, so "is this PC actually running what I just shipped"
   // is answered by the dashboard instead of trusted on faith.
   agenVersi: text("agen_versi"),
   // The hourly system-info block P6.7 adds to the agent's heartbeat
@@ -943,7 +971,7 @@ export const server = pgTable("server", {
   // the agent, for the Praktikan's Perburuan step. Only the newest is kept.
   perburuan: jsonb("perburuan").$type<Record<string, unknown>>(),
   perburuanPada: timestamp("perburuan_pada", { withTimezone: true }),
-  // The hotspot the Pi runs for Module 4, read by the agent from its own
+  // The hotspot the PC runs for Module 4, read by the agent from its own
   // hostapd file at run time ({ ssid, sandi }), for the join QR.
   hotspot: jsonb("hotspot").$type<{ ssid: string; sandi: string | null }>(),
 });
@@ -1064,10 +1092,10 @@ export const perintah = pgTable(
  *
  * `tx`/`rx` are "HH:MM:SS:MS" strings, matching every module's own
  * on-device print format, not a computed duration -- deliberately, since
- * Modules 2 and 3 only ever see the *arrival* side (the Pi has no visibility
+ * Modules 2 and 3 only ever see the *arrival* side (the PC has no visibility
  * into when an ESP32 or Pico W actually sent), so `tx` is null and `delayMs`
  * stays null for both; the web UI labels their delay column "from your
- * serial output" rather than showing a number the Pi cannot actually know.
+ * serial output" rather than showing a number the PC cannot actually know.
  * Module 4's hunter/beacon exchange both sides directly over LoRa, so it's
  * the only module where `tx`, `rx`, and `delayMs` are all populated.
  */
@@ -1111,9 +1139,9 @@ export const telemetriLog = pgTable(
   {
     id: serial("id").primaryKey(),
     sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
-    // P6.2 (0006): which Pi this row came from -- the plain history table
+    // P6.2 (0006): which PC this row came from -- the plain history table
     // never recorded this before (only telemetriTerkini did, since it's
-    // keyed by serverId), so a lab with more than one Pi had no way to
+    // keyed by serverId), so a lab with more than one PC had no way to
     // attribute a row in /reports to the box that actually sent it. Nullable
     // and set null (not cascade) on delete for the same reason percobaanMasuk
     // .sesiId is: a history row outlives the server registration if that
@@ -1130,7 +1158,7 @@ export const telemetriLog = pgTable(
     nilai: jsonb("nilai").$type<Record<string, number>>(),
     // P6.2 (0006, fixes half of B8): when the agent actually measured this
     // reading (its own diukurPada), distinct from dicatatPada below, which
-    // is only ever this row's INSERT time. A Pi that spooled readings while
+    // is only ever this row's INSERT time. A PC that spooled readings while
     // offline and sent them all in one later heartbeat used to have every
     // one of them recorded as having happened at that single flush moment.
     diukurPada: timestamp("diukur_pada", { withTimezone: true }),
@@ -1379,7 +1407,7 @@ export const seelabsEkspor = pgTable(
     payloadHash: text("payload_hash").notNull(),
     disalinPada: timestamp("disalin_pada", { withTimezone: true }).notNull().defaultNow(),
     disimpanPada: timestamp("disimpan_pada", { withTimezone: true }),
-    /** Phase 14: how it reached SeeLabs, "robot" (the Pi saved and read it
+    /** Phase 14: how it reached SeeLabs, "robot" (the PC saved and read it
      *  back, or since 2026-10-17 read a SeeLabs change back into IRIS) or
      *  "tangan" (marked by hand, before the manual path went away). */
     cara: text("cara", { enum: ["robot", "tangan"] }),
@@ -1393,9 +1421,9 @@ export const seelabsEkspor = pgTable(
 /* --------------------------------------------- Phase 14: SeeLabs robot */
 
 /**
- * An Asisten's SeeLabs password, sealed in their browser to the robot Pi's
+ * An Asisten's SeeLabs password, sealed in their browser to the robot PC's
  * RSA key (RSA-OAEP-256 over {nim, sandi}). The site can't open it; only
- * that Pi can, for one job at a time. A new Pi key turns every row into
+ * that PC can, for one job at a time. A new PC key turns every row into
  * kunci_lain until its owner connects again.
  */
 export const seelabsAkses = pgTable("seelabs_akses", {
@@ -1405,7 +1433,7 @@ export const seelabsAkses = pgTable("seelabs_akses", {
   segel: text("segel").notNull(),
   sidikKunci: text("sidik_kunci").notNull(),
   /** menunggu_uji until the first sign-in worked, then aktif; ditolak when
-   *  SeeLabs refused the password; kunci_lain when the Pi key changed. */
+   *  SeeLabs refused the password; kunci_lain when the PC key changed. */
   status: text("status", { enum: ["menunggu_uji", "aktif", "ditolak", "kunci_lain"] })
     .notNull()
     .default("menunggu_uji"),
@@ -1421,7 +1449,7 @@ export const seelabsAkses = pgTable("seelabs_akses", {
 
 /**
  * The robot's queue. `isi` holds only what SeeLabs needs and nothing secret
- * (class, KLP, module, rows, slots); the seal is joined in when the Pi claims
+ * (class, KLP, module, rows, slots); the seal is joined in when the PC claims
  * the job. A failure that a retry can fix (tak_terjangkau, seelabs_galat)
  * goes back to antre with a later `jalanPada`; anything else stays gagal.
  */
@@ -1736,15 +1764,15 @@ export const serialCermin = pgTable(
 );
 
 /**
- * Phase 9 Stage 9 (0019): Konsol Pi, the terminal and the Pi's screens in the
+ * Phase 9 Stage 9 (0019): Konsol PC, the terminal and the PC's screens in the
  * Server page. Since 2026-10-05 any active Asisten may ask; the Pencipta,
  * the Inti and DEV open without an approver (lib/konsol.ts). One row per request, from the
- * ask to the end; `transkrip` is the terminal output the Pi's bridge kept
+ * ask to the end; `transkrip` is the terminal output the PC's bridge kept
  * (trimmed), reported on a later heartbeat. Approval, a forced open during a
  * session and every end reason are kept here and in Audit.
  */
-export const konsolPi = pgTable(
-  "konsol_pi",
+export const konsolPc = pgTable(
+  "konsol_pc",
   {
     id: serial("id").primaryKey(),
     serverId: integer("server_id")
@@ -1775,17 +1803,17 @@ export const konsolPi = pgTable(
     transkrip: text("transkrip"),
   },
   (t) => [
-    index("konsol_pi_server_status_idx").on(t.serverId, t.status),
-    check("konsol_pi_target", sql`${t.target} in ('terminal', ':0', ':1')`),
+    index("konsol_pc_server_status_idx").on(t.serverId, t.status),
+    check("konsol_pc_target", sql`${t.target} in ('terminal', ':0', ':1')`),
     check(
-      "konsol_pi_status",
+      "konsol_pc_status",
       sql`${t.status} in ('diminta', 'disetujui', 'ditolak', 'aktif', 'selesai', 'kedaluwarsa', 'diputus')`,
     ),
   ],
 );
 
 /**
- * Konsol Pi (2026-10-05): everyone besides the owner who is let into an open
+ * Konsol PC (2026-10-05): everyone besides the owner who is let into an open
  * console. The Pencipta, the Inti (Admin tier) and DEV join without asking
  * (tanpa_persetujuan); anyone else asks, and the owner or one of those
  * answers. Who controls inside the room is the relay's (apps/relay).
@@ -1796,7 +1824,7 @@ export const konsolPeserta = pgTable(
     id: serial("id").primaryKey(),
     konsolId: integer("konsol_id")
       .notNull()
-      .references(() => konsolPi.id, { onDelete: "cascade" }),
+      .references(() => konsolPc.id, { onDelete: "cascade" }),
     nim: text("nim").notNull(),
     status: text("status", { enum: ["diminta", "disetujui", "ditolak"] })
       .notNull()
@@ -1813,13 +1841,13 @@ export const konsolPeserta = pgTable(
   ],
 );
 
-/** Every ticket nonce issued for Konsol Pi (the relay refuses a reused one). */
+/** Every ticket nonce issued for Konsol PC (the relay refuses a reused one). */
 export const konsolTiketNonce = pgTable("konsol_tiket_nonce", {
   nonce: text("nonce").primaryKey(),
   konsolId: integer("konsol_id")
     .notNull()
-    .references(() => konsolPi.id, { onDelete: "cascade" }),
-  peran: text("peran", { enum: ["web", "pi"] }).notNull(),
+    .references(() => konsolPc.id, { onDelete: "cascade" }),
+  peran: text("peran", { enum: ["web", "pc"] }).notNull(),
   dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -1830,7 +1858,7 @@ export const konsolKeberatan = pgTable(
     id: serial("id").primaryKey(),
     konsolId: integer("konsol_id")
       .notNull()
-      .references(() => konsolPi.id, { onDelete: "cascade" }),
+      .references(() => konsolPc.id, { onDelete: "cascade" }),
     nim: text("nim").notNull(),
     jenis: text("jenis", { enum: ["oke", "tanya", "tolak"] }).notNull(),
     teks: text("teks"),
@@ -2393,3 +2421,522 @@ export type RecEditionRow = typeof recEdition.$inferSelect;
 export type RecEventRow = typeof recEvent.$inferSelect;
 export type RecCandidateRow = typeof recCandidate.$inferSelect;
 export type RecSlotRow = typeof recSlot.$inferSelect;
+
+/* ===================================================================
+ * Open Recruitment S3 (0051): the exam. Tables of prompts 09 (bank,
+ * references), 10 (the runner) and 11 (rooms), landed together so the three
+ * can build side by side (EXAM-ENGINE 10.1). 0052 (Live Coding) and 0053
+ * (scores) come after, one at a time.
+ * =================================================================== */
+
+export const QUESTION_STATUS = ["draft", "ready"] as const;
+export const QUESTION_LOG_KINDS = ["save", "key", "status", "void", "unvoid", "delete"] as const;
+export const REFERENCE_STATUS = ["ok", "gagal"] as const;
+export const EXAMINER_ROLES = ["pengawas"] as const;
+
+/** One JSON of parts config per edition, and the draw's salt (never leaves the server). */
+export const recExamConfig = pgTable("rec_exam_config", {
+  editionId: integer("edition_id")
+    .primaryKey()
+    .references(() => recEdition.id, { onDelete: "cascade" }),
+  config: jsonb("config").$type<ExamConfig>().notNull(),
+  salt: text("salt").notNull(),
+  /** Set when the first real room of the edition starts; after that only budgetMin may change */
+  lockedAt: timestamp("locked_at", { withTimezone: true }),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** A bank question. `body` and `answer` follow the format (exam-types.ts). */
+export const recQuestion = pgTable(
+  "rec_question",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    part: text("part", { enum: PHASE1_PARTS }).notNull(),
+    lang: text("lang", { enum: LANGS }).notNull(),
+    format: text("format", { enum: FORMATS }).notNull(),
+    title: text("title").notNull(),
+    body: jsonb("body").$type<Question["body"]>().notNull(),
+    answer: jsonb("answer").$type<Question["answer"]>().notNull(),
+    /** Reference ids attached to this question */
+    refs: integer("refs")
+      .array()
+      .notNull()
+      .default(sql`'{}'::int[]`),
+    status: text("status", { enum: QUESTION_STATUS }).notNull().default("draft"),
+    /** The default bank only gets a "Bawaan" badge; real rooms draw it too */
+    sample: boolean("sample").notNull().default(false),
+    version: integer("version").notNull().default(1),
+    /** First real draw containing it; its structure is locked from then on */
+    shownAt: timestamp("shown_at", { withTimezone: true }),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidedBy: text("voided_by"),
+    voidNote: text("void_note"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_question_part_idx").on(t.editionId, t.part, t.status)],
+);
+
+export const recQuestionLog = pgTable(
+  "rec_question_log",
+  {
+    id: serial("id").primaryKey(),
+    questionId: integer("question_id")
+      .notNull()
+      .references(() => recQuestion.id, { onDelete: "cascade" }),
+    who: text("who").notNull(),
+    kind: text("kind", { enum: QUESTION_LOG_KINDS }).notNull(),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    note: text("note"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_question_log_question_idx").on(t.questionId, t.at)],
+);
+
+/** A sanitized reference page in R2, readable by a seat during a running part that has it. */
+export const recReference = pgTable(
+  "rec_reference",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    url: text("url"),
+    title: text("title").notNull(),
+    selector: text("selector"),
+    r2Key: text("r2_key"),
+    sha256: text("sha256"),
+    bytes: integer("bytes"),
+    status: text("status", { enum: REFERENCE_STATUS }).notNull().default("ok"),
+    error: text("error"),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+    by: text("by"),
+  },
+  (t) => [index("rec_reference_edition_idx").on(t.editionId)],
+);
+
+/** A reference every seat may open during a whole part. */
+export const recPartRef = pgTable(
+  "rec_part_ref",
+  {
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    part: text("part", { enum: PHASE1_PARTS }).notNull(),
+    referenceId: integer("reference_id")
+      .notNull()
+      .references(() => recReference.id, { onDelete: "cascade" }),
+    sort: integer("sort").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.editionId, t.part, t.referenceId] })],
+);
+
+/** Who is plotted as pengawas for an exam room (a `rec_slot`). S4 adds the examiner role. */
+export const recSlotExaminer = pgTable(
+  "rec_slot_examiner",
+  {
+    slotId: integer("slot_id")
+      .notNull()
+      .references(() => recSlot.id, { onDelete: "cascade" }),
+    asistenNim: text("asisten_nim")
+      .notNull()
+      .references(() => asisten.nim),
+    role: text("role", { enum: EXAMINER_ROLES }).notNull().default("pengawas"),
+  },
+  (t) => [primaryKey({ columns: [t.slotId, t.asistenNim, t.role] })],
+);
+
+/**
+ * One exam room on one evening: a `tes_tulis` slot with its state. Every
+ * write goes through act() in room.ts under `WHERE state->>'seq' = $seen`.
+ */
+export const recExamRoom = pgTable(
+  "rec_exam_room",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    /** The `tes_tulis` slot this room is; null for a practice room, which has no evening of its own */
+    slotId: integer("slot_id")
+      .unique()
+      .references(() => recSlot.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** A practice room: draws never lock a question and its seats count nowhere */
+    rehearsal: boolean("rehearsal").notNull().default(false),
+    state: jsonb("state").$type<RoomState>().notNull(),
+    /** The Master's last ping; 60 s without one makes the Master stale */
+    masterSeenAt: timestamp("master_seen_at", { withTimezone: true }),
+    /** Live Coding topic cards dealt so far (EXAM-ENGINE 3.4) */
+    topicNext: integer("topic_next").notNull().default(0),
+    /** Phone hotspots (EXAM-ENGINE 9.6a); the password is sealed */
+    hotspots: jsonb("hotspots").$type<RoomHotspot[]>().notNull().default([]),
+    createdBy: text("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_exam_room_edition_idx").on(t.editionId)],
+);
+
+/** Every accepted room action: who, what, and the version it made. */
+export const recExamLog = pgTable(
+  "rec_exam_log",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id, { onDelete: "cascade" }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    who: text("who").notNull(),
+    act: text("act").notNull(),
+    params: jsonb("params"),
+    seq: integer("seq"),
+  },
+  (t) => [index("rec_exam_log_room_idx").on(t.roomId, t.at)],
+);
+
+/** A pengawas' note on a candidate in a room; one per author. */
+export const recSeatNote = pgTable(
+  "rec_seat_note",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id, { onDelete: "cascade" }),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    authorNim: text("author_nim").notNull(),
+    text: text("text").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("rec_seat_note_unik").on(t.roomId, t.candidateId, t.authorNim)],
+);
+
+/** The kit lent to a candidate for the evening (Logistik): its code and boards. */
+export const recKitLoan = pgTable(
+  "rec_kit_loan",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id, { onDelete: "cascade" }),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    kitCode: text("kit_code").notNull(),
+    boards: jsonb("boards").$type<KitBoard[]>().notNull().default([]),
+    lentBy: text("lent_by"),
+    lentAt: timestamp("lent_at", { withTimezone: true }).notNull().defaultNow(),
+    returnedAt: timestamp("returned_at", { withTimezone: true }),
+    returnedTo: text("returned_to"),
+  },
+  (t) => [unique("rec_kit_loan_unik").on(t.roomId, t.candidateId)],
+);
+
+/**
+ * A candidate's place in the exam: one row per candidate per edition, plus
+ * one if they sit a rehearsal room. `roomId` moves with a Susulan; draws and
+ * answers stay with the seat.
+ */
+export const recExamSeat = pgTable(
+  "rec_exam_seat",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    rehearsal: boolean("rehearsal").notNull().default(false),
+    checkin: jsonb("checkin").$type<SeatCheckin>().notNull().default({}),
+    draw: jsonb("draw").$type<SeatDraw>().notNull().default({}),
+    /** Parts handed in early (Kumpulkan): { logika: ms } */
+    done: jsonb("done").$type<Partial<Record<PartKey, number>>>().notNull().default({}),
+    /** The browser tab that last wrote, for the second tab strike */
+    tab: text("tab"),
+    tabAt: timestamp("tab_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("rec_exam_seat_unik").on(t.editionId, t.candidateId, t.rehearsal),
+    index("rec_exam_seat_room_idx").on(t.roomId),
+  ],
+);
+
+/** A seat's value for one question. No credit is stored: it is computed on read. */
+export const recAnswer = pgTable(
+  "rec_answer",
+  {
+    seatId: integer("seat_id")
+      .notNull()
+      .references(() => recExamSeat.id, { onDelete: "cascade" }),
+    questionId: integer("question_id")
+      .notNull()
+      .references(() => recQuestion.id),
+    part: text("part", { enum: PHASE1_PARTS }).notNull(),
+    value: jsonb("value").$type<Value>(),
+    rev: integer("rev").notNull().default(0),
+    tab: text("tab"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.seatId, t.questionId] })],
+);
+
+/** A kejadian: the seat left fullscreen, switched tab, pasted... (EXAM-ENGINE 7). */
+export const recStrike = pgTable(
+  "rec_strike",
+  {
+    id: serial("id").primaryKey(),
+    seatId: integer("seat_id")
+      .notNull()
+      .references(() => recExamSeat.id, { onDelete: "cascade" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    part: text("part", { enum: PART_KEYS }).notNull(),
+    /** The page's own id for it, so a resend after a drop is not counted twice */
+    clientId: text("client_id").notNull(),
+    kinds: text("kinds").array().notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    backAt: timestamp("back_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("rec_strike_unik").on(t.seatId, t.clientId),
+    index("rec_strike_room_idx").on(t.roomId, t.at),
+  ],
+);
+
+export type RecExamRoomRow = typeof recExamRoom.$inferSelect;
+export type RecExamSeatRow = typeof recExamSeat.$inferSelect;
+export type RecQuestionRow = typeof recQuestion.$inferSelect;
+
+/* ===================================================================
+ * Open Recruitment S3 Live Coding (0052, prompt 12): the topic pool, the
+ * templates, a seat's editor state, the compile queue and the rubric
+ * (EXAM-ENGINE 9.2 to 9.8). The rubric tables are generic (stage and kind)
+ * so S4's interview sheets reuse them.
+ * =================================================================== */
+
+/** A Live Coding topic. `hints` is for graders only; `icon` is a kit icon name for the reel. */
+export const recLcTopic = pgTable(
+  "rec_lc_topic",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    brief: text("brief").notNull(),
+    fits: text("fits").array().notNull(),
+    parts: text("parts")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    libs: text("libs")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    hints: text("hints").notNull().default(""),
+    icon: text("icon").notNull().default("chip"),
+    status: text("status", { enum: TOPIC_STATUS }).notNull().default("ready"),
+    sample: boolean("sample").notNull().default(false),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_lc_topic_edition_idx").on(t.editionId, t.status)],
+);
+
+/** The starting sketch of each protocol (`ble`, `http`, `ws`, `mqtt`). */
+export const recLcTemplate = pgTable(
+  "rec_lc_template",
+  {
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    key: text("key", { enum: TEMPLATE_KEYS }).notNull(),
+    code: text("code").notNull(),
+    sample: boolean("sample").notNull().default(false),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.editionId, t.key] })],
+);
+
+/** One row per seat that reached the spins: the deal, the boards' code, the runs, the MQTT account. */
+export const recLivecode = pgTable(
+  "rec_livecode",
+  {
+    seatId: integer("seat_id")
+      .primaryKey()
+      .references(() => recExamSeat.id, { onDelete: "cascade" }),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    topicId: integer("topic_id").references(() => recLcTopic.id),
+    protocol: text("protocol", { enum: PROTOCOLS }),
+    variant: text("variant", { enum: LC_VARIANTS }),
+    spins: jsonb("spins").$type<LcSpin[]>().notNull().default([]),
+    boards: jsonb("boards").$type<LcBoard[]>().notNull().default([]),
+    /** The newest 50 compile and flash events */
+    runs: jsonb("runs").$type<LcRun[]>().notNull().default([]),
+    /** Sealed with rahasia.ts; deleted from the broker at Finish */
+    mqtt: jsonb("mqtt").$type<LcMqtt>(),
+    trafficKey: text("traffic_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_livecode_room_idx").on(t.roomId)],
+);
+
+/** The compile queue for the PC Server agent (9.4). */
+export const recCompileJob = pgTable(
+  "rec_compile_job",
+  {
+    id: serial("id").primaryKey(),
+    /** Null for a warm-up job */
+    seatId: integer("seat_id").references(() => recExamSeat.id, { onDelete: "cascade" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    board: integer("board").notNull().default(1),
+    status: text("status", { enum: JOB_STATUS }).notNull().default("antre"),
+    sketch: text("sketch").notNull(),
+    header: text("header").notNull().default(""),
+    fqbn: text("fqbn").notNull(),
+    libs: text("libs")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    /** Handed back to the queue once after 180 s unanswered, then agen_diam */
+    retried: boolean("retried").notNull().default(false),
+    serverId: integer("server_id"),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    ok: boolean("ok"),
+    log: text("log"),
+    binKey: text("bin_key"),
+    binSize: integer("bin_size"),
+    sha256: text("sha256"),
+    ms: integer("ms"),
+    kode: text("kode"),
+  },
+  (t) => [
+    index("rec_compile_job_queue_idx").on(t.status, t.requestedAt),
+    index("rec_compile_job_seat_idx").on(t.seatId, t.board, t.status),
+  ],
+);
+
+/**
+ * Account jobs for the exam's own Mosquitto (9.6): the PC agent claims them on
+ * its heartbeat and answers `hasilMqtt`. `akun` holds sealed passwords until
+ * the job is done, then it is emptied.
+ */
+export const recMqttJob = pgTable(
+  "rec_mqtt_job",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    op: text("op", { enum: ["set", "clear"] as const }).notNull(),
+    akun: jsonb("akun").$type<{ u: string; p: string }[]>().notNull().default([]),
+    status: text("status", { enum: JOB_STATUS }).notNull().default("antre"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    ok: boolean("ok"),
+    kode: text("kode"),
+  },
+  (t) => [index("rec_mqtt_job_queue_idx").on(t.status, t.requestedAt)],
+);
+
+/** A rubric: the rows a grader scores. One per edition, stage and kind. */
+export const recRubric = pgTable(
+  "rec_rubric",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    stage: text("stage").notNull(),
+    kind: text("kind").notNull(),
+    rows: jsonb("rows").$type<RubricRow[]>().notNull(),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("rec_rubric_unik").on(t.editionId, t.stage, t.kind)],
+);
+
+/** One grader's sheet for one subject (a Live Coding seat). `values` is per row key. */
+export const recRubricScore = pgTable(
+  "rec_rubric_score",
+  {
+    id: serial("id").primaryKey(),
+    rubricId: integer("rubric_id")
+      .notNull()
+      .references(() => recRubric.id, { onDelete: "cascade" }),
+    /** The exam seat id for Live Coding */
+    subjectId: integer("subject_id").notNull(),
+    graderNim: text("grader_nim").notNull(),
+    values: jsonb("values").$type<Record<string, number>>().notNull(),
+    note: text("note").notNull().default(""),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("rec_rubric_score_unik").on(t.rubricId, t.subjectId, t.graderNim),
+    index("rec_rubric_score_subject_idx").on(t.rubricId, t.subjectId),
+  ],
+);
+
+export type RecLcTopicRow = typeof recLcTopic.$inferSelect;
+export type RecLivecodeRow = typeof recLivecode.$inferSelect;
+export type RecCompileJobRow = typeof recCompileJob.$inferSelect;
+
+/**
+ * Finalkan (EXAM-ENGINE 4.3): every candidate's scores and every question's
+ * statistics, frozen. At most one freeze per edition is live; an unfreeze
+ * marks it superseded and brings provisional reads back.
+ */
+export const recScoreFreeze = pgTable(
+  "rec_score_freeze",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    stage: text("stage").notNull().default("tes_tulis"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    by: text("by").notNull(),
+    note: text("note"),
+    scores: jsonb("scores").$type<ScoreRow[]>().notNull(),
+    stats: jsonb("stats").$type<StatRow[]>().notNull(),
+    supersededAt: timestamp("superseded_at", { withTimezone: true }),
+    supersededBy: text("superseded_by"),
+    unfreezeNote: text("unfreeze_note"),
+  },
+  (t) => [
+    uniqueIndex("rec_score_freeze_hidup")
+      .on(t.editionId, t.stage)
+      .where(sql`${t.supersededAt} is null`),
+  ],
+);
+
+export type RecScoreFreezeRow = typeof recScoreFreeze.$inferSelect;

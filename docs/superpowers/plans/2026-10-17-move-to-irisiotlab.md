@@ -6,7 +6,7 @@
 
 **Architecture:** Only addresses change. The Vercel project gets two custom domains (apex serves, www 308s to apex), Cloudflare DNS records stay "DNS only". A host-matched redirect in `vercel.json` sends old-host page requests to the new host, but never `/api/*`, so the PC agent, the relay cron and CI keep working on either host. The relay Worker gains a Workers custom domain; its `workers.dev` host stays up for clients that still use it.
 
-**Tech Stack:** Astro 7 static + Vercel functions (`apps/web`), Cloudflare Worker with Durable Objects (`apps/relay`, wrangler 4), vitest, Vercel CLI 59, Python agent on the PC Server (IRIS ASO repo `orangepi/`).
+**Tech Stack:** Astro 7 static + Vercel functions (`apps/web`), Cloudflare Worker with Durable Objects (`apps/relay`, wrangler 4), vitest, Vercel CLI 59, Python agent on the PC Server (IRIS ASO repo `pc/`).
 
 **Spec:** `docs/superpowers/specs/2026-10-17-move-to-irisiotlab-design.md` (Part A = section 7, A0 to A4). Part B is outlined at the end and gets its own plan after Monday.
 
@@ -109,12 +109,12 @@ Ops only. Nothing changes for visitors yet: the new host serves today's prod bui
 ### Task 5: IRIS ASO side and the relay deploy (A2 rest, A3 first half)
 
 **Files (IRIS ASO repo):**
-- Modify: `.github/workflows/bundel.yml:51`, `orangepi/terbitkan_bundel.py:7`, `orangepi/agent/agent.py:12`, `orangepi/agent/tools/uji_protokol.py:10,76`, `orangepi/README.md:6,37,175,176,664,674`, `orangepi/CHECKLIST.md:89,96`
+- Modify: `.github/workflows/bundel.yml:51`, `pc/terbitkan_bundel.py:7`, `pc/agent/agent.py:12`, `pc/agent/tools/uji_protokol.py:10,76`, `pc/README.md:6,37,175,176,664,674`, `pc/CHECKLIST.md:89,96`
 **Files (iris-iot):** `.github/workflows/bundel.yml:48`
 
 - [ ] **Step 1:** Replace `https://iris-praktikum-jurnal.vercel.app` with `https://irisiotlab.com` in those lines, in both repos. These are docstrings, help text, docs and the bundle workflow's `--situs`. The agent's real address lives in `/etc/iris-agent/config.json` on the PC (Task 7).
-- [ ] **Step 2:** Run the agent tests (`python -m pytest orangepi/agent -q`, or the suite CI runs). Expected: all 201 pass. In IRIS ASO, run the secret scan with `PYTHONUTF8=1`. Expected: clean.
-- [ ] **Step 3: Commit** in IRIS ASO with named paths only: `orangepi: the site's address is irisiotlab.com`. In iris-iot, amend nothing; add `bundel.yml` to a commit `ci: bundles are published to irisiotlab.com`.
+- [ ] **Step 2:** Run the agent tests (`python -m pytest pc/agent -q`, or the suite CI runs). Expected: all 201 pass. In IRIS ASO, run the secret scan with `PYTHONUTF8=1`. Expected: clean.
+- [ ] **Step 3: Commit** in IRIS ASO with named paths only: `pc: the site's address is irisiotlab.com`. In iris-iot, amend nothing; add `bundel.yml` to a commit `ci: bundles are published to irisiotlab.com`.
 - [ ] **Step 4: Deploy the relay** from the worktree (`npx wrangler deploy` in `apps/relay`). If wrangler cannot create the custom domain (OAuth scope), the user adds it in the dashboard (Workers, iris-konsol, Domains, `konsol.irisiotlab.com`). The deploy is safe ahead of the site: the old site still uses the workers.dev host.
 - [ ] **Step 5: Verify.** A WebSocket opens to `wss://konsol.irisiotlab.com/siaran` and to the old `workers.dev` host (`node -e` with `ws`, or `rehearse.mjs`'s relay check pointed at each). `npx wrangler tail iris-konsol` shows the minute cron calling `https://irisiotlab.com/api/tp/detak` with 200.
 - [ ] **Step 6:** Set Vercel production env `KONSOL_RELAY_URL` to the same scheme and form as today, on the new host. Inspect the current value via `vercel env pull` into the scratchpad, then delete the file. This takes effect with Task 6's deploy.

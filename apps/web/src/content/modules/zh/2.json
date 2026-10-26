@@ -2,11 +2,11 @@
   "modul": 2,
   "bahasa": "zh",
   "judul": "WebSocket",
-  "topik": "通过本地服务器进行 WebSocket 通信",
-  "tagline": "ESP32 通过本地 Wi-Fi 把传感器数据发给 Python 服务器。",
+  "topik": "通过 ws.irisiotlab.com 网关进行 WebSocket 通信",
+  "tagline": "ESP32 通过 ws.irisiotlab.com 网关把传感器数据发给 Python 服务器。",
   "fakta": ["ESP32", "DHT22", "PC 服务器"],
   "ringkasan": [
-    "ESP32 读取 DHT22 传感器，再通过同一个本地 Wi-Fi 把读数发给运行在 PC 服务器上的 WebSocket 服务器。",
+    "ESP32 读取 DHT22 传感器，再把读数发给运行在 PC 服务器上、通过 ws.irisiotlab.com 访问的 WebSocket 服务器，所以 ESP32 只需要能上网的 Wi-Fi。",
     "服务器按连接路径区分每个组的板子，所以好几个组可以共用一台服务器，互不干扰。"
   ],
   "toolchain": [
@@ -26,7 +26,7 @@
     },
     {
       "nama": "PC 服务器",
-      "jumlah": "1 个，当本地服务器"
+      "jumlah": "1 个，当服务器，通过 ws.irisiotlab.com 访问"
     },
     {
       "nama": "DHT22 传感器",
@@ -51,7 +51,7 @@
       ["DHT（GND）", "GND"]
     ],
     "catatan": [
-      "PC 服务器不需要接任何额外电路。WebSocket 服务器完全是软件，所以 PC 服务器只要和 ESP32 在同一个 Wi-Fi 网络里就行。",
+      "PC 服务器不需要接任何额外电路。WebSocket 服务器完全是软件，并通过 ws.irisiotlab.com 访问，所以 ESP32 只要连上能上网的 Wi-Fi 就行。",
       "DHT22 每 2 秒最多读一次。读得更频繁会返回 NAN。"
     ]
   },
@@ -59,9 +59,9 @@
     "在 Arduino IDE 的库管理器里安装 DHT sensor library 和 Adafruit Unified Sensor",
     "在 Arduino IDE 的库管理器里安装 Markus Sattler 的 WebSockets 库",
     "在 PC 服务器上准备 websockets 虚拟环境（python3 -m venv，然后 pip install \"websockets>=13\"）",
-    "用 hostname -I 记下 PC 服务器的 IP 地址",
+    "记下服务器地址 ws.irisiotlab.com，并让 ESP32 连上能上网的 Wi-Fi",
     "WS_PATH 用你们组自己的路径",
-    "两个程序文件里的端口和路径要一致"
+    "两个程序文件里的路径要一致，ESP32 上的 WS_PORT 用 80（网关端口）"
   ],
   "berkas": [
     {
@@ -85,11 +85,11 @@
     },
     {
       "nama": "传输层",
-      "nilai": "TCP，端口 WS_PORT"
+      "nilai": "TCP，端口 WS_PORT（80，网关）"
     },
     {
       "nama": "网络层",
-      "nilai": "IP，一跳"
+      "nilai": "经网关的 IP"
     },
     {
       "nama": "数据链路层",

@@ -1,5 +1,5 @@
 """
-MODUL 2 - WEBSOCKET  |  Peran: Server (Orange Pi 4 PRO)
+MODUL 2 - WEBSOCKET  |  Peran: Server (PC Server)
 Mencatat pembacaan DHT22 tiap kelompok ESP32 lewat path-nya sendiri (mis.
 "/grup1"), lalu membalas dengan waktu terimanya. Kebutuhan paket: lihat
 jurnal. Jalankan: python main.py. Isi bagian rumpang (1)-(6).

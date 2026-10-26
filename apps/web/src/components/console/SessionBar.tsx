@@ -131,8 +131,8 @@ export default function SessionBar({
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
   const ap = hotspotMenyala(servers?.detail?.denyutTerakhir?.modeJaringan);
   // Phones reach the hunt at 192.168.4.1 on IRIS_IOT. This laptop stays on
-  // campus Wi-Fi, so it uses the Pi's LAN address whenever the Pi still has
-  // its campus link (no hotspot, or the router on the cable); only a Pi whose
+  // campus Wi-Fi, so it uses the PC's LAN address whenever the PC still has
+  // its campus link (no hotspot, or the router on the cable); only a PC whose
   // own radio became the hotspot with no uplink answers on 192.168.4.1 alone.
   const lan = servers?.detail?.server.alamatLan;
   const mandiri = servers?.detail?.denyutTerakhir?.modeJaringan === "ap-mandiri";
@@ -427,7 +427,7 @@ export default function SessionBar({
             window.Toast?.show(t.fail, "danger");
             return false;
           }
-          if (res.diantre === false) window.Toast?.show(t.huntNoPi, "warn");
+          if (res.diantre === false) window.Toast?.show(t.huntNoPc, "warn");
           else window.Toast?.show(buruJalan ? t.huntStopped : t.huntStarted, "ok");
           onChanged();
         }}

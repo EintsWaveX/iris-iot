@@ -820,7 +820,7 @@ function LabTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
 
 function AuditTab({ f, c }: { f: Filter; c: Ctx }) {
   const { t, lang, dir } = c;
-  // ?audit=konsol (Konsol Pi's "See the Record") opens on that filter.
+  // ?audit=konsol (Konsol PC's "See the Record") opens on that filter.
   const [jenis, setJenis] = useState<JenisAudit | "all">(() => {
     const q =
       typeof location !== "undefined" ? new URLSearchParams(location.search).get("audit") : null;

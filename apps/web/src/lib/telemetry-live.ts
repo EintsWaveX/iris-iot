@@ -5,7 +5,7 @@
  * GroupLive can use either source without knowing which one they got.
  *
  * The route returns the group's recent readings (not only the newest), so
- * a viewer polling every second or two sees every message the Pi relayed,
+ * a viewer polling every second or two sees every message the PC relayed,
  * in order, even when a heartbeat delivers several at once. Each caller
  * keeps its own cursor (the last row id it took), so two views of the same
  * group never take each other's rows.

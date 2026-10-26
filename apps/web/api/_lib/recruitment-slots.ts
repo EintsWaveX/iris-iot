@@ -62,6 +62,7 @@ import {
 } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
+import { sinkronKursi } from "./recruitment-room.js";
 
 const tahap = (v: unknown): StageKey | null =>
   typeof v === "string" && (STAGES as readonly string[]).includes(v) ? (v as StageKey) : null;
@@ -313,6 +314,7 @@ export async function handlePilih(req: ApiRequest, res: ApiResponse, s: SessionP
   const st = await posisi(db, events, k, now);
 
   let kode = "ok";
+  let kursiTetap = false;
   try {
     await db.transaction(async (tx) => {
       // The row lock is what makes the count below true for this transaction alone.
@@ -349,13 +351,14 @@ export async function handlePilih(req: ApiRequest, res: ApiResponse, s: SessionP
       await tx
         .insert(recSlotAssignment)
         .values({ slotId, candidateId: k.id, stage, via: "self", by: s.nim, at: now });
+      if (stage === "tes_tulis" && (await sinkronKursi(tx, k.id, slotId)).tetap) kursiTetap = true;
     });
   } catch (e) {
     if (pgErrorCode(e) === "23505") return void tolak(res, "sudah_pilih", 409);
     throw e;
   }
   if (kode !== "ok") return void tolak(res, kode, KODE_PILIH[kode] ?? 409);
-  await writeAudit(s.nim, "rec_pilih", { slotId });
+  await writeAudit(s.nim, "rec_pilih", { slotId, ...(kursiTetap ? { kursiTetap: true } : {}) });
   const [slot] = await db.select().from(recSlot).where(eq(recSlot.id, slotId)).limit(1);
   res.status(200).json({ ok: true, slotId, stage: slot?.stage ?? null });
 }
@@ -470,6 +473,7 @@ export async function handleKeputusan(req: ApiRequest, res: ApiResponse, s: Sess
   const now = new Date();
 
   let kode = "ok";
+  const kursiTetap: number[] = [];
   await db.transaction(async (tx) => {
     const [m] = await tx
       .select({ m: recSlotChange, edisi: recCandidate.editionId })
@@ -514,16 +518,25 @@ export async function handleKeputusan(req: ApiRequest, res: ApiResponse, s: Sess
       .update(recSlotAssignment)
       .set({ slotId: ke.id, via: "panitia", by: s.nim, at: now })
       .where(eq(recSlotAssignment.id, punya.id));
+    if (m.m.stage === "tes_tulis" && (await sinkronKursi(tx, m.m.candidateId, ke.id)).tetap)
+      kursiTetap.push(m.m.candidateId);
     await tx
       .update(recSlotChange)
       .set({ status: "approved", decidedBy: s.nim, decidedAt: now, note: catatan })
       .where(eq(recSlotChange.id, id));
   });
   if (kode !== "ok") return void tolak(res, kode, kode === "tidak_ditemukan" ? 404 : 409);
-  await writeAudit(s.nim, "rec_putus_ubah", { id, approve: b.approve, over: b.over === true });
-  res
-    .status(200)
-    .json({ ok: true, status: (b.approve ? "approved" : "declined") as SlotChangeStatus });
+  await writeAudit(s.nim, "rec_putus_ubah", {
+    id,
+    approve: b.approve,
+    over: b.over === true,
+    ...(kursiTetap.length ? { kursiTetap } : {}),
+  });
+  res.status(200).json({
+    ok: true,
+    status: (b.approve ? "approved" : "declined") as SlotChangeStatus,
+    ...(kursiTetap.length ? { kursiTetap } : {}),
+  });
 }
 
 function cekSlot(b: Record<string, unknown>, penuh: boolean) {
@@ -647,6 +660,7 @@ export async function handleAtur(req: ApiRequest, res: ApiResponse, s: SessionPa
       .limit(1);
     if (!k) return void tolak(res, "tidak_ditemukan", 404);
     let kode = "ok";
+    const kursiTetap: number[] = [];
     await db.transaction(async (tx) => {
       if (tujuan === null) {
         await tx
@@ -686,6 +700,8 @@ export async function handleAtur(req: ApiRequest, res: ApiResponse, s: SessionPa
             at: now,
           });
       }
+      if (stage === "tes_tulis" && (await sinkronKursi(tx, k.id, tujuan)).tetap)
+        kursiTetap.push(k.id);
       // Whatever they asked for no longer applies once Panitia placed them.
       await tx
         .update(recSlotChange)
@@ -699,8 +715,13 @@ export async function handleAtur(req: ApiRequest, res: ApiResponse, s: SessionPa
         );
     });
     if (kode !== "ok") return void tolak(res, kode, kode === "slot_salah" ? 404 : 409);
-    await writeAudit(s.nim, "rec_slot_pindah", { candidateId: k.id, stage, to: tujuan });
-    return void res.status(200).json({ ok: true });
+    await writeAudit(s.nim, "rec_slot_pindah", {
+      candidateId: k.id,
+      stage,
+      to: tujuan,
+      ...(kursiTetap.length ? { kursiTetap } : {}),
+    });
+    return void res.status(200).json({ ok: true, ...(kursiTetap.length ? { kursiTetap } : {}) });
   }
 
   if (b.op === "window") {
@@ -755,6 +776,7 @@ export async function handleIsiOtomatis(req: ApiRequest, res: ApiResponse, s: Se
   if (!wajibHak(res, p, "plotting")) return;
   const now = new Date();
 
+  const kursiTetap: number[] = [];
   if (b.undo !== undefined) {
     const at = waktu(b.undo);
     if (!at) return void tolak(res, "data_salah", 400, { field: "undo" });
@@ -762,19 +784,35 @@ export async function handleIsiOtomatis(req: ApiRequest, res: ApiResponse, s: Se
       .select({ id: recSlot.id })
       .from(recSlot)
       .where(and(eq(recSlot.editionId, edisi.id), eq(recSlot.stage, stage)));
-    if (slots.length)
-      await db.delete(recSlotAssignment).where(
-        and(
-          inArray(
-            recSlotAssignment.slotId,
-            slots.map((x) => x.id),
-          ),
-          eq(recSlotAssignment.via, "auto"),
-          eq(recSlotAssignment.at, at),
-        ),
+    if (slots.length) {
+      const ids = slots.map((x) => x.id);
+      const kena = and(
+        inArray(recSlotAssignment.slotId, ids),
+        eq(recSlotAssignment.via, "auto"),
+        eq(recSlotAssignment.at, at),
       );
-    await writeAudit(s.nim, "rec_isi_batal", { stage });
-    return void res.status(200).json({ ok: true, placed: 0, left: 0, at: null });
+      await db.transaction(async (tx) => {
+        const dicabut = await tx
+          .select({ c: recSlotAssignment.candidateId })
+          .from(recSlotAssignment)
+          .where(kena);
+        await tx.delete(recSlotAssignment).where(kena);
+        if (stage === "tes_tulis")
+          for (const x of dicabut)
+            if ((await sinkronKursi(tx, x.c, null)).tetap) kursiTetap.push(x.c);
+      });
+    }
+    await writeAudit(s.nim, "rec_isi_batal", {
+      stage,
+      ...(kursiTetap.length ? { kursiTetap } : {}),
+    });
+    return void res.status(200).json({
+      ok: true,
+      placed: 0,
+      left: 0,
+      at: null,
+      ...(kursiTetap.length ? { kursiTetap } : {}),
+    });
   }
 
   const events = await muatEvents(db, edisi.id);
@@ -799,7 +837,8 @@ export async function handleIsiOtomatis(req: ApiRequest, res: ApiResponse, s: Se
       )
       .groupBy(recSlotAssignment.slotId);
     const peta = new Map(hitung.map((h) => [h.slotId, h.n]));
-    const peserta = await muatPeserta(db, edisi.id, stage, events, now);
+    // Through tx, so the slot rows locked above never wait on a second pool connection.
+    const peserta = await muatPeserta(tx as unknown as Db, edisi.id, stage, events, now);
     const sudah = await tx
       .select({ c: recSlotAssignment.candidateId })
       .from(recSlotAssignment)
@@ -823,12 +862,20 @@ export async function handleIsiOtomatis(req: ApiRequest, res: ApiResponse, s: Se
           at: now,
         })),
       );
+    if (stage === "tes_tulis")
+      for (const x of hasil.placed)
+        if ((await sinkronKursi(tx, x.candidateId, x.slotId)).tetap) kursiTetap.push(x.candidateId);
   });
-  await writeAudit(s.nim, "rec_isi_otomatis", { stage, placed: hasil.placed.length });
+  await writeAudit(s.nim, "rec_isi_otomatis", {
+    stage,
+    placed: hasil.placed.length,
+    ...(kursiTetap.length ? { kursiTetap } : {}),
+  });
   res.status(200).json({
     ok: true,
     placed: hasil.placed.length,
     left: hasil.left.length,
     at: hasil.placed.length ? now.toISOString() : null,
+    ...(kursiTetap.length ? { kursiTetap } : {}),
   });
 }

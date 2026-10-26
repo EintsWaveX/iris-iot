@@ -6,7 +6,7 @@
 
 **Architecture:** A new read-only robot job `baca` on the PC agent returns what Lihat Nilai, Rincian and Rekap BAP show. The site queues it from the heartbeat on a practicum-hours rhythm, compares the result with the values IRIS last saved (a new baseline kept at each verified save), and writes copies, per-group read state, pay flags and unplaced rows. The existing SeeLabs strip, robot inbox and Bayar page show them.
 
-**Tech Stack:** Python 3 stdlib agent (IRIS ASO `orangepi/agent`, unittest), Astro + React islands, Vercel functions, drizzle + Neon Postgres, vitest, Playwright rig.
+**Tech Stack:** Python 3 stdlib agent (IRIS ASO `pc/agent`, unittest), Astro + React islands, Vercel functions, drizzle + Neon Postgres, vitest, Playwright rig.
 
 **Spec:** `docs/superpowers/specs/2026-10-17-seelabs-two-way-sync-design.md` (approved 2026-10-17, Stage 0 done and recorded in it).
 
@@ -30,17 +30,17 @@
 2. A Praktikan with a regular session and a susulan of the same module: SeeLabs scores land on the susulan they sat in, and the regular session is not flagged hilang for them. Test in Task 4 (`tempatkan`) and Task 6.
 3. A copy from SeeLabs must not queue a nilai job back to SeeLabs (echo loop). Test in Task 6.
 4. A group lent through another account: the flag reaches the scorer and Periksa Sekarang reads the lender's account. Test in Task 7.
-5. A `baca` job must never reach a Pi on protocol 7 (old agent would fail it as unknown and mark the account). Test in Task 5.
+5. A `baca` job must never reach a PC on protocol 7 (old agent would fail it as unknown and mark the account). Test in Task 5.
 
 ---
 
 ## File Structure
 
 IRIS ASO (agent):
-- Modify `orangepi/agent/seelabs.py`: `read_input`, `parse_bap`, `job_read`, `baca` in `run_job`.
-- Modify `orangepi/agent/agent.py`: `AGENT_PROTOCOL = 8`.
-- Modify `orangepi/agent/tools/fake_seelabs.py`: Rekap BAP page, `world.bap`, a log of Livewire calls.
-- Modify `orangepi/agent/tests/test_seelabs.py`: `TestRead`.
+- Modify `pc/agent/seelabs.py`: `read_input`, `parse_bap`, `job_read`, `baca` in `run_job`.
+- Modify `pc/agent/agent.py`: `AGENT_PROTOCOL = 8`.
+- Modify `pc/agent/tools/fake_seelabs.py`: Rekap BAP page, `world.bap`, a log of Livewire calls.
+- Modify `pc/agent/tests/test_seelabs.py`: `TestRead`.
 
 iris-iot (`apps/web`):
 - Create `src/lib/seelabs-baca.ts`: pure rules (compare, place, interval, BAP compare). Browser safe.
@@ -62,23 +62,23 @@ iris-iot (`apps/web`):
 ### Task 1: Fake SeeLabs learns Rekap BAP and logs every call
 
 **Files:**
-- Modify: `orangepi/agent/tools/fake_seelabs.py`
-- Test: `orangepi/agent/tests/test_seelabs.py`
+- Modify: `pc/agent/tools/fake_seelabs.py`
+- Test: `pc/agent/tests/test_seelabs.py`
 
 **Interfaces:**
 - Produces: `World.bap: dict[str, dict[int, list[tuple[str, str, str]]]]` (account → praktikum → rows `(hari_jaga, shift, tanggal)`, e.g. `("Selasa", "Shift 06.30 - 09.00", "20 Oktober 2026")`); `World.calls: list[tuple[str, str]]` (component name, method or `"set:<prop>"`) appended for every Livewire update; route `GET /asisten/laporan/bap` rendering component `praktikum.asisten.laporan.rekap-bap-asisten` with data `{i_praktikum: ""}`; setting `i_praktikum` renders the table head `No | Hari Jaga | Shift | Tanggal Kegiatan` and the rows, or the empty text "Tidak ada riwayat kehadiran / BAP untuk praktikum ini."
 
 - [ ] **Step 1: Write the failing test** `TestFake.test_bap_page_lists_rows_and_logs_calls`: put two rows in `world.bap[NIM][237]`, sign in with a `seelabs.Browser`, GET the page, `update(component, {"i_praktikum": "237"})`; assert both `tanggal` strings are in the HTML and `("praktikum.asisten.laporan.rekap-bap-asisten", "set:i_praktikum")` is in `world.calls`.
-- [ ] **Step 2: Run** `cd orangepi/agent && python -m unittest tests.test_seelabs -k bap` — expect FAIL (404 / attribute).
+- [ ] **Step 2: Run** `cd pc/agent && python -m unittest tests.test_seelabs -k bap` — expect FAIL (404 / attribute).
 - [ ] **Step 3: Implement** `render_bap(world, account, data) -> str` and the route; log calls in `livewire()` (for `updates` keys and `calls` methods). Mirror the markup recorded in the spec's Stage 0 results (raw tags with line breaks inside, as the other renders do).
 - [ ] **Step 4: Run** the whole agent suite `python -m unittest discover -s tests` — expect all pass.
-- Stage: `orangepi/agent/tools/fake_seelabs.py orangepi/agent/tests/test_seelabs.py`
+- Stage: `pc/agent/tools/fake_seelabs.py pc/agent/tests/test_seelabs.py`
 
 ### Task 2: Agent job `baca`
 
 **Files:**
-- Modify: `orangepi/agent/seelabs.py`, `orangepi/agent/agent.py`
-- Test: `orangepi/agent/tests/test_seelabs.py` (`class TestRead(SeelabsCase)`)
+- Modify: `pc/agent/seelabs.py`, `pc/agent/agent.py`
+- Test: `pc/agent/tests/test_seelabs.py` (`class TestRead(SeelabsCase)`)
 
 **Interfaces:**
 - Consumes: Task 1's fake.
@@ -102,7 +102,7 @@ iris-iot (`apps/web`):
 - [ ] **Step 2: Run** `python -m unittest tests.test_seelabs -k TestRead` — expect FAIL.
 - [ ] **Step 3: Implement.** `job_read` reuses `saved_groups` and `open_rincian` once per (praktikum, module) list and group; maps Rincian rows to NIM through Lihat Nilai's row ids exactly as `verify` does; presensi as bool. Add `"baca": read_input` to `checks` and the branch in `run_job`. Bump `AGENT_PROTOCOL` to 8 and update the protocol line in the agent README section that lists protocols.
 - [ ] **Step 4: Run** full agent suite + `shellcheck` unchanged scripts untouched — expect all pass (previously 201).
-- Stage: `orangepi/agent/seelabs.py orangepi/agent/agent.py orangepi/agent/tests/test_seelabs.py` (+ README if touched)
+- Stage: `pc/agent/seelabs.py pc/agent/agent.py pc/agent/tests/test_seelabs.py` (+ README if touched)
 
 ### Task 3: Schema and migration
 
@@ -269,10 +269,10 @@ iris-iot (`apps/web`):
 - Create: `apps/web/rig/p19_baca.mjs` (copy the harness of `rig/p14_robot.mjs`)
 
 **Interfaces:**
-- Consumes: everything above; the rig fake SeeLabs (`python orangepi/agent/tools/fake_seelabs.py` on 8791) and the rig agent path p14 already uses.
+- Consumes: everything above; the rig fake SeeLabs (`python pc/agent/tools/fake_seelabs.py` on 8791) and the rig agent path p14 already uses.
 - [ ] **Step 1:** Script: TST sends a group (rig), the fake's world gets TP changed and a mean changed for another group; trigger Periksa Sekarang; assert in the browser: TP shows the new value in Penilaian, the other group's strip reads "Beda di SeeLabs" with both means, Home inbox has the row, Bayar Admin shows a seeded BAP mismatch; Kirim Ulang clears the flag after the next read.
 - [ ] **Step 2: Run** at 360, 390, 430, 768, 820, 1024, 1280, 1680 — all checks pass, no element past the viewport (`rig/p14_wide.mjs`).
 - [ ] **Step 3:** Click sweep (search, Tampilan, a dialog X) on /session, /grading, /account, /home, /bayar in ID, EN, ZH at 1280 and 390 — 0 issues.
 - [ ] **Step 4:** Full checks: `npx vitest run`, agent `python -m unittest discover -s tests`, `PYTHONUTF8=1 python tools/check_secrets.py` (both repos as CI does), Prettier.
 - [ ] **Step 5:** Hidden-data gate: confirm no `seelabs_baca`, `bedaBap`, `lepas` or `bacaku` field reaches a Praktikan or signed-out response (curl the session/robot/bayar GETs as a rig Praktikan and signed out).
-- Stage: `apps/web/rig/p19_baca.mjs`. Then report to the user; **no commit/push/deploy** until they say the set is ready. At deploy: pg_dump, apply 00NN by hand, push IRIS ASO (signed Pi bundle, Perbarui on the PC) before or with the web, merge origin/main into the branch first.
+- Stage: `apps/web/rig/p19_baca.mjs`. Then report to the user; **no commit/push/deploy** until they say the set is ready. At deploy: pg_dump, apply 00NN by hand, push IRIS ASO (signed PC bundle, Perbarui on the PC) before or with the web, merge origin/main into the branch first.

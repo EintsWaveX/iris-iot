@@ -387,7 +387,7 @@ export function useSegar(topik: readonly Topik[], enabled = true): number {
 /* ------------------------------------------------------------ deadlines */
 
 /* What turns over at a known moment rather than on a write (a session's
- * end, a Pi's silence limit, a request's expiry) is announced on the page
+ * end, a PC's silence limit, a request's expiry) is announced on the page
  * itself at that moment, as if the relay had said it (Phase 12). A second
  * of grace lets the server agree when the views ask again. */
 const BATAS_TENGGANG_MS = 1000;

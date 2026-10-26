@@ -246,7 +246,7 @@
   }
 }
 
-/* A card that holds a stack of cards (Konsol Pi's side column). */
+/* A card that holds a stack of cards (Konsol PC's side column). */
 .s12col {
   display: flex;
   flex-direction: column;
@@ -384,14 +384,14 @@
   justify-content: center;
 }
 
-/* Ready Check: the Pi's shared checks on the left, Modul 2, 3 and 4 stacked
+/* Ready Check: the PC's shared checks on the left, Modul 2, 3 and 4 stacked
    on the right, each with only its own checks (Phase 11). */
 .s12readymod {
   border-top: 3px solid var(--m);
   flex: 1 1 auto;
 }
 
-/* The history fills what the module stack leaves under the Pi's checks
+/* The history fills what the module stack leaves under the PC's checks
    and scrolls inside. */
 .s12readyhist {
   flex: 1 1 auto;
@@ -413,7 +413,7 @@
   margin-top: auto;
 }
 
-/* The self-repair report under the Pi checks, after a hairline. */
+/* The self-repair report under the PC checks, after a hairline. */
 .s12repair {
   border-top: 1px solid var(--hairline);
   margin-top: 4px;
@@ -439,7 +439,7 @@
   padding: 0;
 }
 
-/* Konsol Pi: the body beside the people and recent consoles. */
+/* Konsol PC: the body beside the people and recent consoles. */
 .s12pk .pkhead,
 .s12pk .pksec,
 .s12pk > .banner {
@@ -499,7 +499,7 @@
   }
 }
 
-/* Konsol Pi's body fills its column, the same height as the side. */
+/* Konsol PC's body fills its column, the same height as the side. */
 .s12pk > div.s12span8 > *,
 .s12pk > div.s12span8 > * > .panel--solo {
   height: 100%;
@@ -532,7 +532,7 @@
 }
 
 /* ---------- Offline card ----------
-   A silent Pi gets one card in place of empty gauges and an empty chart:
+   A silent PC gets one card in place of empty gauges and an empty chart:
    when it was last heard, its last values and what to check. The actions
    pin to the bottom and share the width. */
 .s12off {

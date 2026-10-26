@@ -1,5 +1,5 @@
 """
-MODULE 2 - WEBSOCKET  |  Role: Server (Orange Pi 4 PRO)
+MODULE 2 - WEBSOCKET  |  Role: Server (PC Server)
 Records DHT22 readings from each ESP32 group by its own path (e.g. "/grup1"),
 then replies with its receive time. Package requirement: see the journal.
 Run with: python main.py. Fill in (1)-(6).

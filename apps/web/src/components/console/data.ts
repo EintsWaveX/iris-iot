@@ -4,7 +4,7 @@
  * - /api/session/current   running session + master roster   20 s
  * - /api/session/laporan   groups, stuck list, hands, owners   6 s
  * - /api/session/assignment  assistants + the slot's schedule 15 s
- * - /api/server (+ detail when there is exactly one Pi)        12 s, 4 s while the drawer is open
+ * - /api/server (+ detail when there is exactly one PC)        12 s, 4 s while the drawer is open
  * - /api/session/nilai     scores, live: a full load, then ?sejak= deltas every 5 s
  *
  * Scores are saved optimistically per field; a refusal (bukan_pemilik, a
@@ -138,8 +138,8 @@ export interface ServerState {
   detail: ServerDetail | null;
 }
 
-/** `langsung`: also take each beat as it lands (Ada Masalah? or the Pi
- *  drawer open); otherwise the 60 s refetch keeps the Pi's state, inside its
+/** `langsung`: also take each beat as it lands (Ada Masalah? or the PC
+ *  drawer open); otherwise the 60 s refetch keeps the PC's state, inside its
  *  75 s silence limit, so a quiet Konsol costs the relay nothing per beat */
 export function useServers(enabled: boolean, langsung = false) {
   const poll = usePoll<ServerState>(
@@ -157,7 +157,7 @@ export function useServers(enabled: boolean, langsung = false) {
     enabled,
     ["server"],
   );
-  // The beats land as they come (Ada Masalah?, the Pi drawer), Phase 12.
+  // The beats land as they come (Ada Masalah?, the PC drawer), Phase 12.
   useDenyutLangsung(
     enabled && langsung,
     (d) =>

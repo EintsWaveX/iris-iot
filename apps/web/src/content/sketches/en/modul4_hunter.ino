@@ -19,7 +19,7 @@
 
 #define GROUP_ID 1
 
-// The Orange Pi is the access point, the scoreboard, and the NTP server.
+// The PC is the access point, the scoreboard, and the NTP server.
 const char* WIFI_SSID      = "IRIS_IOT";
 const char* WIFI_PASSWORD  = "13015954";
 const char* SERVER_HOST    = "192.168.4.1";
@@ -104,7 +104,7 @@ float smoothRssi(int rssi) {
 }
 
 void connectToWiFi() {
-  Serial.print("Connecting to the Orange Pi hotspot");
+  Serial.print("Connecting to the PC hotspot");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, ________);  // (2) Wi-Fi password variable
@@ -123,7 +123,7 @@ void connectToWiFi() {
 }
 
 void syncClock() {
-  Serial.print("Synchronising the clock to the Orange Pi");
+  Serial.print("Synchronising the clock to the PC");
   configTime(GMT_OFFSET_SEC, DST_OFFSET_SEC, NTP_SERVER);
 
   struct tm timeinfo;

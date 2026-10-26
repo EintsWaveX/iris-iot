@@ -3,7 +3,7 @@ import { parseSerialLine } from "../serial-lines";
 import { LiveRecords, recordStats, selisihMs } from "../live-records";
 import type { Reading } from "../telemetry-sim";
 
-const pi = (o: Partial<Reading> & { seq: number }): Reading => ({
+const pc = (o: Partial<Reading> & { seq: number }): Reading => ({
   modul: 2,
   group: 4,
   tx: null,
@@ -70,10 +70,10 @@ describe("selisihMs", () => {
 });
 
 describe("LiveRecords", () => {
-  it("Module 2: the ESP32's send and the Pi's receive make the one-way delay", () => {
+  it("Module 2: the ESP32's send and the PC's receive make the one-way delay", () => {
     const s = new LiveRecords(2);
     s.board(parseSerialLine(2, '[10:00:00:000] Kirim #5: {"seq":5,"temp":27.1,"hum":60}'));
-    s.pi(pi({ seq: 5, rx: "10:00:00:018", nilai: { suhu: 27.1, lembap: 60 } }));
+    s.pc(pc({ seq: 5, rx: "10:00:00:018", nilai: { suhu: 27.1, lembap: 60 } }));
     s.board(
       parseSerialLine(2, "[10:00:00:040] Ack #5 dari server: {} | Delay (round-trip): 40 ms"),
     );
@@ -119,10 +119,10 @@ describe("LiveRecords", () => {
     expect(recordStats(rows)).toMatchObject({ oneway: 50, lost: 33 });
   });
 
-  it("Module 4: the Pi's paired row fills in when no board is plugged in", () => {
+  it("Module 4: the PC's paired row fills in when no board is plugged in", () => {
     const s = new LiveRecords(4);
-    s.pi(
-      pi({
+    s.pc(
+      pc({
         seq: 206,
         tx: "10:00:00:000",
         rx: "10:00:00:090",

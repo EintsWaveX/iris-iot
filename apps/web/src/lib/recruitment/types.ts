@@ -314,6 +314,27 @@ export type RecError =
   | "nim_asisten"
   | "perlu_klaim"
   | "klaim_salah"
+  // S3: the question bank (prompt 09)
+  | "versi_lama"
+  | "perlu_catatan"
+  | "belum_diatur"
+  | "bahasa_salah"
+  | "struktur_terkunci"
+  | "ruang_berjalan"
+  | "sudah_tampil"
+  | "gambar_hilang"
+  | "rujukan_hilang"
+  | "tidak_ada"
+  | "sudah_ada"
+  | "url_salah"
+  | "alamat_terlarang"
+  | "jenis_salah"
+  | "kosong"
+  | "status_salah"
+  | "tak_terjangkau"
+  | "waktu_habis"
+  | "terlalu_banyak_alihan"
+  | "tidak_aman"
   // The Google Form is the way in (2026-10-25)
   | "daftar_lewat_formulir";
 
@@ -660,7 +681,7 @@ export interface CutRowView {
   /** First Meet and Tes Tulis attendance */
   fm: boolean;
   tt: boolean;
-  /** Logika, FITB, Kodingan, Mikro (S3 fills them) */
+  /** Logika, FITB, Debugging, Live Coding (S3 fills them) */
   parts: (number | null)[];
   total: number | null;
   /** Berkas only: the status and the optional score */
@@ -695,6 +716,8 @@ export interface CutBoardResponse {
   lock: CutLock;
   /** What the deck aims for, from PRD 3 targets, for the threshold card */
   target: { min: number; max: number } | null;
+  /** Tes Tulis only: the scores are frozen by Finalkan (true) or still provisional (false) */
+  scoreFinal?: boolean | null;
   now: string;
 }
 

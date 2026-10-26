@@ -4,7 +4,7 @@
  *                    uptimeSec, jamSelaras, modeJaringan, layanan,
  *                    telemetri, hasilPerintah,
  *                    agenVersi?, infoSistem?, alamatLan?,
- *                    perburuan?, hotspot?, jamPi?, hasilSeelabs? } (heartbeat)
+ *                    perburuan?, hotspot?, jamPc?, hasilSeelabs? } (heartbeat)
  *                | { serverId, agenKunci, bundel: sha256 }       (fetch, 2026-10-07)
  *                | { serverId, agenKunci, tpDaftar: true }       (TP mirror list)
  *                | { serverId, agenKunci, tpUnduh: { id, i } }   (one TP file, bytes)
@@ -24,7 +24,7 @@
  *
  * Enroll: exchanges a one-time token for the long-lived agent key the
  * agent presents on every heartbeat afterward. No session cookie -- this
- * runs once, from the Pi itself, before the agent has any other credential.
+ * runs once, from the PC itself, before the agent has any other credential.
  *
  * Heartbeat: one round trip does five things -- records this cycle's
  * health (Phase 9 stopped storing the devices the agent still lists under
@@ -37,17 +37,17 @@
  * and swept for anything that expired since the last beat, from ANY
  * server, not just this one), and -- only on a day with a Module 4
  * session -- today's schedule (`jadwal`, see sesi.ts's jadwalModul4Hari())
- * so the scoreboard's roster reaches the Pi before the hotspot ever has to
+ * so the scoreboard's roster reaches the PC before the hotspot ever has to
  * go up. `agenVersi`/`infoSistem` (P6.2, sent by an agent built from P6.1
  * onward) are stored on the server row when present and simply omitted
  * otherwise, so an older agent's heartbeat needs no special casing here.
  * `alamatLan` (Phase 9) works the same way, and so do `perburuan` (the
  * Module 4 hunt's /ringkas.json) and `hotspot` (the SSID and passphrase the
- * agent reads from the Pi's own hostapd file), both for the Perburuan step.
- * No inbound port on the Pi is ever needed -- the agent always calls out,
+ * agent reads from the PC's own hostapd file), both for the Perburuan step.
+ * No inbound port on the PC is ever needed -- the agent always calls out,
  * and commands ride the response of the call it was always going to make
- * anyway. Each reply carries the site's clock (`waktu`), and `jamPi` (the
- * Pi's) becomes kondisi.selisihDetik, so a Pi with a wrong clock is shown
+ * anyway. Each reply carries the site's clock (`waktu`), and `jamPc` (the
+ * PC's) becomes kondisi.selisihDetik, so a PC with a wrong clock is shown
  * as such and its Konsol still gets the full time.
  *
  * The TP mirror (2026-10-14): an agent that sends `tpCermin` (its folder,
@@ -76,6 +76,15 @@ import {
 import { jamLabBilaPerlu } from "../_lib/jam-lab.js";
 import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
 import { bacaBilaPerlu } from "../_lib/seelabs-baca.js";
+import {
+  ambilKompilasi,
+  ambilMqtt,
+  bacaAgen,
+  kompilasiSiaga,
+  terimaHasilKompilasi,
+  terimaHasilMqtt,
+} from "../_lib/recruitment-lc-agent.js";
+import { muatEdisiHidup } from "../_lib/recruitment-data.js";
 import { kirimRelay } from "../_lib/aliran.js";
 import { ruangSesi } from "../../src/lib/aliran.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
@@ -99,7 +108,7 @@ import {
   INTERVAL_MALAM_SEC,
   INTERVAL_SIAGA_SEC,
   INTERVAL_TELEMETRI_SEC,
-  MODUL_TELEMETRI_PI,
+  MODUL_TELEMETRI_PC,
   adaPerintahBaru,
   batasLuringDetik,
 } from "../../src/lib/server-lib.js";
@@ -111,13 +120,16 @@ import { bacaKondisi, saringKondisi } from "../../src/lib/server-shared.js";
 import { saringHotspot, saringPerburuan } from "../../src/lib/perburuan.js";
 import { eq, and } from "drizzle-orm";
 
+/** The pace while an exam room is in the spins or Live Coding, or a compile waits */
+const INTERVAL_KOMPILASI_SEC = 2;
+
 interface HasilPerintahMasuk {
   id: number;
   status: "selesai" | "gagal";
   keluaran?: string;
 }
 
-// The Pi's LAN address as the agent saw it (its default route's source
+// The PC's LAN address as the agent saw it (its default route's source
 // address). An IPv4 or IPv6 literal, nothing else.
 const ALAMAT_LAN_RE = /^[0-9A-Fa-f:.]{2,45}$/;
 
@@ -183,6 +195,14 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
   try {
     const db = getDb();
 
+    // Live Coding (2026-10-25): a finished compile or account job sent at once, ahead of the next beat. It is no beat: no health row, no commands.
+    if (body.cepat === true) {
+      await terimaHasilKompilasi(db, serverId, body.hasilKompilasi);
+      await terimaHasilMqtt(db, body.hasilMqtt);
+      res.status(200).json({ ok: true });
+      return;
+    }
+
     // Phase 9: the network rate (in + out) gets a series like CPU and memory.
     const net = bacaKondisi(body.kondisi)?.jaringan;
     const [beat] = await db
@@ -205,11 +225,11 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // answered (2026-10-07). A beat that changes nothing sends nothing.
     const berubah = new Set<Topik>();
 
-    // The Pi's clock against the site's, measured here on every beat.
-    const jamPi = typeof body.jamPi === "number" && Number.isFinite(body.jamPi) ? body.jamPi : null;
+    // The PC's clock against the site's, measured here on every beat.
+    const jamPc = typeof body.jamPc === "number" && Number.isFinite(body.jamPc) ? body.jamPc : null;
     const kondisi = saringKondisi({
       ...(isPlainObject(body.kondisi) ? body.kondisi : {}),
-      selisihDetik: jamPi === null ? null : Math.round(jamPi - Date.now() / 1000),
+      selisihDetik: jamPc === null ? null : Math.round(jamPc - Date.now() / 1000),
     });
 
     // Phase 12: the readings first, then the beat and the readings go to the
@@ -221,7 +241,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     for (const r of bacaan)
       perGrup.set(r.kelompokNomor, [...(perGrup.get(r.kelompokNomor) ?? []), r]);
     const kamar: Record<string, PesanAliran[]> = {
-      pi: [
+      pc: [
         {
           j: "denyut",
           g: null,
@@ -232,7 +252,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     if (sesiAktif && perGrup.size)
       kamar[ruangSesi(sesiAktif.id)] = [...perGrup].map(([g, rows]) => ({ j: "tel", g, d: rows }));
     const terbitAwal = kirimRelay([], kamar);
-    // Silent past the idle cadence's grace: the Pi was offline until now.
+    // Silent past the idle cadence's grace: the PC was offline until now.
     const terakhir = row.kondisiPada?.getTime() ?? 0;
     if (Date.now() - terakhir > batasLuringDetik(null, null) * 1000) berubah.add("server");
 
@@ -251,7 +271,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         .where(and(eq(perintah.id, item.id), eq(perintah.serverId, serverId)));
     }
 
-    // Phase 9 Stage 9: the Pi bridge's Konsol reports (joined, ended).
+    // Phase 9 Stage 9: the PC bridge's Konsol reports (joined, ended).
     await terimaLaporanKonsol(serverId, body.konsol);
     if (Array.isArray(body.konsol) && body.konsol.length) berubah.add("server");
 
@@ -266,8 +286,24 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     }
 
     // Phase 14: the SeeLabs robot's results, then its next jobs (only for
-    // the approved robot Pi; every other server gets none).
+    // the approved robot PC; every other server gets none).
     await terimaHasil(db, serverId, body.hasilSeelabs);
+    // Live Coding: the PC's compile and broker-account results, then its next jobs
+    // (only an agent that reports it can compile gets any; the beat drops to 2 s
+    // while a room is in the spins or Live Coding, or a job waits).
+    await terimaHasilKompilasi(db, serverId, body.hasilKompilasi);
+    await terimaHasilMqtt(db, body.hasilMqtt);
+    const agenLc = await bacaAgen(db, serverId);
+    const lcSiaga = (agenLc.kompilasi || agenLc.mqtt) && (await kompilasiSiaga(db));
+    let kerjaKompilasi: Awaited<ReturnType<typeof ambilKompilasi>> = [];
+    let kerjaMqtt: Awaited<ReturnType<typeof ambilMqtt>> = [];
+    if (lcSiaga) {
+      const edisiLc = await muatEdisiHidup(db);
+      const kap = isPlainObject(body.kompilasi) ? (body.kompilasi as Record<string, unknown>) : {};
+      const bebas = Math.max(0, (numOrNull(kap.workers) ?? 2) - (numOrNull(kap.held) ?? 0));
+      if (edisiLc) kerjaKompilasi = await ambilKompilasi(db, serverId, edisiLc.id, bebas);
+      kerjaMqtt = await ambilMqtt(db, serverId);
+    }
 
     // A single atomic claim (P6.2/B7) -- see claimPerintahMenunggu's own
     // comment for the race this replaces.
@@ -277,12 +313,12 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     await sweepPerintahKedaluwarsa();
 
     // Phase 9: the agent's own LAN address wins over a hand-typed one; it
-    // is the address the Pi actually has right now.
+    // is the address the PC actually has right now.
     const alamatLan =
       typeof body.alamatLan === "string" && ALAMAT_LAN_RE.test(body.alamatLan)
         ? body.alamatLan
         : null;
-    // Phase 9: the Module 4 hunt's summary and the Pi's hotspot, for the
+    // Phase 9: the Module 4 hunt's summary and the PC's hotspot, for the
     // Praktikan's Perburuan step. Only the newest of each is kept.
     const perburuanMasuk = saringPerburuan(body.perburuan);
     const hotspot = saringHotspot(body.hotspot);
@@ -292,7 +328,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         ? { infoSistem: body.infoSistem, infoSistemPada: new Date() }
         : {}),
       ...(alamatLan && alamatLan !== row.alamatLan ? { alamatLan } : {}),
-      // Stage 5: the newest "Pi right now" numbers; only the known keys.
+      // Stage 5: the newest "PC right now" numbers; only the known keys.
       ...(kondisi ? { kondisi, kondisiPada: new Date() } : {}),
       ...(perburuanMasuk
         ? {
@@ -331,15 +367,17 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       (await adaPerintahBaru(serverId)) ||
       (await konsolSiaga(serverId)) ||
       robot === "kerja";
-    const intervalDetik = siaga
-      ? INTERVAL_SIAGA_SEC
-      : sesiAktif && MODUL_TELEMETRI_PI.has(sesiAktif.modul)
-        ? INTERVAL_TELEMETRI_SEC
-        : sesiAktif || robot === "baca" || tugasSeelabs.length > 0
-          ? INTERVAL_AKTIF_SEC
-          : jamSepi() && !(await adaAsistenOnline())
-            ? INTERVAL_MALAM_SEC
-            : INTERVAL_IDLE_SEC;
+    const intervalDetik = lcSiaga
+      ? INTERVAL_KOMPILASI_SEC
+      : siaga
+        ? INTERVAL_SIAGA_SEC
+        : sesiAktif && MODUL_TELEMETRI_PC.has(sesiAktif.modul)
+          ? INTERVAL_TELEMETRI_SEC
+          : sesiAktif || robot === "baca" || tugasSeelabs.length > 0
+            ? INTERVAL_AKTIF_SEC
+            : jamSepi() && !(await adaAsistenOnline())
+              ? INTERVAL_MALAM_SEC
+              : INTERVAL_IDLE_SEC;
 
     await pruneOldTelemetryOccasionally();
 
@@ -358,6 +396,8 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       waktu: Date.now() / 1000,
       ...(jadwal ? { jadwal } : {}),
       ...(tugasSeelabs.length ? { seelabs: tugasSeelabs } : {}),
+      ...(kerjaKompilasi.length ? { kompilasi: kerjaKompilasi } : {}),
+      ...(kerjaMqtt.length ? { mqtt: kerjaMqtt } : {}),
       ...(cermin ? { tpCermin: { segarkan: cerminSegarkan } } : {}),
     });
     // After the answer, kept alive with waitUntil: awaited after the response
@@ -389,7 +429,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
 
   const body = jsonBody(req);
   if (body.tipe === "bundel_terbit") return handleTerbit(req, res, body);
-  // A fresh Pi's one-line install (public/pasang-pi.sh) fetches the bundle
+  // A fresh PC's one-line install (public/pasang-pc.sh) fetches the bundle
   // with its enrol token before it has an agent key.
   if (body.tipe === "bundel_pasang") {
     const r = await bundelUntukPasang(body.kode, body.token, body.ringkas === true);

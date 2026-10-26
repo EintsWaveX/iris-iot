@@ -44,7 +44,7 @@
     /* phones get four columns: the send and receive times stack */
     const narrow = H.useStore().width < 560;
     const csv = () => {
-      const lines = ["seq,waktu_kirim_beacon,waktu_terima_pi,delay_ms,rssi,snr"];
+      const lines = ["seq,waktu_kirim_beacon,waktu_terima_pc,delay_ms,rssi,snr"];
       H.packets(g).slice().reverse().forEach((r) => lines.push(r.lost ? `${r.seq},,,,,` : `${r.seq},${r.tx || ""},${r.rx || ""},${r.delay == null ? "" : r.delay},${r.rssi == null ? "" : r.rssi},${r.snr == null ? "" : r.snr}`));
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
@@ -58,22 +58,22 @@
           <p class="lede">${L("Yang terjadi di bawah perburuan: radio LoRa, waktu, dan paket yang hilang. Angka ini juga masuk jurnal Modul 4.", "What happens under the hunt: the LoRa radio, timing and lost packets. These numbers also go into the Module 4 journal.")}</p>
           ${!member && html`<${H.GroupPick} g=${g} />`}</div>
         ${!row
-          ? html`<section class="card"><${H.StateView} icon="broadcast" title=${L("Belum ada paket", "No packets yet")} body=${L("Pi belum menerima paket dari hunter kelompok ini.", "The Pi hasn't had a packet from this group's hunter yet.")} /></section>`
+          ? html`<section class="card"><${H.StateView} icon="broadcast" title=${L("Belum ada paket", "No packets yet")} body=${L("PC belum menerima paket dari hunter kelompok ini.", "The PC hasn't had a packet from this group's hunter yet.")} /></section>`
           : html`<div class="dcards dcards--6 hlayers">
               <${H.DataCard} label=${L("RSSI halus", "Smoothed RSSI")} value=${H.fmt(row.halus, 0)} unit="dBm" sub=${L("median 5, lalu EWMA 0,25", "median of 5, then EWMA 0.25")} series=${H.series(g, "halus")} />
               <${H.DataCard} label="SNR" value=${H.fmt(row.snr, 1)} unit="dB" dp=${1} series=${H.series(g, "snr")} />
               <${H.DataCard} label=${L("Perkiraan jarak", "Estimated distance")} value=${row.jarak_m == null ? "·" : H.fmt(row.jarak_m, 1)} unit="m" dp=${1} sub=${L(`n = ${H.fmt(model.n, 1)}`, `n = ${H.fmt(model.n, 1)}`)} series=${H.series(g, "jarak")} />
-              <${H.DataCard} label=${L("Delay", "Delay")} value=${H.fmt(row.delay_ms)} unit="ms" tone="var(--accent)" sub=${L("terima di Pi dikurangi kirim di beacon", "Pi receive time minus beacon send time")} series=${H.series(g, "delay")} />
+              <${H.DataCard} label=${L("Delay", "Delay")} value=${H.fmt(row.delay_ms)} unit="ms" tone="var(--accent)" sub=${L("terima di PC dikurangi kirim di beacon", "PC receive time minus beacon send time")} series=${H.series(g, "delay")} />
               <${H.DataCard} label="Jitter" value=${jit == null ? "·" : H.fmt(jit, 1)} unit="ms" dp=${1} tone="var(--accent)" sub=${L("selisih delay antarpaket", "delay change between packets")} series=${H.series(g, "delay")} />
               <${H.DataCard} label=${L("Paket hilang", "Lost packets")} value=${H.fmt(row.rugi_persen, 1)} unit="%" dp=${1} tone="var(--danger)" sub=${L(`${H.fmt(row.hilang)} dari ${H.fmt(row.hilang + row.diterima)}`, `${H.fmt(row.hilang)} of ${H.fmt(row.hilang + row.diterima)}`)} series=${H.series(g, "lost")} />
             </div>
             <section class="card">
               <div class="card__head"><h2 class="card__title">${H.T("Paket terakhir", "Latest packets")}</h2><${Badge} tone="ok"><${Icon} n="link" sm />${L("dipasangkan lewat nomor paket", "paired by packet number")}</${Badge}></div>
-              <p class="card__sub">${L("Beacon menaruh waktu kirimnya di payload LoRa (kelompok, nomor paket, waktu kirim). Hunter meneruskannya ke Pi, jadi Waktu Kirim di sini dipasangkan dengan baris serial hunter lewat nomor paket. Sketsa tidak perlu diubah.", "The beacon puts its send time in the LoRa payload (group, packet number, send time). The hunter forwards it to the Pi, so Send Time here is paired with the hunter's serial line by packet number. No sketch change.")}</p>
+              <p class="card__sub">${L("Beacon menaruh waktu kirimnya di payload LoRa (kelompok, nomor paket, waktu kirim). Hunter meneruskannya ke PC, jadi Waktu Kirim di sini dipasangkan dengan baris serial hunter lewat nomor paket. Sketsa tidak perlu diubah.", "The beacon puts its send time in the LoRa payload (group, packet number, send time). The hunter forwards it to the PC, so Send Time here is paired with the hunter's serial line by packet number. No sketch change.")}</p>
               ${narrow
                 ? html`<table class="table table--tight hpk"><thead><tr><th>#</th><th>${L("Kirim / terima", "Sent / received")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI · SNR</th></tr></thead>
                   <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td>${r.lost ? html`<td class="mono hint">·</td><td class="num"><span style="color:var(--danger)">${L("hilang", "lost")}</span></td><td class="num">·</td>` : html`<td class="mono hpk__t"><span>${r.tx || "·"}</span><span class="hint">${r.rx || "·"}</span></td><td class="num">${r.delay == null ? "·" : r.delay + " ms"}</td><td class="num hpk__t"><span>${r.rssi == null ? "·" : r.rssi}</span><span class="hint">${r.snr == null ? "·" : H.fmt(r.snr, 1)}</span></td>`}</tr>`)}</tbody></table>`
-                : html`<div class="scrollx"><table class="table table--tight"><thead><tr><th>#</th><th>${L("Waktu kirim (beacon)", "Send time (beacon)")}</th><th>${L("Waktu terima (Pi)", "Receive time (Pi)")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI</th><th class="num">SNR</th></tr></thead>
+                : html`<div class="scrollx"><table class="table table--tight"><thead><tr><th>#</th><th>${L("Waktu kirim (beacon)", "Send time (beacon)")}</th><th>${L("Waktu terima (PC)", "Receive time (PC)")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI</th><th class="num">SNR</th></tr></thead>
                 <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td><td class="mono">${r.lost ? "·" : r.tx || "·"}</td><td class="mono hint">${r.lost ? "·" : r.rx || "·"}</td><td class="num">${r.lost ? html`<span style="color:var(--danger)">${L("hilang", "lost")}</span>` : r.delay == null ? "·" : r.delay + " ms"}</td><td class="num">${r.lost || r.rssi == null ? "·" : r.rssi}</td><td class="num">${r.lost || r.snr == null ? "·" : H.fmt(r.snr, 1)}</td></tr>`)}</tbody></table></div>`}
               <div class="r5act"><${Btn} sm icon="download-simple" onClick=${csv}>${L("Unduh CSV", "Download CSV")}</${Btn}></div>
             </section>`}
@@ -189,7 +189,7 @@
     const [err, setErr] = useState(null);
     const [busy, setBusy] = useState(false);
     const input = useRef(null);
-    /* tokens the Pi makes are 6 letters from an unambiguous alphabet, but
+    /* tokens the PC makes are 6 letters from an unambiguous alphabet, but
        --token accepts any letters and digits, so the box does too */
     const ALPHA = /[^A-Z0-9]/g;
     const open = async (e) => {
@@ -210,7 +210,7 @@
         ${Array.from({ length: Math.max(6, code.length) }, (_, i) => i).map((i) => html`<span class=${"tokbox__c" + (i === code.length ? " is-cur" : "")}>${code[i] || ""}</span>`)}
         <input ref=${input} class="sr" aria-label=${L("Token asisten", "Assistant token")} autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" value=${code} onInput=${(e) => setCode(e.target.value.toUpperCase().replace(ALPHA, "").slice(0, 12))} autofocus />
       </label>
-      ${err != null && html`<span class="error"><${Icon} n="warning" sm />${err >= 0 ? L(`Token salah. Sisa ${err} kali coba sebelum sambungan ditutup.`, `Wrong token. ${err} tries left before the connection closes.`) : L("Tidak tersambung ke Pi. Coba lagi.", "Not connected to the Pi. Try again.")}</span>`}
+      ${err != null && html`<span class="error"><${Icon} n="warning" sm />${err >= 0 ? L(`Token salah. Sisa ${err} kali coba sebelum sambungan ditutup.`, `Wrong token. ${err} tries left before the connection closes.`) : L("Tidak tersambung ke PC. Coba lagi.", "Not connected to the PC. Try again.")}</span>`}
       <${Btn} type="submit" kind="primary" lg block icon="lock-key" disabled=${code.length < 4 || busy}>${L("Buka", "Open")}</${Btn}>
       <span class="hint">${L("Tab Asisten tidak tampil di ponsel praktikan sampai token benar.", "The Assistant tab doesn't show on student phones until the token is right.")}</span>
       ${N.grup === null && html`<button type="button" class="hjoin__asisten" onClick=${() => H.go("hunt")}><${Icon} n="arrow-left" sm />${L("Kembali ke Masuk NIM", "Back to the NIM Sign-In")}</button>`}
@@ -297,7 +297,7 @@
               <span class="num">${r && r.status === "menang" ? H.ms(r.durasi) : H.closedOf(r) + "%"}</span>
               <${H.HeatChip} k=${H.heatOf(r)} />
               <span class="row" style="gap:4px;flex-wrap:nowrap">${calling ? html`<${Badge} tone="warn"><${Icon} n="hand-waving" sm />${L("memanggil", "calling")}</${Badge}>` : r && r.status === "menunggu" ? html`<${Badge} tone="warn"><${Icon} n="camera" sm />${L("klaim", "claim")}</${Badge}>` : null}<${IconBtn} sm icon="dots-three" label=${L(`Menu ${H.gname(g)}`, `${H.gname(g)} menu`)} onClick=${() => setMenu(g)} /></span></div>`;
-          })}</div>` : html`<p class="hint">${L("Belum ada kelompok. Daftar sesi datang dari situs web lewat agent Pi.", "No groups yet. The session list comes from the website through the Pi agent.")}</p>`}</section>
+          })}</div>` : html`<p class="hint">${L("Belum ada kelompok. Daftar sesi datang dari situs web lewat agent PC.", "No groups yet. The session list comes from the website through the PC agent.")}</p>`}</section>
         <div class="hgrid hgrid--2">
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Antrean klaim", "Claim queue")}</h2>${queue.length > 0 && html`<${Badge} tone="warn">${queue.length}</${Badge}>`}</div>
             ${queue.length ? queue.map((q) => html`<div class="claimq" style=${`--g:var(--group-${q.grup})`}>
@@ -436,7 +436,7 @@
     const N = H.useNet();
     H.useTick(1000);
     const V = {
-      offline: ["wifi-slash", L("Tidak Tersambung ke IRIS_IOT", "Not Connected to IRIS_IOT"), L("Ponselmu keluar dari Wi-Fi hotspot Pi. Biasanya karena terlalu jauh dari gedung, atau ponsel pindah ke data seluler.", "Your phone left the Pi's hotspot Wi-Fi. Usually you're too far from the building, or the phone switched to mobile data."), L("Mencoba lagi sendiri", "Trying again by itself")],
+      offline: ["wifi-slash", L("Tidak Tersambung ke IRIS_IOT", "Not Connected to IRIS_IOT"), L("Ponselmu keluar dari Wi-Fi hotspot PC. Biasanya karena terlalu jauh dari gedung, atau ponsel pindah ke data seluler.", "Your phone left the PC's hotspot Wi-Fi. Usually you're too far from the building, or the phone switched to mobile data."), L("Mencoba lagi sendiri", "Trying again by itself")],
       restart: ["arrows-clockwise", L("Server perburuan dimulai ulang", "The hunt server is restarting"), L("Asisten memulai ulang server. Posisi dan klaim kalian aman.", "An assistant restarted the server. Your progress and claims are safe."), L("Tersambung lagi sendiri", "Reconnects by itself")],
       ended: ["flag-checkered", L("Ronde selesai", "Round over"), L("Semua kelompok sudah menemukan beaconnya, atau asisten menutup ronde.", "Every group found its beacon, or an assistant closed the round."), null],
       rolled: ["calendar-blank", L("Sesi sudah berganti", "The session changed"), L("Sesi ini sudah lewat. Masuk lagi dengan NIM kalau kamu ikut sesi berikutnya.", "This session is over. Sign in again with your NIM if you're in the next one."), null],

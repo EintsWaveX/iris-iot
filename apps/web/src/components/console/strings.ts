@@ -83,7 +83,7 @@ export const S = dict({
       "Hotspot IRIS_IOT dan papan skor dimatikan. Hasil tiap kelompok tetap bisa dibaca di langkah Perburuan.",
     huntStarted: "Perburuan dimulai. Hotspot menyala pada denyut PC Server berikutnya.",
     huntStopped: "Perburuan selesai. Hotspot dimatikan.",
-    huntNoPi:
+    huntNoPc:
       "Perburuan dicatat, tapi perintah ke PC Server tidak terkirim: harus ada tepat satu server terdaftar. Buka halaman Server.",
     endShort: "Akhiri",
     more: "Lainnya",
@@ -594,7 +594,7 @@ export const S = dict({
     kitSaved: "Jumlah kit disimpan.",
     reportLine: "Catatan sesi ini ada di Laporan",
     reportTag: "Laporan",
-    cmdNoPi: "Tidak ada satu PC Server tunggal untuk dikirimi perintah. Buka halaman Server.",
+    cmdNoPc: "Tidak ada satu PC Server tunggal untuk dikirimi perintah. Buka halaman Server.",
     nextDoneSlot: "Selesai, Buka Persiapan Slot Berikutnya",
     nextDoneLab: "Selesai, Tutup Lab",
     // drawer
@@ -747,7 +747,7 @@ export const S = dict({
       "The IRIS_IOT hotspot and the scoreboard turn off. Each group's result stays readable in the Perburuan step.",
     huntStarted: "The hunt started. The hotspot comes on with the PC Server's next heartbeat.",
     huntStopped: "The hunt ended. The hotspot is off.",
-    huntNoPi:
+    huntNoPc:
       "The hunt is recorded, but the PC Server got no command: there must be exactly one registered server. Open the Server page.",
     endShort: "End",
     more: "More",
@@ -1244,7 +1244,7 @@ export const S = dict({
     kitSaved: "Kit count saved.",
     reportLine: "This session's note is in Reports",
     reportTag: "Report",
-    cmdNoPi: "There is no single PC Server to send this to. Open the Server page.",
+    cmdNoPc: "There is no single PC Server to send this to. Open the Server page.",
     nextDoneSlot: "Done, Open the Next Slot's Preparation",
     nextDoneLab: "Done, Close the Lab",
     drawerTitle: "Server",
@@ -1394,7 +1394,7 @@ export const S = dict({
     huntStopBody: "IRIS_IOT 热点和记分板会关闭。每组的结果仍然可以在寻踪步骤里看到。",
     huntStarted: "寻踪已开始。热点会在 PC 服务器下一次心跳时开启。",
     huntStopped: "寻踪已结束。热点已关闭。",
-    huntNoPi:
+    huntNoPc:
       "已记录寻踪，但没有发命令给 PC 服务器：必须正好有一台已注册的服务器。请打开服务器页面。",
     endShort: "结束",
     more: "更多",
@@ -1869,7 +1869,7 @@ export const S = dict({
     kitSaved: "套件数量已保存。",
     reportLine: "这节课的记录在报告里",
     reportTag: "报告",
-    cmdNoPi: "没有唯一的一台 PC 服务器可以发送。请打开服务器页面。",
+    cmdNoPc: "没有唯一的一台 PC 服务器可以发送。请打开服务器页面。",
     nextDoneSlot: "完成，打开下一个时段的课前准备",
     nextDoneLab: "完成，关闭实验室",
     drawerTitle: "服务器",

@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src"]
+  "include": ["src", "../web/src/lib/tanda.ts", "../web/src/lib/recruitment/lc-gateway.ts", "../web/src/lib/recruitment/mqtt-lite.ts"]
 }

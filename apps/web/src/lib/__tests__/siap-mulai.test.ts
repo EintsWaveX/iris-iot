@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cekMulai, gagalMulai, type FaktaMulai } from "../siap-mulai";
 
-const piSehat = {
+const pcSehat = {
   umurDetik: 10,
   batasLuringDetik: 120,
   layanan: { "modul2-ws": "active", mosquitto: "active", modul4: "active" },
@@ -13,7 +13,7 @@ const dasar: FaktaMulai = {
   modeTot: false,
   modulTerbuka: [1, 2, 3, 4],
   butuhAp: false,
-  pi: piSehat,
+  pc: pcSehat,
 };
 const status = (f: FaktaMulai) => Object.fromEntries(cekMulai(f).map((c) => [c.id, c.status]));
 
@@ -25,7 +25,7 @@ describe("cekMulai", () => {
   it("flags a stopped Mosquitto for Module 3 as forceable", () => {
     const f = {
       ...dasar,
-      pi: { ...piSehat, layanan: { ...piSehat.layanan, mosquitto: "inactive" } },
+      pc: { ...pcSehat, layanan: { ...pcSehat.layanan, mosquitto: "inactive" } },
     };
     const g = gagalMulai(cekMulai(f));
     expect(g.keras).toEqual([]);
@@ -33,19 +33,19 @@ describe("cekMulai", () => {
     expect(g.lunak[0].keadaan).toBe("inactive");
   });
 
-  it("an offline Pi fails once and skips what it can't know", () => {
-    const s = status({ ...dasar, pi: { ...piSehat, umurDetik: 600 } });
-    expect(s.pi).toBe("gagal");
+  it("an offline PC fails once and skips what it can't know", () => {
+    const s = status({ ...dasar, pc: { ...pcSehat, umurDetik: 600 } });
+    expect(s.pc).toBe("gagal");
     expect(s.layanan).toBe("lewat");
   });
 
-  it("no enrolled Pi counts as offline", () => {
-    expect(status({ ...dasar, pi: null }).pi).toBe("gagal");
+  it("no enrolled PC counts as offline", () => {
+    expect(status({ ...dasar, pc: null }).pc).toBe("gagal");
   });
 
-  it("Module 1 needs no Pi", () => {
-    const s = status({ ...dasar, modul: 1, pi: null });
-    expect(s.pi).toBe("lewat");
+  it("Module 1 needs no PC", () => {
+    const s = status({ ...dasar, modul: 1, pc: null });
+    expect(s.pc).toBe("lewat");
     expect(s.layanan).toBe("lewat");
     expect(s.hotspot).toBeUndefined();
   });
@@ -62,7 +62,7 @@ describe("cekMulai", () => {
   });
 
   it("Module 4 starts with the hotspot off: no hotspot check", () => {
-    const off = { ...dasar, modul: 4, pi: { ...piSehat, modeJaringan: "ethernet-router" } };
+    const off = { ...dasar, modul: 4, pc: { ...pcSehat, modeJaringan: "ethernet-router" } };
     expect(status(off).hotspot).toBeUndefined();
     expect(gagalMulai(cekMulai({ ...off, butuhAp: true })).lunak.map((c) => c.id)).not.toContain(
       "hotspot",

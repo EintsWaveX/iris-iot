@@ -8,7 +8,7 @@
  * - the browser reports its own uncaught errors as `galat_klien`
  *   (api/auth/[aksi].ts, aksi=galat);
  * - the Asisten pages ask /api/session/waspada and raise an alert on a
- *   burst of server errors or a Pi that drops out during a session
+ *   burst of server errors or a PC that drops out during a session
  *   (shell/LabAlert.tsx).
  *
  * The audit table holds them, so no new table or outside service. Rows are

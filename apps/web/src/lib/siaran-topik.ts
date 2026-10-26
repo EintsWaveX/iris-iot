@@ -29,7 +29,7 @@ export const TOPIK = [
   "jawaban",
   // A journal capture was saved (session:tangkapan).
   "tangkapan",
-  // A Pi's Module 4 hunt summary changed (api/agent).
+  // A PC's Module 4 hunt summary changed (api/agent).
   "buru",
   // A group rewired its own pins in the running session (presentasi:pin-grup).
   "pingrup",
@@ -50,6 +50,15 @@ export const TOPIK = [
   // A QR scan or a hand mark rides reccandidates (the candidate list shows it).
   "reccutting",
   "recplotting",
+  // S3 (2026-10-24): an exam room was set up, opened, run or finished. The
+  // candidate's page shows or hides its test entry; the room list refreshes.
+  "recroom",
+  // S3 (2026-10-25): the question bank, the parts config or a reference changed.
+  "recbank",
+  // S3 (2026-10-25, Live Coding): a sheet was sent or withdrawn, or the topic pool, a template or the rubric changed.
+  "reclive",
+  // S3 (2026-10-25, scores): a question was voided or restored, scores were frozen or unfrozen. The Penilaian tab and the Cutting board's Tes Tulis columns follow.
+  "recscore",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -204,6 +213,49 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:slot-decide": ["recplotting", "reccandidates"],
   "recruitment:slot-set": ["recplotting", "reccandidates", "reccalendar"],
   "recruitment:slot-autofill": ["recplotting", "reccandidates"],
+  // S3, the exam (2026-10-24). Most writes ride the exam's relay room (the
+  // Master's ping, notes, kits, answers) and send no topic. A room being set
+  // up, run or moved sends recroom; the bank sends recbank, Live Coding
+  // reclive and the scores recscore.
+  "recruitment:test-checkin": [],
+  "recruitment:test-answer": [],
+  "recruitment:test-strike": [],
+  "recruitment:test-submit": [],
+  "recruitment:test-hotspot": [],
+  "recruitment:lc-spin": [],
+  "recruitment:lc-code": [],
+  "recruitment:lc-board": [],
+  "recruitment:lc-variant": [],
+  "recruitment:lc-compile": [],
+  "recruitment:lc-flash": [],
+  "recruitment:exam-config-save": ["recbank"],
+  "recruitment:question-save": ["recbank"],
+  "recruitment:question-delete": ["recbank"],
+  "recruitment:bank-import": ["recbank"],
+  "recruitment:media-ticket": [],
+  "recruitment:bank-seed": ["recbank"],
+  "recruitment:reference-add": ["recbank"],
+  "recruitment:reference-refetch": ["recbank"],
+  "recruitment:reference-upload": ["recbank"],
+  "recruitment:reference-delete": ["recbank"],
+  "recruitment:reference-attach": ["recbank"],
+  "recruitment:room-setup": ["recroom"],
+  "recruitment:room-act": ["recroom"],
+  "recruitment:room-master": [],
+  "recruitment:room-note": [],
+  "recruitment:room-kit": [],
+  "recruitment:room-move": ["recroom"],
+  "recruitment:lc-hotspot": [],
+  "recruitment:lc-grade": ["reclive"],
+  "recruitment:lc-grade-withdraw": ["reclive"],
+  "recruitment:lc-topic-save": ["reclive"],
+  "recruitment:lc-topic-delete": ["reclive"],
+  "recruitment:lc-template-save": ["reclive"],
+  "recruitment:lc-rubric-save": ["reclive"],
+  "recruitment:question-void": ["recscore", "reccutting"],
+  "recruitment:question-unvoid": ["recscore", "reccutting"],
+  "recruitment:score-finalize": ["recscore", "reccutting"],
+  "recruitment:score-unfreeze": ["recscore", "reccutting"],
   // Oprec accounts (2026-10-24): a sign-up, sign-in or sign-out changes no
   // page but the candidate's own; Reset Akun answers its code to the one asking.
   "recruitment:account-signup": [],
@@ -214,7 +266,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:candidate-add": ["reccandidates"],
   "recruitment:candidate-ticket": [],
   "recruitment:candidate-document": ["reccandidates"],
-  // Register, edit, delete a Pi, a new token, and every queued command.
+  // Register, edit, delete a PC, a new token, and every queued command.
   server: ["server"],
   action: ["server"],
 };

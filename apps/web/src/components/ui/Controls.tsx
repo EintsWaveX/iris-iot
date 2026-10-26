@@ -1001,6 +1001,7 @@ export function Stepper({
   fmt = String,
   lessLabel,
   moreLabel,
+  disabled = false,
 }: {
   value: number;
   onChange: (v: number) => void;
@@ -1011,6 +1012,8 @@ export function Stepper({
   fmt?: (v: number) => string;
   lessLabel: string;
   moreLabel: string;
+  /** Locked: the value shows but neither button moves it. */
+  disabled?: boolean;
 }) {
   const set = (v: number) => onChange(Math.min(max, Math.max(min, v)));
   return (
@@ -1018,7 +1021,7 @@ export function Stepper({
       <button
         type="button"
         aria-label={lessLabel}
-        disabled={value <= min}
+        disabled={disabled || value <= min}
         onClick={() => set(value - step)}
       >
         <CaretLeftIcon size={18} aria-hidden="true" />
@@ -1027,7 +1030,7 @@ export function Stepper({
       <button
         type="button"
         aria-label={moreLabel}
-        disabled={value >= max}
+        disabled={disabled || value >= max}
         onClick={() => set(value + step)}
       >
         <CaretRightIcon size={18} aria-hidden="true" />

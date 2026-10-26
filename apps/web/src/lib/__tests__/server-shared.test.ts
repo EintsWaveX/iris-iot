@@ -138,7 +138,7 @@ describe("posisiPasang", () => {
   const p = (tahap: string, ubah: Record<string, unknown> = {}) =>
     bacaPasang({ tahap, mulai: "2026-10-08T08:00:00Z", pada: "2026-10-08T08:05:00Z", ...ubah });
 
-  it("waits on the Pi before any report", () => {
+  it("waits on the PC before any report", () => {
     expect(posisiPasang(null, null, null).langkah).toBe(0);
   });
 
@@ -148,7 +148,7 @@ describe("posisiPasang", () => {
     expect(posisiPasang(p("daftar"), null, null).langkah).toBe(3);
   });
 
-  it("skips the install rows for a Pi that already has an agent", () => {
+  it("skips the install rows for a PC that already has an agent", () => {
     expect(posisiPasang(p("mulai", { ulang: true }), null, null)).toMatchObject({
       langkah: 3,
       lewati: true,
@@ -203,7 +203,7 @@ describe("modulCek", () => {
 });
 
 describe("agent reports in English (2026-10-14)", () => {
-  it("names the Pi's own package manager, apt for agents that predate infoSistem.distro", () => {
+  it("names the PC's own package manager, apt for agents that predate infoSistem.distro", () => {
     expect(pengelolaPaket({ distro: { keluarga: "redhat", pengelola: "dnf" } })).toBe("dnf");
     expect(pengelolaPaket({ distro: { keluarga: "arch", pengelola: "pacman" } })).toBe("pacman");
     expect(pengelolaPaket({})).toBe("apt");

@@ -22,11 +22,14 @@ import {
   useRecEdition,
 } from "../../../lib/recruitment/client";
 import { useBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
+import { useRecRooms } from "../../../lib/recruitment/room-client";
 import { CAL } from "../calendar/calendarStrings";
 import { KepalaHalaman, tgl, useHariIni } from "../shared";
 import Kandidat from "./Kandidat";
 import CuttingTab from "./cutting/CuttingTab";
 import PlottingTab from "./jadwal/PlottingTab";
+import BankTab from "./tes/bank/BankTab";
+import TesTab from "./tes/ruang/TesTab";
 import KalenderTab from "./KalenderTab";
 import PanitiaBoard from "./PanitiaBoard";
 import Ringkasan from "./Ringkasan";
@@ -47,6 +50,8 @@ export default function PanelPage({ lang }: { lang: Lang }) {
   const lihatKandidat = panitia && rights?.candidates === true;
   const cand = useRecCandidates(lihatKandidat);
   const kom = useRecCommittee(panitia);
+  const ruang = useRecRooms(asisten);
+  const adaRuang = !!ruang.data && (ruang.data.rooms.length > 0 || ruang.data.canSetup);
 
   const tabs = useMemo<PanelTab[]>(
     () =>
@@ -57,10 +62,12 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             ...(lihatKandidat ? (["kandidat"] as const) : []),
             ...(rights?.cuttingPropose ? (["cutting"] as const) : []),
             ...(rights?.plotting ? (["plotting"] as const) : []),
+            ...(adaRuang ? (["tes"] as const) : []),
+            ...(rights?.bank ? (["bank"] as const) : []),
             "panitia",
           ]
-        : ["kalender"],
-    [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting],
+        : ["kalender", ...(adaRuang ? (["tes"] as const) : [])],
+    [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting, rights?.bank, adaRuang],
   );
   const tab: PanelTab = bagian && tabs.includes(bagian) ? bagian : tabs[0];
 
@@ -139,6 +146,10 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           <CuttingTab lang={lang} events={events} hariIni={hariIni} rights={rights} />
         ) : tab === "plotting" && rights ? (
           <PlottingTab lang={lang} events={events} rights={rights} />
+        ) : tab === "tes" ? (
+          <TesTab lang={lang} />
+        ) : tab === "bank" && rights?.bank ? (
+          <BankTab lang={lang} />
         ) : (
           <PanitiaBoard lang={lang} rights={rights} />
         )}

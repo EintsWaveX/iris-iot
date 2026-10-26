@@ -2,11 +2,11 @@
   "modul": 2,
   "bahasa": "id",
   "judul": "WebSocket",
-  "topik": "Komunikasi WebSocket dengan Server Lokal",
-  "tagline": "ESP32 mengirim data sensor ke server Python lewat Wi-Fi lokal.",
+  "topik": "Komunikasi WebSocket lewat Gateway ws.irisiotlab.com",
+  "tagline": "ESP32 mengirim data sensor ke server Python lewat gateway ws.irisiotlab.com.",
   "fakta": ["ESP32", "DHT22", "PC Server"],
   "ringkasan": [
-    "ESP32 membaca sensor DHT22 dan mengirim hasilnya ke server WebSocket yang berjalan di PC Server lewat jaringan Wi-Fi lokal yang sama.",
+    "ESP32 membaca sensor DHT22 dan mengirim hasilnya ke server WebSocket yang berjalan di PC Server dan dijangkau lewat ws.irisiotlab.com, sehingga ESP32 cukup memakai Wi-Fi yang memiliki akses Internet.",
     "Server membedakan tiap kelompok dari path koneksinya, sehingga beberapa kelompok dapat memakai satu server yang sama tanpa saling mengganggu."
   ],
   "toolchain": [
@@ -26,7 +26,7 @@
     },
     {
       "nama": "PC Server",
-      "jumlah": "1x, sebagai server lokal"
+      "jumlah": "1x, sebagai server, dijangkau lewat ws.irisiotlab.com"
     },
     {
       "nama": "Sensor DHT22",
@@ -51,7 +51,7 @@
       ["DHT (GND)", "GND"]
     ],
     "catatan": [
-      "PC Server tidak memerlukan rangkaian tambahan apa pun. Server WebSocket berjalan sepenuhnya sebagai perangkat lunak, sehingga PC Server cukup terhubung ke jaringan Wi-Fi yang sama dengan ESP32.",
+      "PC Server tidak memerlukan rangkaian tambahan apa pun. Server WebSocket berjalan sepenuhnya sebagai perangkat lunak, dan dijangkau lewat ws.irisiotlab.com, sehingga ESP32 cukup terhubung ke jaringan Wi-Fi yang memiliki akses Internet.",
       "DHT22 tidak boleh dibaca lebih cepat dari sekali tiap 2 detik. Interval yang lebih rapat mengembalikan NAN."
     ]
   },
@@ -59,9 +59,9 @@
     "Memasang pustaka DHT sensor library dan Adafruit Unified Sensor melalui Library Manager Arduino IDE",
     "Memasang pustaka WebSockets karya Markus Sattler melalui Library Manager Arduino IDE",
     "Menyiapkan virtual environment websockets pada PC Server (python3 -m venv, lalu pip install \"websockets>=13\")",
-    "Mencatat alamat IP PC Server dengan hostname -I",
+    "Mencatat alamat server ws.irisiotlab.com dan menyambungkan ESP32 ke Wi-Fi yang memiliki akses Internet",
     "Memakai path milik kelompok sendiri pada WS_PATH",
-    "Menyamakan nilai port dan path pada kedua berkas program"
+    "Menyamakan path pada kedua berkas program, dan memakai WS_PORT 80 (port gateway) pada ESP32"
   ],
   "berkas": [
     {
@@ -85,11 +85,11 @@
     },
     {
       "nama": "Transport",
-      "nilai": "TCP, port WS_PORT"
+      "nilai": "TCP, port WS_PORT (80, gateway)"
     },
     {
       "nama": "Jaringan",
-      "nilai": "IP, satu hop"
+      "nilai": "IP lewat gateway"
     },
     {
       "nama": "Tautan data",

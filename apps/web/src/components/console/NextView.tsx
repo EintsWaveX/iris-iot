@@ -8,7 +8,7 @@
  *   closed. "Create a Makeup Session Draft" asks for a date and time and
  *   copies those groups into the draft (POST /api/session/susulan with
  *   lanjutanDari), numbered again from 1.
- * - Hand the room over: the next slot today, then the Orange Pi actions the
+ * - Hand the room over: the next slot today, then the PC actions the
  *   next module needs (restart its services; the hotspot only around
  *   Module 4), each sent with /api/action like the Server page does.
  *
@@ -40,7 +40,7 @@ import { belumSelesai, useRingkasSesi } from "./ringkasSesi";
 import type { SesiRunning } from "./types";
 import { useSegar } from "../../lib/siaran";
 
-/** The Orange Pi service each module runs (Module 1 runs none). */
+/** The PC service each module runs (Module 1 runs none). */
 const LAYANAN: Record<number, string | undefined> = { 2: "modul2-ws", 3: "mosquitto", 4: "modul4" };
 
 interface SlotHariIni {
@@ -130,7 +130,7 @@ export default function NextView({
   async function kirim(key: string, aksi: string, argumen: Record<string, string>) {
     try {
       const d = await getJson<{ ok: boolean; server: { id: number }[] }>("/api/server");
-      if (!d.ok || d.server.length !== 1) return window.Toast?.show(t.cmdNoPi, "warn");
+      if (!d.ok || d.server.length !== 1) return window.Toast?.show(t.cmdNoPc, "warn");
       const r = await postJson<{ ok: boolean; kode?: string }>("/api/action", {
         tipe: "kirim",
         serverId: d.server[0].id,

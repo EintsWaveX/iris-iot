@@ -8,7 +8,8 @@
     "dev": "wrangler dev --port 8789",
     "deploy": "wrangler deploy",
     "check": "tsc --noEmit",
-    "test": "node test/test-gateway.mjs"
+    "test": "node test/test-gateway.mjs",
+    "test:rec": "node test/test-rec.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261003.1",

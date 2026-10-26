@@ -47,8 +47,8 @@ describe("flowStats", () => {
   });
 });
 
-// Module 2/3 as the Pi sees them: a receive time and the board's seq only.
-const pi = (seq: number, rx: string): Reading => ({
+// Module 2/3 as the PC sees them: a receive time and the board's seq only.
+const pc = (seq: number, rx: string): Reading => ({
   modul: 2,
   group: 1,
   seq,
@@ -61,10 +61,10 @@ const pi = (seq: number, rx: string): Reading => ({
 
 describe("flowStats without a send time", () => {
   const rows = [
-    pi(10, "17:42:10:000"),
-    pi(11, "17:42:12:000"),
-    pi(13, "17:42:16:100"), // #12 never arrived
-    pi(14, "17:42:18:100"),
+    pc(10, "17:42:10:000"),
+    pc(11, "17:42:12:000"),
+    pc(13, "17:42:16:100"), // #12 never arrived
+    pc(14, "17:42:18:100"),
   ];
 
   it("measures the arrival interval and its jitter", () => {
@@ -81,11 +81,11 @@ describe("flowStats without a send time", () => {
   });
 
   it("does not count a board restart (seq going down) as loss", () => {
-    expect(flowStats([pi(40, "10:00:00:000"), pi(1, "10:00:02:000")], 40, true).loss).toBe(0);
+    expect(flowStats([pc(40, "10:00:00:000"), pc(1, "10:00:02:000")], 40, true).loss).toBe(0);
   });
 
   it("wraps past midnight", () => {
-    expect(selangMs([pi(1, "23:59:59:500"), pi(2, "00:00:01:500")])).toEqual([null, 2000]);
+    expect(selangMs([pc(1, "23:59:59:500"), pc(2, "00:00:01:500")])).toEqual([null, 2000]);
     expect(jamKeMs("bad")).toBeNull();
   });
 });

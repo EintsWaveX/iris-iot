@@ -1,6 +1,6 @@
 /**
- * Konsol Pi's terminal (mockup v-console "term"): xterm.js on the relay.
- * Keystrokes go out as binary frames, the Pi's output comes back as binary,
+ * Konsol PC's terminal (mockup v-console "term"): xterm.js on the relay.
+ * Keystrokes go out as binary frames, the PC's output comes back as binary,
  * and the size goes out as {"t":"r",c,r} whenever the pane changes. The bar
  * has the font size, Copy (the selection), Paste and Full Screen. Only the
  * one in control of the room types (the relay drops anyone else's keys);
