@@ -11,7 +11,7 @@
  * fires about 30 percent of the confetti and drops the extra bursts.
  */
 import type { CreateTypes } from "canvas-confetti";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useMotionTier } from "../../../lib/hooks";
 import { soundOn, usePrefs } from "../../../lib/prefs";
 import { motionLevel, type MotionLevel } from "../../../lib/recruitment/motion-level";
@@ -21,20 +21,21 @@ export type { MotionLevel };
 
 const REDUCED = "(prefers-reduced-motion: reduce)";
 
+const ikutReduced = (on: () => void) => {
+  const mq = window.matchMedia?.(REDUCED);
+  mq?.addEventListener?.("change", on);
+  return () => mq?.removeEventListener?.("change", on);
+};
+const reducedKini = () => window.matchMedia?.(REDUCED).matches ?? false;
+// The server cannot know the setting. React hydrates with this and then
+// re-renders with the browser's answer, so the markup never mismatches; a
+// page rendered only in the browser gets the right answer on its first paint.
+const reducedServer = () => false;
+
 export function useRevealMotion(): MotionLevel {
   const tier = useMotionTier();
   const { detail } = usePrefs();
-  const [reduced, setReduced] = useState(
-    () => typeof window !== "undefined" && (window.matchMedia?.(REDUCED).matches ?? false),
-  );
-  useEffect(() => {
-    const mq = window.matchMedia?.(REDUCED);
-    if (!mq) return;
-    const on = () => setReduced(mq.matches);
-    on();
-    mq.addEventListener?.("change", on);
-    return () => mq.removeEventListener?.("change", on);
-  }, []);
+  const reduced = useSyncExternalStore(ikutReduced, reducedKini, reducedServer);
   return motionLevel({ reduced, tier, detail });
 }
 
