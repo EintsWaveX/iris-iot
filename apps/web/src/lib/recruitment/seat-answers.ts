@@ -53,7 +53,8 @@ const RETRY_MS = [2000, 5000, 10_000, 15_000];
 
 export class AnswerSaver {
   private pending = new Map<number, Value>();
-  private flying = new Set<number>();
+  private chain: Promise<void> = Promise.resolve();
+  private offline = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private retry = 0;
   private dead = false;
@@ -118,11 +119,23 @@ export class AnswerSaver {
     }
   }
 
-  /** Send everything now, for the instant a seat's time ends */
-  async flush() {
+  /**
+   * Send everything now: for the instant a seat's time ends, and before a
+   * hand-in. It waits for the sends already in flight, then sends the newest
+   * value of every question still dirty (one changed while its older value
+   * was flying included). Resolves true when nothing is left unsent, false
+   * when an answer could not go out (offline), so the page does not hand in
+   * past it. An answer the server refused (time is over) is dropped, not left.
+   */
+  async flush(): Promise<boolean> {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
-    await this.drain();
+    for (let round = 0; round < 4; round++) {
+      await this.drain();
+      if (!this.pending.size) return true;
+      if (this.offline) return false;
+    }
+    return this.pending.size === 0;
   }
 
   dispose() {
@@ -131,12 +144,20 @@ export class AnswerSaver {
     this.timer = null;
   }
 
-  private async drain() {
+  /** Drains run one after another, so a flush always follows the sends already in flight. */
+  private drain(): Promise<void> {
+    const p = this.chain.then(() => this.drainOnce());
+    this.chain = p.catch(() => undefined);
+    return p;
+  }
+
+  private async drainOnce() {
     let offline = false;
     let refused = false;
-    for (const [q, value] of [...this.pending]) {
-      if (this.flying.has(q)) continue;
-      this.flying.add(q);
+    for (const q of [...this.pending.keys()]) {
+      // Read at the moment of sending, so a question changed while an earlier one flew goes out new.
+      const value = this.pending.get(q);
+      if (value === undefined) continue;
       let r: SaveResult;
       try {
         r = await this.o.send({
@@ -149,7 +170,6 @@ export class AnswerSaver {
       } catch {
         r = { ok: false, offline: true };
       }
-      this.flying.delete(q);
       if (r.ok) {
         this.o.revs[q] = r.rev;
         // A newer value for this question may have come in while this one flew.
@@ -163,6 +183,7 @@ export class AnswerSaver {
       }
     }
     this.persist();
+    this.offline = offline;
     if (this.dead) return;
     if (offline) {
       this.o.onState("wait");

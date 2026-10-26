@@ -151,6 +151,8 @@ export const TS = dict({
       flaggedOpen: "Ditandai untuk dicek lagi:",
       done: (p: string) => `${p} dikumpulkan. Jawabanmu sudah tersimpan.`,
       fail: "Belum bisa mengumpulkan. Coba lagi.",
+      unsent:
+        "Ada jawaban yang belum terkirim, jadi belum bisa dikumpulkan. Cek koneksimu, tunggu tanda Tersimpan, lalu coba lagi.",
     },
     over: {
       pausedTitle: "Dijeda",
@@ -341,6 +343,8 @@ export const TS = dict({
       flaggedOpen: "Flagged to check again:",
       done: (p: string) => `${p} handed in. Your answers are saved.`,
       fail: "Couldn't hand in. Try again.",
+      unsent:
+        "Some answers haven't been sent yet, so you can't hand in. Check your connection, wait for the Saved sign, then try again.",
     },
     over: {
       pausedTitle: "Paused",
@@ -526,6 +530,7 @@ export const TS = dict({
       flaggedOpen: "已标记，稍后再检查：",
       done: (p: string) => `${p}已提交，答案已保存。`,
       fail: "暂时无法提交，请重试。",
+      unsent: "还有答案没有发送出去，暂时不能提交。请检查网络，等到显示已保存后再试。",
     },
     over: {
       pausedTitle: "已暂停",
