@@ -128,11 +128,9 @@ def timestamp():
 wifi_ssid     = "<YOUR SSID WIFI>"
 wifi_password = "<YOUR WIFI PASSWORD>"
 
-# 按实际用的 broker 填写；这个实验里 Mosquitto 跑在
-# PC 服务器上，通过 broker.irisiotlab.com 的网关连接。
-mqtt_host     = "<MQTT HOST ADDRESS>"
-mqtt_username = "<USERNAME FROM MOSQUITTO MQTT>"
-mqtt_password = "<PASSWORD FROM MOSQUITTO MQTT>"
+# Mosquitto 运行在 PC 服务器上，通过 broker.irisiotlab.com 的网关连接。
+# 本实验的 broker 不需要用户名和密码。
+mqtt_host     = "broker.irisiotlab.com"
 
 # ---- 小组编号 ---------------------------------------------------------------
 # 把下面的数字改成你们的组号（1 到 5）。topic 和
@@ -184,8 +182,6 @@ mqtt_client = MQTTClient(
     client_id=mqtt_client_id,
     server=mqtt_host,
     port=________,  # (3) WebSocket 网关端口，见日志
-    user=mqtt_username,
-    password=mqtt_password,
     keepalive=30,
 )
 

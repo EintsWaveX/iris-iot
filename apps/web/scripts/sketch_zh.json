@@ -118,7 +118,6 @@
   "After this point every timestamp is computed from one Unix millisecond": "从这以后所有时间戳都从同一个 Unix 毫秒基准算出来，",
   "base, so the second and millisecond parts never overtake each other and the": "秒和毫秒部分不会互相错位，",
   "two Pico Ws' times really can be subtracted.": "两块 Pico W 的时间才真的可以相减。",
-  "Fill in according to the broker in use; in this practicum Mosquitto runs on": "按实际用的 broker 填写；这个实验里 Mosquitto 跑在",
   "the PC Server, so the address below is that PC's IP address.": "PC Server 上，所以下面填那台 PC 的 IP 地址。",
   "---- GROUP IDENTITY --------------------------------------------------------": "---- 小组编号 ---------------------------------------------------------------",
   "Change the number below to your group number (1 through 5). The topic and the": "把下面的数字改成你们的组号（1 到 5）。topic 和",
@@ -228,7 +227,8 @@
   "---- WEBSOCKET WRAPPER -------------------------------------------------------": "---- WEBSOCKET 封装 ----------------------------------------------------------",
   "Wraps MQTT packets in WebSocket so they can cross the Internet through the": "把 MQTT 数据包封装进 WebSocket，这样才能经过",
   "gateway. Read-only: nothing here to fill in or change.": "网关穿过互联网。只读：这里没有要填或要改的地方。",
-  "the PC Server and is reached through the gateway at broker.irisiotlab.com.": "PC 服务器上，通过 broker.irisiotlab.com 的网关连接。",
   "Port 80 is the WebSocket gateway port, not Mosquitto's. keepalive tells the": "端口 80 是 WebSocket 网关的端口，不是 Mosquitto 的。keepalive 告诉",
-  "(3) WebSocket gateway port, see the journal": "(3) WebSocket 网关端口，见日志"
+  "(3) WebSocket gateway port, see the journal": "(3) WebSocket 网关端口，见日志",
+  "Mosquitto runs on the PC Server and is reached through the gateway at": "Mosquitto 运行在 PC 服务器上，通过 broker.irisiotlab.com 的网关连接。",
+  "broker.irisiotlab.com. The practicum broker takes no username or password.": "本实验的 broker 不需要用户名和密码。"
 }

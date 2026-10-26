@@ -127,11 +127,10 @@ def timestamp():
 wifi_ssid     = "<YOUR SSID WIFI>"
 wifi_password = "<YOUR WIFI PASSWORD>"
 
-# Isi sesuai broker yang dipakai; pada praktikum ini Mosquitto berjalan pada
-# PC Server dan dijangkau lewat gateway di broker.irisiotlab.com.
-mqtt_host     = "<MQTT HOST ADDRESS>"
-mqtt_username = "<USERNAME FROM MOSQUITTO MQTT>"
-mqtt_password = "<PASSWORD FROM MOSQUITTO MQTT>"
+# Mosquitto berjalan pada PC Server dan dijangkau lewat gateway di
+# broker.irisiotlab.com. Broker praktikum ini tidak memakai nama pengguna atau
+# kata sandi.
+mqtt_host     = "broker.irisiotlab.com"
 
 # ---- IDENTITAS KELOMPOK ----------------------------------------------------
 # Angka di bawah harus sama persis dengan angka pada program Publisher. Topik
@@ -169,8 +168,6 @@ mqtt_client = MQTTClient(
     client_id=mqtt_client_id,
     server=mqtt_host,
     port=80,
-    user=mqtt_username,
-    password=mqtt_password,
     keepalive=30,
 )
 

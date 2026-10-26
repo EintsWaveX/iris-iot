@@ -127,11 +127,9 @@ def timestamp():
 wifi_ssid     = "<YOUR SSID WIFI>"
 wifi_password = "<YOUR WIFI PASSWORD>"
 
-# Fill in according to the broker in use; in this practicum Mosquitto runs on
-# the PC Server and is reached through the gateway at broker.irisiotlab.com.
-mqtt_host     = "<MQTT HOST ADDRESS>"
-mqtt_username = "<USERNAME FROM MOSQUITTO MQTT>"
-mqtt_password = "<PASSWORD FROM MOSQUITTO MQTT>"
+# Mosquitto runs on the PC Server and is reached through the gateway at
+# broker.irisiotlab.com. The practicum broker takes no username or password.
+mqtt_host     = "broker.irisiotlab.com"
 
 # ---- GROUP IDENTITY --------------------------------------------------------
 # The number below must match the number in the Publisher program exactly. The
@@ -169,8 +167,6 @@ mqtt_client = MQTTClient(
     client_id=mqtt_client_id,
     server=mqtt_host,
     port=80,
-    user=mqtt_username,
-    password=mqtt_password,
     keepalive=30,
 )
 
