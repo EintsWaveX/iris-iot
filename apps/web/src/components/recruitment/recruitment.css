@@ -1532,7 +1532,7 @@ html[data-detail="ldm"] .rec-funnel__bar i {
   white-space: nowrap;
 }
 
-/* Tambah CaA's Program Studi: three side by side while each name fits on
+/* Tambah CaAs's Program Studi: three side by side while each name fits on
    whole words, stacked in a narrower dialog (390 px broke "Telekomunikasi"). */
 .rec-prodi {
   container-type: inline-size;

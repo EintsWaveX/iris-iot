@@ -3,7 +3,7 @@
  * ticket (POST ticket) → PUT the bytes with progress → hand the ticket to
  * apply (a new candidate) or document (a re-upload). This file does the first
  * two; the caller keeps the returned ticket. With `untuk` (a candidate id)
- * it is the Panitia uploading for that candidate (Tambah CaA, 2026-10-25):
+ * it is the Panitia uploading for that candidate (Tambah CaAs, 2026-10-25):
  * the ticket comes from candidate-ticket and goes to candidate-document.
  *
  * The browser checks what it can before sending (PDF magic bytes, 5 MB), so

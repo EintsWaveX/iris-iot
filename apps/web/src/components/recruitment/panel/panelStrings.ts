@@ -94,9 +94,9 @@ export const PN = dict({
       edit: "Ubah Data",
     },
     tambah: {
-      btn: "Tambah CaA",
-      title: "Tambah CaA dari Google Form",
-      titleEdit: "Ubah Data CaA",
+      btn: "Tambah CaAs",
+      title: "Tambah CaAs dari Google Form",
+      titleEdit: "Ubah Data CaAs",
       desc: "Salin isian formulirnya. Kandidat masuk di halaman Rekrutmen dengan NIM dan sandi ini.",
       descEdit:
         "Kosongkan sandi bila tidak diganti. Sandi baru mengeluarkan kandidat dari semua perangkatnya.",
@@ -263,9 +263,9 @@ export const PN = dict({
       edit: "Edit Details",
     },
     tambah: {
-      btn: "Add CaA",
-      title: "Add a CaA from the Google Form",
-      titleEdit: "Edit CaA Details",
+      btn: "Add CaAs",
+      title: "Add CaAs from the Google Form",
+      titleEdit: "Edit CaAs Details",
       desc: "Copy what they sent on the form. The candidate signs in on the Recruitment page with this NIM and password.",
       descEdit:
         "Leave the password empty to keep it. A new password signs the candidate out on every device.",
@@ -435,9 +435,9 @@ export const PN = dict({
       edit: "修改资料",
     },
     tambah: {
-      btn: "添加 CaA",
-      title: "从 Google 表单添加 CaA",
-      titleEdit: "修改 CaA 资料",
+      btn: "添加 CaAs",
+      title: "从 Google 表单添加 CaAs",
+      titleEdit: "修改 CaAs 资料",
       desc: "照着表单内容填写。候选人用这个 NIM 和密码在招募页面登录。",
       descEdit: "不改密码就留空。新密码会让候选人在所有设备上退出登录。",
       nama: "全名",

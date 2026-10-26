@@ -4,14 +4,14 @@
  * the team's list. While this is set, Daftar (the Home banner and
  * /recruitment) opens the form, nobody makes an oprec account themselves,
  * and the Pencipta and the Admin tier add each candidate by hand in the
- * panel (Kandidat, Tambah CaA) with a password they hand over.
+ * panel (Kandidat, Tambah CaAs) with a password they hand over.
  *
  * For oprec 2026 only, because the web form was not ready (user, 2026-10-25).
  * Next edition applies in IRIS: set this to null and the in-IRIS sign-up and
- * Daftar dialog come back as they were; Tambah CaA stays for late cases.
+ * Daftar dialog come back as they were; Tambah CaAs stays for late cases.
  */
 export const FORMULIR: { url: string; grupLine: string } | null = {
   url: "https://forms.gle/tF1ejKGivBd57B3y8",
-  /** The CaA LINE group everyone joins after sending the form */
+  /** The CaAs LINE group everyone joins after sending the form */
   grupLine: "https://line.me/R/ti/g/Y5ykNjWVNz",
 };

@@ -1,5 +1,5 @@
 /**
- * Tambah CaA (user, 2026-10-25): while the team's Google Form is the way in,
+ * Tambah CaAs (user, 2026-10-25): while the team's Google Form is the way in,
  * the Pencipta and the Admin tier copy each form into IRIS. Step one is the
  * account and the form's answers (POST candidate-add); step two is the PDFs,
  * downloaded from the form's Drive and uploaded here one by one
@@ -233,7 +233,7 @@ function isianDari(edit?: { nim: string; nama: string; biodata: Biodata | null }
   };
 }
 
-export default function TambahCaA({
+export default function TambahCaAs({
   lang,
   open,
   onOpenChange,

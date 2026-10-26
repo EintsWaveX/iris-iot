@@ -8,7 +8,7 @@
  * The approve right also sees the oprec account beside the practicum
  * roster's name, with Reset Akun (AkunCek, 2026-10-24).
  * While the Google Form is the way in (2026-10-25), hakPenuh adds candidates
- * here (Tambah CaA), corrects their details and uploads their PDFs.
+ * here (Tambah CaAs), corrects their details and uploads their PDFs.
  *
  * GET candidates and GET candidate?id=; POST review. A review reaches the
  * candidate's own page through the reccandidates topic.
@@ -35,7 +35,7 @@ import { REC } from "../recruitmentStrings";
 import { StatusPill } from "../shared";
 import { PN } from "./panelStrings";
 import AkunCek from "./kandidat/AkunCek";
-import TambahCaA, { BerkasPanitia } from "./kandidat/TambahCaA";
+import TambahCaAs, { BerkasPanitia } from "./kandidat/TambahCaAs";
 import BerkasReview from "./kandidat/BerkasReview";
 
 const SHOWN = CANDIDATE_STATUS.filter((s) => s !== "accepted");
@@ -63,7 +63,7 @@ function Lembar({
   lang: Lang;
   id: number;
   rights: RecRights;
-  /** hakPenuh: correct the details and upload the PDFs (Tambah CaA) */
+  /** hakPenuh: correct the details and upload the PDFs (Tambah CaAs) */
   canAdd: boolean;
   onClose: () => void;
   onChanged: () => void;
@@ -245,7 +245,7 @@ function Lembar({
         </div>
       )}
       {ubah && c && (
-        <TambahCaA
+        <TambahCaAs
           lang={lang}
           open
           onOpenChange={(o) => !o && setUbah(false)}
@@ -461,7 +461,7 @@ export default function Kandidat({
           onChanged={refresh}
         />
       )}
-      {canAdd && <TambahCaA lang={lang} open={tambah} onOpenChange={setTambah} onSaved={refresh} />}
+      {canAdd && <TambahCaAs lang={lang} open={tambah} onOpenChange={setTambah} onSaved={refresh} />}
     </div>
   );
 }

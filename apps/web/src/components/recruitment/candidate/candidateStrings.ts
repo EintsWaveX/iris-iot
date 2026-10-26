@@ -24,8 +24,8 @@ export const CP = dict({
       form: "Daftar lewat Google Form",
       formTitle: "Pendaftaran lewat Google Form",
       formHint:
-        "Isi formulirnya dengan biodata, CV ATS, visi misi, KHS, KSM dan KTM dalam PDF, lalu gabung grup LINE CaA. Panitia membuatkan akun IRIS-mu dari isian itu; setelahnya kamu masuk di sini dengan NIM dan sandi yang dikirim Panitia.",
-      line: "Gabung Grup LINE CaA",
+        "Isi formulirnya dengan biodata, CV ATS, visi misi, KHS, KSM dan KTM dalam PDF, lalu gabung grup LINE CaAs. Panitia membuatkan akun IRIS-mu dari isian itu; setelahnya kamu masuk di sini dengan NIM dan sandi yang dikirim Panitia.",
+      line: "Gabung Grup LINE CaAs",
       masuk: "Masuk",
     },
     revision: {
@@ -127,8 +127,8 @@ export const CP = dict({
       form: "Apply on Google Form",
       formTitle: "Registration is on Google Form",
       formHint:
-        "Fill in the form with your personal details, ATS CV, vision and mission, KHS, KSM and KTM as PDFs, then join the CaA LINE group. Panitia make your IRIS account from what you sent; after that you sign in here with your NIM and the password Panitia send you.",
-      line: "Join the CaA LINE Group",
+        "Fill in the form with your personal details, ATS CV, vision and mission, KHS, KSM and KTM as PDFs, then join the CaAs LINE group. Panitia make your IRIS account from what you sent; after that you sign in here with your NIM and the password Panitia send you.",
+      line: "Join the CaAs LINE Group",
       masuk: "Sign In",
     },
     revision: {
@@ -229,8 +229,8 @@ export const CP = dict({
       form: "通过 Google 表单报名",
       formTitle: "通过 Google 表单报名",
       formHint:
-        "在表单中填写个人信息，并上传 ATS 简历、愿景与使命、KHS、KSM 和 KTM 的 PDF，然后加入 CaA 的 LINE 群。招募组会根据你填写的内容建立 IRIS 账号，之后你用 NIM 和招募组发给你的密码在这里登录。",
-      line: "加入 CaA LINE 群",
+        "在表单中填写个人信息，并上传 ATS 简历、愿景与使命、KHS、KSM 和 KTM 的 PDF，然后加入 CaAs 的 LINE 群。招募组会根据你填写的内容建立 IRIS 账号，之后你用 NIM 和招募组发给你的密码在这里登录。",
+      line: "加入 CaAs LINE 群",
       masuk: "登录",
     },
     revision: {
