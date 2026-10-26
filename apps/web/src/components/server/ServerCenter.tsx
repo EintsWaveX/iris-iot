@@ -4,11 +4,11 @@
  * v-settings). List and detail stay one island switched on ?id= (the site
  * is static; database rows have no build-time routes):
  *
- * - ServerList: status tiles, one card per Pi, the 3-step register dialog
+ * - ServerList: status tiles, one card per PC, the 3-step register dialog
  * - ServerDetail: head (status, Compact/Full, location strip) and the tabs
  *   Overview, Ready Check and Settings
  *
- * Every Asisten can open it. Controlling the Pi needs the Server right, the
+ * Every Asisten can open it. Controlling the PC needs the Server right, the
  * Full view, settings, clearing logs and registering need the full right
  * (lib/hak.ts); the API checks the same rights again.
  */

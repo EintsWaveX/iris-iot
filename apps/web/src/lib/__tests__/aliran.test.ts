@@ -51,11 +51,11 @@ describe("room tickets", () => {
     expect((await cekTiketAliran(t, "s".repeat(40), "sesi-12")).ok).toBe(false);
   });
 
-  it("keep Praktikan out of the pi room", async () => {
-    const t = await tandaTiketAliran(tiket({ r: "pi", g: null }), RAHASIA);
-    expect(await cekTiketAliran(t, RAHASIA, "pi")).toEqual({ ok: false, kode: "ruang" });
-    const a = await tandaTiketAliran(tiket({ r: "pi", peran: "asisten", g: null }), RAHASIA);
-    expect((await cekTiketAliran(a, RAHASIA, "pi")).ok).toBe(true);
+  it("keep Praktikan out of the pc room", async () => {
+    const t = await tandaTiketAliran(tiket({ r: "pc", g: null }), RAHASIA);
+    expect(await cekTiketAliran(t, RAHASIA, "pc")).toEqual({ ok: false, kode: "ruang" });
+    const a = await tandaTiketAliran(tiket({ r: "pc", peran: "asisten", g: null }), RAHASIA);
+    expect((await cekTiketAliran(a, RAHASIA, "pc")).ok).toBe(true);
   });
 
   it("refuse a strange room or group", async () => {
@@ -74,7 +74,7 @@ describe("who sees what", () => {
   const asisten = { peran: "asisten" as const, g: null };
   const g2 = { peran: "praktikan" as const, g: 2 };
 
-  it("an Asisten sees every group and the Pi", () => {
+  it("an Asisten sees every group and the PC", () => {
     for (const j of ["tel", "serial", "jawaban", "petunjuk", "denyut"] as const)
       expect(bolehTerima(asisten, { j, g: 3, d: null })).toBe(true);
   });

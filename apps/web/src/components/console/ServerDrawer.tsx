@@ -1,6 +1,6 @@
 /**
  * The console's server drawer (P8.2): a right slide-over with everything a
- * running session needs from the Orange Pi, so nobody leaves the console:
+ * running session needs from the PC, so nobody leaves the console:
  * health, the hotspot switch (the only one, the old tab's duplicate is
  * gone), services with restart and log peek, and the live command
  * timeline. It polls every 4 s while open. (Phase 9 dropped the ESP32 list

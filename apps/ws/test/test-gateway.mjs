@@ -76,7 +76,7 @@ try {
 
   start("python", [join(ASO, "kunci_jawaban", "id", "modul2_websocket_server.py")]);
   await sleep(1000);
-  const dir = join(ASO, "orangepi", "modul2");
+  const dir = join(ASO, "pc", "modul2");
   const keyFile = join(process.cwd(), ".wrangler", "test-key");
   (await import("node:fs")).mkdirSync(join(process.cwd(), ".wrangler"), { recursive: true });
   (await import("node:fs")).writeFileSync(keyFile, key);

@@ -1,9 +1,9 @@
-name: Bundel Pi
+name: Bundel PC
 
-# Builds the Orange Pi bundle (IRIS ASO's orangepi/ plus apps/modul4 here),
+# Builds the PC bundle (IRIS ASO's pc/ plus apps/modul4 here),
 # signs it, and publishes it to this site for the Server page's Updates
 # card (2026-10-07). The builder and the publisher live in IRIS ASO
-# (orangepi/build_bundle.py, orangepi/terbitkan_bundel.py), which runs the
+# (pc/build_bundle.py, pc/terbitkan_bundel.py), which runs the
 # same job on its own pushes. Secrets here:
 #   ASO_DEPLOY_KEY      read-only deploy key for EintsWaveX/iris-iot-aso
 #   BUNDEL_KUNCI_TANDA  the Ed25519 signing key (PEM)
@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: bundel-pi
+  group: bundel-pc
   cancel-in-progress: false
 
 jobs:
@@ -40,9 +40,9 @@ jobs:
         with:
           python-version: "3.10"
       - name: Build
-        run: python aso/orangepi/build_bundle.py --iris-iot iris-iot --branch main
+        run: python aso/pc/build_bundle.py --iris-iot iris-iot --branch main
       - name: Sign and publish
         env:
           BUNDEL_KUNCI_TANDA: ${{ secrets.BUNDEL_KUNCI_TANDA }}
           BUNDEL_TERBIT: ${{ secrets.BUNDEL_TERBIT }}
-        run: python aso/orangepi/terbitkan_bundel.py --situs https://irisiotlab.com
+        run: python aso/pc/terbitkan_bundel.py --situs https://irisiotlab.com

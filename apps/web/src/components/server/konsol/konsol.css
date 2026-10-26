@@ -1,6 +1,6 @@
-/* Konsol Pi (Phase 9 Stage 9), ported from the mockup's round5.css rules
+/* Konsol PC (Phase 9 Stage 9), ported from the mockup's round5.css rules
    for v-console: the step strip, the ask card, the terminal and the screen.
-   The terminal and the screen stay dark in both themes (they show the Pi). */
+   The terminal and the screen stay dark in both themes (they show the PC). */
 
 .pk .grow {
   flex: 1 1 auto;
@@ -502,7 +502,7 @@
   height: 100%;
 }
 
-/* Full screen shows the Pi's own screen on black in either theme, so the
+/* Full screen shows the PC's own screen on black in either theme, so the
    pane takes the dark palette whole: in the light theme its buttons, badges
    and hint were dark ink on black (2026-10-09). The toolbar buttons also get
    a surface and an edge of their own, so they stand out from the black. */
@@ -645,7 +645,7 @@
 }
 
 /* The status layer (connecting, dropped) covers the screen only, from
-   under the toolbar (--pk-bar, measured in KonsolPi): the badges stay bright
+   under the toolbar (--pk-bar, measured in KonsolPc): the badges stay bright
    and full screen can always be left with its own button. */
 .pkpane__over {
   top: var(--pk-bar, 0);
@@ -693,7 +693,7 @@
   text-transform: none;
 }
 
-/* The Buka Konsol Pi picker: the name, and below it who sees it. */
+/* The Buka Konsol PC picker: the name, and below it who sees it. */
 .konsol-pick {
   display: inline-flex;
   flex-direction: column;

@@ -110,7 +110,7 @@ const PN = dict({
     srvNone: "Belum ada server terdaftar",
     srvBeat: (x: string) => `denyut ${x}`,
     srvNoBeat: "belum ada denyut",
-    pi: "PC Server",
+    pc: "PC Server",
     check: "Cek Siap Praktikum",
     runCheck: "Jalankan Cek Sekarang",
     openServer: "Buka Server",
@@ -132,7 +132,7 @@ const PN = dict({
     srvNone: "No server registered yet",
     srvBeat: (x: string) => `beat ${x}`,
     srvNoBeat: "no heartbeat yet",
-    pi: "PC Server",
+    pc: "PC Server",
     check: "Ready check",
     runCheck: "Run the Check Now",
     openServer: "Open the Server",
@@ -154,7 +154,7 @@ const PN = dict({
     srvNone: "还没有注册服务器",
     srvBeat: (x: string) => `心跳 ${x}`,
     srvNoBeat: "还没有心跳",
-    pi: "PC 服务器",
+    pc: "PC 服务器",
     check: "上课就绪检查",
     runCheck: "现在检查",
     openServer: "打开服务器",
@@ -383,7 +383,7 @@ export default function PrepView({
   }
 
   // Each tab's colour and one line (2026-10-12): green all set, yellow look
-  // at it, red something went wrong (a status that can't load, a silent Pi,
+  // at it, red something went wrong (a status that can't load, a silent PC,
   // a failed Ready check).
   const pn = PN[lang];
   const cek = beranda ? cekSiap(beranda, 1, true, H[lang], lang) : [];
@@ -416,7 +416,7 @@ export default function PrepView({
     server: (() => {
       const d = dariCek("server");
       if (!beranda) return d;
-      // No Pi at all, a Pi gone quiet, or a Ready check that failed today.
+      // No PC at all, a PC gone quiet, or a Ready check that failed today.
       if (!srv) return { sub: d.sub, tone: "bad" as const };
       if (pingLama)
         return {
@@ -1050,7 +1050,7 @@ export function AssistantPicker({
 
 /* ------------------------------------------------------------- server */
 
-/** Preparation's Server section (c12-prep): the Pi's heartbeat and the
+/** Preparation's Server section (c12-prep): the PC's heartbeat and the
  *  last Ready check as lights, Run the Check Now and Open the Server. */
 function ServerSection({
   lang,
@@ -1089,7 +1089,7 @@ function ServerSection({
         <li className="lights__i" data-ok={beatOk ? "yes" : "no"}>
           <span className="lights__lamp" aria-hidden="true" />
           <span className="lights__txt">
-            <b>{pn.pi}</b>
+            <b>{pn.pc}</b>
             <span className="hint">
               {srv.denyutPada ? (
                 <Lalu iso={srv.denyutPada} lang={lang} fmt={pn.srvBeat} />

@@ -359,7 +359,7 @@ export function SerialMonitor({
       <div className="serial">
         <div className="serial__empty">
           <UsbIcon size={28} aria-hidden="true" />
-          <span className="hint">{t.noPiLines}</span>
+          <span className="hint">{t.noPcLines}</span>
         </div>
       </div>
     );
@@ -370,8 +370,8 @@ export function SerialMonitor({
     ...sources.map((s) => ({ v: s.k, label: s.label })),
   ];
   const tag = (k: string) =>
-    k === "pi" ? "PC Server" : k === "mir" ? "PC" : String(Number(k.slice(1)) + 1);
-  const boardEmpty = role === "own" && cur && cur.k !== "pi" && cur.lines.length === 0;
+    k === "pc" ? "PC Server" : k === "mir" ? "PC" : String(Number(k.slice(1)) + 1);
+  const boardEmpty = role === "own" && cur && cur.k !== "pc" && cur.lines.length === 0;
 
   return (
     <div className="serial">

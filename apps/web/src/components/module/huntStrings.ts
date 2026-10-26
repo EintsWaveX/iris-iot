@@ -7,7 +7,7 @@ export const H = dict({
     waitTitle: "Perburuan Belum Dimulai",
     waitBody:
       "Langkah ini terbuka sendiri begitu sesi perburuan berjalan di PC Server, tidak perlu memuat ulang. Sambil menunggu, pastikan Hunter kelompokmu lolos cek di Live.",
-    waitNoPi: "Server perburuan di PC Server belum melapor. Tanyakan ke asistenmu.",
+    waitNoPc: "Server perburuan di PC Server belum melapor. Tanyakan ke asistenmu.",
     waitAsisten:
       "Asistenmu belum menekan Mulai Perburuan. Langkah ini terbuka sendiri begitu perburuan dimulai, tidak perlu memuat ulang. Sambil menunggu, pastikan Hunter kelompokmu lolos cek di Live.",
     toLive: "Cek Hunter di Live",
@@ -88,7 +88,7 @@ export const H = dict({
     waitTitle: "The Hunt Hasn't Started",
     waitBody:
       "This step opens by itself as soon as the hunt session runs on the PC Server, no reload needed. Meanwhile, make sure your group's Hunter passes the check in Live.",
-    waitNoPi: "The hunt server on the PC Server hasn't reported yet. Ask your assistant.",
+    waitNoPc: "The hunt server on the PC Server hasn't reported yet. Ask your assistant.",
     waitAsisten:
       "Your assistant hasn't pressed Start the Hunt yet. This step opens by itself once the hunt starts, no reload needed. Meanwhile, make sure your group's Hunter passes the check in Live.",
     toLive: "Check the Hunter in Live",
@@ -169,7 +169,7 @@ export const H = dict({
     waitTitle: "寻踪还没开始",
     waitBody:
       "PC 服务器上的寻踪一开始，这一步就会自己打开，不用刷新。等待时，先确认你们组的 Hunter 在实时页通过检查。",
-    waitNoPi: "PC 服务器上的寻踪服务器还没报告。问问你的助教。",
+    waitNoPc: "PC 服务器上的寻踪服务器还没报告。问问你的助教。",
     waitAsisten:
       "助教还没按开始寻踪。寻踪一开始，这一步就会自己打开，不用刷新。等待时，先确认你们组的 Hunter 在实时页通过检查。",
     toLive: "在实时页检查 Hunter",

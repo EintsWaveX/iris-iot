@@ -14,7 +14,7 @@
  * hints, scores, feedback, captures, serial lines, pay units, events),
  * sign-in attempts, the schedule and its rosters, the Praktikan list,
  * uang kas rates, transfers, written reports with their files, the audit
- * log, closed role history, Konsol Pi records, Pi commands, heartbeats and
+ * log, closed role history, Konsol PC records, PC commands, heartbeats and
  * devices, and Phase 13's TP records (pointers, scores, typed answers,
  * extensions, the files in R2). What stays: the Asisten accounts, the groups' names, module
  * content and settings, and the Lab Profile on Home (api/_lib/profil.ts). The newest uang kas rate is carried into the next
@@ -49,7 +49,7 @@ import {
   jurnalTangkapan,
   kasPengecualian,
   kasTarif,
-  konsolPi,
+  konsolPc,
   laporan,
   laporanLampiran,
   pengaturan,
@@ -254,7 +254,7 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
       );
     }
 
-    // Logs: the audit trail, closed role history, consoles, the Pi's side.
+    // Logs: the audit trail, closed role history, consoles, the PC's side.
     await kena("audit", tx.delete(audit).where(lt(audit.pada, waktu)).returning({ id: audit.id }));
     await kena(
       "jabatan",
@@ -273,14 +273,14 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
     await kena(
       "konsol",
       tx
-        .delete(konsolPi)
+        .delete(konsolPc)
         .where(
           and(
-            lt(konsolPi.dimintaPada, waktu),
-            notInArray(konsolPi.status, ["diminta", "disetujui", "aktif"]),
+            lt(konsolPc.dimintaPada, waktu),
+            notInArray(konsolPc.status, ["diminta", "disetujui", "aktif"]),
           ),
         )
-        .returning({ id: konsolPi.id }),
+        .returning({ id: konsolPc.id }),
     );
     await kena(
       "perintah",

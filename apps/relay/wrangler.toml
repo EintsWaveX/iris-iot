@@ -1,5 +1,5 @@
-# Konsol Pi relay (Phase 9 Stage 9). One Durable Object room per approved
-# console pairs the browser and the Pi's bridge; it stores nothing but the
+# Konsol PC relay (Phase 9 Stage 9). One Durable Object room per approved
+# console pairs the browser and the PC's bridge; it stores nothing but the
 # nonces it has already accepted. The shared secret is set with
 #   npx wrangler secret put KONSOL_RELAY_SECRET
 # (the same value as KONSOL_RELAY_SECRET in the web app's Vercel env) and,
@@ -38,7 +38,7 @@ class_name = "Siaran"
 tag = "v2"
 new_sqlite_classes = ["Siaran"]
 
-# Session streams (Phase 12): one room per running session, plus "pi".
+# Session streams (Phase 12): one room per running session, plus "pc".
 [[durable_objects.bindings]]
 name = "ALIRAN"
 class_name = "Aliran"

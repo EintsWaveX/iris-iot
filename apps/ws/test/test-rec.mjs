@@ -1,5 +1,5 @@
 // Open Recruitment, Live Coding: the exam gateway (src/rec.ts and the Broker's rec side) through
-// `wrangler dev`, the real Module 3 bridge (orangepi/modul3/modul3_bridge.py) and a stand-in for the
+// `wrangler dev`, the real Module 3 bridge (pc/modul3/modul3_bridge.py) and a stand-in for the
 // exam's own Mosquitto (accounts and the per-seat ACL of EXAM-ENGINE 9.6, started here on a port).
 //
 //   node test/test-rec.mjs        (from apps/ws; reads PC_KEY from .dev.vars; needs python with
@@ -536,7 +536,7 @@ try {
   console.log("F. MQTT through the real bridge");
   const bridge = start(
     process.env.REC_PY ?? "python",
-    [join(ASO, "orangepi", "modul3", "modul3_bridge.py")],
+    [join(ASO, "pc", "modul3", "modul3_bridge.py")],
     {
       env: {
         ...process.env,

@@ -233,7 +233,7 @@ export interface BuktiBaca {
 
 const angka = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
-/** The Pi's bukti, checked; null when its shape is wrong. */
+/** The PC's bukti, checked; null when its shape is wrong. */
 export function bacaBukti(v: unknown): BuktiBaca | null {
   const b = v as Partial<BuktiBaca> | null;
   if (!b || !Array.isArray(b.nilai)) return null;

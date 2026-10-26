@@ -137,7 +137,7 @@ function Journal({
   );
 }
 
-/** systemd's "Sat 2026-10-03 09:20:00" (the Pi's local time, WIB) in the
+/** systemd's "Sat 2026-10-03 09:20:00" (the PC's local time, WIB) in the
  *  page's language, without the abbreviated English weekday. */
 function waktuTimer(raw: string, lang: Lang): string {
   const m = /(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/.exec(raw);
@@ -544,7 +544,7 @@ export default function Settings({
 }
 
 /** Where IRIS_IOT comes from (agent protocol 5): the kit's router on the
- *  Pi's LAN port, or the Pi's own Wi-Fi radio. */
+ *  PC's LAN port, or the PC's own Wi-Fi radio. */
 function HotspotSource({
   lang,
   id,

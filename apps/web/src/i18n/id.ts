@@ -42,7 +42,7 @@ export const id = {
   live: {
     heading: "Tampilan live",
     // Modul 1 mendapat data sungguhan dari PC kelompok yang menghubungkan
-    // papan Central lewat USB (BoardLink), bukan dari Pi, jadi kalimatnya
+    // papan Central lewat USB (BoardLink), bukan dari PC, jadi kalimatnya
     // sendiri. Modul 2 sampai 4 memakai versi "Real" lewat bodyFor/disclosureFor.
     body: "Alur dan lapisan protokol modul ini menampilkan data sungguhan begitu PC kelompok menghubungkan papan Central di halaman live, dan disimulasikan di peramban sebelum itu.",
     bodyReal:

@@ -356,7 +356,7 @@ export default function AppNav({
     }, 60_000);
     return () => clearInterval(id);
   }, [asistenHadir]);
-  // Konsol Pi: a dot on Server while something waits for this Asisten (a
+  // Konsol PC: a dot on Server while something waits for this Asisten (a
   // request to answer, a console opened without approval, someone asking to
   // join theirs), and a toast when a new one comes in.
   const dev = me?.role === "asisten";

@@ -1,8 +1,8 @@
 /**
- * The Pi bundle the Updates card installs (2026-10-07). CI builds it from
+ * The PC bundle the Updates card installs (2026-10-07). CI builds it from
  * both repositories, signs it with a key only CI holds, and publishes it
  * here (POST /api/agen { tipe: "bundel_terbit" }, see the agent route);
- * the agent fetches it when someone presses Update, and root on the Pi
+ * the agent fetches it when someone presses Update, and root on the PC
  * checks the same signature before installing anything. The site is only
  * the road: it checks the signature too, so it never even stores junk.
  *
@@ -18,13 +18,13 @@ import { cekTokenPasang } from "./pasang.js";
 import type { BundelTerbit } from "../../src/lib/server-shared.js";
 
 /** The public half of BUNDEL_KUNCI_TANDA; the same file as IRIS ASO's
- *  orangepi/agent/bundel.pub, which the Pi checks against. */
+ *  pc/agent/bundel.pub, which the PC checks against. */
 export const BUNDEL_PUB = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAFQ2KYNT9tPyJC52+GY5cGnNESAHH00MiEqvMb4xXhdM=
 -----END PUBLIC KEY-----`;
 
-const KUNCI_META = "bundel_pi";
-const KUNCI_ISI = "bundel_pi_isi";
+const KUNCI_META = "bundel_pc";
+const KUNCI_ISI = "bundel_pc_isi";
 /** A bundle is about 1 MB; Vercel takes request bodies up to 4.5 MB. */
 const UKURAN_MAKS = 3 * 1024 * 1024;
 const SHA_RE = /^[0-9a-f]{64}$/;
@@ -111,7 +111,7 @@ export async function terbitkan(
     tanda,
   };
   const db = getDb();
-  // The zip first: a Pi told about the new details always finds its file.
+  // The zip first: a PC told about the new details always finds its file.
   for (const [kunci, nilai] of [
     [KUNCI_ISI, { sha256, isi }],
     [KUNCI_META, meta],
@@ -153,12 +153,12 @@ export async function ambilBundel(
 export type HasilPasang =
   | {
       ok: true;
-      /** The server this token registers, so a Pi already reporting to it
+      /** The server this token registers, so a PC already reporting to it
        *  only re-registers, and one reporting elsewhere is asked first. */
       serverId: number;
       relay: string | null;
       waktu: number;
-      /** The bundle, left out when the Pi only asked who it would report to. */
+      /** The bundle, left out when the PC only asked who it would report to. */
       isi?: string;
       tanda?: string;
       sha256?: string;
@@ -170,12 +170,12 @@ export type HasilPasang =
       kode: "format_salah" | "tidak_ditemukan" | "token_tidak_sah" | "bundel_belum_ada";
     };
 
-/** The one-line install (public/pasang-pi.sh, 2026-10-07), for whoever holds
+/** The one-line install (public/pasang-pc.sh, 2026-10-07), for whoever holds
  *  a server's one-time enrol token. The token is only checked here;
  *  enrolment uses it up a minute later. `ringkas` answers which server it
- *  is (a Pi that already has an agent only switches servers); otherwise
- *  the newest bundle comes too, for a fresh Pi. Both carry the Konsol relay
- *  and the site's clock, which a fresh Pi lacks. */
+ *  is (a PC that already has an agent only switches servers); otherwise
+ *  the newest bundle comes too, for a fresh PC. Both carry the Konsol relay
+ *  and the site's clock, which a fresh PC lacks. */
 export async function bundelUntukPasang(
   kodeMentah: unknown,
   tokenMentah: unknown,

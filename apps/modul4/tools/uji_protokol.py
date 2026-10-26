@@ -698,7 +698,7 @@ async def main() -> int:
             roster.get("sesi") == 1, str(roster.get("sesi")))
 
         # /telemetri.json (Stage 20): loopback saja -- diakses di sini lewat
-        # localhost/127.0.0.1, seperti agent Orange Pi sendiri akan
+        # localhost/127.0.0.1, seperti agent PC sendiri akan
         # melakukannya, sehingga jalur diterima yang teruji. Jalur ditolak
         # (permintaan dari IP selain loopback) tidak dapat diuji jujur dari
         # skrip yang berjalan di mesin yang sama dengan servernya -- koneksi

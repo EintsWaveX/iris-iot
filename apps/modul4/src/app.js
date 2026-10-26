@@ -94,7 +94,7 @@
     if (STAGE) return html`<${H.Stage} />`;
     if (N.locked) return html`<${H.States} kind="token" />`;
     if (down && N.status !== "live") return html`<${H.States} kind=${N.closeCode === 1001 ? "restart" : "offline"} />`;
-    if (!N.frame) return html`<${H.HuntApp} tab="hunt" bare><div class="hpage__in hpage__in--narrow"><section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menyambung ke Pi", "Connecting to the Pi")} body=${L("Pastikan ponselmu tersambung ke Wi-Fi IRIS_IOT.", "Make sure your phone is on the IRIS_IOT Wi-Fi.")} /></section></div></${H.HuntApp}>`;
+    if (!N.frame) return html`<${H.HuntApp} tab="hunt" bare><div class="hpage__in hpage__in--narrow"><section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menyambung ke PC", "Connecting to the PC")} body=${L("Pastikan ponselmu tersambung ke Wi-Fi IRIS_IOT.", "Make sure your phone is on the IRIS_IOT Wi-Fi.")} /></section></div></${H.HuntApp}>`;
     if (N.rolled && N.grup === null) return html`<${H.States} kind="rolled" />`;
     const route = st.route;
     const asisten = N.role === "asisten";

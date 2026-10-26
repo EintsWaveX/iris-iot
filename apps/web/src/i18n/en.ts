@@ -38,7 +38,7 @@ export const en: ModuleStrings = {
   live: {
     heading: "Live view",
     // Module 1 gets real data from a group PC connecting its Central board
-    // over USB (BoardLink), not from the Pi, so it has its own wording.
+    // over USB (BoardLink), not from the PC, so it has its own wording.
     // Modules 2 through 4 use the "Real" versions via bodyFor/disclosureFor.
     body: "This module's ladder and protocol layer view shows real data once a group PC connects its Central board on the live page, and simulates it in your browser until then.",
     bodyReal:

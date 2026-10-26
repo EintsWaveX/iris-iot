@@ -9,7 +9,7 @@
  * - Connect Your Boards (a Praktikan on their own group): every board the
  *   module uses, over Web Serial on this laptop (useSerialBoard).
  * - Value cards per module: every value the journal table asks for.
- * - Serial Monitor with source tabs (Combined, each board, the Pi server
+ * - Serial Monitor with source tabs (Combined, each board, the PC server
  *   for Modules 2 and 3), the message flow and the latest readings. From
  *   1600 wide, Serial and Flow sit side by side with Readings below;
  *   narrower, one card with a tab line.
@@ -18,7 +18,7 @@
  * Asisten who holds it gets the ports, captures and uploads a Praktikan
  * would (saved under their own name); any other Asisten only looks.
  *
- * Records (live-records.ts) pair the boards' lines with the Pi's rows by
+ * Records (live-records.ts) pair the boards' lines with the PC's rows by
  * message number, so send, receive, one-way and round-trip come out the
  * way the journal wants them.
  */
@@ -475,10 +475,10 @@ export default function LiveRoom({
 
   const records = useMemo(() => {
     const s = new LiveRecords(modul);
-    // Module 1's Pi rows come from this very laptop's Central; and the
+    // Module 1's PC rows come from this very laptop's Central; and the
     // simulator only stands in while nothing real is arriving.
-    const skipPi = localEvents.length > 0 && (modul === 1 || !tel.live);
-    if (!skipPi) for (const r of tel.history) s.pi(r);
+    const skipPc = localEvents.length > 0 && (modul === 1 || !tel.live);
+    if (!skipPc) for (const r of tel.history) s.pc(r);
     for (const e of localEvents) s.board(e);
     return s.list();
   }, [modul, tel.history, tel.live, localEvents]);
@@ -501,7 +501,7 @@ export default function LiveRoom({
         }),
       );
     if (modul === 2 || modul === 3) {
-      // The simulator's rows too, so the Pi tab shows what a real day looks like.
+      // The simulator's rows too, so the PC tab shows what a real day looks like.
       const lines: LogLine[] =
         !paused && (tel.live || !localEvents.length)
           ? tel.history
@@ -518,10 +518,10 @@ export default function LiveRoom({
               })
           : [];
       out.push({
-        k: "pi",
-        label: t.piServer,
+        k: "pc",
+        label: t.pcServer,
         lines,
-        note: praktikan || acting ? undefined : t.piOnlyAsisten,
+        note: praktikan || acting ? undefined : t.pcOnlyAsisten,
       });
     }
     if (asisten)

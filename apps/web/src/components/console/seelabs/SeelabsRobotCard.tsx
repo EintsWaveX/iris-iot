@@ -1,6 +1,6 @@
 /** The Account page's SeeLabs robot card (Phase 14, mockup s14-akun): connect
  *  my own SeeLabs account once, so Kirim Nilai also saves to SeeLabs. The
- *  password is sealed in this browser to the robot Pi's key (seelabs-segel.ts)
+ *  password is sealed in this browser to the robot PC's key (seelabs-segel.ts)
  *  and only that seal leaves the page. The Laboran's default password (NIM
  *  followed by 1715) is the starting choice; an Asisten who changed theirs
  *  types it instead. */
@@ -103,14 +103,14 @@ function ConnectDialog({
   lang,
   nim,
   pengguna,
-  pi,
+  pc,
   again,
   onClose,
 }: {
   lang: Lang;
   nim: string;
   pengguna: string;
-  pi: number;
+  pc: number;
   again: boolean;
   onClose: () => void;
 }) {
@@ -147,7 +147,7 @@ function ConnectDialog({
     };
   }, []);
 
-  // Waiting on the Pi's sign-in test: the job's own row says how it went.
+  // Waiting on the PC's sign-in test: the job's own row says how it went.
   const poll = usePoll(() => getJson<Saya>("/api/session/robot"), 60_000, tahap === "tunggu", [
     "seelabs",
   ]);
@@ -269,7 +269,7 @@ function ConnectDialog({
               <span>{t.seal}</span>
               {kunci && (
                 <span className="hint">
-                  {t.sealFp(`#${pi}`)}{" "}
+                  {t.sealFp(`#${pc}`)}{" "}
                   <b>
                     <Sidik nilai={kunci.lokal} />
                   </b>
@@ -474,7 +474,7 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
           lang={lang}
           nim={nim}
           pengguna={data.pengguna}
-          pi={data.kunci?.serverId ?? 0}
+          pc={data.kunci?.serverId ?? 0}
           again={dlg === "ulang"}
           onClose={() => {
             setDlg(null);

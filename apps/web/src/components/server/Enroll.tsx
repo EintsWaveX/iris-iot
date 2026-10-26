@@ -1,10 +1,10 @@
 /**
  * Register a server (Phase 9 Stage 5, reworked 2026-10-08): a 2-step
  * dialog. Install: name it (the name is also its code, lower case and
- * hyphens) and get the one line to paste on the Pi once. Activate: the
- * line reports every step back (public/pasang-pi.sh, pasang_kabar), so
+ * hyphens) and get the one line to paste on the PC once. Activate: the
+ * line reports every step back (public/pasang-pc.sh, pasang_kabar), so
  * the install, the agent's activation and its first heartbeat show here
- * live and nobody reads the Pi's terminal.
+ * live and nobody reads the PC's terminal.
  *
  * Closing it never loses anything: the install goes on, and the same
  * dialog opens again from the server's Settings tab (with `server`), with
@@ -50,7 +50,7 @@ interface Perintah {
 export function perintahDaftar(kode: string, token: string): string {
   const situs = location.origin;
   return [
-    `curl -fsSL ${situs}/pasang-pi.sh | sudo sh -s -- \\`,
+    `curl -fsSL ${situs}/pasang-pc.sh | sudo sh -s -- \\`,
     `  --situs ${situs} \\`,
     `  --kode ${kode} --token ${token}`,
   ].join("\n");
@@ -123,10 +123,10 @@ export default function Enroll({
       )
     : null;
   const selesai = pos?.langkah === LANGKAH_PASANG;
-  // The Pi is in the middle of an install with the current token.
+  // The PC is in the middle of an install with the current token.
   const sedang = !!d?.pasang && !pos?.gagal && !selesai && (pos?.langkah ?? 0) >= 1;
 
-  // Opened again while the Pi is at work (or done): straight to Activate.
+  // Opened again while the PC is at work (or done): straight to Activate.
   const lompat = useRef(!!server);
   useEffect(() => {
     if (!lompat.current || !pos) return;
@@ -248,7 +248,7 @@ export default function Enroll({
                 autoFocus={!ada}
                 autoComplete="off"
                 spellCheck={false}
-                placeholder="iris-pi-01"
+                placeholder="iris-pc-01"
                 onChange={(e) => setNama(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                 onKeyDown={(e) => {
                   // Handled here: the dialog's own Enter must not press a button too.
@@ -372,7 +372,7 @@ export default function Enroll({
                 ) : pos && pos.langkah > 0 && d?.pasang ? (
                   <Lalu iso={d.pasang.pada} lang={lang} fmt={t.wizLast} />
                 ) : (
-                  t.wizWaitPi
+                  t.wizWaitPc
                 )}
               </p>
             )}

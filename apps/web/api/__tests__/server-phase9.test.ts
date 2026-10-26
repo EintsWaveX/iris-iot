@@ -88,8 +88,8 @@ describe("GET /api/server/:id", () => {
       [
         {
           id: 3,
-          nama: "Pi Lab",
-          kode: "pi-lab",
+          nama: "PC Lab",
+          kode: "pc-lab",
           alamatLan: "10.117.177.102",
           lokasi: "Lab A",
           catatan: "dekat jendela",

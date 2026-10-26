@@ -120,7 +120,7 @@ describe("retries and accounts", () => {
   });
 });
 
-describe("the Pi's key and the browser seal", () => {
+describe("the PC's key and the browser seal", () => {
   const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 3072 });
   const spki = publicKey.export({ type: "spki", format: "der" }).toString("base64");
 

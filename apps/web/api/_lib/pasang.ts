@@ -1,8 +1,8 @@
 /**
- * The one-line install's own reports (2026-10-08). public/pasang-pi.sh posts
+ * The one-line install's own reports (2026-10-08). public/pasang-pc.sh posts
  * { tipe: "pasang_kabar", kode, token, tahap, ulang?, gagal? } as it starts
  * each step, with the same one-time token it installs with, so the
- * Register a Server wizard shows the install going on the Pi and nobody
+ * Register a Server wizard shows the install going on the PC and nobody
  * reads its terminal. One record per server in `pengaturan`; a new token
  * starts over, and enrolment (which uses the token up) is read from the
  * server row instead.
@@ -77,10 +77,10 @@ export async function catatKabar(
   };
   await db
     .insert(pengaturan)
-    .values({ kunci, nilai, diubahOleh: "pi" })
+    .values({ kunci, nilai, diubahOleh: "pc" })
     .onConflictDoUpdate({
       target: pengaturan.kunci,
-      set: { nilai, diubahOleh: "pi", diubahPada: new Date() },
+      set: { nilai, diubahOleh: "pc", diubahPada: new Date() },
     });
   // Provisioning on a slow microSD outlasts the token's 30 minutes, and the
   // token is only used up at enrolment: an install that keeps reporting

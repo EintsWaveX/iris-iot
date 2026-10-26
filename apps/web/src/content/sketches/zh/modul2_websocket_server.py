@@ -1,5 +1,5 @@
 """
-模块 2 · WEBSOCKET  |  角色：Server（Orange Pi 4 PRO）
+模块 2 · WEBSOCKET  |  角色：Server（PC Server）
 按各组自己的路径（例如 "/grup1"）记录每组 ESP32 发来的 DHT22 读数，
 并回复收到的时间。需要的 Python 包见日志。
 运行方式：python main.py。请填好空格 (1)-(6)。

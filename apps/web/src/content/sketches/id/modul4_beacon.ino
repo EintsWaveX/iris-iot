@@ -82,7 +82,7 @@ String wallClockTimestamp() {
 }
 
 void connectToWiFi() {
-  Serial.print("Menyambung ke hotspot Orange Pi");
+  Serial.print("Menyambung ke hotspot PC");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -98,7 +98,7 @@ void connectToWiFi() {
 }
 
 void syncClock() {
-  Serial.print("Menyelaraskan jam ke Orange Pi");
+  Serial.print("Menyelaraskan jam ke PC");
   configTime(GMT_OFFSET_SEC, DST_OFFSET_SEC, ________);  // (2) Alamat server NTP
 
   struct tm timeinfo;

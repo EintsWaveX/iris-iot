@@ -24,7 +24,7 @@
  *   starts only while it is on (same "pair" right as a susulan). It may use
  *   a closed module, and copies no roster: the live one already holds the
  *   dummies, so it is only snapshotted.
- * - The lab check (src/lib/siap-mulai.ts): the Pi online, the module's
+ * - The lab check (src/lib/siap-mulai.ts): the PC online, the module's
  *   service running and, for Module 4, the hotspot on or queued. Any of
  *   those failing answers `belum_siap` with the checks, and `paksa` (a
  *   reason, 5+ characters) starts anyway; the reason goes to the audit

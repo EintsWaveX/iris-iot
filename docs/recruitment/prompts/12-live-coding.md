@@ -8,7 +8,7 @@
   - the livecode actions + the HTTP collector route
   - `components/recruitment/livecode/`
   - relay: a per-seat WS room (coordinate with 11's room type)
-  - **PC agent repo** `Downloads/IRIS ASO/orangepi/agent/`: the `compile` job kind + tests
+  - **PC agent repo** `Downloads/IRIS ASO/pc/agent/`: the `compile` job kind + tests
 - **Skills:**
   - `superpowers:executing-plans`
   - `superpowers:test-driven-development`
@@ -22,7 +22,7 @@
 
 Read `_RULES.md`, `EXAM-ENGINE.md` sections 9 and 10, the signed-off Live Coding mockup, and `handoffs/08.md` and `handoffs/08c.md` and `handoffs/11.md`. Read how the SeeLabs robot job runs end to end:
 - site side: `api/_lib/seelabs-robot.ts`
-- agent side: `orangepi/agent/seelabs.py`, its worker and `Worker.urgent()`, the protocol version and its tests
+- agent side: `pc/agent/seelabs.py`, its worker and `Worker.urgent()`, the protocol version and its tests
 
 ## Build
 1. **Spins:**
@@ -34,7 +34,7 @@ Read `_RULES.md`, `EXAM-ENGINE.md` sections 9 and 10, the signed-off Live Coding
 3. **Compile:**
    - **API:** queues a `compile` job for the PC Server agent. Results return through R2 (`.bin` + log). Show the queue position.
    - **Agent:** a new job kind running arduino-cli for `esp32:esp32:esp32` with the libraries the topic needs, in an isolated temp dir, with a time limit and a CPU/memory guard. It returns the merged bin + log and bumps the protocol version. A compile counts as urgent for the beat.
-   - **Agent tests** (pytest) in `orangepi/agent/tests`: a valid sketch, a compile error, a timeout, a sketch trying to escape the temp dir (`#include` of an absolute path), a queue of 35.
+   - **Agent tests** (pytest) in `pc/agent/tests`: a valid sketch, a compile error, a timeout, a sketch trying to escape the temp dir (`#include` of an absolute path), a queue of 35.
 4. **Flash:** esptool-js (new dependency, pin an exact version) over Web Serial using the merged bin offsets, with progress. Then the serial monitor (reuse `components/live/useSerialBoard.ts` and `src/lib/serial-lines.ts`).
 5. **The other end:**
    - **MQTT:** the lab Mosquitto. Per-seat username/password generated when the evening starts, delivered to the seat at runtime, ACL to the `rec/<seat>/#` prefix, revoked at Finish. Never stored in code or the repo. The page subscribes through a WS bridge to show traffic.

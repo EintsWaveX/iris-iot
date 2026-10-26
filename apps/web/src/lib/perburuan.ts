@@ -1,6 +1,6 @@
 /**
  * The Module 4 Perburuan step (Phase 9, ruled 2026-10-04): the hunt on the
- * Pi sends its /ringkas.json through the agent's heartbeat, the heartbeat
+ * PC sends its /ringkas.json through the agent's heartbeat, the heartbeat
  * handler keeps only the newest on the server row, and the step reads one
  * group's slice of it. Shared by api/agent (saring*) and api/session
  * (keadaanPerburuan), so both sides agree on the shape.
@@ -137,7 +137,7 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
   };
 }
 
-/** The hotspot the agent read from the Pi's hostapd file, or null. */
+/** The hotspot the agent read from the PC's hostapd file, or null. */
 export function saringHotspot(raw: unknown): { ssid: string; sandi: string | null } | null {
   if (!isObj(raw)) return null;
   const ssid = str(raw.ssid, 32);
@@ -187,7 +187,7 @@ export function penghargaanKelompok(
 
 /**
  * Where one group stands. "tunggu" until the Asisten starts a session in
- * the hunt's control room (or while no Pi has reported for a while),
+ * the hunt's control room (or while no PC has reported for a while),
  * "buka" once it has, "main" once the beacons are on air, "selesai" when
  * the group found its beacon or the round closed.
  */

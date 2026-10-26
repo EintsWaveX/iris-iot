@@ -3,12 +3,12 @@
 Build script for Perburuan LoRa IRIS (Modul 4).
 
 Assembles modul4/public/index.html from the pieces in modul4/src/ into ONE
-self-contained file, which is what modul4/server.py serves from the Orange Pi.
+self-contained file, which is what modul4/server.py serves from the PC.
 
     python modul4/build.py            (from the project root)
     python build.py                   (from inside modul4/)
 
-A single file matters here: the Orange Pi is an access point with no
+A single file matters here: the PC is an access point with no
 upstream internet, so anything the page cannot carry itself is simply
 unavailable on lab day. That includes the typefaces (inlined as @font-face
 data URIs), Preact and htm (vendored), the icons, the IRIS mark and the
@@ -18,8 +18,8 @@ The client is the Phase 9 design: Preact + htm screens ported from the
 Phase 9 mockup, in three languages (Indonesian, English, Mandarin). See
 SETUP.md for where each source comes from and how to refresh it.
 
-Stdlib only, Python 3.10: this also runs on the Orange Pi itself
-(orangepi/build_bundle.py calls it).
+Stdlib only, Python 3.10: this also runs on the PC itself
+(pc/build_bundle.py calls it).
 
 Guard rails kept from games/build.py: they exist because a NUL byte once
 shipped to production through that build, and because an unescaped
@@ -83,7 +83,7 @@ FONTS = [
 PLACEHOLDER_STYLE = "<!--STYLE-->"
 PLACEHOLDER_SCRIPT = "<!--SCRIPT-->"
 
-# Twenty-five phones load this over one Orange Pi hotspot at the start of a
+# Twenty-five phones load this over one PC hotspot at the start of a
 # session. The fonts are most of it; anything past this budget is a mistake
 # (a stray asset, a vendored file twice), not a feature.
 MAX_OUTPUT_BYTES = int(1.5 * 1024 * 1024)
@@ -201,7 +201,7 @@ def mandarin():
     """zh.json, checked: every key the scripts use, no dashes, and every
     CJK character covered by the subset font."""
     # Both helpers are stdlib at import time (subset_cjk only loads
-    # fontTools inside its own main), so the Pi can run this too.
+    # fontTools inside its own main), so the PC can run this too.
     sys.path.insert(0, str(SCRIPT_DIR / "tools"))
     try:
         import subset_cjk

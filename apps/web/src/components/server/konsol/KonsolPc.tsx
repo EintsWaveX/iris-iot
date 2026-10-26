@@ -1,8 +1,8 @@
 /**
- * The Konsol Pi tab (Phase 9 Stage 9, mockup v-console; rooms since
+ * The Konsol PC tab (Phase 9 Stage 9, mockup v-console; rooms since
  * 2026-10-05): ask (target, reason, password again), wait for the Pencipta,
  * the Inti or a DEV (they themselves open at once), then a terminal or a
- * screen of the Pi through the relay, and a summary when it closes.
+ * screen of the PC through the relay, and a summary when it closes.
  * Someone else's open console can be joined (at once for those three, else
  * asked for); inside, one person controls and the rest watch, and anyone
  * can ask the controller for control (the prompt sits inside the pane, so
@@ -93,7 +93,7 @@ function sesiTeks(s: NonNullable<KonsolData["sesi"]>, lang: Lang) {
   return `${hari}${s.slot ? ` ${slotLabel(s.slot, lang)}` : ""}, ${modulLabel(s.modul, lang)}`;
 }
 
-export default function KonsolPi({
+export default function KonsolPc({
   lang,
   serverId,
   serverNama,
@@ -136,7 +136,7 @@ export default function KonsolPi({
   const ikut = aktifLain && peran === "peserta" && keluar !== aktifLain.id ? aktifLain : null;
   const tunggu = aktifLain && peran === "diminta" ? aktifLain : null;
   const bisaGabung = aktifLain && !ikut && !tunggu ? aktifLain : null;
-  // Someone else's request is still waiting (one console per Pi).
+  // Someone else's request is still waiting (one console per PC).
   const antre = !open && !aktifLain ? (untuk.find((r) => r.status === "diminta") ?? null) : null;
   const sendiri = !ikut && !tunggu && !bisaGabung && !antre;
   const ord = !mine || lagi ? 0 : mine.status === "diminta" ? 1 : open ? 2 : 3;
@@ -628,7 +628,7 @@ function Ask({
         <div className="seg seg--big" role="radiogroup" aria-label={t.what}>
           {KONSOL_BUKA.map((x) => {
             const Ic = TARGET_IKON[x];
-            // The Pi said it has no screen to show (no desktop, no x11vnc).
+            // The PC said it has no screen to show (no desktop, no x11vnc).
             const tidak = x === ":0" && !!data.layar && data.layar !== "siap" ? data.layar : null;
             return (
               <button
@@ -1074,7 +1074,7 @@ function Open({
     },
     onTutup: (why) => {
       // The relay closed the room (idle, the cap, cut off). The owner closes
-      // the row now rather than wait for the Pi's report; the others only
+      // the row now rather than wait for the PC's report; the others only
       // read it again.
       if (pemilik)
         void aksiKonsol("konsol_putus", { id: row.id, alasan: why || "diam" }).then(refresh);
@@ -1144,7 +1144,7 @@ function Open({
   // The pane's full screen button toggles (2026-10-06: inside full screen
   // it did nothing, so only the Esc key got out). While full screen and in
   // control, the keyboard is locked to the page where the browser allows
-  // it, so Esc and Alt+Tab reach the Pi; holding Esc still leaves.
+  // it, so Esc and Alt+Tab reach the PC; holding Esc still leaves.
   const fsEl = useFullscreenEl();
   const full = !!fsEl && fsEl === pane.current;
   const penuh = () => {
@@ -1184,16 +1184,16 @@ function Open({
       return (
         <Status icon={<CircleNotchIcon size={26} className="ctl-spin" />} text={t.connTicket} />
       );
-    if (keadaan.k === "pi") {
+    if (keadaan.k === "pc") {
       const lambat = now - keadaan.sejak > 45_000;
       return (
         <Status
           icon={<CircleNotchIcon size={26} className="ctl-spin" />}
-          text={lambat ? t.connSlow : t.connPi}
+          text={lambat ? t.connSlow : t.connPc}
           action={
             lambat ? (
               <button type="button" className="btn btn--sm" onClick={() => void sambung(true)}>
-                {t.callPi}
+                {t.callPc}
               </button>
             ) : null
           }
@@ -1223,7 +1223,7 @@ function Open({
             className="btn btn--sm"
             onClick={() => void sambung(keadaan.kode === 4001)}
           >
-            {keadaan.kode === 4001 ? t.callPi : t.reconnect}
+            {keadaan.kode === 4001 ? t.callPc : t.reconnect}
           </button>
         }
       />
@@ -1379,7 +1379,7 @@ function RuangBar({
             {o.pemilik ? ` · ${t.owner}` : ""}
           </span>
         ))}
-        {!ruang.pi && <span className="pill pill--warn">{t.waitingPi}</span>}
+        {!ruang.pc && <span className="pill pill--warn">{t.waitingPc}</span>}
       </span>
       <span className="pkroom__act">
         {pegang ? (
@@ -1483,7 +1483,7 @@ function Done({
 /* --------------------------------------------------------------- side */
 
 /** Under the body before a console opens, one row of equal height: the
- *  last five consoles closed on this Pi (mine only for the rest; Audit has
+ *  last five consoles closed on this PC (mine only for the rest; Audit has
  *  them all), and who is told when one opens. */
 function KonsolSide({ t, lang, data }: { t: KStrings; lang: Lang; data: KonsolData }) {
   const w = S12[lang];

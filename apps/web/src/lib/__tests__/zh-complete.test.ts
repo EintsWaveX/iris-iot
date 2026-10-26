@@ -33,7 +33,7 @@ const GLOSSARY = new Set(
     "WebSocket",
     "Mosquitto",
     "Orange",
-    "Pi",
+    "PC",
     "ESP32",
     "ESP32-S3",
     "Pico",

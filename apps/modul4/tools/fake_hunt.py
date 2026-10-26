@@ -194,7 +194,7 @@ class Jalur:
         for f in self.kemunduran:
             x = (t - f * self.temu) / lebar
             if -1 < x < 1:
-                lnd += 0.6 * math.cos(x * math.pi / 2) ** 2
+                lnd += 0.6 * math.cos(x * math.pc / 2) ** 2
         self.acak = self.acak * 0.94 + (self.rnd.random() - 0.5) * 0.08
         lnd += self.acak * (1 - e * 0.8)
         return math.exp(lnd)
@@ -310,7 +310,7 @@ async def bot_anggota(url: str, gid: int, stop: asyncio.Event, tempo: float) -> 
                 terkuat = rnd.randrange(8)
                 dasar = baris["halus"] or -80.0
                 arah = [round(dasar - 3 - 9 * (1 - math.cos(
-                    (i - terkuat) * math.pi / 4)) / 2 + rnd.uniform(-1.5, 1.5), 1)
+                    (i - terkuat) * math.pc / 4)) / 2 + rnd.uniform(-1.5, 1.5), 1)
                     for i in range(8)]
                 await ws.send(json.dumps({"aksi": "sapuan", "arah": arah,
                                           "mode": "manual"}))

@@ -1,6 +1,6 @@
 /** Penilaian › Sumber SeeLabs (Phase 14, mockup s14-sumber), for Pencipta,
- *  Admin and DEV: the robot's switch, which SeeLabs address the Pi uses, the
- *  Pi key Asisten seal their passwords to (a new one waits for approval),
+ *  Admin and DEV: the robot's switch, which SeeLabs address the PC uses, the
+ *  PC key Asisten seal their passwords to (a new one waits for approval),
  *  who is connected, the KLP pull and Input Jaga, and the job log. */
 import { useState } from "react";
 import {
@@ -26,7 +26,7 @@ interface Sumber {
   alamat: "kampus" | "athena";
   sufiks: string;
   kunci: { serverId: number; sidik: string; oleh: string; pada: string } | null;
-  kunciPi: {
+  kunciPc: {
     serverId: number;
     nama: string;
     sidik: string;
@@ -100,11 +100,11 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
     klp === String(PRAKTIKUM_SEELABS.internasional) ? t.kelas.internasional : t.kelas.reguler;
   // The suffix field shows the saved value until someone types.
   const nilaiSufiks = sufiks ?? data.sufiks;
-  const piRobot = data.kunci
-    ? data.kunciPi.find((k) => k.serverId === data.kunci!.serverId)
+  const pcRobot = data.kunci
+    ? data.kunciPc.find((k) => k.serverId === data.kunci!.serverId)
     : undefined;
-  const baru = data.kunciPi.filter((k) => k.sidik !== data.kunci?.sidik);
-  const jangkau = piRobot?.jangkau;
+  const baru = data.kunciPc.filter((k) => k.sidik !== data.kunci?.sidik);
+  const jangkau = pcRobot?.jangkau;
   const pill = (nada: string | undefined, isi: string) => (
     <span className={`pill${nada ? ` pill--${nada}` : ""}`}>{isi}</span>
   );
@@ -139,7 +139,7 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
           </div>
           <div>
             <dt>PC Server</dt>
-            <dd>{piRobot ? `#${piRobot.serverId} ${piRobot.nama}` : t.never}</dd>
+            <dd>{pcRobot ? `#${pcRobot.serverId} ${pcRobot.nama}` : t.never}</dd>
           </div>
           <div>
             <dt>{t.srcReach}</dt>

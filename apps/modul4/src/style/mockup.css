@@ -677,7 +677,7 @@ svg.ic--lg { width: 28px; height: 28px; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 18px; align-items: baseline; }
 .kv > span:nth-child(even) { overflow-wrap: anywhere; }
 @container huntapp (max-width: 459px) { .kv { grid-template-columns: minmax(0, 1fr); gap: 2px; } .kv > span:nth-child(even) { margin-bottom: 8px; } }
-/* ---- Pi console */
+/* ---- PC console */
 /* ---- g-lang */
 /* ---- Reports: audit rows and the cash fund totals */
 /* ---- language picker: one row per language, nothing cut off */

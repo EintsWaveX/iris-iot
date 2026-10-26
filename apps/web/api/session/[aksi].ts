@@ -69,7 +69,7 @@ import {
 import { handleTotGet, handleTotPost } from "../_lib/tot.js";
 import { handleRetensiGet, handleRetensiPost } from "../_lib/retensi.js";
 import { AMBANG_GALAT } from "../_lib/galat.js";
-import { faktaPi } from "../_lib/siap-mulai.js";
+import { faktaPc } from "../_lib/siap-mulai.js";
 import { LAYANAN_MODUL } from "../../src/lib/siap-mulai.js";
 import { getDb } from "../../src/lib/db.js";
 import {
@@ -273,7 +273,7 @@ async function handleTelemetry(req: ApiRequest, res: ApiResponse) {
   // the same response; clients merge the list by `id`.
   res.setHeader("Cache-Control", "public, max-age=0, s-maxage=2, stale-while-revalidate=4");
 
-  // Module 1 has no Pi: its rows come from the group PC's browser (see
+  // Module 1 has no PC: its rows come from the group PC's browser (see
   // handleTelemetryModul1) and carry no seq of their own, so the log id is
   // its seq. Modules 2 to 4 keep the board's own seq.
   const running = await currentSesi();
@@ -419,7 +419,7 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
  * GET /api/session/waspada (2026-10-05) -- asisten-only. What the alert on
  * every Asisten page watches (shell/LabAlert.tsx): server errors in the
  * last AMBANG_GALAT.menit minutes (api/_lib/galat.ts saves them), and,
- * while a session that needs the Pi runs, whether the Pi went silent.
+ * while a session that needs the PC runs, whether the PC went silent.
  * Phase 10: also the running session's failed sign-ins of the last 10
  * minutes, for the Konsol's Ada Masalah? ("A student can't sign in").
  */
@@ -441,24 +441,24 @@ async function handleWaspada(_req: ApiRequest, res: ApiResponse, session: Sessio
       .limit(1),
     currentSesi(),
   ]);
-  let pi: {
+  let pc: {
     luring: boolean;
     umurDetik: number | null;
     luringPada: string | null;
     serverId: number | null;
   } | null = null;
   if (running && running.modul in LAYANAN_MODUL) {
-    const f = await faktaPi();
-    pi = {
+    const f = await faktaPc();
+    pc = {
       luring: !f || f.umurDetik === null || f.umurDetik > f.batasLuringDetik,
       umurDetik: f?.umurDetik ?? null,
-      // When the Pi counts as silent unless it beats again, for the page's
+      // When the PC counts as silent unless it beats again, for the page's
       // own timer (Phase 12).
       luringPada:
         f && f.umurDetik !== null
           ? new Date(Date.now() + (f.batasLuringDetik - f.umurDetik) * 1000).toISOString()
           : null,
-      // The banner opens this Pi, not the server list (ledger W5).
+      // The banner opens this PC, not the server list (ledger W5).
       serverId: f?.id ?? null,
     };
   }
@@ -493,7 +493,7 @@ async function handleWaspada(_req: ApiRequest, res: ApiResponse, session: Sessio
         ? { id: terakhir.id, pada: terakhir.pada.toISOString(), pesan: pesan.slice(0, 200) }
         : null,
     },
-    pi,
+    pc,
     sesi: running ? { id: running.id, modul: running.modul } : null,
     gagalMasuk: gagalMasuk.map((x) => ({ nim: x.nim, jenis: x.jenis, pada: x.pada.toISOString() })),
     panggilan: {
@@ -707,7 +707,7 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
           ),
         ),
       // P6.8: per-group telemetry count and delays for the report. Module 1
-      // rows come from the group PC (Web Serial), 2 to 4 from the Pi.
+      // rows come from the group PC (Web Serial), 2 to 4 from the PC.
       db
         .select({
           kelompokNomor: telemetriLog.kelompokNomor,
@@ -725,7 +725,7 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
   const hadirNims = new Set(masukRows.map((r) => r.nim));
   const telemetriByKelompokNomor = new Map<number, number[]>();
   const telemetriCountByKelompokNomor = new Map<number, number>();
-  // Phase 9: every module's one-way delay (the Pi's own delayMs, else the
+  // Phase 9: every module's one-way delay (the PC's own delayMs, else the
   // board's send and receive stamps) and the seq range, for the inspector's
   // per-group delay and lost-message charts.
   const seqByKelompokNomor = new Map<number, number[]>();
@@ -1667,7 +1667,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     return handleTelemetry(req, res);
   }
 
-  // Phase 9: the Module 4 Perburuan step (the hunt on the Pi, as one group
+  // Phase 9: the Module 4 Perburuan step (the hunt on the PC, as one group
   // sees it). An Asisten reads the group they view as.
   if (aksi === "perburuan") {
     // 2026-10-08: the Asisten's Mulai/Selesai Perburuan

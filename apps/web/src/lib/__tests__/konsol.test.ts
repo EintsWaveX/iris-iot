@@ -26,7 +26,7 @@ const base = (p: Tiket["p"]): Tiket => ({
   n: acakId(),
 });
 
-describe("Konsol Pi rights", () => {
+describe("Konsol PC rights", () => {
   it("only DEV or the Pencipta may open it", () => {
     expect(bolehKonsol({ status: "aktif" })).toBe(true);
     expect(bolehKonsol({})).toBe(true);
@@ -45,7 +45,7 @@ describe("Konsol Pi rights", () => {
     expect(bolehSetujui({ nim: "a", badges: ["dev"] }, { nim: "a" })).toBe(false);
     expect(bolehSetujui({ nim: "a", badges: [] }, { nim: "b" })).toBe(false);
   });
-  it("opens the terminal or the Pi's own screen, never a virtual desktop", () => {
+  it("opens the terminal or the PC's own screen, never a virtual desktop", () => {
     expect(targetBuka("terminal")).toBe(true);
     expect(targetBuka(":0")).toBe(true);
     expect(targetBuka(":1")).toBe(false);
@@ -53,7 +53,7 @@ describe("Konsol Pi rights", () => {
   });
 });
 
-describe("Konsol Pi time", () => {
+describe("Konsol PC time", () => {
   const t0 = new Date("2026-10-04T10:00:00Z").getTime();
   it("an unanswered request expires after 10 minutes", () => {
     const r = { status: "diminta" as const, dimintaPada: new Date(t0) };
@@ -76,22 +76,22 @@ describe("Konsol Pi time", () => {
   });
 });
 
-describe("Konsol Pi tickets", () => {
+describe("Konsol PC tickets", () => {
   it("a signed ticket checks out for its own end only", async () => {
     const t = base("web");
     const tok = await tandaTiket(t, SECRET);
     const ok = await cekTiket(tok, SECRET, "web");
     expect(ok.ok && ok.tiket.k).toBe(t.k);
-    expect(await cekTiket(tok, SECRET, "pi")).toEqual({ ok: false, kode: "peran" });
+    expect(await cekTiket(tok, SECRET, "pc")).toEqual({ ok: false, kode: "peran" });
   });
   it("refuses a wrong secret, a changed body and an expired ticket", async () => {
-    const tok = await tandaTiket(base("pi"), SECRET);
-    expect((await cekTiket(tok, "lain-".repeat(10), "pi")).ok).toBe(false);
+    const tok = await tandaTiket(base("pc"), SECRET);
+    expect((await cekTiket(tok, "lain-".repeat(10), "pc")).ok).toBe(false);
     const [body, sig] = tok.split(".");
     const forged = `${body.slice(0, -2)}AA.${sig}`;
-    expect((await cekTiket(forged, SECRET, "pi")).ok).toBe(false);
-    expect(await cekTiket(tok, SECRET, "pi", now + 61)).toEqual({ ok: false, kode: "kedaluwarsa" });
-    expect(await cekTiket("bukan-tiket", SECRET, "pi")).toEqual({ ok: false, kode: "format" });
+    expect((await cekTiket(forged, SECRET, "pc")).ok).toBe(false);
+    expect(await cekTiket(tok, SECRET, "pc", now + 61)).toEqual({ ok: false, kode: "kedaluwarsa" });
+    expect(await cekTiket("bukan-tiket", SECRET, "pc")).toEqual({ ok: false, kode: "format" });
   });
   it("won't sign with a short secret", async () => {
     await expect(tandaTiket(base("web"), "pendek")).rejects.toThrow();

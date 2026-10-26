@@ -52,14 +52,14 @@ export const INTERVAL_IDLE_SEC = 60;
 export const INTERVAL_MALAM_SEC = 600;
 export const INTERVAL_SIAGA_SEC = 5;
 export const INTERVAL_TELEMETRI_SEC = 5;
-export const MODUL_TELEMETRI_PI: ReadonlySet<number> = new Set([2, 3, 4]);
+export const MODUL_TELEMETRI_PC: ReadonlySet<number> = new Set([2, 3, 4]);
 export const SIAGA_MENIT = 10;
 const TENGGANG_LURING_SEC = 60;
 
 /**
  * How long a server may stay silent before /servers calls it offline. It
  * has to follow the interval the agent was actually told at its last beat:
- * a flat 60 seconds marked every healthy Pi "Luring" for 9 of every 10
+ * a flat 60 seconds marked every healthy PC "Luring" for 9 of every 10
  * idle minutes, since outside a session it only reports every 600s. A
  * beat that arrived after the running session started was answered with
  * the fast interval; one in the quiet hours may have had the night one;
@@ -148,7 +148,7 @@ export const AKSI_PERINTAH = [
   "ap.nyala",
   "ap.mati",
   "jam.selaraskan",
-  // P6.7: the expert diagnostics layer. Read-only on the Pi (no service is
+  // P6.7: the expert diagnostics layer. Read-only on the PC (no service is
   // started/stopped/restarted by any of these), routed through the agent's
   // existing whitelisted-argv command channel rather than a new one, and
   // whitelisted again on the agent side (commands.py/diagnostics.py) --
@@ -161,25 +161,25 @@ export const AKSI_PERINTAH = [
   // siap). Read-only like the rest; its one argument, `modul`, is checked
   // by modulSiapValid() here and by SIAP_MODUL in commands.py.
   "diag.siap",
-  // Phase 9 Stage 5: the Full view (rinci.py on the Pi, JSON), the system
+  // Phase 9 Stage 5: the Full view (rinci.py on the PC, JSON), the system
   // journal (unit and level from fixed lists, journalArgValid), and a
   // request for a fresh infoSistem on the next beat. All read only.
   "diag.rinci",
   "diag.journal",
   "info.segarkan",
-  // Phase 9 Stage 9: Konsol Pi. Only ever queued by konsol_tiket after an
+  // Phase 9 Stage 9: Konsol PC. Only ever queued by konsol_tiket after an
   // approval (action.ts refuses it from "kirim"); the agent checks the
   // relay origin and the target against its own fixed config.
   "konsol.buka",
   // 2026-10-07: the Updates card's buttons. pembaruan.bundel's one argument
   // (the published bundle's sha256) is filled in by the API, never taken
-  // from the page; the Pi installs only a bundle signed by CI. Both are
+  // from the page; the PC installs only a bundle signed by CI. Both are
   // refused while a session runs.
   "pembaruan.bundel",
   "pembaruan.apt",
   // 2026-10-08 (agent protocol 5): where IRIS_IOT comes from, a router on
-  // the Pi's LAN port (kabel) or the Pi's own radio (wifi). One argument,
-  // `sumber`, from AP_SUMBER; the Pi refuses it while the hotspot is on.
+  // the PC's LAN port (kabel) or the PC's own radio (wifi). One argument,
+  // `sumber`, from AP_SUMBER; the PC refuses it while the hotspot is on.
   "ap.sumber",
 ] as const;
 export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
@@ -205,7 +205,7 @@ export function unitDiagValid(value: unknown): value is string {
 }
 
 /**
- * Auto-queues a whitelisted command for "the" Orange Pi, so starting or
+ * Auto-queues a whitelisted command for "the" PC, so starting or
  * ending a Module 4 session can turn its hotspot on/off without an
  * assistant ever visiting /servers or touching SSH -- the same delivery path
  * (perintah row, picked up on the agent's next heartbeat) the manual button
@@ -213,8 +213,8 @@ export function unitDiagValid(value: unknown): value is string {
  *
  * Deliberately declines rather than guesses when zero or more than one
  * enrolled server exists: this project's own registry supports several
- * servers (the Phase 2 design allows more than one Pi/MCU), and queuing
- * "turn on the hotspot" at the wrong Pi -- or at every Pi -- would be worse
+ * servers (the Phase 2 design allows more than one PC/MCU), and queuing
+ * "turn on the hotspot" at the wrong PC -- or at every PC -- would be worse
  * than not automating it at all. In either case the assistant still has the
  * manual /servers button as a fallback, so returning false here never blocks
  * the session itself from starting or ending.
@@ -320,7 +320,7 @@ export interface TelemetriMasuk {
   diukurPada?: string;
 }
 
-const TELEMETRI_MODUL_VALID = MODUL_TELEMETRI_PI; // never Module 1: its rows come from the group PC
+const TELEMETRI_MODUL_VALID = MODUL_TELEMETRI_PC; // never Module 1: its rows come from the group PC
 // Five groups at one reading every 2 s make about 40 rows per 15 s beat. The
 // old cap of 5 dropped the rest; the agent now sends its queue in slices of
 // this size (agent.py TELEMETRI_MAX_PER_DENYUT).
@@ -501,7 +501,7 @@ export async function adaPerintahBaru(serverId: number): Promise<boolean> {
  * P6.2/B7: expires commands that were claimed but never reported back on
  * (`terkirim` for more than 5 minutes -- an agent that crashed, lost its
  * network, or was killed mid-command) and commands that were never claimed
- * at all (`menunggu` for more than 30 minutes -- queued for a Pi that
+ * at all (`menunggu` for more than 30 minutes -- queued for a PC that
  * never checked in again). Runs across every server on every heartbeat,
  * not scoped to the one reporting in -- an assistant watching server B's
  * command log should see server A's stuck command expire without needing
@@ -585,7 +585,7 @@ export interface GapEvent {
  * than batasLuringDetik()'s own per-heartbeat "was a session running"
  * logic (which needs to know each point's *next* heartbeat's own session
  * context to be exact) -- INTERVAL_IDLE_SEC plus its tolerance covers the
- * common case (a Pi silent for a full idle-cadence miss really is offline)
+ * common case (a PC silent for a full idle-cadence miss really is offline)
  * and errs toward under- rather than over-reporting gaps during a session,
  * where the faster cadence would otherwise flag normal idle-to-idle beats.
  */

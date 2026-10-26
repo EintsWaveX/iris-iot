@@ -19,7 +19,7 @@
 
 #define GROUP_ID 1
 
-// Orange Pi menjadi access point, papan skor, sekaligus server NTP.
+// PC menjadi access point, papan skor, sekaligus server NTP.
 const char* WIFI_SSID      = "IRIS_IOT";
 const char* WIFI_PASSWORD  = "13015954";
 const char* SERVER_HOST    = "192.168.4.1";
@@ -104,7 +104,7 @@ float smoothRssi(int rssi) {
 }
 
 void connectToWiFi() {
-  Serial.print("Menyambung ke hotspot Orange Pi");
+  Serial.print("Menyambung ke hotspot PC");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, ________);  // (2) Variabel kata sandi Wi-Fi
@@ -123,7 +123,7 @@ void connectToWiFi() {
 }
 
 void syncClock() {
-  Serial.print("Menyelaraskan jam ke Orange Pi");
+  Serial.print("Menyelaraskan jam ke PC");
   configTime(GMT_OFFSET_SEC, DST_OFFSET_SEC, NTP_SERVER);
 
   struct tm timeinfo;

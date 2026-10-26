@@ -14,7 +14,7 @@ This file fixes the shape everything else builds on. Change it only through a pr
 | API | `apps/web/api/recruitment/[aksi].ts` + helpers in `apps/web/api/_lib/recruitment-*.ts` | The same `aksi` dispatch as `api/tp/[aksi].ts`, wrapped in `denganSiaran`. |
 | Schema | `apps/web/src/lib/schema.ts` (new section) + `apps/web/drizzle/0048_recruitment.sql`, with later slices adding 0049+ | Prod migrations are run by hand after a `pg_dump` (see `apps/web/MIGRATIONS.md`). |
 | Relay | `apps/relay/src/` adds an exam room type | Next to Konsol and siaran. |
-| PC agent | `Downloads/IRIS ASO/orangepi/agent/` adds a `compile` job kind | Follows the SeeLabs robot job pattern. |
+| PC agent | `Downloads/IRIS ASO/pc/agent/` adds a `compile` job kind | Follows the SeeLabs robot job pattern. |
 
 **Naming:** tables and columns in English with a `rec_` prefix. TypeScript identifiers follow the surrounding file's style.
 
@@ -96,7 +96,7 @@ rec_submission     candidate_id, stage, kind, r2_key|url, at
   2. The agent runs arduino-cli in a temp dir with a time limit.
   3. It uploads the merged `.bin` and the log, then reports the result.
   - The pattern is the existing job queue (protocol version bump, `Worker.urgent()` treats compile as urgent).
-  - Python tests sit beside `orangepi/agent/tests`.
+  - Python tests sit beside `pc/agent/tests`.
 - **Flash:** esptool-js (new dependency) in the browser over Web Serial. The serial monitor reuses `components/live/useSerialBoard.ts` and `src/lib/serial-lines.ts`.
 - **The other end:**
 

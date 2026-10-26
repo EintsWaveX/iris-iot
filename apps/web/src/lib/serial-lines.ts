@@ -135,7 +135,7 @@ export function parseSerialLine(modul: number, raw: string): SerialEvent {
 }
 
 /** The board roles a module uses, in the order the Live room lists them.
- *  `optional`: Module 4's Beacon (the Pi already forwards its send time). */
+ *  `optional`: Module 4's Beacon (the PC already forwards its send time). */
 export const BOARDS: Record<number, { role: BoardRole; optional?: boolean }[]> = {
   1: [{ role: "central" }, { role: "peripheral" }],
   2: [{ role: "esp32" }],

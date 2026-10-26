@@ -1,4 +1,4 @@
-/* Perburuan LoRa IRIS: the one socket to the Pi, and who this phone is.
+/* Perburuan LoRa IRIS: the one socket to the PC, and who this phone is.
 
    One WebSocket (/live) carries the whole hunt: the server pushes a full
    frame ten times a second, so there is no patch protocol to get wrong.
@@ -14,7 +14,7 @@
    answers with the group for the running session, on every connect. When
    the session rolls over the NIM stops resolving and the phone drops back
    to the sign-in screen. The NIM itself never leaves this phone except to
-   the Pi, and the Pi never sends anyone else's. */
+   the PC, and the PC never sends anyone else's. */
 (function () {
   const H = window.H;
   const { useState, useEffect } = window.htmPreact;

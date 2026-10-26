@@ -22,7 +22,7 @@ import { personalize } from "../../../src/lib/group-identity";
 
 const SKETCHES_DIR = fileURLToPath(new URL("../../../src/content/sketches/", import.meta.url));
 // Same default IRIS ASO location this app's own sync/build scripts assume
-// (sync_sketches.py, orangepi/build_bundle.py) -- this repo has no other
+// (sync_sketches.py, pc/build_bundle.py) -- this repo has no other
 // record of where a sibling checkout lives, since the two are separate
 // repositories. Absent in CI, which is exactly what the skip guard below
 // is for.

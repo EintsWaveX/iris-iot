@@ -965,7 +965,7 @@ The libraries are the practicum's own: the core's BLE (Module 1), arduinoWebSock
   }
   ```
   Results come back on the next beat, or at once with a POST of the same shape. A job claimed but unanswered for 180 s goes back to the queue once, then fails `agen_diam`.
-- **Agent rules** (12, `orangepi/agent`):
+- **Agent rules** (12, `pc/agent`):
   - **Input checks:** the sketch is written to `s/s.ino` in a fresh temp dir. Refused as `berbahaya`: an `#include` with an absolute path, `..` or a backslash, and `incbin` anywhere (the assembler's file embed).
   - **Sandbox:** arduino-cli runs as an unprivileged user under bubblewrap, with no network, the Arduino data and the allowlisted libraries read only, only the temp dir writable, and `/etc/iris-*` and the agent's home out of sight. It also gets `timeout 120`, a 1.5 GB memory cap and `nice 10`.
   - **Output:** the merged image with its trailing `0xFF` trimmed (4-byte aligned), uploaded with the job's ticket.
@@ -995,7 +995,7 @@ A board needs only a phone hotspot with Internet (9.6a). Everything else runs on
 |---|---|---|
 | WebSocket | `ws://ws.irisiotlab.com:80/rec/w/<token>/<n>` (arduinoWebSockets client) | The seat's page and graders on the same room object; frames pass both ways. |
 | HTTP | `http://ws.irisiotlab.com:80/rec/h/<token>/<n>[/<path>]`, GET or POST, body 4 KB at most | Answers `{ "ok": true, "t": <server ms>, "echo": <body>, "cmd": <the next command the page queued, or null> }`. A device that only makes requests can still receive commands. |
-| MQTT | `ws://broker.irisiotlab.com:80/rec/s/<token>`, WebSocket subprotocol `mqtt` (`esp-mqtt`) | The gateway passes the bytes to Module 3's PC bridge (`orangepi/modul3/modul3_bridge.py`, already dialing out), which pipes them to the lab Mosquitto on `localhost:1883`. Mosquitto checks the seat's account and ACL. |
+| MQTT | `ws://broker.irisiotlab.com:80/rec/s/<token>`, WebSocket subprotocol `mqtt` (`esp-mqtt`) | The gateway passes the bytes to Module 3's PC bridge (`pc/modul3/modul3_bridge.py`, already dialing out), which pipes them to the lab Mosquitto on `localhost:1883`. Mosquitto checks the seat's account and ACL. |
 | BLE | Advertises as `IRIS-s<seatId>-<n>` with the template's GATT service (no Wi-Fi) | A Web Bluetooth central panel in the seat's page: scan, connect, notify, read, write. The page copies each BLE event into the room's log over its gateway socket. |
 
 - **Tokens:** `<token>` is a `tanda.ts` signed payload `{ v: 1, p: "lc", r: roomId, s: seatId, exp }` with a new secret, `REC_GATEWAY_SECRET` (in Vercel and the Worker, never in code). `exp` is the room's end plus 2 h. The Worker checks it without a lookup. Finish marks the room closed in its object, which then refuses every token of that room.
@@ -1170,7 +1170,7 @@ All in `api/recruitment/[aksi].ts`, dispatched to one handler per area. Errors a
 | **11** | Day 1: the S3 section of `schema.ts` and `drizzle/0051_*` (every table of 10.1 marked 0051), the five dispatch lines in `[aksi].ts`, every S3 entry in `siaran-topik.ts`. Then: `api/_lib/recruitment-room.ts`, `src/lib/recruitment/room-relay.ts` (+ tests), `apps/relay/src/ujian.ts` (+ `apps/relay/test/uji-ujian.mjs`), `components/recruitment/panel/tes/ruang/`, rig `rec_room_*.mjs` |
 | **09** | `api/_lib/recruitment-bank.ts`, `api/_lib/recruitment-snapshot.ts` (+ tests), `src/lib/recruitment/bank-io.ts` (+ tests), `components/recruitment/panel/tes/bank/`, the seed bank `scripts/rec-bank-seed.ts` (at least the default `shown` count per part and language, every question run or compiled before it goes in), rig `rec_bank_*.mjs` |
 | **10** | `api/_lib/recruitment-seat.ts`, `pages/recruitment/test.astro` (+ `en/`, `zh/`), `components/recruitment/exam/` (the renderers in `exam/render/` are shared with 09's preview; the lockdown hooks in `exam/lockdown/`), rig `rec_runner_*.mjs` |
-| **12** | `drizzle/0052_*` and its `schema.ts` section, `api/_lib/recruitment-livecode.ts`, `components/recruitment/livecode/`, `apps/ws/src/` (the `rec` routes on ws and broker), the PC agent in `Downloads/IRIS ASO/orangepi/agent/` (`compile` and `mqtt` jobs, tests; the Module 3 bridge carries the exam's MQTT unchanged unless 12 finds otherwise), rig `rec_lc_*.mjs` |
+| **12** | `drizzle/0052_*` and its `schema.ts` section, `api/_lib/recruitment-livecode.ts`, `components/recruitment/livecode/`, `apps/ws/src/` (the `rec` routes on ws and broker), the PC agent in `Downloads/IRIS ASO/pc/agent/` (`compile` and `mqtt` jobs, tests; the Module 3 bridge carries the exam's MQTT unchanged unless 12 finds otherwise), rig `rec_lc_*.mjs` |
 | **13** | `drizzle/0053_*` and its `schema.ts` section, `api/_lib/recruitment-score.ts`, `components/recruitment/panel/tes/penilaian/`, the Tes Tulis score column on 06's Cutting board (tell 06's owner first), rig `rec_score_*.mjs` |
 
 Rules:

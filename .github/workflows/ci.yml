@@ -22,9 +22,9 @@ name: CI
 # This repo is the web-development half of a larger project split out of
 # Documents/Downloads/IRIS ASO into Documents/WebApps/iris-iot. Stage 15
 # moved apps/modul4 here from that repo's modul4/ (it runs on the Orange
-# Pi, but building and testing it needs no hardware). What's left in the
+# PC, but building and testing it needs no hardware). What's left in the
 # other repo is Typst journals, Arduino/Python practicum sources, and the
-# orangepi/ folder that provisions and bundles the Pi itself -- both bound
+# pc/ folder that provisions and bundles the PC itself -- both bound
 # to physical hardware paths this repo has no reason to know about. See
 # each app's own README/PHASE3.md for more history.
 #

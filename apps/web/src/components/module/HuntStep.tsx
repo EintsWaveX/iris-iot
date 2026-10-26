@@ -1,9 +1,9 @@
 /**
  * Module 4's sixth step, Perburuan (ruled 2026-10-04). The hunt runs on the
- * Pi's offline hotspot, so the group's one laptop hands phones over with two
+ * PC's offline hotspot, so the group's one laptop hands phones over with two
  * QR codes, shown one at a time so a camera can't catch the wrong one: first
  * the Wi-Fi, then the hunt's address (each member types their own NIM on
- * the phone). Locked until the hunt session runs on the Pi; shows who in the
+ * the phone). Locked until the hunt session runs on the PC; shows who in the
  * group has joined while it runs, then the result.
  */
 import { useMemo, useState } from "react";
@@ -27,7 +27,7 @@ export interface PerburuanData {
   ok: boolean;
   aktif: boolean;
   keadaan?: KeadaanHunt;
-  piTerhubung?: boolean;
+  pcTerhubung?: boolean;
   terdaftar?: boolean;
   url?: string;
   lan?: boolean;
@@ -47,7 +47,7 @@ export interface PerburuanData {
   peristiwa?: PeristiwaRingkas[];
 }
 
-/** The step's data while Module 4 runs: fetched again whenever the Pi's
+/** The step's data while Module 4 runs: fetched again whenever the PC's
  *  hunt summary changes (buru, 2026-10-07), with a slow poll behind it. */
 export function usePerburuan(enabled: boolean, wakilNomor?: number) {
   const url = `/api/session/perburuan${wakilNomor ? `?kelompok=${wakilNomor}` : ""}`;
@@ -108,9 +108,9 @@ export default function HuntStep({
           body={
             keadaan === "belum"
               ? t.waitAsisten
-              : data.piTerhubung
+              : data.pcTerhubung
                 ? t.waitBody
-                : `${t.waitBody} ${t.waitNoPi}`
+                : `${t.waitBody} ${t.waitNoPc}`
           }
           actions={
             <button

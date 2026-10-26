@@ -11,7 +11,7 @@
  * - Sejak: an "N s ago" label that ticks every second
  * (Phase 9 removed DevicesByGroup with the Devices tab.)
  *
- * Commands are delivered on the Pi's next heartbeat, never instantly, so
+ * Commands are delivered on the PC's next heartbeat, never instantly, so
  * every action says so instead of pretending it already happened.
  */
 import { useEffect, useState } from "react";

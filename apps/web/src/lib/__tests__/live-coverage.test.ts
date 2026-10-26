@@ -37,7 +37,7 @@ const SEKALI: Record<string, string> = {
   "components/server/Settings.tsx": "a form that only writes",
   "components/server/data.ts": "the commands a button sends",
   "components/server/ops.tsx": "the commands a button sends",
-  "components/server/konsol/data.ts": "Konsol Pi has its own relay room",
+  "components/server/konsol/data.ts": "Konsol PC has its own relay room",
   "lib/telemetry-live.ts": "the backlog read behind the session room",
   "lib/siaran.ts": "the live updates themselves",
   "lib/aliran-ruang.ts": "the session room itself (its ticket)",

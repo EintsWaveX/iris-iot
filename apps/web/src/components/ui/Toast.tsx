@@ -98,7 +98,7 @@ export default function Toast() {
     };
   }, []);
 
-  // While something is full screen (Konsol Pi), toasts show inside it.
+  // While something is full screen (Konsol PC), toasts show inside it.
   const fs = useFullscreenEl();
   const host = (
     <div className="toast-host" id="toast-host" aria-live="polite" aria-atomic="false">

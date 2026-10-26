@@ -83,7 +83,7 @@ describe("keadaanPerburuan", () => {
     expect(keadaanPerburuan({ ...r, selesai: true }, 1, jalan)).toBe("selesai");
   });
 
-  it("stays locked until Mulai Perburuan, whatever the Pi reports", () => {
+  it("stays locked until Mulai Perburuan, whatever the PC reports", () => {
     expect(keadaanPerburuan(r, 1)).toBe("belum");
     expect(keadaanPerburuan(r, 1, null)).toBe("belum");
     expect(keadaanPerburuan(r, 1, { mulai: null, selesai: null, oleh: null })).toBe("belum");

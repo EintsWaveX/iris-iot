@@ -3,10 +3,10 @@
  * opens when something goes wrong mid session.
  *
  * - A row of live checks: the site's recent errors, the live relay, the
- *   Pi's heartbeat, its services, the groups' data and the Pi clock.
+ *   PC's heartbeat, its services, the groups' data and the PC clock.
  * - Searchable problems by area, each with what was found right now and
  *   buttons that do the fix (or open where it is done).
- * - Still stuck: the Pi Console, and a note into the session's history.
+ * - Still stuck: the PC Console, and a note into the session's history.
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CaretDownIcon, CaretUpIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
@@ -38,10 +38,10 @@ const HD = dict({
       relay: "Siaran langsung",
       relayOk: "terhubung",
       relayBad: "terputus, data diambil berkala",
-      pi: "PC Server",
-      piOk: (s: number) => `denyut ${laluLabel(s, "id")}`,
-      piBad: "tidak ada denyut",
-      piNone: "belum ada server",
+      pc: "PC Server",
+      pcOk: (s: number) => `denyut ${laluLabel(s, "id")}`,
+      pcBad: "tidak ada denyut",
+      pcNone: "belum ada server",
       svc: "Layanan",
       svcOk: (n: number) => `${n} aktif`,
       svcBad: (x: string) => `${x} tidak aktif`,
@@ -93,8 +93,8 @@ const HD = dict({
     layanan: "Broker atau layanan modul mati",
     layananFound: (x: string) => x,
     openServer: "Buka Laci Server",
-    pi: "PC Server tidak merespons",
-    piFound: (ok: boolean) =>
+    pc: "PC Server tidak merespons",
+    pcFound: (ok: boolean) =>
       ok
         ? "Denyut normal. Kalau berhenti lebih dari 2 menit, banner merah muncul di atas papan."
         : "PC Server tidak mengirim denyut. Cek daya dan jaringan PC Server, lalu lihat Konsol PC Server.",
@@ -156,10 +156,10 @@ const HD = dict({
       relay: "Live relay",
       relayOk: "connected",
       relayBad: "down, data polled instead",
-      pi: "PC Server",
-      piOk: (s: number) => `beat ${laluLabel(s, "en")}`,
-      piBad: "no heartbeat",
-      piNone: "no server yet",
+      pc: "PC Server",
+      pcOk: (s: number) => `beat ${laluLabel(s, "en")}`,
+      pcBad: "no heartbeat",
+      pcNone: "no server yet",
       svc: "Services",
       svcOk: (n: number) => `${n} up`,
       svcBad: (x: string) => `${x} not running`,
@@ -211,8 +211,8 @@ const HD = dict({
     layanan: "The broker or a module service is down",
     layananFound: (x: string) => x,
     openServer: "Open the Server Drawer",
-    pi: "The PC Server doesn't respond",
-    piFound: (ok: boolean) =>
+    pc: "The PC Server doesn't respond",
+    pcFound: (ok: boolean) =>
       ok
         ? "Heartbeat normal. If it stops for over 2 minutes, a red banner shows above the board."
         : "The PC Server sends no heartbeat. Check its power and network, then the PC Server Console.",
@@ -272,10 +272,10 @@ const HD = dict({
       relay: "实时推送",
       relayOk: "已连接",
       relayBad: "已断开，改为定时拉取",
-      pi: "PC 服务器",
-      piOk: (s: number) => `${laluLabel(s, "zh")}有心跳`,
-      piBad: "没有心跳",
-      piNone: "还没有服务器",
+      pc: "PC 服务器",
+      pcOk: (s: number) => `${laluLabel(s, "zh")}有心跳`,
+      pcBad: "没有心跳",
+      pcNone: "还没有服务器",
       svc: "服务",
       svcOk: (n: number) => `${n} 个运行中`,
       svcBad: (x: string) => `${x} 没有运行`,
@@ -325,8 +325,8 @@ const HD = dict({
     layanan: "Broker 或模块服务停了",
     layananFound: (x: string) => x,
     openServer: "打开服务器侧栏",
-    pi: "PC 服务器没有响应",
-    piFound: (ok: boolean) =>
+    pc: "PC 服务器没有响应",
+    pcFound: (ok: boolean) =>
       ok
         ? "心跳正常。停止超过 2 分钟时，看板上方会出现红色横幅。"
         : "PC 服务器没有心跳。检查电源和网络，再看 PC 服务器控制台。",
@@ -454,10 +454,10 @@ export default function HelpDrawer({
   }, [open]);
   useSiaran(["sesi", "server", "online"], () => void muatW(), open);
 
-  const d = piDari(servers);
+  const d = pcDari(servers);
   const hb = d?.denyutTerakhir ?? null;
   const jamOff = jamMeleset(d);
-  const piOn = d ? isOnline(hb, d.batasLuringDetik) : false;
+  const pcOn = d ? isOnline(hb, d.batasLuringDetik) : false;
   const umur = hb ? Math.max(0, Math.round((Date.now() - Date.parse(hb.pada)) / 1000)) : null;
   const svc = Object.entries(hb?.layanan ?? {});
   const svcBad = svc.filter(([, st]) => svcTone(st) === "bad");
@@ -486,9 +486,9 @@ export default function HelpDrawer({
     ],
     [relay === "live", h.sys.relay, relay === "live" ? h.sys.relayOk : h.sys.relayBad],
     [
-      piOn,
-      d ? d.server.nama : h.sys.pi,
-      !d ? h.sys.piNone : piOn && umur !== null ? h.sys.piOk(umur) : h.sys.piBad,
+      pcOn,
+      d ? d.server.nama : h.sys.pc,
+      !d ? h.sys.pcNone : pcOn && umur !== null ? h.sys.pcOk(umur) : h.sys.pcBad,
     ],
     [
       svcBad.length === 0,
@@ -597,7 +597,7 @@ export default function HelpDrawer({
         title: h.layanan,
         warn: svcBad.length > 0,
         found: h.layananFound(
-          svc.length ? svc.map(([k, st]) => `${k}: ${st}`).join(" · ") : h.sys.piNone,
+          svc.length ? svc.map(([k, st]) => `${k}: ${st}`).join(" · ") : h.sys.pcNone,
         ),
         acts: [
           {
@@ -608,11 +608,11 @@ export default function HelpDrawer({
         ],
       },
       {
-        id: "pi",
+        id: "pc",
         cat: "server",
-        title: h.pi,
-        warn: !!d && !piOn,
-        found: h.piFound(piOn),
+        title: h.pc,
+        warn: !!d && !pcOn,
+        found: h.pcFound(pcOn),
         acts: [
           ...(d
             ? [
@@ -925,18 +925,18 @@ export default function HelpDrawer({
   );
 }
 
-/** The lab Pi: the one server's detail, else the first listed server (a
- *  rig or a lab with a spare Pi lists more than one). */
+/** The lab PC: the one server's detail, else the first listed server (a
+ *  rig or a lab with a spare PC lists more than one). */
 /** The clock off by the site's own measure; the heartbeat's flag only
  *  when there is none (chrony serving its own clock says "not synced" while
  *  the time can still be right). */
-function jamMeleset(d: ReturnType<typeof piDari>): boolean {
+function jamMeleset(d: ReturnType<typeof pcDari>): boolean {
   const k = bacaKondisi(d?.server.kondisi);
   if (k && (k.selisihDetik !== null || k.jamSelisihMs !== null)) return jamServer(k).meleset;
   return d?.denyutTerakhir?.jamSelaras === false;
 }
 
-function piDari(servers: ServerState | null) {
+function pcDari(servers: ServerState | null) {
   if (servers?.detail) return servers.detail;
   const s = servers?.list[0];
   return s
@@ -944,10 +944,10 @@ function piDari(servers: ServerState | null) {
     : null;
 }
 
-/** Whether Ada Masalah? should show a yellow dot: the Pi silent, a service
+/** Whether Ada Masalah? should show a yellow dot: the PC silent, a service
  *  down, the clock off, or a group that sent nothing while others did. */
 export function adaMasalah(servers: ServerState | null, groups: GroupRow[]): boolean {
-  const d = piDari(servers);
+  const d = pcDari(servers);
   const hb = d?.denyutTerakhir ?? null;
   if (d && !isOnline(hb, d.batasLuringDetik)) return true;
   if (Object.values(hb?.layanan ?? {}).some((st) => svcTone(st) === "bad")) return true;

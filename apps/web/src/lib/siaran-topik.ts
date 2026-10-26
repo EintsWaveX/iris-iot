@@ -29,7 +29,7 @@ export const TOPIK = [
   "jawaban",
   // A journal capture was saved (session:tangkapan).
   "tangkapan",
-  // A Pi's Module 4 hunt summary changed (api/agent).
+  // A PC's Module 4 hunt summary changed (api/agent).
   "buru",
   // A group rewired its own pins in the running session (presentasi:pin-grup).
   "pingrup",
@@ -266,7 +266,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:candidate-add": ["reccandidates"],
   "recruitment:candidate-ticket": [],
   "recruitment:candidate-document": ["reccandidates"],
-  // Register, edit, delete a Pi, a new token, and every queued command.
+  // Register, edit, delete a PC, a new token, and every queued command.
   server: ["server"],
   action: ["server"],
 };

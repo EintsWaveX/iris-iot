@@ -3,14 +3,14 @@
  * table asks for, built from whatever the Live room can see:
  *
  * - board events from Web Serial on this laptop (serial-lines.ts);
- * - the Pi's rows for this group (telemetry-live.ts), or the simulator's.
+ * - the PC's rows for this group (telemetry-live.ts), or the simulator's.
  *
  * Records are keyed by the message number (seq). Module 1's boards print
  * no number, so a Central send opens the next record and the Peripheral's
  * receive and the Central's echo land on the newest open one.
  *
- *   send time   M1 Central, M2 ESP32, M3 Publisher, M4 Beacon (or the Pi's tx)
- *   receive     M1 Peripheral, M2 the Pi, M3 Subscriber, M4 Hunter (or the Pi's rx)
+ *   send time   M1 Central, M2 ESP32, M3 Publisher, M4 Beacon (or the PC's tx)
+ *   receive     M1 Peripheral, M2 the PC, M3 Subscriber, M4 Hunter (or the PC's rx)
  *   one-way     receive minus send, when both are known
  *   round-trip  M1 and M2 echo lines
  */
@@ -21,7 +21,7 @@ export interface LiveRecord {
   seq: number;
   tx: string | null;
   rx: string | null;
-  /** One-way delay (ms): the board's own figure from the Pi, else rx minus tx. */
+  /** One-way delay (ms): the board's own figure from the PC, else rx minus tx. */
   oneway: number | null;
   rtt: number | null;
   rssi: number | null;
@@ -115,10 +115,10 @@ export class LiveRecords {
     this.settle(r);
   }
 
-  /** A row from the Pi (or the simulator). Board lines win for the fields
-   *  they carry; the Pi fills the rest. Module 1's rows came from a group
+  /** A row from the PC (or the simulator). Board lines win for the fields
+   *  they carry; the PC fills the rest. Module 1's rows came from a group
    *  PC's Central, whose rx is the echo time, so they keep their own delay. */
-  pi(x: Reading): void {
+  pc(x: Reading): void {
     if (this.modul === 1) {
       this.m1Seq = Math.max(this.m1Seq, x.seq);
     }

@@ -1,18 +1,18 @@
 #!/bin/sh
-# IRIS IoT: set up a Pi for a server, in one line (the Server page's
+# IRIS IoT: set up a PC for a server, in one line (the Server page's
 # Daftarkan Server, step 2; 2026-10-07):
 #
-#   curl -fsSL https://<site>/pasang-pi.sh | sudo sh -s -- --situs https://<site> --kode <kode> --token <token>
+#   curl -fsSL https://<site>/pasang-pc.sh | sudo sh -s -- --situs https://<site> --kode <kode> --token <token>
 #
-# Run it as the Pi's own user (iris on Armbian) through sudo. Any Linux with
+# Run it as the PC's own user (iris on Armbian) through sudo. Any Linux with
 # systemd and apt, dnf, pacman or zypper works: the first step installs what
-# this script needs with whichever one the Pi has, and provisioning
+# this script needs with whichever one the PC has, and provisioning
 # (scripts/iris-distro.sh in the bundle) does the same for everything else.
 # Everything it prints, and every failure it reports to the site, is English.
-# - A fresh Pi: fetches the newest bundle CI signed, checks that signature,
+# - A fresh PC: fetches the newest bundle CI signed, checks that signature,
 #   unpacks it to /home/<user>/IRIS-ASO, runs scripts/opi_provision.sh,
 #   registers the agent with the one-time token and starts it.
-# - A Pi that already has iris-agent: nothing is reinstalled. It only
+# - A PC that already has iris-agent: nothing is reinstalled. It only
 #   registers for this server: right away when it already reported to it
 #   (a new token), after asking when it reported to another one. Code
 #   updates come from the site's Perbarui button.
@@ -107,7 +107,7 @@ PY
 # baca <field>: one field of the site's answer.
 baca() { python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]) or '')" "$KERJA/jawab.json" "$1"; }
 
-# daftar: registers this Pi's agent for the server and starts it.
+# daftar: registers this PC's agent for the server and starts it.
 daftar() {
   if [ -n "$UJI" ]; then
     IRIS_AGENT_CONFIG="$CONFIG" python3 "$AGEN_DIR/agent.py" enroll \
@@ -165,7 +165,7 @@ if [ -f "$AGEN_DIR/agent.py" ] && [ "$ULANG" -ne 1 ]; then
 fi
 kabar mulai
 
-# --- A Pi already reporting somewhere: same server goes on, another asks. ---
+# --- A PC already reporting somewhere: same server goes on, another asks. ---
 if [ -f "$CONFIG" ]; then
   LAMA_ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('serverId', ''))" "$CONFIG" 2>/dev/null || echo "")
   LAMA_SITUS=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('server', ''))" "$CONFIG" 2>/dev/null || echo "")
@@ -202,7 +202,7 @@ if [ -f "$AGEN_DIR/agent.py" ] && [ "$ULANG" -ne 1 ]; then
   exit 0
 fi
 
-# --- A fresh Pi (or --pasang-ulang): the whole install. ---
+# --- A fresh PC (or --pasang-ulang): the whole install. ---
 langkah "3/5 Bundle from the site"
 kabar bundel
 minta false
@@ -231,7 +231,7 @@ openssl pkeyutl -verify -pubin -inkey "$KERJA/bundel.pub" -rawin -in "$KERJA/bun
   -sigfile "$KERJA/bundel.sig" >/dev/null 2>&1 || gagal "Invalid bundle signature, nothing was installed"
 echo "[INFO] Signature valid"
 
-# A Pi with no network time (a hotspot that blocks NTP) takes the site's.
+# A PC with no network time (a hotspot that blocks NTP) takes the site's.
 WAKTU=$(baca waktu | cut -d. -f1)
 SELISIH=$(( ${WAKTU:-0} - $(date +%s) ))
 [ "$SELISIH" -lt 0 ] && SELISIH=$((0 - SELISIH))

@@ -5,7 +5,7 @@
  *
  * Same source rules as before: real readings first, the simulator only
  * until the first real reading arrives. Since Phase 12 the readings come
- * through the session's stream room as they land (the Pi's after each
+ * through the session's stream room as they land (the PC's after each
  * heartbeat, a group laptop's as its board prints them); the API's copy
  * fills in on open and after a reconnect, and is polled only while the
  * room is down. That first real batch replaces the simulated history,
@@ -156,7 +156,7 @@ export function useTelemetry(
   return local ?? state;
 }
 
-/** A Pi's reading by its log id; a Module 1 reading (a laptop's, stored
+/** A PC's reading by its log id; a Module 1 reading (a laptop's, stored
  *  or not) by its own times, which both copies share */
 function kunciBacaan(modul: number, r: Reading): string {
   if (modul !== 1 && r.id !== undefined) return `i${r.id}`;

@@ -1,6 +1,6 @@
 /** Home's inbox rows for the SeeLabs robot (Phase 14, mockup s14-home): my
  *  jobs that stopped and that nothing newer replaced, each with its way on:
- *  the Account page for a refused password or a changed Pi key, the score
+ *  the Account page for a refused password or a changed PC key, the score
  *  table for a Token Khusus, Coba Lagi for the rest. Since 2026-10-17 also
  *  what the read-back flagged: my groups that differ in SeeLabs (to the score
  *  table) and Rekap BAP days that don't match Bayar (flags only). Nothing

@@ -2,7 +2,7 @@
  * Mulai and Selesai Perburuan (2026-10-08): the Asisten's switch for the
  * Module 4 hunt in a running session. Starting a Module 4 session no longer
  * touches the network; Mulai turns the IRIS_IOT hotspot and modul4.service
- * on (queued for the one enrolled Pi), unlocks the Praktikan's Perburuan
+ * on (queued for the one enrolled PC), unlocks the Praktikan's Perburuan
  * step, and Selesai (or ending the session) turns both off again.
  *
  * POST /api/session/perburuan { langkah: "mulai" | "selesai" }  (Asisten)
@@ -42,7 +42,7 @@ async function simpan(sesiId: number, nilai: PerburuanSesi, nim: string): Promis
     });
 }
 
-/** The hotspot and the scoreboard off; true when the Pi could be chosen. */
+/** The hotspot and the scoreboard off; true when the PC could be chosen. */
 async function matikan(nim: string): Promise<boolean> {
   const ap = await queueSoloServerCommand("ap.mati", nim);
   await queueSoloServerCommand("layanan.henti", nim, { layanan: "modul4" });
@@ -88,7 +88,7 @@ export async function handlePerburuanPost(
   const kini = new Date().toISOString();
 
   if (langkah === "mulai") {
-    // Pressed again while it runs: send the commands again (a Pi that missed
+    // Pressed again while it runs: send the commands again (a PC that missed
     // them), keep the first start time.
     const nilai: PerburuanSesi = {
       mulai: lama?.mulai && !lama.selesai ? lama.mulai : kini,

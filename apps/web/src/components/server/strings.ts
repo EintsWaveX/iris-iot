@@ -285,7 +285,7 @@ export const S = dict({
       bundel: "Bundel PC Server (IRIS ASO)",
       modul4: "Server Modul 4 dan hunt (iris-iot)",
     },
-    /** pm: the Pi's package manager (apt, dnf, pacman, zypper), from the agent. */
+    /** pm: the PC's package manager (apt, dnf, pacman, zypper), from the agent. */
     updPkg: (pm: string) => `Paket sistem (${pm})`,
     updSt: {
       terbaru: "Terbaru",
@@ -412,7 +412,7 @@ export const S = dict({
     ],
     wizSkipped: "Dilewati, agen sudah ada di PC Server",
     wizSlow: "Bisa beberapa menit, lebih lama di microSD.",
-    wizWaitPi: "Menunggu PC Server menjalankan perintah dari langkah 1…",
+    wizWaitPc: "Menunggu PC Server menjalankan perintah dari langkah 1…",
     wizLast: (w: string) => `Kabar terakhir dari PC Server ${w}.`,
     wizFailed: "Pemasangan berhenti.",
     wizFailedHint:
@@ -478,7 +478,7 @@ export const S = dict({
     lastReport: "last report",
     never: "never",
     list: "Server list",
-    empty: "No server registered yet. Register an PC Server to start watching it.",
+    empty: "No server registered yet. Register a PC Server to start watching it.",
     newCard: "Register a New Server",
     cardTip: "Opens this server's details: health, services and settings.",
     newCardHint: "2 steps, one paste on the PC Server",
@@ -852,7 +852,7 @@ export const S = dict({
     ],
     wizSkipped: "Skipped, the PC Server already has an agent",
     wizSlow: "Can take a few minutes, longer on a microSD.",
-    wizWaitPi: "Waiting for the PC Server to run the command from step 1…",
+    wizWaitPc: "Waiting for the PC Server to run the command from step 1…",
     wizLast: (w: string) => `Last word from the PC Server ${w}.`,
     wizFailed: "The install stopped.",
     wizFailedHint:
@@ -1278,7 +1278,7 @@ export const S = dict({
     ],
     wizSkipped: "已跳过，PC 服务器上已经有 agent",
     wizSlow: "可能要几分钟，用 microSD 会更久。",
-    wizWaitPi: "等待 PC 服务器运行第 1 步的命令…",
+    wizWaitPc: "等待 PC 服务器运行第 1 步的命令…",
     wizLast: (w: string) => `PC 服务器最后一次报告在${w}。`,
     wizFailed: "安装停止了。",
     wizFailedHint: "解决原因后再粘贴同一条命令。超过 30 分钟的话，在第 1 步生成新命令。",

@@ -1,7 +1,7 @@
 /**
  * Alerts on every Asisten page (2026-10-05), from /api/session/waspada:
  *
- * - the Pi stops sending heartbeats while a session that needs it runs
+ * - the PC stops sending heartbeats while a session that needs it runs
  *   (every Asisten sees this one);
  * - a burst of server errors (AMBANG_GALAT in api/_lib/galat.ts), for
  *   those with the Server right, who can act on it;
@@ -35,7 +35,7 @@ interface Waspada {
     ambang: number;
     terakhir: { id: number; pada: string; pesan: string } | null;
   };
-  pi: {
+  pc: {
     luring: boolean;
     umurDetik: number | null;
     luringPada?: string | null;
@@ -60,16 +60,16 @@ interface Panggilan {
 
 const T = dict({
   id: {
-    piH: "PC Server tidak mengirim detak",
-    piP: (m: string) =>
+    pcH: "PC Server tidak mengirim detak",
+    pcP: (m: string) =>
       `Sesi sedang berjalan, tapi PC Server diam sejak ${m}. Cek daya dan Wi-Fi PC Server.`,
-    piNever: "belum pernah",
-    piGo: "Buka Server",
+    pcNever: "belum pernah",
+    pcGo: "Buka Server",
     errH: (n: number, m: number) => `${n} galat server dalam ${m} menit terakhir`,
     errGo: "Lihat Galat",
     notif: "Beri Tahu Saya",
     hide: "Sembunyikan",
-    nPi: "IRIS: PC Server tidak mengirim detak",
+    nPc: "IRIS: PC Server tidak mengirim detak",
     nErr: "IRIS: galat server bertambah",
     callH: (who: string, m: string) => `${who} memanggil DEV${m ? ` dari sesi ${m}` : ""}`,
     callMore: (n: number) => `dan ${n} panggilan lain`,
@@ -82,16 +82,16 @@ const T = dict({
     fail: "Tidak bisa sekarang. Coba lagi.",
   },
   en: {
-    piH: "The PC Server stopped sending heartbeats",
-    piP: (m: string) =>
+    pcH: "The PC Server stopped sending heartbeats",
+    pcP: (m: string) =>
       `A session is running, but the PC Server has been silent since ${m}. Check its power and Wi-Fi.`,
-    piNever: "never",
-    piGo: "Open Server",
+    pcNever: "never",
+    pcGo: "Open Server",
     errH: (n: number, m: number) => `${n} server errors in the last ${m} minutes`,
     errGo: "See Errors",
     notif: "Notify Me",
     hide: "Hide",
-    nPi: "IRIS: the PC Server stopped sending heartbeats",
+    nPc: "IRIS: the PC Server stopped sending heartbeats",
     nErr: "IRIS: server errors are piling up",
     callH: (who: string, m: string) =>
       `${who} is calling the DEVs${m ? ` from a ${m} session` : ""}`,
@@ -105,16 +105,16 @@ const T = dict({
     fail: "Not possible right now. Try again.",
   },
   zh: {
-    piH: "PC 服务器停止发送心跳",
-    piP: (m: string) =>
+    pcH: "PC 服务器停止发送心跳",
+    pcP: (m: string) =>
       `正在上课，但 PC 服务器从${m}起就没有动静了。检查一下 PC 服务器的电源和 Wi-Fi。`,
-    piNever: "从未",
-    piGo: "打开服务器",
+    pcNever: "从未",
+    pcGo: "打开服务器",
     errH: (n: number, m: number) => `最近 ${m} 分钟内有 ${n} 个服务器错误`,
     errGo: "查看错误",
     notif: "通知我",
     hide: "隐藏",
-    nPi: "IRIS：PC 服务器停止发送心跳",
+    nPc: "IRIS：PC 服务器停止发送心跳",
     nErr: "IRIS：服务器错误在增加",
     callH: (who: string, m: string) => `${who}${m ? `从${m}的课上` : ""}呼叫 DEV`,
     callMore: (n: number) => `还有 ${n} 个呼叫`,
@@ -166,8 +166,8 @@ export default function LabAlert({
     ["sesi", "server"],
   );
   const w = poll.data;
-  // A Pi that stops beating writes nothing: the banner comes up on time.
-  useBatas(w?.ok && w.pi && !w.pi.luring ? w.pi.luringPada : null, ["server"]);
+  // A PC that stops beating writes nothing: the banner comes up on time.
+  useBatas(w?.ok && w.pc && !w.pc.luring ? w.pc.luringPada : null, ["server"]);
   const [tutupDatang, setTutupDatang] = useState(0);
   const [sembunyi, setSembunyi] = useState(0);
   const [izin, setIzin] = useState<NotificationPermission | "none">("none");
@@ -176,19 +176,19 @@ export default function LabAlert({
     setIzin(typeof Notification === "undefined" ? "none" : Notification.permission);
   }, []);
 
-  // The Server pages show the Pi's state themselves; the banner would repeat it.
+  // The Server pages show the PC's state themselves; the banner would repeat it.
   const diServer = typeof location !== "undefined" && /\/servers\/?$/.test(location.pathname);
-  const piLuring = !!w?.ok && !!w.pi?.luring && !diServer;
+  const pcLuring = !!w?.ok && !!w.pc?.luring && !diServer;
   const g = w?.ok ? w.galat : null;
   const lonjakan =
     bisaServer && !!g && g.jumlah >= g.ambang && !!g.terakhir && g.terakhir.id > sembunyi;
 
   // A system notification once per new problem, while the tab is hidden.
-  const sudah = useRef({ pi: false, galat: 0 });
+  const sudah = useRef({ pc: false, galat: 0 });
   useEffect(() => {
-    if (piLuring && !sudah.current.pi) beriTahu(t.nPi, t.piH, "iris-pi");
-    sudah.current.pi = piLuring;
-  }, [piLuring]);
+    if (pcLuring && !sudah.current.pc) beriTahu(t.nPc, t.pcH, "iris-pc");
+    sudah.current.pc = pcLuring;
+  }, [pcLuring]);
   useEffect(() => {
     if (lonjakan && g?.terakhir && g.terakhir.id > sudah.current.galat) {
       beriTahu(t.nErr, g.terakhir.pesan, "iris-galat");
@@ -220,7 +220,7 @@ export default function LabAlert({
     poll.refresh();
   }
 
-  if (!piLuring && !lonjakan && !call && !datang) return null;
+  if (!pcLuring && !lonjakan && !call && !datang) return null;
 
   const tombolIzin =
     izin === "default" ? (
@@ -237,7 +237,7 @@ export default function LabAlert({
       </button>
     ) : null;
 
-  const umur = w?.pi?.umurDetik;
+  const umur = w?.pc?.umurDetik;
   const siapa = (o: { nama: string; kode: string | null }) =>
     o.kode ? `${o.nama} (${o.kode})` : o.nama;
   return (
@@ -277,21 +277,21 @@ export default function LabAlert({
           </button>
         </div>
       )}
-      {piLuring && (
+      {pcLuring && (
         <div className="offline banner banner--danger" role="alert">
           <PlugsIcon size={20} aria-hidden="true" />
-          <b>{t.piH}</b>
-          <span className="hint">{t.piP(umur == null ? t.piNever : laluLabel(umur, lang))}</span>
+          <b>{t.pcH}</b>
+          <span className="hint">{t.pcP(umur == null ? t.pcNever : laluLabel(umur, lang))}</span>
           {!call && tombolIzin}
           <a
             className="btn btn--ghost btn--sm"
             href={
-              w?.pi?.serverId
-                ? `${href(lang, "/servers")}?id=${w.pi.serverId}#siap`
+              w?.pc?.serverId
+                ? `${href(lang, "/servers")}?id=${w.pc.serverId}#siap`
                 : href(lang, "/servers")
             }
           >
-            {t.piGo}
+            {t.pcGo}
             <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
           </a>
         </div>
@@ -301,7 +301,7 @@ export default function LabAlert({
           <WarningIcon size={20} aria-hidden="true" />
           <b>{t.errH(g.jumlah, g.menit)}</b>
           <span className="hint truncate">{g.terakhir?.pesan}</span>
-          {!piLuring && !call && tombolIzin}
+          {!pcLuring && !call && tombolIzin}
           {me.hak?.audit === true && (
             <a
               className="btn btn--ghost btn--sm"

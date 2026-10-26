@@ -2,11 +2,11 @@
  * Phase 14: the SeeLabs robot. Browser-safe: the API, the screens and the
  * tests share these shapes and rules.
  *
- * The robot is the Orange Pi on campus (server #13 on TelU-Connect, the only
+ * The robot is the PC on campus (server #13 on TelU-Connect, the only
  * network SeeLabs answers on). Each Asisten connects their own SeeLabs
- * account once: the browser seals the password to the Pi's public key, the
- * site keeps only that seal, and the Pi opens it for one job at a time. The
- * site queues jobs and hands them out on the Pi's heartbeat:
+ * account once: the browser seals the password to the PC's public key, the
+ * site keeps only that seal, and the PC opens it for one job at a time. The
+ * site queues jobs and hands them out on the PC's heartbeat:
  * - uji       sign in once, to check the password
  * - nilai     one SeeLabs KLP's scores, after the holder's Kirim Nilai
  * - jaga      Input Jaga slots the Asisten teaches and SeeLabs lacks (adds only)
@@ -25,11 +25,11 @@ export type StatusTugas = "antre" | "diambil" | "selesai" | "gagal" | "batal";
 export type StatusAkses = "menunggu_uji" | "aktif" | "ditolak" | "kunci_lain";
 
 /**
- * What a failed job reports, as the Pi's seelabs.py names it.
+ * What a failed job reports, as the PC's seelabs.py names it.
  * Only the first two can be fixed by waiting, so only they are retried.
  */
 export const GALAT_ROBOT = [
-  "tak_terjangkau", // the Pi can't reach SeeLabs (not on TelU-Connect, or SeeLabs is down)
+  "tak_terjangkau", // the PC can't reach SeeLabs (not on TelU-Connect, or SeeLabs is down)
   "seelabs_galat", // SeeLabs answered with a server error or an expired page
   "ditolak", // SeeLabs refused the username or password
   "bentuk_berubah", // a page looked unfamiliar, so nothing was saved
@@ -38,22 +38,22 @@ export const GALAT_ROBOT = [
   "anggota_beda", // the KLP's NIMs in SeeLabs differ from IRIS
   "seelabs_menolak", // SeeLabs said no in its own words (rinci), e.g. put in already today
   "tak_terverifikasi", // saved, but Lihat Nilai didn't show the same scores
-  "segel_rusak", // the seal couldn't be opened with the Pi's key
-  "pi_diam", // the Pi took the job and never answered (the site's own code)
+  "segel_rusak", // the seal couldn't be opened with the PC's key
+  "pc_diam", // the PC took the job and never answered (the site's own code)
 ] as const;
 export type GalatRobot = (typeof GALAT_ROBOT)[number];
 
 export const GALAT_DIULANG: ReadonlySet<string> = new Set([
   "tak_terjangkau",
   "seelabs_galat",
-  "pi_diam",
+  "pc_diam",
 ]);
 
 /** Tries before a retryable failure stays gagal, and the wait before each retry. */
 export const PERCOBAAN_MAKS = 3;
 export const JEDA_ULANG_DETIK = [60, 300, 900] as const;
 
-/** A claimed job the Pi hasn't answered for this long goes back to the queue. */
+/** A claimed job the PC hasn't answered for this long goes back to the queue. */
 export const BATAS_DIAMBIL_DETIK = 10 * 60;
 
 /** A score edit after Kirim Nilai waits this long, so a run of edits saves once. */
@@ -69,7 +69,7 @@ export function jenisDiambil(protokol: number): JenisTugas[] {
   return JENIS_TUGAS.filter((j) => j !== "baca" || protokol >= PROTOKOL_BACA);
 }
 
-/** The fixed SeeLabs addresses the Pi knows; the site only picks one by name. */
+/** The fixed SeeLabs addresses the PC knows; the site only picks one by name. */
 export const ALAMAT_SEELABS = ["kampus", "athena"] as const;
 export type AlamatSeelabs = (typeof ALAMAT_SEELABS)[number];
 
@@ -81,9 +81,9 @@ export const sufiksSah = (s: unknown): s is string =>
 export const KUNCI_ROBOT = {
   /** { nyala: boolean }: the kill switch, Pencipta and Admin only. */
   robot: "seelabs_robot",
-  /** { serverId, spki, sidik, oleh, pada }: the approved Pi key. */
+  /** { serverId, spki, sidik, oleh, pada }: the approved PC key. */
   kunci: "seelabs_kunci",
-  /** AlamatSeelabs: which address the Pi uses. */
+  /** AlamatSeelabs: which address the PC uses. */
   alamat: "seelabs_alamat",
   /** { sufiks }: what follows the NIM in the Laboran's default password (an
    *  object, since a bare "2026" would come back from jsonb as a number). */
@@ -104,15 +104,15 @@ export interface KunciRobot {
   pada: string;
 }
 
-/** The SeeLabs part of the Pi's infoSistem (agent protocol 6). */
-export interface InfoSeelabsPi {
+/** The SeeLabs part of the PC's infoSistem (agent protocol 6). */
+export interface InfoSeelabsPc {
   spki: string;
   sidik: string;
   jangkau?: { ok: boolean; ms?: number; kode?: string; rinci?: string };
 }
 
-export function bacaInfoSeelabs(info: unknown): InfoSeelabsPi | null {
-  const s = (info as { seelabs?: unknown } | null)?.seelabs as Partial<InfoSeelabsPi> | undefined;
+export function bacaInfoSeelabs(info: unknown): InfoSeelabsPc | null {
+  const s = (info as { seelabs?: unknown } | null)?.seelabs as Partial<InfoSeelabsPc> | undefined;
   if (!s || typeof s.spki !== "string" || typeof s.sidik !== "string") return null;
   if (!/^[A-Za-z0-9+/=]{100,2000}$/.test(s.spki) || !/^([0-9A-F]{4}:){7}[0-9A-F]{4}$/.test(s.sidik))
     return null;
@@ -161,7 +161,7 @@ export function barisPerKlp(
       continue;
     }
     const r = { nim: b.nim } as BarisRobot;
-    // IRIS names the components TP..L2; the Pi's seelabs.py, like SeeLabs' wire:model, tp..l2.
+    // IRIS names the components TP..L2; the PC's seelabs.py, like SeeLabs' wire:model, tp..l2.
     for (const k of NILAI_KOMPONEN)
       r[k.toLowerCase() as Exclude<keyof BarisRobot, "nim">] = b.skor[k] ?? 0;
     perKlp.set(b.klp, [...(perKlp.get(b.klp) ?? []), r]);

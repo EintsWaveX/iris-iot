@@ -383,7 +383,7 @@
   color: var(--accent-bright);
 }
 
-.sline[data-src="pi"] {
+.sline[data-src="pc"] {
   color: var(--ok);
 }
 
