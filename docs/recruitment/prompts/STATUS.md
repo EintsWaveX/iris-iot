@@ -25,6 +25,7 @@ A row is `ready` when every prompt in **Needs** is done. Mockups (01, 05, 08c, 1
 | 16 | S5 Tubes (a/b/c) | Opus / Sonnet / Opus high | 15 | 12 Des | blocked (15) |
 | 17 | S6 Mengajar + Penerimaan (a/b/c) | Opus / Sonnet / Opus high | 15, 16 | 21 Des | blocked (15, 16) |
 | 18 | S3 review fixes | Sonnet high | 09 to 13 | n/a | done (2026-10-26, cloud session on claude/s3-review-fixes-olrv4b: seat sync 9571f01, partial cohort 7933013, freeze vs LC grades and score lock 6bca338, rehearsal delete e4c8cf2, small fixes 6998396; not pushed to phase9 or main; full suite 2189 passed; open design points in handoffs/18.md) |
+| 20 | Runner, console, Live Coding fixes (second cloud review) | Sonnet high | 18, 19 | n/a | running (2026-10-26, cloud session on claude/runner-console-lc-n3fnc7, cut from phase9-global-and-asisten) |
 
 ## User rulings log
 Add one line per ruling given during any session (date, prompt, ruling). Copy lasting ones into the memory file `iris-recruitment-oprec-2026.md`.
