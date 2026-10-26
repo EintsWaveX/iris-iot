@@ -808,7 +808,8 @@ export async function handleIsiOtomatis(req: ApiRequest, res: ApiResponse, s: Se
       )
       .groupBy(recSlotAssignment.slotId);
     const peta = new Map(hitung.map((h) => [h.slotId, h.n]));
-    const peserta = await muatPeserta(db, edisi.id, stage, events, now);
+    // Through tx, so the slot rows locked above never wait on a second pool connection.
+    const peserta = await muatPeserta(tx as unknown as Db, edisi.id, stage, events, now);
     const sudah = await tx
       .select({ c: recSlotAssignment.candidateId })
       .from(recSlotAssignment)

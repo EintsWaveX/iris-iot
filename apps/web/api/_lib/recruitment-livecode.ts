@@ -39,7 +39,7 @@ import { endpointsFor, elideToken, signLcWeb } from "../../src/lib/recruitment/l
 import { queueChips } from "../../src/lib/recruitment/lc-queue.js";
 import type { LiveCodeSelf, SelfBoard, SelfJob } from "../../src/lib/recruitment/lc-api.js";
 import { acakId } from "../../src/lib/tanda.js";
-import { tolak, wajibEdisi } from "./recruitment-data.js";
+import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku } from "./recruitment-rights.js";
 import { aksiKolam, muatTemplate } from "./recruitment-lc-pool.js";
 import { GalatLc, pasangKait, putar } from "./recruitment-lc-deal.js";
@@ -292,7 +292,11 @@ async function aturPapan(c: KonteksLc, req: ApiRequest, res: ApiResponse) {
       const chip: Chip =
         kit.find((k) => k.candidateId === c.seat.candidateId)?.boards.find((x) => x.n === 2)
           ?.chip ?? "esp32";
-      const code = await muatTemplate(c.db, c.edisiId, templateKey(lc.protocol!, lc.variant));
+      const code = await muatTemplate(
+        tx as unknown as Db,
+        c.edisiId,
+        templateKey(lc.protocol!, lc.variant),
+      );
       boards.push({ n: 2, chip, code, rev: 0 });
     } else if (b.remove === 2) {
       const [ada] = await tx

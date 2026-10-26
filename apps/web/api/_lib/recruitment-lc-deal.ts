@@ -181,7 +181,8 @@ export async function bagikan(
     const variant = protocol === "httpws" ? (lc.variant ?? "http") : null;
     let boards = lc.boards;
     if (protocol && !lc.protocol) {
-      const code = await pakaiTemplate(db, edisiId, protocol, variant);
+      // Through tx: a query on db would need a second connection while this one holds the room row.
+      const code = await pakaiTemplate(tx as unknown as Db, edisiId, protocol, variant);
       boards = papanDariTemplate(boards, code);
       if (protocol === "mqtt" && !lc.mqtt) {
         nb.akun = { u: akunUntuk(room.id, seat.id), p: sandiAcak() };
@@ -337,7 +338,10 @@ export async function undiUlang(
     // A new protocol starts again from its template; the same protocol keeps what the candidate wrote
     let boards = lc.boards;
     if (protocol !== lc.protocol || what === "topic") {
-      boards = papanDariTemplate(boards, await pakaiTemplate(db, edisiId, protocol, variant));
+      boards = papanDariTemplate(
+        boards,
+        await pakaiTemplate(tx as unknown as Db, edisiId, protocol, variant),
+      );
     }
     if (protocol === "mqtt" && !lc.mqtt) nb.akun = { u: akunUntuk(roomId, seatId), p: sandiAcak() };
     await tx
