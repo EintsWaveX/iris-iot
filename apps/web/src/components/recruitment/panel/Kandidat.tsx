@@ -461,7 +461,9 @@ export default function Kandidat({
           onChanged={refresh}
         />
       )}
-      {canAdd && <TambahCaAs lang={lang} open={tambah} onOpenChange={setTambah} onSaved={refresh} />}
+      {canAdd && (
+        <TambahCaAs lang={lang} open={tambah} onOpenChange={setTambah} onSaved={refresh} />
+      )}
     </div>
   );
 }
