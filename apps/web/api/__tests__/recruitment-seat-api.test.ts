@@ -371,8 +371,44 @@ describe("test-strike", () => {
     const r = await jalan("test-strike", { id: "stk-0001", kinds: ["zzz"], at: Date.now() });
     expect(r.status).toBe(400);
   });
+  it("refuses an id the server makes for ganda, so a page cannot take one over", async () => {
+    const r = await jalan("test-strike", {
+      id: "ganda-tabA-29000000",
+      kinds: ["layar"],
+      at: Date.now(),
+    });
+    expect(r.status).toBe(400);
+    expect(tulis.some((w) => w.tabel === "strike")).toBe(false);
+  });
+  it("an existing kejadian only grows: kinds are never reduced and backAt is set once", async () => {
+    const baru = new Date(Date.now() - 1000);
+    rows.strike = [{ id: 4, kinds: ["layar", "fokus"], backAt: null }];
+    const r = await jalan("test-strike", {
+      id: "stk-0001",
+      kinds: ["tab"],
+      at: Date.now() - 5000,
+      back: baru.getTime(),
+    });
+    expect(r.status).toBe(200);
+    const w = tulis.find((x) => x.tabel === "strike" && x.op === "update");
+    expect((w?.nilai as { kinds: string[] }).kinds.sort()).toEqual(["fokus", "layar", "tab"]);
+    expect(tulis.some((x) => x.tabel === "strike" && x.op === "insert")).toBe(false);
+    expect(JSON.stringify(r.antre)).toContain("fokus");
+
+    // Resending a shorter list, with no return time, changes nothing it already holds.
+    tulis.length = 0;
+    rows.strike = [{ id: 4, kinds: ["layar", "fokus", "tab"], backAt: baru }];
+    await jalan("test-strike", { id: "stk-0001", kinds: ["layar"], at: Date.now() });
+    const v = tulis.find((x) => x.tabel === "strike" && x.op === "update")?.nilai as {
+      kinds: string[];
+      backAt?: unknown;
+    };
+    expect(v.kinds.sort()).toEqual(["fokus", "layar", "tab"]);
+    expect("backAt" in v).toBe(false);
+  });
   it("stores a good one and sends it to the pengawas", async () => {
     rows.strike = [];
+    rows["w:strike"] = [{ id: 5 }];
     const r = await jalan("test-strike", {
       id: "stk-0001",
       kinds: ["layar", "fokus"],

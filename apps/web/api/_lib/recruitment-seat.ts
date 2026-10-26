@@ -77,6 +77,8 @@ import { antreUjian, muatConfig, simpanHotspotKursi, sudahMasuk } from "./recrui
 /** A second tab's answer within this long of the last one is a `ganda` kejadian (7) */
 const GANDA_MS = 60_000;
 const TAB_RE = /^[A-Za-z0-9_-]{4,64}$/;
+/** The prefix of the ids the API gives its own `ganda` kejadian */
+const GANDA_ID = "ganda-";
 const STRIKE_ID_RE = /^[A-Za-z0-9_-]{4,40}$/;
 /** The strike kinds a page may report; `ganda` is the API's own */
 const KINDS_PAGE: readonly string[] = STRIKE_KINDS.filter((k) => k !== "ganda");
@@ -630,7 +632,7 @@ async function jawab(k: Konteks) {
     .set({ tab: b.tab, tabAt: new Date(now), lastSeenAt: new Date(now) })
     .where(eq(recExamSeat.id, seat.id));
   if (lain) {
-    const id = `ganda-${b.tab}-${Math.floor(now / GANDA_MS)}`;
+    const id = `${GANDA_ID}${b.tab}-${Math.floor(now / GANDA_MS)}`;
     const [ins] = await db
       .insert(recStrike)
       .values({
@@ -682,6 +684,8 @@ async function kejadian(k: Konteks) {
   if (
     typeof b.id !== "string" ||
     !STRIKE_ID_RE.test(b.id) ||
+    // `ganda-...` is the id the API makes for itself (answer); a page cannot name, extend or close one.
+    b.id.startsWith(GANDA_ID) ||
     !kinds.length ||
     kinds.length > STRIKE_KINDS.length ||
     !kinds.every((x) => KINDS_PAGE.includes(x))
@@ -702,11 +706,15 @@ async function kejadian(k: Konteks) {
   const balik = num(b.back);
   const back = balik === undefined ? null : Math.min(Math.max(balik, mulai), now);
 
-  const [ada] = await db
-    .select({ id: recStrike.id })
-    .from(recStrike)
-    .where(and(eq(recStrike.seatId, seat.id), eq(recStrike.clientId, b.id)))
-    .limit(1);
+  const lihat = async () =>
+    (
+      await db
+        .select({ id: recStrike.id, kinds: recStrike.kinds, backAt: recStrike.backAt })
+        .from(recStrike)
+        .where(and(eq(recStrike.seatId, seat.id), eq(recStrike.clientId, b.id as string)))
+        .limit(1)
+    )[0];
+  let ada = await lihat();
   if (!ada) {
     const [n] = await db
       .select({ n: sql<number>`count(*)::int` })
@@ -715,24 +723,42 @@ async function kejadian(k: Konteks) {
     // Past the cap the page's count grows and the records stop (08's call).
     if ((n?.n ?? 0) >= MAX_STRIKES_PER_PART)
       return void res.status(200).json({ ok: true, capped: true });
+    const [baru] = await db
+      .insert(recStrike)
+      .values({
+        seatId: seat.id,
+        roomId: seat.roomId,
+        part,
+        clientId: b.id,
+        kinds,
+        at: new Date(mulai),
+        backAt: back === null ? null : new Date(back),
+      })
+      .onConflictDoNothing()
+      .returning({ id: recStrike.id });
+    // Another request of the same page wrote it first: treat this one as an extension of it.
+    if (!baru) ada = await lihat();
   }
-  await db
-    .insert(recStrike)
-    .values({
-      seatId: seat.id,
-      roomId: seat.roomId,
-      part,
-      clientId: b.id,
-      kinds,
-      at: new Date(mulai),
-      backAt: back === null ? null : new Date(back),
-    })
-    .onConflictDoUpdate({
-      target: [recStrike.seatId, recStrike.clientId],
-      set: { kinds, backAt: back === null ? null : new Date(back) },
-    });
+  let kindsOut = kinds;
+  let backOut = back;
+  if (ada) {
+    // A kejadian only grows: a page can add kinds and set the return once, never take either back.
+    kindsOut = [...new Set([...ada.kinds, ...kinds])];
+    backOut = ada.backAt ? ada.backAt.getTime() : back;
+    await db
+      .update(recStrike)
+      .set({
+        kinds: kindsOut,
+        ...(back !== null ? { backAt: sql`coalesce(${recStrike.backAt}, ${new Date(back)})` } : {}),
+      })
+      .where(eq(recStrike.id, ada.id));
+  }
   antreUjian(res, seat.roomId, [
-    { j: "pelanggaran", s: seat.id, d: { s: seat.id, id: b.id, kinds, at: mulai, back } },
+    {
+      j: "pelanggaran",
+      s: seat.id,
+      d: { s: seat.id, id: b.id, kinds: kindsOut, at: mulai, back: backOut },
+    },
   ]);
   res.status(200).json({ ok: true });
 }
