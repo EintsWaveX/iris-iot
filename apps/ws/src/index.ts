@@ -375,9 +375,9 @@ export class Broker implements DurableObject {
     } else this.tell({ t: "open", c: next });
 
     const headers = new Headers();
-    // esp-mqtt asks for the "mqtt" subprotocol and wants it echoed
+    // esp-mqtt and every browser MQTT client ask for the "mqtt" subprotocol and
+    // drop the socket unless it is echoed (a Pico's wrapper never asks)
     if (
-      rec &&
       /(^|,\s*)mqtt(\s*,|$)/.test(
         request.headers.get("Sec-WebSocket-Protocol") ?? "",
       )
