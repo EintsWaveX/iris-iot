@@ -806,15 +806,13 @@ export async function handleIsiOtomatis(req: ApiRequest, res: ApiResponse, s: Se
       stage,
       ...(kursiTetap.length ? { kursiTetap } : {}),
     });
-    return void res
-      .status(200)
-      .json({
-        ok: true,
-        placed: 0,
-        left: 0,
-        at: null,
-        ...(kursiTetap.length ? { kursiTetap } : {}),
-      });
+    return void res.status(200).json({
+      ok: true,
+      placed: 0,
+      left: 0,
+      at: null,
+      ...(kursiTetap.length ? { kursiTetap } : {}),
+    });
   }
 
   const events = await muatEvents(db, edisi.id);
