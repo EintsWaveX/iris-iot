@@ -9,5 +9,12 @@ ALTER TABLE "konsol_pc" RENAME CONSTRAINT "konsol_pi_server_id_server_id_fk" TO 
 ALTER TABLE "konsol_keberatan" RENAME CONSTRAINT "konsol_keberatan_konsol_id_konsol_pi_id_fk" TO "konsol_keberatan_konsol_id_konsol_pc_id_fk";--> statement-breakpoint
 ALTER TABLE "konsol_peserta" RENAME CONSTRAINT "konsol_peserta_konsol_id_konsol_pi_id_fk" TO "konsol_peserta_konsol_id_konsol_pc_id_fk";--> statement-breakpoint
 ALTER TABLE "konsol_tiket_nonce" RENAME CONSTRAINT "konsol_tiket_nonce_konsol_id_konsol_pi_id_fk" TO "konsol_tiket_nonce_konsol_id_konsol_pc_id_fk";--> statement-breakpoint
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT conname FROM pg_constraint WHERE conrelid = 'public.konsol_pc'::regclass AND conname LIKE 'konsol\_pi\_%' LOOP
+    EXECUTE format('ALTER TABLE "konsol_pc" RENAME CONSTRAINT %I TO %I', r.conname, replace(r.conname, 'konsol_pi_', 'konsol_pc_'));
+  END LOOP;
+END $$;--> statement-breakpoint
 UPDATE "konsol_tiket_nonce" SET "peran" = 'pc' WHERE "peran" = 'pi';--> statement-breakpoint
 UPDATE "pengaturan" SET "diubah_oleh" = 'pc' WHERE "diubah_oleh" = 'pi';
