@@ -109,8 +109,9 @@ export interface GradeSeat {
   nama: string;
   topic: string | null;
   protocol: Protocol | null;
-  lastCompile: { at: number; ok: boolean } | null;
-  lastFlash: { at: number; ok: boolean } | null;
+  /** The newest run and how many the seat has (of its newest 50) */
+  lastCompile: { at: number; ok: boolean; n: number } | null;
+  lastFlash: { at: number; ok: boolean; n: number } | null;
   /** Who has sheeted this seat and when; never the values */
   sheets: { grader: string; name: string; at: number }[];
   mine: boolean;

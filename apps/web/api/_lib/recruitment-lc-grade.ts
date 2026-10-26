@@ -28,6 +28,7 @@ import {
 import {
   canSubmit,
   peerView,
+  runTerakhir,
   validateSheet,
   type StoredSheet,
 } from "../../src/lib/recruitment/lc-grade.js";
@@ -155,10 +156,6 @@ export async function aksiNilai(
       .map((x): GradeSeat => {
         const lc = lcs.find((l) => l.seatId === x.id);
         const runs = lc?.runs ?? [];
-        const ambil = (kind: "compile" | "flash") => {
-          const r = runs.find((e) => e.kind === kind);
-          return r ? { at: r.at, ok: r.ok } : null;
-        };
         const mine = sheets.filter((h) => h.subjectId === x.id);
         return {
           seatId: x.id,
@@ -166,8 +163,8 @@ export async function aksiNilai(
           nama: kand.find((k) => k.id === x.candidateId)?.nama ?? "",
           topic: topik.find((t) => t.id === lc?.topicId)?.title ?? null,
           protocol: (lc?.protocol as Protocol | null) ?? null,
-          lastCompile: ambil("compile"),
-          lastFlash: ambil("flash"),
+          lastCompile: runTerakhir(runs, "compile"),
+          lastFlash: runTerakhir(runs, "flash"),
           sheets: mine.map((h) => ({
             grader: h.grader,
             name: h.name ?? h.grader,
