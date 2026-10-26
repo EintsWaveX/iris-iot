@@ -234,6 +234,7 @@ function jalan(
   s: ReturnType<typeof sesi>,
   body: Record<string, unknown> | null,
   query: Record<string, string> = {},
+  headers: Record<string, string> = {},
 ): Promise<Hasil> {
   const out: Hasil = { status: 0, body: {}, headers: {}, teks: "" };
   const res = {
@@ -256,7 +257,7 @@ function jalan(
   const req = {
     method: body === null ? "GET" : "POST",
     query: { aksi, ...query },
-    headers: {},
+    headers,
     body: body ?? {},
   };
   return handleBank(req as never, res as never, s as never).then(() => out);
@@ -1005,6 +1006,35 @@ describe("ref (a seat reads a reference)", () => {
     const r = await jalan("ref", sesi("N1"), null, { id: "3" });
     expect(r.status).toBe(404);
     expect(r.body.kode).toBe("tidak_ada");
+  });
+
+  it("a refusal the reader frame asked for is a short page in the seat's language, never raw JSON (prompt 14)", async () => {
+    const frame = { "sec-fetch-dest": "iframe" };
+    kursi = kursiBagian({ cur: null });
+    for (const [lang, words] of [
+      ["id", "Referensi Belum Bisa Dibuka"],
+      ["en", "This Reference Can't Open Yet"],
+      ["zh", "参考资料暂时无法打开"],
+    ] as const) {
+      const r = await jalan("ref", cand, null, { id: "3", lang }, frame);
+      expect(r.status).toBe(404);
+      expect(r.teks).toContain(words);
+      expect(r.teks).not.toContain("tidak_ada");
+      expect(r.teks).not.toMatch(/<script/i);
+      expect(r.headers["Content-Type"]).toBe("text/html; charset=utf-8");
+      expect(r.headers["Content-Security-Policy"]).toContain("sandbox");
+      expect(r.headers["Cache-Control"]).toBe("no-store");
+    }
+    // the relay failing is the same page, with the right status
+    kursi = kursiBagian();
+    dep.ambil = async () => {
+      throw new Error("relay down");
+    };
+    const r = await jalan("ref", cand, null, { id: "3", lang: "xx" }, frame);
+    expect(r.status).toBe(404);
+    expect(r.teks).toContain("Referensi Belum Bisa Dibuka");
+    // an API caller (no frame) still gets the JSON code
+    expect((await jalan("ref", cand, null, { id: "3" })).body.kode).toBe("tidak_ada");
   });
 
   it("answers the same for a missing id as for a forbidden one (no probing)", async () => {

@@ -79,7 +79,7 @@ export default function RefDrawer({
                 key={r.id}
                 className="r3reader__frame"
                 title={t.refs.frame(r.title)}
-                src={`/api/recruitment/ref?id=${r.id}`}
+                src={`/api/recruitment/ref?id=${r.id}&lang=${lang}`}
                 sandbox=""
                 referrerPolicy="no-referrer"
               />

@@ -379,7 +379,7 @@ export default function BankRefs({
             title={view.title}
             sandbox=""
             referrerPolicy="no-referrer"
-            src={`/api/recruitment/ref?id=${view.id}`}
+            src={`/api/recruitment/ref?id=${view.id}&lang=${lang}`}
           />
         )}
       </Dialog>

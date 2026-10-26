@@ -53,6 +53,7 @@ import {
   type Question,
 } from "../../src/lib/recruitment/exam-types.js";
 import { validateQuestion } from "../../src/lib/recruitment/formats.js";
+import { refGagalHtml, refLang } from "../../src/lib/recruitment/ref-gagal.js";
 import { validateConfig, normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
   parseBank,
@@ -1255,13 +1256,22 @@ async function ref(
     (s.role === "asisten"
       ? !!p?.hak.bank
       : r.status === "ok" && (await seatBolehBaca(db, edisiId, s.nim, id)));
-  if (!r || !bisa || !r.r2Key || !REK_REF_RE.test(r.r2Key)) return galat(res, "tidak_ada");
-  if (!dep.simpanSiap()) return galat(res, "belum_diatur");
+  // The reader frame gets a short page in the seat's language, never the JSON (prompt 14).
+  const bingkai = req.headers?.["sec-fetch-dest"] === "iframe";
+  const tolakRef = (kode: string) => {
+    if (!bingkai) return galat(res, kode);
+    for (const [h, v] of Object.entries(REF_HEADERS)) res.setHeader(h, v);
+    res.setHeader("Cache-Control", "no-store");
+    res.status(STATUS[kode] ?? 404);
+    res.end(refGagalHtml(refLang(req.query.lang)));
+  };
+  if (!r || !bisa || !r.r2Key || !REK_REF_RE.test(r.r2Key)) return tolakRef("tidak_ada");
+  if (!dep.simpanSiap()) return tolakRef("belum_diatur");
   let up: Response;
   try {
     up = await dep.ambil(r.r2Key);
   } catch {
-    return galat(res, "tidak_ada");
+    return tolakRef("tidak_ada");
   }
   // A document is at most 6 MB, so it is read whole and its length is exact.
   const bytes = Buffer.from(await up.arrayBuffer());
