@@ -10,7 +10,7 @@
  *
  * The files follow the Google Form's list (2026-10-25): six required kinds as
  * chips that wrap, Portofolio when there is one. hakPenuh also uploads a
- * candidate's PDFs here and corrects their details (Tambah CaA).
+ * candidate's PDFs here and corrects their details (Tambah CaAs).
  */
 import { useEffect, useRef, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
@@ -41,7 +41,7 @@ import { tgl } from "../../shared";
 import { useRevealMotion } from "../../reveal/fx";
 import { PN } from "../panelStrings";
 import AkunCek from "./AkunCek";
-import TambahCaA, { BerkasPanitia } from "./TambahCaA";
+import TambahCaAs, { BerkasPanitia } from "./TambahCaAs";
 
 const waktu = (iso: string, lang: Lang) => {
   const w = tanggalWib(new Date(iso));
@@ -60,7 +60,7 @@ export default function BerkasReview({
   id: number;
   /** Those waiting for a decision, in list order */
   queue: CandidateRow[];
-  /** hakPenuh: upload the candidate's PDFs and correct their details (Tambah CaA) */
+  /** hakPenuh: upload the candidate's PDFs and correct their details (Tambah CaAs) */
   canAdd?: boolean;
   onClose: () => void;
   onChanged: () => void;
@@ -394,7 +394,7 @@ export default function BerkasReview({
         </div>
       )}
       {ubah && c && (
-        <TambahCaA
+        <TambahCaAs
           lang={lang}
           open
           onOpenChange={(o) => !o && setUbah(false)}

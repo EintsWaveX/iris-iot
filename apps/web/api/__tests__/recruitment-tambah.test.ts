@@ -1,5 +1,5 @@
 /**
- * Tambah CaA (2026-10-25) through the real dispatcher: only hakPenuh adds a
+ * Tambah CaAs (2026-10-25) through the real dispatcher: only hakPenuh adds a
  * candidate, the account gets the password the Panitia typed (hashed, never
  * in the audit), a self-made account is not overwritten, a correction keeps
  * the password unless a new one comes, the PDFs go under the candidate's NIM,

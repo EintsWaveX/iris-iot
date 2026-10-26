@@ -1,5 +1,5 @@
 /**
- * Tambah CaA (user, 2026-10-25): while the team's Google Form is the way in
+ * Tambah CaAs (user, 2026-10-25): while the team's Google Form is the way in
  * (src/lib/recruitment/formulir.ts), the Pencipta and the Admin tier
  * (hakPenuh) add each candidate by hand: the oprec account with a password
  * they choose and hand over, the form's answers as the biodata, then each
