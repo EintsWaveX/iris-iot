@@ -138,3 +138,33 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* Atur Berkas (B2) */
+.b2-docs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.b2-docs li {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.b2-docs li[data-off="yes"] {
+  opacity: 0.6;
+}
+.b2-docs__flags {
+  display: grid;
+  gap: 6px;
+}
+@media (max-width: 900px) {
+  .b2-docs li {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}

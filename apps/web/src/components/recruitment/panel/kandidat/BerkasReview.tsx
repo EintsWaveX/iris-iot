@@ -27,8 +27,6 @@ import type { Lang } from "../../../../lib/kelas";
 import { isFail, recGet, recPost } from "../../../../lib/recruitment/client";
 import { tanggalWib } from "../../../../lib/recruitment/gates";
 import {
-  DOC_OPTIONAL,
-  DOC_REQUIRED,
   type BerkasFile,
   type CandidateDetailResponse,
   type CandidateRow,
@@ -48,6 +46,7 @@ const waktu = (iso: string, lang: Lang) => {
   return `${tgl(w.tanggal, lang)}, ${w.jam}`;
 };
 
+import { useDocRules } from "../../../../lib/recruitment/doc-rules";
 export default function BerkasReview({
   lang,
   id: id0,
@@ -68,9 +67,10 @@ export default function BerkasReview({
   const t = S2[lang].berkas;
   const p = PN[lang].cand;
   const motion = useRevealMotion();
+  const rules = useDocRules();
   const [id, setId] = useState(id0);
   const [d, setD] = useState<CandidateDetailResponse | null | "gagal">(null);
-  const [doc, setDoc] = useState<DocKind>(DOC_REQUIRED[0]);
+  const [doc, setDoc] = useState<DocKind>(rules.required[0] ?? rules.optional[0]);
   const [ubah, setUbah] = useState(false);
   const [ver, setVer] = useState<"1" | "2">("2");
   const [cek, setCek] = useState<Partial<Record<DocKind, DocVerdict | null>>>({});
@@ -108,7 +108,7 @@ export default function BerkasReview({
   const berkas = (k: DocKind): BerkasFile | undefined => files.find((x) => x.kind === k);
   const aktif = berkas(doc);
   // The required kinds, then an optional one only when it was sent.
-  const jenis = [...DOC_REQUIRED, ...DOC_OPTIONAL.filter((k) => !!berkas(k))];
+  const jenis = [...rules.required, ...rules.optional.filter((k) => !!berkas(k))];
   const yaTidak = (v: boolean | null | undefined) =>
     v === true ? t.ya : v === false ? t.tidak : null;
   const perbaikan = files.some((x) => x.hasPrev);
@@ -118,7 +118,7 @@ export default function BerkasReview({
     if (!nx) return;
     arah.current = dir;
     setId(nx.id);
-    setDoc(DOC_REQUIRED[0]);
+    setDoc(rules.required[0] ?? rules.optional[0]);
   };
 
   async function putus(decision: "approve" | "revision", note?: string): Promise<boolean> {
@@ -150,7 +150,7 @@ export default function BerkasReview({
     if (nx) pindah(1);
     else onClose();
   }
-  const ditandai = DOC_REQUIRED.filter((k) => cek[k] === "fix");
+  const ditandai = rules.required.filter((k) => cek[k] === "fix");
 
   return (
     <Drawer

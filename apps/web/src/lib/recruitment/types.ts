@@ -7,6 +7,7 @@
  * section 2. Where this file adds to the architecture, the reason is in
  * docs/recruitment/prompts/handoffs/02.md.
  */
+import type { DocSetting } from "./settings.js";
 
 /* ------------------------------------------------------------ vocabulary */
 
@@ -361,11 +362,13 @@ export interface EditionResponse {
   rights: RecRights | null;
   /** The viewer's seat, when they have one */
   seat: { division: CommitteeDivision; isKoor: boolean; title: string | null } | null;
+  /** The documents a CaAs sends, as the Ketua and Admin set them (settings.ts) */
+  docs?: DocSetting[];
   /** Asisten only: Sembunyikan Oprec is on (nobody else sees recruitment) */
   hidden?: boolean;
   /** Asisten only: may flip it (the Ketua and hakPenuh) */
   canHide?: boolean;
-  /** Asisten only: may add a candidate by hand from the Google Form (hakPenuh) */
+  /** Asisten only: may add a candidate by hand from the Google Form (the Ketua and Admin seats, hakPenuh) */
   canAdd?: boolean;
 }
 

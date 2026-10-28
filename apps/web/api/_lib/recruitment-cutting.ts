@@ -9,6 +9,7 @@
  * cuttingPropose right: `results` is a Panitia route and never answers a
  * Praktikan session.
  */
+import { aturanDokumen } from "./recruitment-settings.js";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -34,7 +35,6 @@ import { nextPublicEvent } from "../../src/lib/recruitment/gates.js";
 import { cuttingPool, standing } from "../../src/lib/recruitment/standing.js";
 import {
   CUT_STAGES,
-  DOC_REQUIRED,
   PROPOSALS,
   type CutRowView,
   type CutStage,
@@ -147,7 +147,7 @@ export async function muatPool(
         .where(
           and(
             inArray(recDocument.candidateId, ids),
-            inArray(recDocument.kind, [...DOC_REQUIRED] as never),
+            inArray(recDocument.kind, (await aturanDokumen(db)).required as never),
           ),
         )
         .groupBy(recDocument.candidateId)

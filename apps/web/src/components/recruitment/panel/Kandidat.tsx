@@ -23,7 +23,6 @@ import { isFail, recGet, recPost, useRecEdition } from "../../../lib/recruitment
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import {
   CANDIDATE_STATUS,
-  DOC_REQUIRED,
   STAGES,
   type CandidateDetailResponse,
   type CandidateRow,
@@ -38,7 +37,10 @@ import { bukaBagian } from "../../../lib/recruitment/panel-tab";
 import { PN } from "./panelStrings";
 import AkunCek from "./kandidat/AkunCek";
 import TambahCaAs, { BerkasPanitia } from "./kandidat/TambahCaAs";
+import AturBerkas from "./kandidat/AturBerkas";
 import BerkasReview from "./kandidat/BerkasReview";
+
+import { useDocRules } from "../../../lib/recruitment/doc-rules";
 
 const SHOWN = CANDIDATE_STATUS.filter((s) => s !== "accepted");
 
@@ -72,6 +74,7 @@ function Lembar({
 }) {
   const t = PN[lang].cand;
   const r = REC[lang];
+  const rules = useDocRules();
   const docs = CP[lang].docs;
   const yaTidak = (v: boolean | null | undefined) =>
     v === true ? t.ya : v === false ? t.tidak : null;
@@ -191,13 +194,13 @@ function Lembar({
                 }}
               />
             ) : d.documents ? (
-              DOC_REQUIRED.map((k) => {
+              rules.required.map((k) => {
                 const doc = d.documents!.find((x) => x.kind === k);
                 return (
                   <div key={k} className="rec-doc">
                     <span className="rec-doc__ic" data-ok={doc ? "yes" : undefined} />
                     <span className="stack" style={{ gap: 0, minWidth: 0, flex: 1 }}>
-                      <b>{docs.kind[k]}</b>
+                      <b>{rules.label(k, lang, docs.kind[k])}</b>
                       <span className="hint rec-doc__f">
                         {doc ? `${Math.max(1, Math.round(doc.size / 1024))} KB` : t.notUploaded}
                       </span>
@@ -371,9 +374,12 @@ export default function Kandidat({
   const [f, setF] = useState("semua");
   const [tahap, setTahap] = useState("semua");
   const ns = NS[lang === "id" ? "id" : "en"];
+  const rules = useDocRules();
   const [sel, setSel] = useState<number | null>(null);
   const [tambah, setTambah] = useState(false);
-  const canAdd = useRecEdition().data?.canAdd === true;
+  const [atur, setAtur] = useState(false);
+  const edisi = useRecEdition();
+  const canAdd = edisi.data?.canAdd === true;
   const cari = q.trim().toLowerCase();
   const list = rows.filter(
     (c) =>
@@ -417,6 +423,11 @@ export default function Kandidat({
         />
         <span className="grow" />
         <span className="hint num">{t.count(list.length, rows.length)}</span>
+        {rights.documents && (
+          <button type="button" className="btn" onClick={() => setAtur(true)}>
+            <span className="btn__label">{NS[lang === "id" ? "id" : "en"].setDocs}</span>
+          </button>
+        )}
         {canAdd && (
           <button type="button" className="btn btn--primary" onClick={() => setTambah(true)}>
             <span className="btn__label">{PN[lang].tambah.btn}</span>
@@ -456,7 +467,7 @@ export default function Kandidat({
                     <td>{c.kelas ?? "-"}</td>
                     <td className="num">{c.angkatan ?? "-"}</td>
                     <td className="num">
-                      {c.docs}/{DOC_REQUIRED.length}
+                      {c.docs}/{rules.required.length}
                     </td>
                     <td className="hint">{pendek(c.appliedAt, lang)}</td>
                     <td>
@@ -512,6 +523,9 @@ export default function Kandidat({
           onClose={() => setSel(null)}
           onChanged={refresh}
         />
+      )}
+      {rights.documents && atur && (
+        <AturBerkas lang={lang} open onOpenChange={setAtur} onSaved={edisi.refresh} />
       )}
       {canAdd && (
         <TambahCaAs lang={lang} open={tambah} onOpenChange={setTambah} onSaved={refresh} />

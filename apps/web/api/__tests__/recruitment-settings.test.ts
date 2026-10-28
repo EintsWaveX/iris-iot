@@ -249,3 +249,28 @@ describe("settings", () => {
     expect(audit[0]).toMatchObject({ aksi: "rec_setting", isi: { key: "docs", reset: true } });
   });
 });
+
+describe("the document rules", () => {
+  it("cekParamTiket honours the size limit of the kind", async () => {
+    const { cekParamTiket } = await import("../_lib/recruitment-unggah");
+    const body = { kind: "cv", ukuran: 2 * 1024 * 1024, sha256: "a".repeat(64) };
+    expect(cekParamTiket(body).ok).toBe(true);
+    expect(cekParamTiket(body, () => 1024 * 1024)).toEqual({ ok: false, kode: "terlalu_besar" });
+  });
+  it("aturanDokumen reads the saved list, else the 2026 defaults", async () => {
+    const { aturanDokumen } = await import("../_lib/recruitment-settings");
+    const { getDb } = await import("../../src/lib/db");
+    const d = await aturanDokumen(getDb());
+    expect(d.required).toEqual(["biodata", "cv", "vision", "khs", "ksm", "ktm"]);
+    expect(d.semua).toContain("portofolio");
+    expect(d.batas("cv")).toBe(5 * 1024 * 1024);
+    rows.pengaturan = [
+      {
+        nilai: DOCS_DEFAULT.map((x) => (x.kind === "cv" ? { ...x, required: false, maxMb: 2 } : x)),
+      },
+    ];
+    const e = await aturanDokumen(getDb());
+    expect(e.required).not.toContain("cv");
+    expect(e.batas("cv")).toBe(2 * 1024 * 1024);
+  });
+});

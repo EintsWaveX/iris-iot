@@ -10,15 +10,15 @@
  * Events (Kalender), slots (Plotting), the exam parts config and the bank
  * already have their own edit surfaces; this registry holds the rest.
  */
-import type { CommitteeDivision } from "./types.js";
+import { DOC_KINDS, type CommitteeDivision, type DocKind } from "./types.js";
 
 export const SETTING_PREFIX = "rec_cfg_";
 
 export type SettingKey = "docs" | "words" | "cutting";
 
 export interface DocSetting {
-  /** Stable id of the document; also the `kind` stored with an upload. */
-  kind: string;
+  /** One of DOC_KINDS; the `kind` stored with an upload. The keys never change once stored. */
+  kind: DocKind;
   label: { id: string; en: string };
   required: boolean;
   /** "pdf" is uploaded; "typed" is written in the form. */
@@ -71,7 +71,7 @@ const txt = (v: unknown, max: number): string | null => {
 const int = (v: unknown, lo: number, hi: number): number | null =>
   typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi ? v : null;
 
-const DOC_LABELS: Record<string, [string, string]> = {
+const DOC_LABELS: Partial<Record<DocKind, [string, string]>> = {
   biodata: ["Biodata", "Biodata"],
   cv: ["CV ATS", "ATS CV"],
   vision: ["Visi Misi", "Vision and Mission"],
@@ -82,7 +82,9 @@ const DOC_LABELS: Record<string, [string, string]> = {
 };
 
 /** The documents of the 2026 edition (types.ts DOC_KINDS and DOC_REQUIRED), as editable defaults. */
-export const DOCS_DEFAULT: DocSetting[] = Object.entries(DOC_LABELS).map(([kind, [id, en]]) => ({
+export const DOCS_DEFAULT: DocSetting[] = (
+  Object.entries(DOC_LABELS) as [DocKind, [string, string]][]
+).map(([kind, [id, en]]) => ({
   kind,
   label: { id, en },
   required: kind !== "portofolio",
@@ -104,7 +106,13 @@ function checkDocs(v: unknown): DocSetting[] | null {
     if (!kind || !id || !en || maxMb === null || seen.has(kind)) return null;
     if (typeof r.required !== "boolean" || (r.mode !== "pdf" && r.mode !== "typed")) return null;
     seen.add(kind);
-    out.push({ kind, label: { id, en }, required: r.required, mode: r.mode, maxMb });
+    out.push({
+      kind: kind as DocKind,
+      label: { id, en },
+      required: r.required,
+      mode: r.mode,
+      maxMb,
+    });
   }
   return out;
 }

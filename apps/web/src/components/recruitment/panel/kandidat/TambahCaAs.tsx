@@ -25,8 +25,6 @@ import { isFail, recGet, recPost } from "../../../../lib/recruitment/client";
 import { kirimBerkas } from "../../../../lib/recruitment/upload";
 import { ANGKATAN_FORMULIR, cekBiodataFormulir } from "../../../../lib/recruitment/validate";
 import {
-  DOC_OPTIONAL,
-  DOC_REQUIRED,
   PRODI,
   type Biodata,
   type CandidateAddResponse,
@@ -60,6 +58,7 @@ const awalanKelas = (prodi: string, angkatan: string) =>
 type Dokumen = NonNullable<CandidateDetailResponse["documents"]>[number];
 
 /** Every kind the form asks for, required first, with upload or replace. */
+import { useDocRules } from "../../../../lib/recruitment/doc-rules";
 export function BerkasPanitia({
   lang,
   id,
@@ -73,6 +72,7 @@ export function BerkasPanitia({
 }) {
   const t = PN[lang].cand;
   const nama = CP[lang].docs.kind;
+  const rules = useDocRules();
   const d = DF[lang].slot;
   const [busy, setBusy] = useState<DocKind | null>(null);
   const [persen, setPersen] = useState(0);
@@ -84,7 +84,7 @@ export function BerkasPanitia({
     setBusy(kind);
     setPersen(0);
     setGalat(null);
-    const r = await kirimBerkas(kind, f, setPersen, undefined, id);
+    const r = await kirimBerkas(kind, f, setPersen, undefined, id, rules.maxBytes(kind));
     if (!r.ok) {
       const msg =
         r.kode === "bukan_pdf"
@@ -134,9 +134,9 @@ export function BerkasPanitia({
           if (f && target.current) void unggah(target.current, f);
         }}
       />
-      {[...DOC_REQUIRED, ...DOC_OPTIONAL].map((kind) => {
+      {[...rules.required, ...rules.optional].map((kind) => {
         const doc = documents.find((x) => x.kind === kind);
-        const opsional = DOC_OPTIONAL.includes(kind);
+        const opsional = rules.optional.includes(kind);
         return (
           <div key={kind} className="rec-doc">
             <span className="rec-doc__ic" data-ok={doc ? "yes" : undefined}>
@@ -144,7 +144,7 @@ export function BerkasPanitia({
             </span>
             <span className="stack" style={{ gap: 0, minWidth: 0, flex: 1 }}>
               <b>
-                {nama[kind]}
+                {rules.label(kind, lang, nama[kind])}
                 {opsional && <span className="hint"> · {t.optional}</span>}
               </b>
               <span className="hint rec-doc__f">

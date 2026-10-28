@@ -22,14 +22,11 @@ import { hashPassword, writeAudit, type SessionPayload } from "../../src/lib/aut
 import { asisten, recAccount, recCandidate, recDocument } from "../../src/lib/schema.js";
 import { cekNama, cekNimOprec, cekSandi } from "../../src/lib/recruitment/akun.js";
 import { cekBiodataFormulir } from "../../src/lib/recruitment/validate.js";
-import {
-  DOC_OPTIONAL,
-  DOC_REQUIRED,
-  type CandidateStatus,
-} from "../../src/lib/recruitment/types.js";
+import { type CandidateStatus } from "../../src/lib/recruitment/types.js";
 import { kunciRekrutmen } from "../../src/lib/tp-r2.js";
 import { tolak, wajibEdisi, muatKandidat, type Db } from "./recruitment-data.js";
 import { muatPelaku, type PelakuServer } from "./recruitment-rights.js";
+import { aturanDokumen } from "./recruitment-settings.js";
 import { bacaTiketRek, buatTiketRek, cekParamTiket, periksaBerkas } from "./recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah } from "./tp-simpan.js";
 
@@ -38,9 +35,6 @@ function rahasia(): string {
   if (!s || s.length < 32) throw new Error("SESSION_SECRET must be set");
   return s;
 }
-
-/** The kinds the Panitia may upload for a candidate: the form's list. */
-const JENIS_PANITIA = [...DOC_REQUIRED, ...DOC_OPTIONAL];
 
 /**
  * Who may add and correct a CaAs by hand (user, 2026-10-28): the Ketua and
@@ -161,9 +155,10 @@ export async function handleTiketPanitia(req: ApiRequest, res: ApiResponse, s: S
   const b = jsonBody(req);
   const k = await kandidatId(db, edisi.id, b.id);
   if (!k) return tolak(res, "tidak_ditemukan", 404);
-  const p = cekParamTiket(b);
+  const aturan = await aturanDokumen(db);
+  const p = cekParamTiket(b, aturan.batas);
   if (!p.ok) return tolak(res, p.kode);
-  if (!JENIS_PANITIA.includes(p.kind)) return tolak(res, "format_salah");
+  if (!aturan.semua.includes(p.kind)) return tolak(res, "format_salah");
   if (!simpanSiap()) return tolak(res, "penyimpanan_mati", 503);
 
   const [ada] = await db

@@ -74,7 +74,6 @@ import {
   CANDIDATE_STATUS,
   DIVISIONS,
   DOC_KINDS,
-  DOC_REQUIRED,
   DOC_VERDICTS,
   STAGES,
   type CandidateRow,
@@ -124,6 +123,7 @@ import {
   periksaBerkas,
 } from "../_lib/recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah, urlBaca } from "../_lib/tp-simpan.js";
+import { aturanDokumen, bacaSetting } from "../_lib/recruitment-settings.js";
 import {
   handleSettingReset,
   handleSettingSave,
@@ -304,6 +304,8 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     viewer: kind,
     rights: pelaku && anggotaPanitia(pelaku) ? pelaku.hak : null,
     seat: pelaku?.kursi ?? null,
+    // The documents asked for (Atur Berkas): the candidate page and the Panitia read the same list.
+    docs: await bacaSetting(db, "docs"),
     // Only an Asisten gets this far while it is on (the router answers everyone else).
     ...(s?.role === "asisten" && {
       hidden: await oprecTersembunyi(db),
@@ -401,7 +403,8 @@ async function handleDaftarKandidat(req: ApiRequest, res: ApiResponse, s: Sessio
     )
     .orderBy(asc(recCandidate.appliedAt), asc(recCandidate.id));
   const ids = rows.map((r) => r.id);
-  const jumlah = await hitungDokumen(db, ids, DOC_REQUIRED);
+  const aturan = await aturanDokumen(db);
+  const jumlah = await hitungDokumen(db, ids, aturan.required);
   // Stage and status as the results make them (a revealed Lolos moves a
   // candidate on, a revealed Gagal puts them out), so the filters read the same.
   const now = new Date();
@@ -450,6 +453,7 @@ async function handleKandidatRinci(req: ApiRequest, res: ApiResponse, s: Session
   const k = r.k;
   const lengkap = !!p?.hak.documents;
   const dokumen = lengkap ? await muatBerkas(db, k.id) : null;
+  const aturan = await aturanDokumen(db);
   const st = await muatStanding(db, await muatEvents(db, edisi.id), k, new Date());
   res.status(200).json({
     ok: true,
@@ -465,7 +469,7 @@ async function handleKandidatRinci(req: ApiRequest, res: ApiResponse, s: Session
       status: st.status,
       stage: st.stage,
       appliedAt: k.appliedAt.toISOString(),
-      docs: dokumen ? dokumen.filter((d) => DOC_REQUIRED.includes(d.kind)).length : 0,
+      docs: dokumen ? dokumen.filter((d) => aturan.required.includes(d.kind)).length : 0,
       reviewNote: k.reviewNote,
       reviewedBy: k.reviewedBy,
       reviewedAt: k.reviewedAt ? k.reviewedAt.toISOString() : null,
@@ -541,14 +545,15 @@ async function handleTiket(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
-  const p = cekParamTiket(jsonBody(req));
+  const aturan = await aturanDokumen(db);
+  const p = cekParamTiket(jsonBody(req), aturan.batas);
   if (!p.ok) return tolak(res, p.kode);
   const now = new Date();
   const k = await muatKandidat(db, edisi.id, s.nim);
   const buka = gateOpen(await muatEvents(db, edisi.id), "daftar", now);
   // Registration is open, or Admin asked this candidate for a revision.
   if (!buka && k?.status !== "revision") return tolak(res, "jendela_tutup", 409);
-  if (!k && !DOC_REQUIRED.includes(p.kind)) return tolak(res, "format_salah");
+  if (!k && !aturan.required.includes(p.kind)) return tolak(res, "format_salah");
   if (k && ["withdrawn", "out", "accepted"].includes(k.status))
     return tolak(res, "status_salah", 409);
   if (!simpanSiap()) return tolak(res, "penyimpanan_mati", 503);
@@ -588,9 +593,10 @@ async function handleDaftar(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!bio.ok) return tolak(res, "data_salah", 400, { field: bio.field });
   const docs = Array.isArray(b.docs) ? b.docs : [];
   const jenis = docs.map((d: unknown) => (d as { kind?: unknown })?.kind);
+  const wajib = (await aturanDokumen(db)).required;
   if (
-    docs.length !== DOC_REQUIRED.length ||
-    DOC_REQUIRED.some((k) => !jenis.includes(k)) ||
+    docs.length !== wajib.length ||
+    wajib.some((k) => !jenis.includes(k)) ||
     new Set(jenis).size !== jenis.length
   )
     return tolak(res, "data_salah", 400, { field: "docs" });
@@ -767,8 +773,9 @@ async function handleTinjau(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!["applied", "revision", "approved"].includes(k.status))
     return tolak(res, "status_salah", 409);
   if (b.decision === "approve") {
-    const n = (await hitungDokumen(db, [k.id], DOC_REQUIRED)).get(k.id) ?? 0;
-    if (n < DOC_REQUIRED.length) return tolak(res, "berkas_kurang", 409);
+    const wajib = (await aturanDokumen(db)).required;
+    const n = (await hitungDokumen(db, [k.id], wajib)).get(k.id) ?? 0;
+    if (n < wajib.length) return tolak(res, "berkas_kurang", 409);
   }
   const status = b.decision === "approve" ? "approved" : "revision";
   await db

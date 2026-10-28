@@ -105,6 +105,7 @@ export const NS = {
     allStages: "Semua tahap",
     filterStage: "Saring tahap",
     openCutting: "Buka Cutting",
+    setDocs: "Atur Berkas",
     stages: {
       berkas: "Berkas",
       first_meet: "First Meet",
@@ -140,6 +141,7 @@ export const NS = {
     allStages: "Every stage",
     filterStage: "Filter stage",
     openCutting: "Open Cutting",
+    setDocs: "Set Documents",
     stages: {
       berkas: "Documents",
       first_meet: "First Meet",

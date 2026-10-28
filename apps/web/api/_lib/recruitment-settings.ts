@@ -21,6 +21,7 @@ import {
   settingRow,
   type SettingKey,
 } from "../../src/lib/recruitment/settings.js";
+import { DOC_MAX_BYTES, type DocKind } from "../../src/lib/recruitment/types.js";
 import { anggotaPanitia, muatPelaku } from "./recruitment-rights.js";
 
 type Db = ReturnType<typeof getDb>;
@@ -126,3 +127,24 @@ export const handleSettingReset = (
   db: Db,
   edisiId: number,
 ) => ubah(req, res, s, db, edisiId, true);
+
+/** The document rules the Ketua and Admin set (Atur Berkas), or the 2026 defaults. */
+export interface AturanDokumen {
+  /** Every document asked for, required or not */
+  semua: DocKind[];
+  required: DocKind[];
+  /** The largest PDF of a kind, in bytes */
+  batas(kind: DocKind): number;
+}
+
+export async function aturanDokumen(db: Db): Promise<AturanDokumen> {
+  const docs = await bacaSetting(db, "docs");
+  return {
+    semua: docs.map((d) => d.kind),
+    required: docs.filter((d) => d.required).map((d) => d.kind),
+    batas: (kind) => {
+      const d = docs.find((x) => x.kind === kind);
+      return d ? d.maxMb * 1024 * 1024 : DOC_MAX_BYTES;
+    },
+  };
+}

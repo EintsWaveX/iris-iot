@@ -40,7 +40,6 @@ import {
 import { alamatBagian } from "../../../lib/recruitment/panel-tab";
 import {
   CUT_STAGES,
-  DOC_REQUIRED,
   type CutStage,
   type EnvelopeOpenResponse,
   type EnvelopeView,
@@ -108,6 +107,7 @@ function Kartu404({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
   );
 }
 
+import { useDocRules } from "../../../lib/recruitment/doc-rules";
 export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
@@ -126,6 +126,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const rec = useRecMe(praktikan && !reveal);
   const cal = useRecCalendar(me !== undefined);
   const edisi = useRecEdition(me !== undefined);
+  const rules = useDocRules();
   const hariIni = useHariIni();
   const tick = useTick(30_000);
   const lebar = useMinWidth(1100);
@@ -303,7 +304,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   );
 
   const docsMasuk = rec.data
-    ? DOC_REQUIRED.filter((k) => rec.data!.documents.some((d) => d.kind === k)).length
+    ? rules.required.filter((k) => rec.data!.documents.some((d) => d.kind === k)).length
     : 0;
   const docsCard = applied && cand && rec.data && (
     <Kartu
@@ -313,15 +314,15 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         cand.status === "revision" ? (
           <span className="pill pill--danger">{`1 ${t.docs.fix}`}</span>
         ) : (
-          <span className="pill pill--ok">{`${docsMasuk}/${DOC_REQUIRED.length}`}</span>
+          <span className="pill pill--ok">{`${docsMasuk}/${rules.required.length}`}</span>
         )
       }
     >
       <ul className="rec-docs__list">
-        {DOC_REQUIRED.map((k) => (
+        {rules.required.map((k) => (
           <li key={k} data-bad={!rec.data!.documents.some((d) => d.kind === k) ? "yes" : undefined}>
             <i />
-            <span>{t.docs.kind[k]}</span>
+            <span>{rules.label(k, lang, t.docs.kind[k])}</span>
           </li>
         ))}
       </ul>
