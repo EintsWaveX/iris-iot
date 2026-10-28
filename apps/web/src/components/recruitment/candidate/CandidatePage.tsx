@@ -70,7 +70,6 @@ import type { NextText } from "../reveal/RevealStage";
 import { S2 } from "../s2Strings";
 import { Inbox, SealedHero, ThanksCard } from "./Envelopes";
 import { ChangeDialog, PickCard, PickDialog } from "./PilihJadwal";
-import Daftar from "./Daftar";
 import "../recruitment-b1.css";
 import CaasTools from "./CaasTools";
 import DocsDrawer from "./DocsDrawer";
@@ -133,7 +132,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const hariIni = useHariIni();
   const tick = useTick(30_000);
   const [view, setView] = useState<"bulan" | "agenda">("bulan");
-  const [daftar, setDaftar] = useState(false);
   const [docs, setDocs] = useState(false);
   const [mundur, setMundur] = useState(false);
   const [jadwalOpen, setJadwalOpen] = useState(false);
@@ -213,7 +211,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       return;
     }
     if (!praktikan || !rec.data) return;
-    if (d.daftar && buka && !cand) setDaftar(true);
     if (d.berkas && cand) setDocs(true);
     diminta.current = null;
   }, [me, akunSiap, tamu, asisten, praktikan, rec.data, buka, cand, lang]);
@@ -461,7 +458,9 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
                       : t.apply.closed}
           </b>
           {!asisten && (
-            <span className="hint">{withdrawn ? t.apply.hintWithdrawn : t.apply.hint}</span>
+            <span className="hint">
+              {withdrawn ? t.apply.hintWithdrawn : tamu ? t.apply.hint : t.apply.byPanitia}
+            </span>
           )}
         </div>
         {asisten ? (
@@ -474,7 +473,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
               <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
             </a>
           )
-        ) : withdrawn ? null : tamu ? (
+        ) : withdrawn || !tamu ? null : (
           <button
             type="button"
             className="btn btn--primary btn--lg"
@@ -482,18 +481,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           >
             <span className="btn__label">{t.apply.signIn}</span>
           </button>
-        ) : (
-          <span className="stack stack--sm rec-apply__btn">
-            <button
-              type="button"
-              className="btn btn--primary btn--lg"
-              disabled={!buka}
-              onClick={() => setDaftar(true)}
-            >
-              <span className="btn__label">{t.apply.now}</span>
-            </button>
-            {!buka && sebelum && <span className="hint">{t.apply.later}</span>}
-          </span>
         )}
       </section>
     ));
@@ -580,16 +567,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         {bar}
       </div>
 
-      {caas && (
-        <Daftar
-          lang={lang}
-          open={daftar}
-          onOpenChange={setDaftar}
-          me={caas}
-          closesOn={closesOn}
-          onApplied={rec.refresh}
-        />
-      )}
       {applied && cand && rec.data && (
         <DocsDrawer
           lang={lang}

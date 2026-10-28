@@ -182,7 +182,6 @@ export default function KalenderTab({
   return (
     <Kartu
       className="rec-calcard"
-      title={c.title}
       aside={
         <span className="row" style={{ gap: 8 }}>
           <SegmentedControl
@@ -202,6 +201,7 @@ export default function KalenderTab({
         </span>
       }
     >
+      <h2 className="visually-hidden">{c.title}</h2>
       <span className="hint rec-calcard__who">{canEdit ? c.canEdit : c.cannotEdit}</span>
       {view === "bulan" ? (
         <RecCalendar

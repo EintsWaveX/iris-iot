@@ -58,18 +58,10 @@ import { namaKandidat } from "./recruitment-akun.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
 import { cuttingFor } from "../../src/lib/recruitment/settings.js";
 
-/**
- * What the deck aims for at each Cutting (PRD 3, Targets). Berkas and Tes
- * Tulis come from the Cutting setting (Atur Titik Awal); the later two stay
- * fixed until their own Template.
- */
-const TARGET: Partial<Record<CutStage, { min: number; max: number }>> = {
-  tubes: { min: 30, max: 40 },
-  mengajar: { min: 20, max: 23 },
-};
+/** What the deck aims for at each Cutting: the editors' numbers (Atur Titik Awal), else PRD 3, Targets. */
 async function targetDari(db: Db, stage: CutStage): Promise<{ min: number; max: number } | null> {
   const c = cuttingFor(await bacaSetting(db, "cutting"), stage);
-  return c ? { min: c.targetMin, max: c.targetMax } : (TARGET[stage] ?? null);
+  return c ? { min: c.targetMin, max: c.targetMax } : null;
 }
 
 function tahapDari(v: unknown): CutStage | null {

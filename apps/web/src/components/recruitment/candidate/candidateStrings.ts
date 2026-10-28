@@ -20,6 +20,8 @@ export const CP = dict({
       hintWithdrawn: "Mundur itu final untuk edisi ini. Kalau ini salah, hubungi Panitia.",
       later: "Tombolnya aktif sendiri saat pendaftaran dibuka.",
       signIn: "Masuk atau Buat Akun",
+      byPanitia:
+        "Panitia menambahkan pendaftar dari isian Google Form. Hubungi Panitia kalau kamu sudah mengisi tetapi belum terdaftar.",
       now: "Daftar Sekarang",
       form: "Daftar lewat Google Form",
       formTitle: "Pendaftaran lewat Google Form",
@@ -131,6 +133,8 @@ export const CP = dict({
       hintWithdrawn: "Withdrawing is final for this edition. If that's a mistake, contact Panitia.",
       later: "The button turns on by itself when registration opens.",
       signIn: "Sign In or Create Account",
+      byPanitia:
+        "The Panitia add applicants from the Google Form entries. Contact the Panitia if you filled it in but are not registered.",
       now: "Apply Now",
       form: "Apply on Google Form",
       formTitle: "Registration is on Google Form",
@@ -241,6 +245,7 @@ export const CP = dict({
       hintWithdrawn: "退出后本届不能再报名。如果是误操作，请联系招募组。",
       later: "报名开放时，按钮会自动变成可用。",
       signIn: "登录或创建账号",
+      byPanitia: "委员会根据 Google 表单的填写内容添加报名者。如果你已填写但未登记,请联系委员会。",
       now: "立即报名",
       form: "通过 Google 表单报名",
       formTitle: "通过 Google 表单报名",

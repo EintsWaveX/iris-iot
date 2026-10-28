@@ -297,3 +297,48 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* Area colours on the Panitia tabs (mockup M4): Kalender teal, Papan pink. The page's own
+   --rec drives the eyebrow, today and the selected day; dark and light each get a legible pair. */
+.rec-page[data-area="kalender"] {
+  --rec: #5eead4;
+  --rec-ink: #04211d;
+  --rec-soft: rgba(94, 234, 212, 0.14);
+}
+:root[data-theme="light"] .rec-page[data-area="kalender"] {
+  --rec: #0f766e;
+  --rec-ink: #f0fdfa;
+  --rec-soft: rgba(15, 118, 110, 0.12);
+}
+.rec-page[data-area="panitia"] {
+  --rec: #f472b6;
+  --rec-ink: #2a0716;
+  --rec-soft: rgba(244, 114, 182, 0.14);
+}
+:root[data-theme="light"] .rec-page[data-area="panitia"] {
+  --rec: #be185d;
+  --rec-ink: #fff1f7;
+  --rec-soft: rgba(190, 24, 93, 0.12);
+}
+.rec-page[data-area="kalender"] .rec-calcard {
+  border-color: color-mix(in srgb, var(--rec) 35%, var(--hairline));
+}
+/* Papan: a tighter pool that never outgrows the screen, and columns that fit more on a laptop */
+.rec-page[data-area="panitia"] .rec-pool {
+  border-color: color-mix(in srgb, var(--rec) 35%, var(--hairline));
+}
+.rec-page[data-area="panitia"] .rec-pool__list {
+  max-height: clamp(160px, calc(100dvh - 380px), 440px);
+}
+.rec-page[data-area="panitia"] .rec-col {
+  padding: 12px 10px 10px;
+  gap: 8px;
+}
+.rec-page[data-area="panitia"] .rec-col__list {
+  gap: 5px;
+}
+@media (min-width: 1100px) {
+  .rec-page[data-area="panitia"] .rec-board[data-pool="yes"] {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+}

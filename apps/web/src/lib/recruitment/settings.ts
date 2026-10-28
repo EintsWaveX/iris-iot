@@ -71,7 +71,8 @@ export const ENVELOPE_KEYS = [
   "penerimaan",
 ] as const;
 export type EnvelopeKey = (typeof ENVELOPE_KEYS)[number];
-export const CUTTING_STAGES = ["berkas", "tes_tulis"] as const;
+export const CUTTING_STAGES = ["berkas", "tes_tulis", "tubes", "mengajar"] as const;
+export type CuttingStageKey = (typeof CUTTING_STAGES)[number];
 
 export interface SettingMap {
   docs: DocSetting[];
@@ -197,10 +198,12 @@ export function wordsFor(
 /** A line with `{nama}` filled in. */
 export const isiNama = (line: string, nama: string): string => line.replaceAll("{nama}", nama);
 
-/** The built-in start of each Cutting that has an edit surface (the 2026 numbers). */
+/** The built-in start of each Cutting (the 2026 numbers, PRD 3 Targets). Wawancara has no Cutting of its own here. */
 export const CUTTING_DEFAULT: Record<(typeof CUTTING_STAGES)[number], CuttingSetting> = {
   berkas: { top: 90, minScore: 0, targetMin: 80, targetMax: 100 },
   tes_tulis: { top: 60, minScore: 2000, targetMin: 60, targetMax: 80 },
+  tubes: { top: 35, minScore: 0, targetMin: 30, targetMax: 40 },
+  mengajar: { top: 21, minScore: 0, targetMin: 20, targetMax: 23 },
 };
 
 function checkCutting(v: unknown): SettingMap["cutting"] | null {

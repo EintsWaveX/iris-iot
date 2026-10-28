@@ -17,6 +17,7 @@ import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
 import {
   CUTTING_DEFAULT,
+  type CuttingStageKey,
   WORD_FIELDS,
   WORD_MAX,
   cuttingFor,
@@ -46,7 +47,12 @@ const T = {
       from: "Target dek, dari",
       to: "sampai",
       bad: "Batas bawah target tidak boleh lebih besar dari batas atasnya.",
-      stage: { berkas: "Seleksi Berkas", tes_tulis: "Tes Tulis dan Program" },
+      stage: {
+        berkas: "Seleksi Berkas",
+        tes_tulis: "Tes Tulis dan Program",
+        tubes: "Tubes",
+        mengajar: "Tes Mengajar",
+      },
       people: (n: number) => `${n} CaAs`,
       score: (n: number) => `${n} poin`,
       builtIn: "Bawaan",
@@ -71,6 +77,13 @@ const T = {
         wawancara: "Wawancara",
         tubes: "Tubes",
         mengajar: "Mengajar",
+        penerimaan: "Penerimaan",
+      },
+      acc: {
+        lolosTitle: "Heading untuk yang diterima",
+        lolosLine: "Kalimat untuk yang diterima",
+        gagalTitle: "Heading untuk yang tidak diterima",
+        gagalLine: "Kalimat untuk yang tidak diterima (tanpa alasan)",
       },
     },
   },
@@ -91,7 +104,12 @@ const T = {
       from: "Deck target, from",
       to: "to",
       bad: "The lower end of the target cannot be above the upper end.",
-      stage: { berkas: "Document Selection", tes_tulis: "Written Test and Program" },
+      stage: {
+        berkas: "Document Selection",
+        tes_tulis: "Written Test and Program",
+        tubes: "Project",
+        mengajar: "Teaching Test",
+      },
       people: (n: number) => `${n} CaAs`,
       score: (n: number) => `${n} pts`,
       builtIn: "Default",
@@ -116,12 +134,19 @@ const T = {
         wawancara: "Interview",
         tubes: "Project",
         mengajar: "Teaching",
+        penerimaan: "Acceptance",
+      },
+      acc: {
+        lolosTitle: "Heading for those accepted",
+        lolosLine: "Line for those accepted",
+        gagalTitle: "Heading for those not accepted",
+        gagalLine: "Line for those not accepted (no reason given)",
       },
     },
   },
 } as const;
 
-const ENVELOPES = ["berkas", "tulis", "wawancara", "tubes", "mengajar"] as const;
+const ENVELOPES = ["berkas", "tulis", "wawancara", "tubes", "mengajar", "penerimaan"] as const;
 type Envelope = (typeof ENVELOPES)[number];
 
 /* ------------------------------------------------------------ Atur Titik Awal */
@@ -141,13 +166,15 @@ export function AturTitikAwal({
 }) {
   const t = T[lang === "id" ? "id" : "en"];
   const s = t.start;
-  const [draft, setDraft] = useState<Record<"berkas" | "tes_tulis", CuttingSetting>>(() => ({
-    berkas: cuttingFor(value, "berkas")!,
-    tes_tulis: cuttingFor(value, "tes_tulis")!,
-  }));
+  const [draft, setDraft] = useState<Record<CuttingStageKey, CuttingSetting>>(
+    () =>
+      Object.fromEntries(
+        (Object.keys(CUTTING_DEFAULT) as CuttingStageKey[]).map((k) => [k, cuttingFor(value, k)!]),
+      ) as Record<CuttingStageKey, CuttingSetting>,
+  );
   const [busy, setBusy] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
-  const set = (k: keyof typeof draft, p: Partial<CuttingSetting>) =>
+  const set = (k: CuttingStageKey, p: Partial<CuttingSetting>) =>
     setDraft((d) => ({ ...d, [k]: { ...d[k], ...p } }));
 
   async function simpan() {
@@ -196,7 +223,7 @@ export function AturTitikAwal({
       }
     >
       <div className="stack">
-        {(Object.keys(draft) as (keyof typeof draft)[]).map((k) => (
+        {(Object.keys(draft) as CuttingStageKey[]).map((k) => (
           <section className="panel b6-start" key={k}>
             <h3 className="panel__title">{s.stage[k]}</h3>
             <div className="b6-start__grid">
@@ -402,7 +429,7 @@ export function UbahTeksAmplop({
           <div className="stack">
             {WORD_FIELDS.map((f) => (
               <label className="field" key={f}>
-                <span className="field__label">{w[f]}</span>
+                <span className="field__label">{env === "penerimaan" ? w.acc[f] : w[f]}</span>
                 {f.endsWith("Title") ? (
                   <input
                     className="field__input"

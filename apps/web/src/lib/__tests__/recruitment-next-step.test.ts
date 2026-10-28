@@ -35,6 +35,35 @@ describe("whereNow", () => {
   });
 });
 
+describe("after the gatherings", () => {
+  const all = ["kandidat", "kalender", "bank", "plotting", "panitia", "cutting", "tes"] as const;
+  it("marks First Meet over once its evening has ended, before the exam nights begin", () => {
+    expect(whereNow(events, at("2026-11-12")).over).toBe(false);
+    const w = whereNow(events, new Date("2026-11-14T10:00:00+07:00"));
+    expect(w).toMatchObject({ stage: "first_meet", over: true });
+    expect(nextSteps(w, "ketua", all).now.key).toBe("followPicking");
+    expect(nextSteps(w, "admin", all).now.key).toBe("markAbsent");
+    expect(nextSteps(w, "acara", all).now.key).toBe("prepTesNights");
+  });
+  it("keeps the First Meet steps while the evening is still on", () => {
+    const w = whereNow(events, new Date("2026-11-12T19:00:00+07:00"));
+    expect(w.over).toBe(false);
+    expect(nextSteps(w, "acara", all).now.key).toBe("runFirstMeet");
+  });
+  it("moves to Cutting once the exam nights have ended", () => {
+    const night = whereNow(events, new Date("2026-11-18T19:00:00+07:00"));
+    expect(nextSteps(night, "ketua", all).now.key).toBe("followNight");
+    const after = whereNow(events, new Date("2026-11-22T10:00:00+07:00"));
+    expect(after).toMatchObject({ stage: "tes_tulis", over: true });
+    expect(nextSteps(after, "ketua", all).now.key).toBe("lockCuttingTulis");
+    expect(nextSteps(after, "akademik", all).now.key).toBe("proposeCutTulis");
+  });
+  it("points at the Calendar once the Tes Tulis result is announced", () => {
+    const w = whereNow(events, new Date("2026-11-28T10:00:00+07:00"));
+    expect(nextSteps(w, "ketua", all).now.key).toBe("watchCalendar");
+  });
+});
+
 describe("nextSteps", () => {
   const all = ["kandidat", "kalender", "bank", "plotting", "panitia", "cutting", "tes"] as const;
   it("gives each division its own now step", () => {

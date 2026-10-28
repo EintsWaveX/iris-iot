@@ -7,7 +7,7 @@
  * Built for the stages up to and including the Tes Tulis. Later stages fall
  * back to a single step that points at the Kalender until their slice lands.
  */
-import { phaseOf, tanggalWib } from "./gates.js";
+import { eventEnded, phaseOf, tanggalWib } from "./gates.js";
 import type { PanelTab } from "./panel-tab.js";
 import { STAGES, type CommitteeDivision, type RecEvent, type StageKey } from "./types.js";
 
@@ -24,6 +24,7 @@ export type StepKey =
   | "addFromForm"
   | "tellFix"
   | "followReview"
+  | "followPicking"
   | "lockCuttingBerkas"
   | "plenoTulis"
   | "prepFirstMeet"
@@ -59,6 +60,22 @@ export interface Where {
   stage: StageKey | "daftar";
   /** The phase of that stage (gates.ts) */
   phase: ReturnType<typeof phaseOf>;
+  /**
+   * First Meet and Tes Tulis only: every gathering of the stage has ended
+   * (the First Meet evening, the exam nights), so the steps move on to what
+   * follows even though the next stage has not begun.
+   */
+  over?: boolean;
+}
+
+const GATHERING: Partial<Record<StageKey, RecEvent["kind"]>> = {
+  first_meet: "meeting",
+  tes_tulis: "test",
+};
+function selesai(events: readonly RecEvent[], stage: StageKey, now: Date): boolean {
+  const kind = GATHERING[stage];
+  const rows = events.filter((e) => e.stage === stage && e.kind === kind);
+  return rows.length > 0 && rows.every((e) => eventEnded(e, now));
 }
 
 /**
@@ -74,7 +91,7 @@ export function whereNow(events: readonly RecEvent[], now: Date): Where {
   for (const stage of STAGES) {
     const phase = phaseOf(events, stage, now);
     if (phase === "before") continue;
-    hasil = { stage, phase };
+    hasil = { stage, phase, over: selesai(events, stage, now) };
   }
   if (hasil.stage === "berkas" && hasil.phase === "open") return { stage: "daftar", phase: "open" };
   return hasil;
@@ -158,6 +175,52 @@ const FIRST_MEET: Table = {
     s("watchCalendar", "next", "kalender"),
   ],
 };
+/** First Meet is over and the exam nights have not begun. */
+const FIRST_MEET_OVER: Table = {
+  ketua: [
+    s("attendFirstMeet", "done", "kalender"),
+    s("followPicking", "now", "plotting"),
+    s("plenoTulis", "next", "kalender"),
+  ],
+  acara: [
+    s("runFirstMeet", "done", "kalender"),
+    s("prepTesNights", "now", "tes"),
+    s("watchCalendar", "next", "kalender"),
+  ],
+  akademik: [
+    s("lockBank", "now", "bank"),
+    s("rehearseNight", "next", "tes"),
+    s("setPlotting", "next", "plotting"),
+  ],
+  admin: [
+    s("recordFirstMeet", "done", "kalender"),
+    s("markAbsent", "now", "kalender"),
+    s("followPicking", "next", "plotting"),
+  ],
+};
+/** The exam nights have ended: grading, the makeup, Cutting and the announcement. */
+const TES_TULIS_OVER: Table = {
+  ketua: [
+    s("followNight", "done", "tes"),
+    s("lockCuttingTulis", "now", "cutting"),
+    s("announceTulis", "next", "kalender"),
+  ],
+  acara: [
+    s("runNight", "done", "tes"),
+    s("makeupTulis", "now", "kalender"),
+    s("watchCalendar", "next", "kalender"),
+  ],
+  akademik: [
+    s("superviseNight", "done", "tes"),
+    s("proposeCutTulis", "now", "cutting"),
+    s("watchCalendar", "next", "kalender"),
+  ],
+  admin: [
+    s("recordNight", "done", "tes"),
+    s("proposeCutTulis", "now", "cutting"),
+    s("sendEnvelope", "next", "cutting"),
+  ],
+};
 const TES_TULIS: Table = {
   ketua: [
     s("followNight", "now", "tes"),
@@ -197,9 +260,15 @@ export function nextSteps(
       : where.stage === "berkas"
         ? BERKAS
         : where.stage === "first_meet"
-          ? FIRST_MEET
+          ? where.over
+            ? FIRST_MEET_OVER
+            : FIRST_MEET
           : where.stage === "tes_tulis"
-            ? TES_TULIS
+            ? where.phase === "announced"
+              ? null
+              : where.over
+                ? TES_TULIS_OVER
+                : TES_TULIS
             : null;
   const list = (table?.[role] ?? LAIN).map((x) => ({
     ...x,

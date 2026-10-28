@@ -183,7 +183,8 @@ describe("the registry", () => {
     expect(SETTINGS.docs.check([DOCS_DEFAULT[0], DOCS_DEFAULT[0]])).toBeNull();
     const mulai = { top: 40, minScore: 1800, targetMin: 50, targetMax: 70 };
     expect(SETTINGS.cutting.check({ tes_tulis: mulai })).toEqual({ tes_tulis: mulai });
-    expect(SETTINGS.cutting.check({ tubes: mulai })).toBeNull();
+    expect(SETTINGS.cutting.check({ wawancara: mulai })).toBeNull();
+    expect(SETTINGS.cutting.check({ mengajar: mulai })).toEqual({ mengajar: mulai });
     expect(SETTINGS.cutting.check({ berkas: { ...mulai, top: 0 } })).toBeNull();
     expect(
       SETTINGS.cutting.check({ berkas: { ...mulai, targetMin: 90, targetMax: 80 } }),
@@ -205,12 +206,13 @@ describe("the registry", () => {
     expect(envelopeKey("first_meet")).toBeNull();
     expect(isiNama("Halo {nama}, {nama}!", "Sari")).toBe("Halo Sari, Sari!");
   });
-  it("starts a Cutting from the saved numbers, else the 2026 ones, and knows only two stages", () => {
+  it("starts a Cutting from the saved numbers, else the 2026 ones, and knows four stages", () => {
     expect(cuttingFor(undefined, "tes_tulis")).toEqual(CUTTING_DEFAULT.tes_tulis);
     const mulai = { top: 40, minScore: 1800, targetMin: 50, targetMax: 70 };
     expect(cuttingFor({ tes_tulis: mulai }, "tes_tulis")).toEqual(mulai);
     expect(cuttingFor({ tes_tulis: mulai }, "berkas")).toEqual(CUTTING_DEFAULT.berkas);
-    expect(cuttingFor({}, "tubes")).toBeNull();
+    expect(cuttingFor({}, "tubes")).toEqual(CUTTING_DEFAULT.tubes);
+    expect(cuttingFor({}, "wawancara")).toBeNull();
   });
   it("lets Ketua and Admin change the document list, Akademik not", () => {
     const seat = (division: string) => ({ penuh: false, kursi: { division } });
