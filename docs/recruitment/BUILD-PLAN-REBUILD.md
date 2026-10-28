@@ -47,7 +47,8 @@ Nothing is pushed or deployed without the user's go. Production migrations only 
 | B2 Kandidat: stage column, filter and Cutting link; centered sheet; Tambah CaAs for the Ketua and Admin seats | done, rig checked (rec_b2.mjs) | 036d6cfe |
 | B2 Atur Berkas (document list editable; server and every screen read it) | done, rig checked end to end (rec_b2b.mjs) | 6f08cae6 |
 | B3 CaAs page rebuilt (top envelope or next card, four tools, fogged journey) | done, `9f21fee6`. Calendar fogged in the API (`lib/recruitment/fog.ts`, applies to visitors, Praktikan and CaAs; Panitia see all). Top card is the sealed envelope or Berikutnya; tools Jadwalku, Berkasku, Amplop, Mundur open centered dialogs (Berkasku was a side drawer); journey stars past the next stage are "???". Checked at 390, 1280x720, 1280x600 and the QR landing signed in and out (`rec_b3.mjs`). Not done: the QR sign-in return after signing in was only looked at, not driven end to end | `rec_b3.mjs` all ok |
-| B4 to B6 | not started | |
+| B4 Berkas queue, First Meet attendance, QR wall | done. The Berkas review queue stays a side drawer (allowed) and already reads the editable document list (B2b). Attendance (Hari Ini, Kehadiran) is now a centered dialog; the QR wall names the stage (`qr-events` sends `stage`). QR wall and attendance only cover First Meet and Tes Tulis here; the later stages come with their slices. Nilai Berkas kept as is (no decision to drop it). Checked with `rec_b4.mjs` | `rec_b4.mjs` all ok |
+| B5 to B6 | not started | |
 | B7 Tes Tulis repatch (IoT out, Live Coding in C) | held until the design is agreed | |
 
 Known gaps: Ringkasan steps after First Meet are not date-aware (a step about an event that already ended still shows); `Daftar.tsx` (self sign-up, off while the Google Form is the way in) still uses the default document list and should go in the cleanup; the rig calendar has First Meet on 24 Oct, so rig screenshots show odd dates.

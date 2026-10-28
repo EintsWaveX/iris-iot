@@ -434,6 +434,8 @@ export interface EventLite {
   dayStart: string | null;
   dayEnd: string | null;
   place: string | null;
+  /** Only qr-events sets it: the QR wall names the stage it is taking attendance for */
+  stage?: StageKey | null;
 }
 
 /** GET banner: the Home banner, one shape per viewer. */

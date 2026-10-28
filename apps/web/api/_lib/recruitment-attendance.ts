@@ -204,6 +204,7 @@ export async function handleQrAcara(_req: ApiRequest, res: ApiResponse, s: Sessi
   for (const e of hidup)
     daftar.push({
       ...lite(e),
+      stage: e.stage,
       here: await hitungHadir(db, e.id),
       expected: (await muatDiharapkan(db, edisi.id, e, events, now)).length,
     });

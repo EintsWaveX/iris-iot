@@ -186,7 +186,9 @@ export default function QrWall({ lang }: { lang: Lang }) {
             </svg>
           </div>
           <div className="r2proj__info">
-            <span className="r2proj__eyebrow">{t.attendance}</span>
+            <span className="r2proj__eyebrow">
+              {aktif.stage ? `${t.attendance} · ${REC[lang].stage[aktif.stage]}` : t.attendance}
+            </span>
             <h1 className="r2proj__t">{judulAcara(aktif, lang)}</h1>
             <span className="r2proj__when">
               {kapanAcara(aktif, lang)}
