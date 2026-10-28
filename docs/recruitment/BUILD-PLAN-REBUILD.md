@@ -46,7 +46,7 @@ Nothing is pushed or deployed without the user's go. Production migrations only 
 | B1 Kalender and Papan Panitia | exist and work in the old look; restyle pending | n/a |
 | B2 Kandidat: stage column, filter and Cutting link; centered sheet; Tambah CaAs for the Ketua and Admin seats | done, rig checked (rec_b2.mjs) | 036d6cfe |
 | B2 Atur Berkas (document list editable; server and every screen read it) | done, rig checked end to end (rec_b2b.mjs) | 6f08cae6 |
-| B3 CaAs page rebuilt (top envelope or next card, four tools, fogged journey) | next. The envelope hold already exists server side (`standing(..., {seen})`). Still to build: API-side fog of later stages in `calendar` and `envelopes` for a candidate, the new layout, phone 390 and the QR sign-in check | |
+| B3 CaAs page rebuilt (top envelope or next card, four tools, fogged journey) | done, `9f21fee6`. Calendar fogged in the API (`lib/recruitment/fog.ts`, applies to visitors, Praktikan and CaAs; Panitia see all). Top card is the sealed envelope or Berikutnya; tools Jadwalku, Berkasku, Amplop, Mundur open centered dialogs (Berkasku was a side drawer); journey stars past the next stage are "???". Checked at 390, 1280x720, 1280x600 and the QR landing signed in and out (`rec_b3.mjs`). Not done: the QR sign-in return after signing in was only looked at, not driven end to end | `rec_b3.mjs` all ok |
 | B4 to B6 | not started | |
 | B7 Tes Tulis repatch (IoT out, Live Coding in C) | held until the design is agreed | |
 
