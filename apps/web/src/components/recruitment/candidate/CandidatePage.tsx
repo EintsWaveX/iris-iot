@@ -16,7 +16,6 @@ import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
 import SegmentedControl from "../../ui/SegmentedControl";
 import { href, useMe } from "../../../lib/app";
-import { useMinWidth } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
 import {
   bukaAkun,
@@ -28,6 +27,7 @@ import {
   useRecMe,
   useRecSlots,
 } from "../../../lib/recruitment/client";
+import { fogLimit } from "../../../lib/recruitment/fog";
 import { useRevealClock } from "../../../lib/recruitment/reveal-clock";
 import { pickEvent, pickWindow } from "../../../lib/recruitment/slots";
 import {
@@ -70,6 +70,8 @@ import { S2 } from "../s2Strings";
 import { Inbox, SealedHero, ThanksCard } from "./Envelopes";
 import { ChangeDialog, PickCard, PickDialog } from "./PilihJadwal";
 import Daftar from "./Daftar";
+import "../recruitment-b1.css";
+import CaasTools from "./CaasTools";
 import DocsDrawer from "./DocsDrawer";
 import Journey from "./Journey";
 import { CP } from "./candidateStrings";
@@ -129,11 +131,12 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const rules = useDocRules();
   const hariIni = useHariIni();
   const tick = useTick(30_000);
-  const lebar = useMinWidth(1100);
   const [view, setView] = useState<"bulan" | "agenda">("bulan");
   const [daftar, setDaftar] = useState(false);
   const [docs, setDocs] = useState(false);
   const [mundur, setMundur] = useState(false);
+  const [jadwalOpen, setJadwalOpen] = useState(false);
+  const [amplopOpen, setAmplopOpen] = useState(false);
   const diminta = useRef<{ daftar: boolean; berkas: boolean; masuk: boolean } | null>(null);
   const [pickStage, setPickStage] = useState<StageKey | null>(null);
   const [chgStage, setChgStage] = useState<StageKey | null>(null);
@@ -306,35 +309,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const docsMasuk = rec.data
     ? rules.required.filter((k) => rec.data!.documents.some((d) => d.kind === k)).length
     : 0;
-  const docsCard = applied && cand && rec.data && (
-    <Kartu
-      title={t.docs.title}
-      className="rec-docs"
-      aside={
-        cand.status === "revision" ? (
-          <span className="pill pill--danger">{`1 ${t.docs.fix}`}</span>
-        ) : (
-          <span className="pill pill--ok">{`${docsMasuk}/${rules.required.length}`}</span>
-        )
-      }
-    >
-      <ul className="rec-docs__list">
-        {rules.required.map((k) => (
-          <li key={k} data-bad={!rec.data!.documents.some((d) => d.kind === k) ? "yes" : undefined}>
-            <i />
-            <span>{rules.label(k, lang, t.docs.kind[k])}</span>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        className={`btn btn--block ${cand.status === "revision" ? "btn--primary" : ""}`.trim()}
-        onClick={() => setDocs(true)}
-      >
-        {cand.status === "revision" ? t.docs.fixBtn : t.docs.see}
-      </button>
-    </Kartu>
-  );
 
   // ---- envelopes and Pilih Jadwal (S2)
   const envs = rec.data?.envelopes ?? [];
@@ -377,45 +351,32 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       onOpen={setReveal}
     />
   );
+  const pickable =
+    praktikan && slots.data
+      ? slots.data.stages.filter((sd) => {
+          const prev = GERBANG[sd.window.stage];
+          // Picking stays hidden until the envelope that unlocks it is opened: no spoilers.
+          return !prev || envs.some((e) => e.stage === prev && e.opened && e.result === "lolos");
+        })
+      : [];
+  const perluPilih = pickable.filter((sd) => sd.window.open && !sd.mine);
   const pickCards =
     praktikan && slots.data
-      ? slots.data.stages
-          .filter((sd) => {
-            const prev = GERBANG[sd.window.stage];
-            // Picking stays hidden until the envelope that unlocks it is opened: no spoilers.
-            return !prev || envs.some((e) => e.stage === prev && e.opened && e.result === "lolos");
-          })
-          .map((sd) => (
-            <PickCard
-              key={sd.window.stage}
-              lang={lang}
-              tahap={r.stage[sd.window.stage]}
-              data={sd}
-              onPick={() => setPickStage(sd.window.stage)}
-              onChange={() => setChgStage(sd.window.stage)}
-              onChanged={() => {
-                slots.refresh();
-                rec.refresh();
-              }}
-            />
-          ))
+      ? pickable.map((sd) => (
+          <PickCard
+            key={sd.window.stage}
+            lang={lang}
+            tahap={r.stage[sd.window.stage]}
+            data={sd}
+            onPick={() => setPickStage(sd.window.stage)}
+            onChange={() => setChgStage(sd.window.stage)}
+            onChanged={() => {
+              slots.refresh();
+              rec.refresh();
+            }}
+          />
+        ))
       : null;
-  const pengumuman = events.find((e) => e.kind === "announcement" && e.stage === "berkas");
-  const envCard = praktikan && !applied && (
-    <Kartu title={t.env.title} className="rec-env">
-      <div className="rec-env__empty">
-        <span className="rec-env__seal" aria-hidden="true" />
-        <span className="hint">
-          {applied
-            ? pengumuman
-              ? t.env.empty(kapanAcara(pengumuman, lang))
-              : t.env.emptyNoDate
-            : t.env.before}
-        </span>
-      </div>
-    </Kartu>
-  );
-
   // ---- the main column
   const revisi = cand?.status === "revision" && (
     <div className="rec-note rec-note--warn">
@@ -544,6 +505,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         lang={lang}
         hariIni={hariIni}
         out={out}
+        sampai={asisten ? undefined : fogLimit(applied && cand ? cand : null) + 1}
       />
     </Kartu>
   );
@@ -563,37 +525,54 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         badge={applied && cand ? <StatusPill status={cand.status} lang={lang} lg /> : undefined}
         lede={lede}
       />
-      <div className="rec-caas">
-        <div className="stack stack--lg rec-caas__main">
-          {!lebar && nextCard}
-          {revisi}
-          {cta}
-          <TestDoor lang={lang} enabled={praktikan && applied} />
-          {sealedEnv && (
-            <SealedHero
-              lang={lang}
-              stage={sealedEnv.stage}
-              motion={motion}
-              onOpen={() => setReveal(sealedEnv)}
-            />
-          )}
-          {stageOut && <ThanksCard lang={lang} stage={stageOut} />}
-          {pickCards}
-          {!lebar && inbox}
-          {journey}
-          {bar}
-        </div>
-        <aside className="stack rec-caas__side">
-          {lebar && nextCard}
-          {lebar && inbox}
-          {docsCard}
-          {envCard}
-          {applied && (
-            <button type="button" className="rec-quit" onClick={() => setMundur(true)}>
-              {t.withdraw.link}
+      <div className="b3-page">
+        {revisi}
+        {cta}
+        <TestDoor lang={lang} enabled={praktikan && applied} />
+        {sealedEnv ? (
+          <SealedHero
+            lang={lang}
+            stage={sealedEnv.stage}
+            motion={motion}
+            onOpen={() => setReveal(sealedEnv)}
+          />
+        ) : (
+          nextCard
+        )}
+        {stageOut && <ThanksCard lang={lang} stage={stageOut} />}
+        {praktikan && applied && perluPilih.length > 0 && (
+          <div className="rec-note b3-nudge">
+            <b>{S2[lang].pick.eyebrow(r.stage[perluPilih[0].window.stage])}</b>
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              onClick={() => setJadwalOpen(true)}
+            >
+              <span className="btn__label">{t.tools.pick}</span>
             </button>
-          )}
-        </aside>
+          </div>
+        )}
+        {praktikan && applied && cand && rec.data && (
+          <CaasTools
+            lang={lang}
+            jadwal={{
+              open: perluPilih.length,
+              picked: pickable.filter((sd) => sd.mine).length,
+            }}
+            berkas={{
+              fix: cand.status === "revision",
+              have: docsMasuk,
+              need: rules.required.length,
+            }}
+            amplop={{ sealed: envs.filter((e) => !e.opened).length, total: envs.length }}
+            onJadwal={() => setJadwalOpen(true)}
+            onBerkas={() => setDocs(true)}
+            onAmplop={() => setAmplopOpen(true)}
+            onMundur={() => setMundur(true)}
+          />
+        )}
+        {journey}
+        {bar}
       </div>
 
       {caas && (
@@ -679,6 +658,31 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           }}
         />
       )}
+      <Dialog
+        open={jadwalOpen}
+        onOpenChange={setJadwalOpen}
+        title={t.tools.jadwalTitle}
+        description={t.tools.jadwalDesc}
+        size="lg"
+        lang={lang}
+      >
+        <div className="stack">
+          {pickCards && pickCards.length ? (
+            pickCards
+          ) : (
+            <span className="hint">{t.tools.jadwalNone}</span>
+          )}
+        </div>
+      </Dialog>
+      <Dialog
+        open={amplopOpen}
+        onOpenChange={setAmplopOpen}
+        title={t.tools.amplopTitle}
+        size="lg"
+        lang={lang}
+      >
+        {inbox}
+      </Dialog>
       <Dialog
         open={mundur}
         onOpenChange={setMundur}

@@ -42,6 +42,7 @@ export const CP = dict({
       ariaDone: "selesai",
       ariaCur: "tahapmu sekarang",
       ariaNext: "belum",
+      ariaFog: "masih tertutup kabut",
       list: "Tahapan",
       date: "Tanggalnya diumumkan Panitia.",
       none: "Tanggalnya belum ditentukan.",
@@ -91,6 +92,13 @@ export const CP = dict({
       emptyNoDate:
         "Hasil tiap tahap datang sebagai amplop tersegel di sini. Kamu sendiri yang membukanya.",
       before: "Setelah mendaftar, hasil tiap tahap datang sebagai amplop tersegel di sini.",
+    },
+    tools: {
+      pick: "Pilih Jadwal",
+      jadwalTitle: "Jadwalku",
+      jadwalDesc: "Pilih slot, lihat pilihanmu, atau minta ganti.",
+      jadwalNone: "Belum ada jadwal yang bisa kamu pilih sekarang.",
+      amplopTitle: "Amplop",
     },
     withdraw: {
       link: "Mundur dari rekrutmen",
@@ -145,6 +153,7 @@ export const CP = dict({
       ariaDone: "done",
       ariaCur: "your stage now",
       ariaNext: "not yet",
+      ariaFog: "still under mist",
       list: "Stages",
       date: "Panitia will announce the date.",
       none: "The dates aren't set yet.",
@@ -193,6 +202,13 @@ export const CP = dict({
         `Each stage's result arrives here as a sealed envelope. The first: ${when}. You open it yourself.`,
       emptyNoDate: "Each stage's result arrives here as a sealed envelope. You open it yourself.",
       before: "Once you apply, each stage's result arrives here as a sealed envelope.",
+    },
+    tools: {
+      pick: "Pick a Slot",
+      jadwalTitle: "My Schedule",
+      jadwalDesc: "Pick a slot, see your choice, or ask to change it.",
+      jadwalNone: "No slot is open for you to pick right now.",
+      amplopTitle: "Envelopes",
     },
     withdraw: {
       link: "Withdraw from recruitment",
@@ -247,6 +263,7 @@ export const CP = dict({
       ariaDone: "已完成",
       ariaCur: "你现在的阶段",
       ariaNext: "还没到",
+      ariaFog: "仍在迷雾中",
       list: "各阶段",
       date: "日期会由招募组公布。",
       none: "日期还没有确定。",
@@ -295,6 +312,13 @@ export const CP = dict({
         `每个阶段的结果会以密封信封的形式出现在这里。第一封：${when}。由你自己打开。`,
       emptyNoDate: "每个阶段的结果会以密封信封的形式出现在这里。由你自己打开。",
       before: "报名之后，每个阶段的结果会以密封信封的形式出现在这里。",
+    },
+    tools: {
+      pick: "选择时间",
+      jadwalTitle: "我的时间表",
+      jadwalDesc: "选择时间段,查看你的选择,或申请更改。",
+      jadwalNone: "现在没有可选的时间段。",
+      amplopTitle: "信封",
     },
     withdraw: {
       link: "退出招募",

@@ -69,6 +69,7 @@ import {
 } from "../../src/lib/schema.js";
 import { susunBanner, lite, type BannerViewer } from "../../src/lib/recruitment/banner.js";
 import { gateOpen, tahapSudahMulai, visibleEvents } from "../../src/lib/recruitment/gates.js";
+import { fogEvents, fogLimit } from "../../src/lib/recruitment/fog.js";
 import { cekBiodata, cekEvent, cekNimRek, cekTanggal } from "../../src/lib/recruitment/validate.js";
 import {
   CANDIDATE_STATUS,
@@ -322,10 +323,17 @@ async function handleKalender(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   const o = s?.role === "asisten" ? null : await sesiOprec(req, db);
   const { viewer } = await kenali(db, edisi, s, o);
   const events = await muatEvents(db, edisi.id);
+  let tampil = visibleEvents(events, viewer);
+  // The fog: a CaAs (or a visitor) gets the dates up to the next stage, never the rest.
+  if (viewer.kind === "visitor" || viewer.kind === "praktikan" || viewer.kind === "candidate") {
+    const k = o ? await muatKandidat(db, edisi.id, o.nim) : null;
+    const lihat = k ? await muatStanding(db, events, k, new Date(), true) : null;
+    tampil = fogEvents(tampil, fogLimit(lihat), viewer.ownEventIds ?? []);
+  }
   res.status(200).json({
     ok: true,
     edition: edisi,
-    events: visibleEvents(events, viewer),
+    events: tampil,
     now: new Date().toISOString(),
   });
 }

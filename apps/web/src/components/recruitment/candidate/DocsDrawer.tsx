@@ -7,7 +7,7 @@
  */
 import { useRef, useState } from "react";
 import { FilePdfIcon } from "@phosphor-icons/react";
-import Drawer from "../../ui/Drawer";
+import Dialog from "../../ui/Dialog";
 import { tanggalPanjang } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recPost } from "../../../lib/recruitment/client";
@@ -96,14 +96,13 @@ export default function DocsDrawer({
   };
 
   return (
-    <Drawer
+    <Dialog
       open={open}
       onOpenChange={onOpenChange}
       title={t.drawerTitle}
       description={fix ? t.drawerSubFix : canReplace ? t.drawerSub : t.drawerSubLocked}
-      storeKey="rec-docs"
-      closeLabel={t.closeLabel}
-      resizeLabel={t.resizeLabel}
+      size="lg"
+      lang={lang}
     >
       <div className="stack">
         <input
@@ -174,6 +173,6 @@ export default function DocsDrawer({
           );
         })}
       </div>
-    </Drawer>
+    </Dialog>
   );
 }
