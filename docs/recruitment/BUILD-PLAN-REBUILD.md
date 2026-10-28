@@ -37,3 +37,17 @@ Wawancara, Tubes, Mengajar, Penerimaan; the Latihan sandbox; Mandarin for the ne
 
 ## Gates (unchanged)
 Nothing is pushed or deployed without the user's go. Production migrations only after a `pg_dump` and the user's go. No credentials in code. Stage commits explicitly; keep `apps/web/src/lib/db.ts` and `apps/web/public/rig-test/` out.
+
+## Progress (28 Oct 2026, branch `oprec-rebuild`, local only, nothing pushed)
+| Slice | State | Commit |
+|---|---|---|
+| B0 editable settings (docs, envelope wording, Cutting start; roles, audit; no migration, uses `pengaturan`) | done, 9 tests, rig checked | f024ef55 |
+| B1 Ringkasan (next step per division and stage from the calendar, funnel from real counts) | done, 9 tests, screenshots at 1280x720, 1440x900, 1680x1050, 1280x600 dark and light | 46987230 |
+| B1 Kalender and Papan Panitia | exist and work in the old look; restyle pending | n/a |
+| B2 Kandidat: stage column, filter and Cutting link; centered sheet; Tambah CaAs for the Ketua and Admin seats | done, rig checked (rec_b2.mjs) | 036d6cfe |
+| B2 Atur Berkas (document list editable; server and every screen read it) | done, rig checked end to end (rec_b2b.mjs) | 6f08cae6 |
+| B3 CaAs page rebuilt (top envelope or next card, four tools, fogged journey) | next. The envelope hold already exists server side (`standing(..., {seen})`). Still to build: API-side fog of later stages in `calendar` and `envelopes` for a candidate, the new layout, phone 390 and the QR sign-in check | |
+| B4 to B6 | not started | |
+| B7 Tes Tulis repatch (IoT out, Live Coding in C) | held until the design is agreed | |
+
+Known gaps: Ringkasan steps after First Meet are not date-aware (a step about an event that already ended still shows); `Daftar.tsx` (self sign-up, off while the Google Form is the way in) still uses the default document list and should go in the cleanup; the rig calendar has First Meet on 24 Oct, so rig screenshots show odd dates.
