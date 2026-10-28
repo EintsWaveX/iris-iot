@@ -38,6 +38,8 @@
  * POST /api/recruitment/seat         { nim, division, isKoor?, title? }
  * POST /api/recruitment/unseat       { nim }
  * POST /api/recruitment/visibility   { hidden }  Sembunyikan Oprec (api/_lib/recruitment-sembunyi.ts)
+ * GET  /api/recruitment/settings     editable settings (docs, envelope wording, Cutting start)
+ * POST /api/recruitment/setting-save | setting-reset   { key, value? }  by role (api/_lib/recruitment-settings.ts)
  * POST /api/recruitment/account-reset { nim }  forget an oprec password (approve right)
  *
  * hakPenuh, while the Google Form is the way in (api/_lib/recruitment-tambah.ts):
@@ -122,6 +124,11 @@ import {
   periksaBerkas,
 } from "../_lib/recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah, urlBaca } from "../_lib/tp-simpan.js";
+import {
+  handleSettingReset,
+  handleSettingSave,
+  handleSettings,
+} from "../_lib/recruitment-settings.js";
 import {
   bolehSembunyikan,
   handleTampil,
@@ -1102,6 +1109,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "qr-events") return handleQrAcara(req, res, s);
     if (aksi === "qr-token") return handleQrToken(req, res, s);
     if (aksi === "attendance") return handleKehadiran(req, res, s);
+    if (aksi === "settings") {
+      const e = await wajibEdisi(res, getDb());
+      return e ? handleSettings(req, res, s, getDb(), e.id) : undefined;
+    }
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
   if (!requireMethod(req, res, "POST")) return;
@@ -1121,6 +1132,18 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "visibility") {
     const e = await wajibEdisi(res, getDb());
     return e ? handleTampil(req, res, s, getDb(), e.id) : undefined;
+  }
+  if (aksi === "setting-save" || aksi === "setting-reset") {
+    if (!requireMethod(req, res, "POST")) return;
+    const e = await wajibEdisi(res, getDb());
+    if (!e) return;
+    return (aksi === "setting-save" ? handleSettingSave : handleSettingReset)(
+      req,
+      res,
+      s,
+      getDb(),
+      e.id,
+    );
   }
   if (aksi === "account-reset") return handleResetAkun(req, res, s);
   if (aksi === "candidate-add") return handleTambahKandidat(req, res, s);
