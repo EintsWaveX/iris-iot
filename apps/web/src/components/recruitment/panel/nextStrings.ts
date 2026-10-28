@@ -101,6 +101,10 @@ export const NS = {
     here: "di tahap ini",
     cut: "gugur",
     notYet: "belum",
+    stageCol: "Tahap",
+    allStages: "Semua tahap",
+    filterStage: "Saring tahap",
+    openCutting: "Buka Cutting",
     stages: {
       berkas: "Berkas",
       first_meet: "First Meet",
@@ -132,6 +136,10 @@ export const NS = {
     here: "in this stage",
     cut: "cut",
     notYet: "not yet",
+    stageCol: "Stage",
+    allStages: "Every stage",
+    filterStage: "Filter stage",
+    openCutting: "Open Cutting",
     stages: {
       berkas: "Documents",
       first_meet: "First Meet",

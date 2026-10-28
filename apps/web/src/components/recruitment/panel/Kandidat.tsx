@@ -15,7 +15,6 @@
  */
 import { useEffect, useState } from "react";
 import Dialog from "../../ui/Dialog";
-import Drawer from "../../ui/Drawer";
 import Dropdown from "../../ui/Dropdown";
 import Pill from "../../ui/Pill";
 import { tanggalPanjang } from "../../../lib/app";
@@ -25,6 +24,7 @@ import { tanggalWib } from "../../../lib/recruitment/gates";
 import {
   CANDIDATE_STATUS,
   DOC_REQUIRED,
+  STAGES,
   type CandidateDetailResponse,
   type CandidateRow,
   type RecRights,
@@ -33,6 +33,8 @@ import {
 import { CP } from "../candidate/candidateStrings";
 import { REC } from "../recruitmentStrings";
 import { StatusPill } from "../shared";
+import { NS } from "./nextStrings";
+import { bukaBagian } from "../../../lib/recruitment/panel-tab";
 import { PN } from "./panelStrings";
 import AkunCek from "./kandidat/AkunCek";
 import TambahCaAs, { BerkasPanitia } from "./kandidat/TambahCaAs";
@@ -105,16 +107,14 @@ function Lembar({
   const c = d && d !== "gagal" ? d.candidate : null;
   const boleh = rights.approve && !!c && ["applied", "revision", "approved"].includes(c.status);
   return (
-    <Drawer
+    <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
       title={c?.nama ?? "…"}
       description={c ? t.sheetSub(c.nim, c.kelas ?? "-", String(c.angkatan ?? "-")) : undefined}
-      storeKey="rec-kandidat"
-      minWidth={420}
-      closeLabel={t.sheetClose}
-      resizeLabel={t.resize}
-      foot={
+      size="lg"
+      lang={lang}
+      actions={
         boleh ? (
           <>
             <button
@@ -319,7 +319,36 @@ function Lembar({
           </div>
         </Dialog>
       )}
-    </Drawer>
+    </Dialog>
+  );
+}
+
+/** The stage a CaAs is in; with the Cutting right it links to that stage's Cutting tab (no scoring here). */
+function TahapSel({
+  stage,
+  label,
+  cutting,
+  open,
+}: {
+  stage: CandidateRow["stage"];
+  label: string;
+  cutting: boolean;
+  open: string;
+}) {
+  const adaCutting = cutting && (stage === "berkas" || stage === "tes_tulis");
+  if (!adaCutting) return <span>{label}</span>;
+  return (
+    <button
+      type="button"
+      className="btn btn--ghost btn--sm"
+      title={open}
+      onClick={(e) => {
+        e.stopPropagation();
+        bukaBagian("cutting");
+      }}
+    >
+      <span className="btn__label">{label}</span>
+    </button>
   );
 }
 
@@ -340,6 +369,8 @@ export default function Kandidat({
   const r = REC[lang];
   const [q, setQ] = useState("");
   const [f, setF] = useState("semua");
+  const [tahap, setTahap] = useState("semua");
+  const ns = NS[lang === "id" ? "id" : "en"];
   const [sel, setSel] = useState<number | null>(null);
   const [tambah, setTambah] = useState(false);
   const canAdd = useRecEdition().data?.canAdd === true;
@@ -347,6 +378,7 @@ export default function Kandidat({
   const list = rows.filter(
     (c) =>
       (f === "semua" || c.status === f) &&
+      (tahap === "semua" || c.stage === tahap) &&
       (!cari || `${c.nama} ${c.nim}`.toLowerCase().includes(cari)),
   );
   return (
@@ -372,6 +404,17 @@ export default function Kandidat({
             ...SHOWN.map((s) => ({ value: s, label: r.status[s] })),
           ]}
         />
+        <Dropdown
+          id="rec-kandidat-tahap"
+          label={ns.filterStage}
+          hideLabel
+          value={tahap}
+          onChange={setTahap}
+          options={[
+            { value: "semua", label: ns.allStages },
+            ...STAGES.map((s) => ({ value: s, label: ns.stages[s] })),
+          ]}
+        />
         <span className="grow" />
         <span className="hint num">{t.count(list.length, rows.length)}</span>
         {canAdd && (
@@ -394,6 +437,7 @@ export default function Kandidat({
                   <th>{t.year}</th>
                   <th>{t.docs}</th>
                   <th>{t.applied}</th>
+                  <th>{ns.stageCol}</th>
                   <th>{t.status}</th>
                 </tr>
               </thead>
@@ -416,6 +460,14 @@ export default function Kandidat({
                     </td>
                     <td className="hint">{pendek(c.appliedAt, lang)}</td>
                     <td>
+                      <TahapSel
+                        stage={c.stage}
+                        label={ns.stages[c.stage]}
+                        cutting={rights.cuttingPropose}
+                        open={ns.openCutting}
+                      />
+                    </td>
+                    <td>
                       <StatusPill status={c.status} lang={lang} />
                     </td>
                   </tr>
@@ -432,7 +484,7 @@ export default function Kandidat({
                 <span className="stack" style={{ gap: 0, minWidth: 0 }}>
                   <b>{c.nama}</b>
                   <span className="hint mono">
-                    {c.nim} · {c.kelas ?? "-"}
+                    {c.nim} · {c.kelas ?? "-"} · {ns.stages[c.stage]}
                   </span>
                 </span>
                 <StatusPill status={c.status} lang={lang} />

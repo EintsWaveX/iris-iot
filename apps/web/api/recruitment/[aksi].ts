@@ -308,7 +308,7 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     ...(s?.role === "asisten" && {
       hidden: await oprecTersembunyi(db),
       canHide: bolehSembunyikan(pelaku),
-      canAdd: !!pelaku?.penuh,
+      canAdd: !!pelaku && (pelaku.penuh || pelaku.hak.documents),
     }),
   });
 }

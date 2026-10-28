@@ -42,7 +42,10 @@ function rahasia(): string {
 /** The kinds the Panitia may upload for a candidate: the form's list. */
 const JENIS_PANITIA = [...DOC_REQUIRED, ...DOC_OPTIONAL];
 
-/** hakPenuh on the live edition, or a 403 written here. */
+/**
+ * Who may add and correct a CaAs by hand (user, 2026-10-28): the Ketua and
+ * Admin seats (the documents right) and hakPenuh. Otherwise a 403 written here.
+ */
 async function wajibPenuh(
   res: ApiResponse,
   db: Db,
@@ -50,7 +53,7 @@ async function wajibPenuh(
   s: SessionPayload,
 ): Promise<PelakuServer | null> {
   const p = await muatPelaku(db, edisiId, s.nim);
-  if (p?.penuh) return p;
+  if (p && (p.penuh || p.hak.documents)) return p;
   tolak(res, "tanpa_hak", 403);
   return null;
 }

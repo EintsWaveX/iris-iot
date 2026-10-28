@@ -201,9 +201,9 @@ describe("the form's answers", () => {
 describe("candidate-add", () => {
   const body = { nim: NIM, nama: "Sari Dewi", sandi: "rahasia12", biodata: BIODATA };
 
-  it("is for the Pencipta and the Admin tier only, not the Ketua's seat", async () => {
+  it("is for the Ketua and Admin seats and hakPenuh, not other divisions", async () => {
     antrean.asisten = [[orang("asisten")]];
-    rows.committee = [{ division: "ketua", isKoor: false, title: null }];
+    rows.committee = [{ division: "logistik", isKoor: false, title: null }];
     const r = await panggil("POST", "candidate-add", { body, cookie: asistenCookie() });
     expect(r.code).toBe(403);
     expect(tulis).toHaveLength(0);
@@ -311,9 +311,9 @@ describe("the Panitia's uploads", () => {
     });
     expect(lama.body.kode).toBe("format_salah");
   });
-  it("are refused to anyone below hakPenuh", async () => {
+  it("are refused to a division without the documents right", async () => {
     antrean.asisten = [[orang("asisten")]];
-    rows.committee = [{ division: "admin", isKoor: false, title: null }];
+    rows.committee = [{ division: "acara", isKoor: false, title: null }];
     const r = await panggil("POST", "candidate-ticket", {
       body: { id: 3, kind: "ktm", ukuran: 2048, sha256: SHA },
       cookie: asistenCookie(),
@@ -376,13 +376,19 @@ describe("while the Google Form is the way in", () => {
     expect(r.body.kode).toBe("daftar_lewat_formulir");
     expect(r.body.url).toMatch(/^https:\/\/forms\.gle\//);
   });
-  it("the edition tells hakPenuh it may add, and nobody else", async () => {
+  it("the edition tells hakPenuh, the Ketua and the Admin seat it may add, nobody else", async () => {
     antrean.asisten = [[orang("admin")]];
     rows.committee = [];
     const a = await panggil("GET", "edition", { cookie: asistenCookie() });
     expect(a.body.canAdd).toBe(true);
+    for (const division of ["ketua", "admin"]) {
+      antrean.asisten = [[orang("asisten")]];
+      rows.committee = [{ division, isKoor: false, title: null }];
+      const k = await panggil("GET", "edition", { cookie: asistenCookie() });
+      expect(k.body.canAdd).toBe(true);
+    }
     antrean.asisten = [[orang("asisten")]];
-    rows.committee = [{ division: "admin", isKoor: false, title: null }];
+    rows.committee = [{ division: "acara", isKoor: false, title: null }];
     const b = await panggil("GET", "edition", { cookie: asistenCookie() });
     expect(b.body.canAdd).toBe(false);
   });
