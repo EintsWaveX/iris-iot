@@ -1,0 +1,27 @@
+import { open, elShot } from "./lib8.mjs";
+const t = await open({ H: 1100 });
+const { p, errs, go, all, shot, click, has } = t;
+const log = [];
+const ok = async (name, fn) => { const e0 = errs.length; let r; try { r = await fn(); } catch (e) { r = "EXC " + String(e.message).split("\n")[0]; } const bad = r === false || (typeof r === "string" && r.startsWith("EXC")); log.push([bad ? "FAIL" : "ok", name, typeof r === "string" ? r : ""]); if (errs.length > e0) log.push(["ERR", name, errs.slice(e0).join(" || ")]); };
+// solo default
+await go("r5-tubes", { r5Bag: "kumpul", r5Waktu: "tutup", r5Tim: "solo" });
+let rowsSolo;
+await ok("solo submissions: 32 rows", async () => { rowsSolo = await p.locator(".r5tab tbody tr").count(); return rowsSolo === 32 ? "32" : `rows ${rowsSolo}`; });
+await go("r5-tubes", { r5Bag: "kumpul", r5Waktu: "tutup", r5Tim: "tim" });
+await ok("team submissions: one row per team (11)", async () => { const n = await p.locator(".r5tab tbody tr").count(); await shot("t-kumpul-tim"); return n === 11 ? "11" : `rows ${n}`; });
+await ok("team note + Kelompok label", async () => has("Mode kelompok", "Kelompok 1"));
+await go("r5-tubes", { r5Bag: "presentasi", r5Waktu: "selesai", r5Tim: "tim", r5Sub: "urutan" });
+await ok("team Presentasi: order lists teams", async () => { await shot("t-urutan-tim"); const a = await all(); return a.includes("Kelompok 1"); });
+await go("r5-nilai", { r1Role: "akademik", r5Tim: "tim" });
+await ok("team Penilaian: rows are teams", async () => { await shot("t-nilai-tim"); const a = await all(); return a.includes("Kelompok"); });
+await go("r5-nilai", { r1Role: "akademik", r5Tim: "solo" });
+await ok("solo Penilaian: no Kelompok", async () => { const a = await all(); return !a.includes("Kelompok 1"); });
+await go("n7-cutting", { r1Role: "ketua", n7CutTahap: "tubes", r5Tim: "tim" });
+await ok("Cutting Tubes in team mode: Kelompok on rows", async () => { await shot("t-cut-tim"); const a = await all(); return a.includes("Kelompok"); });
+await go("r5-lembar", { r1Role: "akademik", r5Tim: "tim", r5Lembar: "kosong" });
+await ok("team sheet opens", async () => { await shot("t-lembar-tim"); return true; });
+await go("r5-caas", { r5Tim: "tim", r5Kumpul: "sebagian" });
+await ok("candidate Tubes card team note", async () => { await shot("t-caas-tim"); return has("satu pengumpulan untuk Kelompok"); });
+console.log(log.map((x) => x.join(" | ")).join("\n"));
+console.log("errors:", errs.length, errs.slice(0, 5));
+await t.b.close();

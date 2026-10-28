@@ -1,0 +1,31 @@
+import { open } from "./lib8.mjs";
+const t = await open({ W: 430, H: 900 });
+const { p, errs, go, click } = t;
+await p.evaluate(() => P9.set({ width: 390 }));
+const probe = () => {
+  const app = document.querySelector(".app") || document.querySelector(".dev__scroll");
+  const lim = Math.round(app.getBoundingClientRect().right) + 1;
+  const off = [];
+  const scrollable = (e) => { for (let x = e.parentElement; x && x !== app; x = x.parentElement) { const o = getComputedStyle(x).overflowX; if ((o === "auto" || o === "scroll" || o === "hidden") && x.scrollWidth > x.clientWidth) return true; } return false; };
+  for (const e of document.querySelectorAll(".app *, .dialog *, .drawer *")) { const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue; if (r.right > lim + 1 && !scrollable(e)) off.push(String(e.className).slice(0, 30) + ":" + e.tagName + ":" + Math.round(r.right - lim)); }
+  return { sw: app.scrollWidth, cw: app.clientWidth, n: off.length, off: off.slice(0, 4) };
+};
+const out = [];
+const chk = async (name) => { await p.waitForTimeout(400); const r = await p.evaluate(probe); out.push([r.n || r.sw > r.cw + 1 ? "OFF" : "ok", name, JSON.stringify(r)]); };
+const w = async (screen, v, name, act) => { await go(screen, v); await p.evaluate(() => P9.set({ width: 390 })); await p.waitForTimeout(300); if (act) await act(); await chk(name); };
+await w("r8-final", { r1Role: "ketua", r8Final: "tinjau" }, "r8 tinjau");
+await w("r8-tutup", { r1Role: "ketua", r8Tutup: "pratutup" }, "r8 tutup pra");
+await w("r8-tutup", { r1Role: "ketua", r8Tutup: "otomatis" }, "r8 tutup otomatis");
+await w("r6-plot", { n7Bag: "slot" }, "r6 slot (PJ card)");
+await w("r6-plot", { n7Bag: "papan" }, "r6 papan (Susulan)");
+await w("r6-plot", { n7Bag: "papan" }, "r6 catat dialog", async () => { await click("^Catat Jawaban$"); });
+await w("r6-slotku", { r1Role: "akademik" }, "r6 slotku PJ");
+await w("r6-template", { r1Role: "akademik" }, "r6 template");
+await w("r1-panel", { r1Role: "ketua", r1Tab: "kandidat", r1Hari: "tulis" }, "kandidat late");
+await w("r1-panel", { r1Role: "admin", r1Tab: "kandidat", r1Hari: "daftar" }, "atur berkas dialog", async () => { await click("^Atur Berkas$"); });
+await w("r5-tubes", { r5Bag: "kumpul", r5Waktu: "tutup", r5Tim: "tim" }, "tubes team kumpul");
+await w("n7-cutting", { r1Role: "ketua", n7CutTahap: "mengajar" }, "words dialog", async () => { await click("Ubah Teks Amplop"); });
+await w("n7-cutting", { r1Role: "ketua", n7CutTahap: "tes" }, "cut defaults dialog", async () => { await p.click("button[aria-label*='titik awal']"); });
+console.log(out.map((x) => x.join(" | ")).join("\n"));
+console.log("errors", errs.length, errs.slice(0, 3));
+await t.b.close();
