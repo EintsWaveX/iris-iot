@@ -121,6 +121,8 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             rights={rights}
             candidates={cand.data?.candidates ?? null}
             seats={kom.data ? kom.data.seats.length : null}
+            division={seat ? seat.division : null}
+            tabs={tabs}
           />
         ) : tab === "kalender" ? (
           <KalenderTab
