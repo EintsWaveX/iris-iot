@@ -28,6 +28,7 @@ import {
   useRecSlots,
 } from "../../../lib/recruitment/client";
 import { fogLimit } from "../../../lib/recruitment/fog";
+import { wordsFor } from "../../../lib/recruitment/settings";
 import { useRevealClock } from "../../../lib/recruitment/reveal-clock";
 import { pickEvent, pickWindow } from "../../../lib/recruitment/slots";
 import {
@@ -348,7 +349,11 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       events={events}
       hariIni={hariIni}
       motion={motion}
-      onOpen={setReveal}
+      onOpen={(e) => {
+        // The reveal has its own full screen: the dialog the inbox sits in steps aside first.
+        setAmplopOpen(false);
+        setReveal(e);
+      }}
     />
   );
   const pickable =
@@ -604,6 +609,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
             name={caas.nama.split(" ")[0]}
             result={reveal.opened ? reveal.result : null}
             through={reveal.through}
+            words={wordsFor(rec.data?.words, reveal.stage, lang === "id" ? "id" : "en")}
             open={async () => {
               const res = await recPost<EnvelopeOpenResponse>("envelope-open", {
                 stage: reveal.stage,

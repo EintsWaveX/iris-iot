@@ -248,3 +248,52 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* Cutting edit dialogs (B6) */
+.b6-start {
+  display: grid;
+  gap: 12px;
+}
+.b6-start__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+.b6-words {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .b6-words {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.b6-words__pre {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.b6-words__card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-1);
+}
+.b6-words__card[data-r="lolos"] {
+  border-color: color-mix(in srgb, var(--ok) 50%, var(--hairline));
+}
+.b6-words__card[data-r="gagal"] {
+  border-color: color-mix(in srgb, var(--violet) 50%, var(--hairline));
+}
+.b6-words__card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

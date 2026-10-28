@@ -10,7 +10,7 @@
  * Events (Kalender), slots (Plotting), the exam parts config and the bank
  * already have their own edit surfaces; this registry holds the rest.
  */
-import { DOC_KINDS, type CommitteeDivision, type DocKind } from "./types.js";
+import type { CommitteeDivision, DocKind } from "./types.js";
 
 export const SETTING_PREFIX = "rec_cfg_";
 
@@ -26,20 +26,50 @@ export interface DocSetting {
   maxMb: number;
 }
 
-/** One envelope's wording: a title and a body, in both languages. */
-export interface WordSetting {
-  id: { title: string; body: string };
-  en: { title: string; body: string };
+/**
+ * One envelope's wording in one language: the heading and the line for a CaAs
+ * who passed and for one who did not. A missing field keeps the built-in text.
+ * `{nama}` in a line becomes the CaAs's first name.
+ */
+export interface WordSide {
+  lolosTitle?: string;
+  lolosLine?: string;
+  gagalTitle?: string;
+  gagalLine?: string;
 }
+export interface WordSetting {
+  id?: WordSide;
+  en?: WordSide;
+}
+export const WORD_FIELDS = ["lolosTitle", "lolosLine", "gagalTitle", "gagalLine"] as const;
+export type WordField = (typeof WORD_FIELDS)[number];
+/** The longest heading and line an editor may write. */
+export const WORD_MAX: Record<WordField, number> = {
+  lolosTitle: 60,
+  lolosLine: 400,
+  gagalTitle: 60,
+  gagalLine: 400,
+};
 
-/** Where the Cutting starts and how many the deck aims for, per stage. */
+/**
+ * Where a Cutting starts: the Top N and the minimum score the threshold card
+ * opens on, and the range of CaAs the deck aims to pass (PRD 3, Targets).
+ */
 export interface CuttingSetting {
   top: number;
-  min: number;
-  target: number;
+  minScore: number;
+  targetMin: number;
+  targetMax: number;
 }
 
-export const ENVELOPE_KEYS = ["berkas", "tulis", "wawancara", "tubes", "mengajar"] as const;
+export const ENVELOPE_KEYS = [
+  "berkas",
+  "tulis",
+  "wawancara",
+  "tubes",
+  "mengajar",
+  "penerimaan",
+] as const;
 export type EnvelopeKey = (typeof ENVELOPE_KEYS)[number];
 export const CUTTING_STAGES = ["berkas", "tes_tulis"] as const;
 
@@ -117,22 +147,61 @@ function checkDocs(v: unknown): DocSetting[] | null {
   return out;
 }
 
+function checkSide(s: unknown): WordSide | null {
+  if (!isObj(s)) return null;
+  const out: WordSide = {};
+  for (const [k, v] of Object.entries(s)) {
+    if (!(WORD_FIELDS as readonly string[]).includes(k)) return null;
+    const t = txt(v, WORD_MAX[k as WordField]);
+    if (t === null) return null;
+    out[k as WordField] = t;
+  }
+  return out;
+}
+
 function checkWords(v: unknown): SettingMap["words"] | null {
   if (!isObj(v)) return null;
   const out: SettingMap["words"] = {};
   for (const [k, w] of Object.entries(v)) {
     if (!(ENVELOPE_KEYS as readonly string[]).includes(k) || !isObj(w)) return null;
-    const side = (s: unknown) =>
-      isObj(s) && txt(s.title, 80) && txt(s.body, 600)
-        ? { title: txt(s.title, 80)!, body: txt(s.body, 600)! }
-        : null;
-    const id = side(w.id);
-    const en = side(w.en);
-    if (!id || !en) return null;
-    out[k as EnvelopeKey] = { id, en };
+    const entry: WordSetting = {};
+    for (const lang of ["id", "en"] as const) {
+      if (w[lang] === undefined) continue;
+      const side = checkSide(w[lang]);
+      if (!side) return null;
+      if (Object.keys(side).length) entry[lang] = side;
+    }
+    if (entry.id || entry.en) out[k as EnvelopeKey] = entry;
   }
   return out;
 }
+
+/** The setting key of a stage's envelope (the Written Test is "tulis"). */
+export const envelopeKey = (stage: string): EnvelopeKey | null =>
+  stage === "tes_tulis"
+    ? "tulis"
+    : (ENVELOPE_KEYS as readonly string[]).includes(stage)
+      ? (stage as EnvelopeKey)
+      : null;
+
+/** The wording the editors set for one stage's envelope in one language; empty where the built-in text stands. */
+export function wordsFor(
+  words: SettingMap["words"] | undefined,
+  stage: string,
+  lang: "id" | "en",
+): WordSide {
+  const k = envelopeKey(stage);
+  return (k && words?.[k]?.[lang]) || {};
+}
+
+/** A line with `{nama}` filled in. */
+export const isiNama = (line: string, nama: string): string => line.replaceAll("{nama}", nama);
+
+/** The built-in start of each Cutting that has an edit surface (the 2026 numbers). */
+export const CUTTING_DEFAULT: Record<(typeof CUTTING_STAGES)[number], CuttingSetting> = {
+  berkas: { top: 90, minScore: 0, targetMin: 80, targetMax: 100 },
+  tes_tulis: { top: 60, minScore: 2000, targetMin: 60, targetMax: 80 },
+};
 
 function checkCutting(v: unknown): SettingMap["cutting"] | null {
   if (!isObj(v)) return null;
@@ -140,12 +209,24 @@ function checkCutting(v: unknown): SettingMap["cutting"] | null {
   for (const [stage, c] of Object.entries(v)) {
     if (!(CUTTING_STAGES as readonly string[]).includes(stage) || !isObj(c)) return null;
     const top = int(c.top, 1, 500);
-    const min = int(c.min, 0, 100);
-    const target = int(c.target, 1, 500);
-    if (top === null || min === null || target === null) return null;
-    out[stage] = { top, min, target };
+    const minScore = int(c.minScore, 0, 4000);
+    const targetMin = int(c.targetMin, 1, 500);
+    const targetMax = int(c.targetMax, 1, 500);
+    if (top === null || minScore === null || targetMin === null || targetMax === null) return null;
+    if (targetMin > targetMax) return null;
+    out[stage] = { top, minScore, targetMin, targetMax };
   }
   return out;
+}
+
+/** The start of one Cutting: what the editors set, or the built-in numbers; null where a stage has none. */
+export function cuttingFor(
+  map: SettingMap["cutting"] | undefined,
+  stage: string,
+): CuttingSetting | null {
+  if (!(CUTTING_STAGES as readonly string[]).includes(stage)) return null;
+  const k = stage as (typeof CUTTING_STAGES)[number];
+  return map?.[k] ?? CUTTING_DEFAULT[k];
 }
 
 export const SETTINGS: { [K in SettingKey]: SettingDef<K> } = {

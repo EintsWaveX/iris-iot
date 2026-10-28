@@ -20,7 +20,16 @@ import {
 } from "../../src/lib/schema";
 import { EVENT_SEED } from "../../src/lib/recruitment/seed";
 import { createSessionCookie } from "../../src/lib/auth";
-import { SETTINGS, DOCS_DEFAULT, bolehUbah } from "../../src/lib/recruitment/settings";
+import {
+  SETTINGS,
+  DOCS_DEFAULT,
+  bolehUbah,
+  cuttingFor,
+  CUTTING_DEFAULT,
+  envelopeKey,
+  isiNama,
+  wordsFor,
+} from "../../src/lib/recruitment/settings";
 
 type Rows = Record<string, unknown[] | unknown[][]>;
 const tabelNama = new Map<unknown, string>([
@@ -172,16 +181,36 @@ describe("the registry", () => {
     expect(SETTINGS.docs.check([])).toBeNull();
     expect(SETTINGS.docs.check([{ ...DOCS_DEFAULT[0], maxMb: 99 }])).toBeNull();
     expect(SETTINGS.docs.check([DOCS_DEFAULT[0], DOCS_DEFAULT[0]])).toBeNull();
-    expect(SETTINGS.cutting.check({ tes_tulis: { top: 40, min: 50, target: 30 } })).toEqual({
-      tes_tulis: { top: 40, min: 50, target: 30 },
-    });
-    expect(SETTINGS.cutting.check({ tubes: { top: 1, min: 1, target: 1 } })).toBeNull();
-    expect(SETTINGS.cutting.check({ berkas: { top: 0, min: 1, target: 1 } })).toBeNull();
+    const mulai = { top: 40, minScore: 1800, targetMin: 50, targetMax: 70 };
+    expect(SETTINGS.cutting.check({ tes_tulis: mulai })).toEqual({ tes_tulis: mulai });
+    expect(SETTINGS.cutting.check({ tubes: mulai })).toBeNull();
+    expect(SETTINGS.cutting.check({ berkas: { ...mulai, top: 0 } })).toBeNull();
     expect(
-      SETTINGS.words.check({
-        berkas: { id: { title: "", body: "x" }, en: { title: "a", body: "b" } },
-      }),
+      SETTINGS.cutting.check({ berkas: { ...mulai, targetMin: 90, targetMax: 80 } }),
     ).toBeNull();
+    expect(SETTINGS.words.check({ berkas: { id: { lolosTitle: "" } } })).toBeNull();
+    expect(SETTINGS.words.check({ berkas: { id: { sebut: "x" } } })).toBeNull();
+    expect(SETTINGS.words.check({ salah: { id: { lolosTitle: "x" } } })).toBeNull();
+  });
+  it("keeps only the wording an editor wrote, and says which envelope it is for", () => {
+    const w = SETTINGS.words.check({
+      tulis: { id: { lolosTitle: "Mantap!", gagalLine: "Sampai jumpa, {nama}." }, en: {} },
+    });
+    expect(w).toEqual({
+      tulis: { id: { lolosTitle: "Mantap!", gagalLine: "Sampai jumpa, {nama}." } },
+    });
+    expect(wordsFor(w!, "tes_tulis", "id").lolosTitle).toBe("Mantap!");
+    expect(wordsFor(w!, "tes_tulis", "en")).toEqual({});
+    expect(wordsFor(w!, "berkas", "id")).toEqual({});
+    expect(envelopeKey("first_meet")).toBeNull();
+    expect(isiNama("Halo {nama}, {nama}!", "Sari")).toBe("Halo Sari, Sari!");
+  });
+  it("starts a Cutting from the saved numbers, else the 2026 ones, and knows only two stages", () => {
+    expect(cuttingFor(undefined, "tes_tulis")).toEqual(CUTTING_DEFAULT.tes_tulis);
+    const mulai = { top: 40, minScore: 1800, targetMin: 50, targetMax: 70 };
+    expect(cuttingFor({ tes_tulis: mulai }, "tes_tulis")).toEqual(mulai);
+    expect(cuttingFor({ tes_tulis: mulai }, "berkas")).toEqual(CUTTING_DEFAULT.berkas);
+    expect(cuttingFor({}, "tubes")).toBeNull();
   });
   it("lets Ketua and Admin change the document list, Akademik not", () => {
     const seat = (division: string) => ({ penuh: false, kursi: { division } });
@@ -212,7 +241,7 @@ describe("settings", () => {
   it("saves a Cutting start for Akademik and audits before and after", async () => {
     antrean.asisten = [[orang("asisten")]];
     rows.committee = [{ division: "akademik", isKoor: false, title: null }];
-    const value = { tes_tulis: { top: 40, min: 50, target: 30 } };
+    const value = { tes_tulis: { top: 40, minScore: 1800, targetMin: 30, targetMax: 50 } };
     const r = await panggil("POST", "setting-save", {
       body: { key: "cutting", value },
       cookie: asistenCookie(),

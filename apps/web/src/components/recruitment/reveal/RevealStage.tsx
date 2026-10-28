@@ -25,6 +25,7 @@ import IconButton from "../../ui/IconButton";
 import type { Lang } from "../../../lib/kelas";
 import { setSound, usePrefs } from "../../../lib/prefs";
 import type { EventLite, Proposal, StageKey } from "../../../lib/recruitment/types";
+import { isiNama, type WordSide } from "../../../lib/recruitment/settings";
 import { S2 } from "../s2Strings";
 import { burst, chime, makeShooter, useRevealMotion, type MotionLevel } from "./fx";
 
@@ -45,6 +46,8 @@ export interface RevealProps {
   result: RevealResult | null;
   /** What they got through (Gagal copy) */
   through: StageKey[];
+  /** The wording the editors set for this envelope (Ubah Teks Amplop); empty keeps the built-in text */
+  words?: WordSide;
   /** The server's answer once the envelope is opened: the result and the next event */
   open: () => Promise<{ result: Proposal; next: EventLite | null } | null>;
   describeNext: (next: EventLite | null) => NextText | null;
@@ -524,6 +527,7 @@ export default function RevealStage(p: RevealProps) {
               stage={p.stage}
               res={res}
               name={p.name}
+              words={p.words}
               next={next}
               through={p.through}
               onClose={p.onClose}
@@ -549,6 +553,7 @@ function ResultBody({
   stage,
   res,
   name,
+  words,
   next,
   through,
   onClose,
@@ -558,6 +563,7 @@ function ResultBody({
   stage: StageKey;
   res: RevealResult;
   name: string;
+  words?: WordSide;
   next: NextText | null;
   through: StageKey[];
   onClose: () => void;
@@ -572,10 +578,14 @@ function ResultBody({
         {t.eyebrow[stage]}
       </span>
       <h2 className="r2res__title" data-r2-copy>
-        {gag ? t.gagalTitle : t.lolosTitle}
+        {(gag ? words?.gagalTitle : words?.lolosTitle) ?? (gag ? t.gagalTitle : t.lolosTitle)}
       </h2>
       <p className="r2res__line" data-r2-copy>
-        {gag ? t.gagalLine(name) : t.lolosLine(name)}
+        {(gag ? words?.gagalLine : words?.lolosLine)
+          ? isiNama((gag ? words?.gagalLine : words?.lolosLine)!, name)
+          : gag
+            ? t.gagalLine(name)
+            : t.lolosLine(name)}
       </p>
       {!gag && next && (
         <div className="r2res__next" data-r2-copy>

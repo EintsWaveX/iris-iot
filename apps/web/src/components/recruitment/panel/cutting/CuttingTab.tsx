@@ -19,7 +19,7 @@ import Popover from "../../../ui/Popover";
 import SegmentedControl from "../../../ui/SegmentedControl";
 import { useMinWidth } from "../../../../lib/hooks";
 import type { Lang } from "../../../../lib/kelas";
-import { isFail, recPost, useRecCut } from "../../../../lib/recruitment/client";
+import { isFail, recPost, useRecCut, useRecSettings } from "../../../../lib/recruitment/client";
 import { thresholdProposals, type Ambang, type CutRow } from "../../../../lib/recruitment/cutting";
 import { tanggalWib } from "../../../../lib/recruitment/gates";
 import {
@@ -32,7 +32,10 @@ import {
   type RecEvent,
   type RecRights,
 } from "../../../../lib/recruitment/types";
+import { cuttingFor, type SettingMap } from "../../../../lib/recruitment/settings";
 import { S2 } from "../../s2Strings";
+import "../../recruitment-b1.css";
+import { AturTitikAwal, UbahTeksAmplop } from "./CutSettings";
 import { Countdown, tgl } from "../../shared";
 
 const waktu = (iso: string, lang: Lang) => {
@@ -313,6 +316,21 @@ export default function CuttingTab({
   const [mode, setMode] = useState<"top" | "min">("top");
   const [n, setN] = useState(60);
   const [minS, setMinS] = useState(2000);
+  // The editors' starting point (Atur Titik Awal) seeds the sliders; the stage's own numbers when it has none.
+  const cfg = useRecSettings(true);
+  const cfgOf = (key: string) => cfg.data?.settings.find((x) => x.key === key);
+  const mulai = cuttingFor(
+    cfgOf("cutting")?.value as SettingMap["cutting"] | undefined,
+    pilih ?? "",
+  );
+  const bisaAtur = cfgOf("cutting")?.canEdit === true;
+  const [atur, setAtur] = useState(false);
+  const [teks, setTeks] = useState(false);
+  useEffect(() => {
+    if (!mulai) return;
+    setN(mulai.top);
+    setMinS(mulai.minScore);
+  }, [pilih, mulai?.top, mulai?.minScore]);
   const [absFail, setAbsFail] = useState(true);
   const [timpa, setTimpa] = useState(false);
   const [buka, setBuka] = useState(false);
@@ -450,6 +468,20 @@ export default function CuttingTab({
         options={aktif.map((s) => ({ value: s, label: t.stageName[s] }))}
       />
       <span className="hint r2cut__later">{t.later}</span>
+      {bisaAtur && (
+        <span className="row" style={{ gap: 8, marginLeft: "auto" }}>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAtur(true)}>
+            <span className="btn__label">
+              {lang === "id" ? "Atur Titik Awal" : "Set Starting Point"}
+            </span>
+          </button>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTeks(true)}>
+            <span className="btn__label">
+              {lang === "id" ? "Ubah Teks Amplop" : "Edit Envelope Wording"}
+            </span>
+          </button>
+        </span>
+      )}
     </div>
   );
 
@@ -864,11 +896,39 @@ export default function CuttingTab({
     </section>
   );
 
+  // Mounted only while open, so each opening starts from what is saved now.
+  const dialogs = (
+    <>
+      {atur && (
+        <AturTitikAwal
+          lang={lang}
+          open
+          onOpenChange={setAtur}
+          value={cfgOf("cutting")?.value as SettingMap["cutting"] | undefined}
+          onSaved={() => {
+            cfg.refresh();
+            board.refresh();
+          }}
+        />
+      )}
+      {teks && (
+        <UbahTeksAmplop
+          lang={lang}
+          open
+          onOpenChange={setTeks}
+          value={cfgOf("words")?.value as SettingMap["words"] | undefined}
+          onSaved={cfg.refresh}
+        />
+      )}
+    </>
+  );
+
   if (!d)
     return (
       <div className="stack">
         {head}
         <span className="skeleton" style={{ height: 320 }} />
+        {dialogs}
       </div>
     );
   return (
@@ -900,6 +960,7 @@ export default function CuttingTab({
           board.refresh();
         }}
       />
+      {dialogs}
     </div>
   );
 }

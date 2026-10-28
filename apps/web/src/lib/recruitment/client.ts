@@ -12,6 +12,7 @@ import { usePoll, usePollBersama } from "../hooks";
 import type { Topik } from "../siaran";
 import type {
   AccountResponse,
+  SettingsResponse,
   AttendanceResponse,
   BannerResponse,
   CalendarResponse,
@@ -116,6 +117,11 @@ export function useRecBanner(enabled = true) {
 
 export function useRecEdition(enabled = true) {
   return usePoll(() => leaf(recGet<EditionResponse>("edition")), 300_000, enabled, TOPIK_EDISI);
+}
+
+/** The editable settings (Panitia only); refresh() after saving one. */
+export function useRecSettings(enabled = true) {
+  return usePoll(() => leaf(recGet<SettingsResponse>("settings")), 300_000, enabled, TOPIK_EDISI);
 }
 
 export function useRecCalendar(enabled = true) {

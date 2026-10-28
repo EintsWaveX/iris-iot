@@ -368,6 +368,7 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
     envelopes: amplop.envelopes,
     pending: amplop.pending,
     daftarOpen: gateOpen(events, "daftar", now),
+    words: await bacaSetting(db, "words"),
     now: now.toISOString(),
   });
 }

@@ -7,7 +7,7 @@
  * section 2. Where this file adds to the architecture, the reason is in
  * docs/recruitment/prompts/handoffs/02.md.
  */
-import type { DocSetting } from "./settings.js";
+import type { DocSetting, SettingMap } from "./settings.js";
 
 /* ------------------------------------------------------------ vocabulary */
 
@@ -409,6 +409,24 @@ export interface AccountResetResponse {
   klaim: string;
 }
 
+/** GET settings: every editable setting, for a Panitia member. */
+export interface SettingView {
+  key: "docs" | "words" | "cutting";
+  label: { id: string; en: string };
+  value: unknown;
+  default: unknown;
+  /** True when a row was saved; false means the built-in default stands */
+  custom: boolean;
+  by: string | null;
+  at: string | null;
+  roles: CommitteeDivision[];
+  canEdit: boolean;
+}
+export interface SettingsResponse {
+  ok: true;
+  settings: SettingView[];
+}
+
 export interface MeResponse {
   ok: true;
   edition: EditionInfo | null;
@@ -421,6 +439,8 @@ export interface MeResponse {
   pending: { stage: CutStage; revealAt: string }[];
   /** Whether Daftar is open right now (the server's own gate check) */
   daftarOpen: boolean;
+  /** The envelope wording the editors changed (Ubah Teks Amplop); an envelope not listed keeps the built-in text */
+  words?: SettingMap["words"];
   /** Server clock, ISO: the envelope timer counts from it, never from the device clock */
   now: string;
 }
