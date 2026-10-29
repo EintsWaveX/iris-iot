@@ -23,7 +23,7 @@ About 39k lines of UI in `src/components/recruitment`, 12k lines in `src/lib/rec
 | B4 | Berkas review queue (side drawer), First Meet attendance, QR wall (stage aware), CaAs sign-in from QR (`hadir`) | Phone 390 mandatory for the CaAs scan |
 | B5 | Pilih Jadwal (CaAs), Plotting (Slot, Permintaan, Papan) for the Tes Tulis evenings | Windows, capacities, cutoff editable |
 | B6 | Cutting for Berkas and Tes Tulis, Ubah Teks Amplop, Atur Titik Awal, envelope reveal | |
-| B7 | Tes Tulis: Malam Ujian console, Bank Soal, check-in, runner | **Held** until the repatch design is agreed |
+| B7 | Tes Tulis: Malam Ujian console, Bank Soal, check-in, runner (C Live Coding, judge on the lab PC) | **In progress**: design agreed 29 Oct, B7.0 mockup redrawn and waiting for sign-off; no app code until then |
 
 ## Held: Tes Tulis repatch (user, 28 Oct 19:09)
 Ruling (28 Oct 19:11): the Tes Tulis scheme stays as it is; only the IoT topics are dropped and Live Coding is C only. The lab PC is working fine (not down), so it can host the C judge.
@@ -31,6 +31,11 @@ Ruling (28 Oct 19:11): the Tes Tulis scheme stays as it is; only the IoT topics 
 Drop every IoT topic. Formal coding only. Live Coding is C only, written from scratch, LeetCode/Codeforces style, problems easy enough for weaker CaAs; the more problems solved, the higher the score. Open design questions are in the chat and get recorded here once answered.
 
 Likely removals once agreed: protocol spin (BLE, HTTP/WebSocket, MQTT), ESP32 flashing, Web Serial and Bluetooth panels, the ws and mqtt gateways for the exam, the hotspot and device references, the IoT questions of the seed bank. The mockup screens `r3-putar`, `r3-lc`, `r3-soal`, `n7-malam` and `n7-bank` must be redrawn first (a new mockup version, then user sign-off).
+
+## B7 design (agreed 29 Oct 2026)
+Written part (logic, fill in, code tracing, all C, arrays the only data structure) plus Live Coding in C, both on the lab PC; the phone is only for sign-in. 15 + 15 + 15 + 60 minutes of a 120 minute budget, about 30 PCs, several nights with seats per room. Live Coding: pool of 8 C problems (4 easy, 4 medium), 5 drawn per CaAs (3 easy, 2 medium), stdin to stdout, hidden tests, partial credit per test, best submission per problem, no penalty, unlimited runs (a limit stays an optional setting). Score total stays 0 to 4000, weights editable by Akademik (default written 40, Live Coding 60). Written marking is automatic with Akademik override. Judge: extend the existing PC agent (`Downloads/IRIS ASO/pc/agent`, gcc under bubblewrap, same heartbeat and queue plumbing as `kompilasi.py`); old IoT tables stay dormant, new C tables only. Rule for every sign-in: an Asisten can sign a CaAs in by hand when the QR does not work (`handleHadirManual`, widen the role gate to the room's pengawas).
+
+B7.0 (done 29 Oct): the five screens are redrawn in the mockup (`mockups/recruitment/app`, backup `mockups/recruitment-pre-b7`), checked with `docs/recruitment/prompts/mockup-next/tools/b7check.mjs` (25 screen states, 12 flows, no page errors, no IoT words), published as a new private artifact https://claude.ai/artifact/7tuDZpv2jNS99nnMSLyejo (the Version 20 artifact belongs to another account now). My own calls for the sign-off: the written section is C only (Python dropped), best submission per problem counts, the draw is 3 easy + 2 medium, the Akademik may change one problem's points with an optional reason, Perbaiki Tes rescoring after a problem was drawn.
 
 ## Not in this build
 Wawancara, Tubes, Mengajar, Penerimaan; the Latihan sandbox; Mandarin for the new strings (added last).
