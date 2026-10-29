@@ -7,7 +7,6 @@
  */
 import {
   PHASE1_PARTS,
-  PART_CAP,
   type Phase1Part,
   type Question,
   type Rubric,
@@ -15,6 +14,7 @@ import {
   type SeatDraw,
   type Value,
 } from "./exam-types.js";
+import type { Caps } from "./exam-config.js";
 import { credit } from "./formats.js";
 import { fracText, type Frac } from "./frac.js";
 import type { LiveFlag, PartScore, ScoreRow, StatRow, WrongPick } from "./score-api.js";
@@ -62,6 +62,7 @@ export function assemble(
   seats: readonly SeatIn[],
   questions: readonly QuestionIn[],
   live: LiveIn,
+  caps: Caps,
 ): Assembled {
   const byId = new Map(questions.map((q) => [q.id, q]));
   const voided = new Set(questions.filter((q) => q.voided).map((q) => q.id));
@@ -91,8 +92,8 @@ export function assemble(
     });
     started[part] = parts.filter((p) => p.drawn !== null).length;
     scored[part] = {
-      now: scorePart(PART_CAP[part], parts, voided),
-      raw: scorePart(PART_CAP[part], parts, new Set()),
+      now: scorePart(caps.parts[part], parts, voided),
+      raw: scorePart(caps.parts[part], parts, new Set()),
     };
   }
 
@@ -116,7 +117,7 @@ export function assemble(
         liveWaiting.push(s.seatId);
       } else {
         try {
-          lc = livecodeScore(live.rubric, sheets);
+          lc = livecodeScore(live.rubric, sheets, caps.livecode);
         } catch {
           liveFlag = "rubrik";
         }
@@ -126,7 +127,6 @@ export function assemble(
       logika: parts.logika.score,
       fitb: parts.fitb.score,
       kodingan: parts.kodingan.score,
-      mikro: parts.mikro.score,
       livecode: lc,
     });
     rows.push({
@@ -136,7 +136,6 @@ export function assemble(
       nim: s.nim,
       nama: s.nama,
       parts,
-      debugging: t.debugging,
       phase1: t.phase1,
       livecode: lc,
       ...(liveFlag ? { liveFlag } : {}),

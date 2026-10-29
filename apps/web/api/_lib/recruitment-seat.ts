@@ -195,10 +195,7 @@ function planOf(config: ExamConfig): PlanPart[] {
   return config.order.map((key) => ({
     key,
     minutes: minutesOf(config, key),
-    count:
-      key === "livecode"
-        ? null
-        : Object.values(config.parts[key].counts).reduce((a, c) => a + (c?.shown ?? 0), 0),
+    count: key === "livecode" ? null : config.parts[key].shown,
   }));
 }
 
@@ -432,7 +429,7 @@ async function tulisDraw(
   try {
     items = drawPart(
       await drawSeed(conf.salt, seat.id, part),
-      config.parts[part].counts,
+      config.parts[part],
       pool.map(asQuestion),
     );
   } catch (e) {

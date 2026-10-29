@@ -4,6 +4,7 @@
  * Penilaian tab. Types only, browser safe. Nothing here is ever sent to a
  * candidate: every score action needs an Asisten session.
  */
+import type { Caps } from "./exam-config.js";
 import type { Phase1Part } from "./exam-types.js";
 
 /** `absent`: the seat never opened the part. `empty`: it did, but every question it drew was voided. */
@@ -29,11 +30,9 @@ export interface ScoreRow {
   nim: string;
   nama: string;
   parts: Record<Phase1Part, PartScore>;
-  /** Kodingan + Mikro, each rounded first */
-  debugging: number;
-  /** Out of 3000 */
+  /** The three written parts added up (out of the written share, 1600 by default) */
   phase1: number;
-  /** Out of 1000; null until two counted sheets are in */
+  /** Out of the Live Coding share (2400 by default); null until it is scored */
   livecode: number | null;
   liveFlag?: LiveFlag;
   /** Out of 4000; a pending Live Coding counts as 0 and says so in liveFlag */
@@ -83,6 +82,8 @@ export interface ScoresResponse {
   /** The freeze the rows come from; null while they are provisional ("Sementara") */
   final: FreezeInfo | null;
   rows: ScoreRow[];
+  /** What each score is out of, from the exam settings */
+  caps: Caps;
   rooms: { id: number; title: string }[];
   /** The bank right: statistics, void and Finalkan */
   can: { bank: boolean };

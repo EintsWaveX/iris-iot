@@ -168,18 +168,15 @@ function split(lines: string[]): { stray: number | null; docs: Doc[] } {
 
 /* ---------------------------------------------------------------- helpers */
 
+/** Every code fence in the bank is C; a fence that says cpp or c++ is read as C too. Anything else is plain text. */
 const CODE_LANG: Record<string, CodeLang> = {
-  cpp: "cpp",
-  "c++": "cpp",
-  c: "cpp",
-  ino: "cpp",
-  arduino: "cpp",
-  py: "py",
-  python: "py",
-  python3: "py",
+  c: "c",
+  cpp: "c",
+  "c++": "c",
+  h: "c",
 };
 const codeLang = (info: string): CodeLang => CODE_LANG[info.trim().toLowerCase()] ?? "text";
-const FENCE_LANG: Record<CodeLang, string> = { cpp: "cpp", py: "py", text: "text" };
+const FENCE_LANG: Record<CodeLang, string> = { c: "c", text: "text" };
 
 /** Blank lines at both ends of a block go. */
 function trimBlock(xs: string[]): string[] {

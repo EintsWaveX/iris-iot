@@ -9,7 +9,7 @@ import type { CodeLang } from "../../../../lib/recruitment/exam-types";
 export function highlightLines(src: string, lang: CodeLang): Token[][] {
   if (lang === "text") return src.split("\n").map((l) => (l ? [{ text: l }] : []));
   const out: Token[][] = [[]];
-  for (const tok of tokenize(src, lang)) {
+  for (const tok of tokenize(src, "cpp")) {
     tok.text.split("\n").forEach((piece, i) => {
       if (i > 0) out.push([]);
       if (piece) out[out.length - 1].push({ text: piece, kind: tok.kind });

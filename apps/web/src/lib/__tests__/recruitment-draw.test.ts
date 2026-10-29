@@ -1,17 +1,19 @@
 /**
  * The draw (EXAM-ENGINE 3): seeds from the edition's salt, the seeded
- * generator, a seat's questions per part, and the Live Coding deals.
+ * generator, a seat's questions per part, and the Live Coding problems.
  */
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { PartCount, Question, SingleQ } from "../recruitment/exam-types";
+import type { Question, SingleQ } from "../recruitment/exam-types";
 import { makePerm } from "../recruitment/formats";
 import {
   DrawShort,
   drawPart,
+  drawProblems,
   drawSeed,
   pickProtocol,
   poolShortfall,
+  problemShortfall,
   rngFrom,
   roomSeed,
   topicAt,
@@ -20,10 +22,10 @@ import {
 
 const SALT = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 
-const q = (id: number, lang: "cpp" | "py"): SingleQ => ({
+const q = (id: number): SingleQ => ({
   id,
   part: "logika",
-  lang,
+  lang: "c",
   format: "single",
   version: 3,
   body: {
@@ -33,19 +35,8 @@ const q = (id: number, lang: "cpp" | "py"): SingleQ => ({
   },
   answer: { correct: `a${id}` },
 });
-const POOL: Question[] = [
-  q(11, "cpp"),
-  q(12, "cpp"),
-  q(13, "cpp"),
-  q(14, "cpp"),
-  q(21, "py"),
-  q(22, "py"),
-  q(23, "py"),
-];
-const COUNTS: Partial<Record<"cpp" | "py" | "any", PartCount>> = {
-  cpp: { shown: 2, pool: 4 },
-  py: { shown: 1, pool: 3 },
-};
+const POOL: Question[] = [11, 12, 13, 14, 21, 22, 23].map(q);
+const PLAN = { shown: 3 };
 
 describe("seeds", () => {
   it("drawSeed is HMAC-SHA256(salt, draw:<seat>:<part>) in hex", async () => {
@@ -79,7 +70,7 @@ describe("rngFrom", () => {
   });
 
   it("spreads evenly enough", async () => {
-    const g = rngFrom(await drawSeed(SALT, 9, "mikro"), "pick", "any");
+    const g = rngFrom(await drawSeed(SALT, 9, "fitb"), "pick", "c");
     const bins = new Array(8).fill(0);
     for (let i = 0; i < 8000; i++) bins[g.u32() % 8]++;
     for (const b of bins) expect(b).toBeGreaterThan(850);
@@ -87,22 +78,23 @@ describe("rngFrom", () => {
 });
 
 describe("drawPart", () => {
-  it("takes the counts per language, C++ first, no repeats", async () => {
+  it("takes the plan's number of questions, all C, no repeats", async () => {
     const seed = await drawSeed(SALT, 3, "logika");
-    const items = drawPart(seed, COUNTS, POOL);
-    expect(items.map((i) => i.lang)).toEqual(["cpp", "cpp", "py"]);
+    const items = drawPart(seed, PLAN, POOL);
+    expect(items).toHaveLength(3);
+    expect(items.every((i) => i.lang === "c")).toBe(true);
     expect(new Set(items.map((i) => i.q)).size).toBe(3);
     for (const it of items) expect(it.v).toBe(3);
   });
 
   it("does not depend on the pool's order", async () => {
     const seed = await drawSeed(SALT, 3, "logika");
-    expect(drawPart(seed, COUNTS, [...POOL].reverse())).toEqual(drawPart(seed, COUNTS, POOL));
+    expect(drawPart(seed, PLAN, [...POOL].reverse())).toEqual(drawPart(seed, PLAN, POOL));
   });
 
   it("shuffles each question from the seat and the question only", async () => {
     const seed = await drawSeed(SALT, 3, "logika");
-    for (const it of drawPart(seed, COUNTS, POOL)) {
+    for (const it of drawPart(seed, PLAN, POOL)) {
       const question = POOL.find((p) => p.id === it.q)!;
       expect(it.perm).toEqual(makePerm(question, rngFrom(seed, "q", it.q)));
     }
@@ -111,34 +103,94 @@ describe("drawPart", () => {
   it("gives different seats different draws", async () => {
     const draws = new Set<string>();
     for (let seat = 1; seat <= 20; seat++) {
-      const items = drawPart(await drawSeed(SALT, seat, "logika"), COUNTS, POOL);
+      const items = drawPart(await drawSeed(SALT, seat, "logika"), PLAN, POOL);
       draws.add(items.map((i) => i.q).join(","));
     }
     expect(draws.size).toBeGreaterThan(5);
   });
 
-  it("an any count takes questions of every language", async () => {
-    const seed = await drawSeed(SALT, 3, "mikro");
-    const items = drawPart(seed, { any: { shown: 7, pool: 10 } }, POOL);
+  it("showing the whole pool takes every question", async () => {
+    const seed = await drawSeed(SALT, 3, "fitb");
+    const items = drawPart(seed, { shown: 7 }, POOL);
     expect(items.map((i) => i.q).sort()).toEqual(POOL.map((p) => p.id).sort());
-    expect(items.every((i) => i.lang === "any")).toBe(true);
   });
 
-  it("throws DrawShort when a language has too few", async () => {
+  it("throws DrawShort when the pool has too few", async () => {
     const seed = await drawSeed(SALT, 3, "logika");
-    expect(() => drawPart(seed, { cpp: { shown: 5, pool: 5 } }, POOL)).toThrow(DrawShort);
+    expect(() => drawPart(seed, { shown: 8 }, POOL)).toThrow(DrawShort);
+    try {
+      drawPart(seed, { shown: 8 }, POOL);
+    } catch (e) {
+      expect(e).toMatchObject({ need: 8, have: 7 });
+    }
   });
 });
 
 describe("poolShortfall", () => {
-  it("lists each language that has fewer than shown", () => {
-    expect(poolShortfall(COUNTS, POOL)).toEqual([]);
-    expect(poolShortfall({ cpp: { shown: 6, pool: 6 }, py: { shown: 3, pool: 3 } }, POOL)).toEqual([
-      { lang: "cpp", need: 6, have: 4 },
-    ]);
-    expect(poolShortfall({ any: { shown: 9, pool: 9 } }, POOL)).toEqual([
-      { lang: "any", need: 9, have: 7 },
-    ]);
+  it("is empty when the pool is enough, and says how short it is otherwise", () => {
+    expect(poolShortfall(PLAN, POOL)).toEqual([]);
+    expect(poolShortfall({ shown: 9 }, POOL)).toEqual([{ lang: "c", need: 9, have: 7 }]);
+  });
+});
+
+describe("drawProblems (Live Coding)", () => {
+  const POOLP = [
+    ...[1, 2, 3, 4].map((id) => ({ id, tier: "easy" as const })),
+    ...[5, 6, 7, 8].map((id) => ({ id, tier: "medium" as const })),
+  ];
+  const DRAW = { easy: 3, medium: 2 };
+
+  it("deals 3 easy then 2 medium, no repeats", async () => {
+    const hand = drawProblems(await drawSeed(SALT, 5, "livecode"), DRAW, POOLP);
+    expect(hand).toHaveLength(5);
+    expect(hand.slice(0, 3).every((id) => id <= 4)).toBe(true);
+    expect(hand.slice(3).every((id) => id >= 5)).toBe(true);
+    expect(new Set(hand).size).toBe(5);
+  });
+
+  it("is the same for the same seed, whatever the pool's order", async () => {
+    const seed = await drawSeed(SALT, 5, "livecode");
+    expect(drawProblems(seed, DRAW, [...POOLP].reverse())).toEqual(drawProblems(seed, DRAW, POOLP));
+  });
+
+  it("a reroll is another hand, and still deterministic", async () => {
+    const seed = await drawSeed(SALT, 5, "livecode");
+    const hands = [0, 1, 2, 3, 4, 5].map((n) => drawProblems(seed, DRAW, POOLP, n).join(","));
+    expect(new Set(hands).size).toBeGreaterThan(1);
+    expect(drawProblems(seed, DRAW, POOLP, 3).join(",")).toBe(hands[3]);
+  });
+
+  it("spreads over seats: every problem is dealt about as often as its tier says", async () => {
+    const seen = new Map<number, number>();
+    for (let seat = 1; seat <= 400; seat++)
+      for (const id of drawProblems(await drawSeed(SALT, seat, "livecode"), DRAW, POOLP))
+        seen.set(id, (seen.get(id) ?? 0) + 1);
+    // each easy problem is in 3 of 4 hands (300 of 400), each medium in 2 of 4 (200 of 400)
+    for (const id of [1, 2, 3, 4]) expect(seen.get(id)!).toBeGreaterThan(250);
+    for (const id of [1, 2, 3, 4]) expect(seen.get(id)!).toBeLessThan(350);
+    for (const id of [5, 6, 7, 8]) expect(seen.get(id)!).toBeGreaterThan(150);
+    for (const id of [5, 6, 7, 8]) expect(seen.get(id)!).toBeLessThan(250);
+  });
+
+  it("throws DrawShort naming the tier that has too few", async () => {
+    const seed = await drawSeed(SALT, 5, "livecode");
+    const noMedium = POOLP.filter((p) => p.tier === "easy");
+    expect(() => drawProblems(seed, DRAW, noMedium)).toThrow(DrawShort);
+    try {
+      drawProblems(seed, DRAW, noMedium);
+    } catch (e) {
+      expect(e).toMatchObject({ tier: "medium", need: 2, have: 0 });
+    }
+  });
+
+  it("problemShortfall lists each tier with fewer ready problems than a seat is dealt", () => {
+    expect(problemShortfall(DRAW, POOLP)).toEqual([]);
+    expect(
+      problemShortfall(
+        DRAW,
+        POOLP.filter((p) => p.id !== 5 && p.id !== 6 && p.id !== 7),
+      ),
+    ).toEqual([{ tier: "medium", need: 2, have: 1 }]);
   });
 });
 

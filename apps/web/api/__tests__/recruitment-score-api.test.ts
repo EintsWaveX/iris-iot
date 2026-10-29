@@ -219,7 +219,7 @@ const soal = (id: number, format: string, body: unknown, answer: unknown): Row =
   id,
   editionId: 1,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format,
   title: `Soal ${id}`,
   version: 1,
@@ -242,7 +242,7 @@ const BANK = () => [
     "order",
     {
       prompt: "q3",
-      lang: "cpp",
+      lang: "c",
       lines: ["l1", "l2", "l3", "l4"].map((id) => ({ id, text: id })),
     },
     { order: ["l1", "l2", "l3", "l4"], also: [] },
@@ -255,7 +255,7 @@ const BANK = () => [
   ),
 ];
 const draw = (ids: number[]) => ({
-  logika: { at: 1, room: 1, items: ids.map((q) => ({ q, v: 1, lang: "cpp", perm: null })) },
+  logika: { at: 1, room: 1, items: ids.map((q) => ({ q, v: 1, lang: "c", perm: null })) },
 });
 const KURSI = [
   { id: 1, candidateId: 11, roomId: 1, draw: draw([1, 2, 3]) },
@@ -361,10 +361,10 @@ describe("who may reach the scores", () => {
 /* ------------------------------------------------------ the worked example */
 
 describe("the worked example of 4.4 through the API", () => {
-  it("scores: 1000, 348, 783, 167 and the seat that never started is 0, absent", async () => {
+  it("scores: 640, 223, 501, 107 and the seat that never started is 0, absent", async () => {
     const r = await jalan("scores", sesi("AKD"), null);
     expect(r.status).toBe(200);
-    expect(logika(r.body)).toEqual([1000, 348, 783, 167, 0]);
+    expect(logika(r.body)).toEqual([640, 223, 501, 107, 0]);
     const s5 = (r.body.rows as { seatId: number; parts: { logika: unknown } }[])[4];
     expect(s5.parts.logika).toEqual({ score: 0, flag: "absent" });
     expect(r.body.final).toBeNull();
@@ -409,7 +409,7 @@ describe("the worked example of 4.4 through the API", () => {
     });
     (rows.seat as Row[])[2].roomId = 2;
     const r = await jalan("scores", sesi("AKD"), null, { roomId: "2" });
-    expect(logika(r.body)).toEqual([783]);
+    expect(logika(r.body)).toEqual([501]);
     expect((await jalan("scores", sesi("AKD"), null, { roomId: "x" })).status).toBe(400);
   });
 
@@ -436,13 +436,13 @@ describe("question-void and question-unvoid", () => {
     );
   });
 
-  it("voiding q4 moves every seat (1000, 267, 667, 250), logs it and audits it", async () => {
+  it("voiding q4 moves every seat (640, 171, 427, 160), logs it and audits it", async () => {
     alvo = 4;
     const v = await jalan("question-void", sesi("AKD"), { id: 4, note: "kunci blank 2 salah" });
     expect(v.status).toBe(200);
     expect(v.body.question).toEqual({ id: 4, voided: true, voidNote: "kunci blank 2 salah" });
     const r = await jalan("scores", sesi("AKD"), null);
-    expect(logika(r.body)).toEqual([1000, 267, 667, 250, 0]);
+    expect(logika(r.body)).toEqual([640, 171, 427, 160, 0]);
     expect(rows.log).toHaveLength(1);
     expect(rows.log[0]).toMatchObject({
       questionId: 4,
@@ -467,7 +467,7 @@ describe("question-void and question-unvoid", () => {
     const u = await jalan("question-unvoid", sesi("AKD"), { id: 4, note: "ternyata benar" });
     expect(u.status).toBe(200);
     expect(logika((await jalan("scores", sesi("AKD"), null)).body)).toEqual([
-      1000, 348, 783, 167, 0,
+      640, 223, 501, 107, 0,
     ]);
     expect(rows.log.map((l) => l.kind)).toEqual(["void", "unvoid"]);
     expect((await jalan("question-unvoid", sesi("AKD"), { id: 4, note: "c" })).body.kode).toBe(
@@ -611,7 +611,7 @@ describe("score-finalize and score-unfreeze", () => {
     // the key of q1 is "fixed" afterwards: everyone who answered b is now wrong
     (rows.question as Row[])[0].answer = { correct: "a" };
     const r = await jalan("scores", sesi("ACR"), null);
-    expect(logika(r.body)).toEqual([1000, 348, 783, 167, 0]);
+    expect(logika(r.body)).toEqual([640, 223, 501, 107, 0]);
     expect((r.body.final as { by: string; byName: string }).by).toBe("AKD");
     expect((r.body.final as { byName: string }).byName).toBe("Akademik");
     const st = await jalan("score-stats", sesi("AKD"), null);
@@ -649,7 +649,7 @@ describe("score-finalize and score-unfreeze", () => {
     const r = await jalan("scores", sesi("AKD"), null);
     expect(r.body.final).toBeNull();
     // q1's key now says "a": S2 (who picked a) gains, S1 and S3 (b) lose
-    expect(logika(r.body)).not.toEqual([1000, 348, 783, 167, 0]);
+    expect(logika(r.body)).not.toEqual([640, 223, 501, 107, 0]);
     // and a void works again, then a new Finalkan
     alvo = 4;
     expect((await jalan("question-void", sesi("AKD"), { id: 4, note: "x" })).status).toBe(200);
@@ -665,8 +665,8 @@ describe("the Cutting board's Tes Tulis columns", () => {
   it("gives Logika, FITB, Debugging, Live Coding and the total per candidate", async () => {
     const { final, byCandidate } = await muatNilaiCutting(db(), 1);
     expect(final).toBe(false);
-    // S3 (candidate 13): Logika 783, nothing else; no topic means Live Coding 0
-    expect(byCandidate.get(13)).toEqual({ parts: [783, 0, 0, 0], total: 783 });
+    // S3 (candidate 13): Logika 501, nothing else; no topic means Live Coding 0
+    expect(byCandidate.get(13)).toEqual({ parts: [501, 0, 0, 0], total: 501 });
     // a candidate with no seat is not in the map
     expect(byCandidate.get(99)).toBeUndefined();
   });
@@ -674,8 +674,8 @@ describe("the Cutting board's Tes Tulis columns", () => {
   it("leaves the total empty while a seat's Live Coding waits for sheets", async () => {
     rows.livecode = [{ seatId: 3, editionId: 1, topic: 7 }];
     const { byCandidate } = await muatNilaiCutting(db(), 1);
-    expect(byCandidate.get(13)).toEqual({ parts: [783, 0, 0, null], total: null });
-    expect(byCandidate.get(11)?.total).toBe(1000);
+    expect(byCandidate.get(13)).toEqual({ parts: [501, 0, 0, null], total: null });
+    expect(byCandidate.get(11)?.total).toBe(640);
   });
 
   it("follows the freeze after Finalkan", async () => {
@@ -683,6 +683,6 @@ describe("the Cutting board's Tes Tulis columns", () => {
     (rows.question as Row[])[0].answer = { correct: "a" };
     const { final, byCandidate } = await muatNilaiCutting(db(), 1);
     expect(final).toBe(true);
-    expect(byCandidate.get(11)?.parts[0]).toBe(1000);
+    expect(byCandidate.get(11)?.parts[0]).toBe(640);
   });
 });

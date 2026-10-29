@@ -38,6 +38,7 @@ import {
   type RecScoreFreezeRow,
 } from "../../src/lib/schema.js";
 import type { Question, RubricSheet, Value } from "../../src/lib/recruitment/exam-types.js";
+import { capsOf } from "../../src/lib/recruitment/exam-config.js";
 import { assemble, type QuestionIn, type SeatIn } from "../../src/lib/recruitment/score-table.js";
 import type {
   FinalBlocker,
@@ -51,6 +52,7 @@ import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak, anggotaPanitia } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 import { muatRubrik } from "./recruitment-lc-pool.js";
+import { bacaConfig } from "./recruitment-room.js";
 
 const STATUS: Record<string, number> = {
   tanpa_hak: 403,
@@ -213,7 +215,8 @@ async function muatMasukan(db: Db, edisiId: number) {
 /** The scores right now, from the answers and the keys as they stand. */
 export async function hitungSekarang(db: Db, edisiId: number) {
   const m = await muatMasukan(db, edisiId);
-  return { ...assemble(m.kursi, m.bank, m.live), kursi: m.kursi };
+  const caps = capsOf(await bacaConfig(db, edisiId));
+  return { ...assemble(m.kursi, m.bank, m.live, caps), kursi: m.kursi };
 }
 
 const infoBeku = async (db: Db, f: RecScoreFreezeRow): Promise<FreezeInfo> => {
@@ -241,7 +244,7 @@ export async function muatNilaiCutting(db: Db, edisiId: number) {
   for (const r of rows) {
     const tunggu = r.liveFlag === "belum" || r.liveFlag === "rubrik";
     out.set(r.candidateId, {
-      parts: [r.parts.logika.score, r.parts.fitb.score, r.debugging, r.livecode],
+      parts: [r.parts.logika.score, r.parts.fitb.score, r.parts.kodingan.score, r.livecode],
       total: tunggu ? null : r.total,
     });
   }
@@ -355,6 +358,7 @@ async function bacaNilai(
     ok: true,
     final: beku ? await infoBeku(db, beku) : null,
     rows: roomId ? semua.filter((r) => r.roomId === roomId) : semua,
+    caps: capsOf(await bacaConfig(db, edisiId)),
     rooms: rooms
       .filter((r) => adaKursi.has(r.id))
       .map((r) => ({ id: r.id, title: r.title }))
@@ -371,7 +375,7 @@ async function bacaStatistik(k: Konteks) {
   const beku = await muatBeku(k.db, k.edisiId);
   const hitung = beku ? null : await hitungSekarang(k.db, k.edisiId);
   const rows = beku ? beku.scores : hitung!.rows;
-  const started = { logika: 0, fitb: 0, kodingan: 0, mikro: 0 };
+  const started = { logika: 0, fitb: 0, kodingan: 0 };
   for (const r of rows)
     for (const part of Object.keys(started) as (keyof typeof started)[])
       if (r.parts[part].flag !== "absent") started[part]++;

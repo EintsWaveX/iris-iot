@@ -28,7 +28,7 @@ const opt = (...xs: string[]) => xs.map((id) => ({ id, text: id }));
 const q1: SingleQ = {
   id: 1,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "single",
   version: 1,
   body: { prompt: "q1", options: opt("a", "b", "c"), shuffle: true },
@@ -37,7 +37,7 @@ const q1: SingleQ = {
 const q2: MultiQ = {
   id: 2,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "multi",
   version: 1,
   body: { prompt: "q2", options: opt("a", "b", "c", "d"), shuffle: true },
@@ -46,12 +46,12 @@ const q2: MultiQ = {
 const q3: OrderQ = {
   id: 3,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "order",
   version: 1,
   body: {
     prompt: "q3",
-    lang: "cpp",
+    lang: "c",
     lines: [
       { id: "l1", text: "satu" },
       { id: "l2", text: "dua" },
@@ -64,7 +64,7 @@ const q3: OrderQ = {
 const q4: FitbQ = {
   id: 4,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "fitb",
   version: 1,
   body: { prompt: "q4 __(1)__ __(2)__", blanks: [{ n: 1 }, { n: 2 }] },
@@ -129,16 +129,10 @@ describe("scorePart, the worked example of 4.4", () => {
     expect([1, 2, 3, 4].map((s) => v.seats.get(s)!.score)).toEqual([1000, 267, 667, 250]);
   });
 
-  it("Debugging: the same answers as Kodingan and Mikro (cap 500) give 174 + 174 and 391 + 391", () => {
-    const half = scorePart(500, seats(), new Set());
-    expect(half.seats.get(2)!.score).toBe(174);
-    expect(half.seats.get(3)!.score).toBe(391);
-    expect(
-      totals({ logika: 783, fitb: 348, kodingan: 174, mikro: 174, livecode: null }).debugging,
-    ).toBe(348);
-    expect(
-      totals({ logika: 0, fitb: 0, kodingan: 391, mikro: 391, livecode: null }).debugging,
-    ).toBe(782);
+  it("a part's cap comes from the config: the same ratios rescale (cap 320 gives 111 and 250)", () => {
+    const small = scorePart(320, seats(), new Set());
+    expect(small.seats.get(2)!.score).toBe(111);
+    expect(small.seats.get(3)!.score).toBe(250);
   });
 
   it("a seat whose drawn questions were all voided scores 0, flagged empty", () => {
@@ -180,20 +174,21 @@ describe("Live Coding sheets (9.8)", () => {
     expect(sheetRatio(rubric, B.values)).toEqual(frac(35, 40));
   });
 
-  it("two graders give 825 (4.4)", () => {
-    expect(livecodeScore(rubric, [A, B])).toBe(825);
+  it("two graders give 825 (4.4), and the cap scales it: 1980 of 2400", () => {
+    expect(livecodeScore(rubric, [A, B], 1000)).toBe(825);
+    expect(livecodeScore(rubric, [A, B], 2400)).toBe(1980);
   });
 
   it("is null with fewer than two counted sheets", () => {
-    expect(livecodeScore(rubric, [A])).toBeNull();
-    expect(livecodeScore(rubric, [A, { ...A, at: 30 }])).toBeNull();
+    expect(livecodeScore(rubric, [A], 1000)).toBeNull();
+    expect(livecodeScore(rubric, [A, { ...A, at: 30 }], 1000)).toBeNull();
   });
 
   it("counts the first two from two different people", () => {
     const C = sheet("103", 30, [0, 0, 0, 0, 0]);
     const A2 = { ...sheet("101", 15, [0, 0, 0, 0, 0]) };
     expect(countedSheets([C, B, A2, A]).map((s) => s.at)).toEqual([10, 20]);
-    expect(livecodeScore(rubric, [C, B, A2, A])).toBe(825);
+    expect(livecodeScore(rubric, [C, B, A2, A], 1000)).toBe(825);
   });
 
   it("a missing or out of range value is refused", () => {
@@ -204,16 +199,13 @@ describe("Live Coding sheets (9.8)", () => {
 });
 
 describe("totals", () => {
-  it("phase 1 and the total of 4.4: 1696 and 2521", () => {
-    expect(totals({ logika: 783, fitb: 348, kodingan: 174, mikro: 391, livecode: 825 })).toEqual({
-      debugging: 565,
-      phase1: 1696,
-      total: 2521,
+  it("the written total is the three parts, and the test total adds Live Coding", () => {
+    expect(totals({ logika: 783, fitb: 348, kodingan: 174, livecode: 825 })).toEqual({
+      phase1: 1305,
+      total: 2130,
     });
   });
-  it("without a Live Coding score the total is phase 1 alone", () => {
-    expect(
-      totals({ logika: 783, fitb: 348, kodingan: 174, mikro: 391, livecode: null }).total,
-    ).toBe(1696);
+  it("without a Live Coding score the total is the written total alone", () => {
+    expect(totals({ logika: 783, fitb: 348, kodingan: 174, livecode: null }).total).toBe(1305);
   });
 });

@@ -326,7 +326,7 @@ export default function Runner({
             <QuestionCard
               key={it.q}
               view={it.view}
-              codeLang={it.lang === "any" ? "text" : it.lang}
+              codeLang={it.lang}
               index={cur}
               total={items.length}
               value={vals[it.q] ?? null}

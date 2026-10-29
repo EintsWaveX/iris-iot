@@ -9,6 +9,7 @@
 import { useMemo, useState } from "react";
 import type { Lang } from "../../../../../lib/kelas";
 import { histogram } from "../../../../../lib/recruitment/score-table";
+import type { Caps } from "../../../../../lib/recruitment/exam-config";
 import type { ScoreRow } from "../../../../../lib/recruitment/score-api";
 import { PN } from "./penilaianStrings";
 
@@ -20,26 +21,19 @@ interface Seri {
 }
 
 /** The series the tab draws, from the rows: pending and absent scores are left out, not counted as 0. */
-export function seriesDari(rows: readonly ScoreRow[], lang: Lang): Seri[] {
+export function seriesDari(rows: readonly ScoreRow[], caps: Caps, lang: Lang): Seri[] {
   const t = PN[lang];
   const menunggu = (r: ScoreRow) => r.liveFlag === "belum" || r.liveFlag === "rubrik";
-  const part = (k: "logika" | "fitb") =>
+  const part = (k: "logika" | "fitb" | "kodingan") =>
     rows.filter((r) => r.parts[k].flag !== "absent").map((r) => r.parts[k].score);
   return [
-    { key: "logika", name: t.col.logika, cap: 1000, values: part("logika") },
-    { key: "fitb", name: t.col.fitb, cap: 1000, values: part("fitb") },
-    {
-      key: "debugging",
-      name: t.col.debugging,
-      cap: 1000,
-      values: rows
-        .filter((r) => r.parts.kodingan.flag !== "absent" || r.parts.mikro.flag !== "absent")
-        .map((r) => r.debugging),
-    },
+    { key: "logika", name: t.col.logika, cap: caps.parts.logika, values: part("logika") },
+    { key: "fitb", name: t.col.fitb, cap: caps.parts.fitb, values: part("fitb") },
+    { key: "kodingan", name: t.col.debugging, cap: caps.parts.kodingan, values: part("kodingan") },
     {
       key: "livecode",
       name: t.col.livecode,
-      cap: 1000,
+      cap: caps.livecode,
       values: rows.flatMap((r) =>
         r.livecode !== null && r.liveFlag !== "tanpa" ? [r.livecode] : [],
       ),
@@ -47,7 +41,7 @@ export function seriesDari(rows: readonly ScoreRow[], lang: Lang): Seri[] {
     {
       key: "total",
       name: t.col.total,
-      cap: 4000,
+      cap: caps.total,
       values: rows.filter((r) => !menunggu(r)).map((r) => r.total),
     },
   ];
@@ -189,9 +183,17 @@ function Grafik({ lang, s }: { lang: Lang; s: Seri }) {
   );
 }
 
-export default function Sebaran({ lang, rows }: { lang: Lang; rows: readonly ScoreRow[] }) {
+export default function Sebaran({
+  lang,
+  rows,
+  caps,
+}: {
+  lang: Lang;
+  rows: readonly ScoreRow[];
+  caps: Caps;
+}) {
   const t = PN[lang];
-  const seri = useMemo(() => seriesDari(rows, lang), [rows, lang]);
+  const seri = useMemo(() => seriesDari(rows, caps, lang), [rows, caps, lang]);
   return (
     <div className="stack">
       <p className="hint">{t.spreadLede}</p>

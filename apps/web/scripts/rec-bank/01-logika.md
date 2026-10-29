@@ -1,21 +1,21 @@
 ---
 part: logika
-lang: cpp
+lang: c
 format: single
-title: Perulangan bersarang
+title: Perulangan Bersarang
 sample: true
 status: ready
 ---
-Berapa angka yang tercetak di Serial Monitor?
+Berapa output program ini?
 
-```cpp
+```c
 int hitung = 0;
 for (int i = 0; i < 4; i++) {
   for (int j = i; j < 4; j++) {
     hitung++;
   }
 }
-Serial.println(hitung);
+printf("%d\n", hitung);
 ```
 
 - [ ] 6
@@ -25,15 +25,15 @@ Serial.println(hitung);
 
 ---
 part: logika
-lang: cpp
+lang: c
 format: single
-title: Switch tanpa break
+title: Switch Tanpa Break
 sample: true
 status: ready
 ---
-Berapa angka yang tercetak di Serial Monitor?
+Berapa output program ini?
 
-```cpp
+```c
 int mode = 2;
 int skor = 0;
 switch (mode) {
@@ -47,7 +47,7 @@ switch (mode) {
   default:
     skor += 9;
 }
-Serial.println(skor);
+printf("%d\n", skor);
 ```
 
 - [ ] 2
@@ -57,153 +57,281 @@ Serial.println(skor);
 
 ---
 part: logika
-lang: cpp
+lang: c
 format: single
-title: Variabel static
+title: Pembagian dan Sisa
 sample: true
 status: ready
 ---
-Berapa angka yang tercetak di Serial Monitor setelah `setup()` selesai?
+Apa output program ini?
 
-```cpp
-int tambah() {
-  static int total = 0;
-  total += 2;
-  return total;
-}
-
-void setup() {
-  Serial.begin(115200);
-  tambah();
-  tambah();
-  Serial.println(tambah());
-}
-
-void loop() {}
+```c
+int a = 17;
+int b = 5;
+printf("%d %d\n", a / b, a % b);
 ```
 
-- [ ] 0
-- [ ] 2
-- [ ] 4
-- [x] 6
+- [x] `3 2`
+- [ ] `3 3`
+- [ ] `2 3`
+- [ ] `3.4 2`
 
 ---
 part: logika
-lang: cpp
+lang: c
+format: single
+title: Increment Sebelum dan Sesudah
+sample: true
+status: ready
+---
+Apa output program ini?
+
+```c
+int x = 5;
+int y = x++;
+int z = ++x;
+printf("%d %d %d\n", x, y, z);
+```
+
+- [x] `7 5 7`
+- [ ] `7 6 7`
+- [ ] `6 5 6`
+- [ ] `7 5 6`
+
+---
+part: logika
+lang: c
+format: single
+title: Short Circuit
+sample: true
+status: ready
+---
+Berapa output program ini?
+
+```c
+int a = 0;
+int b = 0;
+if (a == 0 || ++b > 0) {
+  b += 10;
+}
+printf("%d\n", b);
+```
+
+- [ ] 0
+- [ ] 1
+- [x] 10
+- [ ] 11
+
+---
+part: logika
+lang: c
+format: single
+title: Array Setengah Terisi
+sample: true
+status: ready
+---
+Berapa output program ini?
+
+```c
+int a[5] = {4, 7};
+int s = 0;
+for (int i = 0; i < 5; i++) {
+  s += a[i];
+}
+printf("%d\n", s);
+```
+
+- [ ] 4
+- [ ] 7
+- [x] 11
+- [ ] 15
+
+---
+part: logika
+lang: c
+format: single
+title: Cari Angka Terbesar
+sample: true
+status: ready
+---
+Apa output program ini?
+
+```c
+int a[6] = {3, -2, 9, 4, 9, 1};
+int maks = a[0];
+int idx = 0;
+for (int i = 1; i < 6; i++) {
+  if (a[i] > maks) {
+    maks = a[i];
+    idx = i;
+  }
+}
+printf("%d %d\n", maks, idx);
+```
+
+- [x] `9 2`
+- [ ] `9 4`
+- [ ] `4 9`
+- [ ] `9 5`
+
+---
+part: logika
+lang: c
 format: multi
-title: Array setengah terisi
+title: Array dan Index
 sample: true
 status: ready
 ---
 Pilih semua pernyataan yang benar setelah potongan ini dijalankan.
 
-```cpp
-int data[5] = {10, 20, 30};
-int n = sizeof(data) / sizeof(data[0]);
+```c
+int a[5] = {10, 20, 30};
+int n = sizeof(a) / sizeof(a[0]);
 int jumlah = 0;
 for (int i = 0; i < n; i++) {
-  jumlah += data[i];
+  jumlah += a[i];
 }
 ```
 
 - [x] `n` bernilai 5
-- [x] `data[3]` bernilai 0
+- [x] `a[3]` bernilai 0
 - [x] `jumlah` bernilai 60
 - [ ] `n` bernilai 3
-- [ ] `data[5]` adalah elemen terakhir yang sah
+- [ ] `a[5]` adalah elemen terakhir yang sah
 
 ---
 part: logika
-lang: cpp
+lang: c
 format: multi
-title: Parameter referensi
+title: Kondisi Logika
 sample: true
 status: ready
 ---
-Pilih semua pernyataan yang benar tentang kode ini.
+Pilih semua pernyataan yang benar setelah kode ini jalan. Di C, hasil perbandingan bernilai 1 (benar) atau 0 (salah).
 
-```cpp
-void tambah(int a, int &b) {
-  a += 5;
-  b += 5;
-}
-
-void setup() {
-  int x = 1;
-  int y = 1;
-  tambah(x, y);
-}
+```c
+int a = 6;
+int b = 3;
+int p = (a > b) && (b > 5);
+int q = (a > b) || (b > 5);
+int r = !(a == 2 * b);
 ```
 
-- [ ] `x` menjadi 6 setelah `tambah(x, y)`
-- [x] `y` menjadi 6 setelah `tambah(x, y)`
-- [x] `a` di dalam `tambah` adalah salinan dari `x`
-- [x] `tambah(1, 2);` tidak bisa dikompilasi
-- [ ] `b` di dalam `tambah` adalah salinan dari `y`
+- [x] `p` bernilai 0
+- [x] `q` bernilai 1
+- [x] `r` bernilai 0
+- [ ] `p` bernilai 1
+- [ ] `r` bernilai 1
 
 ---
 part: logika
-lang: cpp
+lang: c
 format: order
-title: Tombol dengan pengalih
+title: Faktorial
 sample: true
 status: ready
-also: [[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [1, 2, 3, 4, 6, 5, 7, 8, 9, 10, 11, 12, 13, 14], [3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]]
+also: [[1, 2, 4, 3, 5, 6, 7, 8, 9, 10]]
 ---
-Susun baris berikut menjadi sketsa yang membalik keadaan LED setiap kali tombol (INPUT_PULLUP) ditekan.
+Susun baris berikut jadi program yang mencetak faktorial dari 5.
 
-```cpp
-const int TOMBOL = 4;
-const int LED = 2;
-bool nyala = false;
-void setup() {
-  pinMode(TOMBOL, INPUT_PULLUP);
-  pinMode(LED, OUTPUT);
-}
-void loop() {
-  if (digitalRead(TOMBOL) == LOW) {
-    nyala = !nyala;
-    digitalWrite(LED, nyala);
-    delay(200);
+```c
+#include <stdio.h>
+int main(void) {
+  int n = 5;
+  int hasil = 1;
+  for (int i = 2; i <= n; i++) {
+    hasil *= i;
   }
+  printf("%d\n", hasil);
+  return 0;
 }
 ```
 
 ---
 part: logika
-lang: cpp
-format: match
-title: Operator dan hasilnya
+lang: c
+format: order
+title: Cari Angka Terbesar di Array
 sample: true
 status: ready
 ---
-Pasangkan tiap ekspresi C++ dengan hasilnya.
+Susun baris berikut jadi program yang mencetak angka terbesar di array.
+
+```c
+#include <stdio.h>
+int main(void) {
+  int a[5] = {4, 9, 2, 7, 5};
+  int maks = a[0];
+  for (int i = 1; i < 5; i++) {
+    if (a[i] > maks) {
+      maks = a[i];
+    }
+  }
+  printf("%d\n", maks);
+  return 0;
+}
+```
+
+---
+part: logika
+lang: c
+format: order
+title: Hitung Bilangan Genap
+sample: true
+status: ready
+also: [[1, 2, 4, 3, 5, 6, 7, 8, 9, 10, 11, 12]]
+---
+Susun baris berikut jadi program yang menghitung ada berapa bilangan genap di array.
+
+```c
+#include <stdio.h>
+int main(void) {
+  int a[6] = {2, 7, 4, 9, 6, 1};
+  int genap = 0;
+  for (int i = 0; i < 6; i++) {
+    if (a[i] % 2 == 0) {
+      genap++;
+    }
+  }
+  printf("%d\n", genap);
+  return 0;
+}
+```
+
+---
+part: logika
+lang: c
+format: match
+title: Operator Bit
+sample: true
+status: ready
+---
+Pasangkan tiap ekspresi C dengan hasilnya.
 
 | Ekspresi | Hasil |
 |---|---|
-| `7 / 2` | `3` |
-| `10 % 4` | `2` |
-| `7 / 2.0` | `3.5` |
-| `1 << 3` | `8` |
-| `5 & 3` | `1` |
+| `6 & 3` | `2` |
+| `6 ^ 3` | `5` |
+| `1 << 4` | `16` |
+| `20 >> 2` | `5` |
+| `~6` | `-7` |
 |  | `0` |
 
 ---
 part: logika
-lang: py
-format: single
-title: Irisan list
+lang: c
+format: match
+title: Istilah dan Artinya
 sample: true
 status: ready
 ---
-Apa keluaran program ini?
+Pasangkan tiap istilah dengan artinya.
 
-```py
-data = [10, 20, 30, 40, 50]
-print(data[1:4][::-1], data[-2])
-```
-
-- [ ] `[20, 30, 40] 40`
-- [x] `[40, 30, 20] 40`
-- [ ] `[40, 30, 20] 50`
-- [ ] `[30, 20, 10] 40`
+| Istilah | Arti |
+|---|---|
+| array | Kumpulan nilai bertipe sama yang disimpan berurutan |
+| index | Nomor posisi sebuah elemen, dimulai dari 0 |
+| loop | Kode yang diulang selama kondisinya benar |
+| function | Potongan kode yang bisa dipanggil berkali-kali |
+| compile | Mengubah kode C jadi program yang bisa dijalankan |
+|  | Nilai yang dikembalikan `main` saat program selesai |

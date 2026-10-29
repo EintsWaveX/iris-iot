@@ -201,6 +201,9 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:seat": ["recedition"],
   "recruitment:unseat": ["recedition"],
   "recruitment:visibility": ["recedition", "reccalendar"],
+  // B0 (2026-10-28): an editable setting (documents, wording, Cutting start) is saved or put back to its default.
+  "recruitment:setting-save": ["recedition"],
+  "recruitment:setting-reset": ["recedition"],
   // S2: a proposal, a lock or unlock, an opened envelope; a scan or a hand mark; Pilih Jadwal.
   "recruitment:propose": ["reccutting"],
   "recruitment:lock": ["reccutting", "reccandidates"],

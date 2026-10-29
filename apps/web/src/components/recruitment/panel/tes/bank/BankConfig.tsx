@@ -12,12 +12,10 @@ import type { Lang } from "../../../../../lib/kelas";
 import type { ExamConfigResponse } from "../../../../../lib/recruitment/bank-api";
 import { canon } from "../../../../../lib/recruitment/bank-rules";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
+import { capsOf } from "../../../../../lib/recruitment/exam-config";
 import {
-  PART_CAP,
   PHASE1_PARTS,
-  LIVECODE_CAP,
   type ExamConfig,
-  type PartCount,
   type Phase1Part,
 } from "../../../../../lib/recruitment/exam-types";
 import { useBelumSimpan } from "../../../../../lib/belum-simpan";
@@ -49,8 +47,7 @@ export default function BankConfig({
 
   const setPart = (p: Phase1Part, patch: Partial<ExamConfig["parts"][Phase1Part]>) =>
     setCfg({ ...cfg, parts: { ...cfg.parts, [p]: { ...cfg.parts[p], ...patch } } });
-  const setCount = (p: Phase1Part, l: "cpp" | "py" | "any", c: PartCount) =>
-    setPart(p, { counts: { ...cfg.parts[p].counts, [l]: c } });
+  const caps = capsOf(cfg);
 
   const total = PHASE1_PARTS.reduce((a, p) => a + cfg.parts[p].minutes, 0) + cfg.livecode.minutes;
 
@@ -63,9 +60,8 @@ export default function BankConfig({
     refresh();
   }
 
-  const pair = (p: Phase1Part, l: "cpp" | "py" | "any") => {
-    const c = cfg.parts[p].counts[l];
-    if (!c) return <span className="hint">-</span>;
+  const pair = (p: Phase1Part) => {
+    const c = cfg.parts[p];
     return (
       <span className="r3cfg__pair">
         <Stepper
@@ -73,21 +69,21 @@ export default function BankConfig({
           min={1}
           max={c.pool}
           disabled={lock}
-          label={`${t.parts[p]} ${t.langs[l]} ${t.cfgShown}`}
+          label={`${t.parts[p]} ${t.cfgShown}`}
           lessLabel={t.stepLess}
           moreLabel={t.stepMore}
-          onChange={(v) => !lock && setCount(p, l, { ...c, shown: v })}
+          onChange={(v) => !lock && setPart(p, { shown: v })}
         />
         <span className="hint">/</span>
         <Stepper
           value={c.pool}
           min={c.shown}
           max={60}
-          label={`${t.parts[p]} ${t.langs[l]} ${t.cfgTarget}`}
+          label={`${t.parts[p]} ${t.cfgTarget}`}
           disabled={lock}
           lessLabel={t.stepLess}
           moreLabel={t.stepMore}
-          onChange={(v) => !lock && setCount(p, l, { ...c, pool: v })}
+          onChange={(v) => !lock && setPart(p, { pool: v })}
         />
       </span>
     );
@@ -111,8 +107,7 @@ export default function BankConfig({
               <tr>
                 <th>{t.cfgPart}</th>
                 <th>{t.cfgMinutes}</th>
-                <th>{t.cfgCpp}</th>
-                <th>{t.cfgPy}</th>
+                <th>{t.cfgShownTarget}</th>
                 <th>{t.cfgMax}</th>
               </tr>
             </thead>
@@ -134,21 +129,9 @@ export default function BankConfig({
                       onChange={(v) => !lock && setPart(p, { minutes: v })}
                     />
                   </td>
-                  {cfg.parts[p].counts.any ? (
-                    <td colSpan={2} data-l={t.cfgShownTarget}>
-                      <span className="r3cfg__pair">
-                        <span className="hint">{t.cfgEither}</span>
-                        {pair(p, "any")}
-                      </span>
-                    </td>
-                  ) : (
-                    <>
-                      <td data-l={t.cfgCpp}>{pair(p, "cpp")}</td>
-                      <td data-l={t.cfgPy}>{pair(p, "py")}</td>
-                    </>
-                  )}
+                  <td data-l={t.cfgShownTarget}>{pair(p)}</td>
                   <td className="num hint" data-l={t.cfgMax}>
-                    {PART_CAP[p]}
+                    {caps.parts[p]}
                   </td>
                 </tr>
               ))}
@@ -170,11 +153,11 @@ export default function BankConfig({
                     }
                   />
                 </td>
-                <td colSpan={2}>
+                <td>
                   <span className="hint">{t.cfgLiveBody}</span>
                 </td>
                 <td className="num hint" data-l={t.cfgMax}>
-                  {LIVECODE_CAP}
+                  {caps.livecode}
                 </td>
               </tr>
             </tbody>

@@ -13,21 +13,18 @@ const partId: Names = {
   logika: { l: "Logika", s: "Logika" },
   fitb: { l: "FITB", s: "FITB" },
   kodingan: { l: "Debugging Kodingan", s: "Kodingan" },
-  mikro: { l: "Debugging Mikrokontroler", s: "Mikro" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partEn: Names = {
   logika: { l: "Logic", s: "Logic" },
   fitb: { l: "Fill in the Blanks", s: "FITB" },
   kodingan: { l: "Debugging: Code", s: "Code" },
-  mikro: { l: "Debugging: Microcontroller", s: "Micro" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partZh: Names = {
   logika: { l: "逻辑", s: "逻辑" },
   fitb: { l: "填空", s: "填空" },
   kodingan: { l: "代码调试", s: "代码" },
-  mikro: { l: "单片机调试", s: "单片机" },
   livecode: { l: "现场编程", s: "现场编程" },
 };
 

@@ -116,7 +116,7 @@ describe("cleanQuestion", () => {
       cleanQuestion("lines", { prompt: "p", code: { lang: "rust", src: "x" } }, { lines: [1] }),
     ).toBeNull();
     expect(
-      cleanQuestion("lines", { prompt: "p", code: { lang: "cpp", src: "x" } }, { lines: [1.5] }),
+      cleanQuestion("lines", { prompt: "p", code: { lang: "c", src: "x" } }, { lines: [1.5] }),
     ).toBeNull();
     expect(
       cleanQuestion(
@@ -133,7 +133,7 @@ describe("cleanQuestion", () => {
       ),
     ).toBeNull();
     expect(
-      cleanQuestion("order", { prompt: "p", lang: "cpp", lines: [] }, { order: [], also: "no" }),
+      cleanQuestion("order", { prompt: "p", lang: "c", lines: [] }, { order: [], also: "no" }),
     ).toBeNull();
   });
 });
@@ -153,23 +153,13 @@ describe("judgeSave", () => {
     });
   });
 
-  it("takes only the languages the part counts, and any part that counts `any` takes all three", () => {
-    // Logika counts cpp and py: `any` is not one of its languages.
-    expect(judgeSave(null, { ...base, part: "logika", lang: "any" }, ctx())).toEqual({
+  it("takes only C: any other language is refused", () => {
+    expect(judgeSave(null, { ...base, lang: "c" }, ctx())).toEqual({ ok: true, kind: "create" });
+    expect(judgeSave(null, { ...base, lang: "cpp" as never }, ctx())).toEqual({
       ok: false,
       kode: "bahasa_salah",
     });
-    // Mikro counts `any`, which pools C++ and Python questions alike.
-    for (const lang of ["any", "cpp", "py"] as const)
-      expect(judgeSave(null, { ...base, part: "mikro", lang }, ctx())).toEqual({
-        ok: true,
-        kind: "create",
-      });
-    const cppOnly = structuredClone(DEFAULT_EXAM_CONFIG);
-    cppOnly.parts.fitb.counts = { cpp: { shown: 10, pool: 20 } };
-    expect(
-      judgeSave(null, { ...base, part: "fitb", lang: "py" }, ctx({ langs: langsOf(cppOnly) })),
-    ).toEqual({
+    expect(judgeSave(null, { ...base, lang: "any" as never }, ctx())).toEqual({
       ok: false,
       kode: "bahasa_salah",
     });
@@ -196,10 +186,6 @@ describe("judgeSave", () => {
     fewer.answer = { correct: fewer.body.options[0].id };
     expect(judgeSave(shown, fewer, ctx())).toEqual({ ok: false, kode: "struktur_terkunci" });
     expect(judgeSave(shown, { ...base, part: "fitb" }, ctx())).toEqual({
-      ok: false,
-      kode: "struktur_terkunci",
-    });
-    expect(judgeSave(shown, { ...base, lang: "py" }, ctx())).toEqual({
       ok: false,
       kode: "struktur_terkunci",
     });
@@ -285,51 +271,35 @@ describe("judgeSave", () => {
 
 describe("poolCounts", () => {
   const row = (
-    part: "logika" | "mikro",
-    lang: "cpp" | "py" | "any",
+    part: "logika" | "fitb",
     o: Partial<{ status: "draft" | "ready"; sample: boolean; voided: boolean }> = {},
   ) => ({
     part,
-    lang,
+    lang: "c" as const,
     status: "ready" as const,
     sample: false,
     voided: false,
     ...o,
   });
 
-  it("counts ready, draft, seeds and voided per language against the config", () => {
+  it("counts ready, draft, seeds and voided per part against the config", () => {
     const rows = [
-      row("logika", "cpp"),
-      row("logika", "cpp", { sample: true }),
-      row("logika", "cpp", { status: "draft" }),
-      row("logika", "cpp", { voided: true }),
-      row("logika", "py"),
+      row("logika"),
+      row("logika", { sample: true }),
+      row("logika", { status: "draft" }),
+      row("logika", { voided: true }),
     ];
     const p = poolCounts(rows, DEFAULT_EXAM_CONFIG);
-    expect(p.logika.find((c) => c.lang === "cpp")).toEqual({
-      lang: "cpp",
-      ready: 2,
-      draft: 1,
-      seed: 1,
-      voided: 1,
-      shown: 10,
-      pool: 20,
-      missing: 8,
-    });
-    expect(p.logika.find((c) => c.lang === "py")?.missing).toBe(4);
+    expect(p.logika).toEqual([
+      { lang: "c", ready: 2, draft: 1, seed: 1, voided: 1, shown: 15, pool: 20, missing: 13 },
+    ]);
     expect(p.fitb.every((c) => c.ready === 0 && c.missing === c.shown)).toBe(true);
   });
 
-  it("any pools every language of the part, and a full pool misses nothing", () => {
-    const rows = [
-      row("mikro", "cpp"),
-      row("mikro", "py"),
-      row("mikro", "any"),
-      row("mikro", "cpp"),
-      row("mikro", "py"),
-    ];
-    const m = poolCounts(rows, DEFAULT_EXAM_CONFIG).mikro;
-    expect(m).toHaveLength(1);
-    expect(m[0]).toMatchObject({ lang: "any", ready: 5, missing: 0 });
+  it("a full pool misses nothing", () => {
+    const rows = Array.from({ length: 15 }, () => row("fitb"));
+    const f = poolCounts(rows, DEFAULT_EXAM_CONFIG).fitb;
+    expect(f).toHaveLength(1);
+    expect(f[0]).toMatchObject({ lang: "c", ready: 15, missing: 0 });
   });
 });

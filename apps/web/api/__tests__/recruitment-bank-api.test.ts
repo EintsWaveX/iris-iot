@@ -179,7 +179,7 @@ const BARIS = () => ({
   id: 5,
   editionId: 1,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "single",
   title: "Soal lama",
   body: {
@@ -206,7 +206,7 @@ const BARIS = () => ({
 
 const masuk = (o: Record<string, unknown> = {}) => ({
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "single",
   title: "Soal baru",
   status: "draft",
@@ -353,8 +353,8 @@ describe("who may reach the bank", () => {
 describe("exam-config", () => {
   it("answers the config, whether it is locked and the pools", async () => {
     rows.question = [
-      { part: "logika", lang: "cpp", status: "ready", sample: true, voided: false },
-      { part: "logika", lang: "cpp", status: "draft", sample: false, voided: false },
+      { part: "logika", lang: "c", status: "ready", sample: true, voided: false },
+      { part: "logika", lang: "c", status: "draft", sample: false, voided: false },
     ];
     const r = await jalan("exam-config", AKD, null);
     expect(r.status).toBe(200);
@@ -362,7 +362,7 @@ describe("exam-config", () => {
     const logika = (
       r.body.pools as Record<string, { lang: string; ready: number; draft: number; seed: number }[]>
     ).logika;
-    expect(logika.find((c) => c.lang === "cpp")).toMatchObject({ ready: 1, draft: 1, seed: 1 });
+    expect(logika.find((c) => c.lang === "c")).toMatchObject({ ready: 1, draft: 1, seed: 1 });
   });
 
   it("saves a valid change and refuses an invalid one with the field errors", async () => {
@@ -434,13 +434,14 @@ describe("question-save", () => {
     expect(tulis).toEqual([]);
   });
 
-  it("takes only the languages the part counts", async () => {
-    // Logika counts cpp and py, so `any` is not one of its languages.
+  it("takes only C", async () => {
     const r = await jalan("question-save", AKD, masuk({ part: "logika", lang: "any" }));
     expect(r.status).toBe(400);
-    expect(r.body.kode).toBe("bahasa_salah");
-    // Mikro counts `any`, which pools C++ and Python questions.
-    expect((await jalan("question-save", AKD, masuk({ part: "mikro", lang: "cpp" }))).status).toBe(
+    expect(r.body.kode).toBe("format_salah");
+    const cpp = await jalan("question-save", AKD, masuk({ part: "logika", lang: "cpp" }));
+    expect(cpp.status).toBe(400);
+    expect(cpp.body.kode).toBe("format_salah");
+    expect((await jalan("question-save", AKD, masuk({ part: "logika", lang: "c" }))).status).toBe(
       200,
     );
   });
@@ -611,7 +612,7 @@ describe("question-delete", () => {
     rows.question = [{ ...BARIS(), status: "draft", shownAt: null }];
     rows.seat = [
       {
-        draw: { logika: { at: 1, room: 9, items: [{ q: 5, v: 3, lang: "cpp", perm: null }] } },
+        draw: { logika: { at: 1, room: 9, items: [{ q: 5, v: 3, lang: "c", perm: null }] } },
       },
     ];
     let r = await jalan("question-delete", AKD, { id: 5 });
@@ -628,7 +629,7 @@ describe("question-delete", () => {
     // A draw of other questions leaves it deletable.
     rows.answer = [];
     rows.seat = [
-      { draw: { logika: { at: 1, room: 9, items: [{ q: 6, v: 1, lang: "cpp", perm: null }] } } },
+      { draw: { logika: { at: 1, room: 9, items: [{ q: 6, v: 1, lang: "c", perm: null }] } } },
     ];
     expect((await jalan("question-delete", AKD, { id: 5 })).status).toBe(200);
   });
@@ -694,15 +695,15 @@ describe("bank-import", () => {
     const r = await jalan("bank-import", AKD, { text: CONTOH, dry: true });
     expect(r.status).toBe(200);
     expect(r.body.dry).toBe(true);
-    expect(r.body.counts).toEqual({ create: 14, update: 0, same: 0, error: 0 });
+    expect(r.body.counts).toEqual({ create: 7, update: 0, same: 0, error: 0 });
     expect(tulis).toEqual([]);
   });
 
   it("names each broken question with its line and keeps the clean ones", async () => {
     rows.question = [];
-    const text = `${CONTOH}\n---\npart: logika\nlang: cpp\nformat: single\ntitle: Rusak\n---\nTanpa jawaban\n\n- [ ] a\n- [ ] b\n`;
+    const text = `${CONTOH}\n---\npart: logika\nlang: c\nformat: single\ntitle: Rusak\n---\nTanpa jawaban\n\n- [ ] a\n- [ ] b\n`;
     const dry = await jalan("bank-import", AKD, { text, dry: true });
-    expect(dry.body.counts).toMatchObject({ create: 14, error: 1 });
+    expect(dry.body.counts).toMatchObject({ create: 7, error: 1 });
     const bad = (
       dry.body.items as {
         action: string;
@@ -712,17 +713,18 @@ describe("bank-import", () => {
       }[]
     ).find((i) => i.action === "error")!;
     expect(bad.title).toBe("Rusak");
-    expect(bad.line).toBeGreaterThan(300);
+    // it comes after the seven examples, so its line is past the end of them
+    expect(bad.line).toBeGreaterThan(CONTOH.split("\n").length - 1);
     expect(bad.errors.map((e) => e.kode)).toContain("kunci_salah");
 
     const apply = await jalan("bank-import", AKD, { text, dry: false });
-    expect(apply.body.counts).toMatchObject({ create: 14, error: 1 });
-    expect(tulis.filter((w) => w.tabel === "question" && w.op === "insert")).toHaveLength(14);
+    expect(apply.body.counts).toMatchObject({ create: 7, error: 1 });
+    expect(tulis.filter((w) => w.tabel === "question" && w.op === "insert")).toHaveLength(7);
   });
 
   it("reports a reference URL the bank does not have", async () => {
     rows.question = [];
-    const text = `---\npart: mikro\nlang: any\nformat: single\ntitle: R\nrefs: [https://nope.example/x]\n---\nQ\n\n- [x] a\n- [ ] b\n`;
+    const text = `---\npart: logika\nlang: c\nformat: single\ntitle: R\nrefs: [https://nope.example/x]\n---\nQ\n\n- [x] a\n- [ ] b\n`;
     const r = await jalan("bank-import", AKD, { text, dry: true });
     const it0 = (r.body.items as { errors: { kode: string; detail?: string }[] }[])[0];
     expect(it0.errors[0].kode).toBe("rujukan_hilang");
@@ -731,11 +733,11 @@ describe("bank-import", () => {
 
   it("an id the bank does not know is an error, an unchanged question is skipped", async () => {
     rows.question = [BARIS()];
-    const unknown = `---\nid: 41\npart: logika\nlang: cpp\nformat: single\ntitle: X\n---\nQ\n\n- [x] a\n- [ ] b\n`;
+    const unknown = `---\nid: 41\npart: logika\nlang: c\nformat: single\ntitle: X\n---\nQ\n\n- [x] a\n- [ ] b\n`;
     expect(
       (await jalan("bank-import", AKD, { text: unknown, dry: true })).body.counts,
     ).toMatchObject({ error: 1 });
-    const same = `---\nid: 5\npart: logika\nlang: cpp\nformat: single\nstatus: ready\ntitle: Soal lama\n---\nBerapa?\n\n- [x] 1\n- [ ] 2\n`;
+    const same = `---\nid: 5\npart: logika\nlang: c\nformat: single\nstatus: ready\ntitle: Soal lama\n---\nBerapa?\n\n- [x] 1\n- [ ] 2\n`;
     const r = await jalan("bank-import", AKD, { text: same, dry: true });
     expect(r.body.counts).toMatchObject({ same: 1, update: 0, error: 0 });
   });
@@ -745,7 +747,7 @@ describe("bank-import", () => {
     rows.question = [];
     const r = await jalan("bank-import", AKD, { text: CONTOH, dry: true });
     // The examples are all ready, so none can be created now.
-    expect(r.body.counts).toMatchObject({ create: 0, error: 14 });
+    expect(r.body.counts).toMatchObject({ create: 0, error: 7 });
   });
 
   it("refuses a file that is too large", async () => {
@@ -944,7 +946,7 @@ const kursiBagian = (
                 room: 7,
                 at: now,
                 seed: "s",
-                items: [{ q: 5, lang: "cpp", v: 1, perm: null }],
+                items: [{ q: 5, lang: "c", v: 1, perm: null }],
               },
             },
     },

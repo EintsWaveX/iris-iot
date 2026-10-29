@@ -43,7 +43,7 @@ const opts = (...ids: string[]) => ids.map((id) => ({ id, text: `opsi ${id}` }))
 const single: SingleQ = {
   id: 1,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "single",
   version: 1,
   body: { prompt: "Pilih satu.", options: opts("a1", "b2", "c3", "d4"), shuffle: true },
@@ -52,7 +52,7 @@ const single: SingleQ = {
 const multi: MultiQ = {
   id: 2,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "multi",
   version: 1,
   body: { prompt: "Pilih yang benar.", options: opts("a1", "b2", "c3", "d4"), shuffle: true },
@@ -61,24 +61,24 @@ const multi: MultiQ = {
 const lines: LinesQ = {
   id: 3,
   part: "kodingan",
-  lang: "cpp",
+  lang: "c",
   format: "lines",
   version: 1,
   body: {
     prompt: "Klik baris yang salah.",
-    code: { lang: "cpp", src: "int a = 1;\n\nint b = a +;\nreturn b;" },
+    code: { lang: "c", src: "int a = 1;\n\nint b = a +;\nreturn b;" },
   },
   answer: { lines: [3] },
 };
 const fix: FixQ = {
   id: 4,
   part: "kodingan",
-  lang: "py",
+  lang: "c",
   format: "fix",
   version: 1,
   body: {
     prompt: "Pilih isi yang benar.",
-    code: { lang: "py", src: "x = 1\nwhile x < 3:\n    x =+ 1" },
+    code: { lang: "c", src: "x = 1\nwhile x < 3:\n    x =+ 1" },
     slots: [
       {
         line: 2,
@@ -102,12 +102,12 @@ const fix: FixQ = {
 const order: OrderQ = {
   id: 5,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "order",
   version: 1,
   body: {
     prompt: "Susun.",
-    lang: "cpp",
+    lang: "c",
     lines: [
       { id: "k9", text: "void setup() {" },
       { id: "m2", text: "  Serial.begin(115200);" },
@@ -123,7 +123,7 @@ const order4: OrderQ = {
   id: 6,
   body: {
     prompt: "Susun.",
-    lang: "cpp",
+    lang: "c",
     lines: [
       { id: "l1", text: "satu" },
       { id: "l2", text: "dua" },
@@ -135,8 +135,8 @@ const order4: OrderQ = {
 };
 const match: MatchQ = {
   id: 7,
-  part: "mikro",
-  lang: "any",
+  part: "kodingan",
+  lang: "c",
   format: "match",
   version: 1,
   body: {
@@ -158,12 +158,12 @@ const match: MatchQ = {
 const fitb: FitbQ = {
   id: 8,
   part: "fitb",
-  lang: "cpp",
+  lang: "c",
   format: "fitb",
   version: 1,
   body: {
     prompt: "Isi bagian kosong.",
-    code: { lang: "cpp", src: "Serial.__(1)__(115200);\nSerial.println(__(2)__);" },
+    code: { lang: "c", src: "Serial.__(1)__(115200);\nSerial.println(__(2)__);" },
     blanks: [{ n: 1 }, { n: 2, width: 14, hint: "teks" }],
   },
   answer: { blanks: { 1: { accept: ["begin"] }, 2: { accept: ['"halo"'], space: "none" } } },
@@ -459,7 +459,7 @@ describe("validateQuestion", () => {
     ).toContain("kunci_salah");
     const twice = {
       ...fitb,
-      body: { ...fitb.body, code: { lang: "cpp" as const, src: "__(1)__ __(1)__ ___(2)___" } },
+      body: { ...fitb.body, code: { lang: "c" as const, src: "__(1)__ __(1)__ ___(2)___" } },
     };
     expect(kodes(twice)).toContain("celah_salah");
   });
@@ -480,10 +480,10 @@ describe("structureKey", () => {
     ).not.toBe(base);
     const l = structureKey(lines);
     expect(
-      structureKey({ ...lines, body: { ...lines.body, code: { lang: "cpp", src: "a\n\nb\nc" } } }),
+      structureKey({ ...lines, body: { ...lines.body, code: { lang: "c", src: "a\n\nb\nc" } } }),
     ).toBe(l);
     expect(
-      structureKey({ ...lines, body: { ...lines.body, code: { lang: "cpp", src: "a\nb" } } }),
+      structureKey({ ...lines, body: { ...lines.body, code: { lang: "c", src: "a\nb" } } }),
     ).not.toBe(l);
     const f = structureKey(fitb);
     expect(

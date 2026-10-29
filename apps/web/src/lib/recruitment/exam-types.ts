@@ -7,31 +7,35 @@
 
 /* ------------------------------------------------------------ vocabulary */
 
-export const PHASE1_PARTS = ["logika", "fitb", "kodingan", "mikro"] as const;
+/** The written parts. Mikro (IoT) was dropped on 29 Oct 2026: the test is formal C only. */
+export const PHASE1_PARTS = ["logika", "fitb", "kodingan"] as const;
 export type Phase1Part = (typeof PHASE1_PARTS)[number];
 export const PART_KEYS = [...PHASE1_PARTS, "livecode"] as const;
 export type PartKey = (typeof PART_KEYS)[number];
 
-export const LANGS = ["cpp", "py", "any"] as const;
+/** Every written question is C. The word stays a field so the bank import keeps its shape. */
+export const LANGS = ["c"] as const;
 export type Lang = (typeof LANGS)[number];
-/** A question's code language; `any` is only a count in the config. */
-export type CodeLang = "cpp" | "py" | "text";
+/** A question's code language: C, or plain text for output samples. */
+export type CodeLang = "c" | "text";
 
 export const FORMATS = ["single", "multi", "lines", "fix", "order", "match", "fitb"] as const;
 export type Format = (typeof FORMATS)[number];
 
-/** The protocol reel's three outcomes (ruling 2026-10-24). */
+/**
+ * @deprecated The protocol reel belongs to the IoT Live Coding, which B7.7
+ * deletes. Kept only so that dormant code still compiles until then.
+ */
 export const PROTOCOLS = ["ble", "httpws", "mqtt"] as const;
+/** @deprecated see PROTOCOLS. */
 export type Protocol = (typeof PROTOCOLS)[number];
 
-/** PRD 7.4: Phase 1 is out of 3000, the test out of 4000. Not config. */
-export const PART_CAP: Record<Phase1Part, number> = {
-  logika: 1000,
-  fitb: 1000,
-  kodingan: 500,
-  mikro: 500,
-};
-export const LIVECODE_CAP = 1000;
+/** The test is always out of 4000 (Cutting's `tes_tulis` cut is set on this scale). */
+export const TOTAL_SCORE = 4000;
+
+/** The two Live Coding tiers a problem can have. */
+export const TIERS = ["easy", "medium"] as const;
+export type Tier = (typeof TIERS)[number];
 
 /* ------------------------------------------------------------- questions */
 
@@ -183,31 +187,55 @@ export interface FieldError {
 
 /* ---------------------------------------------------------------- config */
 
-export interface PartCount {
+/** One written part's plan: how long, how many questions a seat gets, and the bank size to aim for. */
+export interface PartPlan {
+  minutes: number;
   shown: number;
   pool: number;
 }
+export interface LivecodePlan {
+  minutes: number;
+  /** How many problems of each tier one seat is dealt (3 easy and 2 medium by default). */
+  draw: Record<Tier, number>;
+  /** What one problem of each tier is worth. The dealt problems must add up to the Live Coding share. */
+  points: Record<Tier, number>;
+  /** Submissions per problem; 0 means no limit (a wrong submission costs nothing). */
+  runLimit: number;
+  /** Tests the judge runs at once on the lab PC. */
+  workers: number;
+}
 export interface ExamConfig {
-  v: 1;
+  v: 2;
   /** The room's budget bar, minutes (PRD 7.1: a budget, not a cap). */
   budgetMin: number;
-  /** Phase 1 then Live Coding, in this order (PRD 7.8). */
+  /** The written parts, then Live Coding, in this order. */
   order: PartKey[];
-  parts: Record<Phase1Part, { minutes: number; counts: Partial<Record<Lang, PartCount>> }>;
-  livecode: { minutes: number; protocols: Protocol[]; graders: 2 };
+  parts: Record<Phase1Part, PartPlan>;
+  livecode: LivecodePlan;
+  /** Percent of TOTAL_SCORE for the written parts and for Live Coding. They add up to 100. */
+  weights: { written: number; livecode: number };
+  /** Percent of the written share each written part carries. They add up to 100. */
+  shares: Record<Phase1Part, number>;
 }
 
 export const DEFAULT_EXAM_CONFIG: ExamConfig = {
-  v: 1,
+  v: 2,
   budgetMin: 120,
-  order: ["logika", "fitb", "kodingan", "mikro", "livecode"],
+  order: ["logika", "fitb", "kodingan", "livecode"],
   parts: {
-    logika: { minutes: 15, counts: { cpp: { shown: 10, pool: 20 }, py: { shown: 5, pool: 10 } } },
-    fitb: { minutes: 15, counts: { cpp: { shown: 10, pool: 20 }, py: { shown: 5, pool: 10 } } },
-    kodingan: { minutes: 10, counts: { cpp: { shown: 5, pool: 10 }, py: { shown: 5, pool: 10 } } },
-    mikro: { minutes: 20, counts: { any: { shown: 5, pool: 10 } } },
+    logika: { minutes: 15, shown: 15, pool: 20 },
+    fitb: { minutes: 15, shown: 15, pool: 20 },
+    kodingan: { minutes: 15, shown: 15, pool: 20 },
   },
-  livecode: { minutes: 45, protocols: ["ble", "httpws", "mqtt"], graders: 2 },
+  livecode: {
+    minutes: 60,
+    draw: { easy: 3, medium: 2 },
+    points: { easy: 400, medium: 600 },
+    runLimit: 0,
+    workers: 4,
+  },
+  weights: { written: 40, livecode: 60 },
+  shares: { logika: 40, fitb: 40, kodingan: 20 },
 };
 
 /* ------------------------------------------------------------------ draw */

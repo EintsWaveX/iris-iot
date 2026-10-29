@@ -1,374 +1,486 @@
 ---
 part: fitb
-lang: cpp
+lang: c
 format: fitb
-title: Kecerahan LED dari potensiometer
+title: Cari Nilai Terkecil
 sample: true
 status: ready
 blanks:
-  1: { accept: ["analogRead"] }
-  2: { accept: ["map"] }
-  3: { accept: ["ledcWrite"] }
----
-Lengkapi sketsa yang mengatur kecerahan LED (PWM 8 bit) dari potensiometer 12 bit.
-
-```cpp
-const int POT = 34;
-const int LED = 2;
-
-void setup() {
-  ledcAttach(LED, 5000, 8);
-}
-
-void loop() {
-  int baca = __(1)__(POT);
-  int duty = __(2)__(baca, 0, 4095, 0, 255);
-  __(3)__(LED, duty);
-  delay(20);
-}
-```
-
----
-part: fitb
-lang: cpp
-format: fitb
-title: Hitung tekan dengan interrupt
-sample: true
-status: ready
-blanks:
-  1: { accept: ["volatile"] }
-  2: { accept: ["digitalPinToInterrupt"] }
-  3: { accept: ["FALLING"] }
----
-Lengkapi sketsa yang menghitung berapa kali tombol (INPUT_PULLUP) ditekan lewat interrupt.
-
-```cpp
-const int TOMBOL = 4;
-__(1)__ int tekan = 0;
-
-void IRAM_ATTR hitung() {
-  tekan++;
-}
-
-void setup() {
-  Serial.begin(115200);
-  pinMode(TOMBOL, INPUT_PULLUP);
-  attachInterrupt(__(2)__(TOMBOL), hitung, __(3)__);
-}
-
-void loop() {
-  Serial.println(tekan);
-  delay(500);
-}
-```
-
----
-part: fitb
-lang: cpp
-format: fitb
-title: Sambung Wi-Fi
-sample: true
-status: ready
-blanks:
-  1: { accept: ["begin"] }
-  2: { accept: ["WL_CONNECTED"] }
-  3: { accept: ["localIP"] }
----
-Lengkapi sketsa yang menyambung ke Wi-Fi lalu mencetak alamat IP-nya.
-
-```cpp
-#include <WiFi.h>
-
-const char* NAMA_WIFI = "iris-lab";
-const char* KUNCI_WIFI = "contoh-kunci";
-
-void setup() {
-  Serial.begin(115200);
-  WiFi.__(1)__(NAMA_WIFI, KUNCI_WIFI);
-  while (WiFi.status() != __(2)__) {
-    delay(500);
-  }
-  Serial.println(WiFi.__(3)__());
-}
-
-void loop() {}
-```
-
----
-part: fitb
-lang: cpp
-format: fitb
-title: Baca kelembapan DHT
-sample: true
-status: ready
-blanks:
-  1: { accept: ["begin"] }
-  2: { accept: ["readHumidity"] }
-  3: { accept: ["isnan"] }
----
-Lengkapi sketsa yang membaca kelembapan DHT11 tiap 2 detik dan melaporkan kegagalan baca.
-
-```cpp
-#include <DHT.h>
-DHT dht(15, DHT11);
-
-void setup() {
-  Serial.begin(115200);
-  dht.__(1)__();
-}
-
-void loop() {
-  float h = dht.__(2)__();
-  if (__(3)__(h)) {
-    Serial.println("gagal baca");
-  } else {
-    Serial.println(h);
-  }
-  delay(2000);
-}
-```
-
----
-part: fitb
-lang: cpp
-format: fitb
-title: Perintah dari Serial
-sample: true
-status: ready
-blanks:
-  1: { accept: ["available"] }
-  2: { accept: ["readStringUntil"] }
-  3: { accept: ["toInt"] }
----
-Lengkapi sketsa yang membaca satu baris angka dari Serial Monitor lalu mencetak dua kali lipatnya.
-
-```cpp
-String masuk;
-
-void setup() {
-  Serial.begin(115200);
-}
-
-void loop() {
-  if (Serial.__(1)__() > 0) {
-    masuk = Serial.__(2)__('\n');
-    int nilai = masuk.__(3)__();
-    Serial.println(nilai * 2);
-  }
-}
-```
-
----
-part: fitb
-lang: cpp
-format: fitb
-title: Cari perangkat I2C
-sample: true
-status: ready
-blanks:
-  1: { accept: ["begin"] }
-  2: { accept: ["beginTransmission"] }
-  3: { accept: ["endTransmission"] }
----
-Lengkapi sketsa yang memindai bus I2C dan mencetak alamat perangkat yang menjawab.
-
-```cpp
-#include <Wire.h>
-
-void setup() {
-  Serial.begin(115200);
-  Wire.__(1)__();
-  for (byte alamat = 1; alamat < 127; alamat++) {
-    Wire.__(2)__(alamat);
-    if (Wire.__(3)__() == 0) {
-      Serial.println(alamat, HEX);
-    }
-  }
-}
-
-void loop() {}
-```
-
----
-part: fitb
-lang: cpp
-format: fitb
-title: Servo menyapu
-sample: true
-status: ready
-blanks:
-  1: { accept: ["attach"] }
-  2: { accept: ["write"] }
-  3: { accept: ["50"] }
----
-Lengkapi sketsa yang menggerakkan servo di GPIO 18 dari 0 sampai 180 derajat, naik 10 derajat tiap 50 milidetik.
-
-```cpp
-#include <ESP32Servo.h>
-Servo servo;
-
-void setup() {
-  servo.__(1)__(18);
-}
-
-void loop() {
-  for (int sudut = 0; sudut <= 180; sudut += 10) {
-    servo.__(2)__(sudut);
-    delay(__(3)__);
-  }
-}
-```
-
----
-part: fitb
-lang: cpp
-format: fitb
-title: Hitung boot di memori NVS
-sample: true
-status: ready
-blanks:
-  1: { accept: ["begin"] }
-  2: { accept: ["getUInt"] }
-  3: { accept: ["putUInt"] }
----
-Lengkapi sketsa yang menyimpan jumlah boot ESP32 di memori NVS dan mencetaknya.
-
-```cpp
-#include <Preferences.h>
-Preferences prefs;
-
-void setup() {
-  Serial.begin(115200);
-  prefs.__(1)__("iris", false);
-  unsigned int boot = prefs.__(2)__("boot", 0);
-  boot++;
-  prefs.__(3)__("boot", boot);
-  Serial.println(boot);
-  prefs.end();
-}
-
-void loop() {}
-```
-
----
-part: fitb
-lang: cpp
-format: fitb
-title: Kirim JSON lewat HTTP
-sample: true
-status: ready
-blanks:
-  1: { accept: ["addHeader"] }
-  2: { accept: ["POST"] }
-  3: { accept: ["end"] }
----
-Lengkapi fungsi yang mengirim teks JSON dengan HTTP POST dan mencetak kode jawabannya.
-
-```cpp
-#include <WiFi.h>
-#include <HTTPClient.h>
-
-void kirim(const String& isi) {
-  HTTPClient http;
-  http.begin("http://contoh.example/data");
-  http.__(1)__("Content-Type", "application/json");
-  int kode = http.__(2)__(isi);
-  Serial.println(kode);
-  http.__(3)__();
-}
-
-void setup() {}
-void loop() {}
-```
-
----
-part: fitb
-lang: py
-format: fitb
-title: Rata-rata dan rentang
-sample: true
-status: ready
-blanks:
-  1: { accept: ["sum"] }
-  2: { accept: ["len"] }
+  1: { accept: ["a[0]"], space: none }
+  2: { accept: ["<"], space: none }
   3: { accept: ["min"] }
 ---
-Lengkapi program yang menghitung rata-rata dan rentang (terbesar dikurangi terkecil) dari bacaan suhu. Baris terakhir mencetak `25.75 2.5`.
+Lengkapi program yang mencari nilai terkecil di array. Baris terakhir mencetak `1`.
 
-```py
-bacaan = [24.5, 26.0, 25.5, 27.0]
+```c
+#include <stdio.h>
 
-rata = __(1)__(bacaan) / __(2)__(bacaan)
-rentang = max(bacaan) - __(3)__(bacaan)
-print(rata, rentang)
+int main(void) {
+  int a[5] = {8, 3, 9, 1, 6};
+  int min = __(1)__;
+  for (int i = 1; i < 5; i++) {
+    if (a[i] __(2)__ min) {
+      min = a[i];
+    }
+  }
+  printf("%d\n", __(3)__);
+  return 0;
+}
 ```
 
 ---
 part: fitb
-lang: py
+lang: c
 format: fitb
-title: Baca baris CSV
+title: Balik Isi Array
 sample: true
 status: ready
 blanks:
-  1: { accept: ["strip"] }
-  2: { accept: ['","', "','"], space: none }
-  3: { accept: ["float"] }
+  1: { accept: ["2"] }
+  2: { accept: ["3-i", "3 - i"], space: none }
+  3: { accept: ["3-i", "3 - i"], space: none }
 ---
-Lengkapi program yang memecah satu baris CSV menjadi nama dan suhu. Baris terakhir mencetak `lab-1 29.4`.
+Lengkapi program yang membalik isi array dengan menukar elemen dari ujung ke ujung. Baris terakhir mencetak `4 3 2 1`.
 
-```py
-baris = " lab-1, 28.4 ,61 \n"
-bagian = baris.__(1)__().split(__(2)__)
-nama = bagian[0].strip()
-suhu = __(3)__(bagian[1])
-print(nama, suhu + 1)
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a[4] = {1, 2, 3, 4};
+  for (int i = 0; i < __(1)__; i++) {
+    int t = a[i];
+    a[i] = a[__(2)__];
+    a[__(3)__] = t;
+  }
+  for (int i = 0; i < 4; i++) {
+    printf("%d ", a[i]);
+  }
+  printf("\n");
+  return 0;
+}
 ```
 
 ---
 part: fitb
-lang: py
+lang: c
 format: fitb
-title: Hitung kemunculan
+title: Faktorial dengan Fungsi
 sample: true
 status: ready
 blanks:
-  1: { accept: ["get"] }
-  2: { accept: ["sorted"] }
-  3: { accept: ["sum"] }
+  1: { accept: ["1"] }
+  2: { accept: ["*="], space: none }
+  3: { accept: ["hasil"] }
 ---
-Lengkapi program yang menghitung berapa kali tiap kejadian muncul, mengurutkannya dari yang paling sedikit, lalu mencetak totalnya.
+Lengkapi fungsi yang menghitung faktorial. Baris terakhir mencetak `120`.
 
-```py
-kejadian = ["on", "off", "on", "on", "off"]
-cacah = {}
-for k in kejadian:
-    cacah[k] = cacah.__(1)__(k, 0) + 1
-for nama, jumlah in __(2)__(cacah.items(), key=lambda x: x[1]):
-    print(nama, jumlah)
-print(__(3)__(cacah.values()))
+```c
+#include <stdio.h>
+
+int faktorial(int n) {
+  int hasil = __(1)__;
+  for (int i = 2; i <= n; i++) {
+    hasil __(2)__ i;
+  }
+  return __(3)__;
+}
+
+int main(void) {
+  printf("%d\n", faktorial(5));
+  return 0;
+}
 ```
 
 ---
 part: fitb
-lang: py
+lang: c
 format: fitb
-title: Pengecualian saat baca angka
+title: Jumlah Digit
 sample: true
 status: ready
 blanks:
-  1: { accept: ["try"] }
-  2: { accept: ["except"] }
-  3: { accept: ["ValueError"] }
+  1: { accept: [">"], space: none }
+  2: { accept: ["%"], space: none }
+  3: { accept: ["/"], space: none }
 ---
-Lengkapi fungsi yang mengubah teks menjadi bilangan bulat dan mengembalikan -1 bila teksnya bukan angka. Baris terakhir mencetak `42 -1`.
+Lengkapi program yang menjumlahkan semua digit dari sebuah bilangan. Baris terakhir mencetak `20`.
 
-```py
-def ke_angka(teks):
-    __(1)__:
-        return int(teks)
-    __(2)__ __(3)__:
-        return -1
+```c
+#include <stdio.h>
 
-print(ke_angka("42"), ke_angka("empat"))
+int main(void) {
+  int n = 2468;
+  int jumlah = 0;
+  while (n __(1)__ 0) {
+    jumlah += n __(2)__ 10;
+    n = n __(3)__ 10;
+  }
+  printf("%d\n", jumlah);
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Cek Bilangan Prima
+sample: true
+status: ready
+blanks:
+  1: { accept: ["%"], space: none }
+  2: { accept: ["0"] }
+  3: { accept: ["1"] }
+---
+Lengkapi fungsi yang mengembalikan 1 kalau bilangannya prima dan 0 kalau bukan. Baris terakhir mencetak `1 0`.
+
+```c
+#include <stdio.h>
+
+int prima(int n) {
+  if (n < 2) return 0;
+  for (int i = 2; i * i <= n; i++) {
+    if (n __(1)__ i == 0) return __(2)__;
+  }
+  return __(3)__;
+}
+
+int main(void) {
+  printf("%d %d\n", prima(13), prima(15));
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: FPB dengan Euclid
+sample: true
+status: ready
+blanks:
+  1: { accept: ["0"] }
+  2: { accept: ["%"], space: none }
+  3: { accept: ["sisa"] }
+---
+Lengkapi fungsi yang mencari FPB (faktor persekutuan terbesar) dua bilangan. Baris terakhir mencetak `6`.
+
+```c
+#include <stdio.h>
+
+int fpb(int a, int b) {
+  while (b != __(1)__) {
+    int sisa = a __(2)__ b;
+    a = b;
+    b = __(3)__;
+  }
+  return a;
+}
+
+int main(void) {
+  printf("%d\n", fpb(48, 18));
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Hitung Kemunculan
+sample: true
+status: ready
+blanks:
+  1: { accept: ["7"] }
+  2: { accept: ["=="], space: none }
+  3: { accept: ["hitung++", "++hitung", "hitung+=1", "hitung=hitung+1"], space: none }
+---
+Lengkapi program yang menghitung berapa kali angka `x` muncul di array. Baris terakhir mencetak `3`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a[7] = {3, 5, 3, 8, 3, 5, 1};
+  int x = 3;
+  int hitung = 0;
+  for (int i = 0; i < __(1)__; i++) {
+    if (a[i] __(2)__ x) {
+      __(3)__;
+    }
+  }
+  printf("%d\n", hitung);
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Salin Array
+sample: true
+status: ready
+blanks:
+  1: { accept: ["i"] }
+  2: { accept: ["i"] }
+  3: { accept: ["jumlah"] }
+---
+Lengkapi program yang menyalin isi array `a` ke array `b`, lalu mencetak jumlah isi `b`. Baris terakhir mencetak `15`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a[4] = {7, 1, 5, 2};
+  int b[4];
+  for (int i = 0; i < 4; i++) {
+    b[__(1)__] = a[__(2)__];
+  }
+  int jumlah = 0;
+  for (int i = 0; i < 4; i++) {
+    jumlah += b[i];
+  }
+  printf("%d\n", __(3)__);
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Array Dua Dimensi
+sample: true
+status: ready
+blanks:
+  1: { accept: ["2"] }
+  2: { accept: ["3"] }
+  3: { accept: ["i"] }
+---
+Lengkapi program yang menjumlahkan semua isi array 2 baris x 3 kolom. Baris terakhir mencetak `21`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int m[2][3] = {{1, 2, 3}, {4, 5, 6}};
+  int jumlah = 0;
+  for (int i = 0; i < __(1)__; i++) {
+    for (int j = 0; j < __(2)__; j++) {
+      jumlah += m[__(3)__][j];
+    }
+  }
+  printf("%d\n", jumlah);
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Cetak Segitiga
+sample: true
+status: ready
+blanks:
+  1: { accept: ["1"] }
+  2: { accept: ["i"] }
+  3: { accept: ["printf"] }
+---
+Lengkapi program yang mencetak tiga baris bintang: 1 bintang, lalu 2, lalu 3.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  for (int i = __(1)__; i <= 3; i++) {
+    for (int j = 1; j <= __(2)__; j++) {
+      printf("*");
+    }
+    __(3)__("\n");
+  }
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Genap atau Ganjil
+sample: true
+status: ready
+blanks:
+  1: { accept: ["%"], space: none }
+  2: { accept: ["0"] }
+  3: { accept: ["else"] }
+---
+Lengkapi program yang mencetak `genap` atau `ganjil`. Outputnya `ganjil` lalu `genap`.
+
+```c
+#include <stdio.h>
+
+void cek(int n) {
+  if (n __(1)__ 2 == __(2)__) {
+    printf("genap\n");
+  } __(3)__ {
+    printf("ganjil\n");
+  }
+}
+
+int main(void) {
+  cek(7);
+  cek(10);
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Hitung Mundur
+sample: true
+status: ready
+blanks:
+  1: { accept: [">"], space: none }
+  2: { accept: ["--"], space: none }
+  3: { accept: ["0"] }
+---
+Lengkapi program yang menghitung mundur dari 5 sampai 1. Baris terakhir mencetak `5 4 3 2 1`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int n = 5;
+  while (n __(1)__ 0) {
+    printf("%d ", n);
+    n__(2)__;
+  }
+  printf("\n");
+  return __(3)__;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Tukar Dua Nilai
+sample: true
+status: ready
+blanks:
+  1: { accept: ["x"] }
+  2: { accept: ["y"] }
+  3: { accept: ["t"] }
+---
+Lengkapi program yang menukar isi `x` dan `y`. Baris terakhir mencetak `9 4`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int x = 4;
+  int y = 9;
+  int t = __(1)__;
+  x = __(2)__;
+  y = __(3)__;
+  printf("%d %d\n", x, y);
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Rata-rata Array Desimal
+sample: true
+status: ready
+blanks:
+  1: { accept: ["jumlah"] }
+  2: { accept: ["5"] }
+  3: { accept: ["rata"] }
+---
+Lengkapi program yang menghitung rata-rata nilai dengan hasil desimal. Baris terakhir mencetak `78.0`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a[5] = {70, 85, 90, 65, 80};
+  int jumlah = 0;
+  for (int i = 0; i < 5; i++) {
+    jumlah += a[i];
+  }
+  float rata = (float)__(1)__ / __(2)__;
+  printf("%.1f\n", __(3)__);
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Deret Fibonacci
+sample: true
+status: ready
+blanks:
+  1: { accept: ["b"] }
+  2: { accept: ["c"] }
+  3: { accept: ["0"] }
+---
+Lengkapi program yang mencetak 6 angka pertama deret Fibonacci. Baris terakhir mencetak `0 1 1 2 3 5`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a = 0;
+  int b = 1;
+  for (int i = 0; i < 6; i++) {
+    printf("%d ", a);
+    int c = a + b;
+    a = __(1)__;
+    b = __(2)__;
+  }
+  printf("\n");
+  return __(3)__;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Cari Index di Array
+sample: true
+status: ready
+blanks:
+  1: { accept: ["i"] }
+  2: { accept: ["-1"], space: none }
+  3: { accept: ["5"] }
+---
+Lengkapi fungsi yang mengembalikan index sebuah angka di array, atau -1 kalau angkanya tidak ada. Baris terakhir mencetak `2 -1`.
+
+```c
+#include <stdio.h>
+
+int cari(int a[], int n, int x) {
+  for (int i = 0; i < n; i++) {
+    if (a[i] == x) {
+      return __(1)__;
+    }
+  }
+  return __(2)__;
+}
+
+int main(void) {
+  int a[5] = {4, 8, 15, 16, 23};
+  printf("%d %d\n", cari(a, __(3)__, 15), cari(a, 5, 99));
+  return 0;
+}
 ```

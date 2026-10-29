@@ -73,7 +73,7 @@ export function Inl({ text }: { text: string }) {
   );
 }
 
-const asLang = (l: string): CodeLang => (l === "cpp" || l === "py" ? l : "text");
+const asLang = (l: string): CodeLang => (l === "c" ? l : "text");
 
 /** An image is fetched only through the API while the question is in the seat's draw (EXAM-ENGINE 1.2) */
 const imageUrl = (key: string) => `/api/recruitment/media?key=${encodeURIComponent(key)}`;

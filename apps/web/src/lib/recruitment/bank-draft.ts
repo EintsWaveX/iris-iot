@@ -38,8 +38,8 @@ type DraftOf<Q extends Question> = {
 };
 export type Draft = Question extends infer Q ? (Q extends Question ? DraftOf<Q> : never) : never;
 
-/** The code language a new code area starts with: the question's own, C++ for a part that takes either */
-export const codeLangOf = (lang: Lang): CodeLang => (lang === "py" ? "py" : "cpp");
+/** The code language a new code area starts with: every question is C now */
+export const codeLangOf = (_lang: Lang): CodeLang => "c";
 
 /** A fresh id not in `taken`; the editor adds it to `taken` itself */
 export function freshId(taken: Iterable<string>): string {

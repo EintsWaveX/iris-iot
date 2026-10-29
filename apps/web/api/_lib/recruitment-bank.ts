@@ -312,7 +312,7 @@ async function bacaConfig(k: Konteks) {
 async function simpanConfig(k: Konteks) {
   const b = jsonBody(k.req);
   const next = b.config as ExamConfig | undefined;
-  if (!next || typeof next !== "object" || next.v !== 1) return galat(k.res, "format_salah");
+  if (!next || typeof next !== "object" || next.v !== 2) return galat(k.res, "format_salah");
   const errors = validateConfig(next);
   if (errors.length) return galat(k.res, "format_salah", { errors });
   const old = await muatConfig(k.db, k.edisiId);

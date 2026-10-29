@@ -45,11 +45,11 @@ import {
   type RecExamRoomRow,
   type RecSlotRow,
 } from "../../src/lib/schema.js";
+import { upgradeConfig } from "../../src/lib/recruitment/exam-config.js";
 import {
   DEFAULT_EXAM_CONFIG,
   PHASE1_PARTS,
   type ExamConfig,
-  type Lang,
   type PartKey,
   type Phase1Part,
   type Protocol,
@@ -288,18 +288,24 @@ async function muatKesiapan(
       ),
     )
     .groupBy(recQuestion.part, recQuestion.lang);
-  const siap = (part: Phase1Part, lang: Lang) =>
-    lang === "any"
-      ? rows.filter((r) => r.part === part).reduce((a, r) => a + r.n, 0)
-      : (rows.find((r) => r.part === part && r.lang === lang)?.n ?? 0);
+  const siap = (part: Phase1Part) =>
+    rows.filter((r) => r.part === part).reduce((a, r) => a + r.n, 0);
   const out: NonNullable<ConsoleView["pool"]> = {};
   for (const part of PHASE1_PARTS) {
-    const counts: PoolCount[] = (
-      Object.entries(config.parts[part].counts) as [Lang, { shown: number }][]
-    ).map(([lang, c]) => ({ lang, shown: c.shown, ready: siap(part, lang) }));
+    const counts: PoolCount[] = [{ lang: "c", shown: config.parts[part].shown, ready: siap(part) }];
     out[part] = { ok: counts.every((c) => c.ready >= c.shown), counts };
   }
   return out;
+}
+
+/** The edition's config for reading (scoring): the default when no row exists yet, and it never writes. */
+export async function bacaConfig(db: Db, edisiId: number): Promise<ExamConfig> {
+  const [r] = await db
+    .select({ config: recExamConfig.config })
+    .from(recExamConfig)
+    .where(eq(recExamConfig.editionId, edisiId))
+    .limit(1);
+  return r ? upgradeConfig(r.config) : structuredClone(DEFAULT_EXAM_CONFIG);
 }
 
 /** The edition's parts config; the first call makes the default with its salt (09 edits it). */
@@ -309,7 +315,7 @@ export async function muatConfig(db: Db, edisiId: number): Promise<ExamConfig> {
     .from(recExamConfig)
     .where(eq(recExamConfig.editionId, edisiId))
     .limit(1);
-  if (r) return r.config;
+  if (r) return upgradeConfig(r.config);
   const salt = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
     b.toString(16).padStart(2, "0"),
   ).join("");
