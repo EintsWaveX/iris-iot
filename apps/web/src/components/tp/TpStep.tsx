@@ -496,19 +496,22 @@ function Cara({
           <span>2</span>
           <div className="stack stack--sm">
             <p>{t.cara2}</p>
-            {m.bolehUnggah ? (
-              <>
-                {m.perpanjangan && (
-                  <p className="hint">{t.panjangAktif(waktuPanjang(m.perpanjangan, lang))}</p>
-                )}
-                <UnggahTp
-                  lang={lang}
-                  modul={modul}
-                  adaBerkas={m.berkas.length > 0}
-                  onSelesai={onUnggah}
-                />
-              </>
-            ) : m.keadaan === "tutup" ? (
+            {m.bolehUnggah && m.perpanjangan && (
+              <p className="hint">{t.panjangAktif(waktuPanjang(m.perpanjangan, lang))}</p>
+            )}
+            {/* Stays mounted when the window closes, so pages being put together
+                or a send under way aren't lost at the deadline (a send started
+                before the close still counts for 10 minutes, server side). */}
+            {(m.bolehUnggah || m.keadaan === "tutup") && (
+              <UnggahTp
+                lang={lang}
+                modul={modul}
+                adaBerkas={m.berkas.length > 0}
+                tutup={!m.bolehUnggah}
+                onSelesai={onUnggah}
+              />
+            )}
+            {!m.bolehUnggah && m.keadaan === "tutup" && (
               <div className="banner banner--warn">
                 <LockSimpleIcon size={20} aria-hidden="true" />
                 <div className="stack stack--sm">
@@ -516,7 +519,7 @@ function Cara({
                   <span>{t.tutupBody}</span>
                 </div>
               </div>
-            ) : null}
+            )}
           </div>
         </li>
         <li>

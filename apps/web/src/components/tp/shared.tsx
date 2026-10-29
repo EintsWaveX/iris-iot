@@ -131,9 +131,12 @@ export function kunciDari(p: PaketData["paket"], b: BahasaTp): KunciTp[] {
 export function useTpSaya(enabled: boolean, modul?: number) {
   return usePoll(
     () =>
-      getJson<TpSaya>(`/api/tp/saya${modul ? `?modul=${modul}` : ""}`).then((d) =>
-        d.ok ? d : null,
-      ),
+      getJson<TpSaya>(`/api/tp/saya${modul ? `?modul=${modul}` : ""}`).then((d) => {
+        // Thrown, not null: usePoll keeps the last data on an error, but null
+        // would blank the step and drop the pages a Praktikan had picked.
+        if (!d.ok) throw new Error("tidak_ok");
+        return d;
+      }),
     120_000,
     enabled,
     ["tp", "nilai"],

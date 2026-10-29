@@ -67,6 +67,37 @@ describe("TP upload across mode flips", () => {
     expect(r).toEqual({ awal: 1, saatMulai: 1, saatSelesai: 1 });
   });
 
+  it("closing the window keeps pages already picked, and hides an empty uploader", async () => {
+    const kotak = document.createElement("div");
+    document.body.append(kotak);
+    const root = createRoot(kotak);
+    const gambar = (tutup: boolean) =>
+      root.render(
+        h(
+          Fade,
+          { k: "tp", children: null },
+          h(UnggahTp, { lang: "id", modul: 3, adaBerkas: false, tutup, onSelesai: () => {} }),
+        ),
+      );
+    // Closed with nothing picked: nothing to show.
+    await act(async () => gambar(true));
+    expect(kotak.querySelector(".tpup")).toBeNull();
+    // Open: pick a page.
+    await act(async () => gambar(false));
+    const input = kotak.querySelector('input[type="file"]:not([capture])') as HTMLInputElement;
+    const berkas = new File([new Uint8Array(64)], "tp-1.jpg", { type: "image/jpeg" });
+    Object.defineProperty(input, "files", { value: [berkas], configurable: true });
+    await act(async () => {
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(kotak.querySelectorAll(".tpup__item").length).toBe(1);
+    // The deadline passes: the page stays.
+    await act(async () => gambar(true));
+    expect(kotak.querySelectorAll(".tpup__item").length).toBe(1);
+    await act(async () => root.unmount());
+    kotak.remove();
+  });
+
   it("other steps still rebuild on a mode flip", () => {
     expect(kunciPanel("brief", "browse")).not.toBe(kunciPanel("brief", "now"));
     expect(kunciPanel("tp", "browse")).toBe(kunciPanel("tp", "done"));

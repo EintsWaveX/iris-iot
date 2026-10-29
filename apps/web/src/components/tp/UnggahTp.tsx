@@ -5,7 +5,7 @@
  * rotate), check the PDF IRIS built, then send it with real progress.
  * The sending itself is src/lib/tp-unggah.ts.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -39,6 +39,7 @@ import type { Lang } from "../../lib/kelas";
 import {
   GagalUnggah,
   HALAMAN_MAKS,
+  buatKecil,
   JENIS_UNGGAH,
   halamanBaru,
   kirimTp,
@@ -65,12 +66,16 @@ export default function UnggahTp({
   lang,
   modul,
   adaBerkas,
+  tutup = false,
   onSelesai,
 }: {
   lang: Lang;
   modul: number;
   /** They already have a file: the new one replaces it. */
   adaBerkas: boolean;
+  /** The window is closed: nothing new is taken, but pages already picked
+   *  or a send under way stay on screen. */
+  tutup?: boolean;
   onSelesai: () => void;
 }) {
   const t = TPS[lang];
@@ -95,16 +100,40 @@ export default function UnggahTp({
     return () => mq.removeEventListener("change", ikut);
   }, []);
 
-  const pratinjau = useMemo(
-    () =>
-      new Map(
-        halaman
-          .filter((h) => h.berkas.type.startsWith("image/"))
-          .map((h) => [h.id, URL.createObjectURL(h.berkas)]),
-      ),
-    [halaman],
+  // A small preview per photo, made one at a time: the full photo as a
+  // thumbnail made a phone decode every page at camera size and could
+  // kill the tab. Empty while being made or when it can't be.
+  const kecilDibuat = useRef(new Map<string, string>());
+  const [pratinjau, setPratinjau] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    const ada = new Set(halaman.map((h) => h.id));
+    for (const [id, url] of kecilDibuat.current)
+      if (!ada.has(id)) {
+        if (url) URL.revokeObjectURL(url);
+        kecilDibuat.current.delete(id);
+      }
+    for (const h of halaman) {
+      if (!h.berkas.type.startsWith("image/") || kecilDibuat.current.has(h.id)) continue;
+      kecilDibuat.current.set(h.id, "");
+      void buatKecil(h.berkas).then((blob) => {
+        const url = blob ? URL.createObjectURL(blob) : "";
+        // Taken off the list while it was being made.
+        if (!kecilDibuat.current.has(h.id)) {
+          if (url) URL.revokeObjectURL(url);
+          return;
+        }
+        kecilDibuat.current.set(h.id, url);
+        setPratinjau(new Map(kecilDibuat.current));
+      });
+    }
+  }, [halaman]);
+  useEffect(
+    () => () => {
+      kecilDibuat.current.forEach((url) => url && URL.revokeObjectURL(url));
+      kecilDibuat.current.clear();
+    },
+    [],
   );
-  useEffect(() => () => pratinjau.forEach((u) => URL.revokeObjectURL(u)), [pratinjau]);
 
   // Pages picked but not sent, or a send running: leaving asks first.
   const adaYangHilang = halaman.length > 0 || langkah.l === "kirim";
@@ -315,6 +344,8 @@ export default function UnggahTp({
     );
   }
 
+  if (tutup && !halaman.length && !terima) return null;
+
   return (
     <div className="tpup">
       {terima && !halaman.length && <TandaTerima lang={lang} r={terima} />}
@@ -340,6 +371,8 @@ export default function UnggahTp({
                       alt=""
                       style={{ transform: `rotate(${h.putar}deg)` }}
                     />
+                  ) : h.berkas.type.startsWith("image/") ? (
+                    <span className="tpup__thumb" aria-hidden="true" />
                   ) : (
                     <span className="tpup__thumb tpup__thumb--pdf" aria-hidden="true">
                       <FilePdfIcon size={22} />

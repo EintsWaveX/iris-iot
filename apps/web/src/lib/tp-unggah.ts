@@ -77,6 +77,30 @@ function decode(f: File): Promise<ImageBitmap | null> {
   return p;
 }
 
+/** One preview at a time: each decodes the whole photo for a moment. */
+let antreKecil: Promise<unknown> = Promise.resolve();
+
+/** A small JPEG preview of a photo (longest side `sisi` px), or null when it
+ *  can't be made. The bitmap is closed straight away. */
+export function buatKecil(f: File, sisi = 160): Promise<Blob | null> {
+  const kerja = antreKecil.then(async () => {
+    try {
+      const b = await createImageBitmap(f, { imageOrientation: "from-image" });
+      const skala = Math.min(1, sisi / Math.max(b.width, b.height));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(b.width * skala));
+      c.height = Math.max(1, Math.round(b.height * skala));
+      c.getContext("2d")?.drawImage(b, 0, 0, c.width, c.height);
+      b.close();
+      return await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/jpeg", 0.7));
+    } catch {
+      return null;
+    }
+  });
+  antreKecil = kerja;
+  return kerja;
+}
+
 /** Forgets a removed photo's bitmap. */
 export function lupakan(f: File) {
   void bitmap.get(f)?.then((b) => b?.close());
