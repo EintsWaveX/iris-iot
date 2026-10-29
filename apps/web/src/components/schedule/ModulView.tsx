@@ -82,6 +82,7 @@ export default function ModulView({
   data,
   meKode,
   boleh,
+  bolehSlot,
   onBack,
   onSaved,
   sorot,
@@ -91,7 +92,10 @@ export default function ModulView({
   semester: string;
   data: DataJadwal;
   meKode: string;
+  /** The jadwal right: every slot, the switch and the module count */
   boleh: boolean;
+  /** May change this slot's lists: the jadwal right, or its PJ */
+  bolehSlot: (j: JadwalRow) => boolean;
   onBack: () => void;
   onSaved: () => void;
   /** A slot to flash once drawn (from the drawer's Buka Per Modul) */
@@ -171,7 +175,8 @@ export default function ModulView({
   const semuaSlot = (cara: "acak" | "putar") =>
     setDraf((d) => {
       const n: Draf = { ...d };
-      for (const j of rows) if (kolam(j.asisten).length) n[j.id] = isiSlot(j, cara, d);
+      for (const j of rows)
+        if (bolehSlot(j) && kolam(j.asisten).length) n[j.id] = isiSlot(j, cara, d);
       return n;
     });
 
@@ -303,9 +308,9 @@ export default function ModulView({
   /** Ubah over Lihat di Jadwal (2x1, the main one on top), pinned to the
    *  slot's bottom at its full width. */
   const tombol = (j: JadwalRow) =>
-    (boleh || onJadwal) && (
+    (bolehSlot(j) || onJadwal) && (
       <div className="pmacts">
-        {boleh && (
+        {bolehSlot(j) && (
           <button type="button" className="btn btn--sm btn--primary" onClick={() => setUbah(j.id)}>
             {p.ubah}
           </button>
@@ -332,7 +337,7 @@ export default function ModulView({
           <span className="page-header__eyebrow">{t.eyebrow}</span>
           <h1 className="page-header__title">{p.title}</h1>
         </div>
-        {boleh && rows.length > 0 && (
+        {rows.some(bolehSlot) && (
           <div className="jtools">
             <button type="button" className="btn" onClick={() => semuaSlot("putar")}>
               {p.putarAll}
@@ -392,7 +397,7 @@ export default function ModulView({
         </div>
       </section>
 
-      {!boleh ? (
+      {!boleh && !rows.some(bolehSlot) ? (
         <div className="banner banner--lock">
           <LockSimpleIcon size={20} aria-hidden="true" />
           <span>{p.ro}</span>

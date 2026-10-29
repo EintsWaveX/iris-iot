@@ -567,6 +567,11 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   const meKode = (me?.kode ?? "").toUpperCase();
   const bolehJadwal = me?.hak?.jadwal !== false && !!me?.hak;
   const bolehModul = me?.hak?.jadwal === true;
+  // A slot's PJ edits that slot, and its Per Modul lists, without the jadwal right.
+  const pjDi = (r: { pj: string | null } | undefined) =>
+    !!r?.pj && !!meKode && r.pj.toUpperCase() === meKode;
+  const punyaPj = (data?.jadwal ?? []).some((r) => r.semester === semester && pjDi(r));
+  const bukaModul = bolehModul || punyaPj;
   // Deteksi Modul Otomatis: the Admin tier and the Pencipta only.
   const bolehTunda = !!me?.tier && hakPenuh({ tier: me.tier, badges: me.badges ?? [] });
   const known = useMemo(
@@ -608,7 +613,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
     );
   }
 
-  if (view === "modul" && data && bolehModul) {
+  if (view === "modul" && data && bukaModul) {
     return (
       <ModulView
         key={semester}
@@ -617,6 +622,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
         data={data}
         meKode={meKode}
         boleh={bolehModul}
+        bolehSlot={(j) => bolehModul || pjDi(j)}
         onBack={() => {
           setSorotModul(null);
           setView("week");
@@ -722,6 +728,8 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
 
   const selRow = sel ? rowAt(sel.hari, sel.slot) : undefined;
   const selM = mingguOf(selRow);
+  const pjSel = pjDi(selRow);
+  const bolehIni = bolehJadwal || pjSel;
   const onSelSlot =
     !!selM &&
     (selM.kursi.some((k) => k.kode === meKode) ||
@@ -749,7 +757,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             <Switch on={highlight} onChange={setHighlight} label={t.mine} />
             <span>{t.mine}</span>
           </label>
-          {bolehModul && !wide && (
+          {bukaModul && !wide && (
             <button type="button" className="btn btn--inverse" onClick={() => setView("modul")}>
               {t.pm.open}
             </button>
@@ -922,7 +930,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
           <div className="jlayout__side">
             {/* Wide: the button leaves the toolbar and takes the first row beside the
                 grid's slot headings, which pushes the load card down. */}
-            {bolehModul && wide && (
+            {bukaModul && wide && (
               <button
                 type="button"
                 className="btn btn--inverse jlayout__modul"
@@ -954,9 +962,9 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
                 </span>
               )}
               <button type="button" className="btn btn--ghost" onClick={() => coba("tutup")}>
-                {bolehJadwal || onSelSlot ? t.cancel : t.close}
+                {bolehIni || onSelSlot ? t.cancel : t.close}
               </button>
-              {(bolehJadwal || onSelSlot) && (
+              {(bolehIni || onSelSlot) && (
                 <button
                   type="button"
                   className="btn btn--primary"
@@ -992,11 +1000,13 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             meKode={meKode}
             meNim={me.nim}
             klp={data.klp?.[`${sel.hari}-${sel.slot}`]}
-            bolehJadwal={bolehJadwal}
-            bolehModul={bolehModul}
+            bolehJadwal={bolehIni}
+            bolehModul={bolehModul || pjSel}
             diajar={selRow ? data.diajar?.[String(selRow.id)] : undefined}
             onPerModul={
-              bolehModul ? () => coba({ perModul: { hari: sel.hari, slot: sel.slot } }) : undefined
+              bolehModul || pjSel
+                ? () => coba({ perModul: { hari: sel.hari, slot: sel.slot } })
+                : undefined
             }
             onDirty={setDirty}
             onSaved={load}

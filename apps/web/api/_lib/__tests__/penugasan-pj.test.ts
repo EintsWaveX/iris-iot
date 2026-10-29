@@ -49,7 +49,11 @@ const { handleSchedulePost } = await import("../penugasan-api");
 
 const SLOT = ["YEN", "ADD", "REG", "NUE", "MAP"];
 
-function jalan(ubah: Record<string, unknown>) {
+function jalan(
+  ubah: Record<string, unknown>,
+  kodePj?: string,
+  extra: Record<string, unknown> = {},
+) {
   const out: { status: number; body: Record<string, unknown> } = { status: 0, body: {} };
   const res = {
     status(n: number) {
@@ -60,10 +64,16 @@ function jalan(ubah: Record<string, unknown>) {
       out.body = b;
     },
   };
-  const req = { body: { semester: "2026-ganjil", hari: 4, slot: 3, ubah }, headers: {} };
-  return handleSchedulePost(req as never, res as never, { nim: "1101200009" } as never).then(
-    () => out,
-  );
+  const req = {
+    body: { semester: "2026-ganjil", hari: 4, slot: 3, ubah, ...extra },
+    headers: {},
+  };
+  return handleSchedulePost(
+    req as never,
+    res as never,
+    { nim: "1101200009" } as never,
+    kodePj,
+  ).then(() => out);
 }
 
 beforeEach(() => {
@@ -73,7 +83,15 @@ beforeEach(() => {
   data.set(jadwal, [{ asisten: SLOT, pj: null }]);
   data.set(
     asisten,
-    SLOT.map((kode) => ({ nim: kode, kode, status: "aktif" })),
+    SLOT.map((kode) => ({
+      nim: kode,
+      kode,
+      status: "aktif",
+      tier: "asisten",
+      divisi: null,
+      badges: [],
+      hakOverride: {},
+    })),
   );
 });
 
@@ -112,5 +130,46 @@ describe("slot PJ", () => {
     data.set(jadwal, [{ asisten: SLOT, pj: "NUE" }]);
     await jalan({ asisten: ["YEN", "ADD"] });
     expect(tersimpan).toHaveProperty("pj", null);
+  });
+});
+
+describe("a PJ without the jadwal right", () => {
+  it("edits the slot they are PJ of, people and group count included", async () => {
+    data.set(jadwal, [{ asisten: SLOT, pj: "NUE" }]);
+    const r = await jalan({ asisten: ["NUE", "ADD"], jumlahKelompok: 3 }, "NUE");
+    expect(r.body.ok).toBe(true);
+    expect(tersimpan?.jumlahKelompok).toBe(3);
+  });
+
+  it("is refused on a slot with another PJ or none", async () => {
+    data.set(jadwal, [{ asisten: SLOT, pj: "ADD" }]);
+    expect((await jalan({ jumlahKelompok: 3 }, "NUE")).status).toBe(403);
+    data.set(jadwal, [{ asisten: SLOT, pj: null }]);
+    expect((await jalan({ jumlahKelompok: 3 }, "NUE")).status).toBe(403);
+    expect(tersimpan).toBeNull();
+  });
+
+  it("is refused on the semester-wide actions", async () => {
+    data.set(jadwal, [{ asisten: SLOT, pj: "NUE" }]);
+    const bergilir = await jalan({}, "NUE", { ubah: undefined, bergilir: true });
+    expect(bergilir.status).toBe(403);
+    const pindah = await jalan({}, "NUE", {
+      ubah: undefined,
+      pindah: { dari: { hari: 4, slot: 3 }, ke: { hari: 4, slot: 4 } },
+    });
+    expect(pindah.status).toBe(403);
+  });
+
+  it("cannot smuggle a semester-wide action in beside an allowed one", async () => {
+    data.set(jadwal, [{ asisten: SLOT, pj: "NUE" }]);
+    const gabung = await jalan({ jumlahKelompok: 3 }, "NUE", { tundaModul: { senin: "x" } });
+    expect(gabung.status).toBe(403);
+    const switchSelip = await jalan({}, "NUE", {
+      ubah: undefined,
+      pasanganModul: [{ hari: 4, slot: 3, modul: {} }],
+      bergilir: true,
+    });
+    expect(switchSelip.status).toBe(403);
+    expect(tersimpan).toBeNull();
   });
 });
