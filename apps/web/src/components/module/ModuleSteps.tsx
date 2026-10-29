@@ -65,6 +65,7 @@ import BriefStep from "./BriefStep";
 import HuntStep, { usePerburuan } from "./HuntStep";
 import { H } from "./huntStrings";
 import TpStep from "../tp/TpStep";
+import { kunciPanel } from "../../lib/kunci-panel";
 import { TPS } from "../tp/tpStrings";
 import { getJson, href, tanggalPanjang, useMe, useSessionNow } from "../../lib/app";
 import { getAksesState, type AksesState } from "../../scripts/modul-akses";
@@ -251,6 +252,8 @@ export default function ModuleSteps(p: Props) {
     if (jalan.current === null || mySession || now.updatedAt === null) return;
     const id = jalan.current;
     jalan.current = null;
+    // Not while they are putting a TP together or sending it (UnggahTp).
+    if (document.documentElement.dataset.tpUnggah) return;
     location.assign(href(lang, `/dashboard?view=summary&session=${id}&ended=1`));
   }, [mySession?.id, mySession?.modul, now.updatedAt]);
   const loading =
@@ -509,7 +512,10 @@ export default function ModuleSteps(p: Props) {
       />
 
       <div id="modsteps-panel" role="region" aria-labelledby={`step-${step}-l`}>
-        <Fade k={`${step}-${mode}`}>
+        {/* The TP step keeps its state when the mode flips (a session starting or
+            ending): a remount threw away the pages a Praktikan had picked or
+            was sending. */}
+        <Fade k={kunciPanel(step, mode)}>
           {step === "modul" ? (
             <PdfViewer url={p.pdfUrl} name={p.pdfName} lang={lang} shape="page" />
           ) : step === "tp" ? (

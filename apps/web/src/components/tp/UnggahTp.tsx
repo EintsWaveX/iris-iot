@@ -112,7 +112,12 @@ export default function UnggahTp({
     if (!adaYangHilang) return;
     const tahan = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", tahan);
-    return () => window.removeEventListener("beforeunload", tahan);
+    // Tells the page not to move away by itself (ModuleSteps' end-of-session jump).
+    document.documentElement.dataset.tpUnggah = "yes";
+    return () => {
+      window.removeEventListener("beforeunload", tahan);
+      delete document.documentElement.dataset.tpUnggah;
+    };
   }, [adaYangHilang]);
 
   const sensors = useSensors(
