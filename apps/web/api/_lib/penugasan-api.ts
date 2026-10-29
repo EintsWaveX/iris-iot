@@ -339,28 +339,51 @@ function bacaKursi(v: unknown, n: number): KursiBaru[] | null {
   return out;
 }
 
+/**
+ * `kodePj` is set when the caller holds the jadwal right in no way but as the
+ * Person in Charge of some slots: they may edit those slots (and their Per
+ * Modul lists) and nothing else.
+ */
 export async function handleSchedulePost(
   req: ApiRequest,
   res: ApiResponse,
   session: SessionPayload,
+  kodePj?: string,
 ) {
   const body = jsonBody(req);
   const semester = typeof body.semester === "string" ? body.semester : "";
   if (!SEMESTER_RE.test(semester)) return tolak(res, "format_salah", 400);
   const db = getDb();
 
+  // A PJ-only caller reaches exactly two actions, each judged per slot; any
+  // other field in the body, alone or beside them, is refused.
+  if (kodePj) {
+    const lain =
+      body.bergilir !== undefined ||
+      body.jumlahModul !== undefined ||
+      body.tundaModul !== undefined ||
+      body.pindah !== undefined ||
+      body.teksDefault !== undefined;
+    if (lain) return tolak(res, "tanpa_hak", 403);
+    if (body.pasanganModul !== undefined && body.ubah === undefined)
+      return aturPasangan(res, db, session, semester, body, kodePj);
+    if (body.ubah && typeof body.ubah === "object" && body.pasanganModul === undefined)
+      return ubahSlot(res, db, session, semester, body, kodePj);
+    return tolak(res, "tanpa_hak", 403);
+  }
+
   if (
     typeof body.bergilir === "boolean" ||
     body.pasanganModul !== undefined ||
     body.jumlahModul !== undefined
   ) {
-    return aturPasangan(res, db, session, semester, body);
+    return aturPasangan(res, db, session, semester, body, kodePj);
   }
   if (body.tundaModul && typeof body.tundaModul === "object") {
     return tundaModul(res, db, session, semester, body.tundaModul as Record<string, unknown>);
   }
   if (body.ubah && typeof body.ubah === "object") {
-    return ubahSlot(res, db, session, semester, body);
+    return ubahSlot(res, db, session, semester, body, kodePj);
   }
   if (body.pindah && typeof body.pindah === "object") {
     return pindahSlot(res, db, session, semester, body.pindah as Record<string, unknown>);
@@ -412,6 +435,7 @@ async function ubahSlot(
   session: SessionPayload,
   semester: string,
   body: Record<string, unknown>,
+  kodePj?: string,
 ) {
   const hari = posInt(body.hari);
   const slot = posInt(body.slot);
@@ -419,6 +443,15 @@ async function ubahSlot(
   const ubah = body.ubah as Record<string, unknown>;
   if (!hari || hari > 6 || !slot || slot > 4 || geser === null)
     return tolak(res, "format_salah", 400);
+  // A PJ-only caller: this slot must be one they are the PJ of.
+  if (kodePj) {
+    const [milik] = await db
+      .select({ pj: jadwal.pj })
+      .from(jadwal)
+      .where(and(eq(jadwal.semester, semester), eq(jadwal.hari, hari), eq(jadwal.slot, slot)))
+      .limit(1);
+    if (milik?.pj?.toUpperCase() !== kodePj) return tolak(res, "tanpa_hak", 403);
+  }
   const patch: Partial<typeof jadwal.$inferInsert> = {
     diubahPada: new Date(),
     diubahOleh: session.nim,
@@ -514,7 +547,7 @@ async function ubahSlot(
     if (!modul || modul > MODUL_MAKS || !Array.isArray(x.list))
       return tolak(res, "format_salah", 400);
     const o = await muatOrang(session.nim);
-    if (!o || !boleh(o, "jadwal")) return tolak(res, "tanpa_hak", 403);
+    if (!o || !(boleh(o, "jadwal") || kodePj)) return tolak(res, "tanpa_hak", 403);
     const konteks = await konteksModul(db, semester);
     if (!konteks.aktif) return tolak(res, "pasangan_mati");
     if (modul > konteks.jumlah) return tolak(res, "format_salah", 400);
@@ -654,9 +687,18 @@ async function aturPasangan(
   session: SessionPayload,
   semester: string,
   body: Record<string, unknown>,
+  kodePj?: string,
 ) {
   const o = await muatOrang(session.nim);
-  if (!o || !boleh(o, "jadwal")) return tolak(res, "tidak_berhak", 403);
+  if (!o || !(boleh(o, "jadwal") || kodePj)) return tolak(res, "tidak_berhak", 403);
+  // The switch and the module count are the whole semester's.
+  if (
+    kodePj &&
+    (body.pasanganModul === undefined ||
+      body.bergilir !== undefined ||
+      body.jumlahModul !== undefined)
+  )
+    return tolak(res, "tidak_berhak", 403);
   if (typeof body.bergilir === "boolean") {
     await aturBergilir(db, semester, body.bergilir, session.nim);
     await writeAudit(session.nim, "jadwal_pasangan_modul", { semester, bergilir: body.bergilir });
@@ -683,6 +725,7 @@ async function aturPasangan(
     const slot = posInt(x?.slot);
     const row = rows.find((r) => r.hari === hari && r.slot === slot);
     if (!hari || !slot || !row) return tolak(res, "slot_tidak_ada");
+    if (kodePj && row.pj?.toUpperCase() !== kodePj) return tolak(res, "tidak_berhak", 403);
     const modul = x.modul;
     if (!modul || typeof modul !== "object" || Array.isArray(modul))
       return tolak(res, "format_salah", 400);

@@ -46,6 +46,7 @@ import { handlePerburuan } from "../_lib/perburuan-api.js";
 import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak, muatOrang } from "../_lib/hak.js";
+import { boleh } from "../../src/lib/hak.js";
 import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
 import { handleBerandaGet, handleJendelaPost } from "../_lib/beranda.js";
 import { handleBriefGet, handleBriefPost } from "../_lib/brief.js";
@@ -1893,8 +1894,17 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "schedule") {
     if (req.method === "POST") {
-      if (!(await cekHak(res, session.nim, "jadwal"))) return;
-      await handleSchedulePost(req, res, session);
+      // The jadwal right edits any slot; anyone else is judged slot by slot
+      // inside (the PJ of a slot edits that slot).
+      const orang = await muatOrang(session.nim);
+      if (!orang) return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "jadwal" });
+      const penuh = boleh(orang, "jadwal");
+      const kodePj = (orang.kode ?? "").trim().toUpperCase();
+      // No right and no code: nothing to judge slots by, so refuse (an empty
+      // code must never read as "no restriction").
+      if (!penuh && !kodePj)
+        return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "jadwal" });
+      await handleSchedulePost(req, res, session, penuh ? undefined : kodePj);
       return jagaPengganti(getDb());
     }
     if (!requireMethod(req, res, "GET")) return;
