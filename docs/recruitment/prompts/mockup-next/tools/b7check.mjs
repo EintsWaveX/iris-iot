@@ -17,6 +17,9 @@ const cases = [
   ["r3-soal", {}], ["r3-checkin", {}],
   ["n7-malam", { n7Malam: "persiapan" }], ["n7-malam", { n7Malam: "persiapan", n7Atur: "juri" }], ["n7-malam", { n7Malam: "berjalan", n7Kursi: "buka" }], ["n7-malam", { n7Malam: "berjalan", n7Ruang: "spin" }], ["n7-malam", { n7Malam: "berjalan", r3Lp: "siap" }], ["n7-malam", { n7Malam: "selesai" }],
   ["n7-bank", { r3Bank: "daftar" }], ["n7-bank", { r3Bank: "konfig" }], ["n7-bank", { r3Bank: "lc" }],
+  /* every question format and exam state: a stale seed answer once crashed "fix" and froze the page */
+  ...["single", "multi", "lines", "fix", "order", "match", "fitb", "batal"].map((f) => ["r3-soal", { r3Fmt: f }]),
+  ...["kumpulkan", "habis", "jeda", "layar", "ganda", "putus", "selesai", "belum", "susulan"].map((s) => ["r3-keadaan", { r3State: s }]),
 ];
 for (const [screen, v] of cases) {
   const tag = screen + "_" + Object.values(v).join("_");
@@ -31,7 +34,7 @@ for (const [screen, v] of cases) {
   const hits = [...new Set((t.match(new RegExp(IOT, "gi")) || []).map((s) => s.toLowerCase()))];
   if (o.errs.length) bad.push(`${tag}: ${o.errs.slice(0, 2).join(" | ")}`);
   if (hits.length) bad.push(`${tag}: words ${hits.join(", ")}`);
-  if (!/Tes Tulis|Live Coding|Bank Soal|Soal|Undian|Masuk/.test(t)) bad.push(`${tag}: looks empty`);
+  if (!/Tes Tulis|Live Coding|Bank Soal|Soal|Undian|Masuk|Ruang/.test(t)) bad.push(`${tag}: looks empty`);
   await shotTo(tag);
 }
 

@@ -37,6 +37,8 @@ Written part (logic, fill in, code tracing, all C, arrays the only data structur
 
 B7.0 (done 29 Oct): the five screens are redrawn in the mockup (`mockups/recruitment/app`, backup `mockups/recruitment-pre-b7`), checked with `docs/recruitment/prompts/mockup-next/tools/b7check.mjs` (25 screen states, 12 flows, no page errors, no IoT words), published as a new private artifact https://claude.ai/artifact/7tuDZpv2jNS99nnMSLyejo (the Version 20 artifact belongs to another account now). My own calls for the sign-off: the written section is C only (Python dropped), best submission per problem counts, the draw is 3 easy + 2 medium, the Akademik may change one problem's points with an optional reason, Perbaiki Tes rescoring after a problem was drawn.
 
+**Sign-in rule (29 Oct 2026, decided by the user for simplicity):** every manual sign-in uses the one existing `handleHadirManual` (route `attend-manual`, optional reason, audit, undo). No second manual path is built for exam nights or the lab-PC check-in. B7.6 only widens who may call it (the room's pengawas, as well as the attendance right) and puts *Masukkan Manual* on the Malam Ujian seat drawer and the lab-PC check-in. Open point for B7.6: the handler is keyed on a recruitment event and refuses a day before the event starts, so confirm each exam night is an event (or give it one) before reusing it.
+
 ## Not in this build
 Wawancara, Tubes, Mengajar, Penerimaan; the Latihan sandbox; Mandarin for the new strings (added last).
 
