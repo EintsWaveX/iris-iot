@@ -39,6 +39,8 @@ B7.0 (done 29 Oct): the five screens are redrawn in the mockup (`mockups/recruit
 
 **Sign-in rule (29 Oct 2026, decided by the user for simplicity):** every manual sign-in uses the one existing `handleHadirManual` (route `attend-manual`, optional reason, audit, undo). No second manual path is built for exam nights or the lab-PC check-in. B7.6 only widens who may call it (the room's pengawas, as well as the attendance right) and puts *Masukkan Manual* on the Malam Ujian seat drawer and the lab-PC check-in. Open point for B7.6: the handler is keyed on a recruitment event and refuses a day before the event starts, so confirm each exam night is an event (or give it one) before reusing it.
 
+**References dropped (30 Oct 2026, decided by the user):** the Tes Tulis has no Referensi at all: no button in the test, no reader dialog, and no per-question references in Bank Soal. The mockup already shows this. In the real web, B7.4 removes `exam/RefDrawer.tsx` and its use in `Runner.tsx`, B7.5 removes `panel/tes/bank/BankRefs.tsx` and its use in `BankTab.tsx`, and the API side (`recruitment-bank.ts`, `recruitment-seat.ts`, `ref-gagal.ts`) and the strings and seed data lose their reference parts; B7.7 rewrites the references section of `EXAM-ENGINE.md`. The reference tables stay dormant, as with the IoT tables: no destructive migration.
+
 ## Not in this build
 Wawancara, Tubes, Mengajar, Penerimaan; the Latihan sandbox; Mandarin for the new strings (added last).
 

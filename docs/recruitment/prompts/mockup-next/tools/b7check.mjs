@@ -5,6 +5,8 @@ import { open } from "./lib8.mjs";
 const OUTDIR = "C:/Users/EINTSW~1/AppData/Local/Temp/claude/C--Users-EintsWaveX-Documents-WebApps-iris-iot/e5380353-49a2-4494-b02c-1a3f5856d7f0/scratchpad/b7";
 const IOT = /mikro|esp32|mqtt|hotspot|bluetooth|serial monitor|kit lc|\bkit\b|papan 1|protokol|arduino/i;
 /* plain-copy rule (29 Oct 2026): everyday words, tech terms in English. These stiff words must not come back. */
+/* the Referensi feature was dropped on 29 Oct 2026 (button, dialog, reader, per-question references) */
+const DROPPED = /referensi|References/;
 const STIFF = /\blarik\b|\btautan\b|\bunduh\b|\bunggah\b|\bpindai\b|\bgalat\b|\bantrean\b|\bkeluaran\b|\bsolusi acuan\b|\bpratinjau\b|\bpenilai kode\b|\bnarahubung\b|\bkata sandi\b|penelusuran kode/i;
 const W = Number(process.env.W || 1440), H = Number(process.env.H || 900);
 const o = await open({ W, H, noDef: false, wait: 700 });
@@ -37,6 +39,7 @@ for (const [screen, v] of cases) {
   if (o.errs.length) bad.push(`${tag}: ${o.errs.slice(0, 2).join(" | ")}`);
   if (hits.length) bad.push(`${tag}: words ${hits.join(", ")}`);
   const stiff = [...new Set((t.match(new RegExp(STIFF, "gi")) || []).map((x) => x.toLowerCase()))];
+  if (DROPPED.test(t)) bad.push(`${tag}: the dropped Referensi feature shows again`);
   if (stiff.length) bad.push(`${tag}: stiff words ${stiff.join(", ")}`);
   if (!/Tes Tulis|Live Coding|Bank Soal|Soal|Undian|Masuk|Ruang/.test(t)) bad.push(`${tag}: looks empty`);
   await shotTo(tag);
