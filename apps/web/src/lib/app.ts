@@ -5,6 +5,7 @@
  * helper, and the module names in both languages.
  */
 import { laluLabel } from "./labels.js";
+import { selisihJam } from "./jam.js";
 import type { HakKey, HakNilai, PresetPeran, Tier } from "./hak.js";
 import { sebagaiPeran } from "./lihat-peran.js";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -374,10 +375,17 @@ export { KELOMPOK_NAMA, namaKelompok } from "./kelompok-nama";
 
 /* ------------------------------------------------------------ time */
 
-export function menitBerjalan(mulaiPada: string | null, now = Date.now()): number {
+/** Minutes since a session started. `now` is the device's clock (a tick);
+ *  the server's offset is added, so a laptop or phone with the wrong time
+ *  doesn't show "10 minutes left" in a session that has an hour and a half. */
+export function menitBerjalan(
+  mulaiPada: string | null,
+  now = Date.now(),
+  selisih = selisihJam(),
+): number {
   if (!mulaiPada) return 0;
   const t = new Date(mulaiPada).getTime();
-  return Number.isNaN(t) ? 0 : Math.max(0, Math.floor((now - t) / 60000));
+  return Number.isNaN(t) ? 0 : Math.max(0, Math.floor((now + selisih - t) / 60000));
 }
 
 /** Turns the Indonesian locale's "15.02" (and "15.02.09") into "15:02":

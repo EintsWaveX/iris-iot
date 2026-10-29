@@ -24,6 +24,7 @@ import {
   type SesiNow,
 } from "../../lib/app";
 import { durasiSesi } from "../../lib/jadwal";
+import { selisihJam } from "../../lib/jam";
 import { porsiSesi } from "../../lib/sesi-waktu";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
@@ -209,7 +210,7 @@ export default function SessionMiniBar({
       style={
         {
           "--mod-hue": `var(--mod-${s.modul})`,
-          "--porsi": porsiSesi(s.mulaiPada, durasi, tick),
+          "--porsi": porsiSesi(s.mulaiPada, durasi, tick + selisihJam()),
         } as CSSProperties
       }
       data-urgent={urgent ? "yes" : undefined}
