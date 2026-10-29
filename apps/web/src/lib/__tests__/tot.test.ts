@@ -12,6 +12,7 @@ import {
   bacaAturTot,
   dikeluarkanTot,
   pesertaTot,
+  praktikanHanyaLihat,
 } from "../tot";
 import { NIM_PATTERN } from "../auth";
 
@@ -54,6 +55,12 @@ describe("Mode TOT dummy accounts", () => {
     expect(praktikanBolehMasuk("1301220001", true)).toBe(false);
     expect(praktikanBolehMasuk("100000", false)).toBe(false);
     expect(praktikanBolehMasuk("1301220001", false)).toBe(true);
+  });
+
+  it("lets a real Praktikan only look around while on", () => {
+    expect(praktikanHanyaLihat("1301220001", true)).toBe(true);
+    expect(praktikanHanyaLihat("1301220001", false)).toBe(false);
+    expect(praktikanHanyaLihat("100000", true)).toBe(false);
   });
 });
 

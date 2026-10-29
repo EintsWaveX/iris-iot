@@ -75,6 +75,12 @@ export function praktikanBolehMasuk(nim: string, totAktif: boolean): boolean {
   return isNimTot(nim) === totAktif;
 }
 
+/** A real Praktikan while TOT is on (2026-10-29, user): they may still sign
+ *  in to look around and hand in their TP, but not join a session. */
+export function praktikanHanyaLihat(nim: string, totAktif: boolean): boolean {
+  return totAktif && !isNimTot(nim);
+}
+
 /* -------------------------------------------- the live roster's backup */
 
 export interface KelompokBaris {

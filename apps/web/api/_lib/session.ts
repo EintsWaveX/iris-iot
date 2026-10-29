@@ -119,7 +119,7 @@ export async function requirePraktikanBaca(
 export async function tolakPraktikanTot(req: ApiRequest, res: ApiResponse): Promise<boolean> {
   const session = currentSession(req);
   if (!session || session.role !== "praktikan") return false;
-  if (await praktikanSahTot(session.nim, session.exp)) return false;
+  if (await praktikanSahTot(session.nim, session.exp, session.sesiId)) return false;
   res.status(401).json({ ok: false, kode: "sesi_berganti", alasan: "mode_tot" });
   return true;
 }

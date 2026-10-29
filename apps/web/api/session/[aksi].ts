@@ -169,6 +169,8 @@ import {
   hakKendaliSesi,
 } from "../_lib/phase8.js";
 import { eq, and, or, gte, like, sql, inArray, isNull, desc, asc, ne } from "drizzle-orm";
+import { totAktif } from "../../src/lib/mode-tot.js";
+import { praktikanHanyaLihat } from "../../src/lib/tot.js";
 import { denganSiaran } from "../_lib/siaran.js";
 import { tandaiAktif } from "../_lib/kehadiran.js";
 import { antreSesi, handleAliranGet } from "../_lib/aliran.js";
@@ -207,9 +209,10 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
   // 2026-10-07: a Praktikan not signed in to this session learns only
   // whether it is theirs to join (on its roster), never anything about it
   // otherwise; one who chose to look around isn't nudged to join.
+  // While Mode TOT is on a real Praktikan can't join (2026-10-29): never offered.
   const bisaIkut =
     who?.role === "praktikan" && who.sesiId !== running.id
-      ? (await resolvePraktikan(who.nim)) !== null
+      ? !praktikanHanyaLihat(who.nim, await totAktif()) && (await resolvePraktikan(who.nim)) !== null
       : undefined;
   res.status(200).json({
     ok: true,

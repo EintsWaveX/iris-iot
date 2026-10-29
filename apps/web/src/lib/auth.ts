@@ -37,7 +37,7 @@ import { asisten, percobaanMasuk, audit, sesiKejadian } from "./schema.js";
 import { resolvePraktikan, resolvePraktikanTanpaSesi, currentSesi } from "./sesi.js";
 import { totAktif } from "./mode-tot.js";
 import { SESSION_TTL_SEC } from "./sesi-umur.js";
-import { praktikanBolehMasuk } from "./tot.js";
+import { praktikanBolehMasuk, praktikanHanyaLihat } from "./tot.js";
 import { sesiBerikutnya, type SesiBerikutnya } from "./sesi-gerbang.js";
 
 export { SESSION_TTL_SEC };
@@ -464,15 +464,20 @@ export async function verifyPraktikanLogin(
   // Mode TOT (2026-10-05): only the dummy accounts while it is on, only
   // real Praktikan while it is off. Not a failed attempt: it says nothing
   // about whether the NIM is real, so it never counts toward a lockout.
-  if (!praktikanBolehMasuk(nim, await totAktif())) {
-    return { ok: false, kode: "mode_tot" };
+  // A real Praktikan may still sign in then (2026-10-29, user), to look
+  // around and hand in their TP; joining a session stays shut.
+  const tot = await totAktif();
+  const running = await currentSesi();
+  if (!praktikanBolehMasuk(nim, tot)) {
+    if (!praktikanHanyaLihat(nim, tot)) return { ok: false, kode: "mode_tot" };
+    if (running && tujuan !== "lihat")
+      return { ok: false, kode: tujuan ? "mode_tot" : "perlu_tujuan" };
   }
 
   // Checked separately from resolvePraktikan() so the two refusal reasons
   // apps/modul4/SETUP.md already distinguishes for students -- "belum ada sesi
   // yang berjalan" versus "NIM ini tidak terdaftar" -- stay distinguishable
   // here too, rather than collapsing back into one generic failure.
-  const running = await currentSesi();
   if (!running || tujuan === "lihat") {
     // Phase 8: with no session running a rostered student may still sign
     // in, to see results, give feedback and reopen journals they have
