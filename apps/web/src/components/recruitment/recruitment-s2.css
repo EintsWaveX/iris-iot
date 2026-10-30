@@ -209,7 +209,7 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 .r2env__peek {
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -975,7 +975,7 @@
   margin: 4px 0;
 }
 .r2paper__k {
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: #8a6d2b;
@@ -1097,7 +1097,7 @@
   height: 20px;
   padding: 0 5px;
   border-radius: 5px;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   background: var(--ok-soft);
@@ -1636,7 +1636,7 @@ li.r2cutline {
 }
 .r2chip__via {
   flex: none;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: var(--radius-pill);
