@@ -42,8 +42,16 @@ import {
   PART_KEYS,
   PHASE1_PARTS,
   PROTOCOLS,
+  TIERS as C_TIERS,
   type PartKey,
 } from "./recruitment/exam-types.js";
+import type {
+  CProblemBody,
+  CProblemLimits,
+  CSample,
+  CTest,
+  Outcome,
+} from "./recruitment/c-problem.js";
 import type { KitBoard, RoomHotspot, SeatCheckin } from "./recruitment/room-types.js";
 import type { ScoreRow, StatRow } from "./recruitment/score-api.js";
 import {
@@ -2865,6 +2873,90 @@ export const recMqttJob = pgTable(
     kode: text("kode"),
   },
   (t) => [index("rec_mqtt_job_queue_idx").on(t.status, t.requestedAt)],
+);
+
+/** What a Live Coding submission in C is for: Run Sample, Submit, or the Akademik's reference check. */
+export const C_SUB_KINDS = ["run", "submit", "check"] as const;
+
+/**
+ * A Live Coding problem in C (B7.2, 30 Oct 2026). The hidden tests and the
+ * reference solution are read only by the server and handed to the judge, never
+ * to a candidate. The default problems carry `sample` and only get a Bawaan badge.
+ */
+export const recCProblem = pgTable(
+  "rec_c_problem",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    tier: text("tier", { enum: C_TIERS }).notNull(),
+    body: jsonb("body").$type<CProblemBody>().notNull(),
+    limits: jsonb("limits")
+      .$type<CProblemLimits>()
+      .notNull()
+      .default(sql`'{"timeMs":1000,"memKb":65536}'::jsonb`),
+    samples: jsonb("samples")
+      .$type<CSample[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    tests: jsonb("tests")
+      .$type<CTest[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    reference: text("reference").notNull().default(""),
+    /** The last time the reference solution ran against the tests, and whether every test passed */
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    checkOk: boolean("check_ok"),
+    status: text("status", { enum: QUESTION_STATUS }).notNull().default("draft"),
+    sample: boolean("sample").notNull().default(false),
+    version: integer("version").notNull().default(1),
+    /** First real draw containing it: its tests are locked from then on, like a question's structure */
+    shownAt: timestamp("shown_at", { withTimezone: true }),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_c_problem_pool_idx").on(t.editionId, t.tier, t.status)],
+);
+
+/**
+ * One Run Sample, Submit or reference check, and the judge queue entry that
+ * carries it: the PC agent claims rows still `antre` on its heartbeat and
+ * answers with the outcome. A seat has at most one waiting row per problem and
+ * kind: sending again while it waits replaces its code.
+ */
+export const recCSubmission = pgTable(
+  "rec_c_submission",
+  {
+    id: serial("id").primaryKey(),
+    kind: text("kind", { enum: C_SUB_KINDS }).notNull(),
+    /** Null for a reference check */
+    seatId: integer("seat_id").references(() => recExamSeat.id, { onDelete: "cascade" }),
+    roomId: integer("room_id").references(() => recExamRoom.id),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => recCProblem.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    status: text("status", { enum: JOB_STATUS }).notNull().default("antre"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    /** Handed back to the queue once when the agent went quiet, then agen_diam */
+    retried: boolean("retried").notNull().default(false),
+    serverId: integer("server_id"),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    /** The judge's answer; null until finished */
+    outcome: jsonb("outcome").$type<Outcome>(),
+    /** Tests passed and tests run (submit and check only), kept apart from `outcome` to sort and sum */
+    passed: integer("passed"),
+    total: integer("total"),
+    kode: text("kode"),
+  },
+  (t) => [
+    index("rec_c_submission_queue_idx").on(t.status, t.requestedAt),
+    index("rec_c_submission_seat_idx").on(t.seatId, t.problemId, t.kind, t.status),
+  ],
 );
 
 /** A rubric: the rows a grader scores. One per edition, stage and kind. */
