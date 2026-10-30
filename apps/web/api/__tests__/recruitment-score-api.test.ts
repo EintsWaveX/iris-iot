@@ -20,7 +20,8 @@ import {
   recEdition,
   recExamRoom,
   recExamSeat,
-  recLivecode,
+  recCProblem,
+  recCSubmission,
   recQuestion,
   recQuestionLog,
   recRubricScore,
@@ -41,7 +42,8 @@ const nama = new Map<unknown, string>([
   [recEdition, "edition"],
   [recExamRoom, "room"],
   [recExamSeat, "seat"],
-  [recLivecode, "livecode"],
+  [recCProblem, "cproblem"],
+  [recCSubmission, "csub"],
   [recQuestion, "question"],
   [recQuestionLog, "log"],
   [recRubricScore, "sheet"],
@@ -56,6 +58,11 @@ let rows: Record<string, Row[]> = {};
 let alvo = 0;
 let idBaru = 100;
 let audit: { aksi: string; detail: unknown }[] = [];
+/** Deals seat `id` a Live Coding hand of the one default problem (id 7). */
+function dealHand(id: number) {
+  const seat = (rows.seat as Row[]).find((x) => x.id === id)!;
+  seat.draw = { ...(seat.draw as object), livecode: { at: 1, room: 1, problems: [7] } };
+}
 /** What the database was asked, in order: the score lock, a read of the freeze, a write. */
 let urutan: string[] = [];
 
@@ -301,8 +308,8 @@ beforeEach(() => {
     room: [
       { id: 1, title: "Malam 1", editionId: 1, rehearsal: false, state: { stage: "finished" } },
     ],
-    livecode: [],
-    sheet: [],
+    cproblem: [{ id: 7, editionId: 1, tier: "easy" }],
+    csub: [],
     freeze: [],
     log: [],
     asisten: [{ nim: "AKD", nama: "Akademik" }],
@@ -532,26 +539,27 @@ describe("score-finalize and score-unfreeze", () => {
     expect(baca.body.blockers).toEqual([{ kode: "ruang_terbuka", rooms: 1 }]);
   });
 
-  it("is refused while a seat with a topic has fewer than two counted sheets", async () => {
-    rows.livecode = [{ seatId: 3, editionId: 1, topic: 7 }];
-    rows.sheet = [
+  it("is refused while a seat has a Submit the judge has not answered", async () => {
+    dealHand(3);
+    rows.csub = [
       {
-        subjectId: 3,
-        grader: "101",
-        graderNim: "101",
-        values: { jalan: 4, protokol: 4, data: 4, kode: 4, jelas: 4 },
+        seatId: 3,
+        problemId: 7,
+        kind: "submit",
+        status: "antre",
+        passed: null,
+        total: null,
         at: new Date(10),
       },
     ];
     const r = await jalan("score-finalize", sesi("AKD"), {});
     expect(r.body.kode).toBe("nilai_lc_kurang");
     expect(r.body.blockers).toEqual([{ kode: "nilai_lc_kurang", seats: 1 }]);
-    // a second sheet from the same person does not help
-    (rows.sheet as Row[]).push({ ...(rows.sheet as Row[])[0], at: new Date(20) });
+    // still refused while the judge has it
+    (rows.csub as Row[])[0].status = "diambil";
     expect((await jalan("score-finalize", sesi("AKD"), {})).body.kode).toBe("nilai_lc_kurang");
-    // two people do
-    (rows.sheet as Row[])[1].graderNim = "102";
-    (rows.sheet as Row[])[1].grader = "102";
+    // answered: the seat counts and Finalkan goes through
+    Object.assign((rows.csub as Row[])[0], { status: "selesai", passed: 5, total: 10 });
     const ok = await jalan("score-finalize", sesi("AKD"), {});
     expect(ok.status).toBe(200);
   });
@@ -671,11 +679,40 @@ describe("the Cutting board's Tes Tulis columns", () => {
     expect(byCandidate.get(99)).toBeUndefined();
   });
 
-  it("leaves the total empty while a seat's Live Coding waits for sheets", async () => {
-    rows.livecode = [{ seatId: 3, editionId: 1, topic: 7 }];
+  it("leaves the total empty while a seat's Submit waits at the judge", async () => {
+    dealHand(3);
+    rows.csub = [
+      {
+        seatId: 3,
+        problemId: 7,
+        kind: "submit",
+        status: "antre",
+        passed: null,
+        total: null,
+        at: new Date(10),
+      },
+    ];
     const { byCandidate } = await muatNilaiCutting(db(), 1);
     expect(byCandidate.get(13)).toEqual({ parts: [501, 0, 0, null], total: null });
     expect(byCandidate.get(11)?.total).toBe(640);
+  });
+
+  it("counts a finished Submit by the tests it passed", async () => {
+    dealHand(3);
+    rows.csub = [
+      {
+        seatId: 3,
+        problemId: 7,
+        kind: "submit",
+        status: "selesai",
+        passed: 5,
+        total: 10,
+        at: new Date(10),
+      },
+    ];
+    const { byCandidate } = await muatNilaiCutting(db(), 1);
+    // an easy problem is worth 400 by default: 5 of 10 tests is 200
+    expect(byCandidate.get(13)).toEqual({ parts: [501, 0, 0, 200], total: 701 });
   });
 
   it("follows the freeze after Finalkan", async () => {

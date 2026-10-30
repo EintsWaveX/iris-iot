@@ -625,3 +625,25 @@
     transition: none;
   }
 }
+
+/* Pengaturan: the score split and Live Coding card (B7.5). One grid, every field the same width. */
+.r3cfg__score {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+.r3cfg__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 24px;
+  align-items: start;
+}
+.r3cfg__sum {
+  margin: 0;
+}
+.r3cfg__sum[data-ok="yes"] {
+  color: var(--ok);
+}
+.r3cfg__sum[data-ok="no"] {
+  color: var(--danger);
+}

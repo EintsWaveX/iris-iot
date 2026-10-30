@@ -11,8 +11,6 @@ import type {
   MultiQ,
   OrderQ,
   Question,
-  Rubric,
-  RubricSheet,
   SeatDraw,
   SingleQ,
   Value,
@@ -128,24 +126,11 @@ const SEATS = [
   seat(5, null, {}),
 ];
 
-const rubric: Rubric = {
-  id: 1,
-  stage: "tes_tulis",
-  kind: "livecode",
-  rows: [
-    { key: "jalan", label: "Jalan", max: 4, weight: 3 },
-    { key: "protokol", label: "Protokol", max: 4, weight: 2 },
-    { key: "data", label: "Data", max: 4, weight: 2 },
-    { key: "kode", label: "Kode", max: 4, weight: 1 },
-    { key: "jelas", label: "Jelas", max: 4, weight: 2 },
-  ],
+const NO_LIVE: Parameters<typeof assemble>[2] = {
+  hand: new Map(),
+  runs: new Map(),
+  waiting: new Set(),
 };
-const sheet = (grader: string, at: number, v: number[]): RubricSheet => ({
-  grader,
-  at,
-  values: Object.fromEntries(rubric.rows.map((r, i) => [r.key, v[i]])),
-});
-const NO_LIVE = { rubric, topic: new Set<number>(), sheets: new Map<number, RubricSheet[]>() };
 
 describe("assemble, the worked example of 4.4", () => {
   const out = asm(SEATS, BANK, NO_LIVE);
@@ -216,40 +201,57 @@ describe("assemble, the worked example of 4.4", () => {
   });
 });
 
-describe("assemble, Live Coding", () => {
-  const A = sheet("101", 10, [3, 4, 3, 2, 3]);
-  const B = sheet("102", 20, [4, 3, 4, 3, 3]);
-  const topic = new Set([1, 2, 3]);
-
-  it("two counted sheets give 825 and the total adds it", () => {
-    const out = asm(SEATS, BANK, { rubric, topic, sheets: new Map([[3, [A, B]]]) });
-    const r = out.rows.find((x) => x.seatId === 3)!;
-    expect(r.livecode).toBe(825);
-    expect(r.liveFlag).toBeUndefined();
-    expect(r.total).toBe(783 + 825);
+describe("assemble, Live Coding in C", () => {
+  const hand = [
+    { problemId: 1, points: 400 },
+    { problemId: 2, points: 600 },
+  ];
+  const run = (problemId: number, passed: number, total: number, at = 1) => ({
+    problemId,
+    passed,
+    total,
+    at,
   });
 
-  it("one sheet, or two from the same person, leave Live Coding pending", () => {
+  it("adds each problem's best Submit, rounded, and the total adds it", () => {
     const out = asm(SEATS, BANK, {
-      rubric,
-      topic,
-      sheets: new Map([
-        [1, [A]],
-        [2, [A, { ...A, at: 30 }]],
-      ]),
+      hand: new Map([[3, hand]]),
+      runs: new Map([[3, [run(1, 4, 8), run(1, 8, 8, 2), run(2, 5, 10)]]]),
+      waiting: new Set(),
     });
-    expect(out.rows.find((x) => x.seatId === 1)!.livecode).toBeNull();
-    expect(out.rows.find((x) => x.seatId === 1)!.liveFlag).toBe("belum");
-    expect(out.rows.find((x) => x.seatId === 2)!.liveFlag).toBe("belum");
-    expect(out.liveWaiting.sort()).toEqual([1, 2, 3]);
-    // pending counts as 0 in the total
-    expect(out.rows.find((x) => x.seatId === 1)!.total).toBe(1000);
+    const r = out.rows.find((x) => x.seatId === 3)!;
+    expect(r.livecode).toBe(700);
+    expect(r.liveFlag).toBeUndefined();
+    expect(r.total).toBe(783 + 700);
   });
 
-  it("a sheet that no longer fits the rubric is flagged instead of throwing", () => {
-    const bad: RubricSheet = { grader: "103", at: 5, values: { jalan: 9 } };
-    const out = asm(SEATS, BANK, { rubric, topic, sheets: new Map([[1, [bad, B]]]) });
-    expect(out.rows.find((x) => x.seatId === 1)!.liveFlag).toBe("rubrik");
+  it("a seat that was dealt a hand but sent nothing has 0 and is not flagged tanpa", () => {
+    const out = asm(SEATS, BANK, {
+      hand: new Map([[3, hand]]),
+      runs: new Map(),
+      waiting: new Set(),
+    });
+    const r = out.rows.find((x) => x.seatId === 3)!;
+    expect(r.livecode).toBe(0);
+    expect(r.liveFlag).toBeUndefined();
+  });
+
+  it("a Submit still at the judge flags the seat belum and counts what is finished", () => {
+    const out = asm(SEATS, BANK, {
+      hand: new Map([[1, hand]]),
+      runs: new Map([[1, [run(1, 8, 8)]]]),
+      waiting: new Set([1]),
+    });
+    const r = out.rows.find((x) => x.seatId === 1)!;
+    expect(r.liveFlag).toBe("belum");
+    expect(r.livecode).toBe(400);
+    expect(out.liveWaiting).toEqual([1]);
+  });
+
+  it("seats without a hand stay tanpa, and a problem no longer in the pool is simply worth nothing", () => {
+    const out = asm(SEATS, BANK, { hand: new Map([[1, []]]), runs: new Map(), waiting: new Set() });
+    expect(out.rows.find((x) => x.seatId === 2)!.liveFlag).toBe("tanpa");
+    expect(out.rows.find((x) => x.seatId === 1)!.livecode).toBe(0);
   });
 });
 

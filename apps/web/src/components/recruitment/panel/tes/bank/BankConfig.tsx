@@ -12,7 +12,7 @@ import type { Lang } from "../../../../../lib/kelas";
 import type { ExamConfigResponse } from "../../../../../lib/recruitment/bank-api";
 import { canon } from "../../../../../lib/recruitment/bank-rules";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
-import { capsOf } from "../../../../../lib/recruitment/exam-config";
+import { capsOf, dealtPoints } from "../../../../../lib/recruitment/exam-config";
 import {
   PHASE1_PARTS,
   type ExamConfig,
@@ -49,13 +49,35 @@ export default function BankConfig({
     setCfg({ ...cfg, parts: { ...cfg.parts, [p]: { ...cfg.parts[p], ...patch } } });
   const caps = capsOf(cfg);
 
+  const setLive = (patch: Partial<ExamConfig["livecode"]>) =>
+    setCfg({ ...cfg, livecode: { ...cfg.livecode, ...patch } });
+  const setShares = (part: Phase1Part, v: number) => {
+    // The other two parts keep their ratio and the last one takes the rest, so the three always add up to 100
+    const rest = PHASE1_PARTS.filter((p) => p !== part);
+    const left = 100 - v;
+    const a = rest[0];
+    const b = rest[1];
+    const sa = cfg.shares[a];
+    const sb = cfg.shares[b];
+    const na = sa + sb === 0 ? Math.floor(left / 2) : Math.round((left * sa) / (sa + sb));
+    setCfg({ ...cfg, shares: { ...cfg.shares, [part]: v, [a]: na, [b]: left - na } });
+  };
+  const handPoints = dealtPoints(cfg);
+  const scoreOk = handPoints === caps.livecode;
+
   const total = PHASE1_PARTS.reduce((a, p) => a + cfg.parts[p].minutes, 0) + cfg.livecode.minutes;
 
   async function simpan() {
     setBusy(true);
     const r = await recPost<{ ok: true }>("exam-config-save", { config: cfg });
     setBusy(false);
-    if (isFail(r)) return toast(t.err[r.kode] ?? t.err.other, "danger");
+    if (isFail(r)) {
+      const bad = (r as { errors?: { kode: string }[] }).errors?.[0]?.kode;
+      return toast(
+        bad ? (t.cfgErr[bad] ?? t.cfgErr.other) : (t.err[r.kode] ?? t.err.other),
+        "danger",
+      );
+    }
     toast(t.cfgSaved);
     refresh();
   }
@@ -163,6 +185,123 @@ export default function BankConfig({
             </tbody>
           </table>
         </div>
+      </section>
+      <section className="panel r3cfg__score" data-ok={scoreOk ? "yes" : "no"}>
+        <div className="stack" style={{ gap: 2 }}>
+          <b>{t.cfgScoreTitle}</b>
+          <span className="hint">{t.cfgScoreBody}</span>
+        </div>
+        <div className="r3cfg__grid">
+          <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgWeightLive}</span>
+            <Stepper
+              value={cfg.weights.livecode}
+              min={10}
+              max={90}
+              step={5}
+              label={t.cfgWeightLive}
+              fmt={(n) => `${n}%`}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) =>
+                !lock && setCfg({ ...cfg, weights: { written: 100 - v, livecode: v } })
+              }
+            />
+          </label>
+          <div className="stack stack--sm">
+            <span className="label-caps">{t.cfgWeightWritten}</span>
+            <b className="num">
+              {cfg.weights.written}% · {caps.written}
+            </b>
+          </div>
+          {PHASE1_PARTS.map((p) => (
+            <label key={p} className="stack stack--sm">
+              <span className="label-caps">
+                {t.cfgShare}: {t.parts[p]}
+              </span>
+              <Stepper
+                value={cfg.shares[p]}
+                min={0}
+                max={100}
+                step={5}
+                label={`${t.cfgShare} ${t.parts[p]}`}
+                fmt={(n) => `${n}% · ${Math.round((caps.written * n) / 100)}`}
+                disabled={lock}
+                lessLabel={t.stepLess}
+                moreLabel={t.stepMore}
+                onChange={(v) => !lock && setShares(p, v)}
+              />
+            </label>
+          ))}
+          {(["easy", "medium"] as const).map((tier) => (
+            <label key={`pts-${tier}`} className="stack stack--sm">
+              <span className="label-caps">
+                {tier === "easy" ? t.cfgPointsEasy : t.cfgPointsMedium}
+              </span>
+              <Stepper
+                value={cfg.livecode.points[tier]}
+                min={50}
+                max={2400}
+                step={50}
+                label={tier === "easy" ? t.cfgPointsEasy : t.cfgPointsMedium}
+                disabled={lock}
+                lessLabel={t.stepLess}
+                moreLabel={t.stepMore}
+                onChange={(v) =>
+                  !lock && setLive({ points: { ...cfg.livecode.points, [tier]: v } })
+                }
+              />
+            </label>
+          ))}
+          {(["easy", "medium"] as const).map((tier) => (
+            <label key={`draw-${tier}`} className="stack stack--sm">
+              <span className="label-caps">
+                {tier === "easy" ? t.cfgDrawEasy : t.cfgDrawMedium}
+              </span>
+              <Stepper
+                value={cfg.livecode.draw[tier]}
+                min={0}
+                max={10}
+                label={tier === "easy" ? t.cfgDrawEasy : t.cfgDrawMedium}
+                disabled={lock}
+                lessLabel={t.stepLess}
+                moreLabel={t.stepMore}
+                onChange={(v) => !lock && setLive({ draw: { ...cfg.livecode.draw, [tier]: v } })}
+              />
+            </label>
+          ))}
+          <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgRunLimit}</span>
+            <Stepper
+              value={cfg.livecode.runLimit}
+              min={0}
+              max={100}
+              label={t.cfgRunLimit}
+              fmt={(n) => (n === 0 ? t.cfgRunLimitNone : String(n))}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) => !lock && setLive({ runLimit: v })}
+            />
+          </label>
+          <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgWorkers}</span>
+            <Stepper
+              value={cfg.livecode.workers}
+              min={1}
+              max={16}
+              label={t.cfgWorkers}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) => !lock && setLive({ workers: v })}
+            />
+          </label>
+        </div>
+        <p className="hint r3cfg__sum" role="status" data-ok={scoreOk ? "yes" : "no"}>
+          {t.cfgScoreSum(caps.livecode, handPoints)} {scoreOk ? t.cfgScoreOk : t.cfgScoreOff}
+        </p>
       </section>
       <section className="panel r3cfg__foot">
         <div className="stack" style={{ gap: 2 }}>
