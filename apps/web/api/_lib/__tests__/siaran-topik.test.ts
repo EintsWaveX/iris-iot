@@ -77,6 +77,7 @@ const BACA: Record<string, string[]> = {
     "room-ticket",
     "room-log",
     "lc-room",
+    "lcc-room",
     "lc-rubric",
     "lc-topics",
     "lc-templates",

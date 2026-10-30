@@ -71,6 +71,7 @@ const ASISTEN_GET: Record<string, S3Handler> = {
   "room-ticket": handleRoom,
   "room-log": handleRoom,
   "lc-room": handleLiveCode,
+  "lcc-room": handleLcc,
   "lc-rubric": handleLiveCode,
   "lc-topics": handleLiveCode,
   "lc-templates": handleLiveCode,

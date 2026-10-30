@@ -69,6 +69,40 @@ export interface LccSendReply {
   replaced: boolean;
 }
 
+/* ------------------------------------------------------ the panel's room view */
+
+export interface LccRoomProblem {
+  problemId: number;
+  title: string;
+  points: number;
+  got: number;
+  passed: number | null;
+  total: number | null;
+}
+
+export interface LccRoomSeat {
+  seatId: number;
+  no: number | null;
+  nama: string;
+  /** The seat was dealt a hand */
+  dealt: boolean;
+  problems: LccRoomProblem[];
+  /** Points from the best Submit of each problem */
+  got: number;
+  /** Submits and Run Samples waiting at the judge */
+  waiting: number;
+  /** The newest thing the seat sent, in ms, or null */
+  lastAt: number | null;
+}
+
+/** `GET lcc-room?id=`: the judge, its queue and every seat's results, for the room's staff. */
+export interface LccRoom {
+  judgeReady: boolean;
+  queue: { waiting: number; running: number };
+  cap: number;
+  seats: LccRoomSeat[];
+}
+
 /* ---------------------------------------------------------------- mapping */
 
 export interface SubRow {

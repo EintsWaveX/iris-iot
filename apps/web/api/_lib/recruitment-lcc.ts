@@ -13,21 +13,38 @@ import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, noStore } from "./http.js";
-import { recCProblem, recCSubmission, recExamSeat, server } from "../../src/lib/schema.js";
+import { getDb } from "../../src/lib/db.js";
+import {
+  praktikan,
+  recAccount,
+  recCandidate,
+  recCProblem,
+  recCSubmission,
+  recExamSeat,
+  server,
+} from "../../src/lib/schema.js";
 import { DrawShort, drawProblems, drawSeed } from "../../src/lib/recruitment/draw.js";
+import { livecodeResult } from "../../src/lib/recruitment/c-problem.js";
 import { capsOf } from "../../src/lib/recruitment/exam-config.js";
 import {
   stateOf,
   type LccProblem,
+  type LccRoom,
+  type LccRoomSeat,
   type LccSelf,
   type LccSendReply,
   type SubRow,
 } from "../../src/lib/recruitment/lcc-api.js";
-import { tolak, type Db } from "./recruitment-data.js";
+import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
+import { muatPelaku } from "./recruitment-rights.js";
+import { namaKandidat } from "./recruitment-akun.js";
+import { ruangDinilai } from "./recruitment-lc-grade.js";
+import { bacaConfig } from "./recruitment-room.js";
 import {
   faseLc,
   muatGaram,
   muatKonteksSeat,
+  nomorKursi,
   tolakLc,
   type KonteksLc,
 } from "./recruitment-lc-common.js";
@@ -37,6 +54,7 @@ const KINDS = new Set(["run", "submit"]);
 
 export async function handleLcc(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const aksi = String(req.query.aksi ?? "");
+  if (aksi === "lcc-room") return bacaRuang(req, res, s);
   const c = await muatKonteksSeat(req, res, s);
   if (!c) return;
   noStore(res);
@@ -197,4 +215,104 @@ async function kirim(c: KonteksLc, fase: "spin" | "kerja", req: ApiRequest, res:
   }
   const reply: LccSendReply = { id: r.id, replaced: r.replaced };
   res.status(200).json({ ok: true, ...reply });
+}
+
+/* -------------------------------------------------------- the staff's room view */
+
+async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  noStore(res);
+  if (s.role !== "asisten") return void tolak(res, "tanpa_hak", 403);
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  const room = await ruangDinilai(db, edisi.id, Number(req.query.id), p, s.nim);
+  if (!room) return void tolak(res, "tanpa_hak", 403);
+  const config = await bacaConfig(db, edisi.id);
+  const seats = await db.select().from(recExamSeat).where(eq(recExamSeat.roomId, room.id));
+  const ids = seats.map((x) => x.id);
+  const [nomor, kand, problems, subs, queue] = await Promise.all([
+    nomorKursi(db, room),
+    ids.length
+      ? db
+          .select({ id: recCandidate.id, nama: namaKandidat })
+          .from(recCandidate)
+          .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
+          .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
+          .where(
+            inArray(
+              recCandidate.id,
+              seats.map((x) => x.candidateId),
+            ),
+          )
+      : [],
+    db
+      .select({ id: recCProblem.id, title: recCProblem.title, tier: recCProblem.tier })
+      .from(recCProblem)
+      .where(eq(recCProblem.editionId, edisi.id)),
+    ids.length ? db.select().from(recCSubmission).where(inArray(recCSubmission.seatId, ids)) : [],
+    db
+      .select({ status: recCSubmission.status, n: sql<number>`count(*)::int` })
+      .from(recCSubmission)
+      .where(sql`${recCSubmission.status} in ('antre', 'diambil')`)
+      .groupBy(recCSubmission.status),
+  ]);
+  const nama = new Map(kand.map((k) => [k.id, k.nama ?? ""]));
+  const info = new Map(problems.map((x) => [x.id, x]));
+  const out: LccRoomSeat[] = seats.map((seat) => {
+    const dealt = (seat.draw as { livecode?: { problems?: number[] } }).livecode?.problems ?? [];
+    const mine = subs.filter((x) => x.seatId === seat.id);
+    const hand = dealt.flatMap((id) => {
+      const pr = info.get(id);
+      return pr
+        ? [{ problemId: id, points: config.livecode.points[pr.tier], title: pr.title }]
+        : [];
+    });
+    const live = livecodeResult(
+      hand.map((h) => ({
+        problemId: h.problemId,
+        points: h.points,
+        runs: mine
+          .filter(
+            (x) =>
+              x.problemId === h.problemId &&
+              x.kind === "submit" &&
+              x.status === "selesai" &&
+              x.total,
+          )
+          .map((x) => ({
+            passed: x.passed ?? 0,
+            total: x.total ?? 0,
+            at: x.requestedAt.getTime(),
+          })),
+      })),
+    );
+    return {
+      seatId: seat.id,
+      no: nomor.get(seat.candidateId) ?? null,
+      nama: nama.get(seat.candidateId) ?? "",
+      dealt: dealt.length > 0,
+      problems: live.problems.map((pr, i) => ({
+        problemId: pr.problemId,
+        title: hand[i].title,
+        points: pr.points,
+        got: pr.got,
+        passed: pr.best?.passed ?? null,
+        total: pr.best?.total ?? null,
+      })),
+      got: live.total,
+      waiting: mine.filter((x) => x.status === "antre" || x.status === "diambil").length,
+      lastAt: mine.length ? Math.max(...mine.map((x) => x.requestedAt.getTime())) : null,
+    };
+  });
+  const body: LccRoom = {
+    judgeReady: await judgeSiap(db),
+    queue: {
+      waiting: queue.find((q) => q.status === "antre")?.n ?? 0,
+      running: queue.find((q) => q.status === "diambil")?.n ?? 0,
+    },
+    cap: capsOf(config).livecode,
+    seats: out.sort((a, b) => (a.no ?? 1e9) - (b.no ?? 1e9) || a.seatId - b.seatId),
+  };
+  res.status(200).json({ ok: true, ...body });
 }
