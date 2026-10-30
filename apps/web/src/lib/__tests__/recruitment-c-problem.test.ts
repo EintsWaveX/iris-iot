@@ -7,6 +7,8 @@ import {
   C_LIMITS,
   DEFAULT_STARTER,
   bestRun,
+  judgeRuns,
+  outcomeOf,
   livecodeResult,
   normalizeOutput,
   passedOf,
@@ -187,5 +189,53 @@ describe("the default problems", () => {
         DEFAULT_EXAM_CONFIG.livecode.draw[tier],
       );
     }
+  });
+});
+
+describe("judging what the agent reports", () => {
+  const want = ["3\n", "10\n", "0\n"];
+  it("accepts a matching output and rejects a different one", () => {
+    const v = judgeRuns(want, [
+      { st: "ok", out: "3", ms: 4, kb: 900 },
+      { st: "ok", out: "11\n" },
+      { st: "ok", out: "0\r\n" },
+    ]);
+    expect(v.map((x) => x.v)).toEqual(["ac", "wa", "ac"]);
+    expect(v[0]).toEqual({ v: "ac", ms: 4, kb: 900 });
+  });
+  it("passes the agent's other endings through as they are", () => {
+    expect(judgeRuns(want, [{ st: "tle" }, { st: "mle" }, { st: "ole" }]).map((x) => x.v)).toEqual([
+      "tle",
+      "mle",
+      "ole",
+    ]);
+    expect(judgeRuns(want, [{ st: "re" }, { st: "re" }, { st: "re" }]).map((x) => x.v)).toEqual([
+      "re",
+      "re",
+      "re",
+    ]);
+  });
+  it("a missing, unknown or output-less run never scores", () => {
+    const v = judgeRuns(want, [{ st: "ok" }, { st: "weird" as never, out: "10" }]);
+    expect(v.map((x) => x.v)).toEqual(["wa", "re", "re"]);
+    expect(judgeRuns(want, undefined).every((x) => x.v === "re")).toBe(true);
+  });
+  it("clamps silly numbers", () => {
+    const [a] = judgeRuns(["1"], [{ st: "ok", out: "1", ms: -5, kb: 1e12 }]);
+    expect(a).toEqual({ v: "ac", ms: 0, kb: 4_000_000 });
+  });
+  it("a compile error has no verdicts and keeps a capped log", () => {
+    const o = outcomeOf(want, { compile: { ok: false, log: "x".repeat(20_000) } });
+    expect(o.compile.ok).toBe(false);
+    expect(o.compile.log).toHaveLength(8000);
+    expect(o.verdicts).toEqual([]);
+  });
+  it("a good compile judges every test", () => {
+    const o = outcomeOf(want, {
+      compile: { ok: true },
+      runs: [{ st: "ok", out: "3" }, { st: "ok", out: "10" }, { st: "tle" }],
+    });
+    expect(passedOf(o.verdicts)).toBe(2);
+    expect(o.verdicts).toHaveLength(3);
   });
 });

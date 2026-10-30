@@ -100,6 +100,62 @@ export function normalizeOutput(s: string): string {
 export const sameOutput = (expected: string, got: string) =>
   normalizeOutput(expected) === normalizeOutput(got);
 
+/* --------------------------------------------------------------- judging */
+
+/** What the PC agent reports for one test: how the program ended, never whether it was right. */
+export const RUN_STATES = ["ok", "tle", "mle", "re", "ole"] as const;
+export type RunState = (typeof RUN_STATES)[number];
+
+export interface AgentRun {
+  st: RunState;
+  /** What the program printed (capped by the agent); only read when st is ok */
+  out?: string;
+  ms?: number;
+  kb?: number;
+}
+
+/** What the agent sends back for one job. `ce` carries the compiler's message. */
+export interface AgentAnswer {
+  id: number;
+  compile: { ok: boolean; log?: string };
+  runs?: AgentRun[];
+}
+
+const clampInt = (n: unknown, max: number) =>
+  typeof n === "number" && Number.isFinite(n) ? Math.min(max, Math.max(0, Math.round(n))) : 0;
+
+/**
+ * The verdict of every test, decided here and not on the agent: an `ok` run is
+ * accepted when its output matches the expected one under `sameOutput`, any
+ * other ending is its own verdict. A missing or extra run is a runtime error
+ * (a lying or broken agent can never raise a score).
+ */
+export function judgeRuns(
+  expected: readonly string[],
+  runs: readonly AgentRun[] | undefined,
+): TestVerdict[] {
+  return expected.map((want, i) => {
+    const r = runs?.[i];
+    const ms = clampInt(r?.ms, 600_000);
+    const kb = clampInt(r?.kb, 4_000_000);
+    if (!r || !(RUN_STATES as readonly string[]).includes(r.st)) return { v: "re", ms, kb };
+    if (r.st === "ok") {
+      return { v: typeof r.out === "string" && sameOutput(want, r.out) ? "ac" : "wa", ms, kb };
+    }
+    return { v: r.st, ms, kb };
+  });
+}
+
+/** The whole outcome for a job whose expected outputs are `expected`. */
+export function outcomeOf(
+  expected: readonly string[],
+  a: Pick<AgentAnswer, "compile" | "runs">,
+): Outcome {
+  const log = typeof a.compile?.log === "string" ? a.compile.log.slice(0, 8000) : "";
+  if (!a.compile?.ok) return { compile: { ok: false, log }, verdicts: [] };
+  return { compile: { ok: true, log }, verdicts: judgeRuns(expected, a.runs) };
+}
+
 /* ------------------------------------------------------------ validating */
 
 const tooLong = (s: string, n: number) => s.length > n;

@@ -3001,6 +3001,8 @@ export const recRubricScore = pgTable(
 export type RecLcTopicRow = typeof recLcTopic.$inferSelect;
 export type RecLivecodeRow = typeof recLivecode.$inferSelect;
 export type RecCompileJobRow = typeof recCompileJob.$inferSelect;
+export type RecCSubmissionRow = typeof recCSubmission.$inferSelect;
+export type RecCProblemRow = typeof recCProblem.$inferSelect;
 
 /**
  * Finalkan (EXAM-ENGINE 4.3): every candidate's scores and every question's
