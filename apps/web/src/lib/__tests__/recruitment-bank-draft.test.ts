@@ -32,11 +32,9 @@ const full = (d: ReturnType<typeof parseBank>[number]["draft"], id: number): Que
     sample: true,
     shown: false,
     voided: false,
-    refs: 0,
     updatedAt: "2026-10-25T00:00:00Z",
     body: d!.body,
     answer: d!.answer,
-    refIds: [],
     refList: [],
     voidNote: null,
   }) as QuestionFull;

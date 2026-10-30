@@ -1,13 +1,13 @@
 /**
- * /api/recruitment, S3: the question bank, the parts config and the
- * references (prompt 09). The database is a fake keyed by table, like
+ * /api/recruitment, S3: the question bank and the parts config (prompt 09).
+ * The database is a fake keyed by table, like
  * recruitment-room-api.test.ts; what the SQL itself must do (the version
- * guard, array_remove on the references, the running-room count) is proved
+ * guard, the running-room count) is proved
  * on the rig by rec_bank_api.mjs against real Postgres.
  *
  * What this file pins: who may call what (the `bank` right, and nobody else,
  * a candidate included), every refusal of question-save, the import's dry
- * run and apply, and that a seat reaches a reference or a picture only
+ * run and apply, and that a seat reaches a picture only
  * while the draw and the running part say so.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,10 +19,8 @@ import {
   recExamConfig,
   recExamRoom,
   recExamSeat,
-  recPartRef,
   recQuestion,
   recQuestionLog,
-  recReference,
   recScoreFreeze,
 } from "../../src/lib/schema";
 import { DEFAULT_EXAM_CONFIG, type ExamConfig } from "../../src/lib/recruitment/exam-types";
@@ -39,10 +37,8 @@ const nama = new Map<unknown, string>([
   [recEdition, "edition"],
   [recExamConfig, "config"],
   [recExamRoom, "room"],
-  [recPartRef, "partref"],
   [recQuestion, "question"],
   [recQuestionLog, "log"],
-  [recReference, "reference"],
   [recAnswer, "answer"],
   [recExamSeat, "seat"],
   [recScoreFreeze, "freeze"],
@@ -283,9 +279,7 @@ beforeEach(() => {
     config: [{ lockedAt: null }],
     room: (sel) => (sel && "n" in (sel as object) ? [{ n: berjalan ? 1 : 0 }] : []),
     question: [BARIS()],
-    reference: [],
     log: [],
-    partref: [],
   };
   dep.simpanSiap = () => true;
   dep.kepala = async () => ({ ada: true });
@@ -305,12 +299,6 @@ describe("who may reach the bank", () => {
     ["bank-export", null],
     ["bank-seed", {}],
     ["media-ticket", { mime: "image/png", size: 100, sha256: "a".repeat(64) }],
-    ["references", null],
-    ["reference-add", { url: "https://example.org/" }],
-    ["reference-refetch", { id: 1 }],
-    ["reference-upload", { html: "<p>x</p>" }],
-    ["reference-delete", { id: 1 }],
-    ["reference-attach", { id: 1, part: "logika", on: true }],
   ];
 
   it("an Asisten without the bank right gets 403 on every action", async () => {
@@ -722,13 +710,11 @@ describe("bank-import", () => {
     expect(tulis.filter((w) => w.tabel === "question" && w.op === "insert")).toHaveLength(7);
   });
 
-  it("reports a reference URL the bank does not have", async () => {
+  it("ignores a refs line from an older file: there are no references any more", async () => {
     rows.question = [];
-    const text = `---\npart: logika\nlang: c\nformat: single\ntitle: R\nrefs: [https://nope.example/x]\n---\nQ\n\n- [x] a\n- [ ] b\n`;
+    const text = `---\npart: logika\nlang: c\nformat: single\ntitle: R\nrefs: [https://old.example/x]\n---\nQ\n\n- [x] a\n- [ ] b\n`;
     const r = await jalan("bank-import", AKD, { text, dry: true });
-    const it0 = (r.body.items as { errors: { kode: string; detail?: string }[] }[])[0];
-    expect(it0.errors[0].kode).toBe("rujukan_hilang");
-    expect(it0.errors[0].detail).toBe("https://nope.example/x");
+    expect(r.body.counts).toMatchObject({ create: 1, error: 0 });
   });
 
   it("an id the bank does not know is an error, an unchanged question is skipped", async () => {
@@ -816,101 +802,6 @@ describe("media-ticket", () => {
   });
 });
 
-/* ------------------------------------------------------------ references */
-
-const REF_ROW = (o: Record<string, unknown> = {}) => ({
-  id: 3,
-  editionId: 1,
-  url: "https://docs.arduino.cc/x/",
-  title: "digitalWrite",
-  selector: null,
-  r2Key: `recruitment/1/ref/${"e".repeat(64)}.html`,
-  sha256: "e".repeat(64),
-  bytes: 1234,
-  status: "ok",
-  error: null,
-  fetchedAt: new Date(),
-  by: "AKD",
-  ...o,
-});
-
-describe("references", () => {
-  it("reference-add fetches, stores in R2 and records the row", async () => {
-    const stored: string[] = [];
-    dep.snapshotUrl = (async () => ({
-      html: "<html></html>",
-      bytes: new Uint8Array(100),
-      sha256: "f".repeat(64),
-      title: "Judul Halaman",
-      finalUrl: "https://example.org/a",
-      selector: "main",
-      skipped: 0,
-    })) as never;
-    dep.simpan = async (k: string) => void stored.push(k);
-    const r = await jalan("reference-add", AKD, { url: "https://example.org/a" });
-    expect(r.status).toBe(200);
-    expect(stored).toEqual([`recruitment/1/ref/${"f".repeat(64)}.html`]);
-    expect(tulis.find((w) => w.tabel === "reference")!.nilai).toMatchObject({
-      title: "Judul Halaman",
-      status: "ok",
-      by: "AKD",
-    });
-  });
-
-  it("reference-add refuses a duplicate address and a forbidden one", async () => {
-    rows.reference = [REF_ROW()];
-    const dup = await jalan("reference-add", AKD, { url: "https://docs.arduino.cc/x/" });
-    expect(dup.status).toBe(409);
-    expect(dup.body.kode).toBe("sudah_ada");
-    rows.reference = [];
-    const { SnapshotError } = await import("../_lib/recruitment-snapshot");
-    dep.snapshotUrl = (async () => {
-      throw new SnapshotError("alamat_terlarang");
-    }) as never;
-    const r = await jalan("reference-add", AKD, { url: "http://169.254.169.254/" });
-    expect(r.status).toBe(400);
-    expect(r.body.kode).toBe("alamat_terlarang");
-    expect(tulis.filter((w) => w.tabel === "reference")).toEqual([]);
-  });
-
-  it("a failed refetch keeps the stored page and only notes the error", async () => {
-    rows.reference = [REF_ROW()];
-    const { SnapshotError } = await import("../_lib/recruitment-snapshot");
-    dep.snapshotUrl = (async () => {
-      throw new SnapshotError("waktu_habis");
-    }) as never;
-    const r = await jalan("reference-refetch", AKD, { id: 3 });
-    expect(r.status).toBe(502);
-    const up = tulis.find((w) => w.tabel === "reference" && w.op === "update")!;
-    expect(up.nilai).toEqual({ error: "waktu_habis" });
-  });
-
-  it("reference-attach needs exactly one of part and questionId", async () => {
-    rows.reference = [REF_ROW()];
-    expect((await jalan("reference-attach", AKD, { id: 3, on: true })).body.kode).toBe(
-      "data_salah",
-    );
-    expect(
-      (await jalan("reference-attach", AKD, { id: 3, part: "logika", questionId: 5, on: true }))
-        .body.kode,
-    ).toBe("data_salah");
-    expect(
-      (await jalan("reference-attach", AKD, { id: 3, part: "voli", on: true })).body.kode,
-    ).toBe("data_salah");
-    expect((await jalan("reference-attach", AKD, { id: 3, part: "logika", on: true })).status).toBe(
-      200,
-    );
-  });
-
-  it("reference-delete is refused while a real room runs", async () => {
-    rows.reference = [REF_ROW()];
-    berjalan = true;
-    expect((await jalan("reference-delete", AKD, { id: 3 })).body.kode).toBe("ruang_berjalan");
-  });
-});
-
-/* ------------------------------------------------------------------ ref */
-
 const kursiBagian = (
   o: { cur?: string | null; done?: boolean; draw?: boolean; roomId?: number } = {},
 ) => {
@@ -953,102 +844,6 @@ const kursiBagian = (
     room: { id: 7, state },
   };
 };
-
-describe("ref (a seat reads a reference)", () => {
-  const cand = sesi("1101200001", "praktikan");
-  beforeEach(() => {
-    rows.reference = [REF_ROW()];
-    rows.candidate = [{ id: 101 }];
-    rows.partref = [{ r: 3 }];
-    dep.ambil = async () => new Response("<html>x</html>");
-  });
-
-  it("serves a seat in its running part the strict headers", async () => {
-    kursi = kursiBagian();
-    const r = await jalan("ref", cand, null, { id: "3" });
-    expect(r.status).toBe(200);
-    expect(r.headers["Content-Security-Policy"]).toContain("default-src 'none'");
-    expect(r.headers["Content-Security-Policy"]).toContain("sandbox");
-    expect(r.headers["X-Content-Type-Options"]).toBe("nosniff");
-    expect(r.headers["Cache-Control"]).toBe("private, max-age=600");
-  });
-
-  it("is a plain not-found for a seat outside a running part, one that handed in, or one with no draw", async () => {
-    for (const k of [
-      { seat: null, room: null },
-      kursiBagian({ cur: null }),
-      kursiBagian({ done: true }),
-      kursiBagian({ draw: false }),
-      kursiBagian({ roomId: 9 }),
-    ]) {
-      kursi = k as never;
-      const r = await jalan("ref", cand, null, { id: "3" });
-      expect(r.status).toBe(404);
-      expect(r.body.kode).toBe("tidak_ada");
-    }
-  });
-
-  it("a reference neither on the part nor on a dealt question is not readable", async () => {
-    kursi = kursiBagian();
-    rows.partref = [];
-    rows.question = [{ refs: [] }];
-    expect((await jalan("ref", cand, null, { id: "3" })).status).toBe(404);
-    rows.question = [{ refs: [3] }];
-    expect((await jalan("ref", cand, null, { id: "3" })).status).toBe(200);
-  });
-
-  it("a failed reference (status gagal) is not served to a seat", async () => {
-    kursi = kursiBagian();
-    rows.reference = [REF_ROW({ status: "gagal" })];
-    expect((await jalan("ref", cand, null, { id: "3" })).status).toBe(404);
-  });
-
-  it("an Asisten with the bank right reads any reference, one without it gets the same not-found", async () => {
-    expect((await jalan("ref", AKD, null, { id: "3" })).status).toBe(200);
-    const r = await jalan("ref", sesi("N1"), null, { id: "3" });
-    expect(r.status).toBe(404);
-    expect(r.body.kode).toBe("tidak_ada");
-  });
-
-  it("a refusal the reader frame asked for is a short page in the seat's language, never raw JSON (prompt 14)", async () => {
-    const frame = { "sec-fetch-dest": "iframe" };
-    kursi = kursiBagian({ cur: null });
-    for (const [lang, words] of [
-      ["id", "Referensi Belum Bisa Dibuka"],
-      ["en", "This Reference Can't Open Yet"],
-      ["zh", "参考资料暂时无法打开"],
-    ] as const) {
-      const r = await jalan("ref", cand, null, { id: "3", lang }, frame);
-      expect(r.status).toBe(404);
-      expect(r.teks).toContain(words);
-      expect(r.teks).not.toContain("tidak_ada");
-      expect(r.teks).not.toMatch(/<script/i);
-      expect(r.headers["Content-Type"]).toBe("text/html; charset=utf-8");
-      expect(r.headers["Content-Security-Policy"]).toContain("sandbox");
-      expect(r.headers["Cache-Control"]).toBe("no-store");
-    }
-    // the relay failing is the same page, with the right status
-    kursi = kursiBagian();
-    dep.ambil = async () => {
-      throw new Error("relay down");
-    };
-    const r = await jalan("ref", cand, null, { id: "3", lang: "xx" }, frame);
-    expect(r.status).toBe(404);
-    expect(r.teks).toContain("Referensi Belum Bisa Dibuka");
-    // an API caller (no frame) still gets the JSON code
-    expect((await jalan("ref", cand, null, { id: "3" })).body.kode).toBe("tidak_ada");
-  });
-
-  it("answers the same for a missing id as for a forbidden one (no probing)", async () => {
-    rows.reference = [];
-    const a = await jalan("ref", AKD, null, { id: "99" });
-    expect(a.status).toBe(404);
-    kursi = kursiBagian();
-    const b = await jalan("ref", cand, null, { id: "99" });
-    expect(b.status).toBe(404);
-    expect(b.body).toEqual(a.body);
-  });
-});
 
 describe("media (a seat loads a picture)", () => {
   const key = `recruitment/1/bank/${"a".repeat(64)}.png`;

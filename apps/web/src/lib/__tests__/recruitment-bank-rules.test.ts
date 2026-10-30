@@ -37,7 +37,6 @@ const stateOf = (i: number): QuestionState => {
     status: d.status,
     body: d.body,
     answer: d.answer,
-    refs: [],
   };
 };
 const stored = (s: QuestionState, shown = false, sample = false): StoredState => ({
@@ -253,18 +252,10 @@ describe("judgeSave", () => {
     );
   });
 
-  it("references and the title count as changes", () => {
-    expect(judgeSave(stored(base), { ...base, refs: [3] }, ctx())).toEqual({
-      ok: true,
-      kind: "save",
-    });
+  it("the title counts as a change", () => {
     expect(judgeSave(stored(base), { ...base, title: "Judul lain" }, ctx())).toEqual({
       ok: true,
       kind: "save",
-    });
-    expect(judgeSave(stored({ ...base, refs: [2, 1] }), { ...base, refs: [1, 2] }, ctx())).toEqual({
-      ok: true,
-      kind: "same",
     });
   });
 });

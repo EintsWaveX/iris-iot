@@ -31,7 +31,6 @@ type DraftOf<Q extends Question> = {
   lang: Lang;
   title: string;
   status: "draft" | "ready";
-  refIds: number[];
   format: Q["format"];
   body: Q["body"];
   answer: Q["answer"];
@@ -116,7 +115,6 @@ export function blankDraft(part: Phase1Part, lang: Lang, format: Format = "singl
     lang,
     title: "",
     status: "draft",
-    refIds: [],
     ...starter(format, lang),
   } as Draft;
 }
@@ -130,7 +128,6 @@ export function fromFull(q: QuestionFull): Draft {
     lang: q.lang,
     title: q.title,
     status: q.status,
-    refIds: [...q.refIds],
     format: q.format,
     body: structuredClone(q.body),
     answer: structuredClone(q.answer),
@@ -225,7 +222,6 @@ export function savePayload(d: Draft, note?: string) {
     status: d.status,
     body: d.body,
     answer: d.answer,
-    refs: d.refIds,
     ...(note?.trim() ? { note: note.trim() } : {}),
   };
 }

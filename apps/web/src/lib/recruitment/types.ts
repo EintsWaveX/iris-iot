@@ -324,7 +324,6 @@ export type RecError =
   | "ruang_berjalan"
   | "sudah_tampil"
   | "gambar_hilang"
-  | "rujukan_hilang"
   | "tidak_ada"
   | "sudah_ada"
   | "url_salah"

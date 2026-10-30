@@ -169,7 +169,7 @@ export function useLockdown(o: {
       if (document.visibilityState === "hidden") signal("tab");
       else settle();
     };
-    // Focus moving into the reference iframe blurs the window but not the tab.
+    // Focus leaving the window (another app, a devtools panel) blurs it without hiding the tab.
     const onBlur = () =>
       setTimeout(() => {
         if (!document.hasFocus()) signal("fokus");

@@ -35,7 +35,6 @@ import {
 import type {
   ExamConfigResponse,
   QuestionFull,
-  ReferenceRow,
   SaveResponse,
 } from "../../../../../lib/recruitment/bank-api";
 import { useBankQuestion } from "../../../../../lib/recruitment/bank-client";
@@ -49,7 +48,7 @@ import {
 } from "../../../../../lib/recruitment/exam-types";
 import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
-import { ImagesEditor, RefsEditor } from "./BankAttach";
+import { ImagesEditor } from "./BankAttach";
 import {
   ChoiceKeys,
   FitbKeys,
@@ -122,7 +121,6 @@ export default function BankEditor({
   id,
   part,
   config,
-  refs,
   onBack,
   onOpen,
 }: {
@@ -130,7 +128,6 @@ export default function BankEditor({
   id: number | null;
   part: Phase1Part;
   config: ExamConfigResponse;
-  refs: ReferenceRow[];
   onBack: () => void;
   onOpen: (id: number) => void;
 }) {
@@ -505,7 +502,6 @@ export default function BankEditor({
             </div>
           )}
           <ImagesEditor d={d} set={set} t={t} lang={lang} />
-          <RefsEditor d={d} set={set} t={t} all={refs} />
           {id !== null && log.length > 0 && (
             <div className="stack stack--sm">
               <span className="label-caps">{t.history}</span>

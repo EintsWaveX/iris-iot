@@ -48,19 +48,10 @@ export interface QuestionView {
   view: View | null;
 }
 
-export interface RefLite {
-  id: number;
-  title: string;
-  host: string | null;
-  /** True when attached to one question only */
-  forQuestion: number | null;
-}
-
 export interface PartView {
   key: Phase1Part;
   items: QuestionView[];
   answers: Record<number, { value: Value; rev: number }>;
-  refs: RefLite[];
 }
 
 export interface TestView {

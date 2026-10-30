@@ -17,21 +17,12 @@ export interface QuestionSummary {
   /** A real seat has been dealt it: its structure is locked */
   shown: boolean;
   voided: boolean;
-  refs: number;
   updatedAt: string;
-}
-
-export interface RefInfo {
-  id: number;
-  title: string;
-  url: string | null;
 }
 
 export interface QuestionFull extends QuestionSummary {
   body: Question["body"];
   answer: Question["answer"];
-  refIds: number[];
-  refList: RefInfo[];
   voidNote: string | null;
 }
 
@@ -84,28 +75,4 @@ export interface ImportResponse {
   dry: boolean;
   items: ImportItem[];
   counts: { create: number; update: number; same: number; error: number };
-}
-
-export interface ReferenceRow {
-  id: number;
-  url: string | null;
-  title: string;
-  selector: string | null;
-  status: "ok" | "gagal";
-  error: string | null;
-  bytes: number | null;
-  fetchedAt: string | null;
-  by: string | null;
-}
-
-export interface Attachments {
-  /** part -> reference ids in order */
-  partRefs: Partial<Record<Phase1Part, number[]>>;
-  questionRefs: { questionId: number; title: string; refs: number[] }[];
-}
-
-export interface ReferencesResponse {
-  ok: true;
-  references: ReferenceRow[];
-  attachments: Attachments;
 }

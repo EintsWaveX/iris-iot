@@ -44,8 +44,6 @@ interface DraftMeta {
   title: string;
   status: Status;
   sample: boolean;
-  /** Reference URLs; the API turns them into ids and reports the ones it lacks */
-  refUrls: string[];
 }
 
 /** A question as the file says it: everything but the database's own columns. */
@@ -549,11 +547,6 @@ function one(doc: Doc, index: number, opt: ParseOptions): ParsedItem {
     else at("id_salah", "id");
   }
   item.id = id;
-  if (
-    fm.refs !== undefined &&
-    !(Array.isArray(fm.refs) && fm.refs.every((r) => typeof r === "string"))
-  )
-    at("rujukan_salah", "refs");
   if (errors.some((e) => ["part_salah", "bahasa_salah", "format_salah"].includes(e.kode)))
     return item;
 
@@ -577,7 +570,6 @@ function one(doc: Doc, index: number, opt: ParseOptions): ParsedItem {
     title: item.title,
     status: status as Status,
     sample: fm.sample === true,
-    refUrls: Array.isArray(fm.refs) ? (fm.refs as string[]) : [],
     body: p.body,
     answer: p.answer,
   } as QuestionDraft;
@@ -717,7 +709,6 @@ function writeFront(q: ExportItem): string[] {
   y.push(`part: ${q.part}`, `lang: ${q.lang}`, `format: ${q.format}`, `status: ${q.status}`);
   y.push(`title: ${scalar(q.title)}`);
   if (q.sample) y.push("sample: true");
-  if (q.refUrls.length) y.push(`refs: ${flowList(q.refUrls)}`);
   if (
     (q.format === "single" || q.format === "multi") &&
     (q.body as { shuffle: boolean }).shuffle === false

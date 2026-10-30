@@ -1,7 +1,7 @@
 /**
  * One part, as the candidate works it (prompt 10, mockup r3-soal,
- * EXAM-ENGINE 3, 5.2, 5.5, 5.6): a top bar with the part, the save state, the
- * references and the timer; the navigator (a rail from 820 px, a strip on a
+ * EXAM-ENGINE 3, 5.2, 5.5, 5.6): a top bar with the part, the save state and
+ * the timer; the navigator (a rail from 820 px, a strip on a
  * phone); one question at a time; Kumpulkan with what is left. Answers go to
  * the API on every change through the AnswerSaver, which keeps what the
  * server has not taken in localStorage. Time is the server's: the caller

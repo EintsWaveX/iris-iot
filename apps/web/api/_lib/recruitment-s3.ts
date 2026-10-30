@@ -4,7 +4,7 @@
  * and method; each handler reads `req.query.aksi` to tell its own actions
  * apart and checks its own rights (the table only settles who is signed in).
  *
- *   09  recruitment-bank.ts       the bank, the config, the references
+ *   09  recruitment-bank.ts       the bank and the config
  *   10  recruitment-seat.ts       the runner, a candidate's seat
  *   11  recruitment-room.ts       rooms, the console, the Master
  *   12  recruitment-livecode.ts   Live Coding (seat, graders, topic pool)
@@ -53,7 +53,6 @@ const OPREC_POST: Record<string, S3Handler> = {
 /** A seat during its part or a Panitia member: the handler tells them apart. */
 const BERSAMA_GET: Record<string, S3Handler> = {
   media: handleBank,
-  ref: handleBank,
   "lc-ticket": handleLiveCode,
 };
 
@@ -65,7 +64,6 @@ const ASISTEN_GET: Record<string, S3Handler> = {
   problems: handleBank,
   problem: handleBank,
   "bank-export": handleBank,
-  references: handleBank,
   rooms: handleRoom,
   room: handleRoom,
   "room-ticket": handleRoom,
@@ -88,11 +86,6 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "bank-import": handleBank,
   "bank-seed": handleBank,
   "media-ticket": handleBank,
-  "reference-add": handleBank,
-  "reference-refetch": handleBank,
-  "reference-upload": handleBank,
-  "reference-delete": handleBank,
-  "reference-attach": handleBank,
   "room-setup": handleRoom,
   "room-act": handleRoom,
   "room-master": handleRoom,

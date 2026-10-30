@@ -1,6 +1,6 @@
 /**
- * The bank on the page (prompt 09): the config, the list, one question and
- * the references through the recruitment API, all refetched at once on the
+ * The bank on the page (prompt 09): the config, the list and one question
+ * through the recruitment API, all refetched at once on the
  * `recbank` siaran topic and never on a timer of their own.
  */
 import { usePoll } from "../hooks";
@@ -9,7 +9,6 @@ import type {
   ExamConfigResponse,
   QuestionResponse,
   QuestionsResponse,
-  ReferencesResponse,
 } from "./bank-api";
 
 async function leaf<T extends { ok: true }>(p: Promise<RecResult<T>>): Promise<T | null> {
@@ -50,15 +49,5 @@ export function useBankQuestion(id: number | null, enabled: boolean) {
     ["recbank"],
     500,
     id,
-  );
-}
-
-export function useBankReferences(enabled: boolean) {
-  return usePoll(
-    () => leaf(recGet<ReferencesResponse>("references")),
-    300_000,
-    enabled,
-    ["recbank"],
-    500,
   );
 }

@@ -48,7 +48,6 @@ function canon(d: QuestionDraft) {
     title: d.title,
     status: d.status,
     sample: d.sample,
-    refUrls: d.refUrls,
     body,
     answer: d.answer,
   });
@@ -342,8 +341,8 @@ describe("the dry run reports what is wrong, with a line", () => {
   });
 });
 
-describe("references and images", () => {
-  it("carry reference URLs and images through the front matter", () => {
+describe("images", () => {
+  it("carry images through the front matter, and an old refs line is ignored", () => {
     const text = [
       "---",
       "part: kodingan",
@@ -361,16 +360,12 @@ describe("references and images", () => {
     ].join("\n");
     const [it] = parseBank(text);
     expect(it.errors).toEqual([]);
-    expect(it.draft!.refUrls).toEqual([
-      "https://docs.arduino.cc/language-reference/en/functions/digital-io/digitalwrite/",
-    ]);
     expect(it.draft!.body.images).toEqual([
       { id: "im1", key: "recruitment/1/bank/aaaa.png", alt: "Rangkaian", w: 320, h: 200 },
     ]);
     const again = parseBank(writeBank([{ ...it.draft!, id: 9 }]))[0];
     expect(again.errors).toEqual([]);
     expect(again.draft!.body.images).toEqual(it.draft!.body.images);
-    expect(again.draft!.refUrls).toEqual(it.draft!.refUrls);
   });
 
   it("an image the prompt names but the front matter lacks is an error", () => {

@@ -100,7 +100,6 @@ export const TS = dict({
       rule: [
         "Tetap di layar penuh. Pindah tab, pindah jendela dan menempel tercatat.",
         "Jawaban tersimpan otomatis tiap kamu memilih atau mengetik.",
-        "Referensi ada di tombol Referensi, khusus bagian yang sedang berjalan.",
         "Tiap bagian punya waktunya sendiri. Saat habis, jawabanmu terkumpul sendiri.",
       ],
       susulan: "Susulan Tes Tulis",
@@ -279,7 +278,6 @@ export const TS = dict({
       rule: [
         "Stay in full screen. Switching tabs or windows and pasting are logged.",
         "Answers save on their own each time you pick or type.",
-        "References sit behind the References button, for the running part only.",
         "Each part has its own time. When it runs out your answers are handed in for you.",
       ],
       susulan: "Written Test Makeup",
@@ -454,7 +452,6 @@ export const TS = dict({
       rule: [
         "请保持全屏。切换标签页、切换窗口和粘贴都会被记录。",
         "每次选择或输入，答案都会自动保存。",
-        "参考资料在“参考资料”按钮里，仅限正在进行的部分。",
         "每个部分有各自的时间，时间到时答案会自动提交。",
       ],
       susulan: "笔试补考",

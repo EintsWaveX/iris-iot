@@ -255,7 +255,6 @@ export interface QuestionState {
   status: "draft" | "ready";
   body: Question["body"];
   answer: Question["answer"];
-  refs: number[];
 }
 
 export interface StoredState extends QuestionState {
@@ -318,8 +317,7 @@ export function judgeSave(old: StoredState | null, next: QuestionState, c: Judge
     old.part === next.part &&
     old.lang === next.lang &&
     old.format === next.format &&
-    old.title === next.title &&
-    canon([...old.refs].sort()) === canon([...next.refs].sort());
+    old.title === next.title;
   if (sameBody && sameKey && sameRest && old.status === next.status)
     return { ok: true, kind: "same" };
   if (c.roomRunning && (old.status === "ready" || next.status === "ready"))
