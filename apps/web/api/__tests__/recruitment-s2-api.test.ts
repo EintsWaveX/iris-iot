@@ -21,6 +21,7 @@ import {
   recSlot,
   recSlotAssignment,
   recSlotChange,
+  recSlotExaminer,
   recStageResult,
   recStrike,
 } from "../../src/lib/schema";
@@ -42,6 +43,7 @@ const tabelNama = new Map<unknown, string>([
   [recAttendance, "attendance"],
   [recSlot, "slot"],
   [recSlotAssignment, "assignment"],
+  [recSlotExaminer, "examiner"],
   [recSlotChange, "change"],
   [recExamRoom, "room"],
   [recExamSeat, "seat"],
@@ -820,6 +822,29 @@ describe("QR attendance", () => {
       (await panggil("POST", "attend-manual", { body: { id: 7, event: FIRST_MEET, undo: true } }))
         .body.present,
     ).toBe(false);
+  });
+
+  it("lets an Asisten who examines a slot of the event sign a candidate in, and nobody else", async () => {
+    malam();
+    sebagaiAsisten();
+    rows.asisten = [ORANG("101022300900")];
+    rows.committee = [];
+    rows.candidate = [KANDIDAT()];
+    rows.attendance = [];
+    rows.examiner = [];
+    const body = { id: 7, event: FIRST_MEET, reason: "QR error" };
+    const ditolak = await panggil("POST", "attend-manual", { body });
+    expect(ditolak.code).toBe(403);
+    expect(tulis.some((w) => w.tabel === "attendance")).toBe(false);
+
+    rows.examiner = [{ slotId: 3 }];
+    const r = await panggil("POST", "attend-manual", { body });
+    expect(r.body).toMatchObject({ ok: true, present: true });
+    expect(tulis.find((w) => w.tabel === "attendance")?.nilai).toMatchObject({
+      via: "manual",
+      by: "101022300900",
+      reason: "QR error",
+    });
   });
 });
 

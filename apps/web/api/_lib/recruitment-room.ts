@@ -37,6 +37,7 @@ import {
   recExamSeat,
   recKitLoan,
   recQuestion,
+  recAttendance,
   recSeatNote,
   recSlot,
   recSlotAssignment,
@@ -562,6 +563,20 @@ async function susunKonsol(
         .orderBy(asc(recCandidate.nim))
     : [];
   const seatIds = seats.map((x) => x.id);
+  const hadir =
+    slot?.eventId && ids.length
+      ? await db
+          .select({
+            candidateId: recAttendance.candidateId,
+            via: recAttendance.via,
+            by: recAttendance.by,
+            reason: recAttendance.reason,
+          })
+          .from(recAttendance)
+          .where(
+            and(eq(recAttendance.eventId, slot.eventId), inArray(recAttendance.candidateId, ids)),
+          )
+      : [];
   const [strikes, kits, notes, jawab, protokol] = await Promise.all([
     db.select().from(recStrike).where(eq(recStrike.roomId, room.id)).orderBy(asc(recStrike.at)),
     db.select().from(recKitLoan).where(eq(recKitLoan.roomId, room.id)),
@@ -617,6 +632,7 @@ async function susunKonsol(
       })),
       kit: kit ? { code: kit.kitCode, boards: kit.boards, returnedAt: ms(kit.returnedAt) } : null,
       lastSeenAt: ms(seat?.lastSeenAt),
+      present: hadir.find((h) => h.candidateId === c.id) ?? null,
     };
   });
 
@@ -665,6 +681,7 @@ async function susunKonsol(
       rehearsal: room.rehearsal,
       slot: slot ? slotInfo(slot) : null,
       isToday: isHariIni(slot, room.rehearsal, now),
+      eventId: slot?.eventId ?? null,
     },
     state: room.state,
     view: v.view,

@@ -859,6 +859,24 @@ function SeatDrawer({
   }
   void k;
 
+  const g = d.sign;
+  const [alasan, setAlasan] = useState("");
+  const bisaMasuk = v.me.isPengawas || v.me.canSetup;
+  async function masukkan(batal: boolean) {
+    if (v.room.eventId === null) return;
+    const r = await recPost<{ ok: true }>("attend-manual", {
+      id: s.candidateId,
+      event: v.room.eventId,
+      ...(batal ? { undo: true } : { reason: alasan.trim() }),
+    });
+    if (isFail(r)) toast(r.kode === "jendela_tutup" ? g.closed : g.fail, "danger");
+    else {
+      toast(batal ? g.undone : g.marked(depan(s.nama)));
+      setAlasan("");
+    }
+    await jalan("room", {});
+  }
+
   return (
     <Drawer
       open
@@ -894,6 +912,54 @@ function SeatDrawer({
                 : RG[lang].con.grid.online}
           </b>
         </div>
+        {bisaMasuk && (
+          <section className="stack stack--sm">
+            <h3 className="label-caps">{g.title}</h3>
+            {v.room.eventId === null ? (
+              <span className="hint">{g.noEvent}</span>
+            ) : s.present ? (
+              <div className="row" style={{ justifyContent: "space-between", gap: 12 }}>
+                <span className="stack" style={{ gap: 0 }}>
+                  <b>{g.done}</b>
+                  <span className="hint">
+                    {s.present.via === "qr" ? g.viaQr : g.viaManual(s.present.by)}
+                    {s.present.reason ? ` · ${s.present.reason}` : ""}
+                  </span>
+                </span>
+                {s.present.via === "manual" && (
+                  <button
+                    type="button"
+                    className="btn btn--inverse btn--sm"
+                    onClick={() => void masukkan(true)}
+                  >
+                    {g.undo}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <span className="hint">{g.none}</span>
+                <div className="row" style={{ gap: 8 }}>
+                  <input
+                    className="field__input"
+                    style={{ flex: 1, minWidth: 0 }}
+                    maxLength={60}
+                    placeholder={g.reasonPh}
+                    value={alasan}
+                    onChange={(e) => setAlasan(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    onClick={() => void masukkan(false)}
+                  >
+                    {g.button}
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
         <section className="stack stack--sm">
           <h3 className="label-caps">{d.events}</h3>
           {s.kejadian.length ? (

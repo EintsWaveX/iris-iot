@@ -210,7 +210,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:unlock": ["reccutting", "reccandidates"],
   "recruitment:envelope-open": ["reccutting", "reccandidates"],
   "recruitment:attend": ["reccandidates"],
-  "recruitment:attend-manual": ["reccandidates"],
+  "recruitment:attend-manual": ["reccandidates", "recroom"],
   "recruitment:slot-pick": ["recplotting", "reccandidates"],
   "recruitment:slot-change": ["recplotting"],
   "recruitment:slot-decide": ["recplotting", "reccandidates"],
