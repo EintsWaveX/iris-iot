@@ -97,7 +97,7 @@ const PROBE = () => {
     /* F. a row whose parts sit on different lines */
     if (cs.display.includes("flex") && /^row/.test(cs.flexDirection) && cs.flexWrap === "nowrap") {
       const kids = [...e.children].filter(shown);
-      if (kids.length >= 2 && kids.length <= 8 && cs.alignItems !== "center") {
+      if (kids.length >= 2 && kids.length <= 8 && cs.alignItems !== "center" && cs.alignItems !== "baseline" && !/baseline/.test(cs.alignItems)) {
         const lines = kids.map((k) => ({ k, fl: firstLine(k), h: k.getBoundingClientRect().height })).filter((x) => x.fl && x.h < lineH(x.k) * 1.9 + 14);
         if (lines.length >= 2) {
           const cy = lines.map((x) => (x.fl.top + x.fl.bottom) / 2);
@@ -208,6 +208,7 @@ for (const s of list) {
     t.S.theme = sz.theme; t.S.W = sz.W; t.S.H = sz.H;
     for (const st of stateOf(s)) {
       try {
+        await t.p.evaluate(() => { const v = P9.state.v || {}; for (const k of Object.keys(v)) delete v[k]; });
         await t.go(s.id, st.v);
         const f = await t.p.evaluate(PROBE);
         const key = `${s.id}__${st.label.replace(/[^a-z0-9=_-]/gi, "_")}__${sz.theme}__${sz.W}x${sz.H}`;

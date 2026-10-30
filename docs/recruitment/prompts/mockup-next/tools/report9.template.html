@@ -1,0 +1,172 @@
+<title>R1 to R3 Layout Audit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a sticky summary strip, a filter bar, then one card per finding with before and after crops. */
+:root {
+  --bg: #f4f6fa; --surface: #ffffff; --surface-2: #eef1f7; --line: #d9deea;
+  --fg: #151b2b; --muted: #4d566d;
+  --accent: #2f5fd0; --accent-soft: #e3ebfc;
+  --broken: #a42a2a; --broken-soft: #fbe6e6;
+  --ugly: #8a4a04; --ugly-soft: #fbeedb;
+  --fragile: #3a5684; --fragile-soft: #e6edf7;
+  --ok: #17684a; --ok-soft: #dff3ea;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1422; --surface: #171e31; --surface-2: #1d2640; --line: #2b3552;
+  --fg: #e8ecf6; --muted: #98a2bd;
+  --accent: #7fa2ff; --accent-soft: #1f2d57;
+  --broken: #ff8c8c; --broken-soft: #3a1d25;
+  --ugly: #f0b45c; --ugly-soft: #38290f;
+  --fragile: #9db8e6; --fragile-soft: #1d2a45;
+  --ok: #6fd6a6; --ok-soft: #14392c; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1422; --surface: #171e31; --surface-2: #1d2640; --line: #2b3552;
+  --fg: #e8ecf6; --muted: #98a2bd;
+  --accent: #7fa2ff; --accent-soft: #1f2d57;
+  --broken: #ff8c8c; --broken-soft: #3a1d25;
+  --ugly: #f0b45c; --ugly-soft: #38290f;
+  --fragile: #9db8e6; --fragile-soft: #1d2a45;
+  --ok: #6fd6a6; --ok-soft: #14392c; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font-body); padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font-size: 1.7rem; line-height: 1.2; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.lede { color: var(--muted); margin: 6px 0 0; max-width: 68ch; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 2px; }
+.tile b { font-size: 1.6rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile span { color: var(--muted); font-size: .85rem; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+.panel ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.panel li { max-width: 80ch; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; }
+td.n, th.n { text-align: right; }
+.scroll { overflow-x: auto; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 10px 0; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips > label { color: var(--muted); font-size: .8rem; margin-right: 2px; }
+button.chip { font: inherit; font-size: .85rem; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+button.chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+button.chip:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type="search"] { font: inherit; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); width: min(100%, 360px); }
+.count { color: var(--muted); font-size: .85rem; }
+.list { display: grid; gap: 10px; }
+details.f { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; border-left-width: 5px; }
+details.f[data-sev="broken"] { border-left-color: var(--broken); }
+details.f[data-sev="ugly"] { border-left-color: var(--ugly); }
+details.f[data-sev="fragile"] { border-left-color: var(--fragile); }
+summary { list-style: none; cursor: pointer; padding: 12px 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; }
+summary::-webkit-details-marker { display: none; }
+.id { font: 600 .78rem var(--font-mono); color: var(--muted); }
+.title { font-weight: 600; min-width: 0; text-wrap: pretty; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.tag { font-size: .72rem; font-weight: 600; letter-spacing: .03em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; line-height: 1.5; }
+.tag.broken { background: var(--broken-soft); color: var(--broken); }
+.tag.ugly { background: var(--ugly-soft); color: var(--ugly); }
+.tag.fragile { background: var(--fragile-soft); color: var(--fragile); }
+.tag.fixed, .tag.applied { background: var(--ok-soft); color: var(--ok); }
+.tag.open { background: var(--surface-2); color: var(--muted); }
+.meta { grid-column: 2 / 4; color: var(--muted); font-size: .82rem; }
+.body { padding: 0 16px 16px; display: grid; gap: 12px; }
+dl { margin: 0; display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; }
+dt { color: var(--muted); font-size: .8rem; padding-top: 2px; }
+dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+dd code { font: .85rem var(--font-mono); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+figure { margin: 0; display: grid; gap: 4px; }
+figure img { width: 100%; border: 1px solid var(--line); border-radius: 6px; display: block; }
+figcaption { font-size: .78rem; color: var(--muted); }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+@media (max-width: 560px) { summary { grid-template-columns: auto 1fr; } .tags { grid-column: 1 / 3; justify-content: flex-start; } .meta { grid-column: 1 / 3; } dl { grid-template-columns: 1fr; } }
+</style>
+
+<main>
+  <header>
+    <h1>R1 to R3 Layout Audit</h1>
+    <p class="lede">Every screen of R1 (Pendaftaran, Kalender, Panel, CaAs), R2 (Berkas, Cutting, Plotting, QR) and R3 (Tes Tulis and Koding) in every state its picker offers, measured for alignment, overflow, text size and spacing. Mockup version of 30 Oct 2026. Open a finding to see what was measured, where the fix goes and, where it was changed, a before and after crop.</p>
+  </header>
+
+  <section class="grid" id="tiles"></section>
+
+  <section class="panel">
+    <h2>What was and was not covered</h2>
+    <ul id="coverage"></ul>
+  </section>
+
+  <section class="panel">
+    <h2>Automatic checks, before and after</h2>
+    <p class="count" style="margin:0 0 8px">Distinct elements flagged. Part of the drop comes from fixes and part from the check no longer counting rows that are aligned on purpose (centred or baseline rows).</p>
+    <div class="scroll"><table id="counts"></table></div>
+  </section>
+
+  <section class="bar" aria-label="Filters">
+    <div class="chips" id="fg"><label>Round</label></div>
+    <div class="chips" id="fs"><label>Severity</label></div>
+    <div class="chips" id="fst"><label>Status</label></div>
+    <div class="chips"><input id="q" type="search" placeholder="Search a screen, state or word" aria-label="Search findings"><span class="count" id="n"></span></div>
+  </section>
+
+  <section class="list" id="list" aria-live="polite"></section>
+</main>
+
+<script>
+/*DATA*/
+const SEV = { broken: "Broken", ugly: "Ugly", fragile: "Fragile" };
+const STAT = { fixed: "Fixed", applied: "Changed", open: "Open" };
+const state = { g: "all", s: "all", st: "all", q: "" };
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const rows = DATA.rows;
+const by = (f) => rows.filter(f).length;
+const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+
+document.getElementById("tiles").innerHTML = [
+  [DATA.na, "renders measured (states x 4 sizes x themes)"],
+  [rows.length, "findings listed"],
+  [by((r) => r.status === "fixed" || r.status === "applied"), "changed in the mockup"],
+  [by((r) => r.status === "open"), "still open"],
+  [by((r) => r.sev === "broken"), "marked broken"],
+].map(([n, l]) => `<div class="tile"><b>${n}</b><span>${l}</span></div>`).join("");
+
+document.getElementById("coverage").innerHTML = DATA.notReviewed.map((t) => `<li>${esc(t)}</li>`).join("") +
+  `<li>Changed means the CSS or script was edited and the final automatic pass ran. Fixed also means the screenshot was compared before and after.</li>`;
+
+const kinds = [...new Set([...Object.keys(DATA.before), ...Object.keys(DATA.after)])];
+const label = { "tiny-text": "Text under 11px", "row-misaligned": "Row parts on different lines", "outside-right": "Sticks out on the right", "odd-spacing": "Spacing off the 2px grid", "stack-edge-mismatch": "Stacked blocks, edges miss by a few px", "text-off-centre-y": "Badge or button text off centre", "overlap": "Overlap", "clipped": "Clipped text", "h-scroll": "Screen scrolls sideways" };
+document.getElementById("counts").innerHTML = `<thead><tr><th>Check</th><th class="n">Before</th><th class="n">After</th></tr></thead><tbody>` +
+  kinds.map((k) => `<tr><td>${esc(label[k] || k)}</td><td class="n">${DATA.before[k] || 0}</td><td class="n">${DATA.after[k] || 0}</td></tr>`).join("") +
+  `<tr><td><b>Total</b></td><td class="n"><b>${sum(DATA.before)}</b></td><td class="n"><b>${sum(DATA.after)}</b></td></tr></tbody>`;
+
+function chips(id, opts, key) {
+  const el = document.getElementById(id);
+  opts.forEach(([v, l]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = l;
+    b.setAttribute("aria-pressed", String(state[key] === v));
+    b.onclick = () => { state[key] = v; el.querySelectorAll("button").forEach((x, i) => x.setAttribute("aria-pressed", String(opts[i][0] === v))); render(); };
+    el.appendChild(b);
+  });
+}
+chips("fg", [["all", "All"], ["R1", "R1"], ["R2", "R2"], ["R3", "R3"], ["R1+R2+R3", "Whole app"]], "g");
+chips("fs", [["all", "All"], ["broken", "Broken"], ["ugly", "Ugly"], ["fragile", "Fragile"]], "s");
+chips("fst", [["all", "All"], ["changed", "Changed"], ["open", "Open"]], "st");
+document.getElementById("q").addEventListener("input", (e) => { state.q = e.target.value.toLowerCase(); render(); });
+
+function card(r) {
+  const shots = r.before || r.after ? `<div class="shots">${r.before ? `<figure><img alt="Before the fix: ${esc(r.title)}" src="${r.before}"><figcaption>Before</figcaption></figure>` : ""}${r.after ? `<figure><img alt="After the fix: ${esc(r.title)}" src="${r.after}"><figcaption>After (final run)</figcaption></figure>` : ""}</div>` : "";
+  return `<details class="f" data-sev="${r.sev}" id="${r.id}"><summary><span class="id">${r.id}</span><span class="title">${esc(r.title)}</span><span class="tags"><span class="tag ${r.sev}">${SEV[r.sev]}</span><span class="tag ${r.status}">${STAT[r.status] || "Fixed"}</span></span><span class="meta">${esc(r.screen)} · ${esc(r.states)} · ${esc(r.cat)}</span></summary>
+  <div class="body"><dl><dt>Seen</dt><dd>${esc(r.seen)}</dd><dt>Where</dt><dd><code>${esc(r.where)}</code></dd><dt>Fix</dt><dd>${esc(r.fix)}</dd></dl>${shots}</div></details>`;
+}
+function render() {
+  const out = rows.filter((r) => (state.g === "all" || r.g === state.g) && (state.s === "all" || r.sev === state.s) &&
+    (state.st === "all" || (state.st === "open" ? r.status === "open" : r.status !== "open")) &&
+    (!state.q || (r.id + " " + r.title + " " + r.screen + " " + r.states + " " + r.cat + " " + r.seen).toLowerCase().includes(state.q)));
+  document.getElementById("n").textContent = out.length + " of " + rows.length + " shown";
+  document.getElementById("list").innerHTML = out.length ? out.map(card).join("") : `<div class="empty">Nothing matches these filters.</div>`;
+}
+render();
+</script>
