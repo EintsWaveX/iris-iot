@@ -16,6 +16,8 @@ import {
   type CProblemDraft,
   type TestVerdict,
 } from "../recruitment/c-problem";
+import { SEED_PROBLEMS } from "../recruitment/seed-problems";
+import { DEFAULT_EXAM_CONFIG } from "../recruitment/exam-types";
 
 const draft = (): CProblemDraft => ({
   title: "Jumlah Dua Bilangan",
@@ -168,5 +170,22 @@ describe("points from runs", () => {
       runs: [{ passed: 5, total: 5, at: 1 }],
     }));
     expect(livecodeResult(hand).total).toBe(2400);
+  });
+});
+
+describe("the default problems", () => {
+  it("are all sound, with the samples being the first tests", () => {
+    expect(SEED_PROBLEMS).toHaveLength(8);
+    for (const p of SEED_PROBLEMS) {
+      expect(validateProblem(p), p.title).toEqual([]);
+      expect(p.tests.slice(0, p.samples.length)).toEqual(p.samples);
+    }
+  });
+  it("hold enough of each tier for every seat's hand", () => {
+    for (const tier of ["easy", "medium"] as const) {
+      expect(SEED_PROBLEMS.filter((p) => p.tier === tier).length).toBeGreaterThanOrEqual(
+        DEFAULT_EXAM_CONFIG.livecode.draw[tier],
+      );
+    }
   });
 });
