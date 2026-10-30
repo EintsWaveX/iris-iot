@@ -845,6 +845,17 @@ describe("QR attendance", () => {
       by: "101022300900",
       reason: "QR error",
     });
+
+    // An examiner takes back only the marks they made themselves.
+    const undo = { id: 7, event: FIRST_MEET, undo: true };
+    rows.attendance = [
+      { id: 1, candidateId: 7, eventId: FIRST_MEET, via: "manual", by: "101022300111" },
+    ];
+    expect((await panggil("POST", "attend-manual", { body: undo })).code).toBe(403);
+    rows.attendance = [
+      { id: 1, candidateId: 7, eventId: FIRST_MEET, via: "manual", by: "101022300900" },
+    ];
+    expect((await panggil("POST", "attend-manual", { body: undo })).body.present).toBe(false);
   });
 });
 
