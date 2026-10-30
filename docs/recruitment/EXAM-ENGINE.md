@@ -46,7 +46,6 @@ Conventions:
 | `title` | text | The bank's label for the author. Never shown to candidates. |
 | `body` | JSON | What the candidate may see. Format specific (1.3). |
 | `answer` | JSON | The key. Never leaves the server except to the `bank` right. |
-| `refs` | `int[]` | `rec_reference` ids attached to this question (section 8). |
 | `status` | `draft \| ready` | Only `ready` joins a pool. |
 | `sample` | boolean | Seed question I wrote ("Bawaan" badge in the bank). Drawn like any other; the badge only tells Akademik which ones are still the seeds. An edit by a person clears it. *(ruling 2026-10-24)* |
 | `version` | int | +1 on every save. |
@@ -130,7 +129,7 @@ Once `shown_at` is set:
 ### 1.5 Import and export (Markdown + YAML)
 One UTF-8 `.md` file holds any number of questions. Each question starts with a YAML front matter between two `---` lines, followed by its Markdown body. Inside a prompt, use `***` for a horizontal rule; a line `---` followed by `key:` lines starts the next question.
 
-Front matter keys: `id` (export only; with an id the import updates that question), `part`, `lang`, `format`, `status` (`draft` default), `title`, `sample`, `refs` (reference URLs that must already exist in the bank, otherwise the dry run reports them), `shuffle` (single, multi), `bugs` (lines), `also` (order, 1-based line numbers of the authored block), `blanks` (fitb).
+Front matter keys: `id` (export only; with an id the import updates that question), `part`, `lang`, `format`, `status` (`draft` default), `title`, `sample`, `shuffle` (single, multi), `bugs` (lines), `also` (order, 1-based line numbers of the authored block), `blanks` (fitb).
 
 Body rules per format:
 - **single, multi:** the prompt, then the **last** task list: `- [x]` right, `- [ ]` wrong.
@@ -772,13 +771,13 @@ Master actions (the actor must be allowed to be Master: plotted as pengawas for 
 |---|---|
 | No room, or `setup` | "Ruang tesmu belum dibuka." The evening's date, time and place. |
 | `persiapan` | The three check-in steps, then the lobby: the parts tonight with their minutes, the rules, "Menunggu pengawas memulai". |
-| `part-running`, time left | One question per screen, the navigator strip (answered, flagged), the timer (HH:MM:SS), the reference drawer. |
+| `part-running`, time left | One question per screen, the navigator strip (answered, flagged), the timer (HH:MM:SS) and nothing else: there are no references (section 8). |
 | `part-running`, own time over or Kumpulkan | "Waktu bagian ini habis. Jawabanmu sudah tersimpan." Waiting. |
 | `part-paused` | The questions blurred and inert, "Dijeda", the frozen timer. |
 | `part-ended`, `lobby` | "Logika selesai." Next: the part's name and minutes. Waiting. |
 | Fullscreen left while time runs | The cover (section 7). |
 | `livecode-spin` | The topic reel, then the protocol reel, each with a Putar button; then the brief, the protocol and the other end's details. |
-| `livecode-running` | Editor, references, Compile and Flash, the serial monitor, the other end panel, the timer. |
+| `livecode-running` | Editor, Compile and Flash, the serial monitor, the other end panel, the timer. |
 | `finished` | "Tes selesai. Terima kasih sudah ikut." What they handed in (parts done, Live Coding submitted), never a score. |
 
 ## 6. Relay protocol (`rec-room:<id>`)
@@ -857,46 +856,14 @@ Why seats talk to the API, not the relay: strikes, answers and check-ins must be
 - **The Master sees** on every seat tile a strike count and the total time away, a live "Sedang keluar" state while a strike is open, and a popover timeline (time, what happened in words, how long). Nothing fails automatically (PRD 7.6); the Master decides, and may write a note.
 - **Out of reach on purpose:** screenshots, phones, a second laptop. The pengawas in the room handle those.
 
-## 8. Reference snapshots
+## 8. References (dropped)
 
-### 8.1 Pipeline (09, server side)
-1. **Input:** an `http`/`https` URL, or an uploaded `.html` file (the fallback for pages that only render with JavaScript). Only the `bank` right.
-2. **Fetch:** resolve the host and refuse loopback, private, link local, CGNAT, multicast and IPv6 ULA addresses; check every redirect (at most 5) the same way. 10 s overall, 3 MB of HTML at most, `text/html` or `application/xhtml+xml` only (`text/plain` becomes one `<pre>`), user agent `IRIS-Snapshot/1 (+https://irisiotlab.com)`.
-3. **Content root:** a per host selector, with a field per reference to override it. Defaults: GitHub `article.markdown-body`; Sphinx sites (docs.python.org, ESP-IDF, arduino-esp32) `[role=main]`, then `div.body`; docs.arduino.cc `main article`, then `main`; anything else `main`, `article`, `[role=main]`, then `body`.
-4. **Sanitize** with a real HTML parser and an **allowlist** (never a regex over HTML):
-   - Tags kept: headings, `p`, `div`, `span`, `section`, `article`, `header`, `footer`, `ul`, `ol`, `li`, `dl`, `dt`, `dd`, the table tags, `pre`, `code`, `kbd`, `samp`, `var`, `blockquote`, `em`, `strong`, `b`, `i`, `u`, `s`, `sub`, `sup`, `small`, `mark`, `br`, `hr`, `img`, `figure`, `figcaption`, `details`, `summary`, and `a` (rewritten below). Everything else goes, with its content for script, style, template, iframe, object, embed, form and the form controls, and kept as text for the rest.
-   - Attributes kept: `id`, `lang`, `dir`, `colspan`, `rowspan`, `alt`, `title`, `width`, `height`, and `class` on `pre` and `code` (for the language). All `on*`, `style`, `srcdoc`, `formaction`, `xlink:href` and `data-*` go.
-   - **All page CSS goes,** including `<style>`, `<link>` and `style=`. The snapshot is shown with IRIS's own reader stylesheet. *(08's call: one legible look for every source, and no CSS to sanitize. ARCHITECTURE said "inline CSS where small".)*
-   - `<base>`, every `<meta>` (refresh included) and `<link>` are removed.
-5. **Links:**
-   - An `a[href="#x"]` whose target exists stays an in-page link. When it doesn't but `#user-content-x` does, it is rewritten to that (GitHub READMEs).
-   - Every other `a` becomes `<span class="ref-link" title="<absolute URL>">text</span>`: readable, inert.
-6. **Images:** `img[src]`, or `data-src` when `src` is a lazy placeholder, the best `srcset` candidate up to 1600 px. Fetched with the same guards, at most 40 per page and 1 MB each, then inlined as `data:` URIs. An inline `<svg>` becomes an `<img>` with an SVG `data:` URI, because SVG loaded as an image never runs script. Anything else, or anything too big, becomes "[gambar dilewati]".
-7. **Code blocks** are re-highlighted with `src/lib/highlight.ts` when the language is known from the class (`language-cpp`, `highlight-python3`...).
-8. **Store** one self-contained document: `<!doctype html>`, `<meta charset="utf-8">`, the reader stylesheet, a header line (title, source host, fetch date), then the sanitized content. It goes to R2 at `recruitment/<edition>/ref/<sha256>.html`, 6 MB at most. `rec_reference` keeps the URL, title, selector, key, hash, size, status (`ok` or `gagal` with the error) and when and by whom. Refetch makes a new object and repoints the row.
+**30 Oct 2026, decided by the user: the Tes Tulis has no Referensi at all.** There is no Referensi button in the test, no reader dialog, no per-question or per-part references in the Bank Soal, no snapshot fetcher and no sanitizer. A candidate works from the question alone.
 
-### 8.2 Serving
-- **`GET ref?id=`** streams the document from R2. Allowed for the `bank` right, or for a seat whose current part is running for it and has this reference attached (at part level, or on one of the questions it drew in that part). Outside a running part, a seat cannot read references. *(08's call)*
-- **Headers:**
-  - `Content-Type: text/html; charset=utf-8`
-  - `Content-Security-Policy: default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; sandbox`
-  - `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cross-Origin-Resource-Policy: same-origin`, `Cross-Origin-Opener-Policy: same-origin`, `X-Frame-Options: SAMEORIGIN`
-  - `Cache-Control: private, max-age=600`
-- **The drawer** loads it in `<iframe sandbox src="/api/recruitment/ref?id=…" referrerpolicy="no-referrer">`, with an empty `sandbox` (no scripts, no same origin, no top navigation, no popups). The CSP `sandbox` directive sandboxes the document even if it is opened outside the iframe. In-page anchors still scroll inside the frame.
-- Copying text out of the frame cannot be stopped (it is another document), but pasting it into the test is a refused, logged paste (section 7).
-- The pages' own CSP must allow framing the API path (`frame-src 'self'`). 10 checks `vercel.json` and `scripts/check_csp_hashes.mjs`.
-
-### 8.3 Pages to test (09)
-Real pages:
-- A GitHub README (`https://github.com/links2004/arduinoWebSockets`): relative images, `user-content-` anchors.
-- The Arduino reference (`https://docs.arduino.cc/language-reference/en/functions/digital-io/digitalwrite/`).
-- ESP-IDF's MQTT client (`https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/protocols/mqtt.html`): Sphinx, `¶` header links.
-- docs.python.org `socket` (`https://docs.python.org/3/library/socket.html`): a very long page full of anchors.
-- arduino-esp32 Wi-Fi (`https://docs.espressif.com/projects/arduino-esp32/en/latest/api/wifi.html`).
-
-Fixtures for the sanitizer's tests: `<script>`, `on*` attributes, `javascript:` links (also `jav&#x09;ascript:`), `data:text/html` links, `<base href>`, meta refresh, `form`, `iframe`, `object`, `embed`, inline SVG with `<script>` and with `onload`, CSS `url()` to another host, `<img src=x onerror>`, `srcset` pointing at another host, protocol relative `//host` links, `<noscript>`/`<style>` nesting tricks.
-
-And in Playwright: click every link inside each real snapshot and confirm the frame and the page never leave their URLs.
+- **Gone from the code (B7.4 to B7.7):** `exam/RefDrawer.tsx` and its use in `Runner.tsx`; `panel/tes/bank/BankRefs.tsx`, `RefsEditor` and the references tab in `BankTab.tsx`; `api/_lib/recruitment-snapshot.ts`, `src/lib/recruitment/snapshot-net.ts`, `snapshot-sanitize.ts` and `ref-gagal.ts` with their tests; the `refs` field in the question draft and in the bank import and export front matter; the reference strings in all three languages; the Referensi line in the candidate rules.
+- **Dormant on purpose:** the tables `rec_reference` and `rec_part_ref` and the `refs` column of `rec_question` stay in the schema, with their data, as the IoT tables do. No destructive migration. Nothing reads or writes them.
+- **Lockdown:** with no reference frame, focus leaving the window is only another app or a devtools panel, and it is logged the same way (section 7).
+- **Old exports:** a bank file that still carries a `refs` line imports fine; the line is ignored.
 
 ## 9. Live Coding (Phase 2)
 
@@ -1065,8 +1032,8 @@ All rows carry `edition_id` unless they hang off a row that does. Types follow 0
 | `rec_exam_config` | `edition_id` PK, `config` jsonb, `salt` text, `locked_at`, `updated_by`, `updated_at` | 0051 (11 lands it, 09 uses it) |
 | `rec_question` | `id`, `edition_id`, `part`, `lang`, `format`, `title`, `body` jsonb, `answer` jsonb, `refs` int[], `status` (draft), `sample` (false), `version` (1), `shown_at`, `voided_at`, `voided_by`, `void_note`, `created_by`, `updated_by`, `updated_at`; index `(edition_id, part, status)` | 0051 |
 | `rec_question_log` | `id`, `question_id` (cascade), `who`, `kind` (`save`, `key`, `status`, `void`, `unvoid`, `delete`), `before`, `after`, `note`, `at` | 0051 |
-| `rec_reference` | `id`, `edition_id`, `url`, `title`, `selector`, `r2_key`, `sha256`, `bytes`, `status` (`ok`, `gagal`), `error`, `fetched_at`, `by` | 0051 |
-| `rec_part_ref` | `edition_id`, `part`, `reference_id` (cascade), `sort`; PK of the first three | 0051 |
+| `rec_reference` (dormant, section 8) | `id`, `edition_id`, `url`, `title`, `selector`, `r2_key`, `sha256`, `bytes`, `status` (`ok`, `gagal`), `error`, `fetched_at`, `by` | 0051 |
+| `rec_part_ref` (dormant, section 8) | `edition_id`, `part`, `reference_id` (cascade), `sort`; PK of the first three | 0051 |
 | `rec_slot_examiner` | `slot_id` (06's `rec_slot`), `asisten_nim`, `role` (`pengawas`; S4 adds `examiner`); PK `(slot_id, asisten_nim, role)` | 0051, unless 06 or 15 made it |
 | `rec_exam_room` | `id`, `edition_id`, `slot_id` unique, `title`, `rehearsal` (false), `state` jsonb, `master_seen_at`, `topic_next` (0), `hotspots` jsonb (`[{ id, owner, ssid, pass sealed, cap }]`, 9.6a), `created_by`, `created_at`, `updated_at` | 0051 |
 | `rec_exam_log` | `id`, `room_id`, `at`, `who`, `act`, `params` jsonb, `seq` | 0051 |
@@ -1082,12 +1049,12 @@ All rows carry `edition_id` unless they hang off a row that does. Types follow 0
 - Migrations are drizzle generated, with one snapshot chain. Parallel sessions must never generate at the same time, so 11 generates **0051 once** for every table of 09, 10 and 11, right after 06's 0049 and W1's 0050 (rec_account, the oprec accounts) exist, and tells 09 and 10. 12 then generates 0052 and 13 0053, one after the other. If 06 needs a second migration, it asks 11 first.
 
 ### 10.2 Siaran topics (letters only)
-`recroom`: a room was set up, opened or finished. The candidate page shows or hides the test entry; the room list refreshes. `recbank`: the bank, config or references changed. `recscore`: a void, a key fix, a grader sheet, a freeze or an unfreeze. Every S3 write action is listed in `siaran-topik.ts` (high frequency writes such as `test-answer`, `test-strike` and `room-master` ping map to `[]`; they ride the relay room).
+`recroom`: a room was set up, opened or finished. The candidate page shows or hides the test entry; the room list refreshes. `recbank`: the bank or config changed. `recscore`: a void, a key fix, a grader sheet, a freeze or an unfreeze. Every S3 write action is listed in `siaran-topik.ts` (high frequency writes such as `test-answer`, `test-strike` and `room-master` ping map to `[]`; they ride the relay room).
 
 ### 10.3 API actions
 All in `api/recruitment/[aksi].ts`, dispatched to one handler per area. Errors are `{ ok: false, kode }` with a real status, like S1. Lists are small (a few hundred rows at most), so none is paged. Request and response types are in `exam-types.ts`.
 
-**09 · bank, config, references** (the `bank` right):
+**09 · bank, config** (the `bank` right):
 
 | Method · action | Request | Response |
 |---|---|---|
@@ -1101,10 +1068,6 @@ All in `api/recruitment/[aksi].ts`, dispatched to one handler per area. Errors a
 | GET `bank-export?part=` | | `text/markdown` |
 | POST `media-ticket` | `{ mime, size, sha256 }` | relay PUT ticket for `recruitment/<ed>/bank/<sha256>.<ext>` (png, jpeg, webp, svg; 2 MB) |
 | GET `media?key=` | | 302 to a 10 minute link; also a seat whose current draw uses the image |
-| GET `references` | | `{ references, attachments }` |
-| POST `reference-add` | `{ url, title?, selector? }` | `{ reference }` (fetches and sanitizes, up to about 15 s) |
-| POST `reference-refetch` · `reference-upload` · `reference-delete` | `{ id }` · `{ title, html, url? }` · `{ id }` | `{ reference }` |
-| POST `reference-attach` | `{ id, part?, questionId?, on }` | `{ attachments }` |
 | GET `ref?id=` | | the sanitized document (8.2); also a seat in a running part that has it |
 
 **10 · the runner** (Praktikan who are candidates):
@@ -1161,14 +1124,14 @@ All in `api/recruitment/[aksi].ts`, dispatched to one handler per area. Errors a
 | POST `question-void` · `question-unvoid` | `{ id, note }` | `{ question }` (`bank`) |
 | POST `score-finalize` · `score-unfreeze` | `{ note? }` · `{ note }` | `{ freeze }` (`bank`; 4.3) |
 
-**Candidates never reach** another seat, any question's key, the bank, the topic pool, a reference outside their running part, the roster of a room, or any score. Every seat action takes the seat from the session (NIM to candidate to seat), never from the request.
+**Candidates never reach** another seat, any question's key, the bank, the topic pool, the roster of a room, or any score. Every seat action takes the seat from the session (NIM to candidate to seat), never from the request.
 
 ### 10.4 Who owns which files
 | Owner | Files |
 |---|---|
 | **08** (read only for 09 to 13) | `src/lib/recruitment/exam-types.ts`, `frac.ts`, `formats.ts`, `draw.ts`, `scoring.ts`, `room.ts`; tests `src/lib/__tests__/recruitment-{frac,formats,draw,scoring,room}.test.ts` |
 | **11** | Day 1: the S3 section of `schema.ts` and `drizzle/0051_*` (every table of 10.1 marked 0051), the five dispatch lines in `[aksi].ts`, every S3 entry in `siaran-topik.ts`. Then: `api/_lib/recruitment-room.ts`, `src/lib/recruitment/room-relay.ts` (+ tests), `apps/relay/src/ujian.ts` (+ `apps/relay/test/uji-ujian.mjs`), `components/recruitment/panel/tes/ruang/`, rig `rec_room_*.mjs` |
-| **09** | `api/_lib/recruitment-bank.ts`, `api/_lib/recruitment-snapshot.ts` (+ tests), `src/lib/recruitment/bank-io.ts` (+ tests), `components/recruitment/panel/tes/bank/`, the seed bank `scripts/rec-bank-seed.ts` (at least the default `shown` count per part and language, every question run or compiled before it goes in), rig `rec_bank_*.mjs` |
+| **09** | `api/_lib/recruitment-bank.ts`, `src/lib/recruitment/bank-io.ts` (+ tests), `components/recruitment/panel/tes/bank/`, the seed bank `scripts/rec-bank-seed.ts` (at least the default `shown` count per part and language, every question run or compiled before it goes in), rig `rec_bank_*.mjs` |
 | **10** | `api/_lib/recruitment-seat.ts`, `pages/recruitment/test.astro` (+ `en/`, `zh/`), `components/recruitment/exam/` (the renderers in `exam/render/` are shared with 09's preview; the lockdown hooks in `exam/lockdown/`), rig `rec_runner_*.mjs` |
 | **12** | `drizzle/0052_*` and its `schema.ts` section, `api/_lib/recruitment-livecode.ts`, `components/recruitment/livecode/`, `apps/ws/src/` (the `rec` routes on ws and broker), the PC agent in `Downloads/IRIS ASO/pc/agent/` (`compile` and `mqtt` jobs, tests; the Module 3 bridge carries the exam's MQTT unchanged unless 12 finds otherwise), rig `rec_lc_*.mjs` |
 | **13** | `drizzle/0053_*` and its `schema.ts` section, `api/_lib/recruitment-score.ts`, `components/recruitment/panel/tes/penilaian/`, the Tes Tulis score column on 06's Cutting board (tell 06's owner first), rig `rec_score_*.mjs` |
@@ -1183,7 +1146,7 @@ Rules:
 ### 11.1 Changes this file makes
 1. `rec_exam_seat` is one row per candidate per edition (and per rehearsal flag), not per room. `room_id` moves with a Susulan.
 2. `rec_answer` stores no credit and no `final` (10.1).
-3. Snapshots drop all page CSS and use IRIS's reader stylesheet (8.1).
+3. (dropped with the References, section 8.)
 4. The HTTP collector and the WebSocket other end live on the gateway Worker (`ws.irisiotlab.com/rec/...`), not on Vercel (`api/recruitment/collect/`) or the relay: Vercel answers plain HTTP with a redirect to HTTPS, and an ESP32 would then need TLS. MQTT is broker.irisiotlab.com (Module 3's host) over WebSocket *(ruling 2026-10-24, host per 9.6)*.
 5. Traffic lives in the gateway room's object during the evening and in R2 after Finish (`traffic_key`), not in a JSON column.
 6. New tables: `rec_exam_config`, `rec_question_log`, `rec_part_ref`, `rec_exam_log`, `rec_seat_note`, `rec_kit_loan`, `rec_strike`, `rec_lc_topic`, `rec_lc_template`, `rec_compile_job`, `rec_score_freeze`.
@@ -1228,7 +1191,7 @@ Also settled with 06 (W1, 2026-10-24): `rec_exam_seat.room_id` stays a column. R
 15. A Master who has not pinged for 60 s is stale and can be taken over (5.4).
 16. Check-in has three steps plus a Chromium check for Live Coding. Kumpulkan hands a part in early. Seats move only into rooms not yet started (5.5).
 17. Strikes merge within 1.5 s and keep 50 records per part. Esc is locked in Chromium fullscreen (7).
-18. Snapshots use IRIS's reader stylesheet, and a seat reads references only during a running part that has them (8).
+18. (dropped with the References, section 8.)
 19. The topic reel shows decoys, never the other real titles (9.1).
 20. Per seat values reach the sketch through a generated `iris_seat.h`, never pasted into the code (9.3).
 21. The S3 keeps the core's USB defaults, so the candidate plugs into the UART port (9.3a).
