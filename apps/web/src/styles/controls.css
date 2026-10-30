@@ -167,6 +167,15 @@
   transform: none;
 }
 
+/* A disabled primary was the accent at 45% (dark label on dim blue). Use the calm surface pair instead, 4.5 to 1 or better. */
+.btn--primary:disabled,
+.btn--primary[aria-disabled="true"] {
+  opacity: 1;
+  background: var(--surface-3);
+  color: var(--text-muted);
+  border-color: var(--hairline-strong);
+}
+
 /* The swept ring: a 1.5px frame painted with --sweep and punched out with
    mask-composite so only the ring shows. Base, secondary and ghost only. */
 .btn::after {

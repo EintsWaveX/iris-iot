@@ -698,7 +698,7 @@
   position: relative;
   display: block;
   min-width: 0;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-style: normal;
   font-weight: 650;
   line-height: 17px;
@@ -712,9 +712,14 @@
 .rkal__lab {
   position: relative;
   z-index: 1;
-  display: block;
+  /* a long name takes a second line before it is cut; the day dialog shows it in full */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.25;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   width: calc(var(--n, 1) * 100% + (var(--n, 1) - 1) * 6px);
   pointer-events: none;
 }

@@ -305,7 +305,7 @@
     color 200ms ease;
 }
 .r3timer small {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1162,6 +1162,8 @@
 
 .r3lobby {
   place-items: start center;
+  /* centred in the frame, but a tall card never loses its top */
+  align-content: safe center;
 }
 .r3lobby__in {
   width: min(1120px, 100%);

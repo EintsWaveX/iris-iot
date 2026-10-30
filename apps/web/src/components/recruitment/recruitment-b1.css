@@ -170,18 +170,21 @@
 }
 
 /* CaAs page (B3): fog stars, the four tools, the single column. Tokens only. */
-.rec-star[data-st="fog"] {
-  opacity: 0.55;
-}
+/* Only the dot fades into the fog. The label keeps full strength with a halo in the surface colour, so it holds on any cloud. */
 .rec-star[data-st="fog"] .rec-star__dot {
   cursor: default;
   border-style: dashed;
   color: var(--text-faint);
   filter: blur(0.6px);
+  opacity: 0.6;
 }
 .rec-star[data-st="fog"] .rec-star__label {
-  color: var(--text-faint);
+  color: var(--text);
   letter-spacing: 0.12em;
+  text-shadow:
+    0 0 6px var(--surface-1),
+    0 0 2px var(--surface-1),
+    0 0 10px var(--surface-1);
 }
 .b3-page {
   display: grid;
@@ -232,6 +235,12 @@
   font-size: 0.82rem;
   color: var(--text-muted);
   overflow-wrap: anywhere;
+  /* two lines at most, balanced, so one word never sits alone and tiles in a row stay level */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-wrap: balance;
 }
 .b3-tool__badge {
   position: absolute;

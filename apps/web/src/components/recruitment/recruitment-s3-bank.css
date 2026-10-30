@@ -647,3 +647,15 @@
 .r3cfg__sum[data-ok="no"] {
   color: var(--danger);
 }
+
+/* The part tabs share one set of columns, so FORMAT and STATUS stay put when the tab changes. */
+.r3qtab {
+  table-layout: fixed;
+  width: 100%;
+}
+.r3qtab th:nth-child(2) { width: 14%; }
+.r3qtab th:nth-child(3) { width: 12%; }
+.r3qtab th:nth-child(4) { width: 9%; }
+.r3qtab th:nth-child(5) { width: 9%; }
+.r3qtab th:nth-child(6) { width: 11%; }
+.r3qtab td { overflow-wrap: anywhere; }
