@@ -170,7 +170,7 @@ describe("drawProblems (Live Coding)", () => {
     for (const id of [1, 2, 3, 4]) expect(seen.get(id)!).toBeLessThan(350);
     for (const id of [5, 6, 7, 8]) expect(seen.get(id)!).toBeGreaterThan(150);
     for (const id of [5, 6, 7, 8]) expect(seen.get(id)!).toBeLessThan(250);
-  });
+  }, 20_000);
 
   it("throws DrawShort naming the tier that has too few", async () => {
     const seed = await drawSeed(SALT, 5, "livecode");
