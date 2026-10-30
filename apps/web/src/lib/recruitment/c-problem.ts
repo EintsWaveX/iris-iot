@@ -204,6 +204,81 @@ export function validateProblem(p: CProblemDraft): FieldError[] {
   return e;
 }
 
+/* --------------------------------------------------------------- parsing */
+
+const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
+
+function parseText(v: unknown): CProblemText | null {
+  if (typeof v !== "object" || v === null) return null;
+  const o = v as Record<string, unknown>;
+  const statement = str(o.statement);
+  const input = str(o.input);
+  const output = str(o.output);
+  return statement === null || input === null || output === null
+    ? null
+    : { statement, input, output };
+}
+
+function parseIo(v: unknown): CSample[] | null {
+  if (!Array.isArray(v) || v.length > 200) return null;
+  const out: CSample[] = [];
+  for (const x of v) {
+    const o = typeof x === "object" && x !== null ? (x as Record<string, unknown>) : null;
+    const input = str(o?.input);
+    const output = str(o?.output);
+    if (input === null || output === null) return null;
+    out.push({ input, output });
+  }
+  return out;
+}
+
+/** A draft from untrusted JSON, or null when its shape is wrong (what is IN it is validateProblem's business). */
+export function parseProblemDraft(raw: unknown): CProblemDraft | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  const title = str(o.title);
+  const tier = o.tier === "easy" || o.tier === "medium" ? o.tier : null;
+  const body =
+    typeof o.body === "object" && o.body !== null ? (o.body as Record<string, unknown>) : null;
+  const text = parseText(body);
+  const starter = str(body?.starter);
+  const lim =
+    typeof o.limits === "object" && o.limits !== null
+      ? (o.limits as Record<string, unknown>)
+      : null;
+  const samples = parseIo(o.samples);
+  const tests = parseIo(o.tests);
+  const reference = str(o.reference);
+  if (
+    title === null ||
+    !tier ||
+    !text ||
+    starter === null ||
+    !lim ||
+    !samples ||
+    !tests ||
+    reference === null
+  )
+    return null;
+  const timeMs = Number(lim.timeMs);
+  const memKb = Number(lim.memKb);
+  let en: CProblemText | undefined;
+  if (body?.en !== undefined && body.en !== null) {
+    const e = parseText(body.en);
+    if (!e) return null;
+    en = e;
+  }
+  return {
+    title,
+    tier,
+    body: { ...text, ...(en ? { en } : {}), starter },
+    limits: { timeMs, memKb },
+    samples,
+    tests,
+    reference,
+  };
+}
+
 /* --------------------------------------------------------------- scoring */
 
 /** One finished submission of a seat for one problem. Only Submit counts, never Run Sample. */

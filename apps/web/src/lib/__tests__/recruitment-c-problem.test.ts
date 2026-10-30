@@ -11,6 +11,7 @@ import {
   outcomeOf,
   livecodeResult,
   normalizeOutput,
+  parseProblemDraft,
   passedOf,
   problemPoints,
   sameOutput,
@@ -237,5 +238,41 @@ describe("judging what the agent reports", () => {
     });
     expect(passedOf(o.verdicts)).toBe(2);
     expect(o.verdicts).toHaveLength(3);
+  });
+});
+
+describe("parseProblemDraft", () => {
+  it("reads a draft back as it was written", () => {
+    const d = draft();
+    expect(parseProblemDraft(JSON.parse(JSON.stringify(d)))).toEqual(d);
+  });
+  it("keeps an English text when it is whole, refuses a half one", () => {
+    const d = draft();
+    const en = { statement: "a", input: "b", output: "c" };
+    expect(parseProblemDraft({ ...d, body: { ...d.body, en } })?.body.en).toEqual(en);
+    expect(parseProblemDraft({ ...d, body: { ...d.body, en: { statement: "a" } } })).toBeNull();
+  });
+  it("refuses anything with the wrong shape", () => {
+    const d = draft();
+    for (const bad of [
+      null,
+      "x",
+      [],
+      { ...d, tier: "hard" },
+      { ...d, title: 5 },
+      { ...d, tests: "none" },
+      { ...d, tests: [{ input: "1" }] },
+      { ...d, samples: null },
+      { ...d, limits: null },
+      { ...d, body: null },
+      { ...d, reference: undefined },
+    ]) {
+      expect(parseProblemDraft(bad)).toBeNull();
+    }
+  });
+  it("turns a missing limit into NaN so validateProblem refuses it", () => {
+    const d = draft();
+    const p = parseProblemDraft({ ...d, limits: { memKb: 65536 } })!;
+    expect(validateProblem(p).map((e) => e.kode)).toContain("batas_salah");
   });
 });

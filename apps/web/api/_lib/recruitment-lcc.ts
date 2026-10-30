@@ -9,7 +9,7 @@
  * Nothing here returns a hidden test, an expected output or the reference
  * solution: a problem leaves as its public part plus the NUMBER of hidden tests.
  */
-import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, noStore } from "./http.js";
@@ -86,6 +86,12 @@ async function tanganKursi(c: KonteksLc): Promise<number[] | null> {
       draw: sql`jsonb_set(${recExamSeat.draw}, '{livecode}', ${JSON.stringify(dealt)}::jsonb)`,
     })
     .where(and(eq(recExamSeat.id, c.seat.id), sql`${recExamSeat.draw} -> 'livecode' is null`));
+  // A real seat holding a problem locks its tests, like a question's structure (rehearsals do not)
+  if (!c.seat.rehearsal)
+    await c.db
+      .update(recCProblem)
+      .set({ shownAt: new Date() })
+      .where(and(inArray(recCProblem.id, ids), isNull(recCProblem.shownAt)));
   const [fresh] = await c.db
     .select({ draw: recExamSeat.draw })
     .from(recExamSeat)

@@ -22,7 +22,7 @@ import BankEditor from "./BankEditor";
 import BankImport from "./BankImport";
 import BankList from "./BankList";
 import BankRefs from "./BankRefs";
-import LcPoolTab from "../../../livecode/LcPoolTab";
+import ProblemsTab from "./ProblemsTab";
 import { BK } from "./bankStrings";
 
 import "../../../recruitment-s3-bank.css";
@@ -185,7 +185,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
             onSeed={() => void pasang()}
           />
         ) : view === "livecode" ? (
-          <LcPoolTab lang={lang} />
+          <ProblemsTab lang={lang} />
         ) : view === "refs" ? (
           refs.data ? (
             <BankRefs lang={lang} data={refs.data} refresh={refs.refresh} />

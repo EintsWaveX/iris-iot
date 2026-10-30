@@ -76,6 +76,13 @@ import {
   type StoredState,
 } from "../../src/lib/recruitment/bank-rules.js";
 import { SEED_MD } from "../../src/lib/recruitment/seed-bank.js";
+import {
+  bacaMasalah,
+  cekMasalah,
+  daftarMasalah,
+  hapusMasalah,
+  simpanMasalah,
+} from "./recruitment-lc-problems.js";
 import { SEED_PROBLEMS } from "../../src/lib/recruitment/seed-problems.js";
 import { BANK_GAMBAR, REK_BANK_RE, REK_REF_RE, kunciBank, kunciRef } from "../../src/lib/tp-r2.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
@@ -165,6 +172,16 @@ export async function handleBank(req: ApiRequest, res: ApiResponse, s: SessionPa
       return simpanSoal(k);
     case "question-delete":
       return hapusSoal(k);
+    case "problems":
+      return daftarMasalah(k);
+    case "problem":
+      return bacaMasalah(k);
+    case "problem-save":
+      return simpanMasalah(k);
+    case "problem-check":
+      return cekMasalah(k);
+    case "problem-delete":
+      return hapusMasalah(k);
     case "bank-import":
       return impor(k);
     case "bank-export":
