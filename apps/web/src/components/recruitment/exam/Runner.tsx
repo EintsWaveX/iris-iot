@@ -12,7 +12,7 @@
  * blurred, inert test; blur applies instantly.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeftIcon, BookOpenIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import type { PartKey, Phase1Part, Value } from "../../../lib/recruitment/exam-types";
 import type { Lang } from "../../../lib/kelas";
@@ -20,7 +20,6 @@ import { pada, jamServer } from "../../../lib/jam";
 import { AnswerSaver, isAnswered, type SaveState } from "../../../lib/recruitment/seat-answers";
 import type { PartView, TestView } from "../../../lib/recruitment/seat-types";
 import { QuestionCard } from "./render";
-import RefDrawer from "./RefDrawer";
 import { BigIcon, LiveChip, PartsMini, SaveChip, Timer, type Motion } from "./parts";
 import { TAB, sendAnswer, submitPart, toast } from "./seatApi";
 import { TS } from "./testStrings";
@@ -81,7 +80,6 @@ export default function Runner({
   });
   const [flags, setFlags] = useState(() => loadFlags(seat.id, key));
   const [save, setSave] = useState<SaveState>("ok");
-  const [refOpen, setRefOpen] = useState(false);
   const [ask, setAsk] = useState(false);
   const [busy, setBusy] = useState(false);
   // The part's entrance plays once, when it starts; moving between questions has its own slide.
@@ -264,14 +262,6 @@ export default function Runner({
         <div className="r3top__right">
           {linkDown && <LiveChip lang={lang} />}
           <SaveChip s={save} lang={lang} />
-          <button
-            type="button"
-            className="btn btn--ghost r3top__refs"
-            onClick={() => setRefOpen(true)}
-          >
-            <BookOpenIcon aria-hidden="true" />
-            <span>{t.run.refs}</span>
-          </button>
           {timer}
         </div>
       </header>
@@ -405,14 +395,6 @@ export default function Runner({
         </div>
       )}
 
-      <RefDrawer
-        lang={lang}
-        open={refOpen && !timeUp}
-        onClose={() => setRefOpen(false)}
-        part={key}
-        refs={part.refs}
-        question={it.q}
-      />
       <Dialog
         open={ask && !timeUp}
         onOpenChange={setAsk}

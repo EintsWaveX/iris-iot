@@ -37,6 +37,7 @@ import {
   recAnswer,
   recCandidate,
   recExamConfig,
+  recCProblem,
   recExamRoom,
   recExamSeat,
   recPartRef,
@@ -75,6 +76,7 @@ import {
   type StoredState,
 } from "../../src/lib/recruitment/bank-rules.js";
 import { SEED_MD } from "../../src/lib/recruitment/seed-bank.js";
+import { SEED_PROBLEMS } from "../../src/lib/recruitment/seed-problems.js";
 import { BANK_GAMBAR, REK_BANK_RE, REK_REF_RE, kunciBank, kunciRef } from "../../src/lib/tp-r2.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak, type PelakuServer } from "./recruitment-rights.js";
@@ -817,7 +819,34 @@ async function pasangBawaan(k: Konteks) {
       else failed.push(`${d.title}: ${r.kode}`);
     }
   });
-  k.res.status(200).json({ ok: true, created, skipped, failed });
+  // The default Live Coding problems: their expected outputs come from reference solutions
+  // built with gcc (scripts/rec-problems.py), so they are installed as already checked.
+  const havePr = await k.db
+    .select({ title: recCProblem.title })
+    .from(recCProblem)
+    .where(eq(recCProblem.editionId, k.edisiId));
+  const takenPr = new Set(havePr.map((r) => r.title));
+  const newPr = SEED_PROBLEMS.filter((p) => !takenPr.has(p.title));
+  if (newPr.length)
+    await k.db.insert(recCProblem).values(
+      newPr.map((p) => ({
+        editionId: k.edisiId,
+        title: p.title,
+        tier: p.tier,
+        body: p.body,
+        limits: p.limits,
+        samples: p.samples,
+        tests: p.tests,
+        reference: p.reference,
+        status: "ready" as const,
+        sample: true,
+        checkedAt: new Date(),
+        checkOk: true,
+        createdBy: k.nim,
+        updatedBy: k.nim,
+      })),
+    );
+  k.res.status(200).json({ ok: true, created, skipped, failed, problems: newPr.length });
 }
 
 /* --------------------------------------------------------------- images */

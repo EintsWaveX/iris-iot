@@ -26,6 +26,9 @@ import {
   type CSample,
   type CTest,
 } from "../../src/lib/recruitment/c-problem.js";
+import { ruangUjian } from "../../src/lib/recruitment/room-relay.js";
+import type { PesanAliran } from "../../src/lib/aliran.js";
+import { terbitkan } from "./aliran.js";
 import type { Db } from "./recruitment-data.js";
 import { KLAIM_BASI_MS } from "./recruitment-lc-agent.js";
 
@@ -176,6 +179,12 @@ export async function terimaHasilJudge(
       })
       .where(and(eq(recCSubmission.id, job.id), eq(recCSubmission.status, "diambil")))
       .returning({ id: recCSubmission.id });
+    if (won.length && job.seatId !== null && job.roomId !== null) {
+      // Tell the seat its verdicts are in; a lost message only means it reads them on its next poll
+      await terbitkan(ruangUjian(job.roomId), [
+        { j: "judge", s: job.seatId, d: { job: job.id } } as unknown as PesanAliran,
+      ]).catch(() => undefined);
+    }
     if (job.kind === "check" && won.length) {
       await db
         .update(recCProblem)

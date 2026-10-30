@@ -227,6 +227,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:test-hotspot": [],
   "recruitment:lc-spin": [],
   "recruitment:lc-code": [],
+  "recruitment:lcc-send": [],
   "recruitment:lc-board": [],
   "recruitment:lc-variant": [],
   "recruitment:lc-compile": [],

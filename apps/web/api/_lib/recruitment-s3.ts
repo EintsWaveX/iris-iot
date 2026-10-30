@@ -20,6 +20,7 @@ import { currentSession, requireRole } from "./session.js";
 import { sesiOprec, wajibOprec } from "./recruitment-akun.js";
 import { handleBank } from "./recruitment-bank.js";
 import { handleLiveCode } from "./recruitment-livecode.js";
+import { handleLcc } from "./recruitment-lcc.js";
 import { handleRoom } from "./recruitment-room.js";
 import { handleScore } from "./recruitment-score.js";
 import { handleSeat } from "./recruitment-seat.js";
@@ -32,6 +33,7 @@ const OPREC_GET: Record<string, S3Handler> = {
   "test-ticket": handleSeat,
   lc: handleLiveCode,
   "lc-bin": handleLiveCode,
+  lcc: handleLcc,
 };
 const OPREC_POST: Record<string, S3Handler> = {
   "test-checkin": handleSeat,
@@ -40,6 +42,7 @@ const OPREC_POST: Record<string, S3Handler> = {
   "test-submit": handleSeat,
   "test-hotspot": handleSeat,
   "lc-spin": handleLiveCode,
+  "lcc-send": handleLcc,
   "lc-code": handleLiveCode,
   "lc-board": handleLiveCode,
   "lc-variant": handleLiveCode,
