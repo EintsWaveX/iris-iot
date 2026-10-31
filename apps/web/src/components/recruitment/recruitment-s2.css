@@ -1638,10 +1638,11 @@ li.r2cutline {
   flex: none;
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: var(--radius-pill);
   background: var(--surface-4);
-  color: var(--text-muted);
+  color: var(--text);
+  white-space: nowrap;
 }
 
 /* ============================================================ QR attendance */
@@ -2040,4 +2041,11 @@ li.r2cutline {
     animation: none;
     stroke-dashoffset: 0;
   }
+}
+
+/* Berkas drawer: the body scrolls under the footer, and a 28px fade at its bottom edge says there is more. The padding clears the last block of the fade. */
+.drawer:has(.r2rev) .drawer__body {
+  padding-bottom: 46px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
 }

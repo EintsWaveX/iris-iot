@@ -152,12 +152,31 @@ export default function BerkasReview({
   }
   const ditandai = rules.required.filter((k) => cek[k] === "fix");
 
+  const antrean =
+    !sudah && qi >= 0 ? (
+      <span className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+        <IconButton
+          icon={CaretLeftIcon}
+          label={t.prev}
+          disabled={qi <= 0}
+          onClick={() => pindah(-1)}
+        />
+        <IconButton
+          icon={CaretRightIcon}
+          label={t.next}
+          disabled={qi >= queue.length - 1}
+          onClick={() => pindah(1)}
+        />
+      </span>
+    ) : undefined;
+
   return (
     <Drawer
       open
       onOpenChange={(o) => !o && onClose()}
       title={c?.nama ?? "..."}
       description={c ? p.sheetSub(c.nim, c.kelas ?? "-", String(c.angkatan ?? "-")) : undefined}
+      headerActions={antrean}
       storeKey="rec-berkas"
       minWidth={520}
       closeLabel={p.sheetClose}
@@ -219,22 +238,6 @@ export default function BerkasReview({
                 </button>
               ))}
             </div>
-            {!sudah && qi >= 0 && (
-              <span className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
-                <IconButton
-                  icon={CaretLeftIcon}
-                  label={t.prev}
-                  disabled={qi <= 0}
-                  onClick={() => pindah(-1)}
-                />
-                <IconButton
-                  icon={CaretRightIcon}
-                  label={t.next}
-                  disabled={qi >= queue.length - 1}
-                  onClick={() => pindah(1)}
-                />
-              </span>
-            )}
           </div>
           <div className="r2rev__grid">
             <div className="stack stack--sm" style={{ minWidth: 0 }}>

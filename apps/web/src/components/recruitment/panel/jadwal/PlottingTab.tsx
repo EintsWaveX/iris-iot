@@ -122,6 +122,8 @@ function SlotTab({
     : "";
   const bukaLabel = w ? `${tgl(wib(w.opensAt).tanggal, lang)}, ${wib(w.opensAt).jam}` : "";
   const sudahBuka = w && Date.now() >= Date.parse(w.opensAt);
+  // Past its close time: the window only offers to open again, not to extend or close.
+  const tutup = !!w && !w.open && !!sudahBuka;
 
   return (
     <div className="stack">
@@ -151,39 +153,58 @@ function SlotTab({
               >
                 <span className="btn__label">{t.calendar}</span>
               </button>
-              <button
-                type="button"
-                className="btn"
-                disabled={busy}
-                onClick={async () => {
-                  if (await panggil({ op: "window", stage, mode: "extend" }))
-                    window.Toast?.show(
-                      t.extended(
-                        tgl(
-                          addDays(
-                            wib(new Date(Date.parse(w.closesAt) - 1).toISOString()).tanggal,
-                            1,
+              {tutup ? (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={async () => {
+                    if (await panggil({ op: "window", stage, mode: "extend" }))
+                      window.Toast?.show(
+                        t.reopened(tgl(addDays(wib(new Date().toISOString()).tanggal, 1), lang)),
+                        "ok",
+                      );
+                  }}
+                >
+                  <span className="btn__label">{t.reopen}</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={busy}
+                    onClick={async () => {
+                      if (await panggil({ op: "window", stage, mode: "extend" }))
+                        window.Toast?.show(
+                          t.extended(
+                            tgl(
+                              addDays(
+                                wib(new Date(Date.parse(w.closesAt) - 1).toISOString()).tanggal,
+                                1,
+                              ),
+                              lang,
+                            ),
                           ),
-                          lang,
-                        ),
-                      ),
-                      "ok",
-                    );
-                }}
-              >
-                <span className="btn__label">{t.extend}</span>
-              </button>
-              <button
-                type="button"
-                className="btn btn--danger-soft"
-                disabled={busy || !w.open}
-                onClick={async () => {
-                  if (await panggil({ op: "window", stage, mode: "close" }))
-                    window.Toast?.show(t.closedNow, "warn");
-                }}
-              >
-                <span className="btn__label">{t.closeNow}</span>
-              </button>
+                          "ok",
+                        );
+                    }}
+                  >
+                    <span className="btn__label">{t.extend}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--danger-soft"
+                    disabled={busy || !w.open}
+                    onClick={async () => {
+                      if (await panggil({ op: "window", stage, mode: "close" }))
+                        window.Toast?.show(t.closedNow, "warn");
+                    }}
+                  >
+                    <span className="btn__label">{t.closeNow}</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
         </section>

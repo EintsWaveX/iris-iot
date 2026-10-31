@@ -32,6 +32,8 @@ interface Props {
   children: ReactNode;
   /** Footer buttons, by the dialog footer rule (Cancel, then main). */
   foot?: ReactNode;
+  /** Small controls in the header, left of the close button. */
+  headerActions?: ReactNode;
   storeKey: string;
   minWidth?: number;
   closeLabel: string;
@@ -55,6 +57,7 @@ export default function Drawer({
   description,
   children,
   foot,
+  headerActions,
   storeKey,
   minWidth = 360,
   closeLabel,
@@ -150,6 +153,7 @@ export default function Drawer({
                 </RadixDialog.Description>
               )}
             </div>
+            {headerActions}
             <RadixDialog.Close asChild>
               <IconButton icon={XIcon} label={closeLabel} className="drawer__close" />
             </RadixDialog.Close>
