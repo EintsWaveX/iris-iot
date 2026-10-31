@@ -52,8 +52,14 @@ describe("TP upload across mode flips", () => {
   URL.createObjectURL = () => "blob:x";
   URL.revokeObjectURL = () => {};
   window.matchMedia ??= ((q: string) => ({
-    matches: false, media: q, addEventListener() {}, removeEventListener() {},
-    addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false,
+    matches: false,
+    media: q,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+    onchange: null,
+    dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
 
   it("old key: the picked page is lost when the mode flips (the bug)", async () => {

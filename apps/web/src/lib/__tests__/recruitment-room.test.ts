@@ -133,7 +133,7 @@ describe("act: the flow of an evening", () => {
   it("logika → lobby → fitb → … → spins → livecode → finish", () => {
     let s = logika();
     let t = L0 + 15 * MIN + GRACE_MS;
-    for (const part of ["fitb", "kodingan", "mikro"] as const) {
+    for (const part of ["fitb", "kodingan"] as const) {
       s = run(s, [[t, { act: "start" }]]);
       expect(roomView(s, t)).toEqual({ view: "part-running", part });
       t += DEFAULT_EXAM_CONFIG.parts[part].minutes * MIN + GRACE_MS;
@@ -146,7 +146,7 @@ describe("act: the flow of an evening", () => {
     expect(go.ok && go.effects).toEqual([{ kind: "spin-rest" }]);
     s = (go as { state: RoomState }).state;
     expect(roomView(s, t + 3 * MIN)).toEqual({ view: "livecode-running", part: "livecode" });
-    t += 2 * MIN + 45 * MIN + GRACE_MS;
+    t += 2 * MIN + 60 * MIN + GRACE_MS;
     expect(roomView(s, t).view).toBe("lobby");
     const fin = act(s, { act: "finish", seq: s.seq }, ctx(t));
     expect(fin.ok && fin.effects).toEqual([{ kind: "lc-close" }]);
@@ -355,8 +355,8 @@ describe("budget (5.2)", () => {
     const s = logika();
     const b = budget(s, DEFAULT_EXAM_CONFIG, L0 + 5 * MIN);
     expect(b.elapsedMs).toBe(5 * MIN);
-    // logika has 10 left; fitb 15, kodingan 10, mikro 20, livecode 45 not started
-    expect(b.plannedLeftMs).toBe((10 + 15 + 10 + 20 + 45) * MIN);
+    // logika has 10 left; fitb 15, kodingan 15, livecode 60 not started
+    expect(b.plannedLeftMs).toBe((10 + 15 + 15 + 60) * MIN);
     expect(b.projectedMs).toBe(105 * MIN);
     expect(b.budgetMs).toBe(120 * MIN);
     expect(b.overMs).toBe(0);
@@ -377,17 +377,16 @@ describe("validateConfig (2)", () => {
   it("checks minutes, counts and the order", () => {
     const c: ExamConfig = structuredClone(DEFAULT_EXAM_CONFIG);
     c.parts.logika.minutes = 0;
-    c.parts.fitb.counts.cpp = { shown: 0, pool: 5 };
-    c.parts.kodingan.counts.py = { shown: 6, pool: 5 };
-    c.parts.mikro.counts = { any: { shown: 5, pool: 10 }, cpp: { shown: 1, pool: 1 } };
+    c.parts.fitb.shown = 0;
+    c.parts.kodingan.shown = 6;
+    c.parts.kodingan.pool = 5;
     c.livecode.minutes = 5;
-    c.order = ["fitb", "logika", "kodingan", "livecode", "mikro"];
+    c.order = ["fitb", "logika", "livecode", "kodingan"];
     expect(fields(c)).toEqual([
       "order:urutan_salah",
       "parts.logika.minutes:menit_salah",
-      "parts.fitb.counts.cpp:jumlah_salah",
-      "parts.kodingan.counts.py:jumlah_salah",
-      "parts.mikro.counts:bahasa_salah",
+      "parts.fitb.counts:jumlah_salah",
+      "parts.kodingan.counts:jumlah_salah",
       "livecode.minutes:menit_salah",
     ]);
   });

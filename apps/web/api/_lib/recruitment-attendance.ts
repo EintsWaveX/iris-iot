@@ -24,6 +24,7 @@ import {
   recCandidate,
   recSlot,
   recSlotAssignment,
+  recSlotExaminer,
 } from "../../src/lib/schema.js";
 import { lite } from "../../src/lib/recruitment/banner.js";
 import { eventHadir, eventLive, tanggalWib } from "../../src/lib/recruitment/gates.js";
@@ -204,6 +205,7 @@ export async function handleQrAcara(_req: ApiRequest, res: ApiResponse, s: Sessi
   for (const e of hidup)
     daftar.push({
       ...lite(e),
+      stage: e.stage,
       here: await hitungHadir(db, e.id),
       expected: (await muatDiharapkan(db, edisi.id, e, events, now)).length,
     });
@@ -350,7 +352,35 @@ export async function handleKehadiran(req: ApiRequest, res: ApiResponse, s: Sess
   });
 }
 
-/** POST attend-manual { id, event, reason?, undo? }: Admin marks someone, or takes a manual mark back. */
+/**
+ * Whether this Asisten examines (any role) a slot of the event that this very candidate
+ * sits in. An examiner's reach stops at their own room.
+ */
+export async function penguji(
+  db: Db,
+  edisiId: number,
+  nim: string,
+  eventId: number,
+  candidateId: number,
+) {
+  const [r] = await db
+    .select({ slotId: recSlotExaminer.slotId })
+    .from(recSlotExaminer)
+    .innerJoin(recSlot, eq(recSlot.id, recSlotExaminer.slotId))
+    .innerJoin(recSlotAssignment, eq(recSlotAssignment.slotId, recSlot.id))
+    .where(
+      and(
+        eq(recSlotExaminer.asistenNim, nim),
+        eq(recSlot.eventId, eventId),
+        eq(recSlot.editionId, edisiId),
+        eq(recSlotAssignment.candidateId, candidateId),
+      ),
+    )
+    .limit(1);
+  return !!r;
+}
+
+/** POST attend-manual { id, event, reason?, undo? }: Admin or the room's examiner marks someone, or takes a manual mark back. */
 export async function handleHadirManual(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const b = jsonBody(req);
   const id = Number(b.id);
@@ -368,7 +398,12 @@ export async function handleHadirManual(req: ApiRequest, res: ApiResponse, s: Se
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
   const p = await muatPelaku(db, edisi.id, s.nim);
-  if (!wajibHak(res, p, "attendance")) return;
+  // Attendance keepers always may. So may an Asisten who examines a slot of this very event:
+  // when a QR will not scan on exam night, the room's own staff signs the candidate in.
+  // The examiner's reach is their own room's candidates, and only the marks they made.
+  const hanyaPenguji = !p?.hak.attendance;
+  if (hanyaPenguji && !(p && (await penguji(db, edisi.id, s.nim, eventId, id))))
+    return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "attendance" });
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
   const e = events.find((v) => v.id === eventId);
@@ -389,6 +424,8 @@ export async function handleHadirManual(req: ApiRequest, res: ApiResponse, s: Se
     if (!ada) return void tolak(res, "tidak_ditemukan", 404);
     // A scan is the candidate's own word; only a hand mark can be taken back.
     if (ada.via !== "manual") return void tolak(res, "tidak_bisa_batal", 409);
+    if (hanyaPenguji && ada.by !== s.nim)
+      return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "attendance" });
     await db
       .delete(recAttendance)
       .where(and(eq(recAttendance.candidateId, k.id), eq(recAttendance.eventId, e.id)));

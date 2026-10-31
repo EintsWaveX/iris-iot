@@ -78,7 +78,10 @@ export type ParamTiket =
   | { ok: false; kode: "format_salah" | "terlalu_besar" };
 
 /** What a page may ask a PUT address for. */
-export function cekParamTiket(b: Record<string, unknown>): ParamTiket {
+export function cekParamTiket(
+  b: Record<string, unknown>,
+  batas: (kind: DocKind) => number = () => DOC_MAX_BYTES,
+): ParamTiket {
   const gagal = { ok: false, kode: "format_salah" } as const;
   if (!(DOC_KINDS as readonly unknown[]).includes(b.kind)) return gagal;
   const ukuran = b.ukuran;
@@ -88,7 +91,7 @@ export function cekParamTiket(b: Record<string, unknown>): ParamTiket {
   const halaman = b.halaman === undefined ? 1 : b.halaman;
   if (typeof halaman !== "number" || !Number.isInteger(halaman) || halaman < 1 || halaman > 200)
     return gagal;
-  if (ukuran > DOC_MAX_BYTES) return { ok: false, kode: "terlalu_besar" };
+  if (ukuran > batas(b.kind as DocKind)) return { ok: false, kode: "terlalu_besar" };
   return { ok: true, kind: b.kind as DocKind, ukuran, sha256, halaman };
 }
 

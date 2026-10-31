@@ -11,12 +11,11 @@ import type {
   MultiQ,
   OrderQ,
   Question,
-  Rubric,
-  RubricSheet,
   SeatDraw,
   SingleQ,
   Value,
 } from "../recruitment/exam-types";
+import type { Caps } from "../recruitment/exam-config";
 import {
   assemble,
   histogram,
@@ -25,11 +24,24 @@ import {
   type SeatIn,
 } from "../recruitment/score-table";
 
+/** The caps the worked example of 4.4 was written with: 1000 a part, 500 for Kodingan, 1000 for Live Coding. */
+const CAPS: Caps = {
+  parts: { logika: 1000, fitb: 1000, kodingan: 500 },
+  written: 2500,
+  livecode: 1000,
+  total: 3500,
+};
+const asm = (
+  seats: readonly SeatIn[],
+  bank: readonly QuestionIn[],
+  live: Parameters<typeof assemble>[2],
+) => assemble(seats, bank, live, CAPS);
+
 const opt = (...xs: string[]) => xs.map((id) => ({ id, text: `opsi ${id}` }));
 const q1: SingleQ = {
   id: 1,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "single",
   version: 1,
   body: { prompt: "q1", options: opt("a", "b", "c"), shuffle: true },
@@ -38,7 +50,7 @@ const q1: SingleQ = {
 const q2: MultiQ = {
   id: 2,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "multi",
   version: 1,
   body: { prompt: "q2", options: opt("a", "b", "c", "d"), shuffle: true },
@@ -47,12 +59,12 @@ const q2: MultiQ = {
 const q3: OrderQ = {
   id: 3,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "order",
   version: 1,
   body: {
     prompt: "q3",
-    lang: "cpp",
+    lang: "c",
     lines: [
       { id: "l1", text: "satu" },
       { id: "l2", text: "dua" },
@@ -65,7 +77,7 @@ const q3: OrderQ = {
 const q4: FitbQ = {
   id: 4,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "fitb",
   version: 1,
   body: { prompt: "q4 __(1)__ __(2)__", blanks: [{ n: 1 }, { n: 2 }] },
@@ -83,7 +95,7 @@ const drawOf = (part: "logika", ids: number[]): SeatDraw => ({
   [part]: {
     at: 1,
     room: 1,
-    items: ids.map((q) => ({ q, v: 1, lang: "cpp" as const, perm: null })),
+    items: ids.map((q) => ({ q, v: 1, lang: "c" as const, perm: null })),
   },
 });
 
@@ -114,27 +126,14 @@ const SEATS = [
   seat(5, null, {}),
 ];
 
-const rubric: Rubric = {
-  id: 1,
-  stage: "tes_tulis",
-  kind: "livecode",
-  rows: [
-    { key: "jalan", label: "Jalan", max: 4, weight: 3 },
-    { key: "protokol", label: "Protokol", max: 4, weight: 2 },
-    { key: "data", label: "Data", max: 4, weight: 2 },
-    { key: "kode", label: "Kode", max: 4, weight: 1 },
-    { key: "jelas", label: "Jelas", max: 4, weight: 2 },
-  ],
+const NO_LIVE: Parameters<typeof assemble>[2] = {
+  hand: new Map(),
+  runs: new Map(),
+  waiting: new Set(),
 };
-const sheet = (grader: string, at: number, v: number[]): RubricSheet => ({
-  grader,
-  at,
-  values: Object.fromEntries(rubric.rows.map((r, i) => [r.key, v[i]])),
-});
-const NO_LIVE = { rubric, topic: new Set<number>(), sheets: new Map<number, RubricSheet[]>() };
 
 describe("assemble, the worked example of 4.4", () => {
-  const out = assemble(SEATS, BANK, NO_LIVE);
+  const out = asm(SEATS, BANK, NO_LIVE);
   const logika = (n: number) => out.rows.find((r) => r.seatId === n)!.parts.logika;
 
   it("part scores 1000, 348, 783, 167 and S5 absent", () => {
@@ -162,7 +161,7 @@ describe("assemble, the worked example of 4.4", () => {
   });
 
   it("q4 voided: 1000, 267, 667, 250, and the void keeps its numbers in the statistics", () => {
-    const v = assemble(
+    const v = asm(
       SEATS,
       BANK.map((q) => (q.id === 4 ? { ...q, voided: true } : q)),
       NO_LIVE,
@@ -176,7 +175,7 @@ describe("assemble, the worked example of 4.4", () => {
   });
 
   it("a part everyone drew only voided questions of is empty, not absent", () => {
-    const v = assemble(
+    const v = asm(
       [seat(1, [4], { 4: { blanks: { 1: "x", 2: "y" } } })],
       BANK.map((q) => (q.id === 4 ? { ...q, voided: true } : q)),
       NO_LIVE,
@@ -185,7 +184,7 @@ describe("assemble, the worked example of 4.4", () => {
   });
 
   it("a deleted question leaves the sums instead of breaking them", () => {
-    const v = assemble(
+    const v = asm(
       SEATS,
       BANK.filter((q) => q.id !== 4),
       NO_LIVE,
@@ -202,40 +201,57 @@ describe("assemble, the worked example of 4.4", () => {
   });
 });
 
-describe("assemble, Live Coding", () => {
-  const A = sheet("101", 10, [3, 4, 3, 2, 3]);
-  const B = sheet("102", 20, [4, 3, 4, 3, 3]);
-  const topic = new Set([1, 2, 3]);
-
-  it("two counted sheets give 825 and the total adds it", () => {
-    const out = assemble(SEATS, BANK, { rubric, topic, sheets: new Map([[3, [A, B]]]) });
-    const r = out.rows.find((x) => x.seatId === 3)!;
-    expect(r.livecode).toBe(825);
-    expect(r.liveFlag).toBeUndefined();
-    expect(r.total).toBe(783 + 825);
+describe("assemble, Live Coding in C", () => {
+  const hand = [
+    { problemId: 1, points: 400 },
+    { problemId: 2, points: 600 },
+  ];
+  const run = (problemId: number, passed: number, total: number, at = 1) => ({
+    problemId,
+    passed,
+    total,
+    at,
   });
 
-  it("one sheet, or two from the same person, leave Live Coding pending", () => {
-    const out = assemble(SEATS, BANK, {
-      rubric,
-      topic,
-      sheets: new Map([
-        [1, [A]],
-        [2, [A, { ...A, at: 30 }]],
-      ]),
+  it("adds each problem's best Submit, rounded, and the total adds it", () => {
+    const out = asm(SEATS, BANK, {
+      hand: new Map([[3, hand]]),
+      runs: new Map([[3, [run(1, 4, 8), run(1, 8, 8, 2), run(2, 5, 10)]]]),
+      waiting: new Set(),
     });
-    expect(out.rows.find((x) => x.seatId === 1)!.livecode).toBeNull();
-    expect(out.rows.find((x) => x.seatId === 1)!.liveFlag).toBe("belum");
-    expect(out.rows.find((x) => x.seatId === 2)!.liveFlag).toBe("belum");
-    expect(out.liveWaiting.sort()).toEqual([1, 2, 3]);
-    // pending counts as 0 in the total
-    expect(out.rows.find((x) => x.seatId === 1)!.total).toBe(1000);
+    const r = out.rows.find((x) => x.seatId === 3)!;
+    expect(r.livecode).toBe(700);
+    expect(r.liveFlag).toBeUndefined();
+    expect(r.total).toBe(783 + 700);
   });
 
-  it("a sheet that no longer fits the rubric is flagged instead of throwing", () => {
-    const bad: RubricSheet = { grader: "103", at: 5, values: { jalan: 9 } };
-    const out = assemble(SEATS, BANK, { rubric, topic, sheets: new Map([[1, [bad, B]]]) });
-    expect(out.rows.find((x) => x.seatId === 1)!.liveFlag).toBe("rubrik");
+  it("a seat that was dealt a hand but sent nothing has 0 and is not flagged tanpa", () => {
+    const out = asm(SEATS, BANK, {
+      hand: new Map([[3, hand]]),
+      runs: new Map(),
+      waiting: new Set(),
+    });
+    const r = out.rows.find((x) => x.seatId === 3)!;
+    expect(r.livecode).toBe(0);
+    expect(r.liveFlag).toBeUndefined();
+  });
+
+  it("a Submit still at the judge flags the seat belum and counts what is finished", () => {
+    const out = asm(SEATS, BANK, {
+      hand: new Map([[1, hand]]),
+      runs: new Map([[1, [run(1, 8, 8)]]]),
+      waiting: new Set([1]),
+    });
+    const r = out.rows.find((x) => x.seatId === 1)!;
+    expect(r.liveFlag).toBe("belum");
+    expect(r.livecode).toBe(400);
+    expect(out.liveWaiting).toEqual([1]);
+  });
+
+  it("seats without a hand stay tanpa, and a problem no longer in the pool is simply worth nothing", () => {
+    const out = asm(SEATS, BANK, { hand: new Map([[1, []]]), runs: new Map(), waiting: new Set() });
+    expect(out.rows.find((x) => x.seatId === 2)!.liveFlag).toBe("tanpa");
+    expect(out.rows.find((x) => x.seatId === 1)!.livecode).toBe(0);
   });
 });
 
@@ -258,11 +274,11 @@ describe("30 simulated seats against an oracle", () => {
   const singles: QuestionIn[] = [1, 2, 3, 4, 5, 6].map((id) => ({
     id,
     title: `S${id}`,
-    lang: "cpp",
+    lang: "c",
     question: {
       id,
       part: "logika",
-      lang: "cpp",
+      lang: "c",
       format: "single",
       version: 1,
       body: { prompt: `s${id}`, options: opt("a", "b", "c"), shuffle: false },
@@ -306,12 +322,12 @@ describe("30 simulated seats against an oracle", () => {
   }
 
   it("every seat's Logika matches the oracle", () => {
-    const out = assemble(sims, singles, NO_LIVE);
+    const out = asm(sims, singles, NO_LIVE);
     expect(out.rows.map((r) => r.parts.logika.score)).toEqual(oracle(null));
   });
 
   it("with a question voided every seat still matches the oracle", () => {
-    const out = assemble(
+    const out = asm(
       sims,
       singles.map((q) => (q.id === 3 ? { ...q, voided: true } : q)),
       NO_LIVE,
@@ -320,8 +336,8 @@ describe("30 simulated seats against an oracle", () => {
   });
 
   it("the numbers are the same however the seats are ordered", () => {
-    const a = assemble(sims, singles, NO_LIVE);
-    const b = assemble([...sims].reverse(), singles, NO_LIVE);
+    const a = asm(sims, singles, NO_LIVE);
+    const b = asm([...sims].reverse(), singles, NO_LIVE);
     for (const r of a.rows) expect(b.rows.find((x) => x.seatId === r.seatId)).toEqual(r);
   });
 });

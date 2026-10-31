@@ -22,6 +22,7 @@ import {
   type RecLivecodeRow,
   type RecSlotRow,
 } from "../../src/lib/schema.js";
+import { PROTOCOLS } from "../../src/lib/recruitment/exam-types.js";
 import type { ExamConfig, Protocol, RoomState } from "../../src/lib/recruitment/exam-types.js";
 import { roomView } from "../../src/lib/recruitment/room.js";
 import {
@@ -290,4 +291,5 @@ export async function agenSiap(db: Db, now = Date.now()): Promise<boolean> {
   return !!r;
 }
 
-export const protokolBoleh = (config: ExamConfig): Protocol[] => config.livecode.protocols;
+/** @deprecated IoT Live Coding only (B7.7 deletes it): every protocol is allowed. */
+export const protokolBoleh = (_config: ExamConfig): Protocol[] => [...PROTOCOLS];

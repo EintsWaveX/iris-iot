@@ -126,11 +126,11 @@ describe("S3 dispatch", () => {
   });
 
   it("serves a shared read to an Asisten or a candidate, and nobody else", async () => {
-    expect((await jalan("ref", "GET")).status).toBe(401);
+    expect((await jalan("media", "GET")).status).toBe(401);
     asistenSesi = asisten;
-    expect((await jalan("ref", "GET")).status).toBe(200);
+    expect((await jalan("media", "GET")).status).toBe(200);
     asistenSesi = null;
     oprec = kandidat;
-    expect((await jalan("ref", "GET")).status).toBe(200);
+    expect((await jalan("media", "GET")).status).toBe(200);
   });
 });

@@ -1,0 +1,353 @@
+/* Ringkasan, rebuilt (B1). Tokens only, so both themes read. Unique rec-b1 names. */
+.b1-sum {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+@media (min-width: 1000px) {
+  .b1-sum {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+  .b1-sum > .b1-next {
+    grid-column: 1 / -1;
+  }
+}
+.b1-next {
+  display: grid;
+  gap: 14px;
+  padding: 22px 24px;
+}
+.b1-next__t {
+  margin: 0;
+  font-size: clamp(1.25rem, 1.6vw + 0.6rem, 1.7rem);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.b1-next__foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.b1-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.b1-steps li > button,
+.b1-steps li > div {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--text-dim, var(--text));
+}
+.b1-steps li > button {
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .b1-steps li > button:hover {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+}
+.b1-steps li > button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.b1-steps__n {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+}
+.b1-steps li[data-st="done"] .b1-steps__n {
+  background: color-mix(in srgb, var(--ok) 20%, transparent);
+  border-color: var(--ok);
+}
+.b1-steps__t {
+  flex: 1;
+  min-width: 0;
+}
+.b1-fun__rail {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+.b1-fun__rail li {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-width: 0;
+}
+.b1-fun__n {
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.b1-fun__bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  overflow: hidden;
+}
+.b1-fun__bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.b1-fun__rail li[data-st="done"] .b1-fun__bar i {
+  background: var(--ok);
+}
+.b1-fun__rail li[data-st="next"] {
+  opacity: 0.7;
+}
+.b1-fun__l {
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.b1-fun__s {
+  font-size: 0.74rem;
+}
+.b1-fun__det {
+  display: grid;
+  gap: 14px;
+}
+.b1-fun__big {
+  font-size: 2rem;
+  line-height: 1;
+}
+@media (max-width: 760px) {
+  .b1-fun__rail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Atur Berkas (B2) */
+.b2-docs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.b2-docs li {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.b2-docs li[data-off="yes"] {
+  opacity: 0.6;
+}
+.b2-docs__flags {
+  display: grid;
+  gap: 6px;
+}
+@media (max-width: 900px) {
+  .b2-docs li {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* CaAs page (B3): fog stars, the four tools, the single column. Tokens only. */
+/* Only the dot fades into the fog. The label keeps full strength with a halo in the surface colour, so it holds on any cloud. */
+.rec-star[data-st="fog"] .rec-star__dot {
+  cursor: default;
+  border-style: dashed;
+  color: var(--text-faint);
+  filter: blur(0.6px);
+  opacity: 0.6;
+}
+.rec-star[data-st="fog"] .rec-star__label {
+  color: var(--text);
+  letter-spacing: 0.12em;
+  text-shadow:
+    0 0 6px var(--surface-1),
+    0 0 2px var(--surface-1),
+    0 0 10px var(--surface-1);
+}
+.b3-page {
+  display: grid;
+  gap: 20px;
+  max-width: 880px;
+  margin-inline: auto;
+}
+.b3-tools {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 639px) {
+  .b3-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+.b3-tool {
+  all: unset;
+  box-sizing: border-box;
+  position: relative;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  align-content: start;
+  min-height: 96px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 14px;
+  background: var(--surface-1);
+  color: var(--text);
+  cursor: pointer;
+}
+.b3-tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .b3-tool:hover {
+    border-color: var(--rec, var(--accent));
+  }
+}
+.b3-tool__t {
+  font-weight: 700;
+}
+.b3-tool__s {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  /* two lines at most, balanced, so one word never sits alone and tiles in a row stay level */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-wrap: balance;
+}
+.b3-tool__badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.b3-tool[data-tone="quiet"] {
+  background: transparent;
+}
+.b3-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Cutting edit dialogs (B6) */
+.b6-start {
+  display: grid;
+  gap: 12px;
+}
+.b6-start__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+.b6-words {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .b6-words {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.b6-words__pre {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.b6-words__card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-1);
+}
+.b6-words__card[data-r="lolos"] {
+  border-color: color-mix(in srgb, var(--ok) 50%, var(--hairline));
+}
+.b6-words__card[data-r="gagal"] {
+  border-color: color-mix(in srgb, var(--violet) 50%, var(--hairline));
+}
+.b6-words__card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Area colours on the Panitia tabs (mockup M4): Kalender teal, Papan pink. The page's own
+   --rec drives the eyebrow, today and the selected day; dark and light each get a legible pair. */
+.rec-page[data-area="kalender"] {
+  --rec: #5eead4;
+  --rec-ink: #04211d;
+  --rec-soft: rgba(94, 234, 212, 0.14);
+}
+:root[data-theme="light"] .rec-page[data-area="kalender"] {
+  --rec: #0f766e;
+  --rec-ink: #f0fdfa;
+  --rec-soft: rgba(15, 118, 110, 0.12);
+}
+.rec-page[data-area="panitia"] {
+  --rec: #f472b6;
+  --rec-ink: #2a0716;
+  --rec-soft: rgba(244, 114, 182, 0.14);
+}
+:root[data-theme="light"] .rec-page[data-area="panitia"] {
+  --rec: #be185d;
+  --rec-ink: #fff1f7;
+  --rec-soft: rgba(190, 24, 93, 0.12);
+}
+.rec-page[data-area="kalender"] .rec-calcard {
+  border-color: color-mix(in srgb, var(--rec) 35%, var(--hairline));
+}
+/* Papan: a tighter pool that never outgrows the screen, and columns that fit more on a laptop */
+.rec-page[data-area="panitia"] .rec-pool {
+  border-color: color-mix(in srgb, var(--rec) 35%, var(--hairline));
+}
+.rec-page[data-area="panitia"] .rec-pool__list {
+  max-height: clamp(160px, calc(100dvh - 380px), 440px);
+}
+.rec-page[data-area="panitia"] .rec-col {
+  padding: 12px 10px 10px;
+  gap: 8px;
+}
+.rec-page[data-area="panitia"] .rec-col__list {
+  gap: 5px;
+}
+@media (min-width: 1100px) {
+  .rec-page[data-area="panitia"] .rec-board[data-pool="yes"] {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+}

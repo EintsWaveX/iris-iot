@@ -1,0 +1,332 @@
+[
+ {
+  "file": "n7-latihan__default__light__1440x900.png",
+  "theme": "light",
+  "category": "contrast",
+  "severity": "ugly",
+  "where": "Page header, the blue 'Ringkasan' pill right of the AKADEMIK pill, about x 475-562, y 88-112. Same in the asisten and caas light shots at y 155-180.",
+  "seen": "Grey-blue text on a pale blue pill over a pale blue-grey background and clouds. The text is hard to read and the pill barely separates from the background. The AKADEMIK pill next to it is dark text with a clear outline and reads much better. In dark theme the same pill is fine.",
+  "fix": "Darken the pill text and fill, or give it a border like the AKADEMIK pill, so contrast reaches at least 4.5:1 in light theme.",
+  "screen": "n7-latihan"
+ },
+ {
+  "file": "n7-latihan__default__light__1440x900.png",
+  "theme": "both",
+  "category": "consistency",
+  "severity": "ugly",
+  "where": "'Hari Ini' card, left of the 'Open Recruitment · berjalan' line, about x 901-922, y 238-251 (y 307-320 in the Mode Latihan states).",
+  "seen": "The leading icon is an empty rounded rectangle with no glyph, so it reads as a blank placeholder. In light theme it is a pale blue fill on white and almost invisible. It also sits slightly above the vertical centre of the bold text line beside it (box centre about y 244, text centre about y 246). Other rows in the screen use real icons.",
+  "fix": "Put a real icon or a status dot in it, give it enough contrast in light theme, and centre it on the first text line.",
+  "screen": "n7-latihan"
+ },
+ {
+  "file": "n7-latihan__default__dark__1440x900.png",
+  "theme": "both",
+  "category": "other",
+  "severity": "ugly",
+  "where": "'Hari Ini' card, the date range under 'Open Recruitment', about x 933-1287, y 262-300 (y 330-368 in the Mode Latihan states).",
+  "seen": "The sentence 'Minggu, 25 Oktober 2026 sampai Sabtu, 31 Oktober' wraps and leaves '2026' alone on the second line, an orphan year that looks unfinished. The same text sits in a narrow column indented from the card edge.",
+  "fix": "Shorten the date format (for example '25 Okt - 31 Okt 2026'), or balance the wrapping so the year stays with its date.",
+  "screen": "n7-latihan"
+ },
+ {
+  "file": "n7-latihan__n7Mode=asisten__dark__1440x900.png",
+  "theme": "both",
+  "category": "consistency",
+  "severity": "ugly",
+  "where": "Mode Latihan banner, right side: 'Sebagai Asisten / Sebagai CaAs' toggle (x 812-1086, y 72-110) next to the 'Keluar' button (x 1253-1331, y 69-113). Same in the caas states and in the light shots.",
+  "seen": "The controls in one row have different heights and shapes. The toggle is about 38px tall and fully pill-shaped, while Keluar is about 44px tall with a small corner radius. Their top and bottom edges do not line up (3-4px difference each side). Keluar also looks heavier (bright border, filled) than the toggle.",
+  "fix": "Give the toggle and Keluar the same height and the same corner radius, and align them on one centre line.",
+  "screen": "n7-latihan"
+ },
+ {
+  "file": "r3-putar__default__light__1440x900.png",
+  "theme": "light",
+  "category": "spacing",
+  "severity": "ugly",
+  "where": "Bottom action strip, x 146-1294, y 451-528 (y 379-456 in the auto and ulang states). It is the white band holding 'Waktu belum berjalan.' on the left and 'Lihat Soalmu' on the right.",
+  "seen": "The strip is a pale white panel with no inner padding. The status text ('Waktu belum berjalan.' / 'Undianmu sudah keluar.') starts exactly at the strip's left edge, x 146. The 'Lihat Soalmu' button touches its right edge, x 1294. The text and button look glued to the panel edges. The panel also runs 12-13px above and below the button. In dark theme the same row has no panel, so the two themes treat it differently. The same flaw shows in the auto, keluar and ulang light states.",
+  "fix": "Give the strip horizontal padding of about 16-20px so the text and button sit inside it. Or drop the white panel in light theme so it matches dark.",
+  "screen": "r3-putar"
+ },
+ {
+  "file": "r3-putar__default__light__1440x900.png",
+  "theme": "both",
+  "category": "contrast",
+  "severity": "ugly",
+  "where": "Disabled 'Lihat Soalmu ->' button, x 1121-1294, y 464-516 in the default state. It sits at y 392-444 in the auto and ulang states.",
+  "seen": "In dark theme the label is dark navy on a muted dark blue fill (the default dark file), so the text is hard to read. In light theme the label is grey-blue on a pale blue fill, also low contrast. Next to the enabled version in the keluar state (bright blue, dark text) it looks washed out and nearly unreadable.",
+  "fix": "Keep the disabled button's label at a readable contrast (at least 3:1) in both themes. Or use the same outlined disabled style as 'Sudah Diputar' so the label is clearly legible.",
+  "screen": "r3-putar"
+ },
+ {
+  "file": "r3-putar__r3Spin=tugas__dark__1440x900.png",
+  "theme": "both",
+  "category": "overflow-or-clipping",
+  "severity": "broken",
+  "where": "Bottom of the frame, y 612-720, x 146-1294. This is the 'Kembali' sheet under the 'Soalmu Malam Ini' list.",
+  "seen": "A second rounded panel top starts at y 629, with a separate flat bar starting at y 645. 'Kembali' sits at y 683 and the sheet runs off the bottom edge of the frame at y 720. It looks like two stacked, mismatched layers: a rounded sliver, then a square bar. The sheet is cut by the frame, so there is no bottom padding below 'Kembali'. It sits only 17px under the list card, which ends at y 612. The same happens in light theme.",
+  "fix": "Make the 'Kembali' footer one sticky bar with a single top edge and equal padding. Leave room so it does not get cut off or stack over a leftover rounded card.",
+  "screen": "r3-putar"
+ },
+ {
+  "file": "r3-putar__r3Spin=keluar__dark__1440x900.png",
+  "theme": "both",
+  "category": "consistency",
+  "severity": "ugly",
+  "where": "Five undian cards, x 146-1294, y 174-362. Card 4 'Tertinggi dan Terendah' is at x 842-1062.",
+  "seen": "Card 4's title wraps to two lines, which pushes its '600 poin - 10 test' line down to y 318. Cards 1-3 and 5 have that line at y 297. The five cards are the same height, but the subtitle baselines do not line up across the row. Every card also has about 50px of empty space at the bottom (y 310-362), so the content sits in the top two thirds of the card.",
+  "fix": "Align the subtitle row to the card bottom, or reserve two lines for the title in all cards. Reduce the card height or vertically balance the content.",
+  "screen": "r3-putar"
+ },
+ {
+  "file": "r3-putar__default__dark__1440x900.png",
+  "theme": "both",
+  "category": "empty-space",
+  "severity": "ugly",
+  "where": "Below the action row, y 520-720 (about 200px). In the auto and ulang states the empty area starts at y 450.",
+  "seen": "All content is packed into the top 60-70% of the frame. The lower third to half is empty, so the screen looks top-heavy. The cards and the 'Putar Undianku' button are not centred in the free space. Spacing at the top is tight: the step pill at y 83-118 sits 12px above the title, and the title sits 10px above the cards. The empty bottom is about 200px.",
+  "fix": "Spread the content over the frame height, for example by centring the stage vertically. Or make the cards taller. Give the title block a bit more space above and below.",
+  "screen": "r3-putar"
+ },
+ {
+  "file": "r1-panitia__default__light__1440x900.png",
+  "theme": "light",
+  "category": "contrast",
+  "severity": "ugly",
+  "where": "Page header, the small 'Panitia' pill right of the AKADEMIK pill, at about x=458-528, y=100. The same pill is seen in every light state (acara, admin, akademik, lihat, pencipta).",
+  "seen": "The pill label is pale blue text on a pale blue tinted pill sitting on the light sky-blue header background. It is barely legible and much weaker than the neighbouring dark-outlined AKADEMIK pill. In dark theme the same pill reads clearly.",
+  "fix": "Use a darker blue text colour for this pill in light theme, and a slightly stronger fill or border so it keeps a clear contrast against the background.",
+  "screen": "r1-panitia"
+ },
+ {
+  "file": "r1-panitia__r1Seat=pencipta__dark__1440x900.png",
+  "theme": "both",
+  "category": "overflow-or-clipping",
+  "severity": "ugly",
+  "where": "Asisten card at left, x=117-351, y=165-433. The search input shows 'Cari nama atau kode' with the last letter cut at the right edge (about x=323). The chip 'Muhammad Apri P...' at y=305 ends in an ellipsis.",
+  "seen": "The search placeholder is cut off mid-word ('kode' loses its 'e'), with no padding between the text and the input edge. The only Asisten chip is truncated even though the card is only 1 item tall. The same clipping shows at 1280x720 (x=80-255, y=236).",
+  "fix": "Shorten the placeholder or reduce the input's font and padding so the full text fits. Give the Asisten column more width, or let the chip name wrap, so it is not truncated.",
+  "screen": "r1-panitia"
+ },
+ {
+  "file": "r1-panitia__r1Seat=pencipta__dark__1440x900.png",
+  "theme": "both",
+  "category": "overflow-or-clipping",
+  "severity": "ugly",
+  "where": "Division columns, x=367-1323. Rows that end in an ellipsis include 'Graceyana Ardhia Shinta Thalia ...' (y=271), 'Muhammad Raid Ihsan Ak...' (y=222), 'Muhammad Raditya Dwi P...' (y=222), 'Immanuel Eben Haezer Jo...', 'Mochammad Rifky Adirays...', 'Bryan Gabriel Izaac Sasab...' and 'Adrianus Wismar Nugraha...'. The same rows are cut in the light screenshot.",
+  "seen": "Once the star buttons appear on the right of each row, many full names are cut off with an ellipsis. In the other states the same names show in full. Coordinators are the people whose names matter most, and they are cut too.",
+  "fix": "Make the name column wrap to two lines or shrink the star button's reserved space. Alternatively give the division columns more width by narrowing the Asisten column, so the full names show.",
+  "screen": "r1-panitia"
+ },
+ {
+  "file": "r1-panitia__r1Seat=pencipta__dark__1440x900.png",
+  "theme": "both",
+  "category": "consistency",
+  "severity": "ugly",
+  "where": "Asisten card header at x=131-337, y=185-205 compared with the division column headers 'Inti' / 'Acara' at y=188. In the 1440 screenshots the search input (y=220-272) is 52px tall while the member rows are about 44px tall.",
+  "seen": "The 'Asisten' title is clearly larger (about 18px) than the division titles (about 15px), and its count sits lower (baseline y=195 vs y=188). The first row of the Asisten card starts at a different offset than the rows in the neighbouring columns, so the header baselines do not line up across the row. The card also has a light blue top bar and a different inner padding from the division cards.",
+  "fix": "Give the Asisten title the same size and baseline as the division column titles. Align the card's content top with the division cards (same header height and row start), and match the search input height to the row height.",
+  "screen": "r1-panitia"
+ },
+ {
+  "file": "r2-berkas__r1Role=ketua__dark__1440x900.png",
+  "theme": "both",
+  "category": "horizontal-alignment",
+  "severity": "ugly",
+  "where": "Review drawer, document tab strip at y~155 (also in r1Role=ketua__light__1440x900.png). The underline under KTM ... Portofolio runs x 505 to ~1296.",
+  "seen": "The tab row's bottom rule stops at about x=1296. The content below it (version toolbar, Perbaikan card, Pemeriksaan rows) and the close button and Setujui button all end at x~1336. The tab strip is about 40px narrower than every other block on the right.",
+  "fix": "Make the tab strip span the full content width (505 to 1336), or give it the same right padding as the blocks below.",
+  "screen": "r2-berkas"
+ },
+ {
+  "file": "r2-berkas__r1Pick=2__dark__1440x900.png",
+  "theme": "both",
+  "category": "empty-space",
+  "severity": "ugly",
+  "where": "Candidate detail modal for a verified candidate (Salsabila). Left column below the Motivasi row, x 195-706, y ~400-570. Also in r1Pick=2__light__1440x900.png and r1Pick=2__dark__1280x720.png.",
+  "seen": "The left column ends at y~395 and the right column continues to y~503. About 170px of the left half is empty, so the modal looks lopsided. The Perlu perbaikan state fills this area with the Diminta perbaikan card, so the two states look unbalanced.",
+  "fix": "Rebalance the columns, for example by moving the Catatan block under the contact details or shortening the modal, so that no half is left blank.",
+  "screen": "r2-berkas"
+ },
+ {
+  "file": "r2-berkas__r1Pick=2__dark__1440x900.png",
+  "theme": "both",
+  "category": "overflow-or-clipping",
+  "severity": "ugly",
+  "where": "Page behind the modal, just above its top edge at x 176-590, y~130. The same slice shows in r1Pick=2__light__1440x900.png. There is a second one at the bottom edge, x 640-1120, y~590, where the list row text is cut by the modal edge.",
+  "seen": "The header subtitle 'Pengecekan Berkas, hari pertama · Senin, 9 November 2026' is sliced in half horizontally by the top border of the modal. Because the modal is shorter in this state, it no longer covers the text, so it looks like a rendering glitch. The same happens to a list row at the modal's bottom edge.",
+  "fix": "Make the backdrop dim or blur strong enough to hide text behind it, or keep the modal height consistent so it covers the header text.",
+  "screen": "r2-berkas"
+ },
+ {
+  "file": "r2-berkas__default__dark__1440x900.png",
+  "theme": "both",
+  "category": "horizontal-alignment",
+  "severity": "fragile",
+  "where": "Footer of the candidate detail modal. The Tutup text is at x~1182-1225, y~557. It is the same in every modal state.",
+  "seen": "Tutup is a plain text button whose right edge is at x~1225. The close X above it and the Catatan textarea both end at x=1245, so the button sits 20px inside the column edge. It has no visible button shape, so it looks misaligned and easy to miss.",
+  "fix": "Right-align the Tutup text to x=1245, or give it a visible button outline so its padding reads as intentional.",
+  "screen": "r2-berkas"
+ },
+ {
+  "file": "r2-berkas__default__light__1440x900.png",
+  "theme": "light",
+  "category": "contrast",
+  "severity": "fragile",
+  "where": "Catatan Panitia textarea, placeholder 'Hanya terlihat oleh Panitia' at x 749-945, y~402. Same in all light states.",
+  "seen": "The mid-grey placeholder sits on a blue-grey tinted fill and looks faint. It reads weaker than the rest of the text in the modal. The tinted fill also differs from the white Berkas box right above it, while in dark the two boxes use different dark tones.",
+  "fix": "Darken the placeholder in light theme and give the textarea the same fill as the neighbouring Berkas box, or add a clearer border.",
+  "screen": "r2-berkas"
+ },
+ {
+  "file": "n7-plot__default__dark__1440x900.png",
+  "theme": "both",
+  "category": "vertical-alignment",
+  "severity": "ugly",
+  "where": "Slot tab, day cards row (y 440-710). Second card (Rabu, 18 November 2026) versus the third and fourth cards. Same flaw in n7-plot__n7Stage=wawancara__dark__1440x900.png at y 518-720.",
+  "seen": "The Rabu card title fits on one line, so its content starts higher than in the neighbouring cards whose titles wrap to two lines. In default, the Rabu dashed 'Tambah Ruang' button sits at y 532-584 while the same button in the Kamis and Jumat cards sits at y 537-589, about 5px lower. In the Wawancara state, the Rabu room tiles start at y 518 while the Selasa and Kamis tiles start at y 522-523. The first room tiles and add buttons do not line up across the cards in the row.",
+  "fix": "Give the day-card header a fixed two-line min-height, or align the header to the top with a fixed height, so every card's content starts at the same y.",
+  "screen": "n7-plot"
+ },
+ {
+  "file": "n7-plot__n7Bag=papan__dark__1440x900.png",
+  "theme": "both",
+  "category": "overflow-or-clipping",
+  "severity": "ugly",
+  "where": "Papan board, right edge at x about 1324, y 300-640. The 'Kamis, 19 November 2026' label, the TULT 0604 count at about x 1318, and the name tiles in that column.",
+  "seen": "The last visible column is cut off hard at the board edge. The day label ends right at the cut ('2026' touches the edge), the capacity count shows only half a '6', and names such as 'Aurelia Ananda Putra' run to the edge with no right border or padding. There is no fade or peek gap, so it reads as clipped content, not an obvious horizontal scroll.",
+  "fix": "Add a right-edge fade or an inner padding gutter on the scroll container, or snap columns so a whole column ends before the edge.",
+  "screen": "n7-plot"
+ },
+ {
+  "file": "n7-plot__n7Bag=papan__dark__1440x900.png",
+  "theme": "both",
+  "category": "consistency",
+  "severity": "ugly",
+  "where": "Papan toolbar row, y 235-287. 'Cari nama' search box (x 116-496) next to 'Download XLSX' and 'Auto Isi (18)' (x 1048-1323).",
+  "seen": "The search field is about 52px tall (y 235-287) while the two buttons on the same row are about 44px tall (y 239-283). Controls in one row have different heights, and the buttons look small beside the field.",
+  "fix": "Use one control height for the search field and the two buttons (for example 44px for both).",
+  "screen": "n7-plot"
+ },
+ {
+  "file": "n7-plot__n7Bag=papan__light__1440x900.png",
+  "theme": "light",
+  "category": "contrast",
+  "severity": "fragile",
+  "where": "Hint text 'Tanpa tanda: pilih sendiri' at x 868-1037, y 260, and the green 'Plotting' pill beside the title at x 475-545, y 100 (visible in every light screenshot of this screen).",
+  "seen": "The hint is mid-grey on the pale blue and cloud background and looks washed out. The 'Plotting' pill is pale teal text on a pale teal fill and is clearly fainter than the dark 'AKADEMIK' pill next to it. In dark theme the same pill is bright and readable.",
+  "fix": "Darken the light-theme text colour for the hint (muted) and for the Plotting pill text to reach at least 4.5:1 against its fill.",
+  "screen": "n7-plot"
+ },
+ {
+  "file": "r2-qr__default__light__1440x900.png",
+  "theme": "light",
+  "category": "contrast",
+  "severity": "broken",
+  "where": "Attendance dot grid under '47 dari 78 sudah hadir', about x 483-1040, y 276-333 (whole third row and the right end of the second row). Same in r2-qr__r2QrStage=tubes__light, tulis__light, wawancara__light and mengajar__light.",
+  "seen": "The 'not yet present' dots are almost the same colour as the pale blue background. The third row (y ~326) is practically invisible, and the unfilled tail of row 2 and the last dots in the tulis, tubes, wawancara and mengajar states are barely visible. In dark theme the same dots are clearly visible as dim discs. In light theme the grid reads as 'only 47 dots' with no sign of the total (78, 40, 26, 4 or 12).",
+  "fix": "Give the empty dots a visible fill or outline in light theme (a darker slate tint plus a 1px border) so the total is readable.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__default__dark__1440x900.png",
+  "theme": "both",
+  "category": "vertical-alignment",
+  "severity": "ugly",
+  "where": "Count line under the title, '47' at x 483-546, y 205-247, next to 'dari 78 sudah hadir' at x 563-737, y ~251. Same in every QR-screen state (8 / 19 / 26 / 2 with their labels).",
+  "seen": "The big number and its caption do not share a baseline. The bottom of '47' sits at about y 245 and the caption's baseline is about 12px lower, at y ~257. The caption hangs below the number and looks dropped.",
+  "fix": "Align the number and caption on the same text baseline (baseline alignment in the flex row, or reduce the line-height on the number).",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__default__dark__1440x900.png",
+  "theme": "both",
+  "category": "spacing",
+  "severity": "ugly",
+  "where": "Between the dot grid and the code card (K7Q 4XM), at y ~333 to 343 in the default state. Same at y 471 to 480 in tubes, 388 to 405 in tulis, and 322 to 331 in wawancara.",
+  "seen": "The last dot row sits only about 10px above the top border of the code card. The gaps above are 20px or more (subtitle to count, count to dots), so the card looks glued to the dots and the rhythm is uneven.",
+  "fix": "Use the same vertical gap (about 20-24px) between the dot grid and the code card as between the other blocks.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__default__dark__1440x900.png",
+  "theme": "both",
+  "category": "empty-space",
+  "severity": "ugly",
+  "where": "Whole QR display, 1440x900. Right of the code card (x ~1065-1340, y 70-720) and under the card (y ~455-720) are empty. The content column ends at x ~1060 while the frame runs to x 1360. Same in acara, akademik, ketua, hadir, mengajar, tulis and wawancara.",
+  "seen": "All content is packed into the left and top of the frame. About a quarter of the width on the right and about a third of the height at the bottom is dead space. The QR (about 318px) is small for a projected screen and does not use the space.",
+  "fix": "Scale the QR up and the text block to fill the frame, or centre the QR plus info group in the frame and size the QR to the available height.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__r2QrStage=wawancara__dark__1440x900.png",
+  "theme": "both",
+  "category": "proportion",
+  "severity": "ugly",
+  "where": "Attendance dots, y 275-322 in wawancara (dots ~48px). In tubes the dots are ~38px (y 308-470), in tulis ~38px, and in default ~15px. The code card width also changes: ~580px in default, ~1200px in tubes, ~610px in wawancara.",
+  "seen": "Dot size and grid width change drastically between states. With 4 dots they are big blobs, almost as tall as the ABSENSI/code text blocks, and with 78 they are tiny. The code card also stretches to the dot grid or the subtitle width, so the same card has different widths per state. In mengajar (12 dots) two orphan dots wrap to a second row at y 316 although there is room on row 1.",
+  "fix": "Fix the dot diameter and the info column width for all states. Wrap by the column width, not by a count-based size.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__r2QrStage=tubes__dark__1440x900.png",
+  "theme": "both",
+  "category": "other",
+  "severity": "ugly",
+  "where": "Subtitle under 'Pengerjaan Tubes', x 483-1180, y 168 and 201.",
+  "seen": "The line 'Senin, 14 Desember 2026 · 18:30 sampai 22:00 WIB · Lab IRIS, Gedung' wraps and leaves the single word 'Deli' alone on a second line at y 201. This pushes the whole count line and the dots about 32px lower than in the other states. The column is wide enough (code card is ~1200px wide) that the wrap looks accidental.",
+  "fix": "Let the subtitle use the full column width, or break it deliberately at the date and the place, so no orphan word is left.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__default__dark__1440x900.png",
+  "theme": "both",
+  "category": "vertical-alignment",
+  "severity": "fragile",
+  "where": "QR frame at x 110-427. Top edge at y 104 in default, 118 in mengajar, 153 in tulis, 190 in tubes, 116 in wawancara.",
+  "seen": "The QR block is centred against a text column whose height changes. Its top edge matches neither the ABSENSI label (y ~75) nor the title (y ~105). It jumps from state to state, and in default it sits about 30px below the label's top line.",
+  "fix": "Pin the QR top to the content column top (align with the ABSENSI label or title) in all states.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__r2Qr=bukan__dark__1440x900.png",
+  "theme": "both",
+  "category": "empty-space",
+  "severity": "ugly",
+  "where": "Status card under 'First Meet', x 117-1323, y 156-330. Same in hadir, sudah and kedaluwarsa, in dark and light, and at 1280x720.",
+  "seen": "The icon (x 144-204, y 178-238) and the 'Lihat Perjalananku' button (x 142-359, y 258-310) are stacked in a left column, while the title and text sit top-aligned at x 377. The button is far from the message it belongs to. Everything right of x ~1030 is empty. The text block is vertically shifted against the icon and the button (text ends at y 232, button ends at y 310).",
+  "fix": "Put the button under the text in the text column, centre the icon against the text block, and let the card be shorter.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__r2Qr=kedaluwarsa__dark__1440x900.png",
+  "theme": "both",
+  "category": "consistency",
+  "severity": "ugly",
+  "where": "Kedaluwarsa card, x 117-1323, y 156-385, versus the same card in bukan, hadir and sudah (y 156-330).",
+  "seen": "The card is 55px taller, and the icon is at y 205-265 instead of y 178-238. The title baseline moves from y ~195 to y ~191. 'Lihat Perjalananku' becomes a plain text link at x 163 (indented about 20px from the icon's left edge x 144, y 338), while the other three states have a filled blue button at x 142. The same action looks different, so the layout jumps when state changes.",
+  "fix": "Use one button treatment and one icon/title position for all four status states, and let only the extra input row vary.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__r2Qr=kedaluwarsa__light__1440x900.png",
+  "theme": "light",
+  "category": "contrast",
+  "severity": "ugly",
+  "where": "Code input (x 377-645, y 242-294) and 'Kirim' button (x 653-737, y 242-294).",
+  "seen": "The 'Kirim' button is pale blue with grey-blue label text, which is very low contrast. The placeholder 'K7Q 4XM' in the input is pale grey on a pale blue field. Both are hard to read next to the dark title text above. In dark theme the button is also a muted dark blue with a dimmed label.",
+  "fix": "Raise the contrast of the disabled button label and the placeholder (darker text, clearer field border) in light theme.",
+  "screen": "r2-qr"
+ },
+ {
+  "file": "r2-qr__r2Qr=override__dark__1440x900.png",
+  "theme": "both",
+  "category": "horizontal-alignment",
+  "severity": "ugly",
+  "where": "Absensi dialog, bottom-left 'Download XLSX' at x 214, y 665, versus the left content edge at x 195 (title, search field, list rows, step card). Step 2 header: badge '2' at x 212 and heading at x 241, versus step 1 badge at x 227 and heading at x 256.",
+  "seen": "'Download XLSX' is indented about 19px from the left edge that everything else uses, while 'Selesai' on the right is flush with the content edge at x 1245. The step 2 heading text starts 15px left of the step 1 heading text, so the two headings do not line up.",
+  "fix": "Remove the extra padding on the Download XLSX button (align text to x 195) and use one text indent for the step headings.",
+  "screen": "r2-qr"
+ }
+]

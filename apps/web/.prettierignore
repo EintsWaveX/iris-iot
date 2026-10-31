@@ -9,3 +9,4 @@ api/_lib/__tests__/fixtures/
 src/lib/recruitment/seed-bank.ts
 src/lib/__tests__/fixtures/
 scripts/rec-bank/*.md
+src/lib/recruitment/seed-problems.ts

@@ -5,15 +5,8 @@
  * exact instant on the next read or write. The API stores the result under
  * `UPDATE ... WHERE seq = $seen`.
  */
-import type {
-  ExamConfig,
-  FieldError,
-  PartKey,
-  PartRun,
-  RoomState,
-  RoomViewName,
-} from "./exam-types.js";
-import { PART_KEYS, PHASE1_PARTS } from "./exam-types.js";
+import type { ExamConfig, PartKey, PartRun, RoomState, RoomViewName } from "./exam-types.js";
+import { minutesOf } from "./exam-config.js";
 
 export const GRACE_MS = 5000;
 const MIN = 60_000;
@@ -128,51 +121,10 @@ export function budget(state: RoomState, config: ExamConfig, now: number) {
   };
 }
 
-const minutesOf = (c: ExamConfig, part: PartKey) =>
-  part === "livecode" ? c.livecode.minutes : c.parts[part].minutes;
-
 /* ---------------------------------------------------------------- config */
 
-export function validateConfig(c: ExamConfig): FieldError[] {
-  const errs: FieldError[] = [];
-  const order = c.order ?? [];
-  if (
-    order.length !== PART_KEYS.length ||
-    order[order.length - 1] !== "livecode" ||
-    new Set(order).size !== order.length ||
-    !PART_KEYS.every((p) => order.includes(p))
-  )
-    errs.push({ field: "order", kode: "urutan_salah" });
-  for (const part of PHASE1_PARTS) {
-    const p = c.parts?.[part];
-    const field = `parts.${part}`;
-    if (!p) {
-      errs.push({ field, kode: "bagian_hilang" });
-      continue;
-    }
-    if (!Number.isInteger(p.minutes) || p.minutes < 1 || p.minutes > 60)
-      errs.push({ field: `${field}.minutes`, kode: "menit_salah" });
-    for (const [lang, n] of Object.entries(p.counts ?? {})) {
-      if (
-        !n ||
-        !Number.isInteger(n.shown) ||
-        n.shown < 1 ||
-        !Number.isInteger(n.pool) ||
-        n.pool < n.shown
-      )
-        errs.push({ field: `${field}.counts.${lang}`, kode: "jumlah_salah" });
-    }
-    const langs = Object.keys(p.counts ?? {});
-    if (langs.length === 0 || (langs.includes("any") && langs.length > 1))
-      errs.push({ field: `${field}.counts`, kode: "bahasa_salah" });
-  }
-  const m = c.livecode?.minutes;
-  if (!Number.isInteger(m) || m < 10 || m > 120)
-    errs.push({ field: "livecode.minutes", kode: "menit_salah" });
-  if (!Number.isInteger(c.budgetMin) || c.budgetMin < 1)
-    errs.push({ field: "budgetMin", kode: "menit_salah" });
-  return errs;
-}
+// minutesOf and validateConfig live in exam-config.ts; re-exported for the callers that import them from here.
+export { minutesOf, validateConfig } from "./exam-config.js";
 
 /* -------------------------------------------------------------- actions */
 

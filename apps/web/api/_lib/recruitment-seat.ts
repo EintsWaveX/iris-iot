@@ -16,7 +16,7 @@
  * The room's rules stay in src/lib/recruitment/room.ts (answerOpen, seatLeft,
  * normalize): this file reads rows and asks them, it never restates a timer.
  */
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, noStore } from "./http.js";
@@ -27,9 +27,7 @@ import {
   recExamConfig,
   recExamRoom,
   recExamSeat,
-  recPartRef,
   recQuestion,
-  recReference,
   recSlot,
   recSlotAssignment,
   recStrike,
@@ -63,7 +61,6 @@ import type {
   PartView,
   PlanPart,
   QuestionView,
-  RefLite,
   RoomInfo,
   SeatSelf,
   TestView,
@@ -195,10 +192,7 @@ function planOf(config: ExamConfig): PlanPart[] {
   return config.order.map((key) => ({
     key,
     minutes: minutesOf(config, key),
-    count:
-      key === "livecode"
-        ? null
-        : Object.values(config.parts[key].counts).reduce((a, c) => a + (c?.shown ?? 0), 0),
+    count: key === "livecode" ? null : config.parts[key].shown,
   }));
 }
 
@@ -322,7 +316,7 @@ async function bagianKerja(
     .where(and(eq(recAnswer.seatId, seat.id), eq(recAnswer.part, key)));
   const answers: PartView["answers"] = {};
   for (const a of ans) answers[a.q] = { value: a.value, rev: a.rev };
-  return { key, items, answers, refs: await muatRef(db, edisiId, key, rows) };
+  return { key, items, answers };
 }
 
 type QuestionRow = typeof recQuestion.$inferSelect;
@@ -336,65 +330,6 @@ const asQuestion = (r: QuestionRow): Question =>
     body: r.body,
     answer: r.answer,
   }) as Question;
-
-/** The part's references and the drawn questions' own (EXAM-ENGINE 8.2) */
-async function muatRef(
-  db: Db,
-  edisiId: number,
-  part: Phase1Part,
-  qs: QuestionRow[],
-): Promise<RefLite[]> {
-  const partRows = await db
-    .select({ id: recReference.id, title: recReference.title, url: recReference.url })
-    .from(recPartRef)
-    .innerJoin(recReference, eq(recReference.id, recPartRef.referenceId))
-    .where(
-      and(
-        eq(recPartRef.editionId, edisiId),
-        eq(recPartRef.part, part),
-        eq(recReference.status, "ok"),
-      ),
-    )
-    .orderBy(asc(recPartRef.sort));
-  const out: RefLite[] = partRows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    host: hostOf(r.url),
-    forQuestion: null,
-  }));
-  const own = qs.flatMap((q) => q.refs.map((id) => ({ id, q: q.id })));
-  const taken = new Set(out.map((r) => r.id));
-  const ids = [...new Set(own.map((o) => o.id))].filter((id) => !taken.has(id));
-  if (ids.length) {
-    const rows = await db
-      .select({ id: recReference.id, title: recReference.title, url: recReference.url })
-      .from(recReference)
-      .where(
-        and(
-          eq(recReference.editionId, edisiId),
-          inArray(recReference.id, ids),
-          eq(recReference.status, "ok"),
-        ),
-      );
-    for (const r of rows)
-      out.push({
-        id: r.id,
-        title: r.title,
-        host: hostOf(r.url),
-        forQuestion: own.find((o) => o.id === r.id)?.q ?? null,
-      });
-  }
-  return out;
-}
-
-function hostOf(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    return new URL(url).host;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Writes the seat's draw for a part once: the statement only writes while that
@@ -432,7 +367,7 @@ async function tulisDraw(
   try {
     items = drawPart(
       await drawSeed(conf.salt, seat.id, part),
-      config.parts[part].counts,
+      config.parts[part],
       pool.map(asQuestion),
     );
   } catch (e) {

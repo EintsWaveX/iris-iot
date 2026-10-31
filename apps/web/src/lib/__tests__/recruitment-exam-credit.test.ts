@@ -64,7 +64,7 @@ const type = (input: HTMLInputElement, text: string) => {
 const single: Question = {
   id: 1,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "single",
   version: 1,
   body: {
@@ -115,7 +115,7 @@ describe("single choice", () => {
 const multi: Question = {
   id: 2,
   part: "logika",
-  lang: "cpp",
+  lang: "c",
   format: "multi",
   version: 1,
   body: {
@@ -151,10 +151,10 @@ describe("checkbox", () => {
 const lines: Question = {
   id: 3,
   part: "kodingan",
-  lang: "cpp",
+  lang: "c",
   format: "lines",
   version: 1,
-  body: { prompt: "p", code: { lang: "cpp", src: "int a = 1;\n\nint b = 2;\nint c = a +;" } },
+  body: { prompt: "p", code: { lang: "c", src: "int a = 1;\n\nint b = 2;\nint c = a +;" } },
   answer: { lines: [4] },
 };
 
@@ -187,12 +187,12 @@ describe("click the lines", () => {
 const fitb: Question = {
   id: 4,
   part: "fitb",
-  lang: "cpp",
+  lang: "c",
   format: "fitb",
   version: 1,
   body: {
     prompt: "p",
-    code: { lang: "cpp", src: "int ____(1)____ = ____(2)____;" },
+    code: { lang: "c", src: "int ____(1)____ = ____(2)____;" },
     blanks: [{ n: 1 }, { n: 2, width: 4 }],
   },
   answer: { blanks: { 1: { accept: ["x"] }, 2: { accept: ["5"] } } },

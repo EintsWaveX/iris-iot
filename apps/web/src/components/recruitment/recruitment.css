@@ -698,7 +698,7 @@
   position: relative;
   display: block;
   min-width: 0;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-style: normal;
   font-weight: 650;
   line-height: 17px;
@@ -712,14 +712,20 @@
 .rkal__lab {
   position: relative;
   z-index: 1;
-  display: block;
+  /* a long name takes a second line before it is cut; the day dialog shows it in full */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.25;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   width: calc(var(--n, 1) * 100% + (var(--n, 1) - 1) * 6px);
   pointer-events: none;
 }
 .rkal__bar {
-  background: color-mix(in srgb, var(--c) 26%, transparent);
+  /* opaque, so cell borders and the today outline do not cut through the label */
+  background: color-mix(in srgb, var(--c) 26%, var(--surface-1));
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--c) 70%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--c) 70%, transparent);
@@ -874,6 +880,13 @@
 }
 .rkal__item > i {
   margin-top: 3px;
+}
+/* A plain event swatch is a round 12px dot centred on the first text line, not an empty box hanging below it. */
+.rkal__item > i:not([data-internal]) {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 6px;
 }
 .rkal__item:is(button) {
   cursor: pointer;

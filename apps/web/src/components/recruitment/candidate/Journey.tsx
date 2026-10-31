@@ -4,7 +4,8 @@
  * current one is gold with a slow halo, the rest hollow and numbered. A star
  * opens a popover with that stage's public dates. On a phone the path
  * becomes a vertical list with a rail. The done part of the path draws in
- * once; Low Detail and reduced motion keep it still.
+ * once; Low Detail and reduced motion keep it still. Stars past `sampai`
+ * stay under mist (B3): no label, no dates, nothing to open.
  */
 import { useState, type CSSProperties } from "react";
 import { CheckIcon, FlagIcon, StarIcon } from "@phosphor-icons/react";
@@ -42,6 +43,7 @@ export default function Journey({
   lang,
   hariIni,
   out = false,
+  sampai,
 }: {
   /** null: nobody's own journey (an Asisten looking), every star hollow */
   cur: StageKey | "daftar" | null;
@@ -50,6 +52,8 @@ export default function Journey({
   hariIni: string;
   /** Cut: the journey stops at the stage reached, a flag marks it, the rest fades (S2) */
   out?: boolean;
+  /** The last star (index into JOURNEY) that is not foggy; undefined shows all */
+  sampai?: number;
 }) {
   const t = CP[lang].journey;
   const r = REC[lang];
@@ -75,6 +79,24 @@ export default function Journey({
       </svg>
       <ol className="rec-journey__list" aria-label={t.list}>
         {JOURNEY.map((s, i) => {
+          if (sampai !== undefined && i > sampai)
+            return (
+              <li
+                key={s}
+                className="rec-star"
+                data-st="fog"
+                style={{ "--x": `${POS[i][0]}%`, "--y": `${POS[i][1]}%` } as CSSProperties}
+              >
+                <span className="rec-star__dot" role="img" aria-label={t.ariaFog}>
+                  <span className="num" aria-hidden="true">
+                    ?
+                  </span>
+                </span>
+                <span className="rec-star__label" aria-hidden="true">
+                  ???
+                </span>
+              </li>
+            );
           const st = out
             ? i < ci
               ? "done"

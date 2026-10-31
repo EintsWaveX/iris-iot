@@ -18,7 +18,7 @@ export const RX = dict({
     orderSaved: "Susunanmu tersimpan",
     orderTodo: "Belum disusun",
     orderKeys:
-      "Papan ketik: Spasi untuk mengangkat baris, panah atas dan bawah untuk memindah, Spasi lagi untuk menaruh.",
+      "Keyboard: tekan Space untuk angkat baris, panah atas atau bawah untuk pindah, Space lagi untuk taruh.",
     orderLabel: "Baris yang disusun",
     orderLift: (n: number) => `Baris ${n} diangkat`,
     orderOver: (n: number) => `Baris dipindah ke posisi ${n}`,

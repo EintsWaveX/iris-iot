@@ -27,7 +27,7 @@ import { useLockdown } from "./lockdown/useLockdown";
 import { Gate } from "./parts";
 import Runner from "./Runner";
 import { Finished, Lobby, NotOpen, Notice } from "./Screens";
-import LiveCodePage, { type Antrean } from "../livecode/LiveCodePage";
+import LccPage from "../livecode/LccPage";
 import { TS } from "./testStrings";
 
 import "../recruitment-s3-runner.css";
@@ -60,7 +60,6 @@ export default function TestPage({ lang }: { lang: Lang }) {
   const [twoTabs, setTwoTabs] = useState(false);
   // Live Coding: the relay says a compile finished or the Master changed the seat's boards (bump), and the queue moved (chips)
   const [lcSignal, setLcSignal] = useState(0);
-  const [antrean, setAntrean] = useState<Antrean>(null);
   const live = useSeatLive(
     seat?.id ?? null,
     !!seat,
@@ -70,8 +69,8 @@ export default function TestPage({ lang }: { lang: Lang }) {
     },
     refresh,
     (m: PesanUjian) => {
-      if (m.j === "antrean") setAntrean(m.d as Antrean);
-      else setLcSignal((n) => n + 1);
+      // The judge answered (or the queue moved): ask for the seat's results again
+      if (m.j === "antrean" || m.j === "judge" || m.j === "kompilasi") setLcSignal((n) => n + 1);
     },
   );
   useCadanganRuang(refresh, !!seat && live.status !== "live");
@@ -185,15 +184,13 @@ export default function TestPage({ lang }: { lang: Lang }) {
     );
   } else if (phase.k === "spin" || (phase.k === "work" && phase.part === "livecode")) {
     screen = (
-      <LiveCodePage
+      <LccPage
         lang={lang}
         tv={{ ...tv!, room }}
         phase={phase}
         motion={motion}
         signal={lcSignal}
-        antrean={antrean}
         linkDown={live.status !== "live"}
-        onChanged={refresh}
       />
     );
   } else if (

@@ -15,6 +15,8 @@ import type { Lang } from "../../../lib/kelas";
 import { usePoll } from "../../../lib/hooks";
 import { isFail, recGet, recPost } from "../../../lib/recruitment/client";
 import type { GradeRoom, GradeSeat, RubricView } from "../../../lib/recruitment/lc-api";
+import { capsOf } from "../../../lib/recruitment/exam-config";
+import { DEFAULT_EXAM_CONFIG } from "../../../lib/recruitment/exam-types";
 import { livecodeScore } from "../../../lib/recruitment/scoring";
 import { PROTOCOL_NAME, clock } from "../../../lib/recruitment/lc-ui";
 import { Md } from "../exam/render/text";
@@ -202,7 +204,11 @@ function Sheet({
   const score = useMemo(() => {
     if (!rubric || !complete) return null;
     const a = { grader: "a", at: 1, values };
-    return livecodeScore(rubric, [a, { ...a, grader: "b", at: 2 }]);
+    return livecodeScore(
+      rubric,
+      [a, { ...a, grader: "b", at: 2 }],
+      capsOf(DEFAULT_EXAM_CONFIG).livecode,
+    );
   }, [rubric, complete, values]);
 
   const send = useCallback(async () => {

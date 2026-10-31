@@ -5,7 +5,6 @@
  * (rehearsal seats count nowhere) and only one part at a time.
  */
 import type { Phase1Part, Rubric, RubricSheet } from "./exam-types.js";
-import { LIVECODE_CAP } from "./exam-types.js";
 import { ZERO, add, div, frac, isOne, mul, roundHalfUp, sub, sum, type Frac } from "./frac.js";
 
 /** One seat in one part: the questions it drew (null: never started) and their credits. */
@@ -96,19 +95,22 @@ export function countedSheets(sheets: readonly RubricSheet[]): RubricSheet[] {
   return out;
 }
 
-/** round(1000 × mean of the two counted ratios), or null before two count. */
-export function livecodeScore(rubric: Rubric, sheets: readonly RubricSheet[]): number | null {
+/** round(cap × mean of the two counted ratios), or null before two count. */
+export function livecodeScore(
+  rubric: Rubric,
+  sheets: readonly RubricSheet[],
+  cap: number,
+): number | null {
   const counted = countedSheets(sheets);
   if (counted.length < 2) return null;
   const mean = div(sum(counted.map((s) => sheetRatio(rubric, s.values))), frac(counted.length));
-  return roundHalfUp(LIVECODE_CAP, mean);
+  return roundHalfUp(cap, mean);
 }
 
 /* ----------------------------------------------------------------- totals */
 
-/** Debugging = Kodingan + Mikro (each rounded first); Phase 1 out of 3000, total out of 4000. */
+/** The written total is the three parts (each rounded first); the test total adds Live Coding. */
 export function totals(s: Record<Phase1Part, number> & { livecode: number | null }) {
-  const debugging = s.kodingan + s.mikro;
-  const phase1 = s.logika + s.fitb + debugging;
-  return { debugging, phase1, total: phase1 + (s.livecode ?? 0) };
+  const phase1 = s.logika + s.fitb + s.kodingan;
+  return { phase1, total: phase1 + (s.livecode ?? 0) };
 }

@@ -1,0 +1,397 @@
+/* Live Coding in C on the test page (B7.4), from the redrawn mockup r3-putar and r3-lc.
+   One content column: every block (header, banner, rail, grid, footer line) sits on the
+   same 24px gutter, so their left and right edges line up (the R1 to R3 audit found a
+   banner 8px off this grid). Colours are kit tokens only; the accent carries every
+   highlight and gold marks the points. */
+.lcc {
+  --lcc-gutter: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 18px var(--lcc-gutter) 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.lcc-work {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.lcc-card {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  min-width: 0;
+}
+
+/* header */
+.lcc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.lcc-top__title,
+.lcc-hand__title {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+.lcc-top__chips {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+
+/* the judge-not-ready banner: same edges as the rail and grid below it */
+.lcc-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--warn);
+  background: var(--warn-soft);
+  border-radius: var(--radius-md);
+}
+.lcc-banner > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--warn);
+}
+
+/* the problem rail */
+.lcc-rail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(180px, 0.9fr);
+  gap: 8px;
+  align-items: stretch;
+}
+.lcc-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  text-align: left;
+  min-width: 0;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.lcc-tab[aria-selected="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lcc-tab:hover {
+    border-color: var(--text-muted);
+  }
+}
+.lcc-tab__t {
+  display: grid;
+  min-width: 0;
+}
+.lcc-tab__t b {
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.lcc-tab__t .hint {
+  font-size: 0.8rem;
+}
+.lcc-num {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+  font: 700 0.8rem/1 var(--font-mono);
+  color: var(--text-muted);
+}
+.lcc-tab[data-st="full"] .lcc-num {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--accent-ink);
+}
+.lcc-tab[data-st="part"] .lcc-num {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.lcc-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  white-space: nowrap;
+}
+.lcc-score b {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* chips: one line, centred, same height */
+.lcc-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-strong, var(--hairline));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex: none;
+}
+.lcc-chip[data-tier="easy"] {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.lcc-chip[data-tier="medium"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.lcc-chip--pts {
+  color: var(--text-muted);
+}
+
+/* the two columns */
+.lcc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+}
+.lcc-statement {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lcc-statement__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lcc-statement__title {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  margin-right: 4px;
+}
+.lcc-h {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+}
+.lcc-samples {
+  display: grid;
+  gap: 12px;
+}
+.lcc-sample {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.lcc-block {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.lcc-block__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.lcc-pre,
+.lcc-log {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--surface-0, var(--bg));
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  font: 0.85rem/1.5 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.lcc-log {
+  max-height: 160px;
+  overflow: auto;
+  color: var(--danger);
+}
+
+/* the editor card */
+.lcc-code {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lcc-code__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.lcc-code__file {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.lcc-ask {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--warn);
+  background: var(--warn-soft);
+  border-radius: var(--radius-md);
+}
+.lcc-code__box {
+  height: clamp(220px, 36vh, 420px);
+  overflow: hidden;
+  background: var(--surface-0, var(--bg));
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+.lcc-code__box .lccode {
+  height: 100%;
+}
+.lcc-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.lcc-actions__hint {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* the result card */
+.lcc-result {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.lcc-result[data-tone="ok"] {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+.lcc-result[data-tone="bad"] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+.lcc-result[data-tone="wait"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.lcc-result__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.lcc-dots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.lcc-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.lcc-dot__i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex: none;
+}
+.lcc-dot[data-v="bad"] .lcc-dot__i {
+  background: var(--danger);
+}
+.lcc-foot {
+  margin: 0;
+}
+
+/* the hand while the room is in the spin */
+.lcc-hand {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+}
+.lcc-hand__head {
+  display: grid;
+  gap: 4px;
+}
+.lcc-hand__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.lcc-hand__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.lcc-hand__name {
+  flex: 1;
+  min-width: 0;
+}
+.lcc-hand__wait {
+  margin: 0;
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .lcc-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lcc-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lcc * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -87,6 +87,7 @@ export async function cekTiketUjian(
  * catatan      panitia      a note changed, refetch
  * master       panitia      { master, ask }
  * kompilasi    that seat    a compile job changed (12)
+ * judge        the seat      a Run Sample or Submit was judged (B7.3)
  * antrean      everyone     the compile queue, seat ids only (12)
  * hadir        panitia      who is connected, from the relay itself
  * Up: kemajuan, from a seat.
@@ -98,6 +99,7 @@ export const JENIS_UJIAN_BAWAH = [
   "catatan",
   "master",
   "kompilasi",
+  "judge",
   "antrean",
   "hadir",
 ] as const;
@@ -113,7 +115,7 @@ export interface PesanUjian {
 
 /** What the seat's own socket hears: the room, the queue, and what is its own */
 const UNTUK_SEMUA = new Set<JenisUjian>(["ruang", "antrean"]);
-const UNTUK_KURSI_SENDIRI = new Set<JenisUjian>(["kursi", "kompilasi"]);
+const UNTUK_KURSI_SENDIRI = new Set<JenisUjian>(["kursi", "kompilasi", "judge"]);
 
 /** Who may see a message, by the socket's ticket */
 export function bolehTerimaUjian(

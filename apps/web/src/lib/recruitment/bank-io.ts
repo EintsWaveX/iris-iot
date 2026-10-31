@@ -44,8 +44,6 @@ interface DraftMeta {
   title: string;
   status: Status;
   sample: boolean;
-  /** Reference URLs; the API turns them into ids and reports the ones it lacks */
-  refUrls: string[];
 }
 
 /** A question as the file says it: everything but the database's own columns. */
@@ -168,18 +166,15 @@ function split(lines: string[]): { stray: number | null; docs: Doc[] } {
 
 /* ---------------------------------------------------------------- helpers */
 
+/** Every code fence in the bank is C; a fence that says cpp or c++ is read as C too. Anything else is plain text. */
 const CODE_LANG: Record<string, CodeLang> = {
-  cpp: "cpp",
-  "c++": "cpp",
-  c: "cpp",
-  ino: "cpp",
-  arduino: "cpp",
-  py: "py",
-  python: "py",
-  python3: "py",
+  c: "c",
+  cpp: "c",
+  "c++": "c",
+  h: "c",
 };
 const codeLang = (info: string): CodeLang => CODE_LANG[info.trim().toLowerCase()] ?? "text";
-const FENCE_LANG: Record<CodeLang, string> = { cpp: "cpp", py: "py", text: "text" };
+const FENCE_LANG: Record<CodeLang, string> = { c: "c", text: "text" };
 
 /** Blank lines at both ends of a block go. */
 function trimBlock(xs: string[]): string[] {
@@ -552,11 +547,6 @@ function one(doc: Doc, index: number, opt: ParseOptions): ParsedItem {
     else at("id_salah", "id");
   }
   item.id = id;
-  if (
-    fm.refs !== undefined &&
-    !(Array.isArray(fm.refs) && fm.refs.every((r) => typeof r === "string"))
-  )
-    at("rujukan_salah", "refs");
   if (errors.some((e) => ["part_salah", "bahasa_salah", "format_salah"].includes(e.kode)))
     return item;
 
@@ -580,7 +570,6 @@ function one(doc: Doc, index: number, opt: ParseOptions): ParsedItem {
     title: item.title,
     status: status as Status,
     sample: fm.sample === true,
-    refUrls: Array.isArray(fm.refs) ? (fm.refs as string[]) : [],
     body: p.body,
     answer: p.answer,
   } as QuestionDraft;
@@ -720,7 +709,6 @@ function writeFront(q: ExportItem): string[] {
   y.push(`part: ${q.part}`, `lang: ${q.lang}`, `format: ${q.format}`, `status: ${q.status}`);
   y.push(`title: ${scalar(q.title)}`);
   if (q.sample) y.push("sample: true");
-  if (q.refUrls.length) y.push(`refs: ${flowList(q.refUrls)}`);
   if (
     (q.format === "single" || q.format === "multi") &&
     (q.body as { shuffle: boolean }).shuffle === false

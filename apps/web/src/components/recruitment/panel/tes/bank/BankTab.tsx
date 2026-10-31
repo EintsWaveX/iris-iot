@@ -1,34 +1,29 @@
 /**
  * The panel's Bank Soal tab (prompt 09, mockup r3-bank; Akademik and the
  * Ketua, the bank right). A line of tabs: one for each part with its count,
- * then Referensi and Pengaturan. A question is chosen in the address
+ * then Live Coding and Pengaturan. A question is chosen in the address
  * (?soal=12, or ?soal=baru for a new one in the open part), so the back
- * button and a shared link both work. The Live Coding tab (topics, templates
- * and rubric) is prompt 12's LcPoolTab, a place of its own in the tab line.
+ * button and a shared link both work. The Live Coding tab is the C problem
+ * bank (ProblemsTab). There are no references: candidates see none.
  */
 import { useCallback, useEffect, useState } from "react";
 import Fade from "../../../../ui/Fade";
 import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
-import {
-  useBankConfig,
-  useBankQuestions,
-  useBankReferences,
-} from "../../../../../lib/recruitment/bank-client";
+import { useBankConfig, useBankQuestions } from "../../../../../lib/recruitment/bank-client";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
 import { PHASE1_PARTS, type Phase1Part } from "../../../../../lib/recruitment/exam-types";
 import BankConfig from "./BankConfig";
 import BankEditor from "./BankEditor";
 import BankImport from "./BankImport";
 import BankList from "./BankList";
-import BankRefs from "./BankRefs";
-import LcPoolTab from "../../../livecode/LcPoolTab";
+import ProblemsTab from "./ProblemsTab";
 import { BK } from "./bankStrings";
 
 import "../../../recruitment-s3-bank.css";
 
 /** The tabs of the line, in order. */
-export const BANK_VIEWS = [...PHASE1_PARTS, "livecode", "refs", "config"] as const;
+export const BANK_VIEWS = [...PHASE1_PARTS, "livecode", "config"] as const;
 export type BankView = (typeof BANK_VIEWS)[number];
 
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
@@ -80,7 +75,6 @@ export default function BankTab({ lang }: { lang: Lang }) {
   const t = BK[lang];
   const config = useBankConfig(true);
   const questions = useBankQuestions(true);
-  const refs = useBankReferences(true);
   const [where, go] = useWhere();
   const [imp, setImp] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -136,7 +130,6 @@ export default function BankTab({ lang }: { lang: Lang }) {
             tabs={[
               ...PHASE1_PARTS.map((p) => ({ v: p as BankView, label: t.parts[p], n: count(p) })),
               { v: "livecode" as BankView, label: t.tabLive },
-              { v: "refs" as BankView, label: t.tabRefs, n: refs.data?.references.length },
               { v: "config" as BankView, label: t.tabConfig },
             ]}
           />
@@ -172,7 +165,6 @@ export default function BankTab({ lang }: { lang: Lang }) {
             id={where.soal === "baru" ? null : where.soal}
             part={part}
             config={config.data}
-            refs={refs.data?.references ?? []}
             onBack={() => go({ soal: null })}
             onOpen={(id) => go({ soal: id }, false)}
           />
@@ -185,13 +177,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
             onSeed={() => void pasang()}
           />
         ) : view === "livecode" ? (
-          <LcPoolTab lang={lang} />
-        ) : view === "refs" ? (
-          refs.data ? (
-            <BankRefs lang={lang} data={refs.data} refresh={refs.refresh} />
-          ) : (
-            <span className="skeleton" style={{ height: 240 }} />
-          )
+          <ProblemsTab lang={lang} />
         ) : rows.length === 0 ? (
           <section className="panel bkempty">
             <h3 className="panel__title">{t.emptyBankTitle}</h3>

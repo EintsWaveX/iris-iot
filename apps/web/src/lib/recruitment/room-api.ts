@@ -80,6 +80,8 @@ export interface ConsoleSeat {
   kejadian: ConsoleKejadian[];
   kit: { code: string; boards: KitBoard[]; returnedAt: number | null } | null;
   lastSeenAt: number | null;
+  /** Signed in for the evening (QR or by hand); null when the room has no event to count against */
+  present: { via: "qr" | "manual"; by: string | null; reason: string | null } | null;
 }
 
 export interface ConsoleNote {
@@ -114,6 +116,8 @@ export interface ConsoleView {
     rehearsal: boolean;
     slot: RoomSlotInfo | null;
     isToday: boolean;
+    /** The evening's event, the one a sign-in counts against (null for a practice room) */
+    eventId: number | null;
   };
   state: RoomState;
   view: RoomViewName;

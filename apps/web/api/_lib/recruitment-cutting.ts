@@ -9,6 +9,7 @@
  * cuttingPropose right: `results` is a Panitia route and never answers a
  * Praktikan session.
  */
+import { aturanDokumen, bacaSetting } from "./recruitment-settings.js";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -34,7 +35,6 @@ import { nextPublicEvent } from "../../src/lib/recruitment/gates.js";
 import { cuttingPool, standing } from "../../src/lib/recruitment/standing.js";
 import {
   CUT_STAGES,
-  DOC_REQUIRED,
   PROPOSALS,
   type CutRowView,
   type CutStage,
@@ -56,14 +56,13 @@ import {
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
+import { cuttingFor } from "../../src/lib/recruitment/settings.js";
 
-/** What the deck aims for at each Cutting (PRD 3, Targets). */
-const TARGET: Partial<Record<CutStage, { min: number; max: number }>> = {
-  berkas: { min: 80, max: 100 },
-  tes_tulis: { min: 60, max: 80 },
-  tubes: { min: 30, max: 40 },
-  mengajar: { min: 20, max: 23 },
-};
+/** What the deck aims for at each Cutting: the editors' numbers (Atur Titik Awal), else PRD 3, Targets. */
+async function targetDari(db: Db, stage: CutStage): Promise<{ min: number; max: number } | null> {
+  const c = cuttingFor(await bacaSetting(db, "cutting"), stage);
+  return c ? { min: c.targetMin, max: c.targetMax } : null;
+}
 
 function tahapDari(v: unknown): CutStage | null {
   return typeof v === "string" && (CUT_STAGES as readonly string[]).includes(v)
@@ -147,7 +146,7 @@ export async function muatPool(
         .where(
           and(
             inArray(recDocument.candidateId, ids),
-            inArray(recDocument.kind, [...DOC_REQUIRED] as never),
+            inArray(recDocument.kind, (await aturanDokumen(db)).required as never),
           ),
         )
         .groupBy(recDocument.candidateId)
@@ -258,7 +257,7 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
       revealed: dikunci && !!terkunci?.revealAt && terkunci.revealAt <= now,
       opened: pool.filter((r) => r.result?.locked && r.result.openedAt).length,
     },
-    target: TARGET[stage] ?? null,
+    target: await targetDari(db, stage),
     scoreFinal: nilai ? nilai.final : null,
     now: now.toISOString(),
   });

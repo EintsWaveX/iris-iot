@@ -84,6 +84,7 @@ import {
   terimaHasilKompilasi,
   terimaHasilMqtt,
 } from "../_lib/recruitment-lc-agent.js";
+import { ambilJudge, judgeSiaga, terimaHasilJudge } from "../_lib/recruitment-lc-judge.js";
 import { muatEdisiHidup } from "../_lib/recruitment-data.js";
 import { kirimRelay } from "../_lib/aliran.js";
 import { ruangSesi } from "../../src/lib/aliran.js";
@@ -199,6 +200,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     if (body.cepat === true) {
       await terimaHasilKompilasi(db, serverId, body.hasilKompilasi);
       await terimaHasilMqtt(db, body.hasilMqtt);
+      await terimaHasilJudge(db, serverId, body.hasilJudge);
       res.status(200).json({ ok: true });
       return;
     }
@@ -293,8 +295,18 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // while a room is in the spins or Live Coding, or a job waits).
     await terimaHasilKompilasi(db, serverId, body.hasilKompilasi);
     await terimaHasilMqtt(db, body.hasilMqtt);
+    // Live Coding in C (B7.3): the judge's answers, then its next jobs. The agent says how
+    // many it can run at once (judge.workers) and how many it holds (judge.held).
+    await terimaHasilJudge(db, serverId, body.hasilJudge);
+    const kapJudge = isPlainObject(body.judge) ? (body.judge as Record<string, unknown>) : {};
+    const bebasJudge = Math.max(
+      0,
+      (numOrNull(kapJudge.workers) ?? 2) - (numOrNull(kapJudge.held) ?? 0),
+    );
+    const kerjaJudge = await ambilJudge(db, serverId, bebasJudge);
     const agenLc = await bacaAgen(db, serverId);
     const lcSiaga = (agenLc.kompilasi || agenLc.mqtt) && (await kompilasiSiaga(db));
+    const judgeJalan = kerjaJudge.length > 0 || (await judgeSiaga(db));
     let kerjaKompilasi: Awaited<ReturnType<typeof ambilKompilasi>> = [];
     let kerjaMqtt: Awaited<ReturnType<typeof ambilMqtt>> = [];
     if (lcSiaga) {
@@ -367,17 +379,18 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       (await adaPerintahBaru(serverId)) ||
       (await konsolSiaga(serverId)) ||
       robot === "kerja";
-    const intervalDetik = lcSiaga
-      ? INTERVAL_KOMPILASI_SEC
-      : siaga
-        ? INTERVAL_SIAGA_SEC
-        : sesiAktif && MODUL_TELEMETRI_PC.has(sesiAktif.modul)
-          ? INTERVAL_TELEMETRI_SEC
-          : sesiAktif || robot === "baca" || tugasSeelabs.length > 0
-            ? INTERVAL_AKTIF_SEC
-            : jamSepi() && !(await adaAsistenOnline())
-              ? INTERVAL_MALAM_SEC
-              : INTERVAL_IDLE_SEC;
+    const intervalDetik =
+      lcSiaga || judgeJalan
+        ? INTERVAL_KOMPILASI_SEC
+        : siaga
+          ? INTERVAL_SIAGA_SEC
+          : sesiAktif && MODUL_TELEMETRI_PC.has(sesiAktif.modul)
+            ? INTERVAL_TELEMETRI_SEC
+            : sesiAktif || robot === "baca" || tugasSeelabs.length > 0
+              ? INTERVAL_AKTIF_SEC
+              : jamSepi() && !(await adaAsistenOnline())
+                ? INTERVAL_MALAM_SEC
+                : INTERVAL_IDLE_SEC;
 
     await pruneOldTelemetryOccasionally();
 
@@ -398,6 +411,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       ...(tugasSeelabs.length ? { seelabs: tugasSeelabs } : {}),
       ...(kerjaKompilasi.length ? { kompilasi: kerjaKompilasi } : {}),
       ...(kerjaMqtt.length ? { mqtt: kerjaMqtt } : {}),
+      ...(kerjaJudge.length ? { judge: kerjaJudge } : {}),
       ...(cermin ? { tpCermin: { segarkan: cerminSegarkan } } : {}),
     });
     // After the answer, kept alive with waitUntil: awaited after the response

@@ -35,6 +35,7 @@ import PanitiaBoard from "./PanitiaBoard";
 import Ringkasan from "./Ringkasan";
 import TampilOprec from "./TampilOprec";
 import { PN } from "./panelStrings";
+import "../recruitment-b1.css";
 
 export default function PanelPage({ lang }: { lang: Lang }) {
   const t = PN[lang];
@@ -97,7 +98,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
   const seat = edisi.data?.seat ?? null;
 
   return (
-    <div className="rec-page">
+    <div className="rec-page" data-area={tab}>
       <KepalaHalaman
         lang={lang}
         title={panitia ? t.title : CAL[lang].title}
@@ -121,6 +122,8 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             rights={rights}
             candidates={cand.data?.candidates ?? null}
             seats={kom.data ? kom.data.seats.length : null}
+            division={seat ? seat.division : null}
+            tabs={tabs}
           />
         ) : tab === "kalender" ? (
           <KalenderTab

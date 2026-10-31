@@ -62,6 +62,10 @@ const TIMER_BOLEH: Record<string, string> = {
   "components/shell/AppNav.tsx": "an Asisten's presence stamp, once a minute while in view",
   "scripts/polling.ts": "startPolling itself",
   "lib/aliran-ruang.ts": "useCadangan, the poll that stands in only while a room is down",
+  "components/recruitment/panel/tes/bank/ProblemsTab.tsx":
+    "a 2.5 s wait for the judge's answer to one reference check, only while that check is queued or running",
+  "components/recruitment/livecode/LccPage.tsx":
+    "a 2.5 s net while a Run Sample or Submit waits at the judge; the relay's judge message normally comes first",
 };
 
 /** usePoll intervals under 60 s */

@@ -12,12 +12,10 @@ import type { Lang } from "../../../../../lib/kelas";
 import type { ExamConfigResponse } from "../../../../../lib/recruitment/bank-api";
 import { canon } from "../../../../../lib/recruitment/bank-rules";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
+import { capsOf, dealtPoints } from "../../../../../lib/recruitment/exam-config";
 import {
-  PART_CAP,
   PHASE1_PARTS,
-  LIVECODE_CAP,
   type ExamConfig,
-  type PartCount,
   type Phase1Part,
 } from "../../../../../lib/recruitment/exam-types";
 import { useBelumSimpan } from "../../../../../lib/belum-simpan";
@@ -49,8 +47,23 @@ export default function BankConfig({
 
   const setPart = (p: Phase1Part, patch: Partial<ExamConfig["parts"][Phase1Part]>) =>
     setCfg({ ...cfg, parts: { ...cfg.parts, [p]: { ...cfg.parts[p], ...patch } } });
-  const setCount = (p: Phase1Part, l: "cpp" | "py" | "any", c: PartCount) =>
-    setPart(p, { counts: { ...cfg.parts[p].counts, [l]: c } });
+  const caps = capsOf(cfg);
+
+  const setLive = (patch: Partial<ExamConfig["livecode"]>) =>
+    setCfg({ ...cfg, livecode: { ...cfg.livecode, ...patch } });
+  const setShares = (part: Phase1Part, v: number) => {
+    // The other two parts keep their ratio and the last one takes the rest, so the three always add up to 100
+    const rest = PHASE1_PARTS.filter((p) => p !== part);
+    const left = 100 - v;
+    const a = rest[0];
+    const b = rest[1];
+    const sa = cfg.shares[a];
+    const sb = cfg.shares[b];
+    const na = sa + sb === 0 ? Math.floor(left / 2) : Math.round((left * sa) / (sa + sb));
+    setCfg({ ...cfg, shares: { ...cfg.shares, [part]: v, [a]: na, [b]: left - na } });
+  };
+  const handPoints = dealtPoints(cfg);
+  const scoreOk = handPoints === caps.livecode;
 
   const total = PHASE1_PARTS.reduce((a, p) => a + cfg.parts[p].minutes, 0) + cfg.livecode.minutes;
 
@@ -58,14 +71,19 @@ export default function BankConfig({
     setBusy(true);
     const r = await recPost<{ ok: true }>("exam-config-save", { config: cfg });
     setBusy(false);
-    if (isFail(r)) return toast(t.err[r.kode] ?? t.err.other, "danger");
+    if (isFail(r)) {
+      const bad = (r as { errors?: { kode: string }[] }).errors?.[0]?.kode;
+      return toast(
+        bad ? (t.cfgErr[bad] ?? t.cfgErr.other) : (t.err[r.kode] ?? t.err.other),
+        "danger",
+      );
+    }
     toast(t.cfgSaved);
     refresh();
   }
 
-  const pair = (p: Phase1Part, l: "cpp" | "py" | "any") => {
-    const c = cfg.parts[p].counts[l];
-    if (!c) return <span className="hint">-</span>;
+  const pair = (p: Phase1Part) => {
+    const c = cfg.parts[p];
     return (
       <span className="r3cfg__pair">
         <Stepper
@@ -73,21 +91,21 @@ export default function BankConfig({
           min={1}
           max={c.pool}
           disabled={lock}
-          label={`${t.parts[p]} ${t.langs[l]} ${t.cfgShown}`}
+          label={`${t.parts[p]} ${t.cfgShown}`}
           lessLabel={t.stepLess}
           moreLabel={t.stepMore}
-          onChange={(v) => !lock && setCount(p, l, { ...c, shown: v })}
+          onChange={(v) => !lock && setPart(p, { shown: v })}
         />
         <span className="hint">/</span>
         <Stepper
           value={c.pool}
           min={c.shown}
           max={60}
-          label={`${t.parts[p]} ${t.langs[l]} ${t.cfgTarget}`}
+          label={`${t.parts[p]} ${t.cfgTarget}`}
           disabled={lock}
           lessLabel={t.stepLess}
           moreLabel={t.stepMore}
-          onChange={(v) => !lock && setCount(p, l, { ...c, pool: v })}
+          onChange={(v) => !lock && setPart(p, { pool: v })}
         />
       </span>
     );
@@ -111,8 +129,7 @@ export default function BankConfig({
               <tr>
                 <th>{t.cfgPart}</th>
                 <th>{t.cfgMinutes}</th>
-                <th>{t.cfgCpp}</th>
-                <th>{t.cfgPy}</th>
+                <th>{t.cfgShownTarget}</th>
                 <th>{t.cfgMax}</th>
               </tr>
             </thead>
@@ -134,21 +151,9 @@ export default function BankConfig({
                       onChange={(v) => !lock && setPart(p, { minutes: v })}
                     />
                   </td>
-                  {cfg.parts[p].counts.any ? (
-                    <td colSpan={2} data-l={t.cfgShownTarget}>
-                      <span className="r3cfg__pair">
-                        <span className="hint">{t.cfgEither}</span>
-                        {pair(p, "any")}
-                      </span>
-                    </td>
-                  ) : (
-                    <>
-                      <td data-l={t.cfgCpp}>{pair(p, "cpp")}</td>
-                      <td data-l={t.cfgPy}>{pair(p, "py")}</td>
-                    </>
-                  )}
+                  <td data-l={t.cfgShownTarget}>{pair(p)}</td>
                   <td className="num hint" data-l={t.cfgMax}>
-                    {PART_CAP[p]}
+                    {caps.parts[p]}
                   </td>
                 </tr>
               ))}
@@ -170,16 +175,133 @@ export default function BankConfig({
                     }
                   />
                 </td>
-                <td colSpan={2}>
+                <td>
                   <span className="hint">{t.cfgLiveBody}</span>
                 </td>
                 <td className="num hint" data-l={t.cfgMax}>
-                  {LIVECODE_CAP}
+                  {caps.livecode}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+      </section>
+      <section className="panel r3cfg__score" data-ok={scoreOk ? "yes" : "no"}>
+        <div className="stack" style={{ gap: 2 }}>
+          <b>{t.cfgScoreTitle}</b>
+          <span className="hint">{t.cfgScoreBody}</span>
+        </div>
+        <div className="r3cfg__grid">
+          <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgWeightLive}</span>
+            <Stepper
+              value={cfg.weights.livecode}
+              min={10}
+              max={90}
+              step={5}
+              label={t.cfgWeightLive}
+              fmt={(n) => `${n}%`}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) =>
+                !lock && setCfg({ ...cfg, weights: { written: 100 - v, livecode: v } })
+              }
+            />
+          </label>
+          <div className="stack stack--sm">
+            <span className="label-caps">{t.cfgWeightWritten}</span>
+            <b className="num">
+              {cfg.weights.written}% · {caps.written}
+            </b>
+          </div>
+          {PHASE1_PARTS.map((p) => (
+            <label key={p} className="stack stack--sm">
+              <span className="label-caps">
+                {t.cfgShare}: {t.parts[p]}
+              </span>
+              <Stepper
+                value={cfg.shares[p]}
+                min={0}
+                max={100}
+                step={5}
+                label={`${t.cfgShare} ${t.parts[p]}`}
+                fmt={(n) => `${n}% · ${Math.round((caps.written * n) / 100)}`}
+                disabled={lock}
+                lessLabel={t.stepLess}
+                moreLabel={t.stepMore}
+                onChange={(v) => !lock && setShares(p, v)}
+              />
+            </label>
+          ))}
+          {(["easy", "medium"] as const).map((tier) => (
+            <label key={`pts-${tier}`} className="stack stack--sm">
+              <span className="label-caps">
+                {tier === "easy" ? t.cfgPointsEasy : t.cfgPointsMedium}
+              </span>
+              <Stepper
+                value={cfg.livecode.points[tier]}
+                min={50}
+                max={2400}
+                step={50}
+                label={tier === "easy" ? t.cfgPointsEasy : t.cfgPointsMedium}
+                disabled={lock}
+                lessLabel={t.stepLess}
+                moreLabel={t.stepMore}
+                onChange={(v) =>
+                  !lock && setLive({ points: { ...cfg.livecode.points, [tier]: v } })
+                }
+              />
+            </label>
+          ))}
+          {(["easy", "medium"] as const).map((tier) => (
+            <label key={`draw-${tier}`} className="stack stack--sm">
+              <span className="label-caps">
+                {tier === "easy" ? t.cfgDrawEasy : t.cfgDrawMedium}
+              </span>
+              <Stepper
+                value={cfg.livecode.draw[tier]}
+                min={0}
+                max={10}
+                label={tier === "easy" ? t.cfgDrawEasy : t.cfgDrawMedium}
+                disabled={lock}
+                lessLabel={t.stepLess}
+                moreLabel={t.stepMore}
+                onChange={(v) => !lock && setLive({ draw: { ...cfg.livecode.draw, [tier]: v } })}
+              />
+            </label>
+          ))}
+          <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgRunLimit}</span>
+            <Stepper
+              value={cfg.livecode.runLimit}
+              min={0}
+              max={100}
+              label={t.cfgRunLimit}
+              fmt={(n) => (n === 0 ? t.cfgRunLimitNone : String(n))}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) => !lock && setLive({ runLimit: v })}
+            />
+          </label>
+          <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgWorkers}</span>
+            <Stepper
+              value={cfg.livecode.workers}
+              min={1}
+              max={16}
+              label={t.cfgWorkers}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) => !lock && setLive({ workers: v })}
+            />
+          </label>
+        </div>
+        <p className="hint r3cfg__sum" role="status" data-ok={scoreOk ? "yes" : "no"}>
+          {t.cfgScoreSum(caps.livecode, handPoints)} {scoreOk ? t.cfgScoreOk : t.cfgScoreOff}
+        </p>
       </section>
       <section className="panel r3cfg__foot">
         <div className="stack" style={{ gap: 2 }}>

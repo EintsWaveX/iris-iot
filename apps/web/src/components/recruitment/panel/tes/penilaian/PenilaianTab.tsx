@@ -21,6 +21,7 @@ import type {
   StatRow,
   VoidResponse,
 } from "../../../../../lib/recruitment/score-api";
+import type { Caps } from "../../../../../lib/recruitment/exam-config";
 import type { Phase1Part } from "../../../../../lib/recruitment/exam-types";
 import { PN } from "./penilaianStrings";
 import Sebaran from "./Sebaran";
@@ -42,11 +43,11 @@ const tglWib = (iso: string, lang: Lang) =>
 
 /* ------------------------------------------------------------------ rows */
 
-type SortKey = "name" | "logika" | "fitb" | "debugging" | "livecode" | "phase1" | "total";
+type SortKey = "name" | "logika" | "fitb" | "kodingan" | "livecode" | "phase1" | "total";
 const nilaiDari = (r: ScoreRow, k: SortKey): number | string =>
   k === "name"
     ? r.nama.toLowerCase()
-    : k === "logika" || k === "fitb"
+    : k === "logika" || k === "fitb" || k === "kodingan"
       ? r.parts[k].score
       : k === "livecode"
         ? (r.livecode ?? -1)
@@ -55,7 +56,7 @@ const nilaiDari = (r: ScoreRow, k: SortKey): number | string =>
 function flagText(lang: Lang, r: ScoreRow): string[] {
   const t = PN[lang];
   const out: string[] = [];
-  (["logika", "fitb", "kodingan", "mikro"] as const).forEach((p) => {
+  (["logika", "fitb", "kodingan"] as const).forEach((p) => {
     const f = r.parts[p].flag;
     if (f) out.push(`${t.part[p]}: ${t.flags[f]}`);
   });
@@ -76,10 +77,12 @@ function Angka({ v, cap, lang }: { v: number | null; cap: number; lang: Lang }) 
 function TabelNilai({
   lang,
   rows,
+  caps,
   rooms,
 }: {
   lang: Lang;
   rows: ScoreRow[];
+  caps: Caps;
   rooms: { id: number; title: string }[];
 }) {
   const t = PN[lang];
@@ -154,7 +157,7 @@ function TabelNilai({
                 {th("name", t.col.name, false)}
                 {th("logika", t.col.logika)}
                 {th("fitb", t.col.fitb)}
-                {th("debugging", t.col.debugging)}
+                {th("kodingan", t.col.debugging)}
                 {th("livecode", t.col.livecode)}
                 {th("phase1", t.col.phase1)}
                 {th("total", t.col.total)}
@@ -173,22 +176,22 @@ function TabelNilai({
                       </span>
                     </td>
                     <td className="num">
-                      <Angka v={r.parts.logika.score} cap={1000} lang={lang} />
+                      <Angka v={r.parts.logika.score} cap={caps.parts.logika} lang={lang} />
                     </td>
                     <td className="num">
-                      <Angka v={r.parts.fitb.score} cap={1000} lang={lang} />
+                      <Angka v={r.parts.fitb.score} cap={caps.parts.fitb} lang={lang} />
                     </td>
                     <td className="num">
-                      <Angka v={r.debugging} cap={1000} lang={lang} />
+                      <Angka v={r.parts.kodingan.score} cap={caps.parts.kodingan} lang={lang} />
                     </td>
                     <td className="num">
-                      <Angka v={r.livecode} cap={1000} lang={lang} />
+                      <Angka v={r.livecode} cap={caps.livecode} lang={lang} />
                     </td>
                     <td className="num">
-                      <Angka v={r.phase1} cap={3000} lang={lang} />
+                      <Angka v={r.phase1} cap={caps.written} lang={lang} />
                     </td>
                     <td className="num">
-                      <Angka v={r.total} cap={4000} lang={lang} />
+                      <Angka v={r.total} cap={caps.total} lang={lang} />
                     </td>
                   </tr>
                 );
@@ -245,7 +248,7 @@ function TabelSoal({
     <div className="stack">
       <p className="hint">{t.statsLede}</p>
       <div className="r3chips" role="group" aria-label={t.scol.q}>
-        {(["semua", "logika", "fitb", "kodingan", "mikro"] as const).map((p) => (
+        {(["semua", "logika", "fitb", "kodingan"] as const).map((p) => (
           <Pill key={p} pressed={part === p} onClick={() => setPart(p)}>
             {p === "semua" ? t.allParts : t.part[p]}
           </Pill>
@@ -425,7 +428,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
         <TabLine tabs={tabs} value={aktif} onChange={setBagian} label={t.tabs.aria} />
       )}
       {aktif === "scores" ? (
-        <TabelNilai lang={lang} rows={d.rows} rooms={d.rooms} />
+        <TabelNilai lang={lang} rows={d.rows} caps={d.caps} rooms={d.rooms} />
       ) : aktif === "stats" && st.data ? (
         <TabelSoal
           lang={lang}
@@ -437,7 +440,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
           }}
         />
       ) : aktif === "spread" ? (
-        <Sebaran lang={lang} rows={d.rows} />
+        <Sebaran lang={lang} rows={d.rows} caps={d.caps} />
       ) : (
         <span className="skeleton" style={{ height: 240 }} />
       )}

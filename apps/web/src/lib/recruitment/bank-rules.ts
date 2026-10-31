@@ -31,7 +31,7 @@ export const MAX_PROMPT = 20_000;
 export const MAX_CODE = 20_000;
 export const MAX_ITEM = 2_000;
 export const MAX_TITLE = 200;
-const CODE_LANGS: readonly string[] = ["cpp", "py", "text"];
+const CODE_LANGS: readonly string[] = ["c", "text"];
 
 const isObj = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -255,7 +255,6 @@ export interface QuestionState {
   status: "draft" | "ready";
   body: Question["body"];
   answer: Question["answer"];
-  refs: number[];
 }
 
 export interface StoredState extends QuestionState {
@@ -287,17 +286,10 @@ const asQ = (s: QuestionState): Question =>
     answer: s.answer,
   }) as Question;
 
-/**
- * The languages a question of each part may have: the ones its config counts,
- * and when the part counts `any` (Mikro by default) a question may be cpp, py
- * or any, since `any` pools them all (EXAM-ENGINE 2, 08's call 5).
- */
-export function langsOf(config: ExamConfig): Record<Phase1Part, Lang[]> {
+/** The languages a question of each part may have: only C (the test is formal C since 29 Oct 2026). */
+export function langsOf(_config: ExamConfig): Record<Phase1Part, Lang[]> {
   const out = {} as Record<Phase1Part, Lang[]>;
-  for (const p of PHASE1_PARTS) {
-    const l = Object.keys(config.parts[p].counts) as Lang[];
-    out[p] = l.includes("any") ? ["any", "cpp", "py"] : l;
-  }
+  for (const p of PHASE1_PARTS) out[p] = ["c"];
   return out;
 }
 
@@ -325,8 +317,7 @@ export function judgeSave(old: StoredState | null, next: QuestionState, c: Judge
     old.part === next.part &&
     old.lang === next.lang &&
     old.format === next.format &&
-    old.title === next.title &&
-    canon([...old.refs].sort()) === canon([...next.refs].sort());
+    old.title === next.title;
   if (sameBody && sameKey && sameRest && old.status === next.status)
     return { ok: true, kind: "same" };
   if (c.roomRunning && (old.status === "ready" || next.status === "ready"))
@@ -364,22 +355,20 @@ export interface PoolCount {
   missing: number;
 }
 
-/** "12 dari 20 siap" per part and language, as the config counts them. */
+/** "12 dari 20 siap" per part, as the config counts them (one C entry each). */
 export function poolCounts(
   rows: readonly PoolRow[],
   config: ExamConfig,
 ): Record<Phase1Part, PoolCount[]> {
   const out = {} as Record<Phase1Part, PoolCount[]>;
   for (const part of PHASE1_PARTS) {
-    out[part] = (
-      Object.entries(config.parts[part].counts) as [Lang, { shown: number; pool: number }][]
-    ).map(([lang, cnt]) => {
-      // `any` pools every language of the part, like the room's own check.
-      const mine = rows.filter((r) => r.part === part && (lang === "any" || r.lang === lang));
-      const live = mine.filter((r) => !r.voided);
-      const ready = live.filter((r) => r.status === "ready").length;
-      return {
-        lang,
+    const cnt = config.parts[part];
+    const mine = rows.filter((r) => r.part === part);
+    const live = mine.filter((r) => !r.voided);
+    const ready = live.filter((r) => r.status === "ready").length;
+    out[part] = [
+      {
+        lang: "c",
         ready,
         draft: live.filter((r) => r.status === "draft").length,
         seed: live.filter((r) => r.status === "ready" && r.sample).length,
@@ -387,8 +376,8 @@ export function poolCounts(
         shown: cnt.shown,
         pool: cnt.pool,
         missing: Math.max(0, cnt.shown - ready),
-      };
-    });
+      },
+    ];
   }
   return out;
 }

@@ -14,7 +14,6 @@ import { useEffect, useMemo, useState } from "react";
 import { NotePencilIcon } from "@phosphor-icons/react";
 import Dialog from "../../../../ui/Dialog";
 import Drawer from "../../../../ui/Drawer";
-import Dropdown from "../../../../ui/Dropdown";
 import HoldButton from "../../../../ui/HoldButton";
 import Pill from "../../../../ui/Pill";
 import type { Lang } from "../../../../../lib/kelas";
@@ -30,10 +29,8 @@ import {
   type Tile,
 } from "../../../../../lib/recruitment/kejadian";
 import {
-  REROLL_REASONS,
   type ConsoleSeat,
   type ConsoleView,
-  type RerollReason,
   type RoomLogLine,
 } from "../../../../../lib/recruitment/room-api";
 import type { Hadir, Kemajuan, StatusLangsung } from "../../../../../lib/recruitment/room-client";
@@ -832,13 +829,10 @@ function SeatDrawer({
   const sisa = run && s.seatId !== null ? seatLeft(run, s.seatId, now) : null;
   const mine = v.notes.find((n) => n.candidateId === s.candidateId && n.mine);
   const [catatan, setCatatan] = useState(mine?.text ?? "");
-  const [alasan, setAlasan] = useState<RerollReason>("kit_rusak");
   const lain = v.notes.filter((n) => n.candidateId === s.candidateId && !n.mine);
   const rv = roomView(v.state, now).view;
   const bisaWaktu =
     v.me.isMaster && s.seatId !== null && rv !== "setup" && rv !== "persiapan" && rv !== "finished";
-  const bisaUndi =
-    v.me.isMaster && s.seatId !== null && (rv === "livecode-spin" || rv === "livecode-running");
 
   async function waktu(m: number) {
     if (s.seatId === null) return;
@@ -853,20 +847,6 @@ function SeatDrawer({
     else toast(d.gave(depan(s.nama), m));
     await jalan("room", {});
   }
-  async function undi(what: "topic" | "protocol") {
-    if (s.seatId === null) return;
-    const r = await recPost<{ ok: true }>("room-act", {
-      id: v.room.id,
-      seq: v.state.seq,
-      act: "reroll",
-      seatId: s.seatId,
-      what,
-      reason: alasan,
-    });
-    if (isFail(r)) toast(t.guard[r.kode] ?? t.fail, "danger");
-    else toast(d.redrawDone);
-    await jalan("room", {});
-  }
   async function simpan() {
     const r = await recPost<{ ok: true }>("room-note", {
       id: v.room.id,
@@ -878,6 +858,24 @@ function SeatDrawer({
     await jalan("room", {});
   }
   void k;
+
+  const g = d.sign;
+  const [alasan, setAlasan] = useState("");
+  const bisaMasuk = v.me.isPengawas || v.me.canSetup;
+  async function masukkan(batal: boolean) {
+    if (v.room.eventId === null) return;
+    const r = await recPost<{ ok: true }>("attend-manual", {
+      id: s.candidateId,
+      event: v.room.eventId,
+      ...(batal ? { undo: true } : { reason: alasan.trim() }),
+    });
+    if (isFail(r)) toast(r.kode === "jendela_tutup" ? g.closed : g.fail, "danger");
+    else {
+      toast(batal ? g.undone : g.marked(depan(s.nama)));
+      setAlasan("");
+    }
+    await jalan("room", {});
+  }
 
   return (
     <Drawer
@@ -914,6 +912,54 @@ function SeatDrawer({
                 : RG[lang].con.grid.online}
           </b>
         </div>
+        {bisaMasuk && (
+          <section className="stack stack--sm">
+            <h3 className="label-caps">{g.title}</h3>
+            {v.room.eventId === null ? (
+              <span className="hint">{g.noEvent}</span>
+            ) : s.present ? (
+              <div className="row" style={{ justifyContent: "space-between", gap: 12 }}>
+                <span className="stack" style={{ gap: 0 }}>
+                  <b>{g.done}</b>
+                  <span className="hint">
+                    {s.present.via === "qr" ? g.viaQr : g.viaManual(s.present.by)}
+                    {s.present.reason ? ` · ${s.present.reason}` : ""}
+                  </span>
+                </span>
+                {s.present.via === "manual" && (
+                  <button
+                    type="button"
+                    className="btn btn--inverse btn--sm"
+                    onClick={() => void masukkan(true)}
+                  >
+                    {g.undo}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <span className="hint">{g.none}</span>
+                <div className="row" style={{ gap: 8 }}>
+                  <input
+                    className="field__input"
+                    style={{ flex: 1, minWidth: 0 }}
+                    maxLength={60}
+                    placeholder={g.reasonPh}
+                    value={alasan}
+                    onChange={(e) => setAlasan(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    onClick={() => void masukkan(false)}
+                  >
+                    {g.button}
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
         <section className="stack stack--sm">
           <h3 className="label-caps">{d.events}</h3>
           {s.kejadian.length ? (
@@ -945,35 +991,6 @@ function SeatDrawer({
               ))}
             </div>
             <span className="hint">{d.timeHint}</span>
-          </section>
-        )}
-        {bisaUndi && (
-          <section className="stack stack--sm">
-            <h3 className="label-caps">{d.redraw}</h3>
-            <Dropdown
-              id={`r3-alasan-${s.candidateId}`}
-              label={d.redrawAsk}
-              value={alasan}
-              onChange={(x) => setAlasan(x as RerollReason)}
-              options={REROLL_REASONS.map((r) => ({ value: r, label: d.reasons[r] }))}
-            />
-            <div className="row">
-              <button
-                type="button"
-                className="btn btn--inverse btn--sm"
-                onClick={() => void undi("topic")}
-              >
-                {d.redrawTopic}
-              </button>
-              <button
-                type="button"
-                className="btn btn--inverse btn--sm"
-                onClick={() => void undi("protocol")}
-              >
-                {d.redrawProto}
-              </button>
-            </div>
-            <span className="hint">{d.redrawHint}</span>
           </section>
         )}
         <section className="stack stack--sm">
@@ -1149,68 +1166,6 @@ function Feed({ lang, v, log }: { lang: Lang; v: ConsoleView; log: RoomLogLine[]
   );
 }
 
-/* --------------------------------------------------- boards by hotspot */
-
-function PapanPerHotspot({ lang, v }: { lang: Lang; v: ConsoleView }) {
-  const t = RG[lang].hs;
-  const p = v.plan;
-  if (!p.wifi) return null;
-  const seatOf = (id: number) => v.seats.find((s) => s.seatId === id);
-  const kartu = (h: ConsoleView["hotspots"][number]) => {
-    const g = p.groups[h.id];
-    const papan = p.assignments.filter((a) => a.hotspot === h.id);
-    const punya = typeof h.owner === "object";
-    const sk = punya ? seatOf((h.owner as { seat: number }).seat) : null;
-    return (
-      <section key={h.id} className="panel r3hg" data-own={punya ? "yes" : "no"}>
-        <div className="panel__head">
-          <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-            <h3 className="panel__title r3hg__t">{h.ssid}</h3>
-            <span className="hint">
-              {sk ? t.seatOf(sk.no, depan(sk.nama)) : `${t.fallback}: ${String(h.owner)}`} ·{" "}
-              {t.group(papan.length, g?.cap ?? h.cap)}
-            </span>
-          </div>
-        </div>
-        <ul className="r3hg__list">
-          {papan.map((a) => {
-            const s = seatOf(a.seatId);
-            return (
-              <li key={`${a.seatId}-${a.n}`} data-on="yes">
-                <span className="r3dot" data-on="yes" />
-                <b className="num">
-                  {s?.no ?? a.seatId}·{a.n}
-                </b>
-                <span className="r3hg__n">{s ? depan(s.nama) : ""}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    );
-  };
-  const punya = v.hotspots.filter((h) => typeof h.owner === "object");
-  const cadangan = v.hotspots.filter((h) => typeof h.owner !== "object");
-  return (
-    <div className="stack stack--lg">
-      <div className="row row--between r3hg__sum">
-        <span className="eyebrow">{t.byGroup}</span>
-        <Pill tone={p.short ? "danger" : "ok"}>{t.need(p.need, p.have)}</Pill>
-      </div>
-      {punya.length > 0 && (
-        <div className="stack stack--sm">
-          <span className="label-caps">{t.cand}</span>
-          <div className="r3hgroups r3hgroups--own">{punya.map(kartu)}</div>
-        </div>
-      )}
-      <div className="stack stack--sm">
-        <span className="label-caps">{t.fallback}</span>
-        <div className="r3hgroups">{cadangan.map(kartu)}</div>
-      </div>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------- Finished */
 
 function Selesai({ lang, v, now }: { lang: Lang; v: ConsoleView; now: number }) {
@@ -1305,7 +1260,6 @@ export default function Konsol({
             />
             <Feed lang={lang} v={v} log={log} />
           </div>
-          <PapanPerHotspot lang={lang} v={v} />
         </>
       )}
     </div>

@@ -7,14 +7,13 @@
  */
 import { useRef, useState } from "react";
 import { FilePdfIcon } from "@phosphor-icons/react";
-import Drawer from "../../ui/Drawer";
+import Dialog from "../../ui/Dialog";
 import { tanggalPanjang } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import { kirimBerkas } from "../../../lib/recruitment/upload";
 import {
-  DOC_REQUIRED,
   type CandidateSelf,
   type DocKind,
   type DocumentResponse,
@@ -24,6 +23,7 @@ import { DF, CP } from "./candidateStrings";
 
 const kb = (n: number) => `${Math.max(1, Math.round(n / 1024))} KB`;
 
+import { useDocRules } from "../../../lib/recruitment/doc-rules";
 export default function DocsDrawer({
   lang,
   open,
@@ -42,6 +42,7 @@ export default function DocsDrawer({
   onChanged: () => void;
 }) {
   const t = CP[lang].docs;
+  const rules = useDocRules();
   const d = DF[lang].slot;
   const fix = candidate.status === "revision";
   const [busy, setBusy] = useState<DocKind | null>(null);
@@ -54,7 +55,7 @@ export default function DocsDrawer({
     setBusy(kind);
     setPersen(0);
     setGalat(null);
-    const r = await kirimBerkas(kind, f, setPersen);
+    const r = await kirimBerkas(kind, f, setPersen, undefined, undefined, rules.maxBytes(kind));
     if (!r.ok) {
       const msg =
         r.kode === "bukan_pdf"
@@ -95,14 +96,13 @@ export default function DocsDrawer({
   };
 
   return (
-    <Drawer
+    <Dialog
       open={open}
       onOpenChange={onOpenChange}
       title={t.drawerTitle}
       description={fix ? t.drawerSubFix : canReplace ? t.drawerSub : t.drawerSubLocked}
-      storeKey="rec-docs"
-      closeLabel={t.closeLabel}
-      resizeLabel={t.resizeLabel}
+      size="lg"
+      lang={lang}
     >
       <div className="stack">
         <input
@@ -124,7 +124,7 @@ export default function DocsDrawer({
             <span>{candidate.reviewNote ?? CP[lang].revision.noNote}</span>
           </div>
         )}
-        {DOC_REQUIRED.map((kind) => {
+        {rules.required.map((kind) => {
           const doc = documents.find((x) => x.kind === kind);
           return (
             <div key={kind} className="rec-doc">
@@ -132,7 +132,7 @@ export default function DocsDrawer({
                 <FilePdfIcon size={20} />
               </span>
               <span className="stack" style={{ gap: 0, minWidth: 0, flex: 1 }}>
-                <b>{t.kind[kind]}</b>
+                <b>{rules.label(kind, lang, t.kind[kind])}</b>
                 <span className="hint rec-doc__f">
                   {busy === kind
                     ? `${t.uploading} ${persen}%`
@@ -173,6 +173,6 @@ export default function DocsDrawer({
           );
         })}
       </div>
-    </Drawer>
+    </Dialog>
   );
 }

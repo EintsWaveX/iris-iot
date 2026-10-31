@@ -34,9 +34,12 @@ export type UploadResult =
 const PDF_AWAL = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
 
 /** The quick local check; null when the file may go. */
-export async function periksaLokal(file: File): Promise<UploadFail | null> {
+export async function periksaLokal(
+  file: File,
+  batas: number = DOC_MAX_BYTES,
+): Promise<UploadFail | null> {
   if (file.size < 8) return "kosong";
-  if (file.size > DOC_MAX_BYTES) return "terlalu_besar";
+  if (file.size > batas) return "terlalu_besar";
   const awal = new Uint8Array(await file.slice(0, PDF_AWAL.length).arrayBuffer());
   return PDF_AWAL.every((c, i) => awal[i] === c) ? null : "bukan_pdf";
 }
@@ -69,9 +72,10 @@ export async function kirimBerkas(
   onPersen: (p: number) => void,
   signal?: AbortSignal,
   untuk?: number,
+  batas?: number,
 ): Promise<UploadResult> {
   try {
-    const salah = await periksaLokal(file);
+    const salah = await periksaLokal(file, batas);
     if (salah) return { ok: false, kode: salah };
     const bytes = new Uint8Array(await file.arrayBuffer());
     const sha256 = await sha256Hex(bytes);

@@ -1,20 +1,20 @@
 ---
 part: logika
-lang: cpp
+lang: c
 format: single
-title: Jumlah bilangan ganjil
+title: Jumlah Bilangan Ganjil
 sample: true
 status: ready
 ---
-Berapa angka yang tercetak di Serial Monitor?
+Berapa output program ini?
 
-```cpp
-int nilai = 7;
+```c
+int n = 7;
 int hasil = 0;
-for (int i = 1; i <= nilai; i += 2) {
+for (int i = 1; i <= n; i += 2) {
   hasil += i;
 }
-Serial.println(hasil);
+printf("%d\n", hasil);
 ```
 
 - [ ] 12
@@ -24,345 +24,158 @@ Serial.println(hasil);
 
 ---
 part: logika
-lang: py
-format: single
-title: Suhu di atas 30
+lang: c
+format: multi
+title: Operator dan Tipe Data
 sample: true
 status: ready
 ---
-Apa keluaran program ini?
+Pilih semua pernyataan yang benar setelah kode ini jalan.
 
-```py
-suhu = [31, 28, 35, 29, 33]
-panas = [t for t in suhu if t > 30]
-print(len(panas), max(panas))
+```c
+int a = 7;
+int b = 2;
+float c = a / b;
+float d = a / 2.0;
+int e = a % b;
 ```
 
-- [x] `3 35`
-- [ ] `2 35`
-- [ ] `3 33`
-- [ ] `5 35`
+- [x] `c` bernilai 3.0
+- [x] `d` bernilai 3.5
+- [x] `e` bernilai 1
+- [ ] `c` bernilai 3.5
+- [ ] `a / b` dihitung sebagai bilangan desimal
 
 ---
 part: logika
-lang: cpp
-format: multi
-title: uint8_t meluap
+lang: c
+format: order
+title: Jumlah Array
 sample: true
 status: ready
+also: [[1, 2, 4, 3, 5, 6, 7, 8, 9, 10]]
 ---
-Pilih semua pernyataan yang benar tentang potongan ini.
+Susun baris berikut jadi program yang mencetak jumlah semua isi array.
 
-```cpp
-uint8_t a = 200;
-uint8_t b = 100;
-uint8_t c = a + b;
-int d = a + b;
-```
-
-- [x] `c` bernilai 44
-- [x] `d` bernilai 300
-- [ ] `c` bernilai 300
-- [x] `a + b` dihitung sebagai `int` sebelum disimpan
-- [ ] Kompilasi gagal karena tipe datanya beda
-
----
-part: logika
-lang: py
-format: multi
-title: setdefault pada dict
-sample: true
-status: ready
----
-Setelah kode ini jalan, pernyataan mana saja yang benar?
-
-```py
-data = {"suhu": 30, "lembap": 70}
-data["suhu"] += 2
-data.setdefault("lembap", 0)
-data.setdefault("cahaya", 512)
-```
-
-- [x] `data["suhu"]` bernilai 32
-- [ ] `data["lembap"]` bernilai 0
-- [x] `data` sekarang punya 3 kunci
-- [x] `data["cahaya"]` bernilai 512
-- [ ] `len(data)` bernilai 2
-
----
-part: kodingan
-lang: cpp
-format: lines
-title: LED dan tombol pull-up
-sample: true
-status: ready
-bugs: [6, 11]
----
-Sketsa ini harus menyalakan LED selama tombol (INPUT_PULLUP) ditekan. Klik baris yang salah.
-
-```cpp
-const int TOMBOL = 4;
-const int LED = 2;
-
-void setup() {
-  pinMode(TOMBOL, INPUT_PULLUP);
-  pinMode(LED, INPUT);
-}
-
-void loop() {
-  int baca = digitalRead(TOMBOL);
-  if (baca = LOW) {
-    digitalWrite(LED, HIGH);
-  } else {
-    digitalWrite(LED, LOW);
+```c
+#include <stdio.h>
+int main(void) {
+  int a[4] = {5, 8, 2, 9};
+  int jumlah = 0;
+  for (int i = 0; i < 4; i++) {
+    jumlah += a[i];
   }
-}
-```
-
----
-part: kodingan
-lang: py
-format: lines
-title: Nilai tertinggi
-sample: true
-status: ready
-bugs: [2, 4]
----
-Fungsi ini harus mengembalikan bacaan tertinggi, termasuk saat semua bacaan negatif. Klik baris yang salah.
-
-```py
-def tertinggi(bacaan):
-    maks = 0
-    for i in range(len(bacaan)):
-        if i > maks:
-            maks = bacaan[i]
-    return maks
-```
-
----
-part: kodingan
-lang: cpp
-format: fix
-title: DHT ke JSON
-sample: true
-status: ready
----
-Sketsa ini membaca suhu DHT11 tiap 2 detik lalu mengirimnya sebagai JSON. Pilih isi yang benar untuk tiap baris yang ditandai.
-
-```cpp
-#include <DHT.h>
-DHT dht(15, DHT11);
-unsigned long terakhir = 0;
-
-void setup() {
-  Serial.begin(115200);
-}
-
-void loop() {
-  if (millis() - terakhir < 2000) return;
-  terakhir = millis();
-  float t = dht.readTemperature();
-  if (t == NAN) return;
-  Serial.printf("{\"suhu\":%d}\n", t);
-}
-```
-
-### Baris 6
-- [ ] `  Serial.begin(115200);`
-- [x] `  Serial.begin(115200); dht.begin();`
-- [ ] `  dht.begin(115200);`
-
-### Baris 10
-- [x] `  if (millis() - terakhir < 2000) return;`
-- [ ] `  if (millis() - terakhir > 2000) return;`
-- [ ] `  if (millis() < 2000) return;`
-
-### Baris 13
-- [ ] `  if (t == NAN) return;`
-- [x] `  if (isnan(t)) return;`
-- [ ] `  if (t == 0) return;`
-
-### Baris 14
-- [ ] `  Serial.printf("{\"suhu\":%d}\n", t);`
-- [x] `  Serial.printf("{\"suhu\":%.1f}\n", t);`
-- [ ] `  Serial.printf("{\"suhu\":%s}\n", t);`
-
----
-part: kodingan
-lang: py
-format: fix
-title: Tiga bacaan per detik
-sample: true
-status: ready
----
-Program ini harus mencetak tiga bacaan dengan jeda 1 detik. Pilih isi yang benar untuk tiap baris yang ditandai.
-
-```py
-import time
-
-def baca_sensor():
-    return 25.0
-
-hitung = 0
-while hitung < 3:
-    nilai = baca_sensor()
-    print("Bacaan", hitung, ":", nilai)
-    time.sleep(1000)
-    hitung =+ 1
-```
-
-### Baris 7
-- [x] `while hitung < 3:`
-- [ ] `while hitung <= 3:`
-- [ ] `while hitung > 3:`
-
-### Baris 10
-- [ ] `    time.sleep(1000)`
-- [x] `    time.sleep(1)`
-- [ ] `    time.delay(1)`
-
-### Baris 11
-- [ ] `    hitung =+ 1`
-- [x] `    hitung += 1`
-- [ ] `    hitung + 1`
-
----
-part: logika
-lang: cpp
-format: order
-title: Kirim potensiometer
-sample: true
-status: ready
-also: [[1, 5, 6, 7, 8, 9, 2, 3, 4]]
----
-Susun baris berikut menjadi sketsa yang mengirim nilai potensiometer lewat Serial setiap 1 detik.
-
-```cpp
-const int POT = 34;
-void setup() {
-  Serial.begin(115200);
-}
-void loop() {
-  int nilai = analogRead(POT);
-  Serial.println(nilai);
-  delay(1000);
+  printf("%d\n", jumlah);
+  return 0;
 }
 ```
 
 ---
 part: logika
-lang: py
-format: order
-title: Rata-rata bergerak
-sample: true
-status: ready
----
-Susun fungsi yang menghitung rata-rata bergerak dari tiap tiga bacaan berurutan.
-
-```py
-def rata_bergerak(data):
-    hasil = []
-    for i in range(2, len(data)):
-        jendela = data[i - 2:i + 1]
-        hasil.append(sum(jendela) / 3)
-    return hasil
-```
-
----
-part: mikro
-lang: cpp
+lang: c
 format: match
-title: Gejala dan penyebab
+title: Ekspresi dan Hasil
 sample: true
 status: ready
 ---
-Pasangkan tiap gejala pada rangkaian ESP32 dengan penyebab yang paling mungkin.
-
-| Gejala | Penyebab |
-|---|---|
-| LED tidak pernah menyala walau kodenya benar | Kaki LED terbalik |
-| Bacaan tombol naik turun sendiri saat tidak ditekan | Pin tombol mengambang tanpa pull-up atau pull-down |
-| `analogRead` selalu 4095 | Pin analog tersambung langsung ke 3V3 |
-| DHT selalu memberi NaN | Kabel data DHT masuk ke pin yang beda dengan di kode |
-| ESP32 restart saat servo bergerak | Catu daya tidak cukup (brownout) |
-|  | Baud rate Serial Monitor beda dengan `Serial.begin` |
-
----
-part: logika
-lang: py
-format: match
-title: Metode string
-sample: true
-status: ready
----
-Pasangkan tiap ekspresi Python dengan hasilnya.
+Pasangkan tiap ekspresi C dengan hasilnya.
 
 | Ekspresi | Hasil |
 |---|---|
-| `"iris-iot".upper()` | `'IRIS-IOT'` |
-| `"a,b,c".split(",")` | `['a', 'b', 'c']` |
-| `" 25 ".strip()` | `'25'` |
-| `"suhu".replace("u", "o")` | `'soho'` |
-| `"3" * 3` | `'333'` |
-|  | `9` |
+| `7 / 2` | `3` |
+| `10 % 4` | `2` |
+| `7 / 2.0` | `3.5` |
+| `1 << 3` | `8` |
+| `5 & 3` | `1` |
+|  | `0` |
 
 ---
 part: fitb
-lang: cpp
+lang: c
 format: fitb
-title: Kedip tanpa delay
+title: Jumlah Elemen Array
 sample: true
 status: ready
 blanks:
-  1: { accept: ["OUTPUT"] }
-  2: { accept: ["millis()"], space: none }
-  3: { accept: ["LOW", "0"] }
+  1: { accept: ["a[0]", "int"], space: none }
+  2: { accept: ["n", "5"] }
+  3: { accept: ["jumlah"] }
 ---
-Lengkapi sketsa yang mengedipkan LED tiap 500 ms tanpa `delay()`.
+Lengkapi program yang menjumlahkan semua isi array. Baris terakhir mencetak `45`.
 
-```cpp
-const int LED = 2;
-unsigned long terakhir = 0;
-bool nyala = false;
+```c
+#include <stdio.h>
 
-void setup() {
-  pinMode(LED, __(1)__);
-}
-
-void loop() {
-  if (millis() - terakhir >= 500) {
-    terakhir = __(2)__;
-    nyala = !nyala;
-    digitalWrite(LED, nyala ? HIGH : __(3)__);
+int main(void) {
+  int a[5] = {3, 6, 9, 12, 15};
+  int n = sizeof(a) / sizeof(__(1)__);
+  int jumlah = 0;
+  for (int i = 0; i < __(2)__; i++) {
+    jumlah += a[i];
   }
+  printf("%d\n", __(3)__);
+  return 0;
 }
 ```
 
 ---
-part: fitb
-lang: py
-format: fitb
-title: Kemas dan buka JSON
+part: kodingan
+lang: c
+format: lines
+title: Rata-rata Array
 sample: true
 status: ready
-blanks:
-  1: { accept: ["dumps"] }
-  2: { accept: ["loads"] }
-  3: { accept: ["str"] }
+bugs: [4, 5]
 ---
-Lengkapi program yang mengemas bacaan menjadi teks JSON lalu membukanya lagi. Baris terakhir mencetak `True`.
+Fungsi ini harus mengembalikan rata-rata bulat dari `n` angka di array. Klik baris yang salah.
 
-```py
-import json
+```c
+#include <stdio.h>
 
-def kemas(suhu, lembap):
-    data = {"suhu": suhu, "lembap": lembap}
-    return json.__(1)__(data)
-
-def buka(pesan):
-    data = json.__(2)__(pesan)
-    return data["suhu"]
-
-print(buka(kemas(29.5, 61)))
-print(type(kemas(1, 2)) is __(3)__)
+int rata(int a[], int n) {
+  int jumlah;
+  for (int i = 0; i <= n; i++) {
+    jumlah += a[i];
+  }
+  return jumlah / n;
+}
 ```
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Cetak Array Terbalik
+sample: true
+status: ready
+---
+Program ini harus mencetak isi array dari belakang ke depan (`6 9 2 8 5`). Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a[5] = {5, 8, 2, 9, 6};
+  int n = sizeof(a);
+  for (int i = 0; i < n; i++) {
+    printf("%d ", i);
+  }
+  printf("\n");
+  return 0;
+}
+```
+
+### Baris 5
+- [ ] `  int n = sizeof(a);`
+- [x] `  int n = sizeof(a) / sizeof(a[0]);`
+- [ ] `  int n = sizeof(a[0]);`
+
+### Baris 6
+- [ ] `  for (int i = 0; i < n; i++) {`
+- [x] `  for (int i = n - 1; i >= 0; i--) {`
+- [ ] `  for (int i = n; i >= 0; i--) {`
+
+### Baris 7
+- [ ] `    printf("%d ", i);`
+- [x] `    printf("%d ", a[i]);`
+- [ ] `    printf("%d ", a[n - i]);`

@@ -56,7 +56,9 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
   // Mode TOT: a Praktikan on the wrong side of the switch is signed out
   // here, and the page's identity check says why (IdentityWatch).
   const tolakTot =
-    session.role === "praktikan" ? await alasanTolakTot(session.nim, session.exp, session.sesiId) : null;
+    session.role === "praktikan"
+      ? await alasanTolakTot(session.nim, session.exp, session.sesiId)
+      : null;
   if (tolakTot) {
     res.setHeader("Set-Cookie", clearSessionCookieHeader());
     res.status(200).json({ ok: false, kode: tolakTot });

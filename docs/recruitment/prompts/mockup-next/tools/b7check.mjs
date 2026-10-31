@@ -1,0 +1,76 @@
+/* B7.0 check: load the redrawn mockup, open the five Tes Tulis screens in every
+   state, print page errors and any leftover IoT words, and take screenshots. */
+import { open } from "./lib8.mjs";
+
+const OUTDIR = "C:/Users/EINTSW~1/AppData/Local/Temp/claude/C--Users-EintsWaveX-Documents-WebApps-iris-iot/e5380353-49a2-4494-b02c-1a3f5856d7f0/scratchpad/b7";
+const IOT = /mikro|esp32|mqtt|hotspot|bluetooth|serial monitor|kit lc|\bkit\b|papan 1|protokol|arduino/i;
+/* plain-copy rule (29 Oct 2026): everyday words, tech terms in English. These stiff words must not come back. */
+/* the Referensi feature was dropped on 29 Oct 2026 (button, dialog, reader, per-question references) */
+const DROPPED = /referensi|References/;
+const STIFF = /\blarik\b|\btautan\b|\bunduh\b|\bunggah\b|\bpindai\b|\bgalat\b|\bantrean\b|\bkeluaran\b|\bsolusi acuan\b|\bpratinjau\b|\bpenilai kode\b|\bnarahubung\b|\bkata sandi\b|penelusuran kode/i;
+const W = Number(process.env.W || 1440), H = Number(process.env.H || 900);
+const o = await open({ W, H, noDef: false, wait: 700 });
+import fs from "node:fs";
+fs.mkdirSync(OUTDIR, { recursive: true });
+const bad = [];
+const shotTo = (n) => o.p.screenshot({ path: `${OUTDIR}/${n}-${W}.png` });
+
+const cases = [
+  ["r3-putar", { r3Spin: "siap" }], ["r3-putar", { r3Spin: "keluar" }], ["r3-putar", { r3Spin: "tugas" }], ["r3-putar", { r3Spin: "auto" }], ["r3-putar", { r3Spin: "ulang" }],
+  ["r3-lc", { r3Run: "salah" }], ["r3-lc", { r3Run: "kosong" }], ["r3-lc", { r3Run: "contoh" }], ["r3-lc", { r3Run: "antre" }], ["r3-lc", { r3Run: "jalan" }], ["r3-lc", { r3Run: "benar" }], ["r3-lc", { r3Run: "gagal" }], ["r3-lc", { r3Run: "lama" }], ["r3-lc", { r3Run: "mati" }],
+  ["r3-soal", {}], ["r3-checkin", {}],
+  ["n7-malam", { n7Malam: "persiapan" }], ["n7-malam", { n7Malam: "persiapan", n7Atur: "juri" }], ["n7-malam", { n7Malam: "berjalan", n7Kursi: "buka" }], ["n7-malam", { n7Malam: "berjalan", n7Ruang: "spin" }], ["n7-malam", { n7Malam: "berjalan", r3Lp: "siap" }], ["n7-malam", { n7Malam: "selesai" }],
+  ["n7-bank", { r3Bank: "daftar" }], ["n7-bank", { r3Bank: "konfig" }], ["n7-bank", { r3Bank: "lc" }],
+  /* every question format and exam state: a stale seed answer once crashed "fix" and froze the page */
+  ...["single", "multi", "lines", "fix", "order", "match", "fitb", "batal"].map((f) => ["r3-soal", { r3Fmt: f }]),
+  ...["kumpulkan", "habis", "jeda", "layar", "ganda", "putus", "selesai", "belum", "susulan"].map((s) => ["r3-keadaan", { r3State: s }]),
+];
+for (const [screen, v] of cases) {
+  const tag = screen + "_" + Object.values(v).join("_");
+  o.errs.length = 0;
+  try {
+    await o.go(screen, v);
+  } catch (e) {
+    bad.push(`${tag}: go failed ${e.message.slice(0, 120)}`);
+    continue;
+  }
+  const t = await o.all();
+  const hits = [...new Set((t.match(new RegExp(IOT, "gi")) || []).map((s) => s.toLowerCase()))];
+  if (o.errs.length) bad.push(`${tag}: ${o.errs.slice(0, 2).join(" | ")}`);
+  if (hits.length) bad.push(`${tag}: words ${hits.join(", ")}`);
+  const stiff = [...new Set((t.match(new RegExp(STIFF, "gi")) || []).map((x) => x.toLowerCase()))];
+  if (DROPPED.test(t)) bad.push(`${tag}: the dropped Referensi feature shows again`);
+  if (stiff.length) bad.push(`${tag}: stiff words ${stiff.join(", ")}`);
+  if (!/Tes Tulis|Live Coding|Bank Soal|Soal|Undian|Masuk|Ruang/.test(t)) bad.push(`${tag}: looks empty`);
+  await shotTo(tag);
+}
+
+/* the flows */
+const flows = [];
+await o.go("n7-malam", { n7Malam: "persiapan" });
+flows.push(["juri row opens", await o.click("C Judge", "button")]);
+flows.push(["cek penilai", await o.click("Cek Judge", "button")]);
+await o.go("n7-malam", { n7Malam: "persiapan", n7Kursi: "buka" });
+flows.push(["manual button", await o.has("Masukkan Manual")]);
+flows.push(["manual click", await o.click("Masukkan Manual", "button")]);
+flows.push(["manual confirm", await o.click("^Masukkan$", "button")]);
+await shotTo("flow-manual");
+await o.go("r3-lc", { r3Run: "salah" });
+flows.push(["kirim", await o.click("^Submit$", "button")]);
+await o.p.waitForTimeout(9000);
+flows.push(["result after kirim", await o.has("test lolos")]);
+await shotTo("flow-kirim");
+await o.go("r3-putar", { r3Spin: "siap" });
+flows.push(["putar", await o.click("Putar Undianku", "button")]);
+await o.p.waitForTimeout(3200);
+flows.push(["see problems", await o.click("Lihat Soalmu", "button")]);
+flows.push(["problems listed", await o.has("Tertinggi dan Terendah")]);
+await o.go("n7-bank", { r3Bank: "lc" });
+flows.push(["bank check", await o.click("^Cek dengan Reference Solution$", "button")]);
+await o.p.waitForTimeout(1300);
+flows.push(["bank ok", await o.has("cocok dengan reference solution")]);
+await shotTo("flow-bank");
+
+console.log("flows:", flows.map(([n, r]) => `${r ? "ok " : "FAIL "}${n}`).join("; "));
+console.log("problems:", bad.length ? "\n" + bad.join("\n") : "none");
+await o.b.close();

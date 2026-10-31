@@ -17,7 +17,7 @@ import TabLine from "../../../../ui/TabLine";
 import { QuestionCard } from "../../../exam/render";
 import type { Lang } from "../../../../../lib/kelas";
 import { useBelumSimpan } from "../../../../../lib/belum-simpan";
-import { canon, langsOf } from "../../../../../lib/recruitment/bank-rules";
+import { canon } from "../../../../../lib/recruitment/bank-rules";
 import {
   blankDraft,
   changeFormat,
@@ -35,7 +35,6 @@ import {
 import type {
   ExamConfigResponse,
   QuestionFull,
-  ReferenceRow,
   SaveResponse,
 } from "../../../../../lib/recruitment/bank-api";
 import { useBankQuestion } from "../../../../../lib/recruitment/bank-client";
@@ -49,7 +48,7 @@ import {
 } from "../../../../../lib/recruitment/exam-types";
 import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
-import { ImagesEditor, RefsEditor } from "./BankAttach";
+import { ImagesEditor } from "./BankAttach";
 import {
   ChoiceKeys,
   FitbKeys,
@@ -67,12 +66,9 @@ import "../../../recruitment-s3-bank.css";
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 const hm = (iso: string) => new Date(Date.parse(iso) + 7 * 3600_000).toISOString().slice(11, 16);
 
-/** The languages a part's questions may be written in (a part that counts either takes both) */
-export function allowedLangs(cfg: ExamConfigResponse["config"], part: Phase1Part) {
-  const have = langsOf(cfg)[part];
-  return have.includes("any")
-    ? (["cpp", "py", "any"] as const)
-    : (["cpp", "py"] as const).filter((l) => have.includes(l));
+/** Every question is C now */
+export function allowedLangs(_cfg: ExamConfigResponse["config"], _part: Phase1Part) {
+  return ["c"] as const;
 }
 
 function CodeArea({
@@ -125,7 +121,6 @@ export default function BankEditor({
   id,
   part,
   config,
-  refs,
   onBack,
   onOpen,
 }: {
@@ -133,7 +128,6 @@ export default function BankEditor({
   id: number | null;
   part: Phase1Part;
   config: ExamConfigResponse;
-  refs: ReferenceRow[];
   onBack: () => void;
   onOpen: (id: number) => void;
 }) {
@@ -144,7 +138,7 @@ export default function BankEditor({
 
   const fresh = useMemo(() => {
     const langs = allowedLangs(config.config, part);
-    return blankDraft(part, langs[0] ?? "cpp");
+    return blankDraft(part, langs[0]);
   }, [config.config, part]);
   const [d, setD] = useState<Draft | null>(id === null ? fresh : null);
   const [orig, setOrig] = useState<Draft | null>(id === null ? fresh : null);
@@ -411,7 +405,7 @@ export default function BankEditor({
               label={t.fieldPart}
               value={d.part}
               disabled={lock}
-              options={(["logika", "fitb", "kodingan", "mikro"] as const).map((p) => ({
+              options={(["logika", "fitb", "kodingan"] as const).map((p) => ({
                 value: p,
                 label: t.partsLong[p],
               }))}
@@ -508,7 +502,6 @@ export default function BankEditor({
             </div>
           )}
           <ImagesEditor d={d} set={set} t={t} lang={lang} />
-          <RefsEditor d={d} set={set} t={t} all={refs} />
           {id !== null && log.length > 0 && (
             <div className="stack stack--sm">
               <span className="label-caps">{t.history}</span>

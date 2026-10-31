@@ -13,21 +13,18 @@ const partId: Names = {
   logika: { l: "Logika", s: "Logika" },
   fitb: { l: "FITB", s: "FITB" },
   kodingan: { l: "Debugging Kodingan", s: "Kodingan" },
-  mikro: { l: "Debugging Mikrokontroler", s: "Mikro" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partEn: Names = {
   logika: { l: "Logic", s: "Logic" },
   fitb: { l: "Fill in the Blanks", s: "FITB" },
   kodingan: { l: "Debugging: Code", s: "Code" },
-  mikro: { l: "Debugging: Microcontroller", s: "Micro" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partZh: Names = {
   logika: { l: "逻辑", s: "逻辑" },
   fitb: { l: "填空", s: "填空" },
   kodingan: { l: "代码调试", s: "代码" },
-  mikro: { l: "单片机调试", s: "单片机" },
   livecode: { l: "现场编程", s: "现场编程" },
 };
 
@@ -103,7 +100,6 @@ export const TS = dict({
       rule: [
         "Tetap di layar penuh. Pindah tab, pindah jendela dan menempel tercatat.",
         "Jawaban tersimpan otomatis tiap kamu memilih atau mengetik.",
-        "Referensi ada di tombol Referensi, khusus bagian yang sedang berjalan.",
         "Tiap bagian punya waktunya sendiri. Saat habis, jawabanmu terkumpul sendiri.",
       ],
       susulan: "Susulan Tes Tulis",
@@ -115,7 +111,6 @@ export const TS = dict({
     },
     run: {
       partOf: (i: number, n: number) => `Bagian ${i} dari ${n}`,
-      refs: "Referensi",
       timeLeft: "Sisa waktu",
       paused: "Dijeda",
       questions: "Soal",
@@ -205,18 +200,6 @@ export const TS = dict({
       fail: "Hotspot belum tersimpan. Periksa nama dan kata sandinya.",
       mixed: "2,4 GHz dan WPA2 saja. Hotspot 5 GHz tidak terbaca papan.",
     },
-    refs: {
-      title: "Referensi",
-      sub: (p: string) =>
-        `Untuk ${p} dan soal yang sedang kamu buka. Hanya bisa dibaca selama bagian ini berjalan.`,
-      list: "Daftar referensi",
-      forQ: "untuk soal ini",
-      none: "Bagian ini tidak punya referensi.",
-      foot: "Tautan keluar dimatikan di tes. Arahkan kursor ke tautan untuk melihat alamatnya.",
-      frame: (t: string) => `Referensi ${t}`,
-      close: "Tutup",
-      resize: "Ubah lebar panel",
-    },
     reason: {
       waktu_habis: "Waktu bagian ini sudah habis, jawaban terakhir tidak masuk.",
       sudah_kumpul: "Bagian ini sudah kamu kumpulkan.",
@@ -295,7 +278,6 @@ export const TS = dict({
       rule: [
         "Stay in full screen. Switching tabs or windows and pasting are logged.",
         "Answers save on their own each time you pick or type.",
-        "References sit behind the References button, for the running part only.",
         "Each part has its own time. When it runs out your answers are handed in for you.",
       ],
       susulan: "Written Test Makeup",
@@ -307,7 +289,6 @@ export const TS = dict({
     },
     run: {
       partOf: (i: number, n: number) => `Part ${i} of ${n}`,
-      refs: "References",
       timeLeft: "Time left",
       paused: "Paused",
       questions: "Questions",
@@ -396,18 +377,6 @@ export const TS = dict({
       fail: "The hotspot didn't save. Check the name and the password.",
       mixed: "2.4 GHz and WPA2 only. A 5 GHz hotspot can't be read by the boards.",
     },
-    refs: {
-      title: "References",
-      sub: (p: string) =>
-        `For ${p} and the question you have open. Readable only while this part runs.`,
-      list: "Reference list",
-      forQ: "for this question",
-      none: "This part has no references.",
-      foot: "Outside links are off in the test. Hover a link to see its address.",
-      frame: (t: string) => `Reference ${t}`,
-      close: "Close",
-      resize: "Resize the panel",
-    },
     reason: {
       waktu_habis: "This part's time is over, the last answer didn't go in.",
       sudah_kumpul: "You already handed this part in.",
@@ -483,7 +452,6 @@ export const TS = dict({
       rule: [
         "请保持全屏。切换标签页、切换窗口和粘贴都会被记录。",
         "每次选择或输入，答案都会自动保存。",
-        "参考资料在“参考资料”按钮里，仅限正在进行的部分。",
         "每个部分有各自的时间，时间到时答案会自动提交。",
       ],
       susulan: "笔试补考",
@@ -494,7 +462,6 @@ export const TS = dict({
     },
     run: {
       partOf: (i: number, n: number) => `第 ${i} 部分，共 ${n} 部分`,
-      refs: "参考资料",
       timeLeft: "剩余时间",
       paused: "已暂停",
       questions: "题目",
@@ -579,17 +546,6 @@ export const TS = dict({
       clearOk: "你的板子使用监考热点。",
       fail: "热点没有保存，请检查名称和密码。",
       mixed: "仅限 2.4 GHz 和 WPA2，开发板读不到 5 GHz 热点。",
-    },
-    refs: {
-      title: "参考资料",
-      sub: (p: string) => `供${p}和你正在看的题目使用，仅在本部分进行时可读。`,
-      list: "参考资料列表",
-      forQ: "本题专用",
-      none: "本部分没有参考资料。",
-      foot: "考试中外部链接已关闭，把鼠标移到链接上可以看到地址。",
-      frame: (t: string) => `参考资料 ${t}`,
-      close: "关闭",
-      resize: "调整面板宽度",
     },
     reason: {
       waktu_habis: "本部分时间已结束，最后一个答案没有提交成功。",

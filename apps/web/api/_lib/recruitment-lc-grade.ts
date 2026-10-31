@@ -67,7 +67,7 @@ async function bolehMenilai(
   return !!r;
 }
 
-async function ruangDinilai(
+export async function ruangDinilai(
   db: Db,
   edisiId: number,
   id: number,

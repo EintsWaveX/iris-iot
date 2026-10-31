@@ -16,7 +16,6 @@ import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
 import SegmentedControl from "../../ui/SegmentedControl";
 import { href, useMe } from "../../../lib/app";
-import { useMinWidth } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
 import {
   bukaAkun,
@@ -28,6 +27,8 @@ import {
   useRecMe,
   useRecSlots,
 } from "../../../lib/recruitment/client";
+import { fogLimit } from "../../../lib/recruitment/fog";
+import { wordsFor } from "../../../lib/recruitment/settings";
 import { useRevealClock } from "../../../lib/recruitment/reveal-clock";
 import { pickEvent, pickWindow } from "../../../lib/recruitment/slots";
 import {
@@ -40,7 +41,6 @@ import {
 import { alamatBagian } from "../../../lib/recruitment/panel-tab";
 import {
   CUT_STAGES,
-  DOC_REQUIRED,
   type CutStage,
   type EnvelopeOpenResponse,
   type EnvelopeView,
@@ -70,7 +70,8 @@ import type { NextText } from "../reveal/RevealStage";
 import { S2 } from "../s2Strings";
 import { Inbox, SealedHero, ThanksCard } from "./Envelopes";
 import { ChangeDialog, PickCard, PickDialog } from "./PilihJadwal";
-import Daftar from "./Daftar";
+import "../recruitment-b1.css";
+import CaasTools from "./CaasTools";
 import DocsDrawer from "./DocsDrawer";
 import Journey from "./Journey";
 import { CP } from "./candidateStrings";
@@ -108,6 +109,7 @@ function Kartu404({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
   );
 }
 
+import { useDocRules } from "../../../lib/recruitment/doc-rules";
 export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
@@ -126,13 +128,14 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const rec = useRecMe(praktikan && !reveal);
   const cal = useRecCalendar(me !== undefined);
   const edisi = useRecEdition(me !== undefined);
+  const rules = useDocRules();
   const hariIni = useHariIni();
   const tick = useTick(30_000);
-  const lebar = useMinWidth(1100);
   const [view, setView] = useState<"bulan" | "agenda">("bulan");
-  const [daftar, setDaftar] = useState(false);
   const [docs, setDocs] = useState(false);
   const [mundur, setMundur] = useState(false);
+  const [jadwalOpen, setJadwalOpen] = useState(false);
+  const [amplopOpen, setAmplopOpen] = useState(false);
   const diminta = useRef<{ daftar: boolean; berkas: boolean; masuk: boolean } | null>(null);
   const [pickStage, setPickStage] = useState<StageKey | null>(null);
   const [chgStage, setChgStage] = useState<StageKey | null>(null);
@@ -208,7 +211,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       return;
     }
     if (!praktikan || !rec.data) return;
-    if (d.daftar && buka && !cand) setDaftar(true);
     if (d.berkas && cand) setDocs(true);
     diminta.current = null;
   }, [me, akunSiap, tamu, asisten, praktikan, rec.data, buka, cand, lang]);
@@ -303,37 +305,8 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   );
 
   const docsMasuk = rec.data
-    ? DOC_REQUIRED.filter((k) => rec.data!.documents.some((d) => d.kind === k)).length
+    ? rules.required.filter((k) => rec.data!.documents.some((d) => d.kind === k)).length
     : 0;
-  const docsCard = applied && cand && rec.data && (
-    <Kartu
-      title={t.docs.title}
-      className="rec-docs"
-      aside={
-        cand.status === "revision" ? (
-          <span className="pill pill--danger">{`1 ${t.docs.fix}`}</span>
-        ) : (
-          <span className="pill pill--ok">{`${docsMasuk}/${DOC_REQUIRED.length}`}</span>
-        )
-      }
-    >
-      <ul className="rec-docs__list">
-        {DOC_REQUIRED.map((k) => (
-          <li key={k} data-bad={!rec.data!.documents.some((d) => d.kind === k) ? "yes" : undefined}>
-            <i />
-            <span>{t.docs.kind[k]}</span>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        className={`btn btn--block ${cand.status === "revision" ? "btn--primary" : ""}`.trim()}
-        onClick={() => setDocs(true)}
-      >
-        {cand.status === "revision" ? t.docs.fixBtn : t.docs.see}
-      </button>
-    </Kartu>
-  );
 
   // ---- envelopes and Pilih Jadwal (S2)
   const envs = rec.data?.envelopes ?? [];
@@ -373,48 +346,39 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       events={events}
       hariIni={hariIni}
       motion={motion}
-      onOpen={setReveal}
+      onOpen={(e) => {
+        // The reveal has its own full screen: the dialog the inbox sits in steps aside first.
+        setAmplopOpen(false);
+        setReveal(e);
+      }}
     />
   );
+  const pickable =
+    praktikan && slots.data
+      ? slots.data.stages.filter((sd) => {
+          const prev = GERBANG[sd.window.stage];
+          // Picking stays hidden until the envelope that unlocks it is opened: no spoilers.
+          return !prev || envs.some((e) => e.stage === prev && e.opened && e.result === "lolos");
+        })
+      : [];
+  const perluPilih = pickable.filter((sd) => sd.window.open && !sd.mine);
   const pickCards =
     praktikan && slots.data
-      ? slots.data.stages
-          .filter((sd) => {
-            const prev = GERBANG[sd.window.stage];
-            // Picking stays hidden until the envelope that unlocks it is opened: no spoilers.
-            return !prev || envs.some((e) => e.stage === prev && e.opened && e.result === "lolos");
-          })
-          .map((sd) => (
-            <PickCard
-              key={sd.window.stage}
-              lang={lang}
-              tahap={r.stage[sd.window.stage]}
-              data={sd}
-              onPick={() => setPickStage(sd.window.stage)}
-              onChange={() => setChgStage(sd.window.stage)}
-              onChanged={() => {
-                slots.refresh();
-                rec.refresh();
-              }}
-            />
-          ))
+      ? pickable.map((sd) => (
+          <PickCard
+            key={sd.window.stage}
+            lang={lang}
+            tahap={r.stage[sd.window.stage]}
+            data={sd}
+            onPick={() => setPickStage(sd.window.stage)}
+            onChange={() => setChgStage(sd.window.stage)}
+            onChanged={() => {
+              slots.refresh();
+              rec.refresh();
+            }}
+          />
+        ))
       : null;
-  const pengumuman = events.find((e) => e.kind === "announcement" && e.stage === "berkas");
-  const envCard = praktikan && !applied && (
-    <Kartu title={t.env.title} className="rec-env">
-      <div className="rec-env__empty">
-        <span className="rec-env__seal" aria-hidden="true" />
-        <span className="hint">
-          {applied
-            ? pengumuman
-              ? t.env.empty(kapanAcara(pengumuman, lang))
-              : t.env.emptyNoDate
-            : t.env.before}
-        </span>
-      </div>
-    </Kartu>
-  );
-
   // ---- the main column
   const revisi = cand?.status === "revision" && (
     <div className="rec-note rec-note--warn">
@@ -494,7 +458,9 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
                       : t.apply.closed}
           </b>
           {!asisten && (
-            <span className="hint">{withdrawn ? t.apply.hintWithdrawn : t.apply.hint}</span>
+            <span className="hint">
+              {withdrawn ? t.apply.hintWithdrawn : tamu ? t.apply.hint : t.apply.byPanitia}
+            </span>
           )}
         </div>
         {asisten ? (
@@ -507,7 +473,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
               <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
             </a>
           )
-        ) : withdrawn ? null : tamu ? (
+        ) : withdrawn || !tamu ? null : (
           <button
             type="button"
             className="btn btn--primary btn--lg"
@@ -515,18 +481,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           >
             <span className="btn__label">{t.apply.signIn}</span>
           </button>
-        ) : (
-          <span className="stack stack--sm rec-apply__btn">
-            <button
-              type="button"
-              className="btn btn--primary btn--lg"
-              disabled={!buka}
-              onClick={() => setDaftar(true)}
-            >
-              <span className="btn__label">{t.apply.now}</span>
-            </button>
-            {!buka && sebelum && <span className="hint">{t.apply.later}</span>}
-          </span>
         )}
       </section>
     ));
@@ -543,6 +497,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         lang={lang}
         hariIni={hariIni}
         out={out}
+        sampai={asisten ? undefined : fogLimit(applied && cand ? cand : null) + 1}
       />
     </Kartu>
   );
@@ -562,49 +517,56 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         badge={applied && cand ? <StatusPill status={cand.status} lang={lang} lg /> : undefined}
         lede={lede}
       />
-      <div className="rec-caas">
-        <div className="stack stack--lg rec-caas__main">
-          {!lebar && nextCard}
-          {revisi}
-          {cta}
-          <TestDoor lang={lang} enabled={praktikan && applied} />
-          {sealedEnv && (
-            <SealedHero
-              lang={lang}
-              stage={sealedEnv.stage}
-              motion={motion}
-              onOpen={() => setReveal(sealedEnv)}
-            />
-          )}
-          {stageOut && <ThanksCard lang={lang} stage={stageOut} />}
-          {pickCards}
-          {!lebar && inbox}
-          {journey}
-          {bar}
-        </div>
-        <aside className="stack rec-caas__side">
-          {lebar && nextCard}
-          {lebar && inbox}
-          {docsCard}
-          {envCard}
-          {applied && (
-            <button type="button" className="rec-quit" onClick={() => setMundur(true)}>
-              {t.withdraw.link}
+      <div className="b3-page">
+        {revisi}
+        {cta}
+        <TestDoor lang={lang} enabled={praktikan && applied} />
+        {sealedEnv ? (
+          <SealedHero
+            lang={lang}
+            stage={sealedEnv.stage}
+            motion={motion}
+            onOpen={() => setReveal(sealedEnv)}
+          />
+        ) : (
+          nextCard
+        )}
+        {stageOut && <ThanksCard lang={lang} stage={stageOut} />}
+        {praktikan && applied && perluPilih.length > 0 && (
+          <div className="rec-note b3-nudge">
+            <b>{S2[lang].pick.eyebrow(r.stage[perluPilih[0].window.stage])}</b>
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              onClick={() => setJadwalOpen(true)}
+            >
+              <span className="btn__label">{t.tools.pick}</span>
             </button>
-          )}
-        </aside>
+          </div>
+        )}
+        {praktikan && applied && cand && rec.data && (
+          <CaasTools
+            lang={lang}
+            jadwal={{
+              open: perluPilih.length,
+              picked: pickable.filter((sd) => sd.mine).length,
+            }}
+            berkas={{
+              fix: cand.status === "revision",
+              have: docsMasuk,
+              need: rules.required.length,
+            }}
+            amplop={{ sealed: envs.filter((e) => !e.opened).length, total: envs.length }}
+            onJadwal={() => setJadwalOpen(true)}
+            onBerkas={() => setDocs(true)}
+            onAmplop={() => setAmplopOpen(true)}
+            onMundur={() => setMundur(true)}
+          />
+        )}
+        {journey}
+        {bar}
       </div>
 
-      {caas && (
-        <Daftar
-          lang={lang}
-          open={daftar}
-          onOpenChange={setDaftar}
-          me={caas}
-          closesOn={closesOn}
-          onApplied={rec.refresh}
-        />
-      )}
       {applied && cand && rec.data && (
         <DocsDrawer
           lang={lang}
@@ -624,6 +586,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
             name={caas.nama.split(" ")[0]}
             result={reveal.opened ? reveal.result : null}
             through={reveal.through}
+            words={wordsFor(rec.data?.words, reveal.stage, lang === "id" ? "id" : "en")}
             open={async () => {
               const res = await recPost<EnvelopeOpenResponse>("envelope-open", {
                 stage: reveal.stage,
@@ -678,6 +641,31 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           }}
         />
       )}
+      <Dialog
+        open={jadwalOpen}
+        onOpenChange={setJadwalOpen}
+        title={t.tools.jadwalTitle}
+        description={t.tools.jadwalDesc}
+        size="lg"
+        lang={lang}
+      >
+        <div className="stack">
+          {pickCards && pickCards.length ? (
+            pickCards
+          ) : (
+            <span className="hint">{t.tools.jadwalNone}</span>
+          )}
+        </div>
+      </Dialog>
+      <Dialog
+        open={amplopOpen}
+        onOpenChange={setAmplopOpen}
+        title={t.tools.amplopTitle}
+        size="lg"
+        lang={lang}
+      >
+        {inbox}
+      </Dialog>
       <Dialog
         open={mundur}
         onOpenChange={setMundur}

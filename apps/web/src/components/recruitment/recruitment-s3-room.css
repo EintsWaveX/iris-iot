@@ -51,7 +51,7 @@
     color 200ms ease;
 }
 .r3timer small {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -941,4 +941,50 @@
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent-bright);
+}
+
+/* Malam Ujian, Live Coding: the judge status bar and a seat's per-problem results (B7.5).
+   Both cells share one height and one baseline, so the status badge lines up with the queue. */
+.judgebar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.judgebar__cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+.judgebar__cell[data-tone="ok"] {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+.judgebar__cell[data-tone="warn"] {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+.judgeprobs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.judgeprob {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  font: 600 0.8rem/1 var(--font-mono);
+  white-space: nowrap;
+}
+.judgeprob[data-full="yes"] {
+  border-color: var(--ok);
+  color: var(--ok);
 }

@@ -32,18 +32,16 @@ const full = (d: ReturnType<typeof parseBank>[number]["draft"], id: number): Que
     sample: true,
     shown: false,
     voided: false,
-    refs: 0,
     updatedAt: "2026-10-25T00:00:00Z",
     body: d!.body,
     answer: d!.answer,
-    refIds: [],
     refList: [],
     voidNote: null,
   }) as QuestionFull;
 
 describe("a new draft", () => {
   it.each(FORMATS)("starts as a %s the validator still wants filled in", (f: Format) => {
-    const d = blankDraft("logika", "cpp", f);
+    const d = blankDraft("logika", "c", f);
     expect(d.id).toBeNull();
     expect(d.format).toBe(f);
     const ps = problems(d);
@@ -54,25 +52,23 @@ describe("a new draft", () => {
 
   it("gives every item an id that no other item shares", () => {
     for (let n = 0; n < 40; n++) {
-      const d = blankDraft("logika", "cpp", "match");
+      const d = blankDraft("logika", "c", "match");
       if (d.format !== "match") throw new Error("not a match");
       const all = [...d.body.left, ...d.body.right].map((i) => i.id);
       expect(new Set(all).size).toBe(all.length);
     }
   });
 
-  it("codes in the question's own language, C++ for a part that takes either", () => {
-    const py = blankDraft("logika", "py", "lines");
-    const any = blankDraft("mikro", "any", "lines");
-    if (py.format !== "lines" || any.format !== "lines") throw new Error("not lines");
-    expect(py.body.code.lang).toBe("py");
-    expect(any.body.code.lang).toBe("cpp");
+  it("codes in C", () => {
+    const d = blankDraft("kodingan", "c", "lines");
+    if (d.format !== "lines") throw new Error("not lines");
+    expect(d.body.code.lang).toBe("c");
   });
 });
 
 describe("the default bank in the editor", () => {
   const parsed = parseBank(SEED_MD).filter((i) => i.draft);
-  it("has the 45 questions", () => expect(parsed.length).toBe(45));
+  it("has the 51 questions", () => expect(parsed.length).toBe(51));
   it.each(parsed.map((p, i) => [p.draft!.title, p.draft!, i] as const))(
     "%s opens with no problems and a preview",
     (_t, d, i) => {
@@ -97,7 +93,7 @@ describe("the default bank in the editor", () => {
 
 describe("changing the format", () => {
   it("keeps the prompt and the pictures and starts the rest over", () => {
-    let d = blankDraft("logika", "cpp", "single");
+    let d = blankDraft("logika", "c", "single");
     d = {
       ...d,
       body: { ...d.body, prompt: "Apa?", images: [{ id: "g1", key: "k", alt: "a", w: 1, h: 1 }] },
@@ -113,9 +109,9 @@ describe("changing the format", () => {
 
 describe("blanks follow the code", () => {
   const base = (src: string): Draft => {
-    const d = blankDraft("fitb", "cpp", "fitb");
+    const d = blankDraft("fitb", "c", "fitb");
     if (d.format !== "fitb") throw new Error("not fitb");
-    return { ...d, body: { ...d.body, code: { lang: "cpp", src } } };
+    return { ...d, body: { ...d.body, code: { lang: "c", src } } };
   };
   it("reads the numbers once each, wherever they stand", () => {
     expect(blankNumbers("a __(2)__ b ____(1)____ c __(2)__")).toEqual([2, 1]);
@@ -128,7 +124,7 @@ describe("blanks follow the code", () => {
     expect(Object.keys(d.answer.blanks)).toEqual(["1", "2"]);
     d = { ...d, answer: { blanks: { ...d.answer.blanks, 1: { accept: ["begin"] } } } };
     d = { ...d, body: { ...d.body, blanks: [{ n: 1, width: 12 }, { n: 2 }] } };
-    d = syncBlanks({ ...d, body: { ...d.body, code: { lang: "cpp", src: "x = __(1)__" } } });
+    d = syncBlanks({ ...d, body: { ...d.body, code: { lang: "c", src: "x = __(1)__" } } });
     if (d.format !== "fitb") throw new Error("not fitb");
     expect(d.body.blanks).toEqual([{ n: 1, width: 12 }]);
     expect(d.answer.blanks).toEqual({ 1: { accept: ["begin"] } });
@@ -210,7 +206,7 @@ describe("the key in words", () => {
     expect(say("single")).toBe("16");
     expect(say("multi").split("; ").length).toBeGreaterThan(1);
   });
-  it("lists the wrong lines by number", () => expect(say("lines")).toBe("6, 11"));
+  it("lists the wrong lines by number", () => expect(say("lines")).toBe("4, 5"));
   it("says every format in something that is not empty", () => {
     for (const f of ["fix", "order", "match", "fitb"]) expect(say(f).length).toBeGreaterThan(5);
   });

@@ -1,12 +1,12 @@
 /**
  * Kehadiran (06, mockup r2-qr override): from Ringkasan's Hari Ini card while
  * an attended event runs, for the attendance right (Ketua, Acara, Admin). A
- * drawer with search, Belum, Hadir and Semua, the QR time or who marked it by
+ * centered dialog with search, Belum, Hadir and Semua, the QR time or who marked it by
  * hand, and Tandai Hadir with three quick reasons. A hand mark can be taken
  * back; a QR scan cannot (it is the candidate's own word).
  */
 import { useState } from "react";
-import Drawer from "../../ui/Drawer";
+import Dialog from "../../ui/Dialog";
 import Pill from "../../ui/Pill";
 import Popover from "../../ui/Popover";
 import SegmentedControl from "../../ui/SegmentedControl";
@@ -15,7 +15,6 @@ import { href } from "../../../lib/app";
 import { isFail, recPost, useRecAttendance } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import type { AttendanceRow, EventLite } from "../../../lib/recruitment/types";
-import { PN } from "../panel/panelStrings";
 import { judulAcara } from "../judul";
 import { S2 } from "../s2Strings";
 import { tgl } from "../shared";
@@ -74,16 +73,14 @@ export default function AttendanceDrawer({
   }
 
   return (
-    <Drawer
+    <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
       title={t.title(judulAcara(event, lang))}
       description={t.sub(tgl(event.startsOn, lang), hadir, baris.length)}
-      storeKey="rec-hadir"
-      minWidth={420}
-      closeLabel={PN[lang].cand.sheetClose}
-      resizeLabel={PN[lang].cand.resize}
-      foot={
+      size="xl"
+      lang={lang}
+      actions={
         <a
           className="btn"
           href={href(lang, "/recruitment/qr")}
@@ -176,6 +173,6 @@ export default function AttendanceDrawer({
           </ul>
         )}
       </div>
-    </Drawer>
+    </Dialog>
   );
 }

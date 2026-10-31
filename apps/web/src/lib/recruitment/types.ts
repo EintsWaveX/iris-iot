@@ -7,6 +7,7 @@
  * section 2. Where this file adds to the architecture, the reason is in
  * docs/recruitment/prompts/handoffs/02.md.
  */
+import type { DocSetting, SettingMap } from "./settings.js";
 
 /* ------------------------------------------------------------ vocabulary */
 
@@ -323,7 +324,6 @@ export type RecError =
   | "ruang_berjalan"
   | "sudah_tampil"
   | "gambar_hilang"
-  | "rujukan_hilang"
   | "tidak_ada"
   | "sudah_ada"
   | "url_salah"
@@ -361,11 +361,13 @@ export interface EditionResponse {
   rights: RecRights | null;
   /** The viewer's seat, when they have one */
   seat: { division: CommitteeDivision; isKoor: boolean; title: string | null } | null;
+  /** The documents a CaAs sends, as the Ketua and Admin set them (settings.ts) */
+  docs?: DocSetting[];
   /** Asisten only: Sembunyikan Oprec is on (nobody else sees recruitment) */
   hidden?: boolean;
   /** Asisten only: may flip it (the Ketua and hakPenuh) */
   canHide?: boolean;
-  /** Asisten only: may add a candidate by hand from the Google Form (hakPenuh) */
+  /** Asisten only: may add a candidate by hand from the Google Form (the Ketua and Admin seats, hakPenuh) */
   canAdd?: boolean;
 }
 
@@ -406,6 +408,24 @@ export interface AccountResetResponse {
   klaim: string;
 }
 
+/** GET settings: every editable setting, for a Panitia member. */
+export interface SettingView {
+  key: "docs" | "words" | "cutting";
+  label: { id: string; en: string };
+  value: unknown;
+  default: unknown;
+  /** True when a row was saved; false means the built-in default stands */
+  custom: boolean;
+  by: string | null;
+  at: string | null;
+  roles: CommitteeDivision[];
+  canEdit: boolean;
+}
+export interface SettingsResponse {
+  ok: true;
+  settings: SettingView[];
+}
+
 export interface MeResponse {
   ok: true;
   edition: EditionInfo | null;
@@ -418,6 +438,8 @@ export interface MeResponse {
   pending: { stage: CutStage; revealAt: string }[];
   /** Whether Daftar is open right now (the server's own gate check) */
   daftarOpen: boolean;
+  /** The envelope wording the editors changed (Ubah Teks Amplop); an envelope not listed keeps the built-in text */
+  words?: SettingMap["words"];
   /** Server clock, ISO: the envelope timer counts from it, never from the device clock */
   now: string;
 }
@@ -431,6 +453,8 @@ export interface EventLite {
   dayStart: string | null;
   dayEnd: string | null;
   place: string | null;
+  /** Only qr-events sets it: the QR wall names the stage it is taking attendance for */
+  stage?: StageKey | null;
 }
 
 /** GET banner: the Home banner, one shape per viewer. */

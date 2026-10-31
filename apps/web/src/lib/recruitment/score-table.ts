@@ -7,18 +7,17 @@
  */
 import {
   PHASE1_PARTS,
-  PART_CAP,
   type Phase1Part,
   type Question,
-  type Rubric,
-  type RubricSheet,
   type SeatDraw,
   type Value,
 } from "./exam-types.js";
+import type { Caps } from "./exam-config.js";
 import { credit } from "./formats.js";
 import { fracText, type Frac } from "./frac.js";
 import type { LiveFlag, PartScore, ScoreRow, StatRow, WrongPick } from "./score-api.js";
-import { countedSheets, livecodeScore, scorePart, totals, type SeatPart } from "./scoring.js";
+import { scorePart, totals, type SeatPart } from "./scoring.js";
+import { livecodeResult, type Run } from "./c-problem.js";
 
 export interface SeatIn {
   seatId: number;
@@ -39,11 +38,14 @@ export interface QuestionIn {
   voided: boolean;
 }
 
+/** What Live Coding in C needs to score a seat (B7.5): the hand it was dealt and what it Submitted. */
 export interface LiveIn {
-  rubric: Rubric | null;
-  /** Seats that got a Live Coding topic */
-  topic: ReadonlySet<number>;
-  sheets: ReadonlyMap<number, readonly RubricSheet[]>;
+  /** Seats that were dealt a hand, with what each problem is worth */
+  hand: ReadonlyMap<number, readonly { problemId: number; points: number }[]>;
+  /** Finished Submits per seat; a Run Sample never counts */
+  runs: ReadonlyMap<number, readonly (Run & { problemId: number })[]>;
+  /** Seats with a Submit still waiting at the judge */
+  waiting: ReadonlySet<number>;
 }
 
 export interface Assembled {
@@ -51,7 +53,7 @@ export interface Assembled {
   stats: StatRow[];
   /** Seats that started each part */
   started: Record<Phase1Part, number>;
-  /** Seats with a topic and fewer than two counted sheets */
+  /** Seats with a Submit the judge has not answered yet */
   liveWaiting: number[];
 }
 
@@ -62,6 +64,7 @@ export function assemble(
   seats: readonly SeatIn[],
   questions: readonly QuestionIn[],
   live: LiveIn,
+  caps: Caps,
 ): Assembled {
   const byId = new Map(questions.map((q) => [q.id, q]));
   const voided = new Set(questions.filter((q) => q.voided).map((q) => q.id));
@@ -91,8 +94,8 @@ export function assemble(
     });
     started[part] = parts.filter((p) => p.drawn !== null).length;
     scored[part] = {
-      now: scorePart(PART_CAP[part], parts, voided),
-      raw: scorePart(PART_CAP[part], parts, new Set()),
+      now: scorePart(caps.parts[part], parts, voided),
+      raw: scorePart(caps.parts[part], parts, new Set()),
     };
   }
 
@@ -106,27 +109,28 @@ export function assemble(
     }
     let lc: number | null = null;
     let liveFlag: LiveFlag | undefined;
-    if (!live.topic.has(s.seatId)) {
+    const hand = live.hand.get(s.seatId);
+    if (!hand) {
       lc = 0;
       liveFlag = "tanpa";
-    } else if (live.rubric) {
-      const sheets = live.sheets.get(s.seatId) ?? [];
-      if (countedSheets(sheets).length < 2) {
+    } else {
+      const runs = live.runs.get(s.seatId) ?? [];
+      lc = livecodeResult(
+        hand.map((h) => ({
+          problemId: h.problemId,
+          points: h.points,
+          runs: runs.filter((r) => r.problemId === h.problemId),
+        })),
+      ).total;
+      if (live.waiting.has(s.seatId)) {
         liveFlag = "belum";
         liveWaiting.push(s.seatId);
-      } else {
-        try {
-          lc = livecodeScore(live.rubric, sheets);
-        } catch {
-          liveFlag = "rubrik";
-        }
       }
-    } else liveFlag = "belum";
+    }
     const t = totals({
       logika: parts.logika.score,
       fitb: parts.fitb.score,
       kodingan: parts.kodingan.score,
-      mikro: parts.mikro.score,
       livecode: lc,
     });
     rows.push({
@@ -136,7 +140,6 @@ export function assemble(
       nim: s.nim,
       nama: s.nama,
       parts,
-      debugging: t.debugging,
       phase1: t.phase1,
       livecode: lc,
       ...(liveFlag ? { liveFlag } : {}),

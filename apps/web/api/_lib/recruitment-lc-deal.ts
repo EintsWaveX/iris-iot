@@ -32,7 +32,7 @@ import type { SpinReply } from "../../src/lib/recruitment/lc-api.js";
 import { bungkus } from "./rahasia.js";
 import type { Db } from "./recruitment-data.js";
 import { muatConfig, roomHooks } from "./recruitment-room.js";
-import { LABEL_MQTT, muatGaram, type KonteksLc } from "./recruitment-lc-common.js";
+import { LABEL_MQTT, muatGaram, protokolBoleh, type KonteksLc } from "./recruitment-lc-common.js";
 import { antriMqtt } from "./recruitment-lc-agent.js";
 import { muatTemplate, semaiKolam, topikSiapRows } from "./recruitment-lc-pool.js";
 
@@ -169,7 +169,7 @@ export async function bagikan(
       const { used, dealt } = await counts(tx, room.id);
       protocol = dealProtocol(
         (topic?.fits ?? []) as Protocol[],
-        config.livecode.protocols,
+        protokolBoleh(config),
         used,
         seed,
         dealt,
@@ -308,7 +308,7 @@ export async function undiUlang(
       const topic = ready.find((t) => t.id === topicId);
       protocol = dealProtocol(
         (topic?.fits ?? []) as Protocol[],
-        config.livecode.protocols,
+        protokolBoleh(config),
         used,
         seed,
         dealt,
@@ -320,18 +320,12 @@ export async function undiUlang(
         ? rerollProtocol(
             protocol,
             (topic?.fits ?? []) as Protocol[],
-            config.livecode.protocols,
+            protokolBoleh(config),
             used,
             seed,
             dealt,
           )
-        : dealProtocol(
-            (topic?.fits ?? []) as Protocol[],
-            config.livecode.protocols,
-            used,
-            seed,
-            dealt,
-          );
+        : dealProtocol((topic?.fits ?? []) as Protocol[], protokolBoleh(config), used, seed, dealt);
       spins.push(spinBaru("protocol", protocol, "master", reason));
     }
     const variant = protocol === "httpws" ? (lc.variant ?? "http") : null;

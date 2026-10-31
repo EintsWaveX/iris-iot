@@ -31,15 +31,14 @@ type DraftOf<Q extends Question> = {
   lang: Lang;
   title: string;
   status: "draft" | "ready";
-  refIds: number[];
   format: Q["format"];
   body: Q["body"];
   answer: Q["answer"];
 };
 export type Draft = Question extends infer Q ? (Q extends Question ? DraftOf<Q> : never) : never;
 
-/** The code language a new code area starts with: the question's own, C++ for a part that takes either */
-export const codeLangOf = (lang: Lang): CodeLang => (lang === "py" ? "py" : "cpp");
+/** The code language a new code area starts with: every question is C now */
+export const codeLangOf = (_lang: Lang): CodeLang => "c";
 
 /** A fresh id not in `taken`; the editor adds it to `taken` itself */
 export function freshId(taken: Iterable<string>): string {
@@ -116,7 +115,6 @@ export function blankDraft(part: Phase1Part, lang: Lang, format: Format = "singl
     lang,
     title: "",
     status: "draft",
-    refIds: [],
     ...starter(format, lang),
   } as Draft;
 }
@@ -130,7 +128,6 @@ export function fromFull(q: QuestionFull): Draft {
     lang: q.lang,
     title: q.title,
     status: q.status,
-    refIds: [...q.refIds],
     format: q.format,
     body: structuredClone(q.body),
     answer: structuredClone(q.answer),
@@ -225,7 +222,6 @@ export function savePayload(d: Draft, note?: string) {
     status: d.status,
     body: d.body,
     answer: d.answer,
-    refs: d.refIds,
     ...(note?.trim() ? { note: note.trim() } : {}),
   };
 }

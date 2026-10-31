@@ -5,17 +5,17 @@ import { parseInline, parseMd } from "../../components/recruitment/exam/render/m
 describe("highlightLines", () => {
   it("cuts the source into the same lines as split('\n') and loses no text", () => {
     const src = "int x = 1; // note\n\nvoid loop() {\n  digitalWrite(13, HIGH);\n}";
-    const lines = highlightLines(src, "cpp");
+    const lines = highlightLines(src, "c");
     expect(lines).toHaveLength(src.split("\n").length);
     expect(lines.map((l) => l.map((t) => t.text).join(""))).toEqual(src.split("\n"));
   });
   it("keeps a block comment that spans lines coloured on each line", () => {
-    const lines = highlightLines("/* a\n b */ int y;", "cpp");
+    const lines = highlightLines("/* a\n b */ int y;", "c");
     expect(lines[0].some((t) => t.kind === "comment")).toBe(true);
     expect(lines[1].some((t) => t.kind === "comment")).toBe(true);
   });
-  it("marks keywords and strings in Python", () => {
-    const kinds = highlightLines('for i in range(3): print("hi")', "py")[0].map((t) => t.kind);
+  it("marks keywords and strings in C", () => {
+    const kinds = highlightLines('for (;;) printf("hi");', "c")[0].map((t) => t.kind);
     expect(kinds).toContain("keyword");
     expect(kinds).toContain("string");
   });
@@ -90,14 +90,14 @@ import { highlightBlanks } from "../../components/recruitment/exam/render/hl";
 
 describe("highlightBlanks", () => {
   it("puts the blank where it stood, in order, several to a line", () => {
-    const lines = highlightBlanks("int a = ____(1)____;\nx = __(2)__ + __(3)__;", "cpp");
+    const lines = highlightBlanks("int a = ____(1)____;\nx = __(2)__ + __(3)__;", "c");
     const blanks = lines.map((l) =>
       l.filter((i) => "blank" in i).map((i) => (i as { blank: number }).blank),
     );
     expect(blanks).toEqual([[1], [2, 3]]);
   });
   it("keeps the text around the blank", () => {
-    const line = highlightBlanks("a ____(1)____ b", "py")[0];
+    const line = highlightBlanks("a ____(1)____ b", "c")[0];
     const text = line.map((i) => ("blank" in i ? `<${i.blank}>` : i.text)).join("");
     expect(text).toBe("a <1> b");
   });

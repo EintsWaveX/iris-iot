@@ -27,17 +27,19 @@ import {
   recCandidate,
   recExamRoom,
   recExamSeat,
-  recLivecode,
+  recCProblem,
+  recCSubmission,
   recQuestion,
   recQuestionLog,
-  recRubricScore,
   recScoreFreeze,
   recSlot,
   recSlotAssignment,
   praktikan,
   type RecScoreFreezeRow,
 } from "../../src/lib/schema.js";
-import type { Question, RubricSheet, Value } from "../../src/lib/recruitment/exam-types.js";
+import type { Question, Value } from "../../src/lib/recruitment/exam-types.js";
+import type { Run } from "../../src/lib/recruitment/c-problem.js";
+import { capsOf } from "../../src/lib/recruitment/exam-config.js";
 import { assemble, type QuestionIn, type SeatIn } from "../../src/lib/recruitment/score-table.js";
 import type {
   FinalBlocker,
@@ -50,7 +52,7 @@ import type {
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak, anggotaPanitia } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
-import { muatRubrik } from "./recruitment-lc-pool.js";
+import { bacaConfig } from "./recruitment-room.js";
 
 const STATUS: Record<string, number> = {
   tanpa_hak: 403,
@@ -180,40 +182,60 @@ async function muatMasukan(db: Db, edisiId: number) {
     values: nilaiPerKursi.get(r.id) ?? new Map(),
   }));
 
-  const lc = seatIds.length
+  // Live Coding in C: the hand each seat was dealt, the Submits the judge finished, and who still waits.
+  const config = await bacaConfig(db, edisiId);
+  const tier = new Map(
+    (
+      await db
+        .select({ id: recCProblem.id, tier: recCProblem.tier })
+        .from(recCProblem)
+        .where(eq(recCProblem.editionId, edisiId))
+    ).map((r) => [r.id, r.tier]),
+  );
+  const hand = new Map<number, { problemId: number; points: number }[]>();
+  for (const r of seatRows) {
+    const dealt = (r.draw as { livecode?: { problems?: number[] } }).livecode?.problems;
+    if (!dealt?.length) continue;
+    hand.set(
+      r.id,
+      dealt.flatMap((id) => {
+        const t = tier.get(id);
+        return t ? [{ problemId: id, points: config.livecode.points[t] }] : [];
+      }),
+    );
+  }
+  const runs = new Map<number, (Run & { problemId: number })[]>();
+  const waiting = new Set<number>();
+  const subs = seatIds.length
     ? await db
-        .select({ seatId: recLivecode.seatId, topic: recLivecode.topicId })
-        .from(recLivecode)
-        .where(eq(recLivecode.editionId, edisiId))
+        .select({
+          seatId: recCSubmission.seatId,
+          problemId: recCSubmission.problemId,
+          status: recCSubmission.status,
+          passed: recCSubmission.passed,
+          total: recCSubmission.total,
+          at: recCSubmission.requestedAt,
+        })
+        .from(recCSubmission)
+        .where(and(inArray(recCSubmission.seatId, seatIds), eq(recCSubmission.kind, "submit")))
     : [];
-  const topic = new Set(lc.filter((r) => r.topic !== null).map((r) => r.seatId));
-  const rubric = topic.size ? await muatRubrik(db, edisiId) : null;
-  const sheets = new Map<number, RubricSheet[]>();
-  if (rubric) {
-    const rows = await db
-      .select({
-        subjectId: recRubricScore.subjectId,
-        grader: recRubricScore.graderNim,
-        values: recRubricScore.values,
-        at: recRubricScore.at,
-      })
-      .from(recRubricScore)
-      .where(
-        and(eq(recRubricScore.rubricId, rubric.id), inArray(recRubricScore.subjectId, seatIds)),
-      );
-    for (const r of rows) {
-      const l = sheets.get(r.subjectId) ?? [];
-      l.push({ grader: r.grader, at: r.at.getTime(), values: r.values });
-      sheets.set(r.subjectId, l);
+  for (const r of subs) {
+    if (r.seatId === null) continue;
+    if (r.status === "antre" || r.status === "diambil") waiting.add(r.seatId);
+    if (r.status === "selesai" && r.passed !== null && r.total) {
+      const l = runs.get(r.seatId) ?? [];
+      l.push({ problemId: r.problemId, passed: r.passed, total: r.total, at: r.at.getTime() });
+      runs.set(r.seatId, l);
     }
   }
-  return { kursi, bank, live: { rubric, topic, sheets } };
+  return { kursi, bank, live: { hand, runs, waiting } };
 }
 
 /** The scores right now, from the answers and the keys as they stand. */
 export async function hitungSekarang(db: Db, edisiId: number) {
   const m = await muatMasukan(db, edisiId);
-  return { ...assemble(m.kursi, m.bank, m.live), kursi: m.kursi };
+  const caps = capsOf(await bacaConfig(db, edisiId));
+  return { ...assemble(m.kursi, m.bank, m.live, caps), kursi: m.kursi };
 }
 
 const infoBeku = async (db: Db, f: RecScoreFreezeRow): Promise<FreezeInfo> => {
@@ -241,7 +263,12 @@ export async function muatNilaiCutting(db: Db, edisiId: number) {
   for (const r of rows) {
     const tunggu = r.liveFlag === "belum" || r.liveFlag === "rubrik";
     out.set(r.candidateId, {
-      parts: [r.parts.logika.score, r.parts.fitb.score, r.debugging, r.livecode],
+      parts: [
+        r.parts.logika.score,
+        r.parts.fitb.score,
+        r.parts.kodingan.score,
+        tunggu ? null : r.livecode,
+      ],
       total: tunggu ? null : r.total,
     });
   }
@@ -355,6 +382,7 @@ async function bacaNilai(
     ok: true,
     final: beku ? await infoBeku(db, beku) : null,
     rows: roomId ? semua.filter((r) => r.roomId === roomId) : semua,
+    caps: capsOf(await bacaConfig(db, edisiId)),
     rooms: rooms
       .filter((r) => adaKursi.has(r.id))
       .map((r) => ({ id: r.id, title: r.title }))
@@ -371,7 +399,7 @@ async function bacaStatistik(k: Konteks) {
   const beku = await muatBeku(k.db, k.edisiId);
   const hitung = beku ? null : await hitungSekarang(k.db, k.edisiId);
   const rows = beku ? beku.scores : hitung!.rows;
-  const started = { logika: 0, fitb: 0, kodingan: 0, mikro: 0 };
+  const started = { logika: 0, fitb: 0, kodingan: 0 };
   for (const r of rows)
     for (const part of Object.keys(started) as (keyof typeof started)[])
       if (r.parts[part].flag !== "absent") started[part]++;

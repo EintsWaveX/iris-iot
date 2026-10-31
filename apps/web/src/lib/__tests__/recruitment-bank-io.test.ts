@@ -1,6 +1,6 @@
 /**
  * Import and export of the question bank (EXAM-ENGINE 1.5, prompt 09): the
- * fourteen documented examples parse, every format survives export then import,
+ * seven documented examples parse, every format survives export then import,
  * and the dry run says what is wrong with a line number.
  */
 import { readFileSync } from "node:fs";
@@ -48,7 +48,6 @@ function canon(d: QuestionDraft) {
     title: d.title,
     status: d.status,
     sample: d.sample,
-    refUrls: d.refUrls,
     body,
     answer: d.answer,
   });
@@ -69,49 +68,45 @@ function parseOk(text: string) {
 describe("the documented examples", () => {
   const drafts = parseOk(EXAMPLES);
 
-  it("are all fourteen, each valid, and cover the seven formats in both languages", () => {
-    expect(drafts).toHaveLength(14);
+  it("are all seven, each valid, one per format, all C", () => {
+    expect(drafts).toHaveLength(7);
     for (const d of drafts) expect(validateQuestion(asQ(d)), d.title).toEqual([]);
-    const seen = new Set(drafts.map((d) => `${d.format}/${d.lang}`));
-    for (const f of FORMATS) {
-      if (f === "single" || f === "multi" || f === "fitb" || f === "order" || f === "match") {
-        expect(seen.has(`${f}/cpp`) && seen.has(`${f}/py`), f).toBe(true);
-      }
-    }
+    expect(new Set(drafts.map((d) => d.format))).toEqual(new Set(FORMATS));
+    expect(drafts.every((d) => d.lang === "c")).toBe(true);
     expect(drafts.every((d) => d.sample && d.status === "ready")).toBe(true);
   });
 
   it("read the key the way the document says", () => {
     const by = (t: string) => drafts.find((d) => d.title === t)!;
-    const one = by("Jumlah bilangan ganjil");
+    const one = by("Jumlah Bilangan Ganjil");
     if (one.format !== "single") throw new Error("format");
     const right = one.body.options.find((o) => o.id === one.answer.correct)!;
     expect(right.text).toBe("16");
-    const lines = by("LED dan tombol pull-up");
-    expect(lines.answer).toEqual({ lines: [6, 11] });
-    const fix = by("DHT ke JSON");
+    const lines = by("Rata-rata Array");
+    expect(lines.answer).toEqual({ lines: [4, 5] });
+    const fix = by("Cetak Array Terbalik");
     if (fix.format !== "fix") throw new Error("format");
-    expect(fix.body.slots.map((s) => s.line)).toEqual([6, 10, 13, 14]);
-    const s6 = fix.body.slots[0];
-    const pick6 = s6.options.find((o) => o.id === fix.answer.picks[6])!;
-    expect(pick6.text).toBe("  Serial.begin(115200); dht.begin();");
-    const fitb = by("Kedip tanpa delay");
+    expect(fix.body.slots.map((s) => s.line)).toEqual([5, 6, 7]);
+    const s5 = fix.body.slots[0];
+    const pick5 = s5.options.find((o) => o.id === fix.answer.picks[5])!;
+    expect(pick5.text).toBe("  int n = sizeof(a) / sizeof(a[0]);");
+    const fitb = by("Jumlah Elemen Array");
     if (fitb.format !== "fitb") throw new Error("format");
-    expect(fitb.answer.blanks[2]).toEqual({ accept: ["millis()"], space: "none" });
+    expect(fitb.answer.blanks[1]).toEqual({ accept: ["a[0]", "int"], space: "none" });
     expect(fitb.body.blanks.map((b) => b.n)).toEqual([1, 2, 3]);
   });
 
   it("keep order lines sorted by id, not by the answer, and read `also` as positions", () => {
-    const o = by("Kirim potensiometer");
+    const o = by("Jumlah Array");
     if (o.format !== "order") throw new Error("format");
-    expect(o.body.lines).toHaveLength(9);
-    expect(o.answer.order).toHaveLength(9);
+    expect(o.body.lines).toHaveLength(10);
+    expect(o.answer.order).toHaveLength(10);
     expect(o.answer.also).toHaveLength(1);
     const text = (id: string) => o.body.lines.find((l) => l.id === id)!.text;
-    // 1 const, 5 void loop, then the loop body, then setup.
-    expect(o.answer.also[0].map(text).slice(0, 2)).toEqual([
-      "const int POT = 34;",
-      "void loop() {",
+    // `also` swaps lines 3 and 4: the sum starts before the array is declared.
+    expect(o.answer.also[0].map(text).slice(2, 4)).toEqual([
+      "  int jumlah = 0;",
+      "  int a[4] = {5, 8, 2, 9};",
     ]);
     expect([...o.body.lines.map((l) => l.id)]).toEqual([...o.body.lines.map((l) => l.id)].sort());
     function by(t: string) {
@@ -120,7 +115,7 @@ describe("the documented examples", () => {
   });
 
   it("match: a row with an empty left cell is a distractor on the right", () => {
-    const m = drafts.find((d) => d.title === "Gejala dan penyebab")!;
+    const m = drafts.find((d) => d.title === "Ekspresi dan Hasil")!;
     if (m.format !== "match") throw new Error("format");
     expect(m.body.left).toHaveLength(5);
     expect(m.body.right).toHaveLength(6);
@@ -164,7 +159,7 @@ describe("export then import", () => {
     const text = [
       "---",
       "part: logika",
-      "lang: cpp",
+      "lang: c",
       "format: match",
       'title: "Operator: dan artinya"',
       "---",
@@ -177,13 +172,13 @@ describe("export then import", () => {
       "",
       "---",
       "part: kodingan",
-      "lang: cpp",
+      "lang: c",
       "format: fix",
       "title: Kutip",
       "---",
       "Perbaiki.",
       "",
-      "```cpp",
+      "```c",
       "const char* s = x;",
       "```",
       "",
@@ -205,7 +200,7 @@ describe("the dry run reports what is wrong, with a line", () => {
   const head = (extra: string[] = []) => [
     "---",
     "part: logika",
-    "lang: cpp",
+    "lang: c",
     "format: single",
     "title: T",
     ...extra,
@@ -223,21 +218,21 @@ describe("the dry run reports what is wrong, with a line", () => {
     const text = [
       "---",
       "part: nilai",
-      "lang: cpp",
+      "lang: c",
       "format: single",
       "title: A",
       "---",
       "x",
       "---",
       "part: logika",
-      "lang: cpp",
+      "lang: c",
       "format: esai",
       "title: B",
       "---",
       "x",
       "---",
       "part: logika",
-      "lang: cpp",
+      "lang: c",
       "format: single",
       "---",
       "x",
@@ -245,7 +240,7 @@ describe("the dry run reports what is wrong, with a line", () => {
       "- [ ] b",
       "---",
       "part: logika",
-      "lang: cpp",
+      "lang: c",
     ].join("\n");
     const items = parseBank(text);
     expect(items).toHaveLength(4);
@@ -259,7 +254,7 @@ describe("the dry run reports what is wrong, with a line", () => {
 
   it("YAML that does not parse is an error on its own line", () => {
     const [it] = parseBank(
-      ["---", "part: logika", "lang: [cpp", "format: single", "title: T", "---", "x"].join("\n"),
+      ["---", "part: logika", "lang: [c", "format: single", "title: T", "---", "x"].join("\n"),
     );
     expect(it.errors[0].kode).toBe("yaml_salah");
     expect(it.errors[0].line).toBeGreaterThan(1);
@@ -278,7 +273,7 @@ describe("the dry run reports what is wrong, with a line", () => {
   it("a --- inside a code fence is code", () => {
     const text = [
       ...head(),
-      "```py",
+      "```c",
       "x = 1",
       "---",
       "title: not a question",
@@ -296,7 +291,7 @@ describe("the dry run reports what is wrong, with a line", () => {
     const text = [
       "---",
       "part: fitb",
-      "lang: py",
+      "lang: c",
       "format: fitb",
       "title: F",
       "blanks:",
@@ -305,7 +300,7 @@ describe("the dry run reports what is wrong, with a line", () => {
       "---",
       "Isi.",
       "",
-      "```py",
+      "```c",
       "x = __(1)__",
       "```",
     ].join("\n");
@@ -317,14 +312,14 @@ describe("the dry run reports what is wrong, with a line", () => {
     const text = [
       "---",
       "part: logika",
-      "lang: py",
+      "lang: c",
       "format: order",
       "title: O",
       "also: [[1, 2]]",
       "---",
       "Susun.",
       "",
-      "```py",
+      "```c",
       "a = 1",
       "b = 2",
       "c = 3",
@@ -346,12 +341,12 @@ describe("the dry run reports what is wrong, with a line", () => {
   });
 });
 
-describe("references and images", () => {
-  it("carry reference URLs and images through the front matter", () => {
+describe("images", () => {
+  it("carry images through the front matter, and an old refs line is ignored", () => {
     const text = [
       "---",
-      "part: mikro",
-      "lang: any",
+      "part: kodingan",
+      "lang: c",
       "format: single",
       "title: Gambar",
       "refs: [https://docs.arduino.cc/language-reference/en/functions/digital-io/digitalwrite/]",
@@ -365,24 +360,20 @@ describe("references and images", () => {
     ].join("\n");
     const [it] = parseBank(text);
     expect(it.errors).toEqual([]);
-    expect(it.draft!.refUrls).toEqual([
-      "https://docs.arduino.cc/language-reference/en/functions/digital-io/digitalwrite/",
-    ]);
     expect(it.draft!.body.images).toEqual([
       { id: "im1", key: "recruitment/1/bank/aaaa.png", alt: "Rangkaian", w: 320, h: 200 },
     ]);
     const again = parseBank(writeBank([{ ...it.draft!, id: 9 }]))[0];
     expect(again.errors).toEqual([]);
     expect(again.draft!.body.images).toEqual(it.draft!.body.images);
-    expect(again.draft!.refUrls).toEqual(it.draft!.refUrls);
   });
 
   it("an image the prompt names but the front matter lacks is an error", () => {
     const [it] = parseBank(
       [
         "---",
-        "part: mikro",
-        "lang: any",
+        "part: kodingan",
+        "lang: c",
         "format: single",
         "title: G",
         "---",
