@@ -5,13 +5,7 @@
  * exact instant on the next read or write. The API stores the result under
  * `UPDATE ... WHERE seq = $seen`.
  */
-import type {
-  ExamConfig,
-  PartKey,
-  PartRun,
-  RoomState,
-  RoomViewName,
-} from "./exam-types.js";
+import type { ExamConfig, PartKey, PartRun, RoomState, RoomViewName } from "./exam-types.js";
 import { minutesOf } from "./exam-config.js";
 
 export const GRACE_MS = 5000;

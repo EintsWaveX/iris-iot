@@ -5,11 +5,7 @@
  */
 import { usePoll } from "../hooks";
 import { isFail, recGet, type RecResult } from "./client";
-import type {
-  ExamConfigResponse,
-  QuestionResponse,
-  QuestionsResponse,
-} from "./bank-api";
+import type { ExamConfigResponse, QuestionResponse, QuestionsResponse } from "./bank-api";
 
 async function leaf<T extends { ok: true }>(p: Promise<RecResult<T>>): Promise<T | null> {
   const r = await p;

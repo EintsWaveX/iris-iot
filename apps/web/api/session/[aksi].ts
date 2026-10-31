@@ -213,7 +213,8 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
   // While Mode TOT is on a real Praktikan can't join (2026-10-29): never offered.
   const bisaIkut =
     who?.role === "praktikan" && who.sesiId !== running.id
-      ? !praktikanHanyaLihat(who.nim, await totAktif()) && (await resolvePraktikan(who.nim)) !== null
+      ? !praktikanHanyaLihat(who.nim, await totAktif()) &&
+        (await resolvePraktikan(who.nim)) !== null
       : undefined;
   res.status(200).json({
     ok: true,
