@@ -204,10 +204,76 @@ F = [
      "fixed", None),
 ]
 
+
+# 31 Oct 2026: the open findings were fixed in rec11.css (and two JS files). "fixed" = re-measured or seen in the pass-4 shots,
+# "applied" = changed but not re-checked (the last audit run was stopped by low memory).
+UPDATE = {
+    "R1-04": ("applied", "rec11.css: the guest card's button row starts in the text column and the first ghost is pulled back by 27px (26 padding, 1 border). Seen in the pass-4 shot of the guest state: the row starts at the text column; the 27px pull was added after that shot."),
+    "R1-05": ("fixed", "rec11.css: tiles top-align, the subtitle stops at two lines and balances. Seen in the pass-4 shot: the four titles sit level and the long subtitle wraps in two even lines."),
+    "R1-06": ("applied", "rec11.css: the ??? labels keep full strength with a halo in the surface colour. Dark theme seen in pass 4; light theme not re-checked."),
+    "R1-07": ("applied", "rec11.css: .n7-top holds 245px above 1100px wide. Not re-measured across every state."),
+    "R1-08": ("applied", "rec11.css and the app: a long event name takes a second line before it is cut. Pass 4 shows the truncated count at 0 on the calendar, but a new clipped count of 95 appears, so a name longer than two lines is still cut."),
+    "R1-09": ("fixed", "screens-profil23.js: signed in, the recruitment banner sits under the greeting and above the Lab Sky. Pass 4: the below-the-fold hits on r1-home drop from 48 to 3."),
+    "R2-03": ("applied", "rec11.css: .n7-spark is the full width of the card body. Not re-measured."),
+    "R2-04": ("applied", "rec11.css: bars under the cut are a clear red (78%). Not re-measured."),
+    "R3-06": ("applied", "rec11.css and the app: a disabled primary uses the surface pair with muted text instead of 45% accent. Not re-measured."),
+    "R3-07": ("applied", "rec11.css and the app: the lobby is centred in the frame with safe centring. Not re-measured."),
+    "R3-09": ("applied", "rec11.css and the app: timer captions are 11.5px. Pass 4: tiny text on r3-keadaan and r3-soal drops from 55 to 15 per screen; the 15 left are other captions."),
+    "R3-10": ("applied", "screens-rec7.js: opening a seat closes the side drawer and the other way round. Not re-checked in the shots."),
+    "R3-11": ("applied", "rec11.css: the editor header row shares one control height. Not re-measured."),
+    "R3-12": ("applied", "rec11.css and the app: fixed column widths on the bank list. Not re-measured."),
+}
+F = [(*r[:9], UPDATE[r[0]][1] if r[0] in UPDATE else r[9], UPDATE[r[0]][0] if r[0] in UPDATE else r[10], r[11]) for r in F]
+
+# By-eye review of the screens that had only automatic checks (workflow wf_1dac0d04-fdf, 6 reviewers, 1440x900 dark and light).
+EYES = json.load(open(os.path.join(SH, "eyes5.json"), encoding="utf-8"))
+EYE_META = {  # index: (group, short title, status, note on what was done)
+    1: ("R1", "The Ringkasan pill in the header is pale on pale in the light theme", "open", ""),
+    2: ("R1", "The Hari Ini card icon is an empty box and sits above the text line", "open", ""),
+    3: ("R1", "The year wraps alone on a second line in the Hari Ini date range", "applied", "rec11.css: text-wrap pretty on hints and ledes."),
+    4: ("R1", "The Sebagai toggle and Keluar differ in height and corner radius", "open", ""),
+    5: ("R3", "The bottom bar of the draw screen has no side padding", "applied", "rec11.css: 16px side padding on .r3step__bar."),
+    6: ("R3", "The disabled Lihat Soalmu button is hard to read", "applied", "Same rule as R3-06."),
+    7: ("R3", "The Kembali sheet under Soalmu Malam Ini runs off the frame as two mismatched layers", "open", ""),
+    8: ("R3", "Draw card titles on two lines push their point line down in one card", "open", ""),
+    9: ("R3", "The draw screen leaves its lower half empty", "open", ""),
+    10: ("R1", "The Panitia pill in the header is pale on pale in the light theme", "open", ""),
+    11: ("R1", "The Asisten search placeholder is cut mid-word and the only chip is truncated", "open", ""),
+    12: ("R1", "Division names are cut once the star buttons appear", "open", ""),
+    13: ("R1", "The Asisten card title is larger than the division titles and starts at another height", "open", ""),
+    14: ("R2", "The tab strip rule in the review drawer stops about 40px short of the content", "open", ""),
+    15: ("R2", "The candidate detail modal is lopsided: 170px empty in the left column", "open", ""),
+    16: ("R2", "The page subtitle behind a short modal is sliced by its top edge", "open", ""),
+    17: ("R2", "The Tutup button sits 20px inside the column edge", "applied", "rec11.css: a lone ghost button in a footer is pulled back by its padding."),
+    18: ("R2", "The Catatan placeholder is faint in the light theme", "open", ""),
+    19: ("R2", "Day cards start at different heights when a title wraps", "open", ""),
+    20: ("R2", "The last board column is cut at the board edge", "open", ""),
+    21: ("R2", "The Papan search is 52px tall beside 44px buttons", "applied", "rec11.css: in a row with small buttons the search is 44px."),
+    22: ("R2", "The Plotting pill and a hint are washed out in the light theme", "open", ""),
+    23: ("R2", "The not-yet-here dots on the QR screen are invisible in the light theme", "applied", "rec11.css: a 1.5px ring on the dots."),
+    24: ("R2", "The big count and its caption do not share a baseline", "open", ""),
+    25: ("R2", "The last dot row is 10px above the code card", "applied", "rec11.css: 12px under the dot grid."),
+    26: ("R2", "The QR display leaves a quarter of its width and a third of its height empty", "open", ""),
+    27: ("R2", "The dot size and the code card width change a lot between states", "open", ""),
+    28: ("R2", "The QR subtitle leaves the word Deli alone on a line", "applied", "rec11.css: text-wrap pretty."),
+    29: ("R2", "The QR frame's top edge moves between states", "open", ""),
+    30: ("R2", "The status card keeps its button far from its message", "open", ""),
+    31: ("R2", "The Kedaluwarsa card is taller and moves its icon and link", "open", ""),
+    32: ("R2", "The Kirim button and the code placeholder are faint in the light theme", "open", ""),
+    33: ("R2", "Download XLSX is indented 19px from the content edge in the Absensi dialog", "applied", "rec11.css: a first ghost button in a footer is pulled back by its padding."),
+}
+_n = {"R1": 9, "R2": 5, "R3": 12}
+for i, e in enumerate(EYES, 1):
+    g, title, status, note = EYE_META[i]
+    _n[g] += 1
+    F.append((f"{g}-{_n[g]:02d}", g, e["screen"], "by-eye review", e["severity"], e["category"].replace("-", " ").capitalize(), title,
+              e["seen"], e["where"], (e["fix"] + (" Done: " + note if note else "")), status, None))
+
 NOT_REVIEWED = [
-    "Eyes-on review was partial: the five reviewers ran into a usage limit. Reviewed by eye: the whole of n7-caas in dark, r3-checkin, r3-lc (3 of 9 states), r3-keadaan (2 of 9), n7-cutting, parts of r1-panel, r1-kalender and n7-malam.",
-    "Never looked at by eye: n7-latihan, r1-panitia, n7-plot, r2-berkas, r2-qr, r3-soal, r3-putar, most of n7-bank, and light theme almost everywhere.",
-    "These were only covered by the automatic checks below. Treat them as measured, not as reviewed.",
+    "By eye in the first run: the whole of n7-caas in dark, r3-checkin, r3-lc (3 of 9 states), r3-keadaan (2 of 9), n7-cutting, parts of r1-panel, r1-kalender and n7-malam.",
+    "By eye on 31 Oct 2026 (six reviewers, 1440x900, dark and light, every state): n7-latihan, r1-panitia, n7-plot, r2-berkas, r2-qr and r3-putar. Their findings are the by-eye rows at the end of the list.",
+    "Still never looked at by eye: r3-soal, most of n7-bank, and light theme on most of the first-run screens.",
+    "The last audit run was stopped by low memory, so changes made after the pass-4 screenshots are marked applied, not fixed: nothing in this report claims a measurement that was not made.",
 ]
 
 
@@ -227,7 +293,11 @@ def counts(path):
 
 
 before, nb = counts("audit9.before.json")
-after, na = counts("audit9.json")
+_p3 = json.load(open(os.path.join(SH, "audit9.pass3.json"), encoding="utf-8"))["results"]
+_p4 = json.load(open(os.path.join(SH, "audit9.pass4.json"), encoding="utf-8"))["results"]
+_re = {r["screen"] for r in _p4}
+json.dump({"results": [r for r in _p3 if r["screen"] not in _re] + _p4}, open(os.path.join(SH, "audit9.merged.json"), "w", encoding="utf-8"))
+after, na = counts("audit9.merged.json")
 
 rows = []
 for (i, g, scr, st, sev, cat, title, seen, where, fix, status, ev) in F:
