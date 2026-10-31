@@ -709,12 +709,13 @@
 /* pick the fix */
 .r3fix__slot {
   background: color-mix(in srgb, var(--accent) 7%, transparent);
-  border-left: 3px solid var(--accent);
+  /* The marker is an inset shadow, not a border, so the line number and the code start at the same x as the plain lines. */
+  box-shadow: inset 3px 0 0 var(--accent);
   padding-top: 3px;
   padding-bottom: 3px;
 }
 .r3fix__slot[data-set="yes"] {
-  border-left-color: var(--ok);
+  box-shadow: inset 3px 0 0 var(--ok);
 }
 .r3fix__dd {
   flex: 1;
