@@ -269,10 +269,40 @@ for i, e in enumerate(EYES, 1):
     F.append((f"{g}-{_n[g]:02d}", g, e["screen"], "by-eye review", e["severity"], e["category"].replace("-", " ").capitalize(), title,
               e["seen"], e["where"], (e["fix"] + (" Done: " + note if note else "")), status, None))
 
+
+# Second reviewer (the other session, 31 Oct 2026): 70 findings survived its skeptic check (4 broken, 51 ugly, 15 fragile), 48 were dropped.
+# Its four broken findings are listed here; the rest overlap the rows above or are lists of smaller fixes, applied in rec11.css.
+PEER = [
+    ("R2", "r2-qr", "light theme, every stage", "broken", "Contrast",
+     "The not-yet-arrived dots on the QR screen are invisible in the light theme",
+     "Whole rows of dots look empty, so the progress can only be read from the number.",
+     "rec2.css .r2proj__dots i used --surface-4, the colour of the light background.",
+     "A 1.5px ring on the dots (rec11.css).", "applied"),
+    ("R2", "r2-qr", "Tubes stage, 1280x600", "broken", "Overflow or clipping",
+     "At 1280x600 the Tubes code card runs off the bottom of the frame",
+     "Four rows of 38px dots plus a wrapped place name push the code card past the frame, and its second line is cut in half.",
+     "rec2.css .r2proj__dots, columns of 1fr with no size cap.",
+     "Dots stop at 28px (48px in the few-people state), and the place line no longer leaves one word alone (rec11.css).", "applied"),
+    ("R3", "r3-keadaan", "Waktu Habis", "broken", "Consistency",
+     "The timer chip says DIJEDA when the part has ended",
+     "The header chip reads Dijeda over 00:00:00 with a red border while the overlay says time is up.",
+     "screens-rec3.js Timer fell back to Dijeda for any frozen timer. (The app was not affected: it freezes the timer only when paused.)",
+     "A frozen timer at zero now reads Habis.", "applied"),
+    ("R3", "r3-lc", "Judge queue (antre)", "broken", "Consistency",
+     "The queue card says number 3 of 5 but the amber Kamu chip is the 4th",
+     "The card's own number and the highlighted chip disagree.",
+     "screens-rec3lc.js had the number typed in as 3.",
+     "The number is computed from the queue position of the viewer's seat.", "applied"),
+]
+for (g, scr, st, sev, cat, title, seen, where, fix, status) in PEER:
+    _n[g] += 1
+    F.append((f"{g}-{_n[g]:02d}", g, scr, st + " (second reviewer)", sev, cat, title, seen, where, fix, status, None))
+
 NOT_REVIEWED = [
     "By eye in the first run: the whole of n7-caas in dark, r3-checkin, r3-lc (3 of 9 states), r3-keadaan (2 of 9), n7-cutting, parts of r1-panel, r1-kalender and n7-malam.",
     "By eye on 31 Oct 2026 (six reviewers, 1440x900, dark and light, every state): n7-latihan, r1-panitia, n7-plot, r2-berkas, r2-qr and r3-putar. Their findings are the by-eye rows at the end of the list.",
-    "Still never looked at by eye: r3-soal, most of n7-bank, and light theme on most of the first-run screens.",
+    "A second reviewer (another session, 3 agents at a time) looked at the other screens at 1440x900 and kept 70 findings after a skeptic pass (4 broken, 51 ugly, 15 fragile; 48 dropped). Its four broken findings are in the list; the rest were folded into rec11.css or overlap rows here. It did not look below the fold or at most 1280x720 and 1680x1050 shots.",
+    "r3-soal and n7-bank were looked at by eye only by the second reviewer, at 1440x900. Light theme on the first-run screens is covered by the two by-eye passes and the automatic checks, not by a full pass of its own.",
     "The last audit run was stopped by low memory, so changes made after the pass-4 screenshots are marked applied, not fixed: nothing in this report claims a measurement that was not made.",
 ]
 
