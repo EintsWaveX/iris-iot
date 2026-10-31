@@ -154,10 +154,31 @@ export const toQuestion = (d: Draft): Question =>
     answer: d.answer,
   }) as Question;
 
+const FENCE_LINE = /^\s{0,3}(`{3,}|~{3,})/;
+
+/**
+ * True when a text opens a code fence and never closes it. A closing fence is
+ * the fence characters alone on their line, so "``` (diubah)" does not close.
+ * Left open, the export reads the options that follow as part of the code.
+ */
+export function openFence(text: string): boolean {
+  let fence: { ch: string; n: number } | null = null;
+  for (const line of text.split("\n")) {
+    const f = FENCE_LINE.exec(line);
+    if (!f) continue;
+    const ch = f[1][0];
+    const n = f[1].length;
+    if (!fence) fence = { ch, n };
+    else if (fence.ch === ch && n >= fence.n && line.trim() === f[1]) fence = null;
+  }
+  return fence !== null;
+}
+
 /** Every rule of EXAM-ENGINE 1.3 plus a title, as `{ field, kode }` */
 export function problems(d: Draft): FieldError[] {
   const errs: FieldError[] = [];
   if (d.title.trim() === "") errs.push({ field: "title", kode: "judul_kosong" });
+  if (openFence(d.body.prompt)) errs.push({ field: "body.prompt", kode: "pagar_terbuka" });
   errs.push(...validateQuestion(toQuestion(d)));
   return errs;
 }

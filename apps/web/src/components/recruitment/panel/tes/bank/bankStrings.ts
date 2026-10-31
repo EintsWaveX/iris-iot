@@ -1038,6 +1038,7 @@ export const BK = dict({
 
 const PROBLEM_ID: Record<string, string> = {
   judul_kosong: "Judul belum diisi.",
+  pagar_terbuka: "Ada blok kode yang belum ditutup. Tutup dengan ``` sendirian di barisnya.",
   prompt_kosong: "Soal belum ditulis.",
   teks_kosong: "Ada isian yang masih kosong.",
   id_salah: "Ada id yang tidak sah.",
@@ -1065,6 +1066,7 @@ const PROBLEM_ID: Record<string, string> = {
 };
 const PROBLEM_EN: Record<string, string> = {
   judul_kosong: "The title is empty.",
+  pagar_terbuka: "A code block is not closed. Close it with ``` alone on its line.",
   prompt_kosong: "The prompt is empty.",
   teks_kosong: "A field is still empty.",
   id_salah: "An id is not valid.",
@@ -1092,6 +1094,7 @@ const PROBLEM_EN: Record<string, string> = {
 };
 const PROBLEM_ZH: Record<string, string> = {
   judul_kosong: "标题还没有填写。",
+  pagar_terbuka: "有代码块没有关闭。请在单独一行写 ``` 来关闭它。",
   prompt_kosong: "题干还没有写。",
   teks_kosong: "还有空着的内容。",
   id_salah: "有编号不合法。",
