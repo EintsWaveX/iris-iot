@@ -70,7 +70,7 @@ summary::-webkit-details-marker { display: none; }
 .tag.ugly { background: var(--ugly-soft); color: var(--ugly); }
 .tag.fragile { background: var(--fragile-soft); color: var(--fragile); }
 .tag.fixed, .tag.applied { background: var(--ok-soft); color: var(--ok); }
-.tag.open { background: var(--surface-2); color: var(--muted); }
+.tag.open, .tag.bydesign { background: var(--surface-2); color: var(--muted); }
 .meta { grid-column: 2 / 4; color: var(--muted); font-size: .82rem; }
 .body { padding: 0 16px 16px; display: grid; gap: 12px; }
 dl { margin: 0; display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; }
@@ -117,7 +117,7 @@ figcaption { font-size: .78rem; color: var(--muted); }
 <script>
 /*DATA*/
 const SEV = { broken: "Broken", ugly: "Ugly", fragile: "Fragile" };
-const STAT = { fixed: "Fixed", applied: "Changed", open: "Open" };
+const STAT = { fixed: "Fixed", applied: "Changed", open: "Open", bydesign: "By design" };
 const state = { g: "all", s: "all", st: "all", q: "" };
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const rows = DATA.rows;
@@ -153,7 +153,7 @@ function chips(id, opts, key) {
 }
 chips("fg", [["all", "All"], ["R1", "R1"], ["R2", "R2"], ["R3", "R3"], ["R1+R2+R3", "Whole app"]], "g");
 chips("fs", [["all", "All"], ["broken", "Broken"], ["ugly", "Ugly"], ["fragile", "Fragile"]], "s");
-chips("fst", [["all", "All"], ["changed", "Changed"], ["open", "Open"]], "st");
+chips("fst", [["all", "All"], ["changed", "Changed"], ["open", "Open"], ["bydesign", "By design"]], "st");
 document.getElementById("q").addEventListener("input", (e) => { state.q = e.target.value.toLowerCase(); render(); });
 
 function card(r) {
@@ -163,7 +163,7 @@ function card(r) {
 }
 function render() {
   const out = rows.filter((r) => (state.g === "all" || r.g === state.g) && (state.s === "all" || r.sev === state.s) &&
-    (state.st === "all" || (state.st === "open" ? r.status === "open" : r.status !== "open")) &&
+    (state.st === "all" || (state.st === "open" ? r.status === "open" : state.st === "bydesign" ? r.status === "bydesign" : r.status === "fixed" || r.status === "applied")) &&
     (!state.q || (r.id + " " + r.title + " " + r.screen + " " + r.states + " " + r.cat + " " + r.seen).toLowerCase().includes(state.q)));
   document.getElementById("n").textContent = out.length + " of " + rows.length + " shown";
   document.getElementById("list").innerHTML = out.length ? out.map(card).join("") : `<div class="empty">Nothing matches these filters.</div>`;

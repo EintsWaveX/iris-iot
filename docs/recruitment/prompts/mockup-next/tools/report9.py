@@ -228,38 +228,38 @@ F = [(*r[:9], UPDATE[r[0]][1] if r[0] in UPDATE else r[9], UPDATE[r[0]][0] if r[
 # By-eye review of the screens that had only automatic checks (workflow wf_1dac0d04-fdf, 6 reviewers, 1440x900 dark and light).
 EYES = json.load(open(os.path.join(SH, "eyes5.json"), encoding="utf-8"))
 EYE_META = {  # index: (group, short title, status, note on what was done)
-    1: ("R1", "The Ringkasan pill in the header is pale on pale in the light theme", "open", ""),
-    2: ("R1", "The Hari Ini card icon is an empty box and sits above the text line", "open", ""),
+    1: ("R1", "The Ringkasan pill in the header is pale on pale in the light theme", "fixed", "rec11.css: in light the area pill has darker text, a stronger fill and a 1px ring. Seen in the shot of n7-latihan light: it now reads clearly beside AKADEMIK."),
+    2: ("R1", "The Hari Ini card icon is an empty box and sits above the text line", "fixed", "rec11.css: the swatch is a 12px round dot centred on the first line. Seen in the n7-latihan shot."),
     3: ("R1", "The year wraps alone on a second line in the Hari Ini date range", "applied", "rec11.css: text-wrap pretty on hints and ledes."),
-    4: ("R1", "The Sebagai toggle and Keluar differ in height and corner radius", "open", ""),
+    4: ("R1", "The Sebagai toggle and Keluar differ in height and corner radius", "applied", "rec11.css: the toggle is 44px with 10px corners like Keluar, centred on one line. Not re-measured."),
     5: ("R3", "The bottom bar of the draw screen has no side padding", "applied", "rec11.css: 16px side padding on .r3step__bar."),
     6: ("R3", "The disabled Lihat Soalmu button is hard to read", "applied", "Same rule as R3-06."),
-    7: ("R3", "The Kembali sheet under Soalmu Malam Ini runs off the frame as two mismatched layers", "open", ""),
-    8: ("R3", "Draw card titles on two lines push their point line down in one card", "open", ""),
-    9: ("R3", "The draw screen leaves its lower half empty", "open", ""),
-    10: ("R1", "The Panitia pill in the header is pale on pale in the light theme", "open", ""),
-    11: ("R1", "The Asisten search placeholder is cut mid-word and the only chip is truncated", "open", ""),
-    12: ("R1", "Division names are cut once the star buttons appear", "open", ""),
-    13: ("R1", "The Asisten card title is larger than the division titles and starts at another height", "open", ""),
-    14: ("R2", "The tab strip rule in the review drawer stops about 40px short of the content", "open", ""),
-    15: ("R2", "The candidate detail modal is lopsided: 170px empty in the left column", "open", ""),
-    16: ("R2", "The page subtitle behind a short modal is sliced by its top edge", "open", ""),
+    7: ("R3", "The Kembali sheet under Soalmu Malam Ini runs off the frame as two mismatched layers", "fixed", "rec11.css: the page grid gave its spare height to an empty third row, so the bar floated. The bar is now opaque and pinned to the bottom of the frame. Seen in both draw states."),
+    8: ("R3", "Draw card titles on two lines push their point line down in one card", "fixed", "rec11.css: every draw card reserves two title lines, so the badge and the point line sit at one height in all five. Seen in the r3-putar shot."),
+    9: ("R3", "The draw screen leaves its lower half empty", "fixed", "rec11.css: the bottom bar is pinned to the bottom of the frame, so the empty space sits between cards and bar instead of under them. Seen in the r3-putar shot."),
+    10: ("R1", "The Panitia pill in the header is pale on pale in the light theme", "applied", "Same rule as R1-10: the Panitia pill is the same area pill. Not re-checked in the Panitia light shot."),
+    11: ("R1", "The Asisten search placeholder is cut mid-word and the only chip is truncated", "fixed", "The Asisten card title is 16px like the division titles and the search is 44px. The placeholder in the current build reads Cari Asisten and fits."),
+    12: ("R1", "Division names are cut once the star buttons appear", "fixed", "rec11.css: names take two lines before they are cut. Seen in the Panitia shot: every name in the visible rows shows in full."),
+    13: ("R1", "The Asisten card title is larger than the division titles and starts at another height", "fixed", "rec11.css: the Asisten title matches the division titles (16px) and the search is 44px. Seen in the Panitia shot."),
+    14: ("R2", "The tab strip rule in the review drawer stops about 40px short of the content", "bydesign", "The strip shares its row with the previous and next candidate arrows (the 40px at the right), so the rule ends where the arrows begin. It is not a gap. In the verified state there are no arrows and the strip is full width."),
+    15: ("R2", "The candidate detail modal is lopsided: 170px empty in the left column", "fixed", "screens-rec1.js and rec11.css: a role without the Berkas desk gets the standard-width dialog in one column (details, note, Catatan), so no half is empty. Seen in the r2-berkas shot."),
+    16: ("R2", "The page subtitle behind a short modal is sliced by its top edge", "fixed", "rec11.css: every scrim blurs what is behind it (6px), so page text cut by a dialog edge reads as background. Seen in the r2-berkas shot."),
     17: ("R2", "The Tutup button sits 20px inside the column edge", "applied", "rec11.css: a lone ghost button in a footer is pulled back by its padding."),
-    18: ("R2", "The Catatan placeholder is faint in the light theme", "open", ""),
-    19: ("R2", "Day cards start at different heights when a title wraps", "open", ""),
-    20: ("R2", "The last board column is cut at the board edge", "open", ""),
+    18: ("R2", "The Catatan placeholder is faint in the light theme", "applied", "rec11.css: in light, placeholders use the muted text colour at full strength. Not re-checked in the light shot."),
+    19: ("R2", "Day cards start at different heights when a title wraps", "fixed", "rec11.css: the day card header reserves two lines. Measured: the Tambah Ruang buttons now sit within 1px of each other."),
+    20: ("R2", "The last board column is cut at the board edge", "applied", "rec11.css: the Papan board fades out at its right edge and keeps 28px of padding at the end, so the last column clears the fade at full scroll. Not re-checked in the shot."),
     21: ("R2", "The Papan search is 52px tall beside 44px buttons", "applied", "rec11.css: in a row with small buttons the search is 44px."),
-    22: ("R2", "The Plotting pill and a hint are washed out in the light theme", "open", ""),
+    22: ("R2", "The Plotting pill and a hint are washed out in the light theme", "applied", "Same rule as R1-10: the Plotting pill is the same area pill. Not re-checked in the Plotting light shot."),
     23: ("R2", "The not-yet-here dots on the QR screen are invisible in the light theme", "applied", "rec11.css: a 1.5px ring on the dots."),
-    24: ("R2", "The big count and its caption do not share a baseline", "open", ""),
+    24: ("R2", "The big count and its caption do not share a baseline", "fixed", "rec11.css: the rolling digit box clipped with overflow hidden, which moved its baseline to its bottom edge. It clips with overflow clip and sits on the text baseline. Measured: the number and caption baselines differ by 0.3px."),
     25: ("R2", "The last dot row is 10px above the code card", "applied", "rec11.css: 12px under the dot grid."),
-    26: ("R2", "The QR display leaves a quarter of its width and a third of its height empty", "open", ""),
-    27: ("R2", "The dot size and the code card width change a lot between states", "open", ""),
+    26: ("R2", "The QR display leaves a quarter of its width and a third of its height empty", "fixed", "rec11.css: the QR group is centred in the space under the top bar and the QR is 340px in the short frame. Seen in the default shot."),
+    27: ("R2", "The dot size and the code card width change a lot between states", "applied", "rec11.css: the info column is one width (720px) in every state; the dot size is capped at 28px (48px for a few people). Not re-measured in every state."),
     28: ("R2", "The QR subtitle leaves the word Deli alone on a line", "applied", "rec11.css: text-wrap pretty."),
-    29: ("R2", "The QR frame's top edge moves between states", "open", ""),
-    30: ("R2", "The status card keeps its button far from its message", "open", ""),
-    31: ("R2", "The Kedaluwarsa card is taller and moves its icon and link", "open", ""),
-    32: ("R2", "The Kirim button and the code placeholder are faint in the light theme", "open", ""),
+    29: ("R2", "The QR frame's top edge moves between states", "fixed", "rec11.css: the QR top lines up with the ABSENSI label in every state (measured in default and tubes: both at the top of the group)."),
+    30: ("R2", "The status card keeps its button far from its message", "fixed", "screens-rec2p.js and rec11.css: the button now sits in the text column under the message and the icon is level with the title. Seen in the bukan and kedaluwarsa shots."),
+    31: ("R2", "The Kedaluwarsa card is taller and moves its icon and link", "applied", "Same change as R2-30: the Kedaluwarsa card now has the same icon and title position as the other three. It keeps a ghost button on purpose, because Kirim is the one primary action there. Seen in the kedaluwarsa shot."),
+    32: ("R2", "The Kirim button and the code placeholder are faint in the light theme", "applied", "rec11.css: in light, the placeholder is the muted text colour and the disabled Kirim has a grey surface with muted text and a clear border. Not re-checked in the light shot."),
     33: ("R2", "Download XLSX is indented 19px from the content edge in the Absensi dialog", "applied", "rec11.css: a first ghost button in a footer is pulled back by its padding."),
 }
 _n = {"R1": 9, "R2": 5, "R3": 12}
@@ -298,12 +298,17 @@ for (g, scr, st, sev, cat, title, seen, where, fix, status) in PEER:
     _n[g] += 1
     F.append((f"{g}-{_n[g]:02d}", g, scr, st + " (second reviewer)", sev, cat, title, seen, where, fix, status, None))
 
+from peer2 import PEER2
+for (g, scr, sev, title, seen, status, note) in PEER2:
+    _n[g] += 1
+    F.append((f"{g}-{_n[g]:02d}", g, scr, "second reviewer", sev, "Second reviewer", title, seen, "", note or "Still open.", status, None))
+
 NOT_REVIEWED = [
     "By eye in the first run: the whole of n7-caas in dark, r3-checkin, r3-lc (3 of 9 states), r3-keadaan (2 of 9), n7-cutting, parts of r1-panel, r1-kalender and n7-malam.",
     "By eye on 31 Oct 2026 (six reviewers, 1440x900, dark and light, every state): n7-latihan, r1-panitia, n7-plot, r2-berkas, r2-qr and r3-putar. Their findings are the by-eye rows at the end of the list.",
     "A second reviewer (another session, 3 agents at a time) looked at the other screens at 1440x900 and kept 70 findings after a skeptic pass (4 broken, 51 ugly, 15 fragile; 48 dropped). Its four broken findings are in the list; the rest were folded into rec11.css or overlap rows here. It did not look below the fold or at most 1280x720 and 1680x1050 shots.",
     "r3-soal and n7-bank were looked at by eye only by the second reviewer, at 1440x900. Light theme on the first-run screens is covered by the two by-eye passes and the automatic checks, not by a full pass of its own.",
-    "The last audit run was stopped by low memory, so changes made after the pass-4 screenshots are marked applied, not fixed: nothing in this report claims a measurement that was not made.",
+    "The last audit run was stopped by low memory, so changes made after the pass-4 screenshots are marked applied, not fixed. On 31 Oct 2026 about 30 of them were checked with single-screen shots or by measuring one element, and those are marked fixed. Nothing in this report claims a measurement that was not made.",
 ]
 
 
