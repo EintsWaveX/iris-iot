@@ -410,7 +410,7 @@ export interface AccountResetResponse {
 
 /** GET settings: every editable setting, for a Panitia member. */
 export interface SettingView {
-  key: "docs" | "words" | "cutting";
+  key: "docs" | "words" | "cutting" | "wawancara" | "mengajar";
   label: { id: string; en: string };
   value: unknown;
   default: unknown;
@@ -716,6 +716,17 @@ export interface CutRowView {
   note: string | null;
   /** The candidate opened their envelope (after the reveal) */
   opened: boolean | null;
+  /** Wawancara and Mengajar only: what the examiners' sheets say */
+  iv?: {
+    mean: number | null;
+    spread: number | null;
+    wide: boolean;
+    verdict: "lolos" | "ragu" | "cut" | null;
+    suggested: "lolos" | "ragu" | "cut" | null;
+    sheets: number;
+    expected: number;
+    case: { kind: string; status: "susulan" | "gugur" | null } | null;
+  } | null;
 }
 
 export interface CutLock {

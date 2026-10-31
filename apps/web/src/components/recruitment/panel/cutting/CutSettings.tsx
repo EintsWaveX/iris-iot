@@ -50,6 +50,7 @@ const T = {
       stage: {
         berkas: "Seleksi Berkas",
         tes_tulis: "Tes Tulis dan Program",
+        wawancara: "Wawancara",
         tubes: "Tubes",
         mengajar: "Tes Mengajar",
       },
@@ -107,6 +108,7 @@ const T = {
       stage: {
         berkas: "Document Selection",
         tes_tulis: "Written Test and Program",
+        wawancara: "Interview",
         tubes: "Project",
         mengajar: "Teaching Test",
       },

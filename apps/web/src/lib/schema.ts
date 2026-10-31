@@ -2440,7 +2440,7 @@ export type RecSlotRow = typeof recSlot.$inferSelect;
 export const QUESTION_STATUS = ["draft", "ready"] as const;
 export const QUESTION_LOG_KINDS = ["save", "key", "status", "void", "unvoid", "delete"] as const;
 export const REFERENCE_STATUS = ["ok", "gagal"] as const;
-export const EXAMINER_ROLES = ["pengawas"] as const;
+export const EXAMINER_ROLES = ["pengawas", "penguji", "pj_luar", "pj_dalam"] as const;
 
 /** One JSON of parts config per edition, and the draw's salt (never leaves the server). */
 export const recExamConfig = pgTable("rec_exam_config", {
@@ -2556,6 +2556,8 @@ export const recSlotExaminer = pgTable(
       .notNull()
       .references(() => asisten.nim),
     role: text("role", { enum: EXAMINER_ROLES }).notNull().default("pengawas"),
+    /** Order inside a slot: pairs sit by booth, so positions 0 and 1 take the first CaAs */
+    pos: integer("pos").notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.slotId, t.asistenNim, t.role] })],
 );
@@ -2997,6 +2999,75 @@ export const recRubricScore = pgTable(
     index("rec_rubric_score_subject_idx").on(t.rubricId, t.subjectId),
   ],
 );
+
+/**
+ * Interview and teaching sheets (Wawancara and Mengajar). A pair or panel fills
+ * ONE document for a CaAs (`rec_sheet_shared`); each examiner's 1 to 5 level per
+ * parameter is their own row (`rec_sheet`), private until every sheet is sent.
+ */
+export const SHEET_VERDICTS = ["lolos", "ragu", "cut"] as const;
+export const SHEET_CASE_STATUS = ["susulan", "gugur"] as const;
+
+export interface SheetCase {
+  kind: string;
+  /** Minutes late, for kind "telat" */
+  minutes?: number;
+  /** The reason the examiner picked (class, misfortune, none; or the excuse for an absence) */
+  why?: string;
+  /** What the rule decided: an offer of the makeup, gugur, or carry on (null) */
+  status: (typeof SHEET_CASE_STATUS)[number] | null;
+  note: string;
+  by: string;
+  at: string;
+}
+
+export const recSheet = pgTable(
+  "rec_sheet",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    graderNim: text("grader_nim").notNull(),
+    /** Level per parameter key */
+    levels: jsonb("levels").$type<Record<string, number>>().notNull().default({}),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("rec_sheet_unik").on(t.candidateId, t.stage, t.graderNim)],
+);
+
+export const recSheetShared = pgTable(
+  "rec_sheet_shared",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    /** Answer text per question id */
+    answers: jsonb("answers").$type<Record<string, string>>().notNull().default({}),
+    skipped: jsonb("skipped").$type<string[]>().notNull().default([]),
+    /** Conclusion per parameter key */
+    concl: jsonb("concl").$type<Record<string, string>>().notNull().default({}),
+    other: text("other").notNull().default(""),
+    verdict: text("verdict", { enum: SHEET_VERDICTS }),
+    /** The berita acara */
+    ba: text("ba").notNull().default(""),
+    recording: boolean("recording").notNull().default(false),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    caseInfo: jsonb("case_info").$type<SheetCase | null>(),
+    /** Bumps on every write, so two examiners saving at once are told */
+    version: integer("version").notNull().default(1),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("rec_sheet_shared_unik").on(t.candidateId, t.stage)],
+);
+
+export type RecSheetRow = typeof recSheet.$inferSelect;
+export type RecSheetSharedRow = typeof recSheetShared.$inferSelect;
 
 export type RecLcTopicRow = typeof recLcTopic.$inferSelect;
 export type RecLivecodeRow = typeof recLivecode.$inferSelect;

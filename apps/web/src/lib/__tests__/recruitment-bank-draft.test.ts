@@ -221,7 +221,7 @@ describe("an unclosed code fence", () => {
   });
 
   it("is a problem on the prompt, so the editor refuses the save", () => {
-    const d = blankDraft("logika", "cpp", "single");
+    const d = blankDraft("logika", "c", "single");
     const bad = { ...d, body: { ...d.body, prompt: "x\n```c\nint a;\n``` (diubah)" } } as Draft;
     expect(problems(bad)).toContainEqual({ field: "body.prompt", kode: "pagar_terbuka" });
   });

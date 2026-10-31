@@ -56,6 +56,8 @@ import {
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
+import { muatNilaiTahap } from "./recruitment-s4.js";
+import { isIvStage } from "../../src/lib/recruitment/interview.js";
 import { cuttingFor } from "../../src/lib/recruitment/settings.js";
 
 /** What the deck aims for at each Cutting: the editors' numbers (Atur Titik Awal), else PRD 3, Targets. */
@@ -218,16 +220,37 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
   );
   // Tes Tulis reads the exam's scores (prompt 13); a candidate with no seat has none.
   const nilai = stage === "tes_tulis" ? await muatNilaiCutting(db, edisi.id) : null;
+  // Wawancara and Mengajar read the sent sheets: the mean of the examiners, out of 100.
+  const iv = isIvStage(stage)
+    ? new Map((await muatNilaiTahap(db, edisi.id, stage)).map((x) => [x.id, x]))
+    : null;
   const rows: CutRowView[] = pool.map((r) => ({
     id: r.id,
     nim: r.nim,
     nama: r.nama,
     kelas: r.kelas,
     fm: r.fm,
-    tt: r.tt,
+    // For an interview or teaching board "tt" reads "sat the session": in a slot and not put off by a case.
+    tt: iv ? iv.has(r.id) && !iv.get(r.id)?.case?.status : r.tt,
+    iv: iv?.has(r.id)
+      ? {
+          mean: iv.get(r.id)!.mean,
+          spread: iv.get(r.id)!.spread,
+          wide: iv.get(r.id)!.wide,
+          verdict: iv.get(r.id)!.verdict,
+          suggested: iv.get(r.id)!.suggested,
+          sheets: iv.get(r.id)!.sheets.length,
+          expected: iv.get(r.id)!.expected,
+          case: iv.get(r.id)!.case,
+        }
+      : null,
     // Logika, FITB, Debugging, Live Coding and the total of 4000, from the exam engine.
     parts: nilai?.byCandidate.get(r.id)?.parts ?? [null, null, null, null],
-    total: nilai?.byCandidate.get(r.id)?.total ?? null,
+    total: iv
+      ? iv.get(r.id)?.mean != null
+        ? Math.round(iv.get(r.id)!.mean!)
+        : null
+      : (nilai?.byCandidate.get(r.id)?.total ?? null),
     berkas: stage === "berkas" ? { status: r.status as never, score: r.score, docs: r.docs } : null,
     proposal: r.result?.proposal ?? null,
     proposedBy: r.result?.proposedBy ? (kode.get(r.result.proposedBy) ?? null) : null,

@@ -183,7 +183,7 @@ describe("the registry", () => {
     expect(SETTINGS.docs.check([DOCS_DEFAULT[0], DOCS_DEFAULT[0]])).toBeNull();
     const mulai = { top: 40, minScore: 1800, targetMin: 50, targetMax: 70 };
     expect(SETTINGS.cutting.check({ tes_tulis: mulai })).toEqual({ tes_tulis: mulai });
-    expect(SETTINGS.cutting.check({ wawancara: mulai })).toBeNull();
+    expect(SETTINGS.cutting.check({ tubesx: mulai })).toBeNull();
     expect(SETTINGS.cutting.check({ mengajar: mulai })).toEqual({ mengajar: mulai });
     expect(SETTINGS.cutting.check({ berkas: { ...mulai, top: 0 } })).toBeNull();
     expect(
@@ -206,13 +206,19 @@ describe("the registry", () => {
     expect(envelopeKey("first_meet")).toBeNull();
     expect(isiNama("Halo {nama}, {nama}!", "Sari")).toBe("Halo Sari, Sari!");
   });
-  it("starts a Cutting from the saved numbers, else the 2026 ones, and knows four stages", () => {
+  it("starts a Cutting from the saved numbers, else the 2026 ones, and knows five stages", () => {
     expect(cuttingFor(undefined, "tes_tulis")).toEqual(CUTTING_DEFAULT.tes_tulis);
     const mulai = { top: 40, minScore: 1800, targetMin: 50, targetMax: 70 };
     expect(cuttingFor({ tes_tulis: mulai }, "tes_tulis")).toEqual(mulai);
     expect(cuttingFor({ tes_tulis: mulai }, "berkas")).toEqual(CUTTING_DEFAULT.berkas);
     expect(cuttingFor({}, "tubes")).toEqual(CUTTING_DEFAULT.tubes);
-    expect(cuttingFor({}, "wawancara")).toBeNull();
+    expect(cuttingFor({}, "wawancara")).toEqual({
+      top: 40,
+      minScore: 50,
+      targetMin: 40,
+      targetMax: 50,
+    });
+    expect(cuttingFor({}, "penerimaan")).toBeNull();
   });
   it("lets Ketua and Admin change the document list, Akademik not", () => {
     const seat = (division: string) => ({ penuh: false, kursi: { division } });
@@ -231,7 +237,7 @@ describe("settings", () => {
     const r = await panggil("GET", "settings", { cookie: asistenCookie() });
     expect(r.code).toBe(200);
     const list = r.body.settings as { key: string; custom: boolean; canEdit: boolean }[];
-    expect(list.map((x) => x.key)).toEqual(["docs", "words", "cutting"]);
+    expect(list.map((x) => x.key)).toEqual(["docs", "words", "cutting", "wawancara", "mengajar"]);
     expect(list.every((x) => !x.custom && !x.canEdit)).toBe(true);
   });
   it("is closed to an Asisten with no seat", async () => {

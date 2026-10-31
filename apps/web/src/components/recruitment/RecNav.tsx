@@ -33,6 +33,8 @@ import {
   TimerIcon,
   UsersThreeIcon,
   type IconProps,
+  ChalkboardTeacherIcon,
+  ChatsIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
@@ -212,6 +214,8 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         ...(rights?.candidates ? [tab("kandidat", t.kandidat, ListChecksIcon)] : []),
         ...(rights?.cuttingPropose ? [tab("cutting", t.cutting, ScissorsIcon)] : []),
         ...(rights?.plotting ? [tab("plotting", t.plotting, TableIcon)] : []),
+        tab("wawancara", t.wawancara, ChatsIcon),
+        tab("mengajar", t.mengajar, ChalkboardTeacherIcon),
         ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
         ...(rights?.bank ? [tab("bank", t.bank, DatabaseIcon)] : []),
         tab("panitia", t.panitia, UsersThreeIcon),

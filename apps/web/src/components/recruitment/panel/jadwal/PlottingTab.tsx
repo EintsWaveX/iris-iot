@@ -27,6 +27,9 @@ import {
 import { TrashIcon } from "@phosphor-icons/react";
 import gsap from "gsap";
 import Confirm from "../../../ui/Confirm";
+import CrewBoard from "../iv/CrewBoard";
+import { IV } from "../iv/ivStrings";
+import { isIvStage } from "../../../../lib/recruitment/interview";
 import { Stepper, TimeField } from "../../../ui/Controls";
 import Dialog from "../../../ui/Dialog";
 import Disclose from "../../../ui/Disclose";
@@ -900,7 +903,7 @@ export default function PlottingTab({
   );
   const [stage, setStage] = useState<StageKey>("tes_tulis");
   const aktif = stages.includes(stage) ? stage : (stages[0] ?? "tes_tulis");
-  const [bag, setBag] = useState<"slot" | "minta" | "papan">("slot");
+  const [bag, setBag] = useState<"slot" | "minta" | "papan" | "crew">("slot");
   const board = useRecBoard(aktif, true);
   const can = rights.plotting;
   const d = board.data;
@@ -917,6 +920,7 @@ export default function PlottingTab({
             { value: "slot", label: t.slot },
             { value: "minta", label: bukaN ? `${t.requests} (${bukaN})` : t.requests },
             { value: "papan", label: t.board },
+            ...(isIvStage(aktif) ? [{ value: "crew", label: IV(lang).crew.examiners }] : []),
           ]}
         />
         {stages.length > 1 && (
@@ -941,6 +945,8 @@ export default function PlottingTab({
           can={can}
           refresh={board.refresh}
         />
+      ) : bag === "crew" && isIvStage(aktif) ? (
+        <CrewBoard lang={lang} stage={aktif} rights={rights} />
       ) : bag === "minta" ? (
         <Requests lang={lang} data={d} can={can} refresh={board.refresh} />
       ) : (

@@ -13,6 +13,8 @@ export const PANEL_TABS = [
   "kandidat",
   "cutting",
   "plotting",
+  "wawancara",
+  "mengajar",
   "tes",
   "bank",
   "panitia",

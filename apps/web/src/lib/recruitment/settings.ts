@@ -10,11 +10,12 @@
  * Events (Kalender), slots (Plotting), the exam parts config and the bank
  * already have their own edit surfaces; this registry holds the rest.
  */
+import { IV_DEFAULT, checkTemplate, type IvTemplate } from "./interview.js";
 import type { CommitteeDivision, DocKind } from "./types.js";
 
 export const SETTING_PREFIX = "rec_cfg_";
 
-export type SettingKey = "docs" | "words" | "cutting";
+export type SettingKey = "docs" | "words" | "cutting" | "wawancara" | "mengajar";
 
 export interface DocSetting {
   /** One of DOC_KINDS; the `kind` stored with an upload. The keys never change once stored. */
@@ -71,13 +72,15 @@ export const ENVELOPE_KEYS = [
   "penerimaan",
 ] as const;
 export type EnvelopeKey = (typeof ENVELOPE_KEYS)[number];
-export const CUTTING_STAGES = ["berkas", "tes_tulis", "tubes", "mengajar"] as const;
+export const CUTTING_STAGES = ["berkas", "tes_tulis", "wawancara", "tubes", "mengajar"] as const;
 export type CuttingStageKey = (typeof CUTTING_STAGES)[number];
 
 export interface SettingMap {
   docs: DocSetting[];
   words: Partial<Record<EnvelopeKey, WordSetting>>;
   cutting: Record<string, CuttingSetting>;
+  wawancara: IvTemplate;
+  mengajar: IvTemplate;
 }
 
 export interface SettingDef<K extends SettingKey> {
@@ -198,12 +201,14 @@ export function wordsFor(
 /** A line with `{nama}` filled in. */
 export const isiNama = (line: string, nama: string): string => line.replaceAll("{nama}", nama);
 
-/** The built-in start of each Cutting (the 2026 numbers, PRD 3 Targets). Wawancara has no Cutting of its own here. */
+/** The built-in start of each Cutting (the 2026 numbers, PRD 3 Targets). */
 export const CUTTING_DEFAULT: Record<(typeof CUTTING_STAGES)[number], CuttingSetting> = {
   berkas: { top: 90, minScore: 0, targetMin: 80, targetMax: 100 },
   tes_tulis: { top: 60, minScore: 2000, targetMin: 60, targetMax: 80 },
+  // Wawancara and Mengajar score out of 100 (the examiners' sheets); the Mengajar start is the top 24 (user, 2026-10-28).
+  wawancara: { top: 40, minScore: 50, targetMin: 40, targetMax: 50 },
   tubes: { top: 35, minScore: 0, targetMin: 30, targetMax: 40 },
-  mengajar: { top: 21, minScore: 0, targetMin: 20, targetMax: 23 },
+  mengajar: { top: 24, minScore: 52, targetMin: 20, targetMax: 23 },
 };
 
 function checkCutting(v: unknown): SettingMap["cutting"] | null {
@@ -253,6 +258,20 @@ export const SETTINGS: { [K in SettingKey]: SettingDef<K> } = {
     roles: ["ketua", "akademik"],
     def: {},
     check: checkCutting,
+  },
+  wawancara: {
+    key: "wawancara",
+    label: { id: "Template wawancara", en: "Interview template" },
+    roles: ["ketua", "akademik"],
+    def: IV_DEFAULT.wawancara,
+    check: checkTemplate,
+  },
+  mengajar: {
+    key: "mengajar",
+    label: { id: "Template mengajar", en: "Teaching template" },
+    roles: ["ketua", "akademik"],
+    def: IV_DEFAULT.mengajar,
+    check: checkTemplate,
   },
 };
 

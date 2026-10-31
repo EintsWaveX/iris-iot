@@ -82,6 +82,11 @@ const BACA: Record<string, string[]> = {
     "lc-topics",
     "lc-templates",
     "score-stats",
+    // R4 and R6 (2026-11-01), api/_lib/recruitment-s4.ts
+    "iv-crew",
+    "iv-mine",
+    "iv-sheet",
+    "iv-nilai",
   ],
 };
 
@@ -92,7 +97,11 @@ const RUTE: Record<string, string[]> = {
   auth: ["api/auth/[aksi].ts"],
   tp: ["api/tp/[aksi].ts"],
   profil: ["api/profil/[aksi].ts"],
-  recruitment: ["api/recruitment/[aksi].ts", "api/_lib/recruitment-s3.ts"],
+  recruitment: [
+    "api/recruitment/[aksi].ts",
+    "api/_lib/recruitment-s3.ts",
+    "api/_lib/recruitment-s4.ts",
+  ],
 };
 
 /** Every action name a route dispatches on: `aksi === "x"` comparisons and
