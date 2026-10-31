@@ -218,7 +218,7 @@ export const BK = dict({
     /* states */
     running: "Ada ruang yang sedang berjalan",
     runningBody:
-      "Soal yang siap, dan memindah soal ke atau dari Siap, terkunci sampai ruang selesai. Draf tetap bisa diubah.",
+      "Soal Siap tidak bisa diubah, dan tidak bisa dipindah ke atau dari Siap, sampai ruang selesai. Draf masih bisa diubah.",
     runningTip: "Ruang sedang berjalan",
     shownTitle: "Sudah tampil ke kursi",
     shownBody:

@@ -724,7 +724,8 @@
   pointer-events: none;
 }
 .rkal__bar {
-  background: color-mix(in srgb, var(--c) 26%, transparent);
+  /* opaque, so cell borders and the today outline do not cut through the label */
+  background: color-mix(in srgb, var(--c) 26%, var(--surface-1));
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--c) 70%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--c) 70%, transparent);
