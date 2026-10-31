@@ -881,6 +881,13 @@
 .rkal__item > i {
   margin-top: 3px;
 }
+/* A plain event swatch is a round 12px dot centred on the first text line, not an empty box hanging below it. */
+.rkal__item > i:not([data-internal]) {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 6px;
+}
 .rkal__item:is(button) {
   cursor: pointer;
 }
