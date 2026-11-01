@@ -65,7 +65,15 @@ export default function Journey({
   return (
     <div
       className="rec-journey"
-      style={mist ? ({ "--fx": `${POS[Math.max(sampai, 0)][0]}%` } as CSSProperties) : undefined}
+      style={
+        mist
+          ? ({
+              "--fx": `${POS[Math.max(sampai, 0)][0]}%`,
+              // The phone's list runs top to bottom, so there the mist starts below the last clear row.
+              "--fy": `${((Math.max(sampai, 0) + 1) / JOURNEY.length) * 100}%`,
+            } as CSSProperties)
+          : undefined
+      }
     >
       <svg
         className="rec-journey__svg"

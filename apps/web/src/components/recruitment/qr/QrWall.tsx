@@ -11,7 +11,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import qrcode from "qrcode-generator";
 import gsap from "gsap";
 import Dropdown from "../../ui/Dropdown";
-import { useMe, useTick } from "../../../lib/app";
+import { useTick } from "../../../lib/app";
+import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recGet, useRecEdition, useRecQrEvents } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
@@ -47,7 +48,7 @@ function WallClock() {
 
 export default function QrWall({ lang }: { lang: Lang }) {
   const t = S2[lang].qr;
-  const me = useMe();
+  const me = useRecOrang();
   const edisi = useRecEdition(me?.role === "asisten");
   const izin = edisi.data?.rights?.attendance === true;
   const events = useRecQrEvents(izin);

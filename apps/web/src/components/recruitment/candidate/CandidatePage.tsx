@@ -15,7 +15,8 @@ import { ArrowRightIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
 import SegmentedControl from "../../ui/SegmentedControl";
-import { href, useMe } from "../../../lib/app";
+import { href } from "../../../lib/app";
+import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import type { Lang } from "../../../lib/kelas";
 import {
   bukaAkun,
@@ -161,7 +162,7 @@ function CaasHead({
 export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
-  const me = useMe();
+  const me = useRecOrang();
   const asisten = me?.role === "asisten";
   // The candidate is their oprec account, never the practicum sign-in (2026-10-24).
   const akun = useRecAkun(me !== undefined && !asisten);

@@ -256,8 +256,10 @@
 button.n7-task {
   cursor: pointer;
 }
-button.n7-task:hover {
-  background: var(--surface-3);
+@media (hover: hover) and (pointer: fine) {
+  button.n7-task:hover {
+    background: var(--surface-3);
+  }
 }
 .n7-task[data-done="yes"] {
   border-left-color: var(--n7-ok);

@@ -1893,6 +1893,26 @@ html[data-detail="ldm"] .rec-funnel__bar i {
 }
 .rec-journey .n7-mist {
   --fx: inherit;
+  --fy: inherit;
+}
+/* A phone lists the stages top to bottom: the mist covers the rows below the last clear one, not the right side. */
+@media (max-width: 639px) {
+  .rec-journey .n7-mist {
+    -webkit-mask-composite: source-over;
+    mask-composite: add;
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent calc(var(--fy) - 2%),
+      rgba(0, 0, 0, 0.35) calc(var(--fy) + 4%),
+      #000 calc(var(--fy) + 12%)
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent calc(var(--fy) - 2%),
+      rgba(0, 0, 0, 0.35) calc(var(--fy) + 4%),
+      #000 calc(var(--fy) + 12%)
+    );
+  }
 }
 .n7-mist i {
   animation: n7-fog-r 95s linear infinite;

@@ -551,9 +551,11 @@
 .r8task:disabled {
   cursor: default;
 }
-.r8task:not(:disabled):hover {
-  background: var(--surface-3);
-  border-color: var(--hairline-strong);
+@media (hover: hover) and (pointer: fine) {
+  .r8task:not(:disabled):hover {
+    background: var(--surface-3);
+    border-color: var(--hairline-strong);
+  }
 }
 .r8task__st {
   color: var(--n7-warn);

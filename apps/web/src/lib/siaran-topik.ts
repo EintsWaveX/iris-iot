@@ -205,6 +205,11 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:seat": ["recedition"],
   "recruitment:unseat": ["recedition"],
   "recruitment:visibility": ["recedition", "reccalendar"],
+  // Mode Latihan (recruitment-latihan.ts): the page reloads itself, nobody else needs a refetch.
+  "recruitment:latihan-masuk": [],
+  "recruitment:latihan-ganti": [],
+  "recruitment:latihan-keluar": [],
+  "recruitment:latihan-reset": [],
   // B0 (2026-10-28): an editable setting (documents, wording, Cutting start) is saved or put back to its default.
   "recruitment:setting-save": ["recedition"],
   "recruitment:setting-reset": ["recedition"],

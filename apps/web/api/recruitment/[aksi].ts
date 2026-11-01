@@ -88,6 +88,7 @@ import {
   type ViewerKind,
 } from "../../src/lib/recruitment/types.js";
 import { handleS3 } from "../_lib/recruitment-s3.js";
+import { denganLatihan, handleLatihan, konteksLatihan } from "../_lib/recruitment-latihan.js";
 import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { standing } from "../../src/lib/recruitment/standing.js";
 import { kunciRekrutmen } from "../../src/lib/tp-r2.js";
@@ -318,6 +319,7 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     viewer: kind,
     rights: pelaku && anggotaPanitia(pelaku) ? pelaku.hak : null,
     seat: pelaku?.kursi ?? null,
+    ...(konteksLatihan() && { latihan: konteksLatihan()!.mode }),
     // The Plotting count in the navbar: slot change requests nobody has decided yet.
     ...(pelaku &&
       anggotaPanitia(pelaku) &&
@@ -1024,6 +1026,8 @@ async function handleCabut(req: ApiRequest, res: ApiResponse, s: SessionPayload)
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   const aksi = req.query.aksi;
+  // Mode Latihan: its own routes first (they need the real session), then every other route runs inside the context.
+  if (typeof aksi === "string" && (await handleLatihan(aksi, req, res))) return;
   const sesiku = currentSession(req);
 
   // Sembunyikan Oprec: to anyone but an Asisten there is no edition at all.
@@ -1166,6 +1170,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "event-delete") return handleAcaraHapus(req, res, s);
   if (aksi === "seat") return handleDuduk(req, res, s);
   if (aksi === "unseat") return handleCabut(req, res, s);
+  // These two change what the live site shows or who may sign in, so practice leaves them alone.
+  if ((aksi === "visibility" || aksi === "account-reset") && konteksLatihan())
+    return tolak(res, "latihan_tidak_bisa", 403);
   if (aksi === "visibility") {
     const e = await wajibEdisi(res, getDb());
     return e ? handleTampil(req, res, s, getDb(), e.id) : undefined;
@@ -1190,4 +1197,6 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   return tolak(res, "aksi_tidak_dikenal", 404);
 }
 
-export default denganSiaran("recruitment", handler);
+export default denganSiaran("recruitment", (req, res) =>
+  denganLatihan(req, () => handler(req, res)),
+);

@@ -93,6 +93,8 @@ const BACA: Record<string, string[]> = {
     // R8, api/_lib/recruitment-s5.ts
     "pn-list",
     "pn-state",
+    // Mode Latihan, api/_lib/recruitment-latihan.ts
+    "latihan",
   ],
 };
 
@@ -109,6 +111,7 @@ const RUTE: Record<string, string[]> = {
     "api/_lib/recruitment-s4.ts",
     "api/_lib/recruitment-s5.ts",
     "api/_lib/recruitment-s6.ts",
+    "api/_lib/recruitment-latihan.ts",
   ],
 };
 

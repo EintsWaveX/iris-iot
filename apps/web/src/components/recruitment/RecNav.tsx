@@ -44,7 +44,9 @@ import DisplayPanel, { BUKA_TAMPILAN } from "../shell/DisplayPanel";
 import AlertRail from "../shell/AlertRail";
 import OfflineNotice from "../shell/OfflineNotice";
 import Avatar from "../shell/Avatar";
-import { href, meChanged, postJson, useMe } from "../../lib/app";
+import { href, meChanged, postJson } from "../../lib/app";
+import { useLatihanMode, useRecOrang } from "../../lib/recruitment/latihan-client";
+import { LatihanBar, LatihanBaris } from "./Latihan";
 import { pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
 import {
@@ -218,7 +220,7 @@ function barePath(p: string): string {
 
 export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
   const t = REC[lang].nav;
-  const me = useMe();
+  const me = useRecOrang();
   const prefix = lang === "id" ? "" : `/${lang}`;
   const asisten = me?.role === "asisten";
   // A candidate is their oprec account; the practicum's Praktikan sign-in does not count here (2026-10-24).
@@ -230,6 +232,8 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
       ? ({ role: "praktikan", nim: oprec.nim, nama: oprec.nama } as NonNullable<typeof me>)
       : null;
   const tamu = me !== undefined && !asisten && akun.updatedAt !== null && !oprec;
+  // An Asisten acting As CaAs keeps the Mode Latihan entry so they can leave it.
+  const latihanCaas = useLatihanMode() === "caas";
   const ak = AK[lang];
   const edisi = useRecEdition(me !== undefined);
   const viewer = edisi.data?.viewer;
@@ -476,6 +480,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
             <span>{t.myAccount}</span>
           </a>
         )}
+        {(asisten || latihanCaas) && <LatihanBaris lang={lang} onDone={close} />}
         <button
           type="button"
           className="acct__row acct__row--danger"
@@ -634,6 +639,8 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           )
         )}
       </header>
+
+      <LatihanBar lang={lang} />
 
       <AlertRail lang={lang}>
         <OfflineNotice lang={lang} />

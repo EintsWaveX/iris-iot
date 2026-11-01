@@ -16,6 +16,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
+import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
@@ -136,6 +137,8 @@ async function muatTutup(db: Db, edisiId: number, now: Date): Promise<TutupInfo>
  * write waits behind this in the router, except closing itself.
  */
 export async function guardTutup(res: ApiResponse): Promise<boolean> {
+  // Practice never closes: the Ketua tries Tutup Edisi there without ending the live one.
+  if (konteksLatihan()) return false;
   const db = getDb();
   const [e] = await db
     .select({ id: recEdition.id })
@@ -335,6 +338,8 @@ async function handleConfirm(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
           .where(eq(asisten.nim, x.r.nim))
           .limit(1);
         if (ada) sudahAda.push({ nim: ada.nim, kode: ada.kode });
+        // Practice never makes an Asisten: the code stays on the acceptance row only.
+        else if (konteksLatihan()) sudahAda.push({ nim: x.r.nim, kode: x.code! });
         else {
           await tx.insert(asisten).values({
             nim: x.r.nim,

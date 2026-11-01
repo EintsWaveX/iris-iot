@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo } from "react";
 import ErrorView from "../../ui/ErrorView";
-import { useMe } from "../../../lib/app";
+import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import { useMinWidth } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
 import { addDays, daysBetween } from "../../../lib/recruitment/calendar";
@@ -39,6 +39,7 @@ import TesTab from "./tes/ruang/TesTab";
 import KalenderTab from "./KalenderTab";
 import PanitiaBoard from "./PanitiaBoard";
 import Ringkasan from "./Ringkasan";
+import { LatihanCard } from "../Latihan";
 import TampilOprec from "./TampilOprec";
 import { PN } from "./panelStrings";
 import "../recruitment-b1.css";
@@ -74,7 +75,7 @@ const STC: Record<Lang, string> = {
 
 export default function PanelPage({ lang }: { lang: Lang }) {
   const t = PN[lang];
-  const me = useMe();
+  const me = useRecOrang();
   const asisten = me?.role === "asisten";
   const edisi = useRecEdition(asisten);
   const cal = useRecCalendar(asisten);
@@ -168,17 +169,20 @@ export default function PanelPage({ lang }: { lang: Lang }) {
       )}
       <Swap k={tab}>
         {tab === "ringkasan" ? (
-          <Ringkasan
-            lang={lang}
-            events={events}
-            hariIni={hariIni}
-            rights={rights}
-            candidates={cand.data?.candidates ?? null}
-            seats={kom.data ? kom.data.seats.length : null}
-            division={seat ? seat.division : null}
-            tabs={tabs}
-            hariKe={hariKe}
-          />
+          <div className="lat-stack">
+            <Ringkasan
+              lang={lang}
+              events={events}
+              hariIni={hariIni}
+              rights={rights}
+              candidates={cand.data?.candidates ?? null}
+              seats={kom.data ? kom.data.seats.length : null}
+              division={seat ? seat.division : null}
+              tabs={tabs}
+              hariKe={hariKe}
+            />
+            <LatihanCard lang={lang} />
+          </div>
         ) : tab === "kalender" ? (
           <KalenderTab
             lang={lang}

@@ -95,7 +95,7 @@ export const KS = dict({
     goHint:
       "Master menekan Mulai. Tiap bagian mulai manual dan terkumpul otomatis saat waktunya habis.",
     budget: "Anggaran waktu",
-    min: "mnt",
+    min: "menit",
     budgetUsed: (used: number, total: number) => `${used} dari ${total} menit terpakai`,
     tryFirst: "Coba Dulu di Ruang Latihan",
     setup: "Atur Ruang",

@@ -16,6 +16,7 @@ import { jsonBody } from "./http.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import type { getDb } from "../../src/lib/db.js";
 import { pengaturan } from "../../src/lib/schema.js";
+import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 import { muatPelaku } from "./recruitment-rights.js";
 
 type Db = ReturnType<typeof getDb>;
@@ -25,6 +26,8 @@ const tolak = (res: ApiResponse, kode: string, status: number, extra = {}) =>
   void res.status(status).json({ ok: false, kode, ...extra });
 
 export async function oprecTersembunyi(db: Db): Promise<boolean> {
+  // Mode Latihan is always visible to the Asisten practicing, hidden live or not.
+  if (konteksLatihan()) return false;
   const [r] = await db
     .select({ nilai: pengaturan.nilai })
     .from(pengaturan)

@@ -34,6 +34,7 @@ import type {
 import { CUT_STAGES, STAGES } from "../../src/lib/recruitment/types.js";
 import { envelopeVisible } from "../../src/lib/recruitment/cutting.js";
 import { standing, type ResultLite, type Standing } from "../../src/lib/recruitment/standing.js";
+import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 
 export type Db = ReturnType<typeof getDb>;
 
@@ -54,6 +55,9 @@ export async function wajibEdisi(res: ApiResponse, db: Db): Promise<EditionInfo 
 
 /** The edition people are using now: the newest one that is live. */
 export async function muatEdisiHidup(db: Db): Promise<EditionInfo | null> {
+  // Mode Latihan: an Asisten in practice works on the practice edition (recruitment-latihan.ts).
+  const latihan = konteksLatihan();
+  if (latihan) return latihan.edisi;
   const [r] = await db
     .select({
       id: recEdition.id,
@@ -122,7 +126,12 @@ export async function muatKursi(db: Db, edisiId: number, nim: string): Promise<K
     .from(recCommittee)
     .where(and(eq(recCommittee.editionId, edisiId), eq(recCommittee.asistenNim, nim)))
     .limit(1);
-  return r ?? null;
+  if (r) return r;
+  // Practice: whoever is practicing holds every Panitia right on the practice edition (the Ketua's).
+  const latihan = konteksLatihan();
+  if (latihan && latihan.mode === "asisten" && latihan.edisi.id === edisiId && latihan.nim === nim)
+    return { division: "ketua", isKoor: false, title: "Latihan" };
+  return null;
 }
 
 export async function muatKursiSemua(db: Db, edisiId: number): Promise<SeatRow[]> {
