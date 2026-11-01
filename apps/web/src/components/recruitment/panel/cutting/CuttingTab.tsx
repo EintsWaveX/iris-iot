@@ -256,7 +256,7 @@ const nilai = (v: number | null) =>
 
 /* ---------------------------------------------------------------- distribution */
 
-function Dist({ rows, rule }: { rows: CutRowView[]; rule: Ambang }) {
+function Dist({ rows, rule, skala = 4000 }: { rows: CutRowView[]; rule: Ambang; skala?: number }) {
   const ada = rows.filter((r) => r.total !== null);
   if (!ada.length) return <div className="r2dist" aria-hidden="true" />;
   if (rule.mode === "top") {
@@ -266,7 +266,7 @@ function Dist({ rows, rule }: { rows: CutRowView[]; rule: Ambang }) {
         {urut.map((c, i) => (
           <i
             key={c.id}
-            style={{ height: `${Math.max(2, ((c.total ?? 0) / 4000) * 100)}%` }}
+            style={{ height: `${Math.max(2, ((c.total ?? 0) / skala) * 100)}%` }}
             data-pass={i < rule.n ? "yes" : undefined}
           />
         ))}
@@ -275,7 +275,7 @@ function Dist({ rows, rule }: { rows: CutRowView[]; rule: Ambang }) {
     );
   }
   const bins = Array.from({ length: 20 }, () => 0);
-  for (const c of ada) bins[Math.min(19, Math.floor((c.total ?? 0) / 200))]++;
+  for (const c of ada) bins[Math.min(19, Math.floor(((c.total ?? 0) / skala) * 20))]++;
   const top = Math.max(...bins, 1);
   return (
     <div className="r2dist" aria-hidden="true">
@@ -286,7 +286,7 @@ function Dist({ rows, rule }: { rows: CutRowView[]; rule: Ambang }) {
           data-pass={i * 200 >= rule.min ? "yes" : undefined}
         />
       ))}
-      <span className="r2dist__cut" style={{ left: `${(rule.min / 4000) * 100}%` }} />
+      <span className="r2dist__cut" style={{ left: `${(rule.min / skala) * 100}%` }} />
     </div>
   );
 }
@@ -309,6 +309,9 @@ export default function CuttingTab({
   const [stage, setStage] = useState<CutStage | null>(null);
   const pilih: CutStage | null = stage && aktif.includes(stage) ? stage : (aktif[0] ?? null);
   const board = useRecCut(pilih ?? "berkas", pilih !== null);
+  // Wawancara and Mengajar score out of 100 (the examiners' sheets); the written test out of 4000.
+  const ivStage = pilih === "wawancara" || pilih === "mengajar";
+  const skala = ivStage ? 100 : 4000;
   const lebar = useMinWidth(1100);
   const [q, setQ] = useState("");
   const [f, setF] = useState("semua");
@@ -372,7 +375,7 @@ export default function CuttingTab({
     proposal: r.proposal,
   }));
   const pratinjau =
-    thr && pilih === "tes_tulis"
+    thr && (pilih === "tes_tulis" || ivStage)
       ? thresholdProposals(cutRows, rule, { noShowsFail: absFail, replaceExisting: timpa })
       : null;
   const bagus = (c: CutRowView): Proposal | null =>
@@ -613,7 +616,7 @@ export default function CuttingTab({
           {board.data.scoreFinal ? t.scoresFinal : t.scoresProvisional}
         </Pill>
       )}
-      {bisaUsul && pilih === "tes_tulis" && (
+      {bisaUsul && (pilih === "tes_tulis" || ivStage) && (
         <button
           type="button"
           className={`btn btn--sm ${thr ? "btn--primary" : ""}`.trim()}
@@ -636,7 +639,7 @@ export default function CuttingTab({
   );
 
   const adaSkor = baris.some((r) => r.total !== null);
-  const thrPanel = thr && pilih === "tes_tulis" && (
+  const thrPanel = thr && (pilih === "tes_tulis" || ivStage) && (
     <section className="panel r2thr">
       <div className="panel__head">
         <h3 className="panel__title">{t.thrTitle}</h3>
@@ -652,7 +655,7 @@ export default function CuttingTab({
       </div>
       <div className="r2thr__grid">
         <div className="stack">
-          <Dist rows={baris} rule={rule} />
+          <Dist rows={baris} rule={rule} skala={skala} />
           {mode === "top" ? (
             <Slider
               value={n}
@@ -666,8 +669,8 @@ export default function CuttingTab({
             <Slider
               value={minS}
               min={0}
-              max={4000}
-              step={50}
+              max={skala}
+              step={ivStage ? 1 : 50}
               onChange={setMinS}
               label={t.minLabel}
               fmt={(v) => `≥ ${v}`}
@@ -778,7 +781,7 @@ export default function CuttingTab({
                     ? t.docOk
                     : t.docNo
                   : c.total !== null
-                    ? `${c.total} / 4000`
+                    ? `${c.total} / ${skala}`
                     : t.scoreCut}
               </span>
               {!lolosBerkas && <Att c={c} lang={lang} />}
@@ -810,10 +813,20 @@ export default function CuttingTab({
               ) : (
                 <>
                   <th>{t.present}</th>
-                  <th className="num">{t.logic}</th>
-                  <th className="num">{t.blanks}</th>
-                  <th className="num">{t.debug}</th>
-                  <th className="num">{t.live}</th>
+                  {ivStage ? (
+                    <>
+                      <th className="num">{lang === "id" ? "Lembar" : "Sheets"}</th>
+                      <th className="num">{lang === "id" ? "Selisih" : "Spread"}</th>
+                      <th>{lang === "id" ? "Keputusan penguji" : "Examiners' verdict"}</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="num">{t.logic}</th>
+                      <th className="num">{t.blanks}</th>
+                      <th className="num">{t.debug}</th>
+                      <th className="num">{t.live}</th>
+                    </>
+                  )}
                   <th className="num">{t.total}</th>
                 </>
               )}
@@ -863,15 +876,61 @@ export default function CuttingTab({
                       <td>
                         <Att c={c} lang={lang} />
                       </td>
-                      <td>{nilai(c.parts[0])}</td>
-                      <td>{nilai(c.parts[1])}</td>
-                      <td>{nilai(c.parts[2])}</td>
-                      <td>{nilai(c.parts[3])}</td>
+                      {ivStage ? (
+                        <>
+                          <td className="num">
+                            {c.iv ? (
+                              `${c.iv.sheets}/${c.iv.expected}`
+                            ) : (
+                              <span className="hint">-</span>
+                            )}
+                          </td>
+                          <td className="num">
+                            {c.iv?.spread != null ? (
+                              <Pill tone={c.iv.wide ? "warn" : undefined}>{c.iv.spread}</Pill>
+                            ) : (
+                              <span className="hint">-</span>
+                            )}
+                          </td>
+                          <td>
+                            {c.iv?.case?.status ? (
+                              <Pill tone={c.iv.case.status === "gugur" ? "danger" : "warn"}>
+                                {c.iv.case.status === "gugur"
+                                  ? "Gugur"
+                                  : lang === "id"
+                                    ? "Susulan"
+                                    : "Makeup"}
+                              </Pill>
+                            ) : c.iv?.verdict ? (
+                              <Pill
+                                tone={
+                                  { lolos: "ok", ragu: "warn", cut: "danger" }[c.iv.verdict] as "ok"
+                                }
+                              >
+                                {
+                                  { lolos: "Fix Lolos", ragu: "Ragu-ragu", cut: "Fix Cut" }[
+                                    c.iv.verdict
+                                  ]
+                                }
+                              </Pill>
+                            ) : (
+                              <span className="hint">-</span>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td>{nilai(c.parts[0])}</td>
+                          <td>{nilai(c.parts[1])}</td>
+                          <td>{nilai(c.parts[2])}</td>
+                          <td>{nilai(c.parts[3])}</td>
+                        </>
+                      )}
                       <td>
                         <span className="r2tot">
                           <b className="num">{c.total ?? "-"}</b>
                           {c.total !== null && (
-                            <i style={{ width: `${(c.total / 4000) * 100}%` }} />
+                            <i style={{ width: `${(c.total / skala) * 100}%` }} />
                           )}
                         </span>
                       </td>

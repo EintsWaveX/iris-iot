@@ -23,6 +23,8 @@ import { handleLiveCode } from "./recruitment-livecode.js";
 import { handleLcc } from "./recruitment-lcc.js";
 import { handleRoom } from "./recruitment-room.js";
 import { handleScore } from "./recruitment-score.js";
+import { S4_GET, S4_POST } from "./recruitment-s4.js";
+import { S5_GET, S5_POST, guardTutup } from "./recruitment-s5.js";
 import { handleSeat } from "./recruitment-seat.js";
 
 export type S3Handler = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => unknown;
@@ -75,6 +77,8 @@ const ASISTEN_GET: Record<string, S3Handler> = {
   "lc-templates": handleLiveCode,
   scores: handleScore,
   "score-stats": handleScore,
+  ...S4_GET,
+  ...S5_GET,
 };
 const ASISTEN_POST: Record<string, S3Handler> = {
   "exam-config-save": handleBank,
@@ -103,6 +107,8 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "question-unvoid": handleScore,
   "score-finalize": handleScore,
   "score-unfreeze": handleScore,
+  ...S4_POST,
+  ...S5_POST,
 };
 
 type Jalur = {
@@ -132,6 +138,15 @@ export async function handleS3(aksi: unknown, req: ApiRequest, res: ApiResponse)
     s = sesiku?.role === "asisten" ? sesiku : await sesiOprec(req);
     if (!s) res.status(401).json({ ok: false, kode: "belum_masuk" });
   }
+  // A closed edition is read-only for the Panitia (closing itself is the one write left).
+  if (
+    s &&
+    jalur.siapa === "asisten" &&
+    jalur.method === "POST" &&
+    aksi !== "pn-close" &&
+    (await guardTutup(res))
+  )
+    return true;
   if (s) await jalur.tabel[aksi](req, res, s);
   return true;
 }

@@ -11,6 +11,7 @@ import {
   keySummary,
   keySig,
   moved,
+  openFence,
   previewOf,
   problems,
   savePayload,
@@ -209,5 +210,19 @@ describe("the key in words", () => {
   it("lists the wrong lines by number", () => expect(say("lines")).toBe("4, 5"));
   it("says every format in something that is not empty", () => {
     for (const f of ["fix", "order", "match", "fitb"]) expect(say(f).length).toBeGreaterThan(5);
+  });
+});
+
+describe("an unclosed code fence", () => {
+  it("is found when the closing line has text after it", () => {
+    expect(openFence("Read this\n```c\nint a;\n``` (diubah)")).toBe(true);
+    expect(openFence("Read this\n```c\nint a;\n```")).toBe(false);
+    expect(openFence("no code here")).toBe(false);
+  });
+
+  it("is a problem on the prompt, so the editor refuses the save", () => {
+    const d = blankDraft("logika", "c", "single");
+    const bad = { ...d, body: { ...d.body, prompt: "x\n```c\nint a;\n``` (diubah)" } } as Draft;
+    expect(problems(bad)).toContainEqual({ field: "body.prompt", kode: "pagar_terbuka" });
   });
 });

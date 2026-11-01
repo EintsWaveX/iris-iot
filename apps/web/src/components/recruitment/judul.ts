@@ -28,6 +28,8 @@ const TETAP: Record<string, [string, string]> = {
   "Tes Tulis & Program": ["Written and Coding Test", "笔试与编程"],
   "Tes Wawancara": ["Interview Test", "面试"],
   "Tes Mengajar": ["Teaching Test", "试讲"],
+  "Penerimaan Asisten Baru": ["New Assistant Acceptance", "新助教录取"],
+  "Pengumuman Penerimaan": ["Acceptance Results", "录取结果公布"],
   "Techmeet Tubes": ["Project Techmeet", "项目技术会议"],
   "Pengerjaan Tubes": ["Project Work", "项目制作"],
   "Presentasi Tubes": ["Project Presentation", "项目展示"],

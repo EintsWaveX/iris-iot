@@ -81,6 +81,11 @@ export function standing(
     }
     const lanjut = NEXT[r.stage];
     if (lanjut && RANK[lanjut] > RANK[stage]) stage = lanjut;
+    // The last envelope: a Lolos at Penerimaan makes them an Asisten (read only once it is opened).
+    if (r.stage === "penerimaan" && status !== "withdrawn") {
+      status = "accepted";
+      stage = "penerimaan";
+    }
   }
   if (stage === "first_meet" && status !== "out") {
     const fm = events.find((e) => e.kind === "meeting" && e.stage === "first_meet");

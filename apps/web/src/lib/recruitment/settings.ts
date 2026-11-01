@@ -10,11 +10,12 @@
  * Events (Kalender), slots (Plotting), the exam parts config and the bank
  * already have their own edit surfaces; this registry holds the rest.
  */
+import { IV_DEFAULT, checkTemplate, type IvTemplate } from "./interview.js";
 import type { CommitteeDivision, DocKind } from "./types.js";
 
 export const SETTING_PREFIX = "rec_cfg_";
 
-export type SettingKey = "docs" | "words" | "cutting";
+export type SettingKey = "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "penerimaan";
 
 export interface DocSetting {
   /** One of DOC_KINDS; the `kind` stored with an upload. The keys never change once stored. */
@@ -71,13 +72,37 @@ export const ENVELOPE_KEYS = [
   "penerimaan",
 ] as const;
 export type EnvelopeKey = (typeof ENVELOPE_KEYS)[number];
-export const CUTTING_STAGES = ["berkas", "tes_tulis", "tubes", "mengajar"] as const;
+export const CUTTING_STAGES = ["berkas", "tes_tulis", "wawancara", "tubes", "mengajar"] as const;
 export type CuttingStageKey = (typeof CUTTING_STAGES)[number];
 
 export interface SettingMap {
   docs: DocSetting[];
   words: Partial<Record<EnvelopeKey, WordSetting>>;
   cutting: Record<string, CuttingSetting>;
+  wawancara: IvTemplate;
+  mengajar: IvTemplate;
+  penerimaan: AcceptSetting;
+}
+
+/** Penerimaan: the target number of new Asisten, when the edition closes by itself, and how long the data is kept. */
+export interface AcceptSetting {
+  /** About how many new Asisten (shown in Tinjau as a target, never a limit) */
+  quota: number;
+  /** The edition closes by itself this many days after the final reveal */
+  closeDays: number;
+  /** Documents and answers are kept this many months after it closed */
+  retentionMonths: number;
+}
+
+export const ACCEPT_DEFAULT: AcceptSetting = { quota: 24, closeDays: 30, retentionMonths: 6 };
+
+function checkAccept(v: unknown): AcceptSetting | null {
+  if (!isObj(v)) return null;
+  const quota = int(v.quota, 1, 200);
+  const closeDays = int(v.closeDays, 0, 365);
+  const retentionMonths = int(v.retentionMonths, 1, 60);
+  if (quota === null || closeDays === null || retentionMonths === null) return null;
+  return { quota, closeDays, retentionMonths };
 }
 
 export interface SettingDef<K extends SettingKey> {
@@ -198,12 +223,14 @@ export function wordsFor(
 /** A line with `{nama}` filled in. */
 export const isiNama = (line: string, nama: string): string => line.replaceAll("{nama}", nama);
 
-/** The built-in start of each Cutting (the 2026 numbers, PRD 3 Targets). Wawancara has no Cutting of its own here. */
+/** The built-in start of each Cutting (the 2026 numbers, PRD 3 Targets). */
 export const CUTTING_DEFAULT: Record<(typeof CUTTING_STAGES)[number], CuttingSetting> = {
   berkas: { top: 90, minScore: 0, targetMin: 80, targetMax: 100 },
   tes_tulis: { top: 60, minScore: 2000, targetMin: 60, targetMax: 80 },
+  // Wawancara and Mengajar score out of 100 (the examiners' sheets); the Mengajar start is the top 24 (user, 2026-10-28).
+  wawancara: { top: 40, minScore: 50, targetMin: 40, targetMax: 50 },
   tubes: { top: 35, minScore: 0, targetMin: 30, targetMax: 40 },
-  mengajar: { top: 21, minScore: 0, targetMin: 20, targetMax: 23 },
+  mengajar: { top: 24, minScore: 52, targetMin: 20, targetMax: 23 },
 };
 
 function checkCutting(v: unknown): SettingMap["cutting"] | null {
@@ -253,6 +280,27 @@ export const SETTINGS: { [K in SettingKey]: SettingDef<K> } = {
     roles: ["ketua", "akademik"],
     def: {},
     check: checkCutting,
+  },
+  wawancara: {
+    key: "wawancara",
+    label: { id: "Template wawancara", en: "Interview template" },
+    roles: ["ketua", "akademik"],
+    def: IV_DEFAULT.wawancara,
+    check: checkTemplate,
+  },
+  mengajar: {
+    key: "mengajar",
+    label: { id: "Template mengajar", en: "Teaching template" },
+    roles: ["ketua", "akademik"],
+    def: IV_DEFAULT.mengajar,
+    check: checkTemplate,
+  },
+  penerimaan: {
+    key: "penerimaan",
+    label: { id: "Penerimaan dan penutupan edisi", en: "Acceptance and closing the edition" },
+    roles: ["ketua"],
+    def: ACCEPT_DEFAULT,
+    check: checkAccept,
   },
 };
 
