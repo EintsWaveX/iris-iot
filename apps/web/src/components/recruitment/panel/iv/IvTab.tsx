@@ -6,7 +6,8 @@
  */
 import { useState } from "react";
 import Pill from "../../../ui/Pill";
-import SegmentedControl from "../../../ui/SegmentedControl";
+import TabLine from "../../../ui/TabLine";
+import "../../recruitment-cutting.css";
 import type { Lang } from "../../../../lib/kelas";
 import { useIvMine, useIvNilai, type IvMineSlot } from "../../../../lib/recruitment/iv-client";
 import type { IvStage } from "../../../../lib/recruitment/interview";
@@ -281,19 +282,19 @@ export default function IvTab({
     bag === "nilai" && !bisaNilai ? "mine" : bag === "template" && !bisaTemplate ? "mine" : bag;
   return (
     <div className="stack">
-      <p className="hint">{w.lede[stage]}</p>
-      {(bisaNilai || bisaTemplate) && (
-        <SegmentedControl
-          aria-label={w.title[stage]}
+      <div className="n7-bar">
+        <TabLine
+          label={w.title[stage]}
           value={aktif}
-          onValueChange={(v) => setBag(v as typeof bag)}
-          options={[
-            { value: "mine", label: w.seg.mine },
-            ...(bisaNilai ? [{ value: "nilai", label: w.seg.nilai }] : []),
-            ...(bisaTemplate ? [{ value: "template", label: w.seg.template }] : []),
+          onChange={(v) => setBag(v)}
+          tabs={[
+            { v: "mine" as const, label: w.seg.mine },
+            ...(bisaNilai ? [{ v: "nilai" as const, label: w.seg.nilai }] : []),
+            ...(bisaTemplate ? [{ v: "template" as const, label: w.seg.template }] : []),
           ]}
         />
-      )}
+      </div>
+      <p className="hint">{w.lede[stage]}</p>
       {aktif === "mine" ? (
         <Slotku lang={lang} stage={stage} onOpen={setBuka} />
       ) : aktif === "nilai" ? (

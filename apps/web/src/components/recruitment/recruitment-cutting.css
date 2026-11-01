@@ -312,3 +312,20 @@
   margin: 6px 14px;
   padding: 6px;
 }
+
+/* The underline tab line sits at the left at its own width, with the page's actions beside it (the mockup's n7-bar) */
+.n7-bar > .tabs-scroll {
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
+}
+.n7-bar .tabs {
+  border-bottom: 0;
+}
+.n7-bar .tabs__tab {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding-inline: 16px;
+}

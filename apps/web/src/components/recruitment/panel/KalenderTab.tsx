@@ -9,6 +9,7 @@
  * Urungkan, which sends the change back. Candidates and every other Panitia
  * member see it at once through the reccalendar topic.
  */
+import { PlusIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import SegmentedControl from "../../ui/SegmentedControl";
 import Dialog from "../../ui/Dialog";
@@ -40,6 +41,8 @@ interface Tanya {
   /** The person backed out: the change that asked is dropped */
   batal: () => void;
 }
+
+import "../recruitment-calendar.css";
 
 export default function KalenderTab({
   lang,
@@ -180,29 +183,27 @@ export default function KalenderTab({
   }
 
   return (
-    <Kartu
-      className="rec-calcard"
-      aside={
-        <span className="row" style={{ gap: 8 }}>
-          <SegmentedControl
-            aria-label={c.view}
-            value={view}
-            onValueChange={(v) => setView(v as "bulan" | "agenda")}
-            options={[
-              { value: "bulan", label: c.month },
-              { value: "agenda", label: c.agenda },
-            ]}
-          />
-          {canEdit && (
-            <button type="button" className="btn btn--primary" onClick={() => setEdit("baru")}>
-              <span className="btn__label">{c.add}</span>
-            </button>
-          )}
-        </span>
-      }
-    >
+    <Kartu className="rec-calcard rec9-cal">
       <h2 className="visually-hidden">{c.title}</h2>
-      <span className="hint rec-calcard__who">{canEdit ? c.canEdit : c.cannotEdit}</span>
+      <div className="rec9-cal__bar">
+        <span className="hint rec-calcard__who">{canEdit ? c.canEdit : c.cannotEdit}</span>
+        <span className="grow" />
+        <SegmentedControl
+          aria-label={c.view}
+          value={view}
+          onValueChange={(v) => setView(v as "bulan" | "agenda")}
+          options={[
+            { value: "bulan", label: c.month },
+            { value: "agenda", label: c.agenda },
+          ]}
+        />
+        {canEdit && (
+          <button type="button" className="btn btn--primary" onClick={() => setEdit("baru")}>
+            <PlusIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{c.add}</span>
+          </button>
+        )}
+      </div>
       {view === "bulan" ? (
         <RecCalendar
           events={tampil}

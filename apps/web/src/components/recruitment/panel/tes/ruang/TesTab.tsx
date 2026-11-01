@@ -5,7 +5,17 @@
  * the back button and a shared link both work.
  */
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeftIcon, TrashIcon } from "@phosphor-icons/react";
+import {
+  ArrowLeftIcon,
+  BroadcastIcon,
+  CheckIcon,
+  ClockIcon,
+  FlagIcon,
+  ListChecksIcon,
+  PlusIcon,
+  SparkleIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
 import Confirm from "../../../../ui/Confirm";
 import IconButton from "../../../../ui/IconButton";
 import Fade from "../../../../ui/Fade";
@@ -30,10 +40,13 @@ import Konsol from "./Konsol";
 import { RuangPengaturan } from "./RuangSetup";
 import JudgeTab from "./JudgeTab";
 import { RG } from "./ruangStrings";
+import { MG } from "./malamStrings";
 import PenilaianTab from "../penilaian/PenilaianTab";
 import { PN } from "../penilaian/penilaianStrings";
 
 import "../../../recruitment-s3-room.css";
+import "../../../recruitment-malam.css";
+import "../../../recruitment-cutting.css";
 
 /** The slot's day in WIB (a slot at 00:30 WIB is the day before in UTC). */
 const hariWib = (iso: string) => tanggalWib(new Date(iso)).tanggal;
@@ -152,6 +165,47 @@ function HapusRuang({
 
 /* ------------------------------------------------------------------ list */
 
+type Daftarku = NonNullable<ReturnType<typeof useRecRooms>["data"]>;
+
+/** "Sel 17 Nov": the short night label the chips wear */
+function hariPendek(d: string, lang: Lang): string {
+  const parts = new Intl.DateTimeFormat(
+    lang === "en" ? "en-GB" : lang === "zh" ? "zh-CN" : "id-ID",
+    {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    },
+  ).formatToParts(new Date(`${d}T00:00:00Z`));
+  const g = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
+  return `${g("weekday")} ${g("day")} ${g("month")}`.replace(/\./g, "");
+}
+
+/** The rail under a room: which of Persiapan, Berjalan and Selesai it is in */
+function Rel({ at, lang }: { at: 0 | 1 | 2; lang: Lang }) {
+  const t = MG[lang];
+  const ic = [ListChecksIcon, BroadcastIcon, FlagIcon];
+  return (
+    <ol className="n7-rail" aria-label={t.railLabel}>
+      <span className="n7-rail__line" aria-hidden="true">
+        <i style={{ "--p": at / 2 } as React.CSSProperties} />
+      </span>
+      {t.rail.map((l, i) => {
+        const Ik = i < at ? CheckIcon : ic[i];
+        return (
+          <li key={l} data-st={i < at ? "done" : i === at ? "cur" : "next"}>
+            <span className="n7-rail__dot">
+              <Ik size={18} aria-hidden="true" />
+            </span>
+            {l}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function Daftar({
   lang,
   data,
@@ -159,12 +213,14 @@ function Daftar({
   refresh,
 }: {
   lang: Lang;
-  data: NonNullable<ReturnType<typeof useRecRooms>["data"]>;
+  data: Daftarku;
   buka: (id: number) => void;
   refresh: () => void;
 }) {
   const t = RG[lang].list;
+  const m = MG[lang];
   const [sibuk, setSibuk] = useState(false);
+  const [pilih, setPilih] = useState<string | null>(null);
   async function siapkan(body: Record<string, unknown>) {
     setSibuk(true);
     const r = await recPost<{ ok: true; room: { id: number } }>("room-setup", {
@@ -176,103 +232,192 @@ function Daftar({
     refresh();
     buka(r.room.id);
   }
-  return (
-    <div className="stack">
-      {data.rooms.length === 0 ? (
-        <section className="panel stack stack--sm">
-          <b>{t.empty}</b>
-          <span className="hint">{t.emptyHint}</span>
-        </section>
+  // The nights: every day a room or a plotted slot sits on, and the practice rooms apart.
+  const malam = new Map<string, { rooms: Daftarku["rooms"]; pending: Daftarku["pending"] }>();
+  const hari = (d: string) => {
+    if (!malam.has(d)) malam.set(d, { rooms: [], pending: [] });
+    return malam.get(d)!;
+  };
+  for (const r of data.rooms) if (r.slot) hari(hariWib(r.slot.startsAt)).rooms.push(r);
+  for (const sl of data.pending) hari(hariWib(sl.startsAt)).pending.push(sl);
+  const latihan = data.rooms.filter((r) => !r.slot);
+  const kunci = [...malam.keys()].sort();
+  const cur = pilih && (pilih === "latihan" || malam.has(pilih)) ? pilih : (kunci[0] ?? "latihan");
+  const state = (d: string) => {
+    const x = malam.get(d)!;
+    if (!x.rooms.length) return "kosong";
+    if (x.rooms.some((r) => r.view !== "setup" && r.view !== "persiapan" && r.view !== "finished"))
+      return "live";
+    return x.rooms.every((r) => r.view === "finished") ? "selesai" : "siap";
+  };
+  const rel = (v: Daftarku["rooms"][number]["view"]): 0 | 1 | 2 =>
+    v === "setup" || v === "persiapan" ? 0 : v === "finished" ? 2 : 1;
+  const kartu = (r: Daftarku["rooms"][number], hariPanjang: string) => (
+    <section className="panel n7-stagehead" key={r.id} data-mine={r.mine ? "yes" : "no"}>
+      <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+        <span className="eyebrow">{hariPanjang}</span>
+        <h2 className="h3 n7-stagehead__t">
+          {r.title}
+          {r.rehearsal && <Pill tone="gold">{m.practice}</Pill>}
+        </h2>
+        <span className="hint">
+          {t.seats(r.seats, r.checkedIn)} · {r.master ? t.master(r.master.nama) : t.noMaster}
+        </span>
+        {r.pengawas.length > 0 && (
+          <div className="r3chips">
+            {r.pengawas.map((p) => (
+              <Pill key={p.nim} mono title={p.nama}>
+                {p.kode}
+              </Pill>
+            ))}
+          </div>
+        )}
+      </div>
+      <Rel at={rel(r.view)} lang={lang} />
+      <div className="row" style={{ gap: 8 }}>
+        <button type="button" className="btn btn--primary" onClick={() => buka(r.id)}>
+          <span className="btn__label">{t.open}</span>
+        </button>
+        {data.canSetup && (
+          <HapusRuang
+            lang={lang}
+            id={r.id}
+            title={r.title}
+            rehearsal={r.rehearsal}
+            seats={r.seats}
+            view={r.view}
+            selesai={r.view === "finished" || r.part !== null}
+            done={refresh}
+          />
+        )}
+      </div>
+    </section>
+  );
+  const isiMalam = () => {
+    if (cur === "latihan")
+      return latihan.length ? (
+        latihan.map((r) => kartu(r, m.practiceRoom))
       ) : (
-        <div className="r3list-room">
-          {data.rooms.map((r) => (
-            <section key={r.id} className="panel r3room" data-mine={r.mine ? "yes" : "no"}>
-              <div className="panel__head">
-                <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <h3 className="panel__title">{r.title}</h3>
-                  <span className="hint">
-                    {r.slot
-                      ? `${tgl(hariWib(r.slot.startsAt), lang)} · ${r.slot.room}`
-                      : t.practice}
-                  </span>
-                </div>
-                <Pill tone={tone(r.view)}>{viewLabel(lang, r.view, r.part)}</Pill>
-              </div>
-              <span>{t.seats(r.seats, r.checkedIn)}</span>
-              <span className="hint">{r.master ? t.master(r.master.nama) : t.noMaster}</span>
-              {r.pengawas.length > 0 && (
-                <div className="r3chips">
-                  {r.pengawas.map((p) => (
-                    <Pill key={p.nim} mono title={p.nama}>
-                      {p.kode}
-                    </Pill>
-                  ))}
-                </div>
-              )}
-              {r.mine && <span className="hint">{t.mine}</span>}
-              <div className="row" style={{ gap: 8 }}>
-                <button type="button" className="btn btn--primary" onClick={() => buka(r.id)}>
-                  {t.open}
-                </button>
-                {data.canSetup && (
-                  <HapusRuang
-                    lang={lang}
-                    id={r.id}
-                    title={r.title}
-                    rehearsal={r.rehearsal}
-                    seats={r.seats}
-                    view={r.view}
-                    selesai={r.view === "finished" || r.part !== null}
-                    done={refresh}
-                  />
-                )}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-      {data.canSetup && (
-        <section className="panel stack">
-          <div className="panel__head">
-            <div className="stack" style={{ gap: 2 }}>
-              <h3 className="panel__title">{t.pendingHead}</h3>
-              <span className="hint">{t.pendingHint}</span>
-            </div>
+        <section className="panel n7-empty">
+          <span className="n7-empty__art" aria-hidden="true">
+            <SparkleIcon size={32} />
+          </span>
+          <div
+            className="stack stack--sm"
+            style={{ alignItems: "center", textAlign: "center", maxWidth: "46ch" }}
+          >
+            <h2 className="h3">{m.emptyPractice}</h2>
+            <span className="hint">{m.emptyPracticeHint}</span>
+          </div>
+          {data.canSetup && (
             <button
               type="button"
-              className="btn btn--ghost"
+              className="btn btn--primary btn--lg"
               disabled={sibuk}
-              title={t.practiceHint}
               onClick={() => void siapkan({ rehearsal: true, title: "Ruang Latihan" })}
             >
-              {t.newPractice}
+              <PlusIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{m.makePractice}</span>
             </button>
-          </div>
-          {data.pending.length === 0 ? (
-            <span className="hint">-</span>
-          ) : (
-            <div className="r3list-room">
-              {data.pending.map((s) => (
-                <div key={s.id} className="r3room">
-                  <b>
-                    {tgl(hariWib(s.startsAt), lang)} · {s.room}
-                  </b>
-                  <span className="hint">{t.candidates(s.seats)}</span>
-                  <div className="row">
-                    <button
-                      type="button"
-                      className="btn btn--inverse"
-                      disabled={sibuk}
-                      onClick={() => void siapkan({ slotId: s.id, title: s.room })}
-                    >
-                      {t.prepare}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
           )}
         </section>
+      );
+    const x = malam.get(cur)!;
+    const panjang = tgl(cur, lang);
+    return (
+      <>
+        {x.rooms.map((r) => kartu(r, panjang))}
+        {x.pending.map((sl) => (
+          <section className="panel n7-stagehead" key={`p${sl.id}`}>
+            <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <span className="eyebrow">{panjang}</span>
+              <h2 className="h3 n7-stagehead__t">{sl.room}</h2>
+              <span className="hint">{t.candidates(sl.seats)}</span>
+            </div>
+            <Rel at={0} lang={lang} />
+            {data.canSetup ? (
+              <button
+                type="button"
+                className="btn btn--inverse"
+                disabled={sibuk}
+                onClick={() => void siapkan({ slotId: sl.id, title: sl.room })}
+              >
+                <PlusIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{m.prepare}</span>
+              </button>
+            ) : (
+              <span />
+            )}
+          </section>
+        ))}
+        {!x.rooms.length && !x.pending.length && (
+          <section className="panel n7-empty">
+            <h2 className="h3">{m.emptyNight}</h2>
+            <span className="hint">{m.emptyNightHint}</span>
+          </section>
+        )}
+      </>
+    );
+  };
+  return (
+    <div className="n7-malam">
+      <div className="n7-nights" role="tablist" aria-label={m.nights}>
+        {kunci.map((d) => {
+          const st = state(d);
+          return (
+            <button
+              key={d}
+              type="button"
+              role="tab"
+              className="n7-night"
+              aria-selected={cur === d}
+              data-st={st}
+              onClick={() => setPilih(d)}
+            >
+              <span className="n7-night__dot">
+                {st === "live" ? null : st === "selesai" ? (
+                  <CheckIcon size={16} aria-hidden="true" />
+                ) : st === "kosong" ? (
+                  <PlusIcon size={16} aria-hidden="true" />
+                ) : (
+                  <ClockIcon size={16} aria-hidden="true" />
+                )}
+              </span>
+              <b>{hariPendek(d, lang)}</b>
+              <small>
+                {st === "kosong"
+                  ? m.noRoom
+                  : st === "live"
+                    ? m.live
+                    : st === "selesai"
+                      ? m.done
+                      : m.setting}
+              </small>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          role="tab"
+          className="n7-night"
+          aria-selected={cur === "latihan"}
+          data-st={latihan.length ? "latihan" : "kosong"}
+          data-practice="yes"
+          onClick={() => setPilih("latihan")}
+        >
+          <span className="n7-night__dot">
+            <SparkleIcon size={16} aria-hidden="true" />
+          </span>
+          <b>{m.practice}</b>
+          <small>{m.practiceSub}</small>
+        </button>
+      </div>
+      {!kunci.length && cur !== "latihan" ? (
+        <section className="panel n7-empty">
+          <span className="hint">{m.nothing}</span>
+        </section>
+      ) : (
+        isiMalam()
       )}
     </div>
   );
@@ -423,15 +568,17 @@ export default function TesTab({ lang }: { lang: Lang }) {
     );
   return (
     <div className="stack">
-      <TabLine
-        tabs={[
-          { v: "ruang" as const, label: PN[lang].room },
-          { v: "nilai" as const, label: PN[lang].title },
-        ]}
-        value={atas}
-        onChange={setAtas}
-        label={PN[lang].tabs.aria}
-      />
+      <div className="n7-bar">
+        <TabLine
+          tabs={[
+            { v: "ruang" as const, label: PN[lang].room },
+            { v: "nilai" as const, label: PN[lang].title },
+          ]}
+          value={atas}
+          onChange={setAtas}
+          label={PN[lang].tabs.aria}
+        />
+      </div>
       {atas === "nilai" ? (
         <PenilaianTab lang={lang} />
       ) : (

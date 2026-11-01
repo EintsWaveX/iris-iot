@@ -1,0 +1,95 @@
+/* The panel's Kalender card, matched to the mockup (rec9.css rec9-cal): an accent top edge, the bar above the month. */
+.rec9-cal {
+  --a: var(--tc, #5eead4);
+  --ai: color-mix(in srgb, var(--a) 62%, var(--text));
+  border-top: 3px solid var(--a);
+  gap: 14px;
+}
+:root[data-theme="light"] .rec9-cal {
+  --ai: color-mix(in srgb, var(--a) 40%, #0a0f1c);
+}
+.rec9-cal__bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.rec9-cal .rkal {
+  gap: 14px 22px;
+}
+.rec9-cal .rkal__grid,
+.rec9-cal .rkal__wk {
+  gap: 3px;
+}
+.rec9-cal .rkal__d {
+  min-height: 64px;
+}
+.rec9-cal .rkal__bulan {
+  color: var(--ai);
+  font-size: 1.2rem;
+}
+.rec9-cal .rkal--side > .rkal__side {
+  align-self: stretch;
+}
+.rec9-cal .rkal__d[data-today] {
+  border-color: var(--a);
+  box-shadow: inset 0 0 0 1px var(--a);
+}
+.rec9-cal .rkal__d[data-today] > b {
+  background: var(--a);
+  border-radius: 99px;
+  color: #0a0f1c;
+  justify-self: start;
+  padding: 0 7px;
+}
+.rec9-cal .rkal__d[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--a) 14%, var(--surface-1));
+  border-color: var(--a);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rec9-cal .rkal__d:hover {
+    border-color: var(--a);
+  }
+}
+.rec9-cal .rkal__d:focus-visible {
+  outline-color: var(--a);
+}
+.rec9-cal .rkal__sub {
+  color: var(--ai);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rec9-cal .rkal__moving {
+  background: color-mix(in srgb, var(--a) 16%, transparent);
+}
+.rec9-cal .rkal__bar[data-drag] {
+  outline-color: var(--a);
+}
+.rec9-cal .rkal__status {
+  min-height: 24px;
+}
+.rec9-cal .rkal__tip {
+  font-size: 0.82rem;
+}
+.rec9-cal .rkal__side {
+  align-content: start;
+  border-left: 1px solid var(--hairline-faint);
+  padding-left: 22px;
+}
+@media (max-width: 899px) {
+  .rec9-cal .rkal__side {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+:root[data-theme="light"] .rec9-cal .rkal__sub {
+  color: color-mix(in srgb, var(--ai) 55%, #0a0f1c);
+}
+.rec9-cal__bar .segmented {
+  width: auto;
+}
+.rec9-cal__bar .segmented__item {
+  flex: 0 0 auto;
+  min-width: 96px;
+}

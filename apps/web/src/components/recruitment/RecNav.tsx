@@ -20,6 +20,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentTy
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   CalendarBlankIcon,
+  CaretDownIcon,
   ClipboardTextIcon,
   DoorOpenIcon,
   DotsThreeIcon,
@@ -66,6 +67,7 @@ import { REC } from "./recruitmentStrings";
 import "../shell/AppNav.css";
 import "./recruitment.css";
 import "./recruitment-shell.css";
+import { AREA } from "./panel/areas";
 
 type Ikon = ComponentType<IconProps>;
 
@@ -129,6 +131,7 @@ function Lainnya({
   act,
   onGo,
   aktif,
+  tc,
 }: {
   rest: Bagian[];
   label: string;
@@ -141,6 +144,8 @@ function Lainnya({
   act?: "mid" | "wide" | "narrow" | "bar" | "js";
   onGo: (e: React.MouseEvent, l: Bagian) => void;
   aktif: string;
+  /** The open tab's area colour, worn by the button while the tab is folded into it */
+  tc?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -152,6 +157,7 @@ function Lainnya({
           data-more={more}
           data-act={act}
           aria-haspopup="menu"
+          style={act && tc ? ({ "--tc": tc } as React.CSSProperties) : undefined}
         >
           {variant === "bar" ? (
             <>
@@ -164,10 +170,13 @@ function Lainnya({
               </span>
             </>
           ) : (
-            <span>
-              <span className="rec-more__def">{label}</span>
-              <span className="rec-more__act">{active?.label}</span>
-            </span>
+            <>
+              <span>
+                <span className="rec-more__def">{label}</span>
+                <span className="rec-more__act">{active?.label}</span>
+              </span>
+              <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
+            </>
           )}
         </button>
       </RadixPopover.Trigger>
@@ -517,6 +526,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
               act={folded === null ? actTop : aktifDalam ? "js" : undefined}
               onGo={go}
               aktif={aktif}
+              tc={AREA[aktif as PanelTab]?.c}
             />
           )}
         </nav>
