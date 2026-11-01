@@ -559,6 +559,21 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
   }
   if (typeof sh.recording === "boolean") upd.recording = sh.recording;
   if (sh.start === true && !old?.startedAt) upd.startedAt = new Date();
+  // Levels are checked before anything is written, so a refused level never leaves a half-saved sheet.
+  let levelsBaru: Record<string, number> | null = null;
+  if (b.levels !== undefined) {
+    if (!a.penguji) return void tolak(res, "tanpa_hak", 403);
+    if (typeof b.levels !== "object" || b.levels === null || Array.isArray(b.levels))
+      return void tolak(res, "data_salah", 400, { field: "levels" });
+    levelsBaru = {};
+    for (const p of a.t.params) {
+      const v = (b.levels as Record<string, unknown>)[p.key];
+      if (v === undefined) continue;
+      if (typeof v !== "number" || !Number.isInteger(v) || v < p.min || v > p.max)
+        return void tolak(res, "data_salah", 400, { field: `levels.${p.key}` });
+      levelsBaru[p.key] = v;
+    }
+  }
   const now = new Date();
   const [row] = await db
     .insert(recSheetShared)
@@ -575,10 +590,7 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
       set: { ...upd, version: (old?.version ?? 0) + 1, updatedBy: s.nim, updatedAt: now },
     })
     .returning({ version: recSheetShared.version });
-  if (b.levels !== undefined) {
-    if (!a.penguji) return void tolak(res, "tanpa_hak", 403);
-    if (typeof b.levels !== "object" || b.levels === null || Array.isArray(b.levels))
-      return void tolak(res, "data_salah", 400, { field: "levels" });
+  if (levelsBaru) {
     const [mine] = await db
       .select()
       .from(recSheet)
@@ -590,14 +602,7 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
         ),
       )
       .limit(1);
-    const lv = { ...(mine?.levels ?? {}) };
-    for (const p of a.t.params) {
-      const v = (b.levels as Record<string, unknown>)[p.key];
-      if (v === undefined) continue;
-      if (typeof v !== "number" || !Number.isInteger(v) || v < p.min || v > p.max)
-        return void tolak(res, "data_salah", 400, { field: `levels.${p.key}` });
-      lv[p.key] = v;
-    }
+    const lv = { ...(mine?.levels ?? {}), ...levelsBaru };
     await db
       .insert(recSheet)
       .values({ candidateId: a.kandidat.id, stage, graderNim: s.nim, levels: lv, updatedAt: now })
