@@ -71,7 +71,7 @@ interface Bagian {
   /** Opens a panel part in place when the panel is already on screen */
   tab?: PanelTab;
   /** Where the fold puts it: "wide" below 1100, "narrow" below 820 (set from its place in the list) */
-  fold?: "wide" | "narrow";
+  fold?: "mid" | "wide" | "narrow";
 }
 
 /**
@@ -84,6 +84,8 @@ interface Bagian {
  */
 const KEEP_WIDE = 5;
 const KEEP_NARROW = 4;
+/** A long bar (more than eight parts) folds the rest into Lainnya below 1400 too */
+const KEEP_MID = 8;
 
 function Lainnya({
   rest,
@@ -102,9 +104,9 @@ function Lainnya({
   side: "top" | "bottom";
   variant: "top" | "bar";
   /** Top bar: when the button shows ("wide": below 1100, "narrow": below 820) */
-  more?: "wide" | "narrow";
+  more?: "mid" | "wide" | "narrow";
   /** When the active tab is inside, and so the label is its name */
-  act?: "wide" | "narrow" | "bar";
+  act?: "mid" | "wide" | "narrow" | "bar";
   onGo: (e: React.MouseEvent, l: Bagian) => void;
   aktif: string;
 }) {
@@ -285,13 +287,28 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
     () =>
       links.map((l, i) => ({
         ...l,
-        fold: i >= KEEP_WIDE ? "wide" : i === KEEP_NARROW ? "narrow" : undefined,
+        fold:
+          i >= KEEP_MID
+            ? "mid"
+            : i >= KEEP_WIDE
+              ? "wide"
+              : i === KEEP_NARROW
+                ? "narrow"
+                : undefined,
       })),
     [links],
   );
   const iAktif = lipat.findIndex((l) => l.key === aktif);
-  const moreTop = n > KEEP_WIDE ? "wide" : n > KEEP_NARROW ? "narrow" : undefined;
-  const actTop = iAktif >= KEEP_WIDE ? "wide" : iAktif === KEEP_NARROW ? "narrow" : undefined;
+  const moreTop =
+    n > KEEP_MID ? "mid" : n > KEEP_WIDE ? "wide" : n > KEEP_NARROW ? "narrow" : undefined;
+  const actTop =
+    iAktif >= KEEP_MID
+      ? "mid"
+      : iAktif >= KEEP_WIDE
+        ? "wide"
+        : iAktif === KEEP_NARROW
+          ? "narrow"
+          : undefined;
   // The phone's bar: everything up to 5, from 6 on four and Lainnya.
   const barKeep = n > KEEP_WIDE ? KEEP_NARROW : n;
   const [scrolled, setScrolled] = useState(false);

@@ -1727,6 +1727,34 @@ html[data-detail="ldm"] .rec-funnel__bar i {
 .appbar__item.rec-more[data-act="bar"] {
   color: var(--accent);
 }
+@media (max-width: 1599px) {
+  .rec-nav .appnav__link[data-fold="mid"] {
+    display: none;
+  }
+  .appnav__link.rec-more[data-more="mid"] {
+    display: inline-flex;
+  }
+  .rec-more[data-act="mid"] .rec-more__def {
+    display: none;
+  }
+  .rec-more[data-act="mid"] .rec-more__act {
+    display: inline;
+  }
+  .appnav__link.rec-more[data-act="mid"] {
+    color: var(--text);
+    font-weight: 650;
+  }
+}
+@media (min-width: 1100px) {
+  .rec-more__menu .acct__row[data-fold="wide"] {
+    display: none;
+  }
+}
+@media (min-width: 1600px) {
+  .rec-more__menu .acct__row[data-fold="mid"] {
+    display: none;
+  }
+}
 @media (max-width: 1099px) {
   .rec-nav .appnav__link[data-fold="wide"] {
     display: none;
