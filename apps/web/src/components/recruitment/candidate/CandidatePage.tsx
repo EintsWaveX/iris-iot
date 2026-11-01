@@ -290,24 +290,40 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const first = events.length
     ? events.reduce((m, e) => (e.startsOn < m ? e.startsOn : m), events[0].startsOn)
     : null;
+  // A candidate's own road is a secret: days ahead stay under fog (the API never sends their dates).
+  const fog = applied && !asisten;
   const bar = (
     <div className="rec-calwrap" id="kalender">
       <Kartu
         className="rec-calcard"
         title={CAL[lang].calendar}
         aside={
-          <SegmentedControl
-            aria-label={CAL[lang].view}
-            value={view}
-            onValueChange={(v) => setView(v as "bulan" | "agenda")}
-            options={[
-              { value: "bulan", label: CAL[lang].month },
-              { value: "agenda", label: CAL[lang].agenda },
-            ]}
-          />
+          fog ? undefined : (
+            <SegmentedControl
+              aria-label={CAL[lang].view}
+              value={view}
+              onValueChange={(v) => setView(v as "bulan" | "agenda")}
+              options={[
+                { value: "bulan", label: CAL[lang].month },
+                { value: "agenda", label: CAL[lang].agenda },
+              ]}
+            />
+          )
         }
       >
-        {view === "bulan" ? (
+        {fog ? (
+          <>
+            <RecCalendar
+              events={events}
+              lang={lang}
+              hariIni={hariIni}
+              viewer="candidate"
+              side={false}
+              fog
+            />
+            <span className="hint">{CAL[lang].fogNote}</span>
+          </>
+        ) : view === "bulan" ? (
           <RecCalendar events={events} lang={lang} hariIni={hariIni} viewer="candidate" />
         ) : (
           <Agenda events={events} lang={lang} hariIni={hariIni} viewer="candidate" />

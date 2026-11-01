@@ -50,7 +50,7 @@
  * deleting an event whose stage has started asks for `confirm: true` and is
  * written to rec_event_log.
  */
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, count, eq, ilike, or } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, pgErrorCode, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
@@ -67,6 +67,7 @@ import {
   recDocument,
   recEvent,
   recEventLog,
+  recSlotChange,
 } from "../../src/lib/schema.js";
 import { susunBanner, lite, type BannerViewer } from "../../src/lib/recruitment/banner.js";
 import { gateOpen, tahapSudahMulai, visibleEvents } from "../../src/lib/recruitment/gates.js";
@@ -286,6 +287,16 @@ async function handleBanner(req: ApiRequest, res: ApiResponse) {
     );
 }
 
+/** Open slot change requests of an edition (the Plotting badge in the navbar). */
+async function mintaTerbuka(db: ReturnType<typeof getDb>, editionId: number) {
+  const [r] = await db
+    .select({ n: count() })
+    .from(recSlotChange)
+    .innerJoin(recCandidate, eq(recCandidate.id, recSlotChange.candidateId))
+    .where(and(eq(recCandidate.editionId, editionId), eq(recSlotChange.status, "open")));
+  return r?.n ?? 0;
+}
+
 async function handleEdisi(req: ApiRequest, res: ApiResponse) {
   const db = getDb();
   const s = currentSession(req);
@@ -307,6 +318,12 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     viewer: kind,
     rights: pelaku && anggotaPanitia(pelaku) ? pelaku.hak : null,
     seat: pelaku?.kursi ?? null,
+    // The Plotting count in the navbar: slot change requests nobody has decided yet.
+    ...(pelaku &&
+      anggotaPanitia(pelaku) &&
+      pelaku.hak.plotting && {
+        plotRequests: await mintaTerbuka(db, edisi.id),
+      }),
     // The documents asked for (Atur Berkas): the candidate page and the Panitia read the same list.
     docs: await bacaSetting(db, "docs"),
     // Only an Asisten gets this far while it is on (the router answers everyone else).

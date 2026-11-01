@@ -60,8 +60,13 @@ export default function Journey({
   const [open, setOpen] = useState<number | null>(null);
   const ci = cur ? JOURNEY.indexOf(cur) : -1;
   const pts = POS.map(([x, y]) => `${x * 10},${y * 2}`);
+  // The mist starts where the last clear star sits and covers the rest of the road.
+  const mist = sampai !== undefined && sampai < JOURNEY.length - 1;
   return (
-    <div className="rec-journey">
+    <div
+      className="rec-journey"
+      style={mist ? ({ "--fx": `${POS[Math.max(sampai, 0)][0]}%` } as CSSProperties) : undefined}
+    >
       <svg
         className="rec-journey__svg"
         viewBox="0 0 1000 200"
@@ -165,6 +170,15 @@ export default function Journey({
           );
         })}
       </ol>
+      {mist && (
+        <div className="n7-mist" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <b />
+          <u />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 /**
  * The candidate's fog (mockup, 2026-10-27): a CaAs sees what they need now.
- * Stages passed are clear, the one they are on is lit, the next one shows its
- * dates, and everything beyond stays under mist. The API applies this to the
+ * Stages passed are clear, the one they are on is lit, and everything ahead
+ * stays under mist (the next stage clears when its envelope is opened and the
+ * star moves). The API applies this to the
  * calendar it sends (never only CSS); the journey draws the same limit.
  */
 import { STAGES, type CandidateStatus, type RecEvent, type StageKey } from "./types.js";
@@ -14,8 +15,7 @@ import { STAGES, type CandidateStatus, type RecEvent, type StageKey } from "./ty
 export function fogLimit(c: { status: CandidateStatus; stage: StageKey } | null): number {
   if (!c || c.status === "withdrawn") return 0;
   const i = STAGES.indexOf(c.stage);
-  if (c.status === "out") return i;
-  return Math.min(i + 1, STAGES.length - 1);
+  return i;
 }
 
 /** Events past the limit are dropped, except the ones this CaAs was plotted into. */

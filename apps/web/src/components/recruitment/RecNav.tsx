@@ -260,7 +260,9 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         tab("kalender", t.kalender, CalendarBlankIcon),
         ...(rights?.candidates ? [tab("kandidat", t.kandidat, ListChecksIcon, nKandidat)] : []),
         ...(rights?.cuttingPropose ? [tab("cutting", t.cutting, ScissorsIcon)] : []),
-        ...(rights?.plotting ? [tab("plotting", t.plotting, MapPinIcon)] : []),
+        ...(rights?.plotting
+          ? [tab("plotting", t.plotting, MapPinIcon, edisi.data?.plotRequests || undefined)]
+          : []),
         ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
         ...(rights?.bank ? [tab("bank", t.bank, FileTextIcon)] : []),
         tab("wawancara", t.wawancara, ChatsCircleIcon),
@@ -323,6 +325,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
     rights?.plotting,
     rights?.bank,
     nKandidat,
+    edisi.data?.plotRequests,
     prefix,
     t,
   ]);

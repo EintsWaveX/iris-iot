@@ -12,7 +12,20 @@
 import type { ReactNode } from "react";
 import type { PollState } from "../../../lib/hooks";
 import type { BannerResponse } from "../../../lib/recruitment/types";
-import { ArrowRightIcon } from "@phosphor-icons/react";
+import {
+  ArrowRightIcon,
+  ChalkboardTeacherIcon,
+  ClipboardTextIcon,
+  CpuIcon,
+  EnvelopeSimpleIcon,
+  FileTextIcon,
+  GraduationCapIcon,
+  MapPinIcon,
+  SealCheckIcon,
+  TimerIcon,
+  WrenchIcon,
+} from "@phosphor-icons/react";
+import type { ComponentType } from "react";
 import { href } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { useRecBanner, useRecCandidates, useRecEdition } from "../../../lib/recruitment/client";
@@ -28,6 +41,17 @@ import { FORMULIR } from "../../../lib/recruitment/formulir";
 import { judulAcara } from "../judul";
 
 const JOURNEY: (StageKey | "daftar")[] = ["daftar", ...STAGES];
+
+/** The tile beside "what you need to do now": the stage the candidate is in. */
+const IKON: Record<StageKey, ComponentType<{ size?: number; "aria-hidden"?: boolean }>> = {
+  berkas: FileTextIcon,
+  first_meet: MapPinIcon,
+  tes_tulis: TimerIcon,
+  wawancara: ChalkboardTeacherIcon,
+  tubes: CpuIcon,
+  mengajar: GraduationCapIcon,
+  penerimaan: SealCheckIcon,
+};
 
 function Langkah({ cur, lang }: { cur: StageKey; lang: Lang }) {
   const ci = JOURNEY.indexOf(cur);
@@ -177,27 +201,34 @@ export default function RecBanner({
   }
 
   if (d.kind === "candidate") {
-    const judul =
-      d.status === "revision"
-        ? t.candidate.revision
+    // One thing to do: an envelope to open, a fix to send, or the next date to be at.
+    const [judul, hint, Ik]: [string, string, (typeof IKON)[StageKey]] = d.envelope
+      ? [t.candidate.envelopeTitle, t.candidate.envelope, EnvelopeSimpleIcon]
+      : d.status === "revision"
+        ? [t.candidate.revision, t.candidate.revisionHint, WrenchIcon]
         : d.status === "applied"
-          ? t.candidate.applied
+          ? [t.candidate.applied, t.candidate.appliedHint, ClipboardTextIcon]
           : d.status === "accepted"
-            ? t.candidate.accepted
-            : t.candidate.stage(r.stage[d.stage]);
-    const hint = d.envelope
-      ? t.candidate.envelope
-      : d.next
-        ? t.candidate.next(judulAcara(d.next, lang), kapanAcara(d.next, lang))
-        : t.candidate.nothing;
+            ? [t.candidate.accepted, t.candidate.welcomeHint, SealCheckIcon]
+            : d.next
+              ? [judulAcara(d.next, lang), kapanAcara(d.next, lang), IKON[d.stage]]
+              : [t.candidate.stage(r.stage[d.stage]), t.candidate.nothing, IKON[d.stage]];
     return box(
       <>
         {eyebrow}
-        <span className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <b className="rec-bn__title">{judul}</b>
-          {d.envelope && <Pill tone="warn">{t.candidate.sealedChip}</Pill>}
+        <span className="rec9-bn__do">
+          <span className="rec9-bn__ic">
+            <Ik size={22} aria-hidden={true} />
+          </span>
+          <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+            <span className="rec9-bn__q">{t.candidate.doNow}</span>
+            <span className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <b className="rec-bn__title">{judul}</b>
+              {d.envelope && <Pill tone="warn">{t.candidate.sealedChip}</Pill>}
+            </span>
+            <span className="hint">{hint}</span>
+          </span>
         </span>
-        <span className="hint">{hint}</span>
       </>,
       d.status === "revision" ? (
         <a className="btn btn--primary" href={link("/recruitment?berkas=1")}>

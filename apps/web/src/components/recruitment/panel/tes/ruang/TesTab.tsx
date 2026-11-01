@@ -11,12 +11,15 @@ import {
   CheckIcon,
   ClockIcon,
   FlagIcon,
+  GearIcon,
   ListChecksIcon,
+  PencilSimpleIcon,
   PlusIcon,
   SparkleIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
 import Confirm from "../../../../ui/Confirm";
+import Dialog from "../../../../ui/Dialog";
 import IconButton from "../../../../ui/IconButton";
 import Fade from "../../../../ui/Fade";
 import Pill from "../../../../ui/Pill";
@@ -40,7 +43,8 @@ import Konsol from "./Konsol";
 import { RuangPengaturan } from "./RuangSetup";
 import JudgeTab from "./JudgeTab";
 import { RG } from "./ruangStrings";
-import { MG } from "./malamStrings";
+import { KS, MG } from "./malamStrings";
+import Kesiapan from "./Kesiapan";
 import PenilaianTab from "../penilaian/PenilaianTab";
 import { PN } from "../penilaian/penilaianStrings";
 
@@ -58,8 +62,14 @@ const bacaRuang = (): number | null => {
   return Number.isInteger(n) && n > 0 ? n : null;
 };
 
+/** The room's own part named in the address (?b=atur opens its setup). */
+const bacaBagianRuang = (): "konsol" | "atur" | "nilai" => {
+  const b = new URLSearchParams(location.search).get("b");
+  return b === "atur" || b === "nilai" ? b : "konsol";
+};
+
 /** The room named in the address, kept in step with it. */
-function useRuangDipilih(): [number | null, (id: number | null) => void] {
+function useRuangDipilih(): [number | null, (id: number | null, b?: "atur") => void] {
   const [id, setId] = useState<number | null>(null);
   useEffect(() => {
     const on = () => setId(bacaRuang());
@@ -71,10 +81,12 @@ function useRuangDipilih(): [number | null, (id: number | null) => void] {
       window.removeEventListener("popstate", on);
     };
   }, []);
-  const pilih = useCallback((n: number | null) => {
+  const pilih = useCallback((n: number | null, b?: "atur") => {
     const u = new URL(location.href);
     if (n === null) u.searchParams.delete("ruang");
     else u.searchParams.set("ruang", String(n));
+    if (b) u.searchParams.set("b", b);
+    else u.searchParams.delete("b");
     history.pushState(history.state, "", u);
     window.dispatchEvent(new Event(RUANG_EVENT));
   }, []);
@@ -163,6 +175,76 @@ function HapusRuang({
   );
 }
 
+/* ------------------------------------------------------------- rename */
+
+/** The pencil of a room that has not started: its name (the Pengawas live in Atur Ruang). */
+function UbahRuang({
+  lang,
+  room,
+  onClose,
+  done,
+}: {
+  lang: Lang;
+  room: RoomRow | null;
+  onClose: () => void;
+  done: () => void;
+}) {
+  const k = KS[lang];
+  const [nama, setNama] = useState("");
+  const [sibuk, setSibuk] = useState(false);
+  useEffect(() => setNama(room?.title ?? ""), [room]);
+  async function simpan() {
+    if (!room) return;
+    setSibuk(true);
+    const r = await recPost<{ ok: true }>("room-setup", {
+      id: room.id,
+      slotId: room.slot?.id,
+      rehearsal: room.rehearsal,
+      title: nama.trim(),
+      ...(room.slot ? { pengawas: room.pengawas.map((p) => p.nim) } : {}),
+    });
+    setSibuk(false);
+    if (isFail(r)) return toast(k.fail, "danger");
+    toast(k.saved);
+    done();
+    onClose();
+  }
+  return (
+    <Dialog
+      open={room !== null}
+      onOpenChange={(o) => !o && onClose()}
+      title={k.editTitle}
+      size="sm"
+      lang={lang}
+      actions={
+        <>
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
+            <span className="btn__label">{k.cancel}</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={sibuk || !nama.trim()}
+            onClick={() => void simpan()}
+          >
+            <span className="btn__label">{k.save}</span>
+          </button>
+        </>
+      }
+    >
+      <label className="stack stack--sm">
+        <span className="label-caps">{k.editName}</span>
+        <input
+          className="field__input"
+          value={nama}
+          maxLength={60}
+          onChange={(e) => setNama(e.target.value)}
+        />
+      </label>
+    </Dialog>
+  );
+}
+
 /* ------------------------------------------------------------------ list */
 
 type Daftarku = NonNullable<ReturnType<typeof useRecRooms>["data"]>;
@@ -214,11 +296,13 @@ function Daftar({
 }: {
   lang: Lang;
   data: Daftarku;
-  buka: (id: number) => void;
+  buka: (id: number, b?: "atur") => void;
   refresh: () => void;
 }) {
   const t = RG[lang].list;
   const m = MG[lang];
+  const k = KS[lang];
+  const [ubah, setUbah] = useState<Daftarku["rooms"][number] | null>(null);
   const [sibuk, setSibuk] = useState(false);
   const [pilih, setPilih] = useState<string | null>(null);
   async function siapkan(body: Record<string, unknown>) {
@@ -252,47 +336,85 @@ function Daftar({
   };
   const rel = (v: Daftarku["rooms"][number]["view"]): 0 | 1 | 2 =>
     v === "setup" || v === "persiapan" ? 0 : v === "finished" ? 2 : 1;
-  const kartu = (r: Daftarku["rooms"][number], hariPanjang: string) => (
-    <section className="panel n7-stagehead" key={r.id} data-mine={r.mine ? "yes" : "no"}>
-      <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-        <span className="eyebrow">{hariPanjang}</span>
-        <h2 className="h3 n7-stagehead__t">
-          {r.title}
-          {r.rehearsal && <Pill tone="gold">{m.practice}</Pill>}
-        </h2>
-        <span className="hint">
-          {t.seats(r.seats, r.checkedIn)} · {r.master ? t.master(r.master.nama) : t.noMaster}
-        </span>
-        {r.pengawas.length > 0 && (
-          <div className="r3chips">
-            {r.pengawas.map((p) => (
-              <Pill key={p.nim} mono title={p.nama}>
-                {p.kode}
-              </Pill>
-            ))}
+  const kartu = (r: Daftarku["rooms"][number], hariPanjang: string) => {
+    // Before the room opens, its setup is the page: readiness and the Mulai Ujian card.
+    const siap = r.view === "setup" || r.view === "persiapan";
+    return (
+      <div className="stack" key={r.id}>
+        <section className="panel n7-stagehead" data-mine={r.mine ? "yes" : "no"}>
+          <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+            <span className="eyebrow">{hariPanjang}</span>
+            <h2 className="h3 n7-stagehead__t">
+              {r.title}
+              {r.rehearsal && <Pill tone="gold">{m.practice}</Pill>}
+            </h2>
+            {!siap && (
+              <span className="hint">
+                {t.seats(r.seats, r.checkedIn)} · {r.master ? t.master(r.master.nama) : t.noMaster}
+              </span>
+            )}
+            {r.pengawas.length > 0 && !siap && (
+              <div className="r3chips">
+                {r.pengawas.map((p) => (
+                  <Pill key={p.nim} mono title={p.nama}>
+                    {p.kode}
+                  </Pill>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <Rel at={rel(r.view)} lang={lang} />
-      <div className="row" style={{ gap: 8 }}>
-        <button type="button" className="btn btn--primary" onClick={() => buka(r.id)}>
-          <span className="btn__label">{t.open}</span>
-        </button>
-        {data.canSetup && (
-          <HapusRuang
+          <Rel at={rel(r.view)} lang={lang} />
+          <div className="row n7-stagehead__act" style={{ gap: 8 }}>
+            {siap ? (
+              data.canSetup && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => buka(r.id, "atur")}
+                >
+                  <GearIcon size={16} aria-hidden="true" />
+                  <span className="btn__label">{k.setup}</span>
+                </button>
+              )
+            ) : (
+              <button type="button" className="btn btn--primary" onClick={() => buka(r.id)}>
+                <span className="btn__label">{t.open}</span>
+              </button>
+            )}
+            {data.canSetup && siap && (
+              <IconButton
+                icon={PencilSimpleIcon}
+                label={k.edit}
+                tip={k.edit}
+                onClick={() => setUbah(r)}
+              />
+            )}
+            {data.canSetup && (
+              <HapusRuang
+                lang={lang}
+                id={r.id}
+                title={r.title}
+                rehearsal={r.rehearsal}
+                seats={r.seats}
+                view={r.view}
+                selesai={r.view === "finished" || r.part !== null}
+                done={refresh}
+              />
+            )}
+          </div>
+        </section>
+        {siap && (
+          <Kesiapan
             lang={lang}
-            id={r.id}
-            title={r.title}
-            rehearsal={r.rehearsal}
-            seats={r.seats}
-            view={r.view}
-            selesai={r.view === "finished" || r.part !== null}
-            done={refresh}
+            room={r}
+            buka={() => buka(r.id)}
+            atur={() => buka(r.id, "atur")}
+            latihan={() => setPilih("latihan")}
           />
         )}
       </div>
-    </section>
-  );
+    );
+  };
   const isiMalam = () => {
     if (cur === "latihan")
       return latihan.length ? (
@@ -361,6 +483,7 @@ function Daftar({
   };
   return (
     <div className="n7-malam">
+      <UbahRuang lang={lang} room={ubah} onClose={() => setUbah(null)} done={refresh} />
       <div className="n7-nights" role="tablist" aria-label={m.nights}>
         {kunci.map((d) => {
           const st = state(d);
@@ -451,7 +574,7 @@ function Ruang({
   const live = useRuangLangsung(id, true, () => refresh(), refresh);
   useCadanganRuang(refresh, live.status !== "live");
   const motion = useRevealMotion();
-  const [bagian, setBagian] = useState<Bagian>("konsol");
+  const [bagian, setBagian] = useState<Bagian>(bacaBagianRuang);
   const v = room.data;
 
   if (!v)
@@ -583,7 +706,6 @@ export default function TesTab({ lang }: { lang: Lang }) {
         <PenilaianTab lang={lang} />
       ) : (
         <>
-          <p className="hint">{t.lede}</p>
           <Daftar lang={lang} data={rooms.data} buka={pilih} refresh={rooms.refresh} />
         </>
       )}

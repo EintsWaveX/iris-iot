@@ -372,6 +372,8 @@ export interface EditionResponse {
   rights: RecRights | null;
   /** The viewer's seat, when they have one */
   seat: { division: CommitteeDivision; isKoor: boolean; title: string | null } | null;
+  /** Panitia with the Plotting right: slot change requests still open (the navbar badge) */
+  plotRequests?: number;
   /** The documents a CaAs sends, as the Ketua and Admin set them (settings.ts) */
   docs?: DocSetting[];
   /** Asisten only: Sembunyikan Oprec is on (nobody else sees recruitment) */
