@@ -121,7 +121,6 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
   const sumber = useMemo(() => (d ? JSON.stringify(d.rows) : ""), [d]);
   useEffect(() => {
     if (d) setRows(structuredClone(d.rows));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sumber]);
 
   if (!d || !rows) return <span className="skeleton" style={{ height: 360 }} />;

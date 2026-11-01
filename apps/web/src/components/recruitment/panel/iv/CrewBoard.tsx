@@ -113,7 +113,6 @@ export default function CrewBoard({
         out.push({ tone: "warn", text: `${t.inn}: ${dalam.size}/${d.template.pjIn}`, at: at(a) });
     }
     return out.sort((x, y) => (x.tone === y.tone ? 0 : x.tone === "danger" ? -1 : 1));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d, shifts, lang]);
 
   if (!d) return <span className="skeleton" style={{ height: 320 }} />;

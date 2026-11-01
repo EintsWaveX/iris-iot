@@ -276,7 +276,6 @@ export default function Lembar({
     last.current = snap;
     setSave("saved");
     return true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, locked, stage, id, snap]);
 
   // Autosave 1.2 s after the last change; a failed save tries again.
