@@ -28,3 +28,52 @@
 .hold[data-hold] {
   transform: scale(0.97);
 }
+
+/* The mockup's hold button (rec7.css .n7-hold): a tinted outline that fills with its tone. */
+.hold--tint {
+  --tone: var(--danger);
+  background: color-mix(in srgb, var(--tone) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--tone);
+  cursor: pointer;
+  font-weight: 650;
+  min-height: 46px;
+  padding: 0 18px;
+  text-align: left;
+  transition: background 160ms;
+  width: 100%;
+}
+.hold--tint[data-tint="warn"] {
+  --tone: var(--warn);
+}
+.hold--tint[data-tint="ok"] {
+  --tone: var(--ok);
+}
+@media (hover: hover) and (pointer: fine) {
+  .hold--tint:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--tone) 18%, transparent);
+  }
+}
+.hold--tint:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.hold--tint .hold__fill {
+  background: color-mix(in srgb, var(--tone) 42%, transparent);
+}
+.hold__t {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  justify-content: flex-start;
+  width: 100%;
+}
+.hold__t small {
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin-left: auto;
+  opacity: 0.9;
+  text-transform: uppercase;
+}

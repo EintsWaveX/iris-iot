@@ -47,6 +47,7 @@ const waktu = (iso: string, lang: Lang) => {
   return `${tgl(w.tanggal, lang)}, ${w.jam}`;
 };
 
+import TabLine from "../../../ui/TabLine";
 import { useDocRules } from "../../../../lib/recruitment/doc-rules";
 export default function BerkasReview({
   lang,
@@ -69,6 +70,9 @@ export default function BerkasReview({
   const p = PN[lang].cand;
   const motion = useRevealMotion();
   const rules = useDocRules();
+  /** The name as Atur Berkas set it, else the built-in one. */
+  const dn = (k: DocKind) =>
+    rules.label(k, lang, (t.docs as Partial<Record<DocKind, string>>)[k] ?? k);
   const [id, setId] = useState(id0);
   const [d, setD] = useState<CandidateDetailResponse | null | "gagal">(null);
   const [doc, setDoc] = useState<DocKind>(rules.required[0] ?? rules.optional[0]);
@@ -222,23 +226,22 @@ export default function BerkasReview({
       ) : (
         <div className="r2rev" ref={body}>
           <div className="r2rev__nav">
-            <div
-              className="rec-chips"
-              role="group"
-              aria-label={t.files}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              {jenis.map((k) => (
-                <button
-                  type="button"
-                  className="chipbtn"
-                  key={k}
-                  aria-pressed={doc === k}
-                  onClick={() => setDoc(k)}
-                >
-                  {t.docs[k] + (cek[k] === "ok" ? " ✓" : "")}
-                </button>
-              ))}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <TabLine
+                label={t.files}
+                value={doc}
+                onChange={setDoc}
+                tabs={jenis.map((k) => ({
+                  v: k,
+                  label: dn(k) + (cek[k] === "ok" ? " ✓" : ""),
+                  tone:
+                    cek[k] === "ok"
+                      ? ("ok" as const)
+                      : cek[k] === "fix"
+                        ? ("bad" as const)
+                        : undefined,
+                }))}
+              />
             </div>
           </div>
           <div className="r2rev__grid">
@@ -259,7 +262,7 @@ export default function BerkasReview({
                   key={`${aktif.id}-${aktif.hasPrev ? ver : "2"}`}
                   url={`/api/recruitment/berkas?id=${aktif.id}${aktif.hasPrev && ver === "1" ? "&v=1" : ""}`}
                   name={`${doc}_${c.nim}.pdf`}
-                  title={t.docs[doc]}
+                  title={dn(doc)}
                   lang={lang}
                   shape="page"
                 />
@@ -283,7 +286,7 @@ export default function BerkasReview({
                 <h3 className="h3">{t.checks}</h3>
                 {jenis.map((k) => (
                   <div className="r2chk" key={k}>
-                    <span>{t.docs[k]}</span>
+                    <span>{dn(k)}</span>
                     <span className="r2pro">
                       <button
                         type="button"
@@ -483,7 +486,7 @@ export default function BerkasReview({
           <div className="stack">
             <span className="hint">
               {t.marked}
-              <b>{ditandai.map((k) => t.docs[k]).join(", ") || t.none}</b>
+              <b>{ditandai.map((k) => dn(k)).join(", ") || t.none}</b>
             </span>
             <div className="rec-chips">
               {t.quick.map((x) => (

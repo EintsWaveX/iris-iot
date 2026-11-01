@@ -104,6 +104,14 @@ export const DOC_KINDS = [
 export type DocKind = (typeof DOC_KINDS)[number];
 
 /**
+ * Keys for a document added in Atur Berkas (Tambah Berkas), after the
+ * defaults are all in the list: the retired `letter` and `other`. The upload
+ * relay's key pattern (tp-r2.ts) lists the kinds, so a new key needs the
+ * relay redeployed; these two already pass. The key never changes once stored.
+ */
+export const DOC_SPARE: readonly DocKind[] = ["letter", "other"];
+
+/**
  * The PDFs an application needs, the team's list on the Google Form (user,
  * 2026-10-25): Biodata, CV ATS, Visi Misi (with Motivasi and Ide Inovasi),
  * KHS, KSM and KTM.

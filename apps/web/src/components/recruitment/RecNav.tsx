@@ -123,6 +123,9 @@ const FOLD_ORDER = [
   "ringkasan",
 ];
 
+/** Folded first on a long bar below 1680 px (the mockup's tidy bar), in the order Lainnya lists them. */
+const RAPI = ["bank", "panitia", "kalender"];
+
 const useLayoutAman = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function Lainnya({
@@ -394,9 +397,14 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
       const more = ghost.querySelector<HTMLElement>('[data-g="m"]')?.offsetWidth ?? 96;
       const width = (gone: string[]) =>
         [...ws].reduce((a, [k, w]) => (gone.includes(k) ? a : a + w + GAP), 0) - GAP;
-      if (width([]) <= avail) return void setHide((h) => (h && !h.length ? h : []));
+      // The mockup's "Rapi" bar: a long bar (the Panitia's twelve) keeps Kalender, Bank Soal and Panitia
+      // in Lainnya below 1680 px even when everything would fit. A short bar is left alone.
+      const rapi = ws.size >= 10 && window.innerWidth < 1680 ? RAPI.filter((k) => ws.has(k)) : [];
+      if (!rapi.length && width([]) <= avail) return void setHide((h) => (h && !h.length ? h : []));
       // Fold in the order of FOLD_ORDER until the rest and Lainnya fit.
-      const gone: string[] = [];
+      const gone: string[] = [...rapi];
+      if (gone.length && width(gone) + GAP + more <= avail)
+        return void setHide((h) => (h && h.join() === gone.join() ? h : gone));
       for (const k of [...FOLD_ORDER, ...ws.keys()]) {
         if (!ws.has(k) || gone.includes(k)) continue;
         gone.push(k);

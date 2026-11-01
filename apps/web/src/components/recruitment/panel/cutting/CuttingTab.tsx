@@ -605,6 +605,8 @@ export default function CuttingTab({
         <>
           <HoldButton
             label={t.hold}
+            tint="warn"
+            icon={LockSimpleIcon}
             tone="primary"
             ms={1600}
             disabled={missing > 0 || baris.length === 0 || !lock?.defaultRevealAt}

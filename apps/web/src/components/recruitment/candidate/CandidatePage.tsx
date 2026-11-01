@@ -11,7 +11,7 @@
  * scrolls to the calendar (the banner and the navbar link to them).
  */
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { ArrowRightIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, DoorOpenIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
 import SegmentedControl from "../../ui/SegmentedControl";
@@ -782,6 +782,8 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           <p>{t.withdraw.body}</p>
           <HoldButton
             label={t.withdraw.hold}
+            tint="danger"
+            icon={DoorOpenIcon}
             onDone={async () => {
               const res = await recPost<WithdrawResponse>("withdraw");
               if (isFail(res)) {

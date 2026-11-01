@@ -147,7 +147,7 @@ const ID: PnWords = {
     twice: "Menjalankannya dua kali tidak membuat siapa pun dua kali.",
     audit: "Tercatat di log audit.",
     envelope: (d) => `Amplop akhir terbuka ${d}.`,
-    hold: "Tahan untuk Menjadikan Asisten",
+    hold: "Jadikan Asisten",
     holdHint: "Tahan tombol sampai penuh. Ini membuat akun Asisten dan mengunci amplop akhir.",
     notKetua: "Hanya Ketua yang bisa menekan ini.",
     blocked: (n) => `Perbaiki ${n} kode dulu.`,
@@ -250,7 +250,7 @@ const EN: PnWords = {
     twice: "Running it twice creates nobody twice.",
     audit: "It is written to the audit log.",
     envelope: (d) => `The final envelopes open ${d}.`,
-    hold: "Hold to Make Them Asisten",
+    hold: "Make Them Asisten",
     holdHint:
       "Hold the button until it fills. It creates the Asisten accounts and locks the final envelopes.",
     notKetua: "Only the Ketua can press this.",

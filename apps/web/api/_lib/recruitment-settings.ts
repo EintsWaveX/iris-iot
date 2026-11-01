@@ -156,8 +156,8 @@ export interface AturanDokumen {
 export async function aturanDokumen(db: Db): Promise<AturanDokumen> {
   const docs = await bacaSetting(db, "docs");
   return {
-    semua: docs.map((d) => d.kind),
-    required: docs.filter((d) => d.required).map((d) => d.kind),
+    semua: docs.filter((d) => d.mode !== "typed").map((d) => d.kind),
+    required: docs.filter((d) => d.required && d.mode !== "typed").map((d) => d.kind),
     batas: (kind) => {
       const d = docs.find((x) => x.kind === kind);
       return d ? d.maxMb * 1024 * 1024 : DOC_MAX_BYTES;

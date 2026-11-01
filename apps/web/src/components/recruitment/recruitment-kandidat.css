@@ -297,3 +297,166 @@
     padding-inline: 10px;
   }
 }
+
+/* Tambah CaAs, matched to the mockup (rec9.css): the three-step bar, the PDF slot grid and the account text. */
+.rec9-tsteps {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.rec9-tsteps li {
+  align-items: center;
+  color: var(--text-faint);
+  display: flex;
+  font-size: 0.92rem;
+  gap: 8px;
+}
+.rec9-tsteps li + li::before {
+  background: var(--hairline-strong);
+  content: "";
+  height: 2px;
+  margin-right: 2px;
+  width: clamp(14px, 4vw, 44px);
+}
+.rec9-tsteps li[data-st="done"] + li::before,
+.rec9-tsteps li[data-st="cur"]::before {
+  background: var(--accent);
+}
+.rec9-tsteps .num {
+  align-items: center;
+  border: 1.5px solid var(--hairline-strong);
+  border-radius: 50%;
+  display: grid;
+  flex: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  place-items: center;
+  width: 28px;
+}
+.rec9-tsteps li[data-st="done"] .num {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #06210f;
+}
+.rec9-tsteps li[data-st="cur"] {
+  color: var(--text);
+}
+.rec9-tsteps li[data-st="cur"] .num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.rec9-uplist {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+@media (max-width: 759px) {
+  .rec9-uplist {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.rec9-up {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+.rec9-up__ic {
+  background: var(--red-soft);
+  border-radius: 9px;
+  color: var(--danger);
+  display: grid;
+  height: 36px;
+  place-items: center;
+  width: 36px;
+}
+.rec9-up[data-st="lengkap"] .rec9-up__ic {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.rec9-up[data-st="kosong"] .rec9-up__ic,
+.rec9-up[data-st="unggah"] .rec9-up__ic {
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+.rec9-up[data-st="galat"] {
+  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+}
+.rec9-up__err {
+  color: var(--danger);
+  font-size: 0.86rem;
+  line-height: 1.3;
+}
+.rec9-akun {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  font: 0.9rem/1.6 var(--font-mono, "JetBrains Mono", monospace);
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 14px 16px;
+  white-space: pre-wrap;
+}
+
+/* Atur Berkas, matched to the mockup (rec9.css .r9docs). */
+.r9docs {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.r9docs__r {
+  align-items: end;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  padding: 10px 14px;
+}
+.r9docs__s {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 40px;
+}
+@media (max-width: 819px) {
+  .r9docs__r {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+/* Calendar editor, matched to the mockup: the colour dot in the kind list and the STC note. */
+.rec-kinddot {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+}
+.rec-kinddot i {
+  background: var(--c);
+  border-radius: 3px;
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+.rec-stcnote {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}

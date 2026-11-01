@@ -29,6 +29,20 @@ const PAL: Record<PaletteKey, string> = {
   pink: "#f472b6",
 };
 
+/** Subject to Change: the dates of the stages after Wawancara are not fixed yet (coordinator, 28 Oct 2026). */
+const STC_STAGES = ["tubes", "mengajar", "penerimaan"];
+export const isStc = (e: Pick<RecEvent, "stage">): boolean =>
+  !!e.stage && STC_STAGES.includes(e.stage);
+
+/** The STC tag beside an event's name. */
+export function Stc({ tip }: { tip: string }) {
+  return (
+    <span className="rec-stc" title={tip}>
+      STC
+    </span>
+  );
+}
+
 /** An event's colour as a CSS value. */
 export function warna(e: Pick<RecEvent, "kind" | "color">): string {
   const k = eventColor(e);

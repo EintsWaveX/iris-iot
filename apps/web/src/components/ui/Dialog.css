@@ -115,6 +115,12 @@
 
 /* The big ones use the screen: nearly the whole width of a laptop, and the
    height grows with the content up to 16px from the top and bottom edges. */
+/* The mockup's large dialog (round4.css .dialog--lg, rec7.css): 1100px, up to 16px from the edges. */
+.dialog__panel--form {
+  max-height: calc(100dvh - 32px);
+  width: min(1100px, calc(100vw - 32px));
+}
+
 .dialog__panel--xl {
   max-height: calc(100dvh - 32px);
   width: min(1360px, calc(100vw - 40px));
@@ -126,6 +132,7 @@
 }
 
 @media (max-height: 700px) {
+  .dialog__panel--form,
   .dialog__panel--xl,
   .dialog__panel--wide {
     max-height: calc(100dvh - 16px);

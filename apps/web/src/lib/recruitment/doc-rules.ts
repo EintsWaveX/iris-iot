@@ -22,8 +22,9 @@ export function docRules(docs: readonly DocSetting[] = DOCS_DEFAULT): DocRules {
   const base = new Map(DOCS_DEFAULT.map((d) => [d.kind, d]));
   return {
     docs: [...docs],
-    required: docs.filter((d) => d.required).map((d) => d.kind),
-    optional: docs.filter((d) => !d.required).map((d) => d.kind),
+    // A typed document (like the biodata) has no PDF slot.
+    required: docs.filter((d) => d.required && d.mode !== "typed").map((d) => d.kind),
+    optional: docs.filter((d) => !d.required && d.mode !== "typed").map((d) => d.kind),
     label(kind, lang, fallback) {
       const d = docs.find((x) => x.kind === kind);
       if (!d) return fallback;

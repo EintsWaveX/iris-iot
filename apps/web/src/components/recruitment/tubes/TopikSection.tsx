@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   DiceFiveIcon,
+  EyeIcon,
   PencilSimpleIcon,
   ShuffleIcon,
   TrashIcon,
@@ -17,6 +18,7 @@ import HoldButton from "../../ui/HoldButton";
 import IconButton from "../../ui/IconButton";
 import Pill from "../../ui/Pill";
 import { isFail, recPost } from "../../../lib/recruitment/client";
+import { useLatihanMode } from "../../../lib/recruitment/latihan-client";
 import type { TubesBoardTopic } from "../../../lib/recruitment/tubes-api";
 import { kapan, toast, type PanelCtx } from "./panelShared";
 
@@ -344,6 +346,7 @@ function DrawDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
 export default function TopikSection({ c }: { c: PanelCtx }) {
   const { w, b, lang } = c;
   const can = b.rights.topics;
+  const latihan = useLatihanMode() !== null;
   const [edit, setEdit] = useState<TubesBoardTopic | "new" | null>(null);
   const [who, setWho] = useState<number | null>(null);
   const [draw, setDraw] = useState(false);
@@ -457,6 +460,8 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
           ) : (
             <HoldButton
               tone="primary"
+              tint="warn"
+              icon={EyeIcon}
               label={w.publishNow}
               disabled={!can || unas > 0 || over > 0 || teamsWith.length === 0}
               onDone={() => void c.post("tubes-publish", { publish: true })}
@@ -470,7 +475,7 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
       </section>
 
       <div className="tp-bar">
-        <span className="hint">{w.topicExample}</span>
+        <span className="hint">{latihan && b.topics.length > 0 ? w.topicExample : ""}</span>
         <span className="row" style={{ gap: 8 }}>
           <button
             type="button"

@@ -4,8 +4,12 @@
  * and snaps back fast on release. Holding Space or Enter does the same, so
  * a click or a stray Enter (the dialog's main-button key) never fires it.
  */
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import type { IconProps } from "@phosphor-icons/react";
+import { pageLang } from "../../lib/app";
 import "./HoldButton.css";
+
+const TAG: Record<string, string> = { id: "Tahan", en: "Hold", zh: "按住" };
 
 export default function HoldButton({
   label,
@@ -13,12 +17,17 @@ export default function HoldButton({
   ms = 1200,
   tone = "danger",
   disabled = false,
+  tint,
+  icon: Icon,
 }: {
   label: string;
   onDone: () => void;
   ms?: number;
   tone?: "danger" | "primary";
   disabled?: boolean;
+  /** The mockup's look (N7.Hold): a tinted outline, an icon, the label and a small "hold" tag. */
+  tint?: "danger" | "warn" | "ok";
+  icon?: ComponentType<IconProps>;
 }) {
   const [tahan, setTahan] = useState(false);
   const jam = useRef<number | null>(null);
@@ -47,7 +56,8 @@ export default function HoldButton({
   return (
     <button
       type="button"
-      className={`btn btn--${tone} hold`}
+      className={tint ? "hold hold--tint" : `btn btn--${tone} hold`}
+      data-tint={tint}
       data-hold={tahan ? "yes" : undefined}
       style={{ "--hold-ms": `${ms}ms` } as CSSProperties}
       disabled={disabled}
@@ -71,7 +81,15 @@ export default function HoldButton({
       onContextMenu={(e) => e.preventDefault()}
     >
       <span className="hold__fill" aria-hidden="true" />
-      <span className="btn__label">{label}</span>
+      {tint ? (
+        <span className="hold__t">
+          {Icon && <Icon size={18} aria-hidden="true" />}
+          <span className="btn__label">{label}</span>
+          <small>{TAG[pageLang()] ?? TAG.id}</small>
+        </span>
+      ) : (
+        <span className="btn__label">{label}</span>
+      )}
     </button>
   );
 }

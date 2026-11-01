@@ -894,6 +894,8 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                 </button>
                 <HoldButton
                   label={d.done ? w.result.again : w.confirm.hold}
+                  tint="ok"
+                  icon={SealCheckIcon}
                   tone="primary"
                   disabled={!can || masalah.length > 0 || busy}
                   onDone={() => {

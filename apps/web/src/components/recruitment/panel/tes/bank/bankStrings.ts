@@ -25,7 +25,7 @@ export const BK = dict({
     parts: {
       logika: "Logika",
       fitb: "FITB",
-      kodingan: "Kodingan",
+      kodingan: "Code Tracing",
     } as Parts,
     partsLong: {
       logika: "Logika",
@@ -373,7 +373,7 @@ export const BK = dict({
     parts: {
       logika: "Logic",
       fitb: "FITB",
-      kodingan: "Code",
+      kodingan: "Code Tracing",
     } as Parts,
     partsLong: {
       logika: "Logic",
@@ -710,7 +710,7 @@ export const BK = dict({
     parts: {
       logika: "逻辑",
       fitb: "填空",
-      kodingan: "代码",
+      kodingan: "代码追踪",
     } as Parts,
     partsLong: {
       logika: "逻辑",
