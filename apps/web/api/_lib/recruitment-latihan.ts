@@ -28,6 +28,7 @@ import {
   recEvent,
   recEventLog,
   recExamConfig,
+  recTubesTopic,
 } from "../../src/lib/schema.js";
 import {
   LATIHAN_COOKIE,
@@ -48,6 +49,34 @@ import { pasangBawaanKe } from "./recruitment-bank.js";
 import { jalankanLatihan, konteksLatihan } from "./recruitment-latihan-ctx.js";
 
 export { konteksLatihan };
+
+/** The practice edition's sample Tubes topics (mockup rec5-data.js S5.TOPICS). */
+const TOPIK_CONTOH: [string, string][] = [
+  [
+    "Stasiun Cuaca Mini",
+    "Rancang node sensor suhu, kelembapan dan tekanan yang mengirim data lewat MQTT ke dasbor web. Data harus tetap tersimpan bila jaringan putus sebentar.",
+  ],
+  [
+    "Gerbang Akses RFID",
+    "Bangun gerbang yang membaca kartu RFID, mencocokkannya dengan daftar di server dan mencatat setiap percobaan masuk lengkap dengan waktunya.",
+  ],
+  [
+    "Pemantau Energi Ruangan",
+    "Ukur arus dan tegangan satu ruangan, hitung dayanya, dan tampilkan grafik pemakaian per jam serta peringatan bila melewati batas.",
+  ],
+  [
+    "Parkir Pintar",
+    "Deteksi terisi atau kosongnya beberapa petak parkir, kirim statusnya ke satu halaman web yang diperbarui langsung.",
+  ],
+  [
+    "Penyiram Tanaman Otomatis",
+    "Baca kelembapan tanah, siram bila perlu, dan beri tahu lewat web bila tandon hampir habis. Jelaskan cara kamu mencegah penyiraman berlebih.",
+  ],
+  [
+    "Pelacak Aset Gudang",
+    "Lacak perpindahan beberapa kotak di gudang dengan tag dan beberapa penerima, lalu tampilkan lokasi terakhir tiap kotak.",
+  ],
+];
 
 type Db = ReturnType<typeof getDb>;
 
@@ -171,6 +200,16 @@ export async function siapkanLatihan(db: Db, nim: string): Promise<{ caas: numbe
     // The bank is the built-in sample set, never the live one: a practicing Asisten holds every right here,
     // and the live questions and their answer keys are for the people who hold the bank right on the live edition.
     await pasangBawaanKe(tx as unknown as Db, baru, nim);
+    // Six sample Tubes topics (the mockup's "Contoh" list), practice only: the Tubes tab is not empty to try.
+    await tx.insert(recTubesTopic).values(
+      TOPIK_CONTOH.map(([title, brief], sort) => ({
+        editionId: baru,
+        title,
+        brief,
+        cap: 6,
+        sort,
+      })),
+    );
 
     if (orang.length > 0) {
       // A name for the Cutting and Plotting lists (they join rec_account); no password, so no sign in.

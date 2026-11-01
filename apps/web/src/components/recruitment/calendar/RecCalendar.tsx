@@ -19,14 +19,9 @@ import { localeOf } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { geserBulan } from "../../../lib/tp-kalender";
 import { addDays, daysBetween, layoutMonth } from "../../../lib/recruitment/calendar";
-import {
-  STAGES,
-  type EventKind,
-  type RecEvent,
-  type StageKey,
-} from "../../../lib/recruitment/types";
+import { EVENT_KINDS, STAGES, type RecEvent, type StageKey } from "../../../lib/recruitment/types";
 import { REC } from "../recruitmentStrings";
-import { cs, jamAcara, rentangAcara, tgl, warna, warnaJenis } from "../shared";
+import { Stc, cs, isStc, jamAcara, rentangAcara, tgl, warna, warnaJenis } from "../shared";
 import { CAL } from "./calendarStrings";
 import { judulAcara, tempatAcara } from "../judul";
 
@@ -65,6 +60,12 @@ export function Baris({
       <span className="stack" style={{ gap: 0, minWidth: 0 }}>
         <b>
           {judulAcara(e, lang)}
+          {isStc(e) && (
+            <>
+              {" "}
+              <Stc tip={CAL[lang].stcTip} />
+            </>
+          )}
           {kini && <span className="rkal__kini"> · {t.running}</span>}
         </b>
         <span className="hint">
@@ -187,13 +188,6 @@ export function RecCalendar({
     .sort((a, b) => (a.startsOn < b.startsOn ? -1 : a.startsOn > b.startsOn ? 1 : a.sort - b.sort))
     .slice(0, 6);
   const onDay = pick ? shown.filter((e) => DIA(pick, e)) : [];
-  // Kinds share colours (thirteen kinds, eight colours), so the legend has
-  // one swatch per look with every kind that wears it, never two alike.
-  const rupa = (k: EventKind) =>
-    `${warnaJenis(k)}|${k === "announcement" || k === "test" ? "isi" : "tipis"}`;
-  const legenda = new Map<string, EventKind[]>();
-  for (const k of new Set(shown.map((e) => e.kind)))
-    legenda.set(rupa(k), [...(legenda.get(rupa(k)) ?? []), k]);
   const lab = (e: RecEvent) => judulAcara(e, lang);
 
   return (
@@ -325,12 +319,18 @@ export function RecCalendar({
             </span>
           ) : (
             <div className="row rkal__legend">
-              {[...legenda.values()].map((ks) => (
-                <span key={ks[0]}>
-                  <i style={cs(warnaJenis(ks[0]))} data-k={ks[0]} />
-                  {ks.map((k) => REC[lang].kind[k]).join(lang === "zh" ? "、" : ", ")}
+              {EVENT_KINDS.filter((k) => shown.some((e) => e.kind === k)).map((k) => (
+                <span key={k}>
+                  <i style={cs(warnaJenis(k))} data-k={k} />
+                  {REC[lang].kind[k]}
                 </span>
               ))}
+              {shown.some(isStc) && (
+                <span>
+                  <Stc tip={c.stcTip} />
+                  {c.legendStc}
+                </span>
+              )}
               {viewer === "panitia" && shown.some((e) => e.internal) && (
                 <span>
                   <i className="rkal__swatch-int" data-internal="yes" />
@@ -439,7 +439,15 @@ export function Agenda({
               >
                 <i style={cs(warna(e))} data-internal={e.internal ? "yes" : undefined} />
                 <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <b>{judulAcara(e, lang)}</b>
+                  <b>
+                    {judulAcara(e, lang)}
+                    {isStc(e) && (
+                      <>
+                        {" "}
+                        <Stc tip={c.stcTip} />
+                      </>
+                    )}
+                  </b>
                   <span className="hint">
                     {rentangAcara(e, lang)} · {jamAcara(e, lang)}
                     {e.place ? ` · ${tempatAcara(e.place, lang)}` : ""}

@@ -11,7 +11,7 @@ export interface IvWords {
   tab: Record<IvStage, string>;
   title: Record<IvStage, string>;
   lede: Record<IvStage, string>;
-  seg: { mine: string; nilai: string; template: string };
+  seg: { mine: string; nilai: string; template: string; templateWaw: string };
   mine: {
     none: string;
     noneHint: string;
@@ -223,7 +223,12 @@ const ID: IvWords = {
     tubes:
       "Meja presentasi yang kamu nilai, lembar penilaian, hasil tiap tim, dan template rubrik.",
   },
-  seg: { mine: "Slotku", nilai: "Penilaian", template: "Template" },
+  seg: {
+    mine: "Slotku",
+    nilai: "Penilaian",
+    template: "Template",
+    templateWaw: "Template Pertanyaan",
+  },
   mine: {
     none: "Kamu belum dapat slot",
     noneHint:
@@ -470,7 +475,12 @@ const EN: IvWords = {
     tubes:
       "The presentation table you score, the sheet, each team's result, and the rubric template.",
   },
-  seg: { mine: "My Slots", nilai: "Scores", template: "Template" },
+  seg: {
+    mine: "My Slots",
+    nilai: "Scores",
+    template: "Template",
+    templateWaw: "Question Template",
+  },
   mine: {
     none: "You have no slot yet",
     noneHint:
@@ -713,7 +723,7 @@ const ZH: IvWords = {
     mengajar: "你负责评分的试讲场次、评分表、每位 CaAs 的结果，以及评分标准模板。",
     tubes: "你负责评分的答辩桌、评分表、每个小组的结果，以及评分标准模板。",
   },
-  seg: { mine: "我的时段", nilai: "成绩", template: "模板" },
+  seg: { mine: "我的时段", nilai: "成绩", template: "模板", templateWaw: "问题模板" },
   mine: {
     none: "你还没有分到时段",
     noneHint: "学术部委员会在“排程”里安排考官。你被指派后，时段会显示在这里。",

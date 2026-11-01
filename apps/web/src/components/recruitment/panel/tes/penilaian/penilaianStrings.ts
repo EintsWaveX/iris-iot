@@ -83,7 +83,7 @@ export const PN = dict({
     part: {
       logika: "Logika",
       fitb: "FITB",
-      kodingan: "Kodingan",
+      kodingan: "Code Tracing",
       mikro: "Mikrokontroler",
     } as PartNames,
     allParts: "Semua Bagian",

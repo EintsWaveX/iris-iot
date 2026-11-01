@@ -94,6 +94,7 @@ export const REC = dict({
       presentation: "Presentasi",
       teaching: "Mengajar",
       acceptance: "Penerimaan",
+      pick: "Pilih Jadwal",
     } as Record<EventKind, string>,
     status: {
       applied: "Menunggu Verifikasi",
@@ -193,6 +194,7 @@ export const REC = dict({
       presentation: "Presentation",
       teaching: "Teaching",
       acceptance: "Acceptance",
+      pick: "Pick a Slot",
     } as Record<EventKind, string>,
     status: {
       applied: "Awaiting Checks",
@@ -291,6 +293,7 @@ export const REC = dict({
       presentation: "展示",
       teaching: "试讲",
       acceptance: "录取",
+      pick: "选择时段",
     } as Record<EventKind, string>,
     status: {
       applied: "等待审核",

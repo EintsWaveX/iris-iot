@@ -969,7 +969,7 @@
   flex-wrap: wrap;
   margin-top: 10px;
 }
-.rec-form__time .datef {
+.rec-form__time .ctl-clock {
   width: 140px;
 }
 .rec-form__count {
@@ -2046,4 +2046,13 @@ html[data-detail="ldm"] .n7-mist i:nth-child(1) {
   .n7-mist u {
     opacity: 0.5;
   }
+}
+
+/* The mockup's forms use its large tap size (styles.css --tap-lg 52px) for inputs and lists. */
+.rec-form .field__input,
+.rec-form .dropdown__trigger,
+.rec-form .ctl-clock,
+.rec-form .ctl-date__trigger,
+.r9docs .field__input {
+  min-height: 52px;
 }

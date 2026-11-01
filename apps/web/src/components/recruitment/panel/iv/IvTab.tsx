@@ -533,7 +533,14 @@ export default function IvTab({
           tabs={[
             { v: "mine" as const, label: w.seg.mine },
             ...(bisaNilai ? [{ v: "nilai" as const, label: w.seg.nilai }] : []),
-            ...(bisaTemplate ? [{ v: "template" as const, label: w.seg.template }] : []),
+            ...(bisaTemplate
+              ? [
+                  {
+                    v: "template" as const,
+                    label: stage === "wawancara" ? w.seg.templateWaw : w.seg.template,
+                  },
+                ]
+              : []),
           ]}
         />
       </div>

@@ -22,7 +22,7 @@ import {
   type StageKey,
 } from "../../../lib/recruitment/types";
 import { REC } from "../recruitmentStrings";
-import { rentangAcara } from "../shared";
+import { Stc, cs, isStc, rentangAcara, warnaJenis } from "../shared";
 import { CAL } from "./calendarStrings";
 
 /** Kinds that start out internal: only the Panitia talk about them. */
@@ -161,7 +161,16 @@ export default function EventDialog({
                 setKind(k as EventKind);
                 if (INTERNAL_KINDS.includes(k as EventKind)) setInternal(true);
               }}
-              options={EVENT_KINDS.map((k) => ({ value: k, label: r.kind[k] }))}
+              options={EVENT_KINDS.map((k) => ({
+                value: k,
+                label: r.kind[k],
+                node: (
+                  <span className="rec-kinddot">
+                    <i style={cs(warnaJenis(k))} aria-hidden="true" />
+                    {r.kind[k]}
+                  </span>
+                ),
+              }))}
             />
           </div>
           <div className="field">
@@ -236,6 +245,12 @@ export default function EventDialog({
             </span>
             <Switch on={!internal} label={c.shown} onChange={(v) => setInternal(!v)} />
           </div>
+          {stage && isStc({ stage }) && (
+            <div className="rec-stcnote rec-form__wide">
+              <Stc tip={CAL[lang].stcTip} />
+              <span className="hint">{CAL[lang].stcNote}</span>
+            </div>
+          )}
         </div>
       </Dialog>
       {event && (
