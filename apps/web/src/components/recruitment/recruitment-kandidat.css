@@ -1,0 +1,299 @@
+/* Kandidat, matched to the mockup (rec9.css): status chips, queues and one row per candidate. */
+.rec9-kand {
+  --a: var(--tc, #5eead4);
+  --ai: color-mix(in srgb, var(--a) 62%, var(--text));
+  gap: 14px;
+}
+:root[data-theme="light"] .rec9-kand {
+  --ai: color-mix(in srgb, var(--a) 40%, #0a0f1c);
+}
+.rec9-kbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.rec9-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rec9-chip {
+  --k: var(--a);
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 650;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 8px 0 14px;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.rec9-chip:active {
+  transform: scale(0.97);
+}
+.rec9-chip:focus-visible {
+  outline: 2px solid var(--a);
+  outline-offset: 2px;
+}
+.rec9-chip[data-k="menunggu"] {
+  --k: var(--warn);
+}
+.rec9-chip[data-k="revisi"] {
+  --k: var(--danger);
+}
+.rec9-chip[data-k="disetujui"] {
+  --k: var(--ok);
+}
+.rec9-chip[data-k="aktif"] {
+  --k: var(--a);
+}
+.rec9-chip[data-k="berhenti"] {
+  --k: var(--danger);
+}
+.rec9-chip[data-k="mundur"] {
+  --k: var(--text-muted);
+}
+.rec9-chip svg {
+  color: var(--k);
+}
+.rec9-chip b {
+  background: var(--surface-3);
+  border-radius: 99px;
+  color: var(--text);
+  display: inline-grid;
+  font-size: 0.82rem;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 8px;
+  place-items: center;
+}
+.rec9-chip[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--k) 14%, var(--surface-1));
+  border-color: var(--k);
+  color: var(--text);
+}
+.rec9-chip[aria-pressed="true"] b {
+  background: var(--k);
+  color: #0a0f1c;
+}
+@media (hover: hover) and (pointer: fine) {
+  .rec9-chip:hover {
+    border-color: var(--k);
+  }
+}
+.rec9-search {
+  flex: 1 1 240px;
+  max-width: 380px;
+  position: relative;
+}
+.rec9-search > svg {
+  color: var(--text-faint);
+  left: 13px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+.rec9-search .field__input {
+  padding-left: 38px;
+  text-align: left;
+}
+.rec9-group {
+  --k: var(--a);
+  display: grid;
+  gap: 8px;
+}
+.rec9-group[data-st="menunggu"] {
+  --k: var(--warn);
+}
+.rec9-group[data-st="revisi"] {
+  --k: var(--danger);
+}
+.rec9-group[data-st="disetujui"] {
+  --k: var(--ok);
+}
+.rec9-group[data-st="berhenti"] {
+  --k: var(--danger);
+}
+.rec9-group[data-st="mundur"] {
+  --k: var(--text-faint);
+}
+.rec9-group__h {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 4px 0;
+}
+.rec9-group__ic {
+  background: color-mix(in srgb, var(--k) 16%, transparent);
+  border-radius: 50%;
+  color: var(--k);
+  display: grid;
+  height: 26px;
+  place-items: center;
+  width: 26px;
+}
+.rec9-rows {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.rec9-line {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.rec9-line:not(:has(> .btn)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.rec9-line > .btn {
+  white-space: nowrap;
+}
+.rec9-row {
+  --k: var(--a);
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-faint);
+  border-left: 4px solid var(--k);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 14px;
+  grid-template-columns: 36px minmax(0, 1.5fr) 118px 96px 150px 170px 16px;
+  min-height: 58px;
+  padding: 9px 14px 9px 10px;
+  text-align: left;
+  transition:
+    background 140ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  width: 100%;
+}
+.rec9-row[data-late="yes"] {
+  grid-template-columns: 36px minmax(0, 1.5fr) 118px 150px 170px 16px;
+}
+.rec9-row[data-st="menunggu"] {
+  --k: var(--warn);
+}
+.rec9-row[data-st="revisi"] {
+  --k: var(--danger);
+}
+.rec9-row[data-st="disetujui"] {
+  --k: var(--ok);
+}
+.rec9-row[data-st="berhenti"] {
+  --k: var(--danger);
+}
+.rec9-row[data-st="mundur"] {
+  --k: var(--text-faint);
+}
+.rec9-row:active {
+  transform: scale(0.995);
+}
+.rec9-row:focus-visible {
+  outline: 2px solid var(--a);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .rec9-row:hover {
+    background: var(--surface-2);
+  }
+}
+.rec9-row__st {
+  background: color-mix(in srgb, var(--k) 15%, transparent);
+  border-radius: 50%;
+  color: var(--k);
+  display: grid;
+  height: 34px;
+  place-items: center;
+  width: 34px;
+}
+.rec9-row__who {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.rec9-row__who b,
+.rec9-row__who .hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rec9-row__stage {
+  align-items: center;
+  color: var(--ai);
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 650;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rec9-row__stage svg {
+  flex: none;
+}
+.rec9-row__docs {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+.rec9-row__docs i {
+  background: var(--surface-4);
+  border-radius: 3px;
+  height: 6px;
+  width: 14px;
+}
+.rec9-row__docs i[data-on="yes"] {
+  background: var(--ok);
+}
+.rec9-row__docs small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+.rec9-row .pill {
+  justify-self: start;
+}
+.rec9-row > svg:last-child {
+  color: var(--text-faint);
+}
+@media (max-width: 899px) {
+  .rec9-row,
+  .rec9-row[data-late="yes"] {
+    grid-template-columns: 36px minmax(0, 1fr) auto auto 16px;
+  }
+  .rec9-row__docs,
+  .rec9-row__at {
+    display: none;
+  }
+  .rec9-row__stage {
+    max-width: 110px;
+  }
+}
+@media (max-width: 639px) {
+  .rec9-row__stage span {
+    display: none;
+  }
+  .rec9-line > .btn {
+    font-size: 0;
+    gap: 0;
+    padding-inline: 10px;
+  }
+}

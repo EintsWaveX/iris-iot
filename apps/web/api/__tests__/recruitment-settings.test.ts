@@ -243,6 +243,8 @@ describe("settings", () => {
       "cutting",
       "wawancara",
       "mengajar",
+      "tubes",
+      "tim",
       "penerimaan",
     ]);
     expect(list.every((x) => !x.custom && !x.canEdit)).toBe(true);

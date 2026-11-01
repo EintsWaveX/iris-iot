@@ -11,6 +11,24 @@
  * unlock, live on the reccutting topic.
  */
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CheckIcon,
+  ChatsCircleIcon,
+  CpuIcon,
+  SealCheckIcon,
+  EnvelopeSimpleOpenIcon,
+  FileTextIcon,
+  GraduationCapIcon,
+  ListChecksIcon,
+  LockSimpleIcon,
+  MagnifyingGlassIcon,
+  ScissorsIcon,
+  SlidersHorizontalIcon,
+  TimerIcon,
+  type IconProps,
+} from "@phosphor-icons/react";
+import type { ComponentType } from "react";
+import TabLine from "../../../ui/TabLine";
 import Confirm from "../../../ui/Confirm";
 import Dropdown from "../../../ui/Dropdown";
 import HoldButton from "../../../ui/HoldButton";
@@ -35,6 +53,10 @@ import {
 import { cuttingFor, type SettingMap } from "../../../../lib/recruitment/settings";
 import { S2 } from "../../s2Strings";
 import "../../recruitment-b1.css";
+import "../../recruitment-kandidat.css";
+import "../../recruitment-cutting.css";
+import { TUBES } from "../../tubes/tubesStrings";
+import { CS } from "./cutStrings";
 import { AturTitikAwal, UbahTeksAmplop } from "./CutSettings";
 import { Countdown, tgl } from "../../shared";
 
@@ -160,12 +182,11 @@ function ProChips({
 }) {
   const t = S2[lang].cut;
   return (
-    <span className="r2pro" role="group" aria-label={t.proposalFor(c.nama)}>
+    <span className="n7-seg" role="group" aria-label={t.proposalFor(c.nama)}>
       {(["lolos", "gagal"] as const).map((v) => (
         <button
           key={v}
           type="button"
-          className="chipbtn r2pro__b"
           data-v={v}
           aria-pressed={c.proposal === v}
           disabled={!can}
@@ -241,18 +262,15 @@ function Att({ c, lang }: { c: CutRowView; lang: Lang }) {
   const t = S2[lang].cut;
   return (
     <span className="r2att">
-      <i data-ok={c.fm ? "yes" : "no"} title={c.fm ? t.fmYes : t.fmNo}>
+      <i className="n7-tag" data-ok={c.fm ? "yes" : "no"} title={c.fm ? t.fmYes : t.fmNo}>
         FM
       </i>
-      <i data-ok={c.tt ? "yes" : "no"} title={c.tt ? t.ttYes : t.ttNo}>
+      <i className="n7-tag" data-ok={c.tt ? "yes" : "no"} title={c.tt ? t.ttYes : t.ttNo}>
         TT
       </i>
     </span>
   );
 }
-
-const nilai = (v: number | null) =>
-  v == null ? <span className="hint">-</span> : <span className="num">{v}</span>;
 
 /* ---------------------------------------------------------------- distribution */
 
@@ -310,12 +328,13 @@ export default function CuttingTab({
   const pilih: CutStage | null = stage && aktif.includes(stage) ? stage : (aktif[0] ?? null);
   const board = useRecCut(pilih ?? "berkas", pilih !== null);
   // Wawancara and Mengajar score out of 100 (the examiners' sheets); the written test out of 4000.
-  const ivStage = pilih === "wawancara" || pilih === "mengajar";
+  const ivStage = pilih === "wawancara" || pilih === "mengajar" || pilih === "tubes";
   const skala = ivStage ? 100 : 4000;
   const lebar = useMinWidth(1100);
   const [q, setQ] = useState("");
   const [f, setF] = useState("semua");
-  const [thr, setThr] = useState(false);
+  const [more, setMore] = useState(20);
+  const [opsi, setOpsi] = useState(false);
   const [mode, setMode] = useState<"top" | "min">("top");
   const [n, setN] = useState(60);
   const [minS, setMinS] = useState(2000);
@@ -344,6 +363,7 @@ export default function CuttingTab({
   >({});
   const bar = useRef<HTMLDivElement>(null);
   useEffect(() => setLokal({}), [board.data?.now, pilih]);
+  useEffect(() => setMore(20), [pilih, q, f]);
 
   if (!pilih)
     return (
@@ -374,15 +394,17 @@ export default function CuttingTab({
     present: pilih === "berkas" ? true : r.tt,
     proposal: r.proposal,
   }));
-  const pratinjau =
-    thr && (pilih === "tes_tulis" || ivStage)
-      ? thresholdProposals(cutRows, rule, { noShowsFail: absFail, replaceExisting: timpa })
-      : null;
-  const bagus = (c: CutRowView): Proposal | null =>
-    pratinjau ? (pratinjau.get(c.id) ?? c.proposal) : c.proposal;
-  const lolosN = baris.filter((c) => bagus(c) === "lolos").length;
-  const gagalN = baris.filter((c) => bagus(c) === "gagal").length;
+  const garis = pilih === "tes_tulis" || ivStage;
+  const pratinjau = garis
+    ? thresholdProposals(cutRows, rule, { noShowsFail: absFail, replaceExisting: timpa })
+    : null;
+  // The counts are the proposals; the cut line only previews what Terapkan would add.
+  const lolosN = baris.filter((c) => c.proposal === "lolos").length;
+  const gagalN = baris.filter((c) => c.proposal === "gagal").length;
   const belum = Math.max(0, baris.length - lolosN - gagalN);
+  const potongLolos = pratinjau ? [...pratinjau.values()].filter((v) => v === "lolos").length : 0;
+  const potongN =
+    mode === "top" ? Math.min(n, baris.length) : baris.filter((c) => (c.total ?? 0) >= minS).length;
   const missing = baris.filter((c) => !c.proposal).length;
 
   const daftar = baris.filter((c) => {
@@ -434,9 +456,8 @@ export default function CuttingTab({
       proposal,
       note: baris.find((c) => c.id === id)?.note ?? null,
     }));
-    if (!items.length) return setThr(false);
+    if (!items.length) return;
     await usul(items, t.applied(items.length));
-    setThr(false);
   }
   async function dariBerkas() {
     const items = baris
@@ -460,63 +481,59 @@ export default function CuttingTab({
   }
 
   const lolosBerkas = pilih === "berkas";
-  const cutAt = pratinjau ? daftar.findIndex((c) => bagus(c) === "gagal" && c.tt) : -1;
+  const tampak = daftar.slice(0, more);
+  // The dashed line sits after the last row that is inside the cut (only on the whole list).
+  const cutAt =
+    garis && f === "semua" && !q && potongN > 0 && potongN < tampak.length ? potongN : -1;
+  const rail = CS[lang].rail;
+  const railAt = dibuka ? 2 : dikunci ? 1 : 0;
+  const IK_RAIL: ComponentType<IconProps>[] = [
+    ListChecksIcon,
+    LockSimpleIcon,
+    EnvelopeSimpleOpenIcon,
+  ];
+  const IK_STAGE: Record<CutStage, ComponentType<IconProps>> = {
+    berkas: FileTextIcon,
+    tes_tulis: TimerIcon,
+    wawancara: ChatsCircleIcon,
+    mengajar: GraduationCapIcon,
+    tubes: CpuIcon,
+    penerimaan: SealCheckIcon,
+  };
 
   const head = (
-    <div className="r2cut__top">
-      <SegmentedControl
-        aria-label={t.stage}
+    <div className="n7-bar">
+      <TabLine
+        label={t.stage}
         value={pilih}
-        onValueChange={(v) => setStage(v as CutStage)}
-        options={aktif.map((s) => ({ value: s, label: t.stageName[s] }))}
+        onChange={(v) => setStage(v)}
+        tabs={aktif.map((s) => {
+          const Ik = IK_STAGE[s];
+          return {
+            v: s,
+            label: (
+              <>
+                <Ik size={16} aria-hidden="true" />
+                {t.stageName[s]}
+              </>
+            ),
+          };
+        })}
       />
       <span className="hint r2cut__later">{t.later}</span>
-      {bisaAtur && (
-        <span className="row" style={{ gap: 8, marginLeft: "auto" }}>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAtur(true)}>
-            <span className="btn__label">
-              {lang === "id" ? "Atur Titik Awal" : "Set Starting Point"}
-            </span>
-          </button>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTeks(true)}>
-            <span className="btn__label">
-              {lang === "id" ? "Ubah Teks Amplop" : "Edit Envelope Wording"}
-            </span>
-          </button>
-        </span>
-      )}
+      <span className="grow" />
+      <ol className="n7-miniRail" aria-label={CS[lang].railLabel}>
+        {rail.map((r, i) => {
+          const Ik = i < railAt ? CheckIcon : IK_RAIL[i];
+          return (
+            <li key={r} data-st={i < railAt ? "done" : i === railAt ? "cur" : "next"}>
+              <Ik size={16} aria-hidden="true" />
+              <span>{r}</span>
+            </li>
+          );
+        })}
+      </ol>
     </div>
-  );
-
-  const tally = (
-    <section className="panel r2tally">
-      <div className="r2tally__nums">
-        <span>
-          <b className="num" data-t="ok">
-            {lolosN}
-          </b>
-          <span className="hint">{pratinjau ? t.wouldPass : t.proposedPass}</span>
-        </span>
-        <span>
-          <b className="num" data-t="no">
-            {gagalN}
-          </b>
-          <span className="hint">{pratinjau ? t.wouldFail : t.proposedFail}</span>
-        </span>
-        <span>
-          <b className="num">{belum}</b>
-          <span className="hint">{t.none}</span>
-        </span>
-      </div>
-      <div className="r2tally__bar" aria-hidden="true">
-        <i data-t="ok" style={{ flex: lolosN }} />
-        <i data-t="no" style={{ flex: gagalN }} />
-        <i style={{ flex: belum }} />
-      </div>
-      {d?.target && (
-        <span className="hint">{t.target(d.target.min, d.target.max, t.stageName[pilih])}</span>
-      )}
-    </section>
   );
 
   const lockedCard = dikunci && lock && (
@@ -552,41 +569,66 @@ export default function CuttingTab({
     </section>
   );
 
-  const lockBar = !dikunci && (
-    <section className="panel r2lockbar" ref={bar}>
-      <div className="stack stack--sm" style={{ minWidth: 0 }}>
-        <b>{ketua ? t.lockTitle(t.stageName[pilih]) : t.lockOnly}</b>
-        <span className="hint">
-          {lock?.defaultRevealAt ? t.lockOpens(waktu(lock.defaultRevealAt, lang)) : t.noAnnounce}{" "}
-          {missing > 0 ? (
-            <>
-              <b className="r2warn">{t.lockMissing(missing)}</b>{" "}
-              <button type="button" className="rec-link" onClick={() => setF("belum")}>
-                {t.show}
-              </button>
-            </>
-          ) : (
-            baris.length > 0 && t.allProposed
-          )}
-        </span>
+  const kunciCard = (
+    <aside className="panel n7-lock" data-locked={dikunci ? "yes" : "no"} ref={bar}>
+      <div className="n7-count3">
+        <div data-t="ok">
+          <b className="num">{lolosN}</b>
+          <small>{t.proposedPass}</small>
+        </div>
+        <div data-t="bad">
+          <b className="num">{gagalN}</b>
+          <small>{t.proposedFail}</small>
+        </div>
+        <div data-t="faint">
+          <b className="num">{belum}</b>
+          <small>{t.none}</small>
+        </div>
       </div>
-      {ketua ? (
-        <HoldButton
-          label={t.hold}
-          tone="primary"
-          ms={1600}
-          disabled={missing > 0 || baris.length === 0 || !lock?.defaultRevealAt}
-          onDone={kunci}
-        />
-      ) : (
-        <span className="hint">{t.keepProposing}</span>
+      <div className="n7-stack3" aria-hidden="true">
+        <i data-t="ok" style={{ flex: lolosN }} />
+        <i data-t="bad" style={{ flex: gagalN }} />
+        <i data-t="faint" style={{ flex: belum }} />
+      </div>
+      <span className="hint">
+        {lock?.defaultRevealAt || lock?.revealAt
+          ? CS[lang].envelopes(waktu(lock.revealAt ?? lock.defaultRevealAt ?? "", lang))
+          : t.noAnnounce}
+      </span>
+      {bisaAtur && (
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTeks(true)}>
+          <EnvelopeSimpleOpenIcon size={18} aria-hidden="true" />
+          <span className="btn__label">{CS[lang].words}</span>
+        </button>
       )}
-    </section>
+      {dikunci ? null : ketua ? (
+        <>
+          <HoldButton
+            label={t.hold}
+            tone="primary"
+            ms={1600}
+            disabled={missing > 0 || baris.length === 0 || !lock?.defaultRevealAt}
+            onDone={kunci}
+          />
+          {missing > 0 && baris.length > 0 && (
+            <button type="button" className="n7-link" onClick={() => setF("belum")}>
+              {t.lockMissing(missing)} {t.show}
+            </button>
+          )}
+        </>
+      ) : (
+        <span className="n7-note">
+          <LockSimpleIcon size={16} aria-hidden="true" />
+          {t.lockOnly} {t.keepProposing}
+        </span>
+      )}
+    </aside>
   );
 
   const tools = (
     <div className="row rec-tools">
-      <div className="rec-search">
+      <div className="rec9-search">
+        <MagnifyingGlassIcon size={16} aria-hidden="true" />
         <input
           className="field__input"
           placeholder={t.search}
@@ -616,45 +658,52 @@ export default function CuttingTab({
           {board.data.scoreFinal ? t.scoresFinal : t.scoresProvisional}
         </Pill>
       )}
-      {bisaUsul && (pilih === "tes_tulis" || ivStage) && (
+      {/* A stage with no cut line (Berkas) still has its start and targets to set */}
+      {!garis && bisaAtur && (
         <button
           type="button"
-          className={`btn btn--sm ${thr ? "btn--primary" : ""}`.trim()}
-          onClick={() => setThr(!thr)}
+          className="iconbtn iconbtn--sm"
+          aria-label={CS[lang].setStart}
+          title={CS[lang].setStart}
+          onClick={() => setAtur(true)}
         >
-          <span className="btn__label">{t.threshold}</span>
-        </button>
-      )}
-      {bisaUsul && lolosBerkas && (
-        <button
-          type="button"
-          className="btn btn--sm"
-          disabled={busy || missing === 0}
-          onClick={() => void dariBerkas()}
-        >
-          <span className="btn__label">{t.fromBerkas}</span>
+          <SlidersHorizontalIcon size={18} aria-hidden="true" />
         </button>
       )}
     </div>
   );
 
-  const adaSkor = baris.some((r) => r.total !== null);
-  const thrPanel = thr && (pilih === "tes_tulis" || ivStage) && (
-    <section className="panel r2thr">
+  const garisCard = (
+    <section className="panel n7-cutline">
       <div className="panel__head">
-        <h3 className="panel__title">{t.thrTitle}</h3>
-        <SegmentedControl
-          aria-label={t.mode}
-          value={mode}
-          onValueChange={(v) => setMode(v as "top" | "min")}
-          options={[
-            { value: "top", label: t.top },
-            { value: "min", label: t.min },
-          ]}
-        />
+        <h3 className="panel__title">{CS[lang].cutLine}</h3>
+        {garis && (
+          <span className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
+            {bisaAtur && (
+              <button
+                type="button"
+                className="iconbtn iconbtn--sm"
+                aria-label={CS[lang].setStart}
+                title={CS[lang].setStart}
+                onClick={() => setAtur(true)}
+              >
+                <SlidersHorizontalIcon size={18} aria-hidden="true" />
+              </button>
+            )}
+            <SegmentedControl
+              aria-label={t.mode}
+              value={mode}
+              onValueChange={(v) => setMode(v as "top" | "min")}
+              options={[
+                { value: "top", label: t.top },
+                { value: "min", label: t.min },
+              ]}
+            />
+          </span>
+        )}
       </div>
-      <div className="r2thr__grid">
-        <div className="stack">
+      {garis ? (
+        <>
           <Dist rows={baris} rule={rule} skala={skala} />
           {mode === "top" ? (
             <Slider
@@ -676,76 +725,98 @@ export default function CuttingTab({
               fmt={(v) => `≥ ${v}`}
             />
           )}
-          <span className="hint">
-            {adaSkor
-              ? mode === "top"
-                ? t.lineAt(
-                    [...baris].sort((a, b) => (b.total ?? 0) - (a.total ?? 0))[Math.max(0, n - 1)]
-                      ?.total ?? 0,
-                  )
-                : t.minHint
-              : t.scoreCut}
+          <span className="n7-range__v" aria-live="polite">
+            <b className="num">{potongN}</b> {t.readPass} ·{" "}
+            <b className="num">{baris.length - potongN}</b> {t.readFail}
+            {mode === "min" && (
+              <>
+                {" "}
+                · {CS[lang].minimal} <b className="num">{minS}</b>
+              </>
+            )}
           </span>
-        </div>
-        <div className="stack r2thr__side">
-          <div className="r2thr__read" aria-live="polite">
-            <b className="num" data-t="ok">
-              {lolosN}
-            </b>
-            <span>{t.readPass}</span>
-            <b className="num" data-t="no">
-              {gagalN}
-            </b>
-            <span>{t.readFail}</span>
-          </div>
-          {d?.target && (
-            <span className="hint">
-              {lolosN < d.target.min
-                ? t.below(d.target.min)
-                : lolosN > d.target.max
-                  ? t.above(d.target.max)
-                  : t.inside(d.target.min, d.target.max)}
-            </span>
-          )}
-          <button
-            type="button"
-            className="checkitem"
-            role="checkbox"
-            aria-checked={absFail}
-            onClick={() => setAbsFail(!absFail)}
-          >
-            <span className="checkitem__box" aria-hidden="true">
-              ✓
-            </span>
-            <span>{t.noShows}</span>
-          </button>
-          <button
-            type="button"
-            className="checkitem"
-            role="checkbox"
-            aria-checked={timpa}
-            onClick={() => setTimpa(!timpa)}
-          >
-            <span className="checkitem__box" aria-hidden="true">
-              ✓
-            </span>
-            <span>{t.replace(baris.filter((c) => c.proposal).length)}</span>
-          </button>
-          <div className="row r2thr__acts">
-            <button type="button" className="btn btn--ghost" onClick={() => setThr(false)}>
-              {t.cancel}
-            </button>
+          <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
+            {bisaUsul && (
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={busy || !pratinjau || pratinjau.size === 0}
+                onClick={() => void terapkan()}
+              >
+                <CheckIcon size={18} aria-hidden="true" />
+                <span className="btn__label">
+                  {timpa ? t.proposeAll(pratinjau?.size ?? 0) : CS[lang].apply}
+                </span>
+              </button>
+            )}
+            {d?.target && (
+              <span className="hint">
+                {potongLolos >= 0 && d.target.min > 0
+                  ? t.target(d.target.min, d.target.max, t.stageName[pilih])
+                  : ""}
+              </span>
+            )}
             <button
               type="button"
-              className="btn btn--primary"
-              disabled={busy || !pratinjau || pratinjau.size === 0}
-              onClick={() => void terapkan()}
+              className="rec-link"
+              aria-expanded={opsi}
+              onClick={() => setOpsi(!opsi)}
             >
-              {timpa ? t.proposeAll(pratinjau?.size ?? 0) : t.proposeRest(pratinjau?.size ?? 0)}
+              {CS[lang].options}
             </button>
           </div>
-        </div>
-      </div>
+          {opsi && (
+            <div className="stack stack--sm">
+              <button
+                type="button"
+                className="checkitem"
+                role="checkbox"
+                aria-checked={absFail}
+                onClick={() => setAbsFail(!absFail)}
+              >
+                <span className="checkitem__box" aria-hidden="true">
+                  ✓
+                </span>
+                <span>{t.noShows}</span>
+              </button>
+              <button
+                type="button"
+                className="checkitem"
+                role="checkbox"
+                aria-checked={timpa}
+                onClick={() => setTimpa(!timpa)}
+              >
+                <span className="checkitem__box" aria-hidden="true">
+                  ✓
+                </span>
+                <span>{t.replace(baris.filter((c) => c.proposal).length)}</span>
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <span className="hint">{CS[lang].berkasHint}</span>
+          <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
+            {bisaUsul && (
+              <button
+                type="button"
+                className="btn btn--inverse"
+                disabled={busy || missing === 0}
+                onClick={() => void dariBerkas()}
+              >
+                <ListChecksIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{t.fromBerkas}</span>
+              </button>
+            )}
+            {d?.target && (
+              <span className="hint">
+                {t.target(d.target.min, d.target.max, t.stageName[pilih])}
+              </span>
+            )}
+          </div>
+        </>
+      )}
     </section>
   );
 
@@ -760,18 +831,22 @@ export default function CuttingTab({
       <ProChips c={c} lang={lang} can={bisaUsul} onSet={set} />
     );
   const siapa = (c: CutRowView) =>
-    c.proposedBy ? <span className="acode">{c.proposedBy}</span> : <span className="hint">-</span>;
+    c.proposedBy ? (
+      <span className="n7-by mono">{c.proposedBy}</span>
+    ) : (
+      <span className="hint">-</span>
+    );
 
   const tabel = !lebar ? (
     <ul className="r2clist">
-      {daftar.map((c, i) => (
+      {tampak.map((c, i) => (
         <li key={c.id} style={{ display: "contents" }}>
           {i === cutAt && (
             <span className="r2cutline">
               <span>{t.cutLine}</span>
             </span>
           )}
-          <span className="r2crow" data-cut={pratinjau ? (bagus(c) ?? undefined) : undefined}>
+          <span className="r2crow" data-p={c.proposal ?? "belum"}>
             <span className="r2crow__rank num">{i + 1}</span>
             <span className="stack" style={{ gap: 2, minWidth: 0 }}>
               <b>{c.nama}</b>
@@ -798,9 +873,9 @@ export default function CuttingTab({
       ))}
     </ul>
   ) : (
-    <section className="panel rec-tablecard">
+    <section className="panel rec-tablecard n7-tablecard">
       <div className="scrollx">
-        <table className="rec-table r2table" data-stage={pilih}>
+        <table className="rec-table r2table n7-table n7-ctable" data-stage={pilih}>
           <thead>
             <tr>
               <th className="num">{t.rank}</th>
@@ -830,14 +905,9 @@ export default function CuttingTab({
                       </th>
                     </>
                   ) : (
-                    <>
-                      <th className="num">{t.logic}</th>
-                      <th className="num">{t.blanks}</th>
-                      <th className="num">{t.debug}</th>
-                      <th className="num">{t.live}</th>
-                    </>
+                    <></>
                   )}
-                  <th className="num">{t.total}</th>
+                  <th>{t.total}</th>
                 </>
               )}
               <th>{dikunci ? t.result : t.proposal}</th>
@@ -849,21 +919,53 @@ export default function CuttingTab({
             </tr>
           </thead>
           <tbody>
-            {daftar.map((c, i) => (
+            {tampak.map((c, i) => (
               <Fragment key={c.id}>
                 {i === cutAt && (
-                  <tr className="r2cutline" key={`cut-${c.id}`}>
+                  <tr className="n7-cutmark" key={`cut-${c.id}`}>
                     <td colSpan={12}>
-                      <span>{`${t.cutLine} · ${lolosN} / ${gagalN}`}</span>
+                      <span>
+                        <ScissorsIcon size={16} aria-hidden="true" />{" "}
+                        {CS[lang].cutMark(potongN, baris.length - potongN)}
+                      </span>
                     </td>
                   </tr>
                 )}
-                <tr data-cut={pratinjau ? (bagus(c) ?? undefined) : undefined}>
+                <tr className="n7-crow" data-p={c.proposal ?? "belum"}>
                   <td className="num hint">{i + 1}</td>
                   <td>
                     <span className="stack" style={{ gap: 0 }}>
                       <b>{c.nama}</b>
                       <span className="hint mono">{c.nim}</span>
+                      {c.tubes && (
+                        <span className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+                          <span className="hint">
+                            {c.tubes.team ?? TUBES[lang].panel.noTeamYet}
+                          </span>
+                          {c.tubes.submission && (
+                            <Pill
+                              tone={
+                                c.tubes.submission === "complete"
+                                  ? "ok"
+                                  : c.tubes.submission === "late"
+                                    ? "danger"
+                                    : c.tubes.submission === "none"
+                                      ? undefined
+                                      : "warn"
+                              }
+                            >
+                              {TUBES[lang].panel.status[c.tubes.submission]}
+                            </Pill>
+                          )}
+                          {c.tubes.attended !== null && (
+                            <Pill tone={c.tubes.attended ? "ok" : "danger"}>
+                              {c.tubes.attended
+                                ? TUBES[lang].panel.ticked
+                                : TUBES[lang].panel.attend}
+                            </Pill>
+                          )}
+                        </span>
+                      )}
                     </span>
                   </td>
                   {lolosBerkas ? (
@@ -930,19 +1032,24 @@ export default function CuttingTab({
                             )}
                           </td>
                         </>
-                      ) : (
-                        <>
-                          <td>{nilai(c.parts[0])}</td>
-                          <td>{nilai(c.parts[1])}</td>
-                          <td>{nilai(c.parts[2])}</td>
-                          <td>{nilai(c.parts[3])}</td>
-                        </>
-                      )}
+                      ) : null}
                       <td>
-                        <span className="r2tot">
+                        <span className="n7-crow__tot">
                           <b className="num">{c.total ?? "-"}</b>
-                          {c.total !== null && (
-                            <i style={{ width: `${(c.total / skala) * 100}%` }} />
+                          {!ivStage && (
+                            <span
+                              className="n7-parts"
+                              title={c.parts.map((x) => (x == null ? "-" : x)).join(" · ")}
+                            >
+                              {c.parts.map((x, k) => (
+                                <i
+                                  key={k}
+                                  style={{
+                                    height: `${Math.max(12, ((x ?? 0) / (skala / 4)) * 100)}%`,
+                                  }}
+                                />
+                              ))}
+                            </span>
                           )}
                         </span>
                       </td>
@@ -1003,16 +1110,22 @@ export default function CuttingTab({
       </div>
     );
   return (
-    <div className="stack r2cut" data-locked={dikunci ? "yes" : "no"}>
+    <div className="stack r2cut n7-cut" data-locked={dikunci ? "yes" : "no"}>
       {head}
       {lockedCard}
-      <div className="r2cut__sum">
-        {tally}
-        {lockBar}
+      <div className="n7-cutrow">
+        {garisCard}
+        {kunciCard}
       </div>
       {tools}
-      {thrPanel}
       {baris.length === 0 ? <p className="empty-note">{t.empty}</p> : tabel}
+      {more < daftar.length && (
+        <div className="row" style={{ justifyContent: "center" }}>
+          <button type="button" className="btn btn--ghost" onClick={() => setMore(more + 20)}>
+            <span className="btn__label">{CS[lang].more}</span>
+          </button>
+        </div>
+      )}
       <Confirm
         open={buka}
         onOpenChange={setBuka}

@@ -7,11 +7,9 @@
  * A visitor or a Praktikan gets the error view, the same as every other
  * Asisten page.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import ErrorView from "../../ui/ErrorView";
-import Fade from "../../ui/Fade";
-import Pill from "../../ui/Pill";
-import { useMe } from "../../../lib/app";
+import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import { useMinWidth } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
 import { addDays, daysBetween } from "../../../lib/recruitment/calendar";
@@ -28,23 +26,58 @@ import { PNW } from "./penerimaan/pnStrings";
 import { IV } from "./iv/ivStrings";
 import { CAL } from "../calendar/calendarStrings";
 import { KepalaHalaman, tgl, useHariIni } from "../shared";
+import { REC } from "../recruitmentStrings";
+import { AREA, AREA_ORDER } from "./areas";
+import PanelHead from "./PanelHead";
 import Kandidat from "./Kandidat";
 import CuttingTab from "./cutting/CuttingTab";
 import PlottingTab from "./jadwal/PlottingTab";
 import IvTab from "./iv/IvTab";
+import TubesTab from "../tubes/TubesTab";
+import { TUBES } from "../tubes/tubesStrings";
 import PenerimaanTab from "./penerimaan/PenerimaanTab";
 import BankTab from "./tes/bank/BankTab";
 import TesTab from "./tes/ruang/TesTab";
 import KalenderTab from "./KalenderTab";
 import PanitiaBoard from "./PanitiaBoard";
 import Ringkasan from "./Ringkasan";
+import { LatihanCard } from "../Latihan";
 import TampilOprec from "./TampilOprec";
 import { PN } from "./panelStrings";
 import "../recruitment-b1.css";
+import "../recruitment-shell.css";
+
+/** Which way a tab swap slides: toward the side the new tab sits on. */
+let lastTab: PanelTab | null = null;
+
+function Swap({ k, children }: { k: PanelTab; children: React.ReactNode }) {
+  const dir =
+    AREA_ORDER.indexOf(k) >= (lastTab === null ? 0 : AREA_ORDER.indexOf(lastTab)) ? "f" : "b";
+  useEffect(() => {
+    lastTab = k;
+  }, [k]);
+  return (
+    <div
+      className="rec-swap"
+      key={k}
+      data-dir={dir}
+      style={{ "--tc": AREA[k].c } as React.CSSProperties}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Subject to Change: the dates of the later stages are not fixed (coordinator, 28 Oct 2026). */
+const STC: Record<Lang, string> = {
+  id: "Subject to Change: tanggal, jam, jumlah dan menit di tab ini bisa berubah.",
+  en: "Subject to Change: the dates, hours, counts and minutes on this tab may change.",
+  zh: "可能会变动：此页的日期、时间、人数和分钟数可能调整。",
+};
 
 export default function PanelPage({ lang }: { lang: Lang }) {
   const t = PN[lang];
-  const me = useMe();
+  const me = useRecOrang();
   const asisten = me?.role === "asisten";
   const edisi = useRecEdition(asisten);
   const cal = useRecCalendar(asisten);
@@ -70,13 +103,14 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             ...(rights?.cuttingPropose ? (["cutting"] as const) : []),
             ...(rights?.plotting ? (["plotting"] as const) : []),
             "wawancara",
+            "tubes",
             "mengajar",
             "penerimaan",
             ...(adaRuang ? (["tes"] as const) : []),
             ...(rights?.bank ? (["bank"] as const) : []),
             "panitia",
           ]
-        : ["kalender", "wawancara", "mengajar", ...(adaRuang ? (["tes"] as const) : [])],
+        : ["kalender", "wawancara", "tubes", "mengajar", ...(adaRuang ? (["tes"] as const) : [])],
     [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting, rights?.bank, adaRuang],
   );
   const tab: PanelTab = bagian && tabs.includes(bagian) ? bagian : tabs[0];
@@ -108,43 +142,52 @@ export default function PanelPage({ lang }: { lang: Lang }) {
 
   return (
     <div className="rec-page" data-area={tab}>
-      <KepalaHalaman
-        lang={lang}
+      <PanelHead
+        tab={tab}
         title={
           panitia
             ? t.title
             : tab === "wawancara" || tab === "mengajar"
               ? IV(lang).title[tab]
-              : CAL[lang].title
+              : tab === "tubes"
+                ? TUBES[lang].panel.title
+                : CAL[lang].title
         }
-        badge={seat ? <Pill lg>{t.division[seat.division]}</Pill> : undefined}
-        lede={hariKe ? t.day(hariKe, tgl(hariIni, lang)) : t.dayPlain(tgl(hariIni, lang))}
-      />
+        badge={seat ? t.division[seat.division] : undefined}
+        area={REC[lang].nav[tab]}
+        stc={tab === "mengajar" || tab === "penerimaan" ? STC[lang] : undefined}
+        sub={hariKe ? t.day(hariKe, tgl(hariIni, lang)) : t.dayPlain(tgl(hariIni, lang))}
+      >
+        {panitia && edisi.data && (
+          <TampilOprec
+            lang={lang}
+            hidden={!!edisi.data.hidden}
+            canHide={!!edisi.data.canHide}
+            onChanged={edisi.refresh}
+          />
+        )}
+      </PanelHead>
       {panitia && pnState.data?.close.closed && (
         <div className="rec-note rec-note--warn" role="status">
           <b>{PNW(lang).close.banner}</b>
         </div>
       )}
-      {panitia && edisi.data && (
-        <TampilOprec
-          lang={lang}
-          hidden={!!edisi.data.hidden}
-          canHide={!!edisi.data.canHide}
-          onChanged={edisi.refresh}
-        />
-      )}
-      <Fade k={tab}>
+      <Swap k={tab}>
         {tab === "ringkasan" ? (
-          <Ringkasan
-            lang={lang}
-            events={events}
-            hariIni={hariIni}
-            rights={rights}
-            candidates={cand.data?.candidates ?? null}
-            seats={kom.data ? kom.data.seats.length : null}
-            division={seat ? seat.division : null}
-            tabs={tabs}
-          />
+          <div className="lat-stack">
+            <Ringkasan
+              lang={lang}
+              events={events}
+              hariIni={hariIni}
+              rights={rights}
+              candidates={cand.data?.candidates ?? null}
+              seats={kom.data ? kom.data.seats.length : null}
+              division={seat ? seat.division : null}
+              tabs={tabs}
+              hariKe={hariKe}
+            />
+            <LatihanCard lang={lang} />
+          </div>
         ) : tab === "kalender" ? (
           <KalenderTab
             lang={lang}
@@ -171,6 +214,8 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           <PlottingTab lang={lang} events={events} rights={rights} />
         ) : tab === "wawancara" || tab === "mengajar" ? (
           <IvTab lang={lang} stage={tab} rights={rights} />
+        ) : tab === "tubes" ? (
+          <TubesTab lang={lang} rights={rights} />
         ) : tab === "penerimaan" ? (
           <PenerimaanTab lang={lang} />
         ) : tab === "tes" ? (
@@ -180,7 +225,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
         ) : (
           <PanitiaBoard lang={lang} rights={rights} />
         )}
-      </Fade>
+      </Swap>
     </div>
   );
 }

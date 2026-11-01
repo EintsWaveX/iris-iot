@@ -65,7 +65,7 @@ export function QuestionCard({
 }: CardProps) {
   const t = RX[lang];
   return (
-    <article className="panel r3q" aria-labelledby="r3q-h" data-tip-own>
+    <article className="panel r3q" aria-labelledby="r3q-h" data-fmt={view?.format} data-tip-own>
       <header className="r3q__head">
         <div className="stack" style={{ gap: 2 }}>
           <span className="eyebrow">{t.qOf(index + 1, total)}</span>

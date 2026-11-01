@@ -7,6 +7,7 @@
  * Panitia (an Asisten session; each action checks its own right):
  * GET  /api/recruitment/iv-crew?stage=      slots with their examiners and PJ, and the pool to pick from
  * POST /api/recruitment/iv-crew-set         { stage, slotIds, role, nims }  plotPengawas (Ketua, Akademik)
+ * POST /api/recruitment/iv-standin           { stage, slotId, from }  the inside PJ takes the seat of an examiner who did not come
  * GET  /api/recruitment/iv-mine?stage=      my slots, the booths and the sheet states
  * GET  /api/recruitment/iv-sheet?id=&stage= one CaAs's sheet: shared part, my levels, the template
  * POST /api/recruitment/iv-sheet-save       { id, stage, shared?, levels? }  autosave
@@ -60,6 +61,7 @@ import { muatEvents, muatKolam, tolak, wajibEdisi, type Db } from "./recruitment
 import { anggotaPanitia, muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
+import { anggotaPerPemimpin, labelTim, muatSemuaPeserta, muatTim } from "./recruitment-tim.js";
 import { muatBarisMakeup, muatMakeupCtx, posisiMakeup } from "./recruitment-makeup.js";
 
 const ROLES = ["penguji", "pj_luar", "pj_dalam"] as const;
@@ -136,6 +138,11 @@ async function muatSlotCrew(db: Db, edisiId: number, stage: IvStage): Promise<Sl
     db,
     asg.map((a) => a.nim),
   );
+  // A Presentasi turn belongs to a team, keyed by its leader: the booth shows the team.
+  const tim =
+    stage === "tubes"
+      ? new Map((await muatTim(db, edisiId)).map((t) => [t.team.leaderId, labelTim(t)]))
+      : null;
   const ex = await db
     .select()
     .from(recSlotExaminer)
@@ -152,7 +159,7 @@ async function muatSlotCrew(db: Db, edisiId: number, stage: IvStage): Promise<Sl
       .map((a) => ({
         id: a.cid,
         nim: a.nim,
-        nama: nama.get(a.nim) ?? a.nim,
+        nama: tim?.get(a.cid) ?? nama.get(a.nim) ?? a.nim,
         kelas: a.bio.kelas,
       })),
     penguji: ex.filter((e) => e.slotId === s.id && e.role === "penguji").map((e) => e.asistenNim),
@@ -257,6 +264,59 @@ async function handleCrewSet(req: ApiRequest, res: ApiResponse, s: SessionPayloa
         );
   });
   await writeAudit(s.nim, "rec_iv_crew", { stage: b.stage, slotIds, role: b.role, nims });
+  return void res.status(200).json({ ok: true });
+}
+
+/**
+ * Gantikan Pewawancara: an examiner suddenly does not show, and the PJ who sits inside the room takes their
+ * seat (same position, so the booth and the partner stay as they were). Only that slot's inside PJ may do it;
+ * one who excused themselves the day before is replaced in Plotting instead.
+ */
+async function handleStandIn(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const slotId = Number(b.slotId);
+  const from = typeof b.from === "string" ? b.from : "";
+  if (!isIvStage(b.stage) || !Number.isInteger(slotId) || slotId <= 0 || !from)
+    return void tolak(res, "data_salah", 400);
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const [slot] = await db
+    .select({ id: recSlot.id })
+    .from(recSlot)
+    .where(
+      and(eq(recSlot.id, slotId), eq(recSlot.editionId, edisi.id), eq(recSlot.stage, b.stage)),
+    );
+  if (!slot) return void tolak(res, "slot_tidak_ada", 404);
+  const crew = await db.select().from(recSlotExaminer).where(eq(recSlotExaminer.slotId, slotId));
+  const dalam = crew.some((x) => x.role === "pj_dalam" && x.asistenNim === s.nim);
+  if (!dalam) return void tolak(res, "tanpa_hak", 403);
+  if (crew.some((x) => x.role === "penguji" && x.asistenNim === s.nim))
+    return void tolak(res, "sudah_penguji", 409);
+  const target = crew.find((x) => x.role === "penguji" && x.asistenNim === from);
+  if (!target) return void tolak(res, "bukan_penguji", 404);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(recSlotExaminer)
+      .set({ asistenNim: s.nim })
+      .where(
+        and(
+          eq(recSlotExaminer.slotId, slotId),
+          eq(recSlotExaminer.asistenNim, from),
+          eq(recSlotExaminer.role, "penguji"),
+        ),
+      );
+    await tx
+      .delete(recSlotExaminer)
+      .where(
+        and(
+          eq(recSlotExaminer.slotId, slotId),
+          eq(recSlotExaminer.asistenNim, s.nim),
+          eq(recSlotExaminer.role, "pj_dalam"),
+        ),
+      );
+  });
+  await writeAudit(s.nim, "rec_iv_standin", { stage: b.stage, slotId, from });
   return void res.status(200).json({ ok: true });
 }
 
@@ -760,6 +820,8 @@ export async function muatNilaiTahap(
   db: Db,
   edisiId: number,
   stage: IvStage,
+  /** Tubes: one row per member of each team (the Cutting), instead of one per team (Penilaian) */
+  opts: { anggota?: boolean } = {},
 ): Promise<NilaiBaris[]> {
   const t = await bacaSetting(db, stage);
   const slots = await muatSlotCrew(db, edisiId, stage);
@@ -774,8 +836,10 @@ export async function muatNilaiTahap(
     .from(recSheetShared)
     .where(and(inArray(recSheetShared.candidateId, kandIds), eq(recSheetShared.stage, stage)));
   const kode = await kodeMap(db);
-  const mctx = await muatMakeupCtx(db, edisiId, stage);
-  const mrows = await muatBarisMakeup(db, stage, kandIds);
+  // Presentasi has no Susulan (no makeup event for the stage, so the context is empty).
+  const mkStage = stage as Parameters<typeof muatMakeupCtx>[2];
+  const mctx = await muatMakeupCtx(db, edisiId, mkStage);
+  const mrows = await muatBarisMakeup(db, mkStage, kandIds);
   const now = new Date();
   const out: NilaiBaris[] = [];
   for (const sl of slots)
@@ -810,6 +874,21 @@ export async function muatNilaiTahap(
         ),
       });
     });
+  if (stage === "tubes" && opts.anggota) {
+    // Every member carries the team's score: the same sheets, the member's own name and number.
+    const anggota = await anggotaPerPemimpin(
+      db,
+      edisiId,
+      out.map((r) => r.id),
+    );
+    const peserta = await muatSemuaPeserta(db, edisiId);
+    return out.flatMap((r) =>
+      (anggota.get(r.id) ?? [r.id]).map((id) => {
+        const p = peserta.get(id);
+        return { ...r, id, nim: p?.nim ?? r.nim, nama: p?.nama ?? r.nama };
+      }),
+    );
+  }
   return out;
 }
 
@@ -853,6 +932,7 @@ export const S4_GET: Record<string, H> = {
 };
 export const S4_POST: Record<string, H> = {
   "iv-crew-set": handleCrewSet,
+  "iv-standin": handleStandIn,
   "iv-sheet-save": handleSheetSave,
   "iv-sheet-send": handleSheetSend,
   "iv-sheet-reopen": handleSheetReopen,

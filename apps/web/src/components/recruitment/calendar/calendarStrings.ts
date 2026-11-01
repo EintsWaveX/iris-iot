@@ -4,8 +4,11 @@ import { dict } from "../../../lib/app";
 export const CAL = dict({
   id: {
     title: "Kalender Rekrutmen",
+    calendar: "Kalender",
     month: "Bulan",
     agenda: "Agenda",
+    fogNote:
+      "Hari yang sudah lewat dan yang sedang berjalan terlihat jelas, begitu juga acaramu sendiri. Sisanya berkabut sampai waktunya.",
     view: "Tampilan",
     thisMonth: "Bulan Ini",
     prev: "Bulan sebelumnya",
@@ -74,8 +77,11 @@ export const CAL = dict({
   },
   en: {
     title: "Recruitment Calendar",
+    calendar: "Calendar",
     month: "Month",
     agenda: "Agenda",
+    fogNote:
+      "Days that are over or running now are clear, and so are your own events. The rest stays foggy until their time.",
     view: "View",
     thisMonth: "This Month",
     prev: "Previous month",
@@ -142,8 +148,11 @@ export const CAL = dict({
   },
   zh: {
     title: "招募日程",
+    calendar: "日程",
     month: "月",
     agenda: "列表",
+    fogNote:
+      "已过去和正在进行的日子清晰可见，你自己的活动也是。其余的日子会被雾遮住，直到时间到来。",
     view: "视图",
     thisMonth: "本月",
     prev: "上个月",

@@ -96,7 +96,7 @@ export default function JudgeTab({ lang, roomId }: { lang: Lang; roomId: number 
     },
     60_000,
     true,
-    ["recroom"],
+    ["recroom", "recjudge"],
     300,
   );
   const d = poll.data;

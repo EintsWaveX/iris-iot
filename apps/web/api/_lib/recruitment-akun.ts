@@ -42,6 +42,7 @@ import { cekAkunBaru, cekMasukOprec, cekNimOprec } from "../../src/lib/recruitme
 import { FORMULIR } from "../../src/lib/recruitment/formulir.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
+import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 
 export const OPREC_COOKIE = "iris_oprec";
 /** A week: candidates come back over days, and Reset Akun can still end it. */
@@ -109,6 +110,15 @@ const HAPUS_COOKIE = `${OPREC_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; 
  * Praktikan session so the candidate handlers read s.nim as before.
  */
 export async function sesiOprec(req: ApiRequest, db: Db = getDb()): Promise<SessionPayload | null> {
+  // Mode Latihan, As CaAs: the practicing Asisten is their own sample CaAs (no account, no cookie).
+  const latihan = konteksLatihan();
+  if (latihan?.mode === "caas")
+    return {
+      role: "praktikan",
+      nim: latihan.nim,
+      nama: latihan.nama,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
   const t = bacaTokenOprec(parseCookies(req)[OPREC_COOKIE]);
   if (!t) return null;
   const [a] = await db

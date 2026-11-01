@@ -70,6 +70,7 @@ import { acakId } from "../../src/lib/tanda.js";
 import { konsolEnv } from "./konsol.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { antreUjian, muatConfig, simpanHotspotKursi, sudahMasuk } from "./recruitment-room.js";
+import { judgeSiap } from "./recruitment-lcc.js";
 
 /** A second tab's answer within this long of the last one is a `ganda` kejadian (7) */
 const GANDA_MS = 60_000;
@@ -192,7 +193,10 @@ function planOf(config: ExamConfig): PlanPart[] {
   return config.order.map((key) => ({
     key,
     minutes: minutesOf(config, key),
-    count: key === "livecode" ? null : config.parts[key].shown,
+    count:
+      key === "livecode"
+        ? Object.values(config.livecode.draw).reduce((a, n) => a + n, 0)
+        : config.parts[key].shown,
   }));
 }
 
@@ -244,6 +248,7 @@ async function bacaTes(k: Konteks) {
       part: null,
       hotspot: null,
       closedElsewhere: [],
+      judge: false,
     };
     return void res.status(200).json(v);
   }
@@ -268,6 +273,7 @@ async function bacaTes(k: Konteks) {
     part,
     hotspot: mine ? { ssid: mine.ssid } : null,
     closedElsewhere,
+    judge: await judgeSiap(db, now),
   };
   res.status(200).json(v);
 }

@@ -43,14 +43,14 @@
  * POST /api/recruitment/account-reset { nim }  forget an oprec password (approve right)
  *
  * hakPenuh, while the Google Form is the way in (api/_lib/recruitment-tambah.ts):
- * POST /api/recruitment/candidate-add | candidate-ticket | candidate-document
+ * POST /api/recruitment/candidate-add | candidate-ticket | candidate-document | candidate-delete
  *
  * A candidate only ever reads their own row: every candidate read is
  * filtered by the session's NIM and checked again in code. Editing or
  * deleting an event whose stage has started asks for `confirm: true` and is
  * written to rec_event_log.
  */
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, count, eq, ilike, or } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, pgErrorCode, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
@@ -67,6 +67,7 @@ import {
   recDocument,
   recEvent,
   recEventLog,
+  recSlotChange,
 } from "../../src/lib/schema.js";
 import { susunBanner, lite, type BannerViewer } from "../../src/lib/recruitment/banner.js";
 import { gateOpen, tahapSudahMulai, visibleEvents } from "../../src/lib/recruitment/gates.js";
@@ -87,6 +88,7 @@ import {
   type ViewerKind,
 } from "../../src/lib/recruitment/types.js";
 import { handleS3 } from "../_lib/recruitment-s3.js";
+import { denganLatihan, handleLatihan, konteksLatihan } from "../_lib/recruitment-latihan.js";
 import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { standing } from "../../src/lib/recruitment/standing.js";
 import { kunciRekrutmen } from "../../src/lib/tp-r2.js";
@@ -139,6 +141,7 @@ import {
 } from "../_lib/recruitment-sembunyi.js";
 import {
   handleDokumenPanitia,
+  handleHapusKandidat,
   handleTambahKandidat,
   handleTiketPanitia,
 } from "../_lib/recruitment-tambah.js";
@@ -285,6 +288,16 @@ async function handleBanner(req: ApiRequest, res: ApiResponse) {
     );
 }
 
+/** Open slot change requests of an edition (the Plotting badge in the navbar). */
+async function mintaTerbuka(db: ReturnType<typeof getDb>, editionId: number) {
+  const [r] = await db
+    .select({ n: count() })
+    .from(recSlotChange)
+    .innerJoin(recCandidate, eq(recCandidate.id, recSlotChange.candidateId))
+    .where(and(eq(recCandidate.editionId, editionId), eq(recSlotChange.status, "open")));
+  return r?.n ?? 0;
+}
+
 async function handleEdisi(req: ApiRequest, res: ApiResponse) {
   const db = getDb();
   const s = currentSession(req);
@@ -306,6 +319,13 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     viewer: kind,
     rights: pelaku && anggotaPanitia(pelaku) ? pelaku.hak : null,
     seat: pelaku?.kursi ?? null,
+    ...(konteksLatihan() && { latihan: konteksLatihan()!.mode }),
+    // The Plotting count in the navbar: slot change requests nobody has decided yet.
+    ...(pelaku &&
+      anggotaPanitia(pelaku) &&
+      pelaku.hak.plotting && {
+        plotRequests: await mintaTerbuka(db, edisi.id),
+      }),
     // The documents asked for (Atur Berkas): the candidate page and the Panitia read the same list.
     docs: await bacaSetting(db, "docs"),
     // Only an Asisten gets this far while it is on (the router answers everyone else).
@@ -1006,6 +1026,8 @@ async function handleCabut(req: ApiRequest, res: ApiResponse, s: SessionPayload)
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   const aksi = req.query.aksi;
+  // Mode Latihan: its own routes first (they need the real session), then every other route runs inside the context.
+  if (typeof aksi === "string" && (await handleLatihan(aksi, req, res))) return;
   const sesiku = currentSession(req);
 
   // Sembunyikan Oprec: to anyone but an Asisten there is no edition at all.
@@ -1148,6 +1170,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "event-delete") return handleAcaraHapus(req, res, s);
   if (aksi === "seat") return handleDuduk(req, res, s);
   if (aksi === "unseat") return handleCabut(req, res, s);
+  // These two change what the live site shows or who may sign in, so practice leaves them alone.
+  if ((aksi === "visibility" || aksi === "account-reset") && konteksLatihan())
+    return tolak(res, "latihan_tidak_bisa", 403);
   if (aksi === "visibility") {
     const e = await wajibEdisi(res, getDb());
     return e ? handleTampil(req, res, s, getDb(), e.id) : undefined;
@@ -1166,9 +1191,12 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "account-reset") return handleResetAkun(req, res, s);
   if (aksi === "candidate-add") return handleTambahKandidat(req, res, s);
+  if (aksi === "candidate-delete") return handleHapusKandidat(req, res, s);
   if (aksi === "candidate-ticket") return handleTiketPanitia(req, res, s);
   if (aksi === "candidate-document") return handleDokumenPanitia(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);
 }
 
-export default denganSiaran("recruitment", handler);
+export default denganSiaran("recruitment", (req, res) =>
+  denganLatihan(req, () => handler(req, res)),
+);

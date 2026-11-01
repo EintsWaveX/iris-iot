@@ -1,0 +1,213 @@
+/* The runner as the mockup draws it (r3-soal): the evening rail under the top bar, the gold rail card with a
+   progress meter, answered cells that fill, the tonight list folded away, and a top accent per question format. */
+.r3top {
+  box-shadow: 0 8px 28px -22px #000;
+  padding-bottom: 12px;
+}
+.r3top__logo {
+  background: color-mix(in srgb, var(--gold, #e8b64d) 12%, transparent);
+  border-radius: 10px;
+  box-sizing: border-box;
+  height: 38px;
+  object-fit: contain;
+  padding: 4px;
+  width: 38px;
+}
+.r3top .rec-eyebrow {
+  color: var(--gold, #e8b64d);
+}
+:root[data-theme="light"] .r3top .rec-eyebrow {
+  color: #7a5200;
+}
+.n7t-rail {
+  bottom: -1px;
+  display: flex;
+  gap: 3px;
+  height: 3px;
+  left: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  right: 0;
+}
+.n7t-rail li {
+  background: color-mix(in srgb, var(--text) 16%, transparent);
+  flex-basis: 0;
+  height: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.n7t-rail li[data-st="done"] {
+  background: var(--ok);
+}
+.n7t-rail li[data-st="now"] {
+  background: color-mix(in srgb, var(--gold, #e8b64d) 55%, var(--surface-3));
+}
+.n7t-rail li[data-st="now"]::after {
+  animation: n7t-shine 2.4s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, var(--gold, #e8b64d), transparent);
+  content: "";
+  inset: 0;
+  position: absolute;
+  width: 45%;
+}
+@keyframes n7t-shine {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+.r3rail {
+  border-color: color-mix(in srgb, var(--gold, #e8b64d) 20%, var(--hairline));
+  border-top: 3px solid var(--gold, #e8b64d);
+}
+.n7t-meter {
+  background: var(--surface-3);
+  border-radius: 99px;
+  height: 8px;
+  overflow: hidden;
+}
+.n7t-meter i {
+  background: linear-gradient(90deg, var(--accent), var(--ok));
+  border-radius: 99px;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ok) 50%, transparent);
+  display: block;
+  height: 100%;
+  /* The fill is always full width and slides in from the left, so the track clips it
+     and the bar grows without animating layout. */
+  transform: translateX(calc((var(--p, 0) - 1) * 100%));
+  transition: transform 420ms ease;
+  width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .n7t-meter i {
+    transition: none;
+  }
+}
+.r3cell[data-a="yes"] {
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--accent) 24%, transparent),
+    color-mix(in srgb, var(--ok) 14%, transparent)
+  );
+}
+@media (hover: hover) and (pointer: fine) {
+  .r3cell:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+}
+.r3lg[data-c="yes"] {
+  background: transparent;
+  border: 2px solid var(--accent);
+}
+.r3lg[data-v="yes"] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface-3) 0 3px,
+    var(--hairline-strong) 3px 4px
+  );
+}
+.r3cell[data-v="yes"] {
+  opacity: 0.75;
+  text-decoration: line-through;
+}
+.n7t-parts summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 32px;
+}
+.n7t-parts summary::-webkit-details-marker {
+  display: none;
+}
+.n7t-parts summary::after {
+  border-bottom: 2px solid var(--text-muted);
+  border-right: 2px solid var(--text-muted);
+  content: "";
+  height: 8px;
+  margin-left: 4px;
+  transform: rotate(45deg);
+  transition: transform 200ms ease;
+  width: 8px;
+}
+.n7t-parts[open] summary::after {
+  transform: rotate(-135deg);
+}
+.n7t-parts summary .hint {
+  font-family: var(--font-body);
+  font-weight: 500;
+  margin-left: auto;
+}
+.n7t-parts > .r3parts {
+  margin-top: 8px;
+}
+.r3parts li[data-st="now"] {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.r3q {
+  --qc: var(--accent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--qc) 6%, transparent), transparent 120px),
+    var(--surface-1);
+  border-top: 3px solid var(--qc);
+}
+.r3q[data-fmt="multi"] {
+  --qc: #a78bfa;
+}
+.r3q[data-fmt="lines"] {
+  --qc: #fb7185;
+}
+.r3q[data-fmt="fix"] {
+  --qc: #f59e6a;
+}
+.r3q[data-fmt="order"] {
+  --qc: #5eead4;
+}
+.r3q[data-fmt="match"] {
+  --qc: #f472b6;
+}
+.r3q[data-fmt="fitb"] {
+  --qc: #e8b64d;
+}
+.r3q .eyebrow {
+  color: color-mix(in srgb, var(--qc) 55%, var(--text));
+}
+@media (hover: hover) and (pointer: fine) {
+  .r3opt:hover {
+    border-color: color-mix(in srgb, var(--qc, var(--accent)) 70%, var(--hairline-strong));
+    transform: translateX(4px);
+  }
+}
+.r3opt[aria-checked="true"] {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 10px 26px -16px var(--accent);
+}
+.r3timer {
+  background: color-mix(in srgb, var(--gold, #e8b64d) 8%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--gold, #e8b64d) 38%, var(--hairline));
+}
+.r3timer small {
+  color: var(--gold, #e8b64d);
+}
+:root[data-theme="light"] .r3timer small {
+  color: #7a5200;
+}
+@media (prefers-reduced-motion: reduce) {
+  .n7t-rail li[data-st="now"]::after {
+    animation: none;
+  }
+}

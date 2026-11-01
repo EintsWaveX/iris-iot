@@ -1,0 +1,199 @@
+/* Plotting, matched to the mockup (rec7.css n7-plot, n7-win, n7-eve, n7-room). --sc is the stage's colour. */
+.n7-plot {
+  --sc: #fb7185;
+  --tx: var(--sc);
+  --n7-ok: var(--ok);
+  --n7-warn: var(--warn);
+  display: grid;
+  gap: 16px;
+}
+:root[data-theme="light"] .n7-plot {
+  --tx: color-mix(in srgb, var(--sc) 42%, var(--text));
+  --n7-ok: #0b6b5f;
+  --n7-warn: #8a5200;
+}
+.n7-stagepick {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+.n7-stagepick__dot {
+  background: var(--sc);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--sc);
+  height: 12px;
+  transition: background 300ms;
+  width: 12px;
+}
+.n7-win {
+  --wc: var(--n7-warn);
+  align-items: center;
+  border-left: 4px solid var(--wc);
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(170px, 0.7fr) auto;
+}
+.n7-win[data-st="buka"] {
+  --wc: var(--n7-ok);
+}
+.n7-win[data-st="tutup"] {
+  --wc: var(--text-muted);
+  border-left-color: var(--hairline-strong);
+}
+.n7-win__l {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+.n7-win__ic {
+  background: color-mix(in srgb, var(--wc) 16%, transparent);
+  border-radius: 14px;
+  color: var(--wc);
+  display: grid;
+  flex: none;
+  height: 46px;
+  place-items: center;
+  width: 46px;
+}
+.n7-win__m {
+  display: grid;
+  gap: 6px;
+}
+.n7-win__a {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.n7-win .r2cap__bar,
+.n7-room .r2cap__bar {
+  background: var(--surface-4);
+  border-radius: 99px;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+}
+.n7-win .r2cap__bar i,
+.n7-room .r2cap__bar i {
+  background: var(--sc, var(--accent));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+.n7-nights4 {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.n7-eve {
+  border-top: 3px solid var(--sc);
+  gap: 12px;
+}
+.n7-eve[data-s="yes"] {
+  border-top-color: #ff9d3c;
+  border-top-style: dashed;
+}
+.n7-eve__h {
+  align-items: start;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 48px;
+}
+.n7-eve__h b {
+  font-size: 0.98rem;
+  text-wrap: balance;
+}
+.n7-eve__h .hint {
+  white-space: nowrap;
+}
+.n7-eve__rooms {
+  display: grid;
+  gap: 8px;
+}
+.n7-room {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  position: relative;
+}
+.n7-room__cap {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr auto;
+}
+.n7-room__act {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  transform: translateX(6px);
+  transition:
+    opacity 180ms var(--ease-out-expo),
+    transform 180ms var(--ease-out-expo);
+}
+@media (hover: hover) and (pointer: fine) {
+  .n7-room:hover .n7-room__act {
+    opacity: 1;
+    transform: none;
+  }
+}
+.n7-room:focus-within .n7-room__act {
+  opacity: 1;
+  transform: none;
+}
+@media (hover: none) {
+  .n7-room__act {
+    opacity: 1;
+    transform: none;
+  }
+}
+.n7-addroom {
+  align-items: center;
+  background: transparent;
+  border: 1.5px dashed var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font-weight: 650;
+  gap: 8px;
+  justify-content: center;
+  min-height: 52px;
+  transition:
+    background 200ms var(--ease-out-expo),
+    border-color 200ms var(--ease-out-expo),
+    color 200ms var(--ease-out-expo),
+    transform 200ms var(--ease-out-expo);
+}
+@media (hover: hover) and (pointer: fine) {
+  .n7-addroom:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--sc) 8%, transparent);
+    border-color: var(--sc);
+    color: var(--tx);
+    transform: translateY(-1px);
+  }
+}
+@media (max-width: 1100px) {
+  .n7-nights4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .n7-win {
+    grid-template-columns: 1fr;
+  }
+  .n7-win__a {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 720px) {
+  .n7-nights4 {
+    grid-template-columns: 1fr;
+  }
+}

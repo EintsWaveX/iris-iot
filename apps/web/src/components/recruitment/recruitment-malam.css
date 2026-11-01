@@ -1,0 +1,377 @@
+/* The Tes Tulis landing, matched to the mockup (rec7.css n7-malam): exam-night chips and the room header with its stage rail. */
+.n7-malam {
+  --tc: #8fb0ff;
+  --tx: var(--tc);
+  --n7-ok: var(--ok);
+  --n7-warn: var(--warn);
+  --n7-info: var(--accent-bright);
+  --n7-gold: var(--gold, #e8b64d);
+  --n7-bad: var(--danger);
+  display: grid;
+  gap: 18px;
+}
+:root[data-theme="light"] .n7-malam {
+  --tx: color-mix(in srgb, var(--tc) 42%, var(--text));
+  --n7-ok: #0b6b5f;
+  --n7-warn: #8a5200;
+  --n7-info: #0a62a3;
+  --n7-gold: #7a5200;
+  --n7-bad: #b42318;
+}
+.n7-nights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.n7-night {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  column-gap: 10px;
+  cursor: pointer;
+  display: grid;
+  flex: 0 0 172px;
+  grid-template-columns: auto 1fr;
+  min-width: 0;
+  padding: 10px 16px 10px 12px;
+  text-align: left;
+  transition:
+    border-color 180ms,
+    background 180ms,
+    transform 180ms var(--ease-out-expo);
+}
+@media (hover: hover) and (pointer: fine) {
+  .n7-night:hover {
+    border-color: var(--hairline-strong);
+    transform: translateY(-2px);
+  }
+}
+.n7-night b {
+  font-size: 0.98rem;
+}
+.n7-night small {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  grid-column: 2;
+}
+.n7-night__dot {
+  background: var(--surface-3);
+  border-radius: 50%;
+  color: var(--text-muted);
+  display: grid;
+  grid-row: 1 / 3;
+  height: 28px;
+  place-items: center;
+  width: 28px;
+}
+.n7-night[data-st="kosong"] {
+  border-style: dashed;
+}
+.n7-night[data-st="kosong"] .n7-night__dot {
+  background: transparent;
+  border: 1px dashed var(--hairline-strong);
+}
+.n7-night[data-st="siap"] .n7-night__dot {
+  background: var(--warn-soft);
+  color: var(--n7-warn);
+}
+.n7-night[data-st="live"] .n7-night__dot {
+  background: var(--ok);
+  position: relative;
+}
+.n7-night[data-st="selesai"] .n7-night__dot {
+  background: var(--accent-soft);
+  color: var(--n7-info);
+}
+.n7-night[data-practice="yes"] {
+  border-color: color-mix(in srgb, var(--n7-gold) 55%, transparent);
+  border-style: dashed;
+}
+.n7-night[data-practice="yes"] .n7-night__dot {
+  background: color-mix(in srgb, var(--n7-gold) 16%, transparent);
+  color: var(--n7-gold);
+}
+.n7-night[aria-selected="true"] {
+  background: color-mix(in srgb, var(--tc) 12%, var(--surface-1));
+  border-color: var(--tc);
+  box-shadow:
+    0 0 0 1px var(--tc) inset,
+    0 10px 30px -12px color-mix(in srgb, var(--tc) 55%, transparent);
+}
+.n7-stagehead {
+  align-items: center;
+  border-left: 4px solid var(--tc);
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 16px 20px;
+}
+.n7-stagehead__t {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+.n7-stagehead .iconbtn--danger {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--n7-bad) 55%, transparent);
+  color: var(--n7-bad);
+}
+.n7-rail {
+  align-items: flex-start;
+  display: flex;
+  gap: 0;
+  justify-content: space-between;
+  list-style: none;
+  margin: 0;
+  min-width: 330px;
+  padding: 0;
+  position: relative;
+}
+.n7-rail__line {
+  background: var(--hairline);
+  border-radius: 3px;
+  height: 3px;
+  left: 45px;
+  overflow: hidden;
+  position: absolute;
+  right: 45px;
+  top: 17px;
+}
+.n7-rail__line i {
+  background: var(--tc);
+  box-shadow: 0 0 12px var(--tc);
+  inset: 0;
+  position: absolute;
+  transform: scaleX(var(--p));
+  transform-origin: left;
+  transition: transform 700ms var(--ease-out-expo);
+}
+.n7-rail li {
+  color: var(--text-faint);
+  display: grid;
+  font-size: 0.86rem;
+  gap: 6px;
+  justify-items: center;
+  position: relative;
+  width: 90px;
+}
+.n7-rail__dot {
+  background: var(--surface-2);
+  border: 2px solid var(--hairline-strong);
+  border-radius: 50%;
+  display: grid;
+  height: 36px;
+  place-items: center;
+  transition:
+    background 300ms var(--ease-out-expo),
+    border-color 300ms var(--ease-out-expo),
+    box-shadow 300ms var(--ease-out-expo),
+    color 300ms var(--ease-out-expo);
+  width: 36px;
+}
+.n7-rail li[data-st="done"] {
+  color: var(--text-muted);
+}
+.n7-rail li[data-st="done"] .n7-rail__dot {
+  background: var(--tc);
+  border-color: var(--tc);
+  color: #0b0a05;
+}
+.n7-rail li[data-st="cur"] {
+  color: var(--text);
+}
+.n7-rail li[data-st="cur"] .n7-rail__dot {
+  border-color: var(--tc);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--tc) 22%, transparent);
+  color: var(--tx);
+}
+.n7-empty {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  padding: 36px 20px;
+}
+.n7-empty__art {
+  color: var(--tx);
+}
+@media (max-width: 1100px) {
+  .n7-stagehead {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .n7-night {
+    flex: 1 1 calc(50% - 10px);
+  }
+  .n7-rail {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* Persiapan: the readiness checklist and the Mulai Ujian card (mockup rec7.css n7-prep). */
+.n7-prep {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+}
+.n7-check {
+  display: grid;
+  gap: 14px;
+}
+.n7-ringw {
+  display: inline-grid;
+  transform: scale(0.8);
+  transform-origin: right center;
+}
+.n7-tasks {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.n7-task {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-left: 4px solid var(--n7-warn);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto auto 1fr auto auto;
+  padding: 12px 14px;
+  text-align: left;
+  transition:
+    background 160ms,
+    transform 180ms var(--ease-out-expo);
+  width: 100%;
+}
+button.n7-task {
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  button.n7-task:hover {
+    background: var(--surface-3);
+  }
+}
+.n7-task[data-done="yes"] {
+  border-left-color: var(--n7-ok);
+}
+.n7-task--info {
+  border-left-color: var(--hairline-strong);
+}
+.n7-task__st,
+.n7-task__tag {
+  color: var(--n7-warn);
+}
+.n7-task[data-done="yes"] .n7-task__st,
+.n7-task[data-done="yes"] .n7-task__tag {
+  color: var(--n7-ok);
+}
+.n7-task--info .n7-task__st,
+.n7-task--info .n7-task__tag {
+  color: var(--text-muted);
+}
+.n7-task__st {
+  display: grid;
+}
+.n7-task__ic {
+  background: var(--surface-3);
+  border-radius: 10px;
+  color: var(--text-muted);
+  display: grid;
+  height: 36px;
+  place-items: center;
+  width: 36px;
+}
+.n7-task__b {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.n7-task__b b {
+  font-size: 1rem;
+}
+.n7-task__tag {
+  background: var(--warn-soft);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.n7-task[data-done="yes"] .n7-task__tag {
+  background: var(--ok-soft);
+}
+.n7-task--info .n7-task__tag {
+  background: var(--surface-3);
+}
+.n7-go {
+  border-top: 3px solid var(--n7-warn);
+  display: grid;
+  gap: 12px;
+}
+.n7-go[data-ready="yes"] {
+  border-top-color: var(--n7-ok);
+}
+.n7-go__big {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  line-height: 1.1;
+}
+.n7-go .btn--lg {
+  font-size: 1.1rem;
+  min-height: 56px;
+}
+.n7-budget {
+  display: grid;
+  gap: 6px;
+}
+.n7-budget__bar {
+  display: flex;
+  gap: 3px;
+  height: 10px;
+}
+.n7-budget__bar i {
+  background: var(--surface-4);
+  border-radius: 5px;
+}
+.n7-budget__bar i:nth-child(1) {
+  background: #5eead4;
+}
+.n7-budget__bar i:nth-child(2) {
+  background: #7dd3fc;
+}
+.n7-budget__bar i:nth-child(3) {
+  background: #a78bfa;
+}
+.n7-budget__bar i:nth-child(4) {
+  background: #e8b64d;
+}
+.n7-hr {
+  border: 0;
+  border-top: 1px dashed var(--hairline);
+  margin: 4px 0;
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .n7-prep {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .n7-task {
+    grid-template-columns: auto 1fr auto;
+  }
+  .n7-task__ic,
+  .n7-task__tag {
+    display: none;
+  }
+}

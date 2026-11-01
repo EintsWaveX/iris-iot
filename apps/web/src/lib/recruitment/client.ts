@@ -80,6 +80,8 @@ async function leaf<T extends { ok: true }>(p: Promise<RecResult<T>>): Promise<T
 }
 
 const TOPIK_EDISI: Topik[] = ["recedition"];
+/** The edition also carries the open Plotting requests (navbar badge), so a plotting change refreshes it */
+const TOPIK_EDITION_PLOT: Topik[] = ["recedition", "recplotting"];
 const TOPIK_KAL: Topik[] = ["recedition", "reccalendar"];
 
 /**
@@ -116,7 +118,12 @@ export function useRecBanner(enabled = true) {
 }
 
 export function useRecEdition(enabled = true) {
-  return usePoll(() => leaf(recGet<EditionResponse>("edition")), 300_000, enabled, TOPIK_EDISI);
+  return usePoll(
+    () => leaf(recGet<EditionResponse>("edition")),
+    300_000,
+    enabled,
+    TOPIK_EDITION_PLOT,
+  );
 }
 
 /** The editable settings (Panitia only); refresh() after saving one. */

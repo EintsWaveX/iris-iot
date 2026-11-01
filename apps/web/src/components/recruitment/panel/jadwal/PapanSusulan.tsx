@@ -7,6 +7,7 @@
  * The standing of every row comes from the server (src/lib/recruitment/makeup.ts).
  */
 import { useState } from "react";
+import Confirm from "../../../ui/Confirm";
 import Dialog from "../../../ui/Dialog";
 import Dropdown from "../../../ui/Dropdown";
 import Pill from "../../../ui/Pill";
@@ -233,6 +234,7 @@ export default function PapanSusulan({
   const list = useMakeupList(stage);
   const [dlg, setDlg] = useState<{ row: MakeupRow; mode: Mode } | null>(null);
   const [placing, setPlacing] = useState<MakeupRow | null>(null);
+  const [retracting, setRetracting] = useState<MakeupRow | null>(null);
   const [busy, setBusy] = useState(false);
   const d = list.data;
   if (!d) return <span className="skeleton" style={{ height: 160 }} />;
@@ -274,6 +276,8 @@ export default function PapanSusulan({
         {label}
       </button>
     );
+    // Every row that was offered can be taken back, whatever the answer.
+    const tarik = b(w.retract, () => setRetracting(r));
     if (r.state === "tunggu")
       return b(
         w.offer,
@@ -285,6 +289,7 @@ export default function PapanSusulan({
         <>
           {b(w.record, () => setDlg({ row: r, mode: "catat" }))}
           {b(w.place, () => setPlacing(r))}
+          {tarik}
         </>
       );
     if (r.state === "ya")
@@ -292,6 +297,7 @@ export default function PapanSusulan({
         <>
           {b(w.place, () => setPlacing(r), "btn--primary")}
           {b(w.edit, () => setDlg({ row: r, mode: "ubah" }))}
+          {tarik}
         </>
       );
     if (r.state === "ditempatkan")
@@ -299,9 +305,15 @@ export default function PapanSusulan({
         <>
           {b(w.release, () => call("ms-release", { id: r.id }, w.toast.released(first(r.nama))))}
           {b(w.edit, () => setDlg({ row: r, mode: "ubah" }))}
+          {tarik}
         </>
       );
-    return b(w.reinstate, () => setDlg({ row: r, mode: "pulihkan" }));
+    return (
+      <>
+        {b(w.reinstate, () => setDlg({ row: r, mode: "pulihkan" }))}
+        {tarik}
+      </>
+    );
   };
 
   return (
@@ -372,6 +384,24 @@ export default function PapanSusulan({
             setDlg(null);
             toast(text);
             list.refresh();
+          }}
+        />
+      )}
+      {retracting && (
+        <Confirm
+          open
+          onOpenChange={(o) => !o && setRetracting(null)}
+          title={w.retractTitle(retracting.nama)}
+          body={w.retractBody}
+          confirmLabel={w.retractYes}
+          lang={lang}
+          onConfirm={async () => {
+            const ok = await call(
+              "ms-retract",
+              { id: retracting.id },
+              w.toast.retracted(first(retracting.nama)),
+            );
+            return ok;
           }}
         />
       )}

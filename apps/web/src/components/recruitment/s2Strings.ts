@@ -276,6 +276,10 @@ export const S2 = dict({
       } as Record<Proposal, string>,
     },
     plot: {
+      edit: "Ubah",
+      editRoom: "Ubah Ruang",
+      save: "Simpan",
+      makeupWord: "Susulan",
       title: "Plotting",
       slot: "Slot",
       requests: "Permintaan",
@@ -435,6 +439,7 @@ export const S2 = dict({
       noRight: "Layar ini untuk Panitia yang mengurus absensi.",
       signIn: "Masuk sebagai Panitia untuk membuka layar ini.",
       logoAlt: "IRIS",
+      close: "Tutup dinding absensi",
       scan: {
         hadir: "Kamu tercatat hadir",
         sudah: "Sudah tercatat tadi",
@@ -755,6 +760,10 @@ export const S2 = dict({
       reason: { lolos: "Pass", gagal: "Fail" } as Record<Proposal, string>,
     },
     plot: {
+      edit: "Edit",
+      editRoom: "Edit Room",
+      save: "Save",
+      makeupWord: "Makeup",
       title: "Plotting",
       slot: "Slots",
       requests: "Requests",
@@ -915,6 +924,7 @@ export const S2 = dict({
       noRight: "This screen is for the Panitia who run attendance.",
       signIn: "Sign in as Panitia to open this screen.",
       logoAlt: "IRIS",
+      close: "Close the attendance wall",
       scan: {
         hadir: "You're marked present",
         sudah: "Already marked",
@@ -1222,6 +1232,10 @@ export const S2 = dict({
       reason: { lolos: "通过", gagal: "淘汰" } as Record<Proposal, string>,
     },
     plot: {
+      edit: "修改",
+      editRoom: "修改教室",
+      save: "保存",
+      makeupWord: "补考",
       title: "排期",
       slot: "时段",
       requests: "申请",
@@ -1377,6 +1391,7 @@ export const S2 = dict({
       noRight: "这个屏幕给负责签到的招募组使用。",
       signIn: "请以招募组身份登录后打开这个屏幕。",
       logoAlt: "IRIS",
+      close: "关闭签到屏",
       scan: {
         hadir: "已记录你到场",
         sudah: "刚才已经记录过了",

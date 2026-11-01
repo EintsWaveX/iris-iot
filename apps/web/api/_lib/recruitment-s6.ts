@@ -10,6 +10,7 @@
  * POST /api/recruitment/ms-offer           { id, stage }  Konfirmasi dan Tawarkan
  * POST /api/recruitment/ms-record          { id, stage, ans, via, note? }  Catat, Ubah, Pulihkan
  * POST /api/recruitment/ms-release         { id, stage }  Lepas: back to the slot they came from
+ * POST /api/recruitment/ms-retract         { id, stage }  Tarik Tawaran: the offer was a mistake; the CaAs is as before it
  *
  * A CaAs (oprec account):
  * GET  /api/recruitment/ms-mine            the offers made to me
@@ -323,6 +324,27 @@ async function handleRelease(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   return void res.status(200).json({ ok: true });
 }
 
+async function handleRetract(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const a = await bukaKasus(res, s, jsonBody(req));
+  if (!a) return;
+  const { db, stage, kandidatId } = a;
+  const [row] = await db
+    .select()
+    .from(recMakeup)
+    .where(and(eq(recMakeup.candidateId, kandidatId), eq(recMakeup.stage, stage)))
+    .limit(1);
+  if (!row) return void tolak(res, "belum_ditawari", 409);
+  const ctx = await muatMakeupCtx(db, a.edisiId, stage);
+  const kursi = await kursiKandidat(db, kandidatId, stage);
+  await db.transaction(async (tx) => {
+    // A seat in the Susulan goes back to the slot of the offer, then the offer itself goes.
+    if (kursi && diHariSusulan(ctx, kursi.startsAt)) await kembalikanKursi(tx, row, kursi, stage);
+    await tx.delete(recMakeup).where(eq(recMakeup.id, row.id));
+  });
+  await writeAudit(s.nim, "rec_susulan_tarik", { stage, candidateId: kandidatId });
+  return void res.status(200).json({ ok: true });
+}
+
 /* ------------------------------------------------------------------- CaAs */
 
 interface TawaranView {
@@ -422,6 +444,7 @@ export const S6_POST: Record<string, Handler> = {
   "ms-offer": handleOffer,
   "ms-record": handleRecord,
   "ms-release": handleRelease,
+  "ms-retract": handleRetract,
 };
 export const S6_OPREC_GET: Record<string, Handler> = {
   "ms-mine": handleMine,

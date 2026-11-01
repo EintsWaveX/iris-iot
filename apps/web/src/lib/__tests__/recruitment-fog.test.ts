@@ -1,5 +1,5 @@
 /**
- * The candidate's fog: dates up to the next stage, nothing beyond, own slots kept.
+ * The candidate's fog: dates up to the stage they are on, nothing beyond, own slots kept.
  * The seed calendar is the fixture.
  */
 import { describe, expect, it } from "vitest";
@@ -15,14 +15,14 @@ describe("fogLimit", () => {
     expect(fogLimit(null)).toBe(0);
     expect(fogLimit({ status: "withdrawn", stage: "tes_tulis" })).toBe(0);
   });
-  it("shows a live CaAs the stage after the one they are on", () => {
-    expect(fogLimit({ status: "approved", stage: "berkas" })).toBe(1);
-    expect(fogLimit({ status: "approved", stage: "tes_tulis" })).toBe(3);
+  it("shows a live CaAs the stage they are on and nothing ahead", () => {
+    expect(fogLimit({ status: "approved", stage: "berkas" })).toBe(0);
+    expect(fogLimit({ status: "approved", stage: "tes_tulis" })).toBe(2);
   });
   it("stops a cut CaAs at the stage they reached", () => {
     expect(fogLimit({ status: "out", stage: "tes_tulis" })).toBe(2);
   });
-  it("never goes past the last stage", () => {
+  it("reaches the last stage at the end of the road", () => {
     expect(fogLimit({ status: "approved", stage: "penerimaan" })).toBe(6);
   });
 });
@@ -31,9 +31,10 @@ describe("fogEvents", () => {
   it("keeps only Berkas dates for a visitor", () => {
     expect([...stages(fogEvents(EVENTS, 0))]).toEqual(["berkas"]);
   });
-  it("adds the next stage for a CaAs at Berkas, and nothing after it", () => {
+  it("keeps the next stage hidden for a CaAs at Berkas", () => {
     const s = stages(fogEvents(EVENTS, fogLimit({ status: "approved", stage: "berkas" })));
-    expect(s.has("first_meet")).toBe(true);
+    expect(s.has("berkas")).toBe(true);
+    expect(s.has("first_meet")).toBe(false);
     expect(s.has("tes_tulis")).toBe(false);
     expect(s.has("mengajar")).toBe(false);
   });

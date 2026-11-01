@@ -1727,6 +1727,36 @@ html[data-detail="ldm"] .rec-funnel__bar i {
 .appbar__item.rec-more[data-act="bar"] {
   color: var(--accent);
 }
+/* The measured fold (RecNav): the bar hides what does not fit and Lainnya shows. */
+.rec-nav .appnav__link[data-hide="yes"] {
+  display: none;
+}
+.appnav__link.rec-more[data-more="js"] {
+  display: inline-flex;
+}
+.rec-more[data-act="js"] .rec-more__def {
+  display: none;
+}
+.rec-more[data-act="js"] .rec-more__act {
+  display: inline;
+}
+.appnav__link.rec-more[data-act="js"] {
+  color: var(--text);
+  font-weight: 650;
+}
+.rec-nav__ghost {
+  display: flex;
+  gap: 2px;
+  left: -9999px;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  visibility: hidden;
+  white-space: nowrap;
+}
+.rec-nav__ghost .appnav__link.rec-more {
+  display: inline-flex;
+}
 @media (max-width: 1599px) {
   .rec-nav .appnav__link[data-fold="mid"] {
     display: none;
@@ -1794,5 +1824,226 @@ html[data-detail="ldm"] .rec-funnel__bar i {
 @media (min-width: 820px) {
   .rec-more__menu .acct__row[data-fold="narrow"] {
     display: none;
+  }
+}
+
+/* The candidate banner's "what you need to do now": an icon tile beside a question, a title and a hint (mockup rec9-bn). */
+.rec9-bn__do {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+.rec9-bn__ic {
+  background: var(--rec-soft);
+  border: 1px solid color-mix(in srgb, var(--rec) 45%, transparent);
+  border-radius: 13px;
+  color: var(--rec);
+  display: grid;
+  flex: none;
+  height: 44px;
+  place-items: center;
+  width: 44px;
+}
+.rec9-bn__q {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+/* Living fog (mockup rec7.css, 2026-10-27): drifting fractal noise over the road ahead and over the days still to come. */
+:root {
+  --fogc: 218, 228, 248;
+  --fogk: 0.34;
+}
+:root[data-theme="light"] {
+  --fogc: 112, 128, 164;
+  --fogk: 0.3;
+}
+.n7-mist i,
+.n7-mist b,
+.n7-mist u,
+.rkal__d[data-fog="yes"]::after {
+  --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='320'><filter id='f' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.014' numOctaves='4' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 2.1 -0.75'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>");
+}
+.n7-mist {
+  --fx: 30%;
+  inset: -16px -20px;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-image:
+    linear-gradient(
+      90deg,
+      transparent calc(var(--fx) - 2%),
+      rgba(0, 0, 0, 0.35) calc(var(--fx) + 9%),
+      #000 calc(var(--fx) + 24%)
+    ),
+    linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  mask-image:
+    linear-gradient(
+      90deg,
+      transparent calc(var(--fx) - 2%),
+      rgba(0, 0, 0, 0.35) calc(var(--fx) + 9%),
+      #000 calc(var(--fx) + 24%)
+    ),
+    linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+}
+.rec-journey .n7-mist {
+  --fx: inherit;
+  --fy: inherit;
+}
+/* A phone lists the stages top to bottom: the mist covers the rows below the last clear one, not the right side. */
+@media (max-width: 639px) {
+  .rec-journey .n7-mist {
+    -webkit-mask-composite: source-over;
+    mask-composite: add;
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent calc(var(--fy) - 2%),
+      rgba(0, 0, 0, 0.35) calc(var(--fy) + 4%),
+      #000 calc(var(--fy) + 12%)
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent calc(var(--fy) - 2%),
+      rgba(0, 0, 0, 0.35) calc(var(--fy) + 4%),
+      #000 calc(var(--fy) + 12%)
+    );
+  }
+}
+.n7-mist i {
+  animation: n7-fog-r 95s linear infinite;
+  background: rgb(var(--fogc));
+  bottom: -10%;
+  left: -30%;
+  -webkit-mask-image: var(--noise);
+  mask-image: var(--noise);
+  -webkit-mask-size: 760px 380px;
+  mask-size: 760px 380px;
+  opacity: calc(var(--fogk) * 2.2);
+  position: absolute;
+  right: -30%;
+  top: -10%;
+}
+.n7-mist i:nth-child(2) {
+  animation:
+    n7-fog-l 140s linear infinite,
+    n7-fog-breathe 11s ease-in-out -4s infinite alternate;
+  -webkit-mask-size: 1180px 590px;
+  mask-size: 1180px 590px;
+  opacity: calc(var(--fogk) * 1.7);
+}
+.n7-mist i:nth-child(3) {
+  animation:
+    n7-fog-r 62s linear -20s infinite reverse,
+    n7-fog-breathe 7s ease-in-out -2s infinite alternate;
+  -webkit-mask-size: 520px 260px;
+  mask-size: 520px 260px;
+  opacity: calc(var(--fogk) * 1.4);
+}
+.n7-mist b,
+.n7-mist u {
+  animation: n7-wisp-run 19s ease-in-out infinite;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--fogc), calc(var(--fogk) * 1.1)),
+    transparent
+  );
+  border-radius: 50%;
+  bottom: 4%;
+  filter: blur(14px);
+  height: 34%;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 70%;
+}
+.n7-mist u {
+  animation-delay: -9s;
+  animation-direction: reverse;
+  animation-duration: 27s;
+  bottom: auto;
+  height: 28%;
+  top: 8%;
+  width: 55%;
+}
+.n7-mist::after {
+  animation: n7-fog-breathe 9s ease-in-out infinite alternate;
+  backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--surface-1) 30%, transparent);
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+@keyframes n7-fog-r {
+  from {
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3%);
+  }
+  to {
+    -webkit-mask-position: 760px 190px;
+    mask-position: 760px 190px;
+    transform: translateY(0);
+  }
+}
+@keyframes n7-fog-l {
+  from {
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+  }
+  to {
+    -webkit-mask-position: -1180px 120px;
+    mask-position: -1180px 120px;
+  }
+}
+@keyframes n7-fog-breathe {
+  from {
+    opacity: calc(var(--fogk) * 0.8);
+  }
+  to {
+    opacity: calc(var(--fogk) * 2.3);
+  }
+}
+@keyframes n7-wisp-run {
+  0% {
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+  25%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(140%);
+  }
+}
+html[data-detail="ldm"] .n7-mist i:nth-child(n + 2),
+html[data-detail="ldm"] .n7-mist b,
+html[data-detail="ldm"] .n7-mist u {
+  display: none;
+}
+html[data-detail="ldm"] .n7-mist i:nth-child(1) {
+  animation-duration: 160s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .n7-mist i,
+  .n7-mist b,
+  .n7-mist u,
+  .n7-mist::after,
+  .rkal__d[data-fog="yes"]::after {
+    animation: none;
+  }
+  .n7-mist b,
+  .n7-mist u {
+    opacity: 0.5;
   }
 }

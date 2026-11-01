@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import gsap from "gsap";
+import Confirm from "../../../ui/Confirm";
 import Dialog from "../../../ui/Dialog";
 import Disclose from "../../../ui/Disclose";
 import Drawer from "../../../ui/Drawer";
@@ -72,6 +73,7 @@ export default function BerkasReview({
   const [d, setD] = useState<CandidateDetailResponse | null | "gagal">(null);
   const [doc, setDoc] = useState<DocKind>(rules.required[0] ?? rules.optional[0]);
   const [ubah, setUbah] = useState(false);
+  const [hapus, setHapus] = useState(false);
   const [ver, setVer] = useState<"1" | "2">("2");
   const [cek, setCek] = useState<Partial<Record<DocKind, DocVerdict | null>>>({});
   const [skor, setSkor] = useState<number | null>(null);
@@ -376,13 +378,20 @@ export default function BerkasReview({
                 </Disclose>
               )}
               {canAdd && (
-                <div>
+                <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
                   <button
                     type="button"
                     className="btn btn--ghost btn--sm"
                     onClick={() => setUbah(true)}
                   >
                     {t.edit}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => setHapus(true)}
+                  >
+                    {p.del}
                   </button>
                 </div>
               )}
@@ -395,6 +404,31 @@ export default function BerkasReview({
             </div>
           </div>
         </div>
+      )}
+      {hapus && c && (
+        <Confirm
+          open
+          onOpenChange={(o) => !o && setHapus(false)}
+          title={p.delTitle(c.nama)}
+          body={p.delBody}
+          confirmLabel={p.delYes}
+          lang={lang}
+          onConfirm={async () => {
+            const res = await recPost<{ ok: true }>("candidate-delete", { id });
+            if (isFail(res)) {
+              window.Toast?.show(
+                res.kode === "sudah_ada_hasil" || res.kode === "sudah_jadi_asisten"
+                  ? p.delBlocked
+                  : p.delFail,
+                "danger",
+              );
+              return false;
+            }
+            window.Toast?.show(p.delDone, "ok");
+            onChanged();
+            onClose();
+          }}
+        />
       )}
       {ubah && c && (
         <TambahCaAs

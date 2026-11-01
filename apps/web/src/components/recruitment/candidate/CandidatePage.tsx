@@ -15,7 +15,8 @@ import { ArrowRightIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
 import SegmentedControl from "../../ui/SegmentedControl";
-import { href, useMe } from "../../../lib/app";
+import { href } from "../../../lib/app";
+import { useLatihanMode, useRecOrang } from "../../../lib/recruitment/latihan-client";
 import type { Lang } from "../../../lib/kelas";
 import {
   bukaAkun,
@@ -38,7 +39,7 @@ import {
   showsNextCard,
   tanggalWib,
 } from "../../../lib/recruitment/gates";
-import { alamatBagian } from "../../../lib/recruitment/panel-tab";
+import { alamatBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import {
   CUT_STAGES,
   type CutStage,
@@ -51,6 +52,9 @@ import {
   type WithdrawResponse,
 } from "../../../lib/recruitment/types";
 import { FORMULIR } from "../../../lib/recruitment/formulir";
+import { AREA } from "../panel/areas";
+import "../recruitment-shell.css";
+import "../recruitment-caas.css";
 import { REC } from "../recruitmentStrings";
 import { Agenda, RecCalendar } from "../calendar/RecCalendar";
 import {
@@ -77,6 +81,7 @@ import Journey from "./Journey";
 import { CP } from "./candidateStrings";
 import { judulAcara, tempatAcara } from "../judul";
 import TestDoor from "../exam/TestDoor";
+import TubesCard from "../tubes/TubesCard";
 
 // GSAP and canvas-confetti only ship when an envelope is opened.
 const RevealStage = lazy(() => import("../reveal/RevealStage"));
@@ -112,10 +117,54 @@ function Kartu404({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
 import { useDocRules } from "../../../lib/recruitment/doc-rules";
 import { useMakeupMine } from "../../../lib/recruitment/makeup-client";
 import MakeupCard from "./MakeupCard";
+/** The candidate page's compact header (the mockup's n7-chead): the stage's icon tile, the title, the status and the edition. */
+function CaasHead({
+  lang,
+  title,
+  stage,
+  badge,
+  lede,
+}: {
+  lang: Lang;
+  title: string;
+  stage: StageKey | null;
+  badge?: React.ReactNode;
+  lede?: React.ReactNode;
+}) {
+  const tab: PanelTab =
+    (
+      {
+        berkas: "kandidat",
+        first_meet: "kalender",
+        tes_tulis: "tes",
+        wawancara: "wawancara",
+        mengajar: "mengajar",
+        penerimaan: "penerimaan",
+      } as Partial<Record<StageKey, PanelTab>>
+    )[stage ?? "berkas"] ?? "ringkasan";
+  const a = AREA[stage ? tab : "ringkasan"];
+  return (
+    <header className="rec-head2 rec-head2--caas" style={{ "--tc": a.c } as React.CSSProperties}>
+      <span className="rec-head2__ic" key={stage ?? "x"}>
+        <a.icon size={24} aria-hidden="true" />
+      </span>
+      <div className="rec-head2__t">
+        <div className="rec-head2__row">
+          <h1 className="rec-head2__h">{title}</h1>
+          {badge}
+          <span className="rec-head2__area">{REC[lang].eyebrow}</span>
+        </div>
+        {lede && <span className="hint">{lede}</span>}
+      </div>
+    </header>
+  );
+}
+
 export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
-  const me = useMe();
+  const me = useRecOrang();
+  const latihan = useLatihanMode();
   const asisten = me?.role === "asisten";
   // The candidate is their oprec account, never the practicum sign-in (2026-10-24).
   const akun = useRecAkun(me !== undefined && !asisten);
@@ -244,24 +293,40 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const first = events.length
     ? events.reduce((m, e) => (e.startsOn < m ? e.startsOn : m), events[0].startsOn)
     : null;
+  // A candidate's own road is a secret: days ahead stay under fog (the API never sends their dates).
+  const fog = applied && !asisten;
   const bar = (
     <div className="rec-calwrap" id="kalender">
       <Kartu
         className="rec-calcard"
-        title={CAL[lang].title}
+        title={CAL[lang].calendar}
         aside={
-          <SegmentedControl
-            aria-label={CAL[lang].view}
-            value={view}
-            onValueChange={(v) => setView(v as "bulan" | "agenda")}
-            options={[
-              { value: "bulan", label: CAL[lang].month },
-              { value: "agenda", label: CAL[lang].agenda },
-            ]}
-          />
+          fog ? undefined : (
+            <SegmentedControl
+              aria-label={CAL[lang].view}
+              value={view}
+              onValueChange={(v) => setView(v as "bulan" | "agenda")}
+              options={[
+                { value: "bulan", label: CAL[lang].month },
+                { value: "agenda", label: CAL[lang].agenda },
+              ]}
+            />
+          )
         }
       >
-        {view === "bulan" ? (
+        {fog ? (
+          <>
+            <RecCalendar
+              events={events}
+              lang={lang}
+              hariIni={hariIni}
+              viewer="candidate"
+              side={false}
+              fog
+            />
+            <span className="hint">{CAL[lang].fogNote}</span>
+          </>
+        ) : view === "bulan" ? (
           <RecCalendar events={events} lang={lang} hariIni={hariIni} viewer="candidate" />
         ) : (
           <Agenda events={events} lang={lang} hariIni={hariIni} viewer="candidate" />
@@ -514,23 +579,31 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
 
   return (
     <div className="rec-page">
-      <KepalaHalaman
+      <CaasHead
         lang={lang}
         title={applied ? t.titleApplied : asisten ? t.titleStaff : t.titleOpen}
-        badge={applied && cand ? <StatusPill status={cand.status} lang={lang} lg /> : undefined}
+        stage={applied && cand ? cand.stage : null}
+        badge={applied && cand ? <StatusPill status={cand.status} lang={lang} /> : undefined}
         lede={lede}
       />
       <div className="b3-page">
         {revisi}
         {cta}
         <TestDoor lang={lang} enabled={praktikan && applied} />
+        <TubesCard
+          lang={lang}
+          enabled={praktikan && applied && (cand?.stage === "tubes" || latihan === "caas")}
+        />
         {sealedEnv ? (
-          <SealedHero
-            lang={lang}
-            stage={sealedEnv.stage}
-            motion={motion}
-            onOpen={() => setReveal(sealedEnv)}
-          />
+          <div className="b3-hero">
+            <SealedHero
+              lang={lang}
+              stage={sealedEnv.stage}
+              motion={motion}
+              onOpen={() => setReveal(sealedEnv)}
+            />
+            {nextCard}
+          </div>
         ) : (
           nextCard
         )}
@@ -663,8 +736,13 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         onOpenChange={setJadwalOpen}
         title={t.tools.jadwalTitle}
         description={t.tools.jadwalDesc}
-        size="lg"
+        size="xl"
         lang={lang}
+        actions={
+          <button type="button" className="btn btn--ghost" onClick={() => setJadwalOpen(false)}>
+            {r.close}
+          </button>
+        }
       >
         <div className="stack">
           {pickCards && pickCards.length ? (
@@ -680,6 +758,11 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         title={t.tools.amplopTitle}
         size="lg"
         lang={lang}
+        actions={
+          <button type="button" className="btn btn--ghost" onClick={() => setAmplopOpen(false)}>
+            {r.close}
+          </button>
+        }
       >
         {inbox}
       </Dialog>

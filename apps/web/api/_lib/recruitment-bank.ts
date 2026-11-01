@@ -727,6 +727,13 @@ async function ekspor(k: Konteks) {
 
 /** Installs the default bank; what is already there (same part, language and title, still a seed) is skipped. */
 async function pasangBawaan(k: Konteks) {
+  const r = await pasangBawaanKe(k.db, k.edisiId, k.nim);
+  k.res.status(200).json({ ok: true, ...r });
+}
+
+/** The install itself, also used to fill the Mode Latihan edition with the sample bank. */
+export async function pasangBawaanKe(db: Db, edisiId: number, nim: string) {
+  const k = { db, edisiId, nim };
   const config = await muatConfig(k.db, k.edisiId);
   const have = await muatSemua(k.db, k.edisiId);
   const key = (part: string, lang: string, title: string) => `${part}|${lang}|${title}`;
@@ -785,7 +792,7 @@ async function pasangBawaan(k: Konteks) {
         updatedBy: k.nim,
       })),
     );
-  k.res.status(200).json({ ok: true, created, skipped, failed, problems: newPr.length });
+  return { created, skipped, failed, problems: newPr.length };
 }
 
 /* --------------------------------------------------------------- images */

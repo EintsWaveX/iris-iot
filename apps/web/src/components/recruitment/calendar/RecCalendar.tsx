@@ -97,6 +97,7 @@ export function RecCalendar({
   onEdit,
   onMove,
   side = true,
+  fog = false,
 }: {
   events: RecEvent[];
   lang: Lang;
@@ -107,6 +108,8 @@ export function RecCalendar({
   onEdit?: (e: RecEvent) => void;
   onMove?: (e: RecEvent, startsOn: string, endsOn: string) => void;
   side?: boolean;
+  /** A candidate's calendar: days still to come with nothing to show sit under fog */
+  fog?: boolean;
 }) {
   const c = CAL[lang];
   const [ym, setYm] = useState(hariIni.slice(0, 7));
@@ -249,6 +252,9 @@ export function RecCalendar({
                       type="button"
                       className="rkal__d"
                       data-today={day.date === hariIni ? "yes" : undefined}
+                      data-past={fog && day.date < hariIni ? "yes" : undefined}
+                      data-fog={fog && day.date > hariIni && here.length === 0 ? "yes" : undefined}
+                      style={{ "--d": `${col * 25 + wi * 20}ms` } as CSSProperties}
                       data-sun={col === 6 ? "yes" : undefined}
                       aria-pressed={pick === day.date}
                       aria-label={[
@@ -310,7 +316,7 @@ export function RecCalendar({
             </div>
           ))}
         </div>
-        <div className="rkal__status" aria-live="polite">
+        <div className="rkal__status" aria-live="polite" hidden={fog}>
           {dragging ? (
             <span className="rkal__moving">
               <i style={cs(warna(dragging))} />

@@ -72,7 +72,8 @@ export type Audience = (typeof AUDIENCES)[number];
 export const PHASES = ["before", "open", "review", "cutting", "announced"] as const;
 export type Phase = (typeof PHASES)[number];
 
-export const EDITION_STATUS = ["draft", "live", "closed"] as const;
+/** "latihan" is the Mode Latihan copy (latihan.ts): never the live edition, only an Asisten in practice reads it. */
+export const EDITION_STATUS = ["draft", "live", "closed", "latihan"] as const;
 export type EditionStatus = (typeof EDITION_STATUS)[number];
 
 export const CANDIDATE_STATUS = [
@@ -322,6 +323,9 @@ export type RecError =
   | "bahasa_salah"
   | "struktur_terkunci"
   | "ruang_berjalan"
+  | "ruang_sudah_dipakai"
+  | "sudah_jadi_asisten"
+  | "sudah_ada_hasil"
   | "sudah_tampil"
   | "gambar_hilang"
   | "tidak_ada"
@@ -369,6 +373,10 @@ export interface EditionResponse {
   rights: RecRights | null;
   /** The viewer's seat, when they have one */
   seat: { division: CommitteeDivision; isKoor: boolean; title: string | null } | null;
+  /** Mode Latihan: this request ran on the practice edition, as this side (Asisten only) */
+  latihan?: "asisten" | "caas";
+  /** Panitia with the Plotting right: slot change requests still open (the navbar badge) */
+  plotRequests?: number;
   /** The documents a CaAs sends, as the Ketua and Admin set them (settings.ts) */
   docs?: DocSetting[];
   /** Asisten only: Sembunyikan Oprec is on (nobody else sees recruitment) */
@@ -741,6 +749,13 @@ export interface CutRowView {
     sheets: number;
     expected: number;
     case: { kind: string; status: "susulan" | "gugur" | null } | null;
+  } | null;
+  /** Tubes only: the CaAs's team, its topic, how complete its submission is, and whether they came on their evening */
+  tubes?: {
+    team: string | null;
+    topic: string | null;
+    submission: "none" | "partial" | "complete" | "late" | "over" | null;
+    attended: boolean | null;
   } | null;
 }
 

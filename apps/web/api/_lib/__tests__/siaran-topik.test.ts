@@ -93,6 +93,12 @@ const BACA: Record<string, string[]> = {
     // R8, api/_lib/recruitment-s5.ts
     "pn-list",
     "pn-state",
+    // Mode Latihan, api/_lib/recruitment-latihan.ts
+    "latihan",
+    // Tubes (R5), api/_lib/recruitment-s7.ts and recruitment-s7-panel.ts
+    // ("tubes" itself is a bare key in the CaAs table, which this scan does not read)
+    "tubes-board",
+    "tubes-file",
   ],
 };
 
@@ -109,6 +115,9 @@ const RUTE: Record<string, string[]> = {
     "api/_lib/recruitment-s4.ts",
     "api/_lib/recruitment-s5.ts",
     "api/_lib/recruitment-s6.ts",
+    "api/_lib/recruitment-s7.ts",
+    "api/_lib/recruitment-s7-panel.ts",
+    "api/_lib/recruitment-latihan.ts",
   ],
 };
 

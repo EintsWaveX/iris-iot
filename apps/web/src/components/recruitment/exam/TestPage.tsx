@@ -31,6 +31,9 @@ import LccPage from "../livecode/LccPage";
 import { TS } from "./testStrings";
 
 import "../recruitment-s3-runner.css";
+import "../recruitment-checkin.css";
+import "../recruitment-runner-look.css";
+import "../recruitment-lcc-draw.css";
 
 type Fetched = { tv: TestView } | { err: string };
 
@@ -224,9 +227,7 @@ export default function TestPage({ lang }: { lang: Lang }) {
       </Gate>
     );
   } else {
-    screen = (
-      <Lobby lang={lang} tv={{ ...tv!, room }} phase={phase} motion={motion} onChanged={refresh} />
-    );
+    screen = <Lobby lang={lang} tv={{ ...tv!, room }} phase={phase} motion={motion} />;
   }
 
   return (

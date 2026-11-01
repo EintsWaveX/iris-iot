@@ -23,22 +23,36 @@ import {
 } from "../../src/lib/recruitment/settings.js";
 import { DOC_MAX_BYTES, type DocKind } from "../../src/lib/recruitment/types.js";
 import { anggotaPanitia, muatPelaku } from "./recruitment-rights.js";
+import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 
 type Db = ReturnType<typeof getDb>;
 
 const tolak = (res: ApiResponse, kode: string, status: number, extra = {}) =>
   void res.status(status).json({ ok: false, kode, ...extra });
 
+/**
+ * Mode Latihan keeps its own copy of a setting beside the live one, so editing
+ * in practice never changes what real candidates see: reads try the practice
+ * row first and fall back to the live one, writes only touch the practice row.
+ */
+const kunciTulis = (key: SettingKey): string =>
+  konteksLatihan() ? `${settingRow(key)}.latihan` : settingRow(key);
+const kunciBaca = (key: SettingKey): string[] =>
+  konteksLatihan() ? [kunciTulis(key), settingRow(key)] : [settingRow(key)];
+
 /** The saved value of one setting, or its default. Used by the other handlers. */
 export async function bacaSetting<K extends SettingKey>(
   db: Db,
   key: K,
 ): Promise<(typeof SETTINGS)[K]["def"]> {
-  const [r] = await db
-    .select({ nilai: pengaturan.nilai })
+  const urut = kunciBaca(key);
+  const rows = await db
+    .select({ kunci: pengaturan.kunci, nilai: pengaturan.nilai })
     .from(pengaturan)
-    .where(eq(pengaturan.kunci, settingRow(key)))
-    .limit(1);
+    .where(inArray(pengaturan.kunci, urut));
+  // In practice its own row wins, then the live one, then the default.
+  const r =
+    urut.length === 1 ? rows[0] : urut.map((k) => rows.find((x) => x.kunci === k)).find(Boolean);
   if (!r) return SETTINGS[key].def;
   return (SETTINGS[key].check(r.nilai) ?? SETTINGS[key].def) as (typeof SETTINGS)[K]["def"];
 }
@@ -60,10 +74,12 @@ export async function handleSettings(
       pada: pengaturan.diubahPada,
     })
     .from(pengaturan)
-    .where(inArray(pengaturan.kunci, SETTING_KEYS.map(settingRow)));
+    .where(inArray(pengaturan.kunci, SETTING_KEYS.flatMap(kunciBaca)));
   const byKey = new Map(rows.map((r) => [r.kunci, r]));
   const settings = SETTING_KEYS.map((key) => {
-    const row = byKey.get(settingRow(key));
+    const row = kunciBaca(key)
+      .map((k) => byKey.get(k))
+      .find(Boolean);
     const saved = row ? SETTINGS[key].check(row.nilai) : null;
     return {
       key,
@@ -95,7 +111,7 @@ async function ubah(
   if (!bolehUbah(key, p)) return tolak(res, "tanpa_hak", 403, { hak: `setting_${key}` });
   const before = await bacaSetting(db, key);
   if (reset) {
-    await db.delete(pengaturan).where(eq(pengaturan.kunci, settingRow(key)));
+    await db.delete(pengaturan).where(eq(pengaturan.kunci, kunciTulis(key)));
     await writeAudit(s.nim, "rec_setting", { key, reset: true, before });
     return void res.status(200).json({ ok: true, key, value: SETTINGS[key].def, custom: false });
   }
@@ -103,7 +119,7 @@ async function ubah(
   if (value === null) return tolak(res, "data_salah", 400, { field: "value" });
   await db
     .insert(pengaturan)
-    .values({ kunci: settingRow(key), nilai: value, diubahOleh: s.nim, diubahPada: sql`now()` })
+    .values({ kunci: kunciTulis(key), nilai: value, diubahOleh: s.nim, diubahPada: sql`now()` })
     .onConflictDoUpdate({
       target: pengaturan.kunci,
       set: { nilai: value, diubahOleh: s.nim, diubahPada: sql`now()` },

@@ -36,7 +36,7 @@ export interface RoomInfo {
 export interface PlanPart {
   key: PartKey;
   minutes: number;
-  /** Questions in the part; null for Live Coding */
+  /** Questions in the part; for Live Coding, the problems dealt */
   count: number | null;
 }
 
@@ -69,6 +69,8 @@ export interface TestView {
   hotspot: { ssid: string } | null;
   /** Parts the seat started in another room: closed here (bagian_ruang_lain) */
   closedElsewhere: Phase1Part[];
+  /** The lab PC says it can judge C programs (Live Coding); a check-in row, never a blocker */
+  judge: boolean;
 }
 
 export interface CheckinBody {

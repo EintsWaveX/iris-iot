@@ -58,6 +58,7 @@ import { namaKandidat } from "./recruitment-akun.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
 import { muatNilaiTahap } from "./recruitment-s4.js";
 import { isIvStage } from "../../src/lib/recruitment/interview.js";
+import { muatKonteks, muatTubesCutting } from "./recruitment-s7.js";
 import { cuttingFor } from "../../src/lib/recruitment/settings.js";
 
 /** What the deck aims for at each Cutting: the editors' numbers (Atur Titik Awal), else PRD 3, Targets. */
@@ -222,8 +223,14 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
   const nilai = stage === "tes_tulis" ? await muatNilaiCutting(db, edisi.id) : null;
   // Wawancara and Mengajar read the sent sheets: the mean of the examiners, out of 100.
   const iv = isIvStage(stage)
-    ? new Map((await muatNilaiTahap(db, edisi.id, stage)).map((x) => [x.id, x]))
+    ? new Map((await muatNilaiTahap(db, edisi.id, stage, { anggota: true })).map((x) => [x.id, x]))
     : null;
+  // Tubes also shows the team, topic, submission and whether they came; the score is the team's.
+  let tubes: Awaited<ReturnType<typeof muatTubesCutting>> | null = null;
+  if (stage === "tubes") {
+    const kon = await muatKonteks(res);
+    if (kon) tubes = await muatTubesCutting(kon);
+  }
   const rows: CutRowView[] = pool.map((r) => ({
     id: r.id,
     nim: r.nim,
@@ -244,6 +251,9 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
           case: iv.get(r.id)!.case,
         }
       : null,
+    ...(stage === "tubes"
+      ? { tubes: tubes?.get(r.id) ?? { team: null, topic: null, submission: null, attended: null } }
+      : {}),
     // Logika, FITB, Debugging, Live Coding and the total of 4000, from the exam engine.
     parts: nilai?.byCandidate.get(r.id)?.parts ?? [null, null, null, null],
     total: iv

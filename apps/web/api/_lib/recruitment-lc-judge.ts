@@ -28,7 +28,7 @@ import {
 } from "../../src/lib/recruitment/c-problem.js";
 import { ruangUjian } from "../../src/lib/recruitment/room-relay.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
-import { terbitkan } from "./aliran.js";
+import { kirimRelay, terbitkan } from "./aliran.js";
 import type { Db } from "./recruitment-data.js";
 import { KLAIM_BASI_MS } from "./recruitment-lc-agent.js";
 
@@ -184,6 +184,8 @@ export async function terimaHasilJudge(
       await terbitkan(ruangUjian(job.roomId), [
         { j: "judge", s: job.seatId, d: { job: job.id } } as unknown as PesanAliran,
       ]).catch(() => undefined);
+      // The room's judge tabs list the verdicts too; they do not ride the seat socket.
+      await kirimRelay(["recjudge"]).catch(() => undefined);
     }
     if (job.kind === "check" && won.length) {
       await db

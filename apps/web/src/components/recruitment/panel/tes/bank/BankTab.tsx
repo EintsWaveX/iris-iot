@@ -6,7 +6,18 @@
  * button and a shared link both work. The Live Coding tab is the C problem
  * bank (ProblemsTab). There are no references: candidates see none.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
+import * as RadixPopover from "@radix-ui/react-popover";
+import {
+  CpuIcon,
+  DotsThreeIcon,
+  GearSixIcon,
+  LightbulbIcon,
+  LightningIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  type IconProps,
+} from "@phosphor-icons/react";
 import Fade from "../../../../ui/Fade";
 import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
@@ -21,6 +32,7 @@ import ProblemsTab from "./ProblemsTab";
 import { BK } from "./bankStrings";
 
 import "../../../recruitment-s3-bank.css";
+import "../../../recruitment-cutting.css";
 
 /** The tabs of the line, in order. */
 export const BANK_VIEWS = [...PHASE1_PARTS, "livecode", "config"] as const;
@@ -71,6 +83,22 @@ function useWhere(): [Where, (w: Partial<Where>, push?: boolean) => void] {
   return [w, go];
 }
 
+const BANK_MORE: Record<Lang, string> = { id: "Lainnya", en: "More", zh: "更多" };
+
+const IK_PART: Record<Phase1Part, ComponentType<IconProps>> = {
+  logika: LightbulbIcon,
+  fitb: PencilSimpleIcon,
+  kodingan: CpuIcon,
+};
+
+/** A tab label with its icon, as the mockup draws the Bank Soal tab line */
+const tab = (Ik: ComponentType<IconProps>, text: string) => (
+  <>
+    <Ik size={16} aria-hidden="true" />
+    {text}
+  </>
+);
+
 export default function BankTab({ lang }: { lang: Lang }) {
   const t = BK[lang];
   const config = useBankConfig(true);
@@ -112,45 +140,60 @@ export default function BankTab({ lang }: { lang: Lang }) {
 
   return (
     <div className="stack r3bank">
-      <div className="stack" style={{ gap: 2 }}>
-        <div className="row rec-head__row">
-          <h2 className="h-title" style={{ margin: 0 }}>
-            {t.title}
-          </h2>
-        </div>
-        <span className="hint">{t.lede}</span>
-      </div>
-
       {!editing && (
-        <div className="row r3bank__bar">
+        <div className="row r3bank__bar n7-bar">
           <TabLine
             label={t.tabsLabel}
             value={view}
             onChange={(v) => go({ view: v, soal: null })}
             tabs={[
-              ...PHASE1_PARTS.map((p) => ({ v: p as BankView, label: t.parts[p], n: count(p) })),
-              { v: "livecode" as BankView, label: t.tabLive },
-              { v: "config" as BankView, label: t.tabConfig },
+              ...PHASE1_PARTS.map((p) => ({
+                v: p as BankView,
+                label: tab(IK_PART[p], t.parts[p]),
+                n: count(p),
+              })),
+              { v: "livecode" as BankView, label: tab(LightningIcon, t.tabLive) },
+              { v: "config" as BankView, label: tab(GearSixIcon, t.tabConfig) },
             ]}
           />
+          <span className="grow" />
           {isPart && rows.length > 0 && (
             <div className="row r3bank__acts">
-              <button type="button" className="btn btn--inverse" onClick={() => setImp(true)}>
-                {t.import}
-              </button>
-              <a
-                className="btn btn--inverse"
-                href={`/api/recruitment/bank-export?part=${part}`}
-                download={t.exportFile(part)}
-              >
-                {t.export}
-              </a>
+              <RadixPopover.Root>
+                <RadixPopover.Trigger asChild>
+                  <button type="button" className="iconbtn" aria-label={BANK_MORE[lang]}>
+                    <DotsThreeIcon size={20} weight="bold" aria-hidden="true" />
+                  </button>
+                </RadixPopover.Trigger>
+                <RadixPopover.Portal>
+                  <RadixPopover.Content
+                    className="appnav__menu sweep-edge"
+                    align="end"
+                    sideOffset={8}
+                    collisionPadding={12}
+                  >
+                    <div className="acct">
+                      <button type="button" className="acct__row" onClick={() => setImp(true)}>
+                        <span>{t.import}</span>
+                      </button>
+                      <a
+                        className="acct__row"
+                        href={`/api/recruitment/bank-export?part=${part}`}
+                        download={t.exportFile(part)}
+                      >
+                        <span>{t.export}</span>
+                      </a>
+                    </div>
+                  </RadixPopover.Content>
+                </RadixPopover.Portal>
+              </RadixPopover.Root>
               <button
                 type="button"
                 className="btn btn--primary"
                 onClick={() => go({ soal: "baru" })}
               >
-                {t.add}
+                <PlusIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{t.add}</span>
               </button>
             </div>
           )}

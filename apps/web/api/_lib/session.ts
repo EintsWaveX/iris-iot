@@ -12,8 +12,11 @@ import { getDb } from "../../src/lib/db.js";
 import { anggota, kelompok } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
 import { praktikanSahTot } from "../../src/lib/mode-tot.js";
+import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 
 export function currentSession(req: ApiRequest): SessionPayload | null {
+  // Mode Latihan, As CaAs: the Asisten's own session is hidden so the request reads as a candidate's.
+  if (konteksLatihan()?.mode === "caas") return null;
   const cookies = parseCookies(req);
   return readSessionCookie(cookies["iris_session"]);
 }

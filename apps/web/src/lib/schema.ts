@@ -3141,6 +3141,151 @@ export const recMakeup = pgTable(
 
 export type RecMakeupRow = typeof recMakeup.$inferSelect;
 
+/* ------------------------------------------------------------ Tubes (R5) */
+
+export const TEAM_MEMBER_STATUS = ["invited", "joined"] as const;
+export const TEAM_LOCK = ["open", "closed"] as const;
+export const TUBES_FILE_KIND = ["file", "link"] as const;
+
+/**
+ * The topics of Tubes (Akademik edits them). A team gets one, assigned by
+ * Akademik or drawn at Techmeet; `cap` is the most teams it may go to.
+ */
+export const recTubesTopic = pgTable(
+  "rec_tubes_topic",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    brief: text("brief").notNull(),
+    cap: integer("cap").notNull().default(3),
+    sort: integer("sort").notNull().default(0),
+  },
+  (t) => [
+    index("rec_tubes_topic_idx").on(t.editionId, t.sort),
+    check("rec_tubes_topic_cap", sql`${t.cap} >= 1`),
+  ],
+);
+
+/**
+ * One lab evening of the Pengerjaan: a team picks exactly one. Seats count
+ * people, so a team takes as many as it has members.
+ */
+export const recTubesSession = pgTable(
+  "rec_tubes_session",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    capacity: integer("capacity").notNull(),
+    place: text("place").notNull().default("Lab IRIS"),
+  },
+  (t) => [
+    index("rec_tubes_session_idx").on(t.editionId, t.startsAt),
+    check("rec_tubes_session_kapasitas", sql`${t.capacity} >= 0`),
+    check("rec_tubes_session_urut", sql`${t.endsAt} > ${t.startsAt}`),
+  ],
+);
+
+/**
+ * A Tubes team: the unit of the topic, the session, the submission, the
+ * Presentasi and the score. The leader's candidate id is the team's key in
+ * the interview sheets and the Presentasi slots; every member carries the
+ * team's score into the Cutting.
+ */
+export const recTeam = pgTable(
+  "rec_team",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    leaderId: integer("leader_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    name: text("name").notNull().default(""),
+    topicId: integer("topic_id").references(() => recTubesTopic.id, { onDelete: "set null" }),
+    /** Drawn at Techmeet: the topic only shows to the team once it was drawn (or published) */
+    drawnAt: timestamp("drawn_at", { withTimezone: true }),
+    sessionId: integer("session_id").references(() => recTubesSession.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /** The Ketua let a late submission through: why, who, until when, and when */
+    overrideNote: text("override_note"),
+    overrideBy: text("override_by"),
+    overrideUntil: timestamp("override_until", { withTimezone: true }),
+    overrideAt: timestamp("override_at", { withTimezone: true }),
+  },
+  (t) => [unique("rec_team_pemimpin_unik").on(t.editionId, t.leaderId)],
+);
+
+/** The leader is a member too (status joined). An invited candidate is not yet in the team. */
+export const recTeamMember = pgTable(
+  "rec_team_member",
+  {
+    id: serial("id").primaryKey(),
+    teamId: integer("team_id")
+      .notNull()
+      .references(() => recTeam.id, { onDelete: "cascade" }),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    status: text("status", { enum: TEAM_MEMBER_STATUS }).notNull().default("invited"),
+    /** Who put them here: the leader's NIM, or a Panitia's */
+    by: text("by").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("rec_team_member_unik").on(t.teamId, t.candidateId),
+    uniqueIndex("rec_team_member_satu_tim")
+      .on(t.candidateId)
+      .where(sql`${t.status} = 'joined'`),
+  ],
+);
+
+/** One row per edition: when the topics were published, and whether Panitia forced the team lock. */
+export const recTubesState = pgTable("rec_tubes_state", {
+  editionId: integer("edition_id")
+    .primaryKey()
+    .references(() => recEdition.id, { onDelete: "cascade" }),
+  topicsPublishedAt: timestamp("topics_published_at", { withTimezone: true }),
+  topicsPublishedBy: text("topics_published_by"),
+  /** null: follows the clock (locks at Techmeet). open or closed: forced by Panitia */
+  teamsLock: text("teams_lock", { enum: TEAM_LOCK }),
+});
+
+/** A team's submission, one row per part (code, report, demo). A file lives in R2; a link is just the address. */
+export const recTubesFile = pgTable(
+  "rec_tubes_file",
+  {
+    id: serial("id").primaryKey(),
+    teamId: integer("team_id")
+      .notNull()
+      .references(() => recTeam.id, { onDelete: "cascade" }),
+    part: text("part").notNull(),
+    kind: text("kind", { enum: TUBES_FILE_KIND }).notNull(),
+    key: text("key"),
+    url: text("url"),
+    name: text("name").notNull(),
+    size: integer("size").notNull().default(0),
+    sha256: text("sha256"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    by: text("by").notNull(),
+  },
+  (t) => [unique("rec_tubes_file_unik").on(t.teamId, t.part)],
+);
+
+export type RecTubesTopicRow = typeof recTubesTopic.$inferSelect;
+export type RecTubesStateRow = typeof recTubesState.$inferSelect;
+export type RecTubesSessionRow = typeof recTubesSession.$inferSelect;
+export type RecTeamRow = typeof recTeam.$inferSelect;
+export type RecTeamMemberRow = typeof recTeamMember.$inferSelect;
+export type RecTubesFileRow = typeof recTubesFile.$inferSelect;
+
 export type RecSheetRow = typeof recSheet.$inferSelect;
 export type RecSheetSharedRow = typeof recSheetShared.$inferSelect;
 

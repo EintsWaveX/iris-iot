@@ -113,12 +113,23 @@
   width: min(740px, calc(100vw - 32px));
 }
 
+/* The big ones use the screen: nearly the whole width of a laptop, and the
+   height grows with the content up to 16px from the top and bottom edges. */
 .dialog__panel--xl {
-  width: min(1040px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  width: min(1360px, calc(100vw - 40px));
 }
 
 .dialog__panel--wide {
-  width: min(1560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 24px);
+  width: min(1720px, calc(100vw - 24px));
+}
+
+@media (max-height: 700px) {
+  .dialog__panel--xl,
+  .dialog__panel--wide {
+    max-height: calc(100dvh - 16px);
+  }
 }
 
 /* Bottom sheet: full width, pinned to the bottom edge, rounded top corners

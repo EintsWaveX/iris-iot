@@ -13,17 +13,37 @@
  * GET candidates and GET candidate?id=; POST review. A review reaches the
  * candidate's own page through the reccandidates topic.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
+import {
+  ArrowRightIcon,
+  CaretRightIcon,
+  ChalkboardTeacherIcon,
+  CpuIcon,
+  DoorOpenIcon,
+  DownloadSimpleIcon,
+  FileTextIcon,
+  FlagIcon,
+  GraduationCapIcon,
+  HourglassMediumIcon,
+  MagnifyingGlassIcon,
+  MapPinIcon,
+  PathIcon,
+  ScissorsIcon,
+  SealCheckIcon,
+  SlidersHorizontalIcon,
+  TimerIcon,
+  UserPlusIcon,
+  WarningIcon,
+  type IconProps,
+} from "@phosphor-icons/react";
+import Confirm from "../../ui/Confirm";
 import Dialog from "../../ui/Dialog";
-import Dropdown from "../../ui/Dropdown";
 import Pill from "../../ui/Pill";
 import { tanggalPanjang } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recGet, recPost, useRecEdition } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import {
-  CANDIDATE_STATUS,
-  STAGES,
   type CandidateDetailResponse,
   type CandidateRow,
   type RecRights,
@@ -36,13 +56,14 @@ import { NS } from "./nextStrings";
 import { bukaBagian } from "../../../lib/recruitment/panel-tab";
 import { PN } from "./panelStrings";
 import AkunCek from "./kandidat/AkunCek";
+import { KS, type Antre } from "./kandidat/kandidatStrings";
+import { unduhXlsx } from "../../../lib/xlsx";
+import "../recruitment-kandidat.css";
 import TambahCaAs, { BerkasPanitia } from "./kandidat/TambahCaAs";
 import AturBerkas from "./kandidat/AturBerkas";
 import BerkasReview from "./kandidat/BerkasReview";
 
 import { useDocRules } from "../../../lib/recruitment/doc-rules";
-
-const SHOWN = CANDIDATE_STATUS.filter((s) => s !== "accepted");
 
 const waktu = (iso: string, lang: Lang) => {
   const w = tanggalWib(new Date(iso));
@@ -84,6 +105,7 @@ function Lembar({
   const [galat, setGalat] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [ubah, setUbah] = useState(false);
+  const [hapus, setHapus] = useState(false);
 
   const muat = async () => {
     const res = await recGet<CandidateDetailResponse>("candidate", { id: String(id) });
@@ -225,13 +247,20 @@ function Lembar({
             )}
           </section>
           {canAdd && (
-            <div>
+            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
               <button
                 type="button"
                 className="btn btn--ghost btn--sm"
                 onClick={() => setUbah(true)}
               >
                 {t.edit}
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => setHapus(true)}
+              >
+                {t.del}
               </button>
             </div>
           )}
@@ -246,6 +275,31 @@ function Lembar({
             </div>
           )}
         </div>
+      )}
+      {hapus && c && (
+        <Confirm
+          open
+          onOpenChange={(o) => !o && setHapus(false)}
+          title={t.delTitle(c.nama)}
+          body={t.delBody}
+          confirmLabel={t.delYes}
+          lang={lang}
+          onConfirm={async () => {
+            const res = await recPost<{ ok: true }>("candidate-delete", { id });
+            if (isFail(res)) {
+              window.Toast?.show(
+                res.kode === "sudah_ada_hasil" || res.kode === "sudah_jadi_asisten"
+                  ? t.delBlocked
+                  : t.delFail,
+                "danger",
+              );
+              return false;
+            }
+            window.Toast?.show(t.delDone, "ok");
+            onChanged();
+            onClose();
+          }}
+        />
       )}
       {ubah && c && (
         <TambahCaAs
@@ -326,53 +380,59 @@ function Lembar({
   );
 }
 
-/** The stage a CaAs is in; with the Cutting right it links to that stage's Cutting tab (no scoring here). */
-function TahapSel({
-  stage,
-  label,
-  cutting,
-  open,
-}: {
-  stage: CandidateRow["stage"];
-  label: string;
-  cutting: boolean;
-  open: string;
-}) {
-  const adaCutting = cutting && (stage === "berkas" || stage === "tes_tulis");
-  if (!adaCutting) return <span>{label}</span>;
-  return (
-    <button
-      type="button"
-      className="btn btn--ghost btn--sm"
-      title={open}
-      onClick={(e) => {
-        e.stopPropagation();
-        bukaBagian("cutting");
-      }}
-    >
-      <span className="btn__label">{label}</span>
-    </button>
-  );
+const IK_ANTRE: Record<Antre, ComponentType<IconProps>> = {
+  menunggu: HourglassMediumIcon,
+  revisi: WarningIcon,
+  disetujui: SealCheckIcon,
+  aktif: PathIcon,
+  berhenti: FlagIcon,
+  mundur: DoorOpenIcon,
+};
+const IK_TAHAP: Record<CandidateRow["stage"], ComponentType<IconProps>> = {
+  berkas: FileTextIcon,
+  first_meet: MapPinIcon,
+  tes_tulis: TimerIcon,
+  wawancara: ChalkboardTeacherIcon,
+  tubes: CpuIcon,
+  mengajar: GraduationCapIcon,
+  penerimaan: SealCheckIcon,
+};
+const URUT: Antre[] = ["menunggu", "revisi", "disetujui", "aktif", "berhenti", "mundur"];
+
+/** Where a CaAs stands: the document check while they are still at Berkas, the road after it. */
+function antreOf(c: CandidateRow): Antre {
+  if (c.status === "withdrawn") return "mundur";
+  if (c.status === "out") return "berhenti";
+  if (c.status === "applied") return "menunggu";
+  if (c.status === "revision") return "revisi";
+  return c.stage === "berkas" ? "disetujui" : "aktif";
 }
+
+/** The stages that have a Cutting tab; Penerimaan has a tab of its own. */
+const ADA_CUTTING: ReadonlySet<CandidateRow["stage"]> = new Set([
+  "berkas",
+  "first_meet",
+  "tes_tulis",
+  "wawancara",
+  "mengajar",
+]);
 
 export default function Kandidat({
   lang,
   rights,
   rows,
   refresh,
-  wide,
 }: {
   lang: Lang;
   rights: RecRights;
   rows: CandidateRow[];
   refresh: () => void;
-  wide: boolean;
+  wide?: boolean;
 }) {
   const t = PN[lang].cand;
-  const r = REC[lang];
+  const k = KS[lang];
   const [q, setQ] = useState("");
-  const [f, setF] = useState("semua");
-  const [tahap, setTahap] = useState("semua");
+  const [f, setF] = useState<Antre | "semua">("semua");
   const ns = NS[lang === "id" ? "id" : "en"];
   const rules = useDocRules();
   const [sel, setSel] = useState<number | null>(null);
@@ -381,16 +441,141 @@ export default function Kandidat({
   const edisi = useRecEdition();
   const canAdd = edisi.data?.canAdd === true;
   const cari = q.trim().toLowerCase();
-  const list = rows.filter(
-    (c) =>
-      (f === "semua" || c.status === f) &&
-      (tahap === "semua" || c.stage === tahap) &&
-      (!cari || `${c.nama} ${c.nim}`.toLowerCase().includes(cari)),
+  const tiap = rows.map((c) => ({ c, st: antreOf(c) }));
+  const cnt = (a: Antre) => tiap.filter((x) => x.st === a).length;
+  // The chips: the three document-check queues always, the road ones once somebody is on it.
+  const kunci = URUT.filter(
+    (a) => a === "menunggu" || a === "revisi" || a === "disetujui" || cnt(a) > 0,
   );
+  const daftarDulu = tiap.every(
+    (x) => x.st === "menunggu" || x.st === "revisi" || x.st === "disetujui",
+  );
+  const tampil = tiap.filter(
+    (x) =>
+      (f === "semua" || x.st === f) &&
+      (!cari || `${x.c.nama} ${x.c.nim}`.toLowerCase().includes(cari)),
+  );
+  const grup = kunci
+    .map((a) => [a, tampil.filter((x) => x.st === a)] as const)
+    .filter((g) => g[1].length);
+  const desk = rights.documents && rights.approve;
+  const berikut = rows.find((c) => c.status === "applied");
+  const bisaCut = rights.cuttingPropose;
+
+  function unduh() {
+    void unduhXlsx(
+      "pendaftar-oprec",
+      k.cols,
+      rows.map((c) => [
+        c.nim,
+        c.nama,
+        c.kelas ?? "",
+        c.angkatan ?? "",
+        `${c.docs}/${rules.required.length}`,
+        pendek(c.appliedAt, lang),
+        ns.stages[c.stage],
+        REC[lang].status[c.status],
+      ]),
+      "Pendaftar",
+    );
+  }
+
+  const Baris = ({ c, st }: { c: CandidateRow; st: Antre }) => {
+    const Ik = IK_ANTRE[st];
+    const Tg = IK_TAHAP[c.stage];
+    const dokumen = rules.required.length;
+    const late = !daftarDulu;
+    const penerimaan = c.stage === "penerimaan";
+    return (
+      <li className="rec9-line">
+        <button
+          type="button"
+          className="rec9-row"
+          data-st={st}
+          data-late={late ? "yes" : undefined}
+          onClick={() => setSel(c.id)}
+        >
+          <span className="rec9-row__st">
+            <Ik size={18} aria-hidden="true" />
+          </span>
+          <span className="rec9-row__who">
+            <b>{c.nama}</b>
+            <span className="hint mono">
+              {c.nim} · {c.kelas ?? "-"} · {c.angkatan ?? "-"}
+            </span>
+          </span>
+          <span className="rec9-row__stage" title={k.stageNow}>
+            <Tg size={16} aria-hidden="true" />
+            <span>{ns.stages[c.stage]}</span>
+          </span>
+          {!late && (
+            <span className="rec9-row__docs" aria-label={k.docsOf(c.docs, dokumen)}>
+              {Array.from({ length: dokumen }, (_, i) => (
+                <i key={i} data-on={i < c.docs ? "yes" : "no"} />
+              ))}
+              <small className="num">
+                {c.docs}/{dokumen}
+              </small>
+            </span>
+          )}
+          <span className="rec9-row__at hint">{pendek(c.appliedAt, lang)}</span>
+          <StatusPill status={c.status} lang={lang} />
+          <CaretRightIcon size={16} aria-hidden="true" />
+        </button>
+        {bisaCut && (ADA_CUTTING.has(c.stage) || penerimaan) && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            title={penerimaan ? k.acceptOpen : k.cuttingOpen(ns.stages[c.stage])}
+            onClick={() => bukaBagian(penerimaan ? "penerimaan" : "cutting")}
+          >
+            {penerimaan ? (
+              <SealCheckIcon size={18} aria-hidden="true" />
+            ) : (
+              <ScissorsIcon size={18} aria-hidden="true" />
+            )}
+            <span className="btn__label">
+              {penerimaan ? k.accept : k.cutting(ns.stages[c.stage])}
+            </span>
+          </button>
+        )}
+      </li>
+    );
+  };
+
   return (
-    <div className="stack">
+    <div className="stack rec9-kand">
+      <div className="rec9-kbar">
+        <div className="rec9-chips" role="group" aria-label={k.filterStatus}>
+          {(["semua", ...kunci] as const).map((a) => {
+            const Ik = a === "semua" ? null : IK_ANTRE[a];
+            return (
+              <button
+                key={a}
+                type="button"
+                className="rec9-chip"
+                data-k={a}
+                aria-pressed={f === a}
+                onClick={() => setF(a)}
+              >
+                {Ik && <Ik size={16} aria-hidden="true" />}
+                <span>{a === "semua" ? k.all : k.q[a].t}</span>
+                <b className="num">{a === "semua" ? rows.length : cnt(a)}</b>
+              </button>
+            );
+          })}
+        </div>
+        <span className="grow" />
+        {desk && berikut && (
+          <button type="button" className="btn btn--primary" onClick={() => setSel(berikut.id)}>
+            <span className="btn__label">{k.checkNext}</span>
+            <ArrowRightIcon size={18} aria-hidden="true" />
+          </button>
+        )}
+      </div>
       <div className="row rec-tools">
-        <div className="rec-search">
+        <div className="rec9-search">
+          <MagnifyingGlassIcon size={16} aria-hidden="true" />
           <input
             className="field__input"
             placeholder={t.search}
@@ -399,110 +584,57 @@ export default function Kandidat({
             aria-label={t.searchLabel}
           />
         </div>
-        <Dropdown
-          id="rec-kandidat-status"
-          label={t.filter}
-          hideLabel
-          value={f}
-          onChange={setF}
-          options={[
-            { value: "semua", label: t.all },
-            ...SHOWN.map((s) => ({ value: s, label: r.status[s] })),
-          ]}
-        />
-        <Dropdown
-          id="rec-kandidat-tahap"
-          label={ns.filterStage}
-          hideLabel
-          value={tahap}
-          onChange={setTahap}
-          options={[
-            { value: "semua", label: ns.allStages },
-            ...STAGES.map((s) => ({ value: s, label: ns.stages[s] })),
-          ]}
-        />
         <span className="grow" />
-        <span className="hint num">{t.count(list.length, rows.length)}</span>
+        <span className="hint num">{t.count(tampil.length, rows.length)}</span>
+        {desk && (
+          <button type="button" className="btn btn--inverse btn--sm" onClick={unduh}>
+            <DownloadSimpleIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{k.download}</span>
+          </button>
+        )}
         {rights.documents && (
-          <button type="button" className="btn" onClick={() => setAtur(true)}>
-            <span className="btn__label">{NS[lang === "id" ? "id" : "en"].setDocs}</span>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAtur(true)}>
+            <SlidersHorizontalIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{ns.setDocs}</span>
           </button>
         )}
         {canAdd && (
-          <button type="button" className="btn btn--primary" onClick={() => setTambah(true)}>
+          <button
+            type="button"
+            className="btn btn--inverse btn--sm"
+            onClick={() => setTambah(true)}
+          >
+            <UserPlusIcon size={18} aria-hidden="true" />
             <span className="btn__label">{PN[lang].tambah.btn}</span>
           </button>
         )}
       </div>
-      {!list.length ? (
-        <p className="empty-note">{rows.length ? t.emptyFilter : t.empty}</p>
-      ) : wide ? (
-        <section className="panel rec-tablecard">
-          <div className="scrollx">
-            <table className="rec-table">
-              <thead>
-                <tr>
-                  <th>{t.name}</th>
-                  <th>{t.nim}</th>
-                  <th>{t.kelas}</th>
-                  <th>{t.year}</th>
-                  <th>{t.docs}</th>
-                  <th>{t.applied}</th>
-                  <th>{ns.stageCol}</th>
-                  <th>{t.status}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((c) => (
-                  <tr
-                    key={c.id}
-                    tabIndex={0}
-                    onClick={() => setSel(c.id)}
-                    onKeyDown={(e) => e.key === "Enter" && setSel(c.id)}
-                  >
-                    <td>
-                      <b>{c.nama}</b>
-                    </td>
-                    <td className="mono hint">{c.nim}</td>
-                    <td>{c.kelas ?? "-"}</td>
-                    <td className="num">{c.angkatan ?? "-"}</td>
-                    <td className="num">
-                      {c.docs}/{rules.required.length}
-                    </td>
-                    <td className="hint">{pendek(c.appliedAt, lang)}</td>
-                    <td>
-                      <TahapSel
-                        stage={c.stage}
-                        label={ns.stages[c.stage]}
-                        cutting={rights.cuttingPropose}
-                        open={ns.openCutting}
-                      />
-                    </td>
-                    <td>
-                      <StatusPill status={c.status} lang={lang} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : (
-        <ul className="rec-clist">
-          {list.map((c) => (
-            <li key={c.id}>
-              <button type="button" className="rec-crow" onClick={() => setSel(c.id)}>
-                <span className="stack" style={{ gap: 0, minWidth: 0 }}>
-                  <b>{c.nama}</b>
-                  <span className="hint mono">
-                    {c.nim} · {c.kelas ?? "-"} · {ns.stages[c.stage]}
-                  </span>
+      {grup.length ? (
+        grup.map(([a, baris]) => {
+          const Ik = IK_ANTRE[a];
+          return (
+            <section className="rec9-group" data-st={a} key={a}>
+              <div className="rec9-group__h">
+                <span className="rec9-group__ic">
+                  <Ik size={16} aria-hidden="true" />
                 </span>
-                <StatusPill status={c.status} lang={lang} />
-              </button>
-            </li>
-          ))}
-        </ul>
+                <b>{k.q[a].t}</b>
+                <span className="hint">{k.q[a].h}</span>
+                <span className="grow" />
+                <span className="hint num">{baris.length}</span>
+              </div>
+              <ul className="rec9-rows">
+                {baris.map((x) => (
+                  <Baris key={x.c.id} c={x.c} st={x.st} />
+                ))}
+              </ul>
+            </section>
+          );
+        })
+      ) : (
+        <section className="panel">
+          <span className="hint">{rows.length ? t.emptyFilter : t.empty}</span>
+        </section>
       )}
       {sel !== null && rights.documents && rights.approve && (
         <BerkasReview

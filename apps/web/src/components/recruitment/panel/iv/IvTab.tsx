@@ -5,8 +5,15 @@
  * Akademik and Admin seats; Template for the Ketua and Akademik.
  */
 import { useState } from "react";
+import { UserSwitchIcon } from "@phosphor-icons/react";
+import Dialog from "../../../ui/Dialog";
+import Disclose from "../../../ui/Disclose";
+import Dropdown from "../../../ui/Dropdown";
 import Pill from "../../../ui/Pill";
-import SegmentedControl from "../../../ui/SegmentedControl";
+import TabLine from "../../../ui/TabLine";
+import { href, useTick } from "../../../../lib/app";
+import { isFail, recPost } from "../../../../lib/recruitment/client";
+import "../../recruitment-cutting.css";
 import type { Lang } from "../../../../lib/kelas";
 import { useIvMine, useIvNilai, type IvMineSlot } from "../../../../lib/recruitment/iv-client";
 import type { IvStage } from "../../../../lib/recruitment/interview";
@@ -14,6 +21,7 @@ import type { RecRights } from "../../../../lib/recruitment/types";
 import Lembar from "./Lembar";
 import Template from "./Template";
 import { IV } from "./ivStrings";
+import { SK } from "./slotStrings";
 import "../../recruitment-r4.css";
 
 const hari = (iso: string, lang: Lang) =>
@@ -36,84 +44,292 @@ const jam = (iso: string) =>
 
 const TONE = { lolos: "ok", ragu: "warn", cut: "danger" } as const;
 
+const first = (nama?: string) => (nama ?? "").split(" ")[0];
+const weekday = (iso: string, lang: Lang) =>
+  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
+    timeZone: "Asia/Jakarta",
+    weekday: "long",
+  }).format(new Date(iso));
+
+/** The checklist an examiner ticks off before the shift (a reading aid: it is kept on this browser only). */
+function Persiapan({ lang, id }: { lang: Lang; id: number }) {
+  const w = SK[lang];
+  const kunci = `iris:rec:prep:${id}`;
+  const [on, setOn] = useState<boolean[]>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(kunci) ?? "null");
+      if (Array.isArray(v) && v.length === w.prepItems.length) return v.map(Boolean);
+    } catch {
+      /* no storage: start unticked */
+    }
+    return w.prepItems.map(() => false);
+  });
+  const ubah = (i: number) => {
+    const n = on.map((x, j) => (j === i ? !x : x));
+    setOn(n);
+    try {
+      localStorage.setItem(kunci, JSON.stringify(n));
+    } catch {
+      /* the tick still shows */
+    }
+  };
+  return (
+    <Disclose
+      head={
+        <>
+          <b>{w.prep}</b>
+          <span className="hint num" style={{ marginLeft: 8 }}>
+            {on.filter(Boolean).length}/{w.prepItems.length}
+          </span>
+        </>
+      }
+    >
+      <ul className="r4prep">
+        {w.prepItems.map((p, i) => (
+          <li key={p}>
+            <label className="check">
+              <input type="checkbox" checked={on[i]} onChange={() => ubah(i)} />
+              <span>{p}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </Disclose>
+  );
+}
+
 function SlotCard({
   lang,
   stage,
   s,
   onOpen,
+  qr,
 }: {
   lang: Lang;
   stage: IvStage;
   s: IvMineSlot;
   onOpen: (id: number) => void;
+  /** May open the QR screen (the attendance right) */
+  qr: boolean;
 }) {
   const w = IV(lang).mine;
+  const k = SK[lang];
+  const now = useTick(30_000);
+  const mulai = Date.parse(s.startsAt);
+  const selesai = Date.parse(s.endsAt);
+  const live = now >= mulai && now <= selesai;
   const mine = s.booths.filter((b) => b.mine);
+  const lamaMnt = Math.max(1, Math.round((selesai - mulai) / 60_000));
+  const jalanMnt = Math.min(lamaMnt, Math.max(0, Math.round((now - mulai) / 60_000)));
+  const kandidat = mine.find((b) => b.candidate)?.candidate;
+  const judul =
+    stage === "wawancara" && mine.length
+      ? k.boothTitle(s.room, mine[0].index + 1)
+      : w.slotTitle(s.room);
   return (
-    <section className="panel r4slot">
+    <section className="panel r4slot" data-live={live ? "yes" : undefined}>
       <div className="panel__head">
         <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-          <h3 className="panel__title">{w.slotTitle(s.room)}</h3>
+          <h3 className="panel__title">{judul}</h3>
           <span className="hint num">
             {w.when(hari(s.startsAt, lang), jam(s.startsAt), jam(s.endsAt))}
           </span>
         </div>
-        <Pill tone={s.role === "penguji" ? "accent" : "teal"}>{w.role[s.role]}</Pill>
+        <Pill tone={live ? "accent" : undefined}>
+          {live ? k.running : weekday(s.startsAt, lang)}
+        </Pill>
       </div>
       {s.role === "penguji" ? (
-        <ul className="r4booths">
-          {mine.map((b) => (
-            <li key={b.index} className="r4booth">
-              <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                <b>{b.candidate?.nama}</b>
-                <span className="hint mono">
-                  {b.candidate?.nim} · {b.candidate?.kelas}
-                </span>
-                <span className="hint">
-                  {stage === "wawancara" ? `${w.booth(b.index + 1)} · ` : ""}
-                  {b.pair.length > 1 ? `${w.with} ${b.pair.join(", ")}` : ""}
-                </span>
-              </div>
-              <div className="row" style={{ gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                {b.here ? <Pill tone="ok">{w.here(jam(b.here))}</Pill> : <Pill>{w.notHere}</Pill>}
-                {b.case?.status && (
-                  <Pill tone={b.case.status === "gugur" ? "danger" : "warn"}>
-                    {b.case.status === "gugur" ? w.caseGugur : w.caseSusulan}
-                  </Pill>
+        <>
+          {mine.map((b) =>
+            b.candidate ? (
+              <div key={b.index} className="stack r4booth" style={{ gap: 10 }}>
+                <div className="r4cd">
+                  <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+                    <b className="r4cd__n">{b.candidate.nama}</b>
+                    <span className="hint mono">
+                      {b.candidate.nim} · {b.candidate.kelas}
+                    </span>
+                  </span>
+                  <span className="row" style={{ gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                    {b.here ? (
+                      <Pill tone="ok">{k.hereQr(jam(b.here))}</Pill>
+                    ) : (
+                      live && <Pill>{w.notHere}</Pill>
+                    )}
+                    {b.case?.status && (
+                      <Pill tone={b.case.status === "gugur" ? "danger" : "warn"}>
+                        {b.case.status === "gugur" ? w.caseGugur : w.caseSusulan}
+                      </Pill>
+                    )}
+                    {b.verdict && <Pill tone={TONE[b.verdict]}>{w.verdict[b.verdict]}</Pill>}
+                  </span>
+                </div>
+                {b.pair.length > 0 && (
+                  <div className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <span className="hint">{k.withLabel}</span>
+                    {b.pair.map((c) => (
+                      <span key={c} className="acode">
+                        {c}
+                      </span>
+                    ))}
+                    {b.pair.length < 2 && stage === "wawancara" && (
+                      <span className="hint">{k.noPartner}</span>
+                    )}
+                    <span className="hint num">{w.sentOf(b.sent, b.need)}</span>
+                  </div>
                 )}
-                {b.verdict && <Pill tone={TONE[b.verdict]}>{w.verdict[b.verdict]}</Pill>}
-                <span className="hint num">{w.sentOf(b.sent, b.need)}</span>
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
-                  onClick={() => b.candidate && onOpen(b.candidate.id)}
-                >
-                  {b.mineSent ? w.mineSent : w.open}
-                </button>
               </div>
-            </li>
-          ))}
-          {mine.length === 0 && <li className="hint">{w.otherBooth}</li>}
-        </ul>
-      ) : (
-        <ul className="r4prep r4prep--duty">
-          <li>
-            <span>
-              {w.pjOut}: {s.pjOut.join(", ") || "-"}
-            </span>
-          </li>
-          <li>
-            <span>
-              {w.pjIn}: {s.pjIn.join(", ") || "-"}
-            </span>
-          </li>
-          <li>
-            <span>
-              {w.crew}: {s.penguji.map((p) => p.kode).join(", ") || "-"}
-            </span>
-          </li>
-        </ul>
-      )}
+            ) : (
+              <div key={b.index} className="rec-note">
+                <span>{k.standby}</span>
+              </div>
+            ),
+          )}
+          {mine.length === 0 && (
+            <div className="rec-note">
+              <span>{w.otherBooth}</span>
+            </div>
+          )}
+          {live && (
+            <div className="r2cap">
+              <span className="r2cap__bar">
+                <i style={{ width: `${(jalanMnt / lamaMnt) * 100}%` }} />
+              </span>
+              <span className="hint num">{k.progress(jalanMnt, lamaMnt)}</span>
+            </div>
+          )}
+          <div className="row r4slot__acts">
+            {live && qr && (
+              <a className="btn btn--inverse" href={href(lang, "/recruitment/qr")}>
+                <span className="btn__label">{k.qrShift}</span>
+              </a>
+            )}
+            {kandidat && (
+              <button
+                type="button"
+                className={`btn ${live ? "btn--primary" : "btn--inverse"}`}
+                onClick={() => onOpen(kandidat.id)}
+              >
+                <span className="btn__label">
+                  {mine.find((b) => b.candidate)?.mineSent
+                    ? w.mineSent
+                    : stage === "wawancara"
+                      ? k.openSheet(first(kandidat.nama))
+                      : w.open}
+                </span>
+              </button>
+            )}
+          </div>
+          {!live && now < mulai && (
+            <>
+              <Persiapan lang={lang} id={s.id} />
+              <span className="hint">
+                {k.opensAt(`${hari(s.startsAt, lang)} ${jam(s.startsAt)}`)}
+              </span>
+            </>
+          )}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+/** A shift where this person is PJ, not an examiner: the duties, the QR screen or the stand-in. */
+function PjCard({
+  lang,
+  stage,
+  s,
+  qr,
+  refresh,
+}: {
+  lang: Lang;
+  stage: IvStage;
+  s: IvMineSlot;
+  qr: boolean;
+  refresh: () => void;
+}) {
+  const k = SK[lang];
+  const luar = s.role === "pj_luar";
+  const [dlg, setDlg] = useState(false);
+  const [siapa, setSiapa] = useState("");
+  const [sibuk, setSibuk] = useState(false);
+  async function ganti() {
+    setSibuk(true);
+    const r = await recPost<{ ok: true }>("iv-standin", { stage, slotId: s.id, from: siapa });
+    setSibuk(false);
+    if (isFail(r)) return void window.Toast?.show(k.standFail, "danger");
+    const kode = s.penguji.find((p) => p.nim === siapa)?.kode ?? siapa;
+    window.Toast?.show(k.standDone(kode), "ok");
+    setDlg(false);
+    setSiapa("");
+    refresh();
+  }
+  return (
+    <section className="panel r4slot r4slot--pj">
+      <div className="panel__head">
+        <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+          <h3 className="panel__title">{luar ? k.pjOutTitle : k.pjInTitle}</h3>
+          <span className="hint num">
+            {k.shift(hari(s.startsAt, lang), jam(s.startsAt), jam(s.endsAt))}
+          </span>
+        </div>
+        <Pill>{luar ? k.pjOutBadge : k.pjInBadge}</Pill>
+      </div>
+      <ul className="r4prep r4prep--duty">
+        {(luar ? k.dutyOut : k.dutyIn).map((x) => (
+          <li key={x}>{x}</li>
+        ))}
+      </ul>
+      <div className="row r4slot__acts">
+        {luar ? (
+          qr && (
+            <a className="btn btn--inverse" href={href(lang, "/recruitment/qr")}>
+              <span className="btn__label">{k.qrShift}</span>
+            </a>
+          )
+        ) : (
+          <button type="button" className="btn btn--inverse" onClick={() => setDlg(true)}>
+            <UserSwitchIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{k.standIn}</span>
+          </button>
+        )}
+      </div>
+      <Dialog
+        open={dlg}
+        onOpenChange={setDlg}
+        title={k.standTitle}
+        description={k.standDesc}
+        size="sm"
+        lang={lang}
+        actions={
+          <>
+            <button type="button" className="btn btn--ghost" onClick={() => setDlg(false)}>
+              <span className="btn__label">{k.cancel}</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={!siapa || sibuk}
+              onClick={() => void ganti()}
+            >
+              <span className="btn__label">{k.standGo}</span>
+            </button>
+          </>
+        }
+      >
+        <Dropdown
+          id={`iv-standin-${s.id}`}
+          label={k.standPick}
+          hideLabel
+          value={siapa}
+          onChange={setSiapa}
+          options={[
+            { value: "", label: k.standPick },
+            ...s.penguji.map((p) => ({ value: p.nim, label: `${p.kode} · ${s.room}` })),
+          ]}
+        />
+      </Dialog>
     </section>
   );
 }
@@ -122,12 +338,15 @@ function Slotku({
   lang,
   stage,
   onOpen,
+  qr,
 }: {
   lang: Lang;
   stage: IvStage;
   onOpen: (id: number) => void;
+  qr: boolean;
 }) {
   const w = IV(lang).mine;
+  const k = SK[lang];
   const mine = useIvMine(stage);
   if (!mine.data) return <span className="skeleton" style={{ height: 240 }} />;
   if (!mine.data.slots.length)
@@ -137,11 +356,36 @@ function Slotku({
         <span>{w.noneHint}</span>
       </div>
     );
+  const slots = mine.data.slots;
+  const pj = slots.filter((s) => s.role !== "penguji");
+  const own = slots.filter((s) => s.role === "penguji");
   return (
-    <div className="stack r4my">
-      {mine.data.slots.map((s) => (
-        <SlotCard key={s.id} lang={lang} stage={stage} s={s} onOpen={onOpen} />
-      ))}
+    <div className="stack">
+      <div className="row row--between r4my__top">
+        <span className="hint">
+          {k.top(own.length, pj.length, stage === "wawancara" ? k.verbIv : k.verbTeach)}
+        </span>
+        {stage === "wawancara" && (
+          <span title={k.proposalTip}>
+            <Pill tone="warn">{k.proposal}</Pill>
+          </span>
+        )}
+      </div>
+      <div className="r4my">
+        {own.map((s) => (
+          <SlotCard key={s.id} lang={lang} stage={stage} s={s} onOpen={onOpen} qr={qr} />
+        ))}
+        {pj.map((s) => (
+          <PjCard
+            key={`${s.id}-${s.role}`}
+            lang={lang}
+            stage={stage}
+            s={s}
+            qr={qr}
+            refresh={mine.refresh}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -281,21 +525,21 @@ export default function IvTab({
     bag === "nilai" && !bisaNilai ? "mine" : bag === "template" && !bisaTemplate ? "mine" : bag;
   return (
     <div className="stack">
-      <p className="hint">{w.lede[stage]}</p>
-      {(bisaNilai || bisaTemplate) && (
-        <SegmentedControl
-          aria-label={w.title[stage]}
+      <div className="n7-bar">
+        <TabLine
+          label={w.title[stage]}
           value={aktif}
-          onValueChange={(v) => setBag(v as typeof bag)}
-          options={[
-            { value: "mine", label: w.seg.mine },
-            ...(bisaNilai ? [{ value: "nilai", label: w.seg.nilai }] : []),
-            ...(bisaTemplate ? [{ value: "template", label: w.seg.template }] : []),
+          onChange={(v) => setBag(v)}
+          tabs={[
+            { v: "mine" as const, label: w.seg.mine },
+            ...(bisaNilai ? [{ v: "nilai" as const, label: w.seg.nilai }] : []),
+            ...(bisaTemplate ? [{ v: "template" as const, label: w.seg.template }] : []),
           ]}
         />
-      )}
+      </div>
+      {aktif !== "mine" && <p className="hint">{w.lede[stage]}</p>}
       {aktif === "mine" ? (
-        <Slotku lang={lang} stage={stage} onOpen={setBuka} />
+        <Slotku lang={lang} stage={stage} onOpen={setBuka} qr={rights?.attendance === true} />
       ) : aktif === "nilai" ? (
         <Penilaian lang={lang} stage={stage} onOpen={setBuka} />
       ) : (

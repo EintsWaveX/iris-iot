@@ -13,19 +13,19 @@ import type { RerollReason } from "../../../../../lib/recruitment/room-api";
 const partId: Record<PartKey, { l: string; s: string }> = {
   logika: { l: "Logika", s: "Logika" },
   fitb: { l: "FITB", s: "FITB" },
-  kodingan: { l: "Debugging Kodingan", s: "Kodingan" },
+  kodingan: { l: "Code Tracing", s: "Kodingan" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partEn: Record<PartKey, { l: string; s: string }> = {
   logika: { l: "Logic", s: "Logic" },
   fitb: { l: "Fill in the Blanks", s: "FITB" },
-  kodingan: { l: "Debugging: Code", s: "Code" },
+  kodingan: { l: "Code Tracing", s: "Code" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partZh: Record<PartKey, { l: string; s: string }> = {
   logika: { l: "逻辑", s: "逻辑" },
   fitb: { l: "填空", s: "填空" },
-  kodingan: { l: "代码调试", s: "代码" },
+  kodingan: { l: "代码追踪", s: "代码" },
   livecode: { l: "现场编程", s: "现场编程" },
 };
 
@@ -69,6 +69,19 @@ export const RG = dict({
       practiceHint:
         "Menarik soal dari bank yang sama, tidak mengunci soal, dan tidak dihitung ke nilai siapa pun.",
       candidates: (n: number) => `${n} kandidat`,
+      del: {
+        aria: "Hapus ruang",
+        title: (t: string) => `Hapus ${t}?`,
+        bodyReal: (n: number) =>
+          `Ruang ini belum pernah dijalankan. ${n} kursi di dalamnya ikut terhapus dan kandidatnya bisa masuk ruang lain. Slot di Plotting tidak berubah.`,
+        bodyPractice: (n: number) =>
+          `Ruang latihan beserta ${n} kursi, jawaban dan hasil percobaannya terhapus. Ini tidak bisa dibatalkan.`,
+        confirm: "Hapus Ruang",
+        done: "Ruang dihapus.",
+        fail: "Ruang belum terhapus. Coba lagi.",
+        running: "Ruang sedang berjalan. Selesaikan dulu.",
+        used: "Ruang ini sudah dijalankan, jadi tidak bisa dihapus.",
+      },
     },
     con: {
       back: "Semua Ruang",
@@ -457,6 +470,19 @@ export const RG = dict({
       practiceHint:
         "Draws from the same bank, locks no question, and counts toward nobody's score.",
       candidates: (n: number) => `${n} candidates`,
+      del: {
+        aria: "Delete room",
+        title: (t: string) => `Delete ${t}?`,
+        bodyReal: (n: number) =>
+          `Nobody has run this room. Its ${n} seats go with it and those candidates can sit in another room. The slot in Plotting is unchanged.`,
+        bodyPractice: (n: number) =>
+          `The practice room goes, with its ${n} seats, answers and test results. This can't be undone.`,
+        confirm: "Delete Room",
+        done: "Room deleted.",
+        fail: "The room wasn't deleted. Try again.",
+        running: "The room is running. Finish it first.",
+        used: "This room has been run, so it can't be deleted.",
+      },
     },
     con: {
       back: "All Rooms",
@@ -843,6 +869,19 @@ export const RG = dict({
       newPractice: "新建练习考场",
       practiceHint: "使用同一个题库，不锁定题目，也不计入任何人的成绩。",
       candidates: (n: number) => `${n} 位考生`,
+      del: {
+        aria: "删除考场",
+        title: (t: string) => `删除${t}？`,
+        bodyReal: (n: number) =>
+          `这个考场从未运行过。里面的 ${n} 个座位会一起删除，这些考生可以进入其他考场。排程里的时段不变。`,
+        bodyPractice: (n: number) =>
+          `练习考场连同它的 ${n} 个座位、答案和测试结果都会被删除。此操作无法撤销。`,
+        confirm: "删除考场",
+        done: "考场已删除。",
+        fail: "考场没有删除成功，请重试。",
+        running: "考场正在进行。请先结束。",
+        used: "这个考场已经运行过，所以不能删除。",
+      },
     },
     con: {
       back: "所有考场",

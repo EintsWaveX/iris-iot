@@ -10,7 +10,7 @@
  * are examples until the Akademik edits them.
  */
 
-export const IV_STAGES = ["wawancara", "mengajar"] as const;
+export const IV_STAGES = ["wawancara", "mengajar", "tubes"] as const;
 export type IvStage = (typeof IV_STAGES)[number];
 export const isIvStage = (v: unknown): v is IvStage =>
   typeof v === "string" && (IV_STAGES as readonly string[]).includes(v);
@@ -250,6 +250,69 @@ const MENG_PARAMS: IvParam[] = [
     b(
       "Contoh: tenang, tersenyum, dan menerima masukan dengan baik.",
       "E.g. calm, smiling, and takes feedback well.",
+    ),
+    true,
+  ),
+];
+
+/** The Presentasi of Tubes: the rubric rows are examples until the Akademik replaces them (mockup rec5-data.js). */
+const TUBES_PARAMS: IvParam[] = [
+  P(
+    "masalah",
+    b("Pemahaman Masalah dan Rancangan", "Understanding the Problem and Design"),
+    [
+      b("Memahami kebutuhan topik", "Understands the topic's needs"),
+      b("Rancangan jelas dan masuk akal", "A clear, sensible design"),
+    ],
+    b(
+      "Contoh: rancangan blok jelas, alasan memilih komponen masuk akal.",
+      "E.g. a clear block design with sensible reasons for the parts.",
+    ),
+    true,
+  ),
+  P(
+    "hasil",
+    b("Hasil dan Demo", "Result and Demo"),
+    [b("Demo berjalan", "The demo runs"), b("Fitur sesuai brief", "Features match the brief")],
+    b(
+      "Contoh: demo berjalan tanpa bantuan, dua fitur utama jalan.",
+      "E.g. the demo runs unaided, both main features work.",
+    ),
+    true,
+  ),
+  P(
+    "kode",
+    b("Kualitas Kode", "Code Quality"),
+    [
+      b("Rapi dan terstruktur", "Tidy and structured"),
+      b("Bisa dijalankan ulang", "Can be run again"),
+    ],
+    b(
+      "Contoh: kode terbagi per fungsi, ada petunjuk menjalankan.",
+      "E.g. code split by function, with run instructions.",
+    ),
+    true,
+  ),
+  P(
+    "laporan",
+    b("Laporan", "Report"),
+    [b("Lengkap sesuai format", "Complete in the format"), b("Bahasa jelas", "Clear language")],
+    b(
+      "Contoh: laporan lengkap dengan diagram dan hasil uji.",
+      "E.g. a full report with diagrams and test results.",
+    ),
+    true,
+  ),
+  P(
+    "bicara",
+    b("Presentasi dan Tanya Jawab", "Presentation and Q&A"),
+    [
+      b("Runtut dan tepat waktu", "In order and on time"),
+      b("Menjawab pertanyaan dengan baik", "Answers questions well"),
+    ],
+    b(
+      "Contoh: runtut, menjawab pertanyaan tentang pilihan sensornya.",
+      "E.g. in order, answered the question about the sensor choice.",
     ),
     true,
   ),
@@ -600,6 +663,27 @@ export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
     late: 10,
     excuse: 30,
     makeupDays: 1,
+    makeupHour: 12,
+    hideLevels: true,
+  },
+  // Presentasi: a table of two examiners sits every turn of its team (12 minutes); no Susulan, the Ketua decides in the Cutting.
+  tubes: {
+    mode: "panel",
+    params: TUBES_PARAMS,
+    levels: LEVELS_DEFAULT,
+    cut: [55, 40],
+    wide: 20,
+    groups: [],
+    questions: [],
+    per: 2,
+    pjOut: 0,
+    pjIn: 1,
+    minutes: 12,
+    maxMinutes: 15,
+    gap: 0,
+    late: 10,
+    excuse: 30,
+    makeupDays: 0,
     makeupHour: 12,
     hideLevels: true,
   },
