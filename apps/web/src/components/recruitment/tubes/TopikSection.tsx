@@ -146,7 +146,7 @@ function WhoDialog({
       {b.teams.length === 0 ? (
         <p className="hint">{w.noTeamYet}</p>
       ) : (
-        <div className="tp-list">
+        <div className="tp-list" role="radiogroup" aria-label={topic.title}>
           {b.teams.map((t) => {
             const mine = t.topicId === topic.id;
             const other = b.topics.find((x) => x.id === t.topicId);
@@ -155,7 +155,8 @@ function WhoDialog({
                 key={t.id}
                 type="button"
                 className="tp-pick"
-                aria-pressed={mine}
+                role="radio"
+                aria-checked={mine}
                 disabled={!can || c.busy}
                 onClick={() =>
                   void c.post("tubes-topic-set", { teamId: t.id, topicId: mine ? null : topic.id })

@@ -519,7 +519,8 @@ function EveningRow({
     <button
       type="button"
       className="tb-eve"
-      aria-pressed={picked}
+      role="radio"
+      aria-checked={picked}
       data-mine={s.mine ? "yes" : undefined}
       disabled={blocked}
       onClick={onPick}
@@ -603,7 +604,7 @@ function EveningDialog({
       {d.sessions.length === 0 ? (
         <p className="hint">{t.noEvenings}</p>
       ) : (
-        <div className="tb-eves">
+        <div className="tb-eves" role="radiogroup" aria-label={t.eveningTitle}>
           {d.sessions.map((s) => (
             <EveningRow
               key={s.id}

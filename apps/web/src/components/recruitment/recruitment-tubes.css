@@ -203,7 +203,7 @@
   padding: 12px 16px;
   text-align: left;
 }
-.tb-eve[aria-pressed="true"] {
+.tb-eve[aria-checked="true"] {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
@@ -462,10 +462,9 @@
   padding: 0;
 }
 .tp-team__m li {
-  align-items: center;
   display: grid;
   gap: 4px 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
 }
 .tp-team__who {
   display: grid;
@@ -483,7 +482,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .tp-chip {
   align-items: center;
@@ -522,7 +521,7 @@
   padding: 10px 14px;
   text-align: left;
 }
-.tp-pick[aria-pressed="true"] {
+.tp-pick[aria-checked="true"] {
   background: var(--accent-soft);
   border-color: var(--accent);
 }

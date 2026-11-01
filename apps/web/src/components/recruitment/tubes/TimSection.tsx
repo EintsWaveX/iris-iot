@@ -232,7 +232,8 @@ function MoveDialog({
               key={s.id}
               type="button"
               className="tp-pick"
-              aria-pressed={team.sessionId === s.id}
+              role="radio"
+              aria-checked={team.sessionId === s.id}
               onClick={() => void go(s)}
             >
               <span className="stack" style={{ gap: 0 }}>
