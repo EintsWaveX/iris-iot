@@ -750,6 +750,13 @@ export interface CutRowView {
     expected: number;
     case: { kind: string; status: "susulan" | "gugur" | null } | null;
   } | null;
+  /** Tubes only: the CaAs's team, its topic, how complete its submission is, and whether they came on their evening */
+  tubes?: {
+    team: string | null;
+    topic: string | null;
+    submission: "none" | "partial" | "complete" | "late" | "over" | null;
+    attended: boolean | null;
+  } | null;
 }
 
 export interface CutLock {

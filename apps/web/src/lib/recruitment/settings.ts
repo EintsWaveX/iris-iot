@@ -11,11 +11,20 @@
  * already have their own edit surfaces; this registry holds the rest.
  */
 import { IV_DEFAULT, checkTemplate, type IvTemplate } from "./interview.js";
+import { TUBES_DEFAULT, checkTubes, type TubesSetting } from "./tubes.js";
 import type { CommitteeDivision, DocKind } from "./types.js";
 
 export const SETTING_PREFIX = "rec_cfg_";
 
-export type SettingKey = "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "penerimaan";
+export type SettingKey =
+  | "docs"
+  | "words"
+  | "cutting"
+  | "wawancara"
+  | "mengajar"
+  | "tubes"
+  | "tim"
+  | "penerimaan";
 
 export interface DocSetting {
   /** One of DOC_KINDS; the `kind` stored with an upload. The keys never change once stored. */
@@ -81,6 +90,10 @@ export interface SettingMap {
   cutting: Record<string, CuttingSetting>;
   wawancara: IvTemplate;
   mengajar: IvTemplate;
+  /** The Presentasi rubric (the interview engine's template for the Tubes stage) */
+  tubes: IvTemplate;
+  /** Tubes teams, the topic mode and the submission's parts */
+  tim: TubesSetting;
   penerimaan: AcceptSetting;
 }
 
@@ -294,6 +307,20 @@ export const SETTINGS: { [K in SettingKey]: SettingDef<K> } = {
     roles: ["ketua", "akademik"],
     def: IV_DEFAULT.mengajar,
     check: checkTemplate,
+  },
+  tubes: {
+    key: "tubes",
+    label: { id: "Rubrik presentasi Tubes", en: "Tubes presentation rubric" },
+    roles: ["ketua", "akademik"],
+    def: IV_DEFAULT.tubes,
+    check: checkTemplate,
+  },
+  tim: {
+    key: "tim",
+    label: { id: "Tim dan pengumpulan Tubes", en: "Tubes teams and submission" },
+    roles: ["ketua", "akademik"],
+    def: TUBES_DEFAULT,
+    check: checkTubes,
   },
   penerimaan: {
     key: "penerimaan",

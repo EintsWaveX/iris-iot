@@ -55,6 +55,7 @@ import { S2 } from "../../s2Strings";
 import "../../recruitment-b1.css";
 import "../../recruitment-kandidat.css";
 import "../../recruitment-cutting.css";
+import { TUBES } from "../../tubes/tubesStrings";
 import { CS } from "./cutStrings";
 import { AturTitikAwal, UbahTeksAmplop } from "./CutSettings";
 import { Countdown, tgl } from "../../shared";
@@ -327,7 +328,7 @@ export default function CuttingTab({
   const pilih: CutStage | null = stage && aktif.includes(stage) ? stage : (aktif[0] ?? null);
   const board = useRecCut(pilih ?? "berkas", pilih !== null);
   // Wawancara and Mengajar score out of 100 (the examiners' sheets); the written test out of 4000.
-  const ivStage = pilih === "wawancara" || pilih === "mengajar";
+  const ivStage = pilih === "wawancara" || pilih === "mengajar" || pilih === "tubes";
   const skala = ivStage ? 100 : 4000;
   const lebar = useMinWidth(1100);
   const [q, setQ] = useState("");
@@ -936,6 +937,35 @@ export default function CuttingTab({
                     <span className="stack" style={{ gap: 0 }}>
                       <b>{c.nama}</b>
                       <span className="hint mono">{c.nim}</span>
+                      {c.tubes && (
+                        <span className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+                          <span className="hint">
+                            {c.tubes.team ?? TUBES[lang].panel.noTeamYet}
+                          </span>
+                          {c.tubes.submission && (
+                            <Pill
+                              tone={
+                                c.tubes.submission === "complete"
+                                  ? "ok"
+                                  : c.tubes.submission === "late"
+                                    ? "danger"
+                                    : c.tubes.submission === "none"
+                                      ? undefined
+                                      : "warn"
+                              }
+                            >
+                              {TUBES[lang].panel.status[c.tubes.submission]}
+                            </Pill>
+                          )}
+                          {c.tubes.attended !== null && (
+                            <Pill tone={c.tubes.attended ? "ok" : "danger"}>
+                              {c.tubes.attended
+                                ? TUBES[lang].panel.ticked
+                                : TUBES[lang].panel.attend}
+                            </Pill>
+                          )}
+                        </span>
+                      )}
                     </span>
                   </td>
                   {lolosBerkas ? (

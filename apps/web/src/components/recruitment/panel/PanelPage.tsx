@@ -33,6 +33,8 @@ import Kandidat from "./Kandidat";
 import CuttingTab from "./cutting/CuttingTab";
 import PlottingTab from "./jadwal/PlottingTab";
 import IvTab from "./iv/IvTab";
+import TubesTab from "../tubes/TubesTab";
+import { TUBES } from "../tubes/tubesStrings";
 import PenerimaanTab from "./penerimaan/PenerimaanTab";
 import BankTab from "./tes/bank/BankTab";
 import TesTab from "./tes/ruang/TesTab";
@@ -101,13 +103,14 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             ...(rights?.cuttingPropose ? (["cutting"] as const) : []),
             ...(rights?.plotting ? (["plotting"] as const) : []),
             "wawancara",
+            "tubes",
             "mengajar",
             "penerimaan",
             ...(adaRuang ? (["tes"] as const) : []),
             ...(rights?.bank ? (["bank"] as const) : []),
             "panitia",
           ]
-        : ["kalender", "wawancara", "mengajar", ...(adaRuang ? (["tes"] as const) : [])],
+        : ["kalender", "wawancara", "tubes", "mengajar", ...(adaRuang ? (["tes"] as const) : [])],
     [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting, rights?.bank, adaRuang],
   );
   const tab: PanelTab = bagian && tabs.includes(bagian) ? bagian : tabs[0];
@@ -146,7 +149,9 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             ? t.title
             : tab === "wawancara" || tab === "mengajar"
               ? IV(lang).title[tab]
-              : CAL[lang].title
+              : tab === "tubes"
+                ? TUBES[lang].panel.title
+                : CAL[lang].title
         }
         badge={seat ? t.division[seat.division] : undefined}
         area={REC[lang].nav[tab]}
@@ -209,6 +214,8 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           <PlottingTab lang={lang} events={events} rights={rights} />
         ) : tab === "wawancara" || tab === "mengajar" ? (
           <IvTab lang={lang} stage={tab} rights={rights} />
+        ) : tab === "tubes" ? (
+          <TubesTab lang={lang} rights={rights} />
         ) : tab === "penerimaan" ? (
           <PenerimaanTab lang={lang} />
         ) : tab === "tes" ? (

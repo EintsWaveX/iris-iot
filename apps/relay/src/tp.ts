@@ -14,6 +14,7 @@ import { LC_BIN_MAKS, isiCocok, putBebas } from "../../web/src/lib/recruitment/l
 import {
   TP_BERKAS_MAKS,
   REK_BANK_RE,
+  REK_TUBES_RE,
   TP_MIME,
   awalOk,
   bacaTiketTp,
@@ -114,6 +115,8 @@ async function unggah(req: Request, env: EnvTp, b: R2Bucket, url: URL) {
   if (!isiCocok(t.k, isi)) return jawab(req, 415, t.k.includes("/lc/") ? "bukan citra" : "bukan pdf");
   // A bank picture (prompt 09) is checked by its own header, whatever isiCocok lets by.
   if (REK_BANK_RE.test(t.k) && !awalOk(t.k, isi)) return jawab(req, 415, "bukan gambar");
+  // A Tubes file (zip, pdf or mp4) must start the way its extension says.
+  if (REK_TUBES_RE.test(t.k) && !awalOk(t.k, isi)) return jawab(req, 415, "isi tidak cocok");
   const hash = await sha256Hex(isi);
   if (!bebas && hash !== t.s) return jawab(req, 400, "isi berubah");
   // The same bytes again (a retry) are already there.

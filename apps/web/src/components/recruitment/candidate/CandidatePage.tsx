@@ -16,7 +16,7 @@ import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
 import SegmentedControl from "../../ui/SegmentedControl";
 import { href } from "../../../lib/app";
-import { useRecOrang } from "../../../lib/recruitment/latihan-client";
+import { useLatihanMode, useRecOrang } from "../../../lib/recruitment/latihan-client";
 import type { Lang } from "../../../lib/kelas";
 import {
   bukaAkun,
@@ -81,6 +81,7 @@ import Journey from "./Journey";
 import { CP } from "./candidateStrings";
 import { judulAcara, tempatAcara } from "../judul";
 import TestDoor from "../exam/TestDoor";
+import TubesCard from "../tubes/TubesCard";
 
 // GSAP and canvas-confetti only ship when an envelope is opened.
 const RevealStage = lazy(() => import("../reveal/RevealStage"));
@@ -163,6 +164,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
   const me = useRecOrang();
+  const latihan = useLatihanMode();
   const asisten = me?.role === "asisten";
   // The candidate is their oprec account, never the practicum sign-in (2026-10-24).
   const akun = useRecAkun(me !== undefined && !asisten);
@@ -588,6 +590,10 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         {revisi}
         {cta}
         <TestDoor lang={lang} enabled={praktikan && applied} />
+        <TubesCard
+          lang={lang}
+          enabled={praktikan && applied && (cand?.stage === "tubes" || latihan === "caas")}
+        />
         {sealedEnv ? (
           <div className="b3-hero">
             <SealedHero

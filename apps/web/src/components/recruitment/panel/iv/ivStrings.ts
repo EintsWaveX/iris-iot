@@ -5,12 +5,12 @@
  * the English), since Panitia write them.
  */
 import type { Lang } from "../../../../lib/kelas";
-import type { Bi } from "../../../../lib/recruitment/interview";
+import type { Bi, IvStage } from "../../../../lib/recruitment/interview";
 
 export interface IvWords {
-  tab: Record<"wawancara" | "mengajar", string>;
-  title: Record<"wawancara" | "mengajar", string>;
-  lede: Record<"wawancara" | "mengajar", string>;
+  tab: Record<IvStage, string>;
+  title: Record<IvStage, string>;
+  lede: Record<IvStage, string>;
   seg: { mine: string; nilai: string; template: string };
   mine: {
     none: string;
@@ -214,12 +214,14 @@ export interface IvWords {
 }
 
 const ID: IvWords = {
-  tab: { wawancara: "Wawancara", mengajar: "Mengajar" },
-  title: { wawancara: "Wawancara", mengajar: "Tes Mengajar" },
+  tab: { wawancara: "Wawancara", mengajar: "Mengajar", tubes: "Presentasi" },
+  title: { wawancara: "Wawancara", mengajar: "Tes Mengajar", tubes: "Presentasi Tubes" },
   lede: {
     wawancara: "Slot wawancaramu, lembar penilaian, hasil tiap CaAs, dan template pertanyaan.",
     mengajar:
       "Giliran mengajar yang kamu nilai, lembar penilaian, hasil tiap CaAs, dan template rubrik.",
+    tubes:
+      "Meja presentasi yang kamu nilai, lembar penilaian, hasil tiap tim, dan template rubrik.",
   },
   seg: { mine: "Slotku", nilai: "Penilaian", template: "Template" },
   mine: {
@@ -459,12 +461,14 @@ const ID: IvWords = {
 };
 
 const EN: IvWords = {
-  tab: { wawancara: "Interview", mengajar: "Teaching" },
-  title: { wawancara: "Interview", mengajar: "Teaching Test" },
+  tab: { wawancara: "Interview", mengajar: "Teaching", tubes: "Presentation" },
+  title: { wawancara: "Interview", mengajar: "Teaching Test", tubes: "Tubes Presentation" },
   lede: {
     wawancara: "Your interview slots, the sheet, each CaAs's result, and the question template.",
     mengajar:
       "The teaching turns you score, the sheet, each CaAs's result, and the rubric template.",
+    tubes:
+      "The presentation table you score, the sheet, each team's result, and the rubric template.",
   },
   seg: { mine: "My Slots", nilai: "Scores", template: "Template" },
   mine: {
@@ -702,11 +706,12 @@ const EN: IvWords = {
 };
 
 const ZH: IvWords = {
-  tab: { wawancara: "面试", mengajar: "试讲" },
-  title: { wawancara: "面试", mengajar: "试讲考核" },
+  tab: { wawancara: "面试", mengajar: "试讲", tubes: "答辩" },
+  title: { wawancara: "面试", mengajar: "试讲考核", tubes: "Tubes 答辩" },
   lede: {
     wawancara: "你的面试时段、评分表、每位 CaAs 的结果，以及问题模板。",
     mengajar: "你负责评分的试讲场次、评分表、每位 CaAs 的结果，以及评分标准模板。",
+    tubes: "你负责评分的答辩桌、评分表、每个小组的结果，以及评分标准模板。",
   },
   seg: { mine: "我的时段", nilai: "成绩", template: "模板" },
   mine: {

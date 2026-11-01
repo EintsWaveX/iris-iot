@@ -61,6 +61,7 @@ import { muatEvents, muatKolam, tolak, wajibEdisi, type Db } from "./recruitment
 import { anggotaPanitia, muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
+import { anggotaPerPemimpin, labelTim, muatSemuaPeserta, muatTim } from "./recruitment-tim.js";
 import { muatBarisMakeup, muatMakeupCtx, posisiMakeup } from "./recruitment-makeup.js";
 
 const ROLES = ["penguji", "pj_luar", "pj_dalam"] as const;
@@ -137,6 +138,11 @@ async function muatSlotCrew(db: Db, edisiId: number, stage: IvStage): Promise<Sl
     db,
     asg.map((a) => a.nim),
   );
+  // A Presentasi turn belongs to a team, keyed by its leader: the booth shows the team.
+  const tim =
+    stage === "tubes"
+      ? new Map((await muatTim(db, edisiId)).map((t) => [t.team.leaderId, labelTim(t)]))
+      : null;
   const ex = await db
     .select()
     .from(recSlotExaminer)
@@ -153,7 +159,7 @@ async function muatSlotCrew(db: Db, edisiId: number, stage: IvStage): Promise<Sl
       .map((a) => ({
         id: a.cid,
         nim: a.nim,
-        nama: nama.get(a.nim) ?? a.nim,
+        nama: tim?.get(a.cid) ?? nama.get(a.nim) ?? a.nim,
         kelas: a.bio.kelas,
       })),
     penguji: ex.filter((e) => e.slotId === s.id && e.role === "penguji").map((e) => e.asistenNim),
@@ -814,6 +820,8 @@ export async function muatNilaiTahap(
   db: Db,
   edisiId: number,
   stage: IvStage,
+  /** Tubes: one row per member of each team (the Cutting), instead of one per team (Penilaian) */
+  opts: { anggota?: boolean } = {},
 ): Promise<NilaiBaris[]> {
   const t = await bacaSetting(db, stage);
   const slots = await muatSlotCrew(db, edisiId, stage);
@@ -828,8 +836,10 @@ export async function muatNilaiTahap(
     .from(recSheetShared)
     .where(and(inArray(recSheetShared.candidateId, kandIds), eq(recSheetShared.stage, stage)));
   const kode = await kodeMap(db);
-  const mctx = await muatMakeupCtx(db, edisiId, stage);
-  const mrows = await muatBarisMakeup(db, stage, kandIds);
+  // Presentasi has no Susulan (no makeup event for the stage, so the context is empty).
+  const mkStage = stage as Parameters<typeof muatMakeupCtx>[2];
+  const mctx = await muatMakeupCtx(db, edisiId, mkStage);
+  const mrows = await muatBarisMakeup(db, mkStage, kandIds);
   const now = new Date();
   const out: NilaiBaris[] = [];
   for (const sl of slots)
@@ -864,6 +874,21 @@ export async function muatNilaiTahap(
         ),
       });
     });
+  if (stage === "tubes" && opts.anggota) {
+    // Every member carries the team's score: the same sheets, the member's own name and number.
+    const anggota = await anggotaPerPemimpin(
+      db,
+      edisiId,
+      out.map((r) => r.id),
+    );
+    const peserta = await muatSemuaPeserta(db, edisiId);
+    return out.flatMap((r) =>
+      (anggota.get(r.id) ?? [r.id]).map((id) => {
+        const p = peserta.get(id);
+        return { ...r, id, nim: p?.nim ?? r.nim, nama: p?.nama ?? r.nama };
+      }),
+    );
+  }
   return out;
 }
 

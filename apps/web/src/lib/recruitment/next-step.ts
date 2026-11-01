@@ -44,6 +44,10 @@ export type StepKey =
   | "superviseNight"
   | "proposeCutTulis"
   | "recordNight"
+  | "tubesTeams"
+  | "tubesTopics"
+  | "tubesFollow"
+  | "tubesOrder"
   | "watchCalendar"
   | "nothing";
 
@@ -244,6 +248,26 @@ const TES_TULIS: Table = {
   ],
 };
 
+/** Tubes: the teams, the topics, the evenings, the submission and the Presentasi. */
+const TUBES: Table = {
+  ketua: [
+    s("tubesTeams", "now", "tubes"),
+    s("tubesFollow", "next", "tubes"),
+    s("tubesOrder", "next", "tubes"),
+  ],
+  akademik: [
+    s("tubesTopics", "now", "tubes"),
+    s("tubesOrder", "next", "tubes"),
+    s("tubesFollow", "next", "tubes"),
+  ],
+  admin: [
+    s("tubesTeams", "now", "tubes"),
+    s("tubesFollow", "next", "tubes"),
+    s("tubesOrder", "next", "tubes"),
+  ],
+  acara: [s("tubesFollow", "now", "tubes"), s("tubesOrder", "next", "tubes")],
+};
+
 /**
  * The steps for a division at a place in the edition. A step is only
  * offered with its tab when the person has that tab (`has`), otherwise it is
@@ -269,7 +293,9 @@ export function nextSteps(
               : where.over
                 ? TES_TULIS_OVER
                 : TES_TULIS
-            : null;
+            : where.stage === "tubes" && where.phase !== "announced"
+              ? TUBES
+              : null;
   const list = (table?.[role] ?? LAIN).map((x) => ({
     ...x,
     tab: x.tab && has.includes(x.tab) ? x.tab : null,

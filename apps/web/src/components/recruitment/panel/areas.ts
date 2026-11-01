@@ -9,6 +9,7 @@ import {
   ChatsCircleIcon,
   ClipboardTextIcon,
   FileTextIcon,
+  CpuIcon,
   GraduationCapIcon,
   ListChecksIcon,
   MapPinIcon,
@@ -35,6 +36,7 @@ export const AREA: Record<PanelTab, Area> = {
   bank: { c: "#8fb0ff", icon: FileTextIcon },
   wawancara: { c: "#8fb0ff", icon: ChatsCircleIcon },
   mengajar: { c: "#8fb0ff", icon: GraduationCapIcon },
+  tubes: { c: "#8fb0ff", icon: CpuIcon },
   penerimaan: { c: "#e879f9", icon: SealCheckIcon },
   panitia: { c: "#7dd3fc", icon: UsersThreeIcon },
 };
@@ -49,6 +51,7 @@ export const AREA_ORDER: PanelTab[] = [
   "tes",
   "bank",
   "wawancara",
+  "tubes",
   "mengajar",
   "penerimaan",
   "panitia",

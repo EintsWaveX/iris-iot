@@ -32,6 +32,8 @@ export const TP_MIME: Record<string, string> = {
   doc: "application/msword",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   zip: "application/zip",
+  // Tubes (2026-11-01): the demo video of a team's submission.
+  mp4: "video/mp4",
   // The exam's bank (2026-10-25): a SVG picture (a reference page is served by the API, which sets its own type).
   svg: "image/svg+xml",
   bin: "application/octet-stream",
@@ -102,6 +104,12 @@ export function awalOk(kunci: string, b: Uint8Array): boolean {
         b[10] === 0x42 &&
         b[11] === 0x50
       );
+    case "zip":
+      // A zip starts with a local file header (an empty archive starts with its end record).
+      return at(0x50, 0x4b, 0x03, 0x04) || at(0x50, 0x4b, 0x05, 0x06);
+    case "mp4":
+      // An ISO media file: a box size, then "ftyp".
+      return b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70;
     case "svg": {
       const head = new TextDecoder().decode(b.subarray(0, 512)).replace(/^﻿/, "").trimStart();
       return head.startsWith("<svg") || /^<\?xml[^>]*\?>\s*(<!--[\s\S]*?-->\s*)*<svg/.test(head);
@@ -109,6 +117,28 @@ export function awalOk(kunci: string, b: Uint8Array): boolean {
     default:
       return false;
   }
+}
+
+/**
+ * Tubes submissions (2026-11-01): a team's code zip, report PDF and demo mp4,
+ * under `recruitment/<edition>/tubes/<team>/<part>/<sha256>.<ext>`, content
+ * addressed like the rest. The part is the Akademik's own key (letters,
+ * digits, underscore).
+ */
+export const TUBES_EKS = ["zip", "pdf", "mp4"] as const;
+export const REK_TUBES_RE =
+  /^recruitment\/\d{1,6}\/tubes\/\d{1,9}\/[a-z][a-z0-9_]{1,15}\/[0-9a-f]{64}\.(zip|pdf|mp4)$/;
+
+export function kunciTubes(
+  edisi: number,
+  tim: number,
+  bagian: string,
+  sha256: string,
+  ext: string,
+): string {
+  const k = `recruitment/${edisi}/tubes/${tim}/${bagian}/${sha256}.${ext}`;
+  if (!REK_TUBES_RE.test(k)) throw new Error("unsafe tubes key");
+  return k;
 }
 
 /**
@@ -124,7 +154,8 @@ const kunciBerkas = (k: string) =>
   REK_KUNCI_RE.test(k) ||
   LC_KUNCI_RE.test(k) ||
   REK_REF_RE.test(k) ||
-  REK_BANK_RE.test(k);
+  REK_BANK_RE.test(k) ||
+  REK_TUBES_RE.test(k);
 
 /** The extension a mime type is kept under. */
 export function extTp(mime: string): string {

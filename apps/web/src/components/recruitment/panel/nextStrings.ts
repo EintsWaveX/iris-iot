@@ -47,6 +47,10 @@ const ID: Words = {
   superviseNight: () => "Awasi Malam Ujian dan nilai Live Coding",
   proposeCutTulis: () => "Usulkan yang lolos di Cutting Tes Tulis",
   recordNight: () => "Catat kehadiran dan susulan Tes Tulis",
+  tubesTeams: () => "Pastikan semua CaAs punya tim sebelum Techmeet",
+  tubesTopics: () => "Siapkan topik dan brief Tubes, lalu bagikan atau undi di Techmeet",
+  tubesFollow: () => "Pantau malam pengerjaan, kehadiran, dan pengumpulan tim",
+  tubesOrder: () => "Atur meja, urutan, dan penguji presentasi Tubes",
   watchCalendar: () => "Pantau Kalender untuk acara berikutnya",
   nothing: () => "Tidak ada langkah untukmu sekarang",
 };
@@ -84,6 +88,11 @@ const EN: Words = {
   superviseNight: () => "Oversee the exam night and grade Live Coding",
   proposeCutTulis: () => "Propose who passes in Written Test Cutting",
   recordNight: () => "Record Written Test attendance and makeups",
+  tubesTeams: () => "Make sure every CaAs has a team before the Techmeet",
+  tubesTopics: () =>
+    "Prepare the Tubes topics and briefs, then share them out or draw at the Techmeet",
+  tubesFollow: () => "Follow the work evenings, attendance and each team's submission",
+  tubesOrder: () => "Set the tables, the order and the examiners of the Tubes presentation",
   watchCalendar: () => "Watch the Calendar for the next event",
   nothing: () => "No step for you right now",
 };
@@ -127,6 +136,7 @@ export const NS = {
       plotting: "Plotting",
       wawancara: "Wawancara",
       mengajar: "Mengajar",
+      tubes: "Tubes",
       penerimaan: "Penerimaan",
       tes: "Tes Tulis",
       bank: "Bank Soal",
@@ -168,6 +178,7 @@ export const NS = {
       plotting: "Plotting",
       wawancara: "Interview",
       mengajar: "Teaching",
+      tubes: "Tubes",
       penerimaan: "Acceptance",
       tes: "Written Test",
       bank: "Question Bank",

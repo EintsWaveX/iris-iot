@@ -25,6 +25,9 @@ import {
   recSlot,
   recSlotAssignment,
   recSlotExaminer,
+  recTeam,
+  recTeamMember,
+  recTubesSession,
 } from "../../src/lib/schema.js";
 import { lite } from "../../src/lib/recruitment/banner.js";
 import { eventHadir, eventLive, tanggalWib } from "../../src/lib/recruitment/gates.js";
@@ -138,6 +141,35 @@ async function muatKursiPeserta(db: Db, ids: number[]): Promise<Map<number, Kurs
   return peta;
 }
 
+/**
+ * The Tubes work evenings: a team picks one evening (rec_tubes_session), so a member is expected, and only counts,
+ * on that evening. The set is the candidate ids whose team's evening falls on `hari` (WIB).
+ */
+export const eventKerjaTubes = (e: RecEvent): boolean => e.kind === "work" && e.stage === "tubes";
+
+async function anggotaSesiHariIni(
+  db: Db,
+  edisiId: number,
+  hari: string,
+): Promise<{ hariIni: Set<number>; sesiKu: Map<number, Date> }> {
+  const rows = await db
+    .select({
+      c: recTeamMember.candidateId,
+      startsAt: recTubesSession.startsAt,
+    })
+    .from(recTeamMember)
+    .innerJoin(recTeam, eq(recTeam.id, recTeamMember.teamId))
+    .innerJoin(recTubesSession, eq(recTubesSession.id, recTeam.sessionId))
+    .where(and(eq(recTeam.editionId, edisiId), eq(recTeamMember.status, "joined")));
+  const hariIni = new Set<number>();
+  const sesiKu = new Map<number, Date>();
+  for (const r of rows) {
+    sesiKu.set(r.c, r.startsAt);
+    if (tanggalWib(r.startsAt).tanggal === hari) hariIni.add(r.c);
+  }
+  return { hariIni, sesiKu };
+}
+
 /** Does a candidate hold a seat in this event today? Their own evening. */
 const adaKursiHariIni = (kursi: Kursi[] | undefined, e: RecEvent, hari: string): boolean =>
   (kursi ?? []).some((k) => k.eventId === e.id && tanggalWib(k.startsAt).tanggal === hari);
@@ -167,6 +199,7 @@ export async function muatDiharapkan(
   const hasil = await muatHasilBanyak(db, ids);
   const kursi = butuhSlot(e) ? await muatKursiPeserta(db, ids) : new Map<number, Kursi[]>();
   const hari = tanggalWib(now).tanggal;
+  const tubes = eventKerjaTubes(e) ? await anggotaSesiHariIni(db, edisiId, hari) : null;
   return kand
     .filter((k) => {
       const st = standing(
@@ -176,6 +209,7 @@ export async function muatDiharapkan(
         now,
       );
       if (!attendEligible(st, e.stage)) return false;
+      if (tubes) return tubes.hariIni.has(k.id);
       return !butuhSlot(e) || adaKursiHariIni(kursi.get(k.id), e, hari);
     })
     .map((k) => ({ candidateId: k.id, nim: k.nim, nama: k.nama ?? "" }));
@@ -273,7 +307,14 @@ export async function handleHadir(req: ApiRequest, res: ApiResponse, s: SessionP
   const hasil = await muatHasilBanyak(db, [k.id]);
   const st = standing(k, hasil.get(k.id) ?? [], events, now);
   if (!attendEligible(st, e.stage)) return void tolak(res, "bukan_tahapmu", 403);
-  if (butuhSlot(e)) {
+  if (eventKerjaTubes(e)) {
+    // Only on the evening the team picked.
+    const t = await anggotaSesiHariIni(db, edisi.id, tanggalWib(now).tanggal);
+    if (!t.hariIni.has(k.id))
+      return void tolak(res, "bukan_jadwalmu", 403, {
+        mine: t.sesiKu.get(k.id)?.toISOString() ?? null,
+      });
+  } else if (butuhSlot(e)) {
     const kursi = (await muatKursiPeserta(db, [k.id])).get(k.id);
     if (!adaKursiHariIni(kursi, e, tanggalWib(now).tanggal)) {
       const sendiri = (kursi ?? []).find((v) => v.eventId === e!.id);
