@@ -29,6 +29,7 @@ import {
   recAccount,
   recAttendance,
   recCandidate,
+  recDocument,
   recSheet,
   recSheetShared,
   recSlot,
@@ -509,13 +510,51 @@ async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const nama = (await namaPerNim(db, [a.kandidat.nim])).get(a.kandidat.nim) ?? a.kandidat.nim;
   const booth = a.tempat.slot.booths[a.tempat.index];
   // The real written and coding scores, for the one interview card that shows them.
-  const nilaiTes =
-    stage === "wawancara"
-      ? (await muatNilaiCutting(db, a.edisiId)).byCandidate.get(a.kandidat.id)
+  const nilaiAll =
+    stage === "wawancara" ? (await muatNilaiCutting(db, a.edisiId)).byCandidate : null;
+  const nilaiTes = nilaiAll?.get(a.kandidat.id) ?? null;
+  // The rank by Tes Tulis total among the candidates that have one ("Peringkat 12 dari 78").
+  const totals = nilaiAll
+    ? [...nilaiAll.values()].map((x) => x.total).filter((x): x is number => x !== null)
+    : [];
+  const rank =
+    nilaiTes && nilaiTes.total !== null
+      ? totals.filter((x) => x > nilaiTes.total!).length + 1
       : null;
+  // When the CaAs scanned in for this stage, and the files the examiners may open (the Berkas button).
+  const evIds = events.filter((e) => e.stage === stage).map((e) => e.id);
+  const [hadirRow] = evIds.length
+    ? await db
+        .select({ at: recAttendance.at })
+        .from(recAttendance)
+        .where(
+          and(eq(recAttendance.candidateId, a.kandidat.id), inArray(recAttendance.eventId, evIds)),
+        )
+        .orderBy(asc(recAttendance.at))
+        .limit(1)
+    : [];
+  const mctx = await muatMakeupCtx(db, a.edisiId, stage as Parameters<typeof muatMakeupCtx>[2]);
+  const docRules = await bacaSetting(db, "docs");
+  const berkas = (
+    await db
+      .select({ id: recDocument.id, kind: recDocument.kind })
+      .from(recDocument)
+      .where(eq(recDocument.candidateId, a.kandidat.id))
+      .orderBy(asc(recDocument.id))
+  ).map((d) => ({
+    id: d.id,
+    kind: d.kind,
+    label: docRules.find((x) => x.kind === d.kind)?.label ?? { id: d.kind, en: d.kind },
+  }));
   return void res.status(200).json({
     ok: true,
-    scores: nilaiTes ? { total: nilaiTes.total, parts: nilaiTes.parts } : null,
+    here: hadirRow?.at ? hadirRow.at.toISOString() : null,
+    makeup: mctx.event?.startsOn ?? null,
+    cutting: events.find((e) => e.kind === "cutting" && e.stage === stage)?.startsOn ?? null,
+    files: berkas,
+    scores: nilaiTes
+      ? { total: nilaiTes.total, parts: nilaiTes.parts, rank, of: totals.length }
+      : null,
     template: a.t,
     candidate: { id: a.kandidat.id, nim: a.kandidat.nim, nama, kelas: booth.kelas },
     slot: {
@@ -899,9 +938,30 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
   const p = await muatPelaku(db, edisi.id, s.nim);
-  if (!bolehNilai(p)) return void tolak(res, "tanpa_hak", 403);
   const t = await bacaSetting(db, stage);
   const rows = await muatNilaiTahap(db, edisi.id, stage);
+  if (!bolehNilai(p)) {
+    // Lembarku: an examiner without the Penilaian right sees only the sheets they sent themselves,
+    // and which partners have sent too (their levels stay hidden).
+    const kode = await kodeMap(db);
+    const saya = kode.get(s.nim) ?? s.nim;
+    const slots = await muatSlotCrew(db, edisi.id, stage);
+    const where = new Map(slots.flatMap((sl) => sl.booths.map((b) => [b.id, sl] as const)));
+    const mine = rows.filter((r) => r.sheets.some((x) => x.by === saya));
+    return void res.status(200).json({
+      ok: true,
+      mine: true,
+      rows: mine.map((r) => ({
+        id: r.id,
+        nama: r.nama,
+        room: where.get(r.id)?.room ?? null,
+        startsAt: where.get(r.id)?.startsAt.toISOString() ?? null,
+        score: r.sheets.find((x) => x.by === saya)?.score ?? 0,
+        verdict: r.verdict,
+        others: r.sheets.filter((x) => x.by !== saya).map((x) => x.by),
+      })),
+    });
+  }
   const perPenguji = new Map<string, { n: number; sum: number }>();
   for (const r of rows)
     for (const x of r.sheets) {
@@ -911,11 +971,69 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
       perPenguji.set(x.by, c);
     }
   const all = rows.map((r) => r.mean).filter((m): m is number => m !== null);
+  // What the mockup's Penilaian shows beside the numbers: where and when each CaAs sat, the Tes Tulis total
+  // (context only), each examiner's levels with the shared conclusions (the Rincian), and who has not sent yet.
+  const slots = await muatSlotCrew(db, edisi.id, stage);
+  const kandIds = rows.map((r) => r.id);
+  const sheetRows = kandIds.length
+    ? await db
+        .select()
+        .from(recSheet)
+        .where(and(inArray(recSheet.candidateId, kandIds), eq(recSheet.stage, stage)))
+    : [];
+  const sharedRows = kandIds.length
+    ? await db
+        .select()
+        .from(recSheetShared)
+        .where(and(inArray(recSheetShared.candidateId, kandIds), eq(recSheetShared.stage, stage)))
+    : [];
+  const kode = await kodeMap(db);
+  const tes = stage === "wawancara" ? (await muatNilaiCutting(db, edisi.id)).byCandidate : null;
+  const where = new Map<
+    number,
+    { room: string; startsAt: string; booth: number; crew: string[] }
+  >();
+  for (const sl of slots)
+    sl.booths.forEach((b, i) =>
+      where.set(b.id, {
+        room: sl.room,
+        startsAt: sl.startsAt.toISOString(),
+        booth: i + 1,
+        crew: crewFor(sl.penguji, i, t).map((n) => kode.get(n) ?? n),
+      }),
+    );
+  const rinci = rows.map((r) => {
+    const w = where.get(r.id);
+    const sent = sheetRows.filter(
+      (x) => x.candidateId === r.id && x.sentAt && levelsDone(x.levels, t.params),
+    );
+    const sd = sharedRows.find((x) => x.candidateId === r.id);
+    const byKode = sent.map((x) => ({
+      by: kode.get(x.graderNim) ?? x.graderNim,
+      levels: x.levels,
+      at: x.sentAt ? x.sentAt.toISOString() : null,
+    }));
+    return {
+      ...r,
+      room: w?.room ?? null,
+      startsAt: w?.startsAt ?? null,
+      booth: w?.booth ?? null,
+      total: tes?.get(r.id)?.total ?? null,
+      detail: byKode,
+      concl: sd?.concl ?? {},
+      ba: sd?.ba ?? "",
+      waiting: (w?.crew ?? []).filter((c) => !byKode.some((x) => x.by === c)),
+    };
+  });
   return void res.status(200).json({
     ok: true,
+    me: kode.get(s.nim) ?? null,
     cut: t.cut,
     wide: t.wide,
-    rows,
+    per: t.per,
+    params: t.params,
+    levels: t.levels,
+    rows: rinci,
     penguji: [...perPenguji.entries()].map(([by, c]) => ({ by, n: c.n, avg: c.sum / c.n })),
     avg: all.length ? all.reduce((a, x) => a + x, 0) / all.length : null,
   });

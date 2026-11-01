@@ -50,7 +50,7 @@
  * deleting an event whose stage has started asks for `confirm: true` and is
  * written to rec_event_log.
  */
-import { and, asc, count, eq, ilike, or } from "drizzle-orm";
+import { and, asc, count, eq, ilike, inArray, or } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, pgErrorCode, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
@@ -65,6 +65,8 @@ import {
   recCandidate,
   recCommittee,
   recDocument,
+  recSlotAssignment,
+  recSlotExaminer,
   recEvent,
   recEventLog,
   recSlotChange,
@@ -522,6 +524,25 @@ async function handlePanitia(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   res.status(200).json({ ok: true, seats, ...(boleh ? { pool: await muatKolam(db) } : {}) });
 }
 
+/** An examiner of the slot this document's candidate sits in (Wawancara or Mengajar) may read the file. */
+async function bolehLihatBerkasSlot(db: Db, nim: string, docId: number): Promise<boolean> {
+  const rows = await db
+    .select({ n: recSlotExaminer.slotId })
+    .from(recSlotExaminer)
+    .innerJoin(recSlotAssignment, eq(recSlotAssignment.slotId, recSlotExaminer.slotId))
+    .innerJoin(recDocument, eq(recDocument.candidateId, recSlotAssignment.candidateId))
+    .where(
+      and(
+        eq(recDocument.id, docId),
+        inArray(recSlotAssignment.stage, ["wawancara", "mengajar"]),
+        eq(recSlotExaminer.asistenNim, nim),
+        inArray(recSlotExaminer.role, ["penguji", "pj_dalam"]),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** A PDF as a 10 minute link, after the rights check: a candidate's own, or the documents right. */
 async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const id = Number(req.query.id);
@@ -545,7 +566,10 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
     if (d.nim !== s.nim) return tolak(res, "tidak_ditemukan", 404);
   } else {
     const p = await muatPelaku(db, d.editionId, s.nim);
-    if (!wajibHak(res, p, "documents")) return;
+    // The documents right, or an examiner (interviewer, inside PJ) who sits with this candidate in a slot:
+    // the interview sheet has a Berkas button, and the form says to open the files before the interview.
+    const pewawancara = await bolehLihatBerkasSlot(db, s.nim, id);
+    if (!pewawancara && !wajibHak(res, p, "documents")) return;
     await writeAudit(s.nim, "rec_berkas_baca", { id, nim: d.nim, kind: d.kind });
   }
   // v=1 is the file a re-upload replaced; there is only one earlier version.

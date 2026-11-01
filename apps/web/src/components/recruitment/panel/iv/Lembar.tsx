@@ -7,14 +7,42 @@
  * empty field. A special case (late, absent, ill) is decided by the
  * template's rules and recorded on the sheet.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ArrowSquareOutIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  ClockCountdownIcon,
+  DoorOpenIcon,
+  EyeIcon,
+  FileTextIcon,
+  PaperPlaneTiltIcon,
+  PlusIcon,
+  QuestionIcon,
+  RecordIcon,
+  TimerIcon,
+  UserIcon,
+  UserMinusIcon,
+  WarningIcon,
+  XCircleIcon,
+} from "@phosphor-icons/react";
 import Dialog from "../../../ui/Dialog";
 import Dropdown from "../../../ui/Dropdown";
+import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
+import Popover from "../../../ui/Popover";
+import Tooltip from "../../../ui/Tooltip";
 import { Stepper } from "../../../ui/Controls";
+import { localeOf } from "../../../../lib/app";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
-import { fetchIvSheet, type IvSheetResponse } from "../../../../lib/recruitment/iv-client";
+import {
+  fetchIvSheet,
+  useIvMine,
+  type IvSheetResponse,
+} from "../../../../lib/recruitment/iv-client";
 import { useSiaran } from "../../../../lib/siaran";
 import { baseOf, mixSheet, sheetDelta, type SheetBase } from "../../../../lib/recruitment/iv-sync";
 import {
@@ -24,17 +52,42 @@ import {
   caseOutcome,
   sheetMissing,
   sheetScore,
-  verdictOf,
   type CaseKind,
+  type IvQuestion,
   type IvStage,
   type Verdict,
 } from "../../../../lib/recruitment/interview";
-import { IV, STEP, bi } from "./ivStrings";
+import { IV, STEP, bi, kasusText } from "./ivStrings";
+import { LM } from "./lembarStrings";
+import { PN } from "./penilaianStrings";
 
 type Step = "tanya" | "simpul" | "putus";
 const VERDICTS: Verdict[] = ["lolos", "ragu", "cut"];
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 const pad = (n: number) => String(n).padStart(2, "0");
+const calm = () =>
+  typeof window !== "undefined" &&
+  !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+type View = "sheet" | "sent" | "kasus";
+/** A card the examiner added for themselves: kept on this browser only, never in the template or on the server. */
+interface OwnCard {
+  id: string;
+  t: string;
+}
+const ownKey = (stage: string, id: number) => `iris:rec:own:${stage}:${id}`;
+const readOwn = (
+  stage: string,
+  id: number,
+): { extra: OwnCard[]; ans: Record<string, string>; skip: string[] } => {
+  try {
+    const v = JSON.parse(localStorage.getItem(ownKey(stage, id)) ?? "null");
+    if (v && Array.isArray(v.extra) && v.ans && typeof v.ans === "object")
+      return { extra: v.extra, ans: v.ans, skip: Array.isArray(v.skip) ? v.skip : [] };
+  } catch {
+    /* no storage: start with none */
+  }
+  return { extra: [], ans: {}, skip: [] };
+};
 
 function clock(sec: number): string {
   const h = Math.floor(sec / 3600);
@@ -42,17 +95,15 @@ function clock(sec: number): string {
   return h ? `${h}:${pad(m)}:${pad(sec % 60)}` : `${pad(m)}:${pad(sec % 60)}`;
 }
 
-const wibJam = (iso: string) =>
-  new Intl.DateTimeFormat("id-ID", {
-    timeZone: "Asia/Jakarta",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })
-    .format(new Date(iso))
-    .replace(":", ".");
-
 /* ------------------------------------------------------------ special cases */
+
+const CASE_ICON: Record<CaseKind, typeof UserIcon> = {
+  telat: ClockCountdownIcon,
+  absen: UserMinusIcon,
+  sakit: WarningIcon,
+  nametag: UserIcon,
+  keluar: DoorOpenIcon,
+};
 
 function Kasus({
   lang,
@@ -95,7 +146,7 @@ function Kasus({
       open
       onOpenChange={(o) => !o && onClose()}
       title={t.title}
-      description={t.desc(data.candidate.nama)}
+      description={kasusText(t.desc(data.candidate.nama), stage, lang, null)}
       lang={lang}
       size="md"
       actions={
@@ -125,7 +176,11 @@ function Kasus({
               aria-checked={kind === k}
               onClick={() => setKind(k)}
             >
-              <span>{t.kinds[k]}</span>
+              {(() => {
+                const Ic = CASE_ICON[k];
+                return <Ic size={20} aria-hidden="true" />;
+              })()}
+              <span>{kasusText(t.kinds[k], stage, lang, null)}</span>
             </button>
           ))}
         </div>
@@ -168,7 +223,22 @@ function Kasus({
                 ? t.tag.susulan
                 : t.tag.carry}
           </b>
-          <span>{t.out[out.code]}</span>
+          <span>
+            {kasusText(
+              t.out[out.code],
+              stage,
+              lang,
+              data.makeup
+                ? new Intl.DateTimeFormat(localeOf(lang), {
+                    timeZone: "Asia/Jakarta",
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }).format(new Date(`${data.makeup}T12:00:00+07:00`))
+                : null,
+            )}
+          </span>
         </div>
       </div>
     </Dialog>
@@ -210,6 +280,19 @@ export default function Lembar({
   const [now, setNow] = useState(() => Date.now());
   const [started, setStarted] = useState<string | null>(null);
   const [partnerAt, setPartnerAt] = useState(0);
+  const [view, setView] = useState<View>("sheet");
+  const [extra, setExtra] = useState<OwnCard[]>(() => readOwn(stage, id).extra);
+  const [ownAns, setOwnAns] = useState<Record<string, string>>(() => readOwn(stage, id).ans);
+  const [ownSkip, setOwnSkip] = useState<string[]>(() => readOwn(stage, id).skip);
+  const [ownText, setOwnText] = useState("");
+  const [fopen, setFopen] = useState(false);
+  const [vid, setVid] = useState<{ kelas: "tidak" | "ya" | null; at: string; ok: boolean }>({
+    kelas: null,
+    at: "",
+    ok: false,
+  });
+  const mine = useIvMine(stage);
+  const L = LM[lang];
   const ready = useRef(false);
   /** What the server last held (and this examiner last sent): the autosave sends only what differs from it. */
   const base = useRef<SheetBase>(baseOf(null));
@@ -238,6 +321,17 @@ export default function Lembar({
     setStarted(s?.startedAt ?? null);
     setLv(d.mine.levels);
     setSent(!!d.mine.sentAt);
+    setView(d.mine.sentAt ? "sent" : "sheet");
+    setVid({
+      kelas: null,
+      at: new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(Date.parse(d.slot.endsAt) + 3_600_000)),
+      ok: false,
+    });
     setStep(d.template.questions.length ? "tanya" : "simpul");
     base.current = baseOf(d);
     ready.current = true;
@@ -297,6 +391,30 @@ export default function Lembar({
     const i = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(i);
   }, [started]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        ownKey(stage, id),
+        JSON.stringify({ extra, ans: ownAns, skip: ownSkip }),
+      );
+    } catch {
+      /* the cards still show */
+    }
+  }, [stage, id, extra, ownAns, ownSkip]);
+
+  /** The step and the question slide in from the side (the mockup's 0.18 s), unless motion is reduced. */
+  const slide = (dir: number) => {
+    const el = body.current;
+    if (!el || calm() || !el.animate) return;
+    el.animate(
+      [
+        { opacity: 0, transform: `translateX(${10 * dir}px)` },
+        { opacity: 1, transform: "translateX(0)" },
+      ],
+      { duration: 180, easing: "cubic-bezier(0.23, 1, 0.32, 1)" },
+    );
+  };
 
   const tpl = data?.template ?? null;
   const locked = !!data?.locked;
@@ -366,13 +484,30 @@ export default function Lembar({
     () => (tpl ? sheetMissing({ levels: lv, concl: cl, verdict }, tpl.params) : []),
     [tpl, lv, cl, verdict],
   );
+  const own = useMemo(
+    () =>
+      tpl
+        ? extra.map((e): IvQuestion => ({
+            id: e.id,
+            g: "saya",
+            m: 0,
+            p: tpl.params[0]?.key ?? "",
+            t: { id: e.t, en: e.t },
+            h: null,
+            only: null,
+          }))
+        : [],
+    [tpl, extra],
+  );
   const list = useMemo(() => {
     if (!tpl) return [];
-    return tpl.questions.filter(
-      (q) =>
-        !q.only || (q.only === "fm" && data?.cond.fm) || (q.only === "lab" && ans._lab === "1"),
-    );
-  }, [tpl, data?.cond.fm, ans._lab]);
+    return tpl.questions
+      .filter(
+        (q) =>
+          !q.only || (q.only === "fm" && data?.cond.fm) || (q.only === "lab" && ans._lab === "1"),
+      )
+      .concat(own);
+  }, [tpl, data?.cond.fm, ans._lab, own]);
 
   if (fail)
     return (
@@ -399,87 +534,192 @@ export default function Lembar({
       </Dialog>
     );
 
+  const isOwn = (id: string) => extra.some((e) => e.id === id);
+  const skipped = (id: string) => (isOwn(id) ? ownSkip.includes(id) : skip.includes(id));
+  const toggleSkip = (id: string) => {
+    const set = isOwn(id) ? setOwnSkip : setSkip;
+    set((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  };
+  const valOf = (id: string) => (isOwn(id) ? (ownAns[id] ?? "") : (ans[id] ?? ""));
+  const setVal = (id: string, v: string) =>
+    isOwn(id) ? setOwnAns({ ...ownAns, [id]: v }) : setAns({ ...ans, [id]: v });
   const q = list[Math.min(qi, Math.max(0, list.length - 1))];
-  const doneQ = list.filter((x) => (ans[x.id] ?? "").trim() || skip.includes(x.id)).length;
+  const doneQ = list.filter((x) => valOf(x.id).trim() || skipped(x.id)).length;
+  const unanswered = list.length - doneQ;
   const plan = list.reduce((a, x) => a + x.m, 0);
   const upto = list.slice(0, qi + 1).reduce((a, x) => a + x.m, 0);
   const mySent = sent;
+  const allLv = tpl.params.every((p) => lv[p.key] != null);
   const sc = sheetScore(lv, tpl.params);
-  const suggested = verdictOf(sc, tpl.cut);
   const elapsed = started ? Math.max(0, Math.floor((now - new Date(started).getTime()) / 1000)) : 0;
   const over = started ? elapsed > tpl.minutes * 60 : false;
   const grup = (k: string) => {
+    if (k === "saya") return L.mine;
     const g = tpl.groups.find((x) => x.key === k);
     return g ? bi(g.label, lang) : k;
   };
+  const mate = data.pair.find((p) => p.nim !== data.me)?.kode ?? "";
+  const first = (data.candidate.nama ?? "").split(" ")[0];
   const doneParams = tpl.params.filter((p) => lv[p.key] != null && (cl[p.key] ?? "").trim()).length;
+  const simpulLeft = tpl.params.length - doneParams;
+  const hm = (iso: string) =>
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Jakarta",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(iso));
+  const dayLong = (iso: string) =>
+    new Intl.DateTimeFormat(localeOf(lang), {
+      timeZone: "Asia/Jakarta",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(new Date(iso));
+  const durText = (min: number) => `${Math.floor(min / 60)}:${pad(Math.round(min % 60))}:00`;
+  const durShort = (min: number) => `${Math.floor(min / 60)}:${pad(Math.round(min % 60))}`;
+  const verdictName = verdict ? w.mine.verdict[verdict] : "-";
+
   const steps: { v: Step; l: string; sub: string; ok: boolean }[] = [
     ...(tpl.questions.length
       ? [
           {
             v: "tanya" as Step,
-            l: t.steps[0],
-            sub: t.of(doneQ, list.length),
-            ok: doneQ === list.length,
+            l: L.steps[0],
+            sub: L.ofN(doneQ, list.length),
+            ok: unanswered === 0,
           },
         ]
       : []),
     {
       v: "simpul",
-      l: t.steps[1],
-      sub: t.of(doneParams, tpl.params.length),
-      ok: doneParams === tpl.params.length,
+      l: L.steps[1],
+      sub: L.ofN(doneParams, tpl.params.length),
+      ok: simpulLeft === 0,
     },
-    { v: "putus", l: t.steps[2], sub: verdict ? w.mine.verdict[verdict] : "-", ok: !!verdict },
+    { v: "putus", l: L.steps[2], sub: verdict ? verdictName : L.notYet, ok: !!verdict },
   ];
 
+  const geser = (s: Step) => {
+    if (s === step) return;
+    slide(1);
+    setStep(s);
+  };
+  const keQ = (i: number) => {
+    if (i === qi) return;
+    slide(i > qi ? 1 : -1);
+    setQi(Math.max(0, Math.min(list.length - 1, i)));
+  };
   const ring = (key: string) => {
     setMiss(key);
     setTimeout(() => {
       body.current
         ?.querySelector(`[data-key="${key}"]`)
-        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+        ?.scrollIntoView({ block: "center", behavior: calm() ? "auto" : "smooth" });
     }, 80);
     setTimeout(() => setMiss(null), 1500);
   };
   const kirim = async () => {
     if (missing.length) {
       const m = missing[0];
-      setStep(m === "verdict" ? "putus" : "simpul");
+      geser(m === "verdict" ? "putus" : "simpul");
       ring(m);
       return;
     }
     if (!(await flush())) return toast(t.saveFail, "warn");
+    if (mySent) return toast(L.changesSaved);
     const r = await recPost<{ ok: true }>("iv-sheet-send", { stage, id });
     if (isFail(r)) return toast(w.err[r.kode] ?? r.kode, "danger");
     const fresh = await fetchIvSheet(stage, id);
     if (!isFail(fresh)) setData(fresh);
     setSent(true);
-    toast(t.sent);
+    setView("sent");
   };
-  const buka = async () => {
+  const tarik = async () => {
     const r = await recPost<{ ok: true }>("iv-sheet-reopen", { stage, id });
     if (isFail(r)) return toast(w.err[r.kode] ?? r.kode, "danger");
     setSent(false);
-    setStep("putus");
+    setView("sheet");
+    toast(L.withdrawn(mate), "warn");
   };
   const mulai = async () => {
     const r = await recPost<{ ok: true }>("iv-sheet-save", { stage, id, shared: { start: true } });
     if (isFail(r)) return toast(w.err[r.kode] ?? r.kode, "danger");
     setStarted(new Date().toISOString());
   };
+  const tambahKartu = () => {
+    const tx = ownText.trim();
+    if (!tx) return;
+    let n = extra.length + 1;
+    while (extra.some((e) => e.id === `x${n}`)) n++;
+    setExtra([...extra, { id: `x${n}`, t: tx }]);
+    setOwnText("");
+    toast(L.ownAdded);
+    setTimeout(() => setQi(list.length), 0);
+  };
+  const tambahBa = (tx: string) => setBa((ba ? `${ba}\n` : "") + tx + ".");
+  const catatTenggat = () => {
+    tambahBa(L.vidBa(vid.at).replace(/\.$/, ""));
+    setVid({ ...vid, ok: true });
+    toast(L.vidToast(vid.at, first));
+  };
 
-  const slotJam = `${wibJam(data.slot.startsAt)} - ${wibJam(data.slot.endsAt)}`;
+  const slotFrom = hm(data.slot.startsAt);
+  const slotTo = hm(data.slot.endsAt);
+  const subLine = `${data.slot.room} · ${L.sub(dayLong(data.slot.startsAt), slotFrom, slotTo)}`;
   const savedLabel =
-    save === "saving" ? t.saving : save === "fail" ? t.saveFail : save === "saved" ? t.saved : "";
-  const sisa = data.pair.filter((p) => !p.sent && p.nim !== data.me).length;
+    save === "saving"
+      ? t.saving
+      : save === "fail"
+        ? t.saveFail
+        : save === "saved"
+          ? L.saved(hm(new Date(now).toISOString()))
+          : "";
+  const nextSlot = mine.data?.slots
+    .filter((s) => s.role === "penguji" && Date.parse(s.startsAt) > Date.parse(data.slot.startsAt))
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
+  const nextBooth = nextSlot?.booths.find((b) => b.mine);
+
+  const files = (
+    <span className="r4files">
+      <Popover
+        open={fopen}
+        onOpenChange={setFopen}
+        trigger={
+          <button type="button" className="btn btn--ghost btn--sm">
+            <FileTextIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{L.files}</span>
+          </button>
+        }
+      >
+        <div className="stack stack--sm">
+          <b>{L.filesOf(first)}</b>
+          <span className="hint">{L.filesHint}</span>
+          {data.files.length === 0 && <span className="hint">{L.filesNone}</span>}
+          {data.files.map((f) => (
+            <a
+              key={f.id}
+              className="r4pick__o"
+              href={`/api/recruitment/berkas?id=${f.id}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <FileTextIcon size={18} aria-hidden="true" />
+              <b>{bi(f.label, lang)}</b>
+              <ArrowSquareOutIcon size={18} aria-hidden="true" />
+            </a>
+          ))}
+        </div>
+      </Popover>
+    </span>
+  );
 
   const head = (
     <header className="r4cand">
       <div className="stack" style={{ gap: 2, minWidth: 0 }}>
         <span className="eyebrow rec-eyebrow num">
-          {stage === "wawancara" ? `${w.mine.booth(data.slot.booth)} · ` : ""}
-          {data.slot.room} · {slotJam}
+          {L.eyebrow(data.slot.booth, data.slot.room, slotFrom, slotTo, stage)}
         </span>
         <h2 className="h2 r4cand__n">{data.candidate.nama}</h2>
         <span className="hint mono">
@@ -487,57 +727,63 @@ export default function Lembar({
         </span>
       </div>
       <div className="r4cand__side">
-        <span className="r4pair">
-          {data.pair.map((p, i) => (
-            <span
-              key={p.nim}
-              className={`acode${p.nim === data.me ? " acode--me" : ""}`}
-              title={p.sent ? t.sent : ""}
-            >
-              {i > 0 && <span className="r4pair__s">/</span>}
-              {p.kode}
-            </span>
-          ))}
-        </span>
+        <Tooltip label={L.pairTip}>
+          <span className="r4pair">
+            {data.pair.map((p, i) => (
+              <Fragment key={p.nim}>
+                {i > 0 && <span className="r4pair__s">/</span>}
+                <span className={`acode${p.nim === data.me ? " acode--me" : ""}`}>{p.kode}</span>
+              </Fragment>
+            ))}
+          </span>
+        </Tooltip>
+        {data.here && <Pill tone="ok">{L.here(hm(data.here))}</Pill>}
+        {files}
         <button
           type="button"
           className="r4rec"
           aria-pressed={rec}
-          title={t.recTip}
+          data-warn={!rec && !!started ? "yes" : undefined}
+          title={L.recTip}
           disabled={locked}
           onClick={() => setRec(!rec)}
         >
-          <span>{rec ? t.recOn : t.recOff}</span>
+          <RecordIcon size={18} aria-hidden="true" />
+          <span>{rec ? L.recOn : L.recOff}</span>
         </button>
-        {started ? (
-          <span
-            className="r4clock"
-            data-over={over ? "yes" : undefined}
-            role="timer"
-            aria-label={t.clock}
-          >
-            <b className="num">{clock(elapsed)}</b>
-            <span className="hint num">/ {tpl.minutes}′</span>
-          </span>
-        ) : (
-          !mySent &&
-          !locked && (
-            <button type="button" className="btn btn--inverse btn--sm" onClick={() => void mulai()}>
-              {t.start}
-            </button>
-          )
-        )}
-        {!locked && (
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setKasus(true)}>
-            {t.special}
-          </button>
-        )}
+        {!mySent &&
+          (started ? (
+            <span
+              className="r4clock"
+              data-over={over ? "yes" : undefined}
+              role="timer"
+              aria-label={L.clock}
+            >
+              <b className="num">{clock(elapsed)}</b>
+              <span
+                className="hint num"
+                title={L.clockTip(durText(tpl.minutes), durText(tpl.maxMinutes))}
+              >
+                {L.clockOf(durShort(tpl.minutes))}
+              </span>
+            </span>
+          ) : (
+            !locked && (
+              <button
+                type="button"
+                className="btn btn--inverse btn--sm"
+                onClick={() => void mulai()}
+              >
+                <span className="btn__label">{L.start}</span>
+              </button>
+            )
+          ))}
       </div>
     </header>
   );
 
   const nav = (
-    <nav className="r4steps" role="tablist" aria-label={w.title[stage]}>
+    <nav className="r4steps" role="tablist" aria-label={L.stepsAria}>
       {steps.map((s, i) => (
         <button
           key={s.v}
@@ -546,9 +792,11 @@ export default function Lembar({
           className="r4steps__b"
           aria-selected={step === s.v}
           data-ok={s.ok ? "yes" : undefined}
-          onClick={() => setStep(s.v)}
+          onClick={() => geser(s.v)}
         >
-          <span className="r4steps__n">{s.ok ? "✓" : i + 1}</span>
+          <span className="r4steps__n">
+            {s.ok ? <CheckIcon size={16} weight="bold" aria-hidden="true" /> : i + 1}
+          </span>
           <span className="stack" style={{ gap: 0, minWidth: 0 }}>
             <b>{s.l}</b>
             <span className="hint num">{s.sub}</span>
@@ -559,70 +807,113 @@ export default function Lembar({
   );
 
   let lastG: string | null = null;
-  const tanya = (
-    <div className="r4qa">
-      <aside className="r4rail" aria-label={t.questions}>
-        <div className="r4rail__sum">
-          <b className="num">
-            {doneQ}/{list.length}
-          </b>
-          <span className="hint num">{t.planned(Math.round(upto), Math.round(plan))}</span>
-          <span className="r4rail__bar">
-            <i
-              style={{ width: `${Math.min(100, (upto / Math.max(1, tpl.minutes)) * 100)}%` }}
-              data-over={plan > tpl.minutes ? "yes" : undefined}
-            />
-          </span>
-        </div>
-        <ol className="r4rail__l">
-          {list.map((x, i) => {
-            const g = x.g !== lastG;
-            lastG = x.g;
-            const st = skip.includes(x.id) ? "skip" : (ans[x.id] ?? "").trim() ? "done" : "todo";
-            return (
-              <li key={x.id} style={{ display: "contents" }}>
-                {g && (
-                  <span className="r4rail__g" aria-hidden="true">
-                    {grup(x.g)}
-                  </span>
-                )}
+  const narrow = typeof window !== "undefined" && window.innerWidth < 900;
+  const rail = (
+    <aside className="r4rail" aria-label={L.rail}>
+      <div className="r4rail__sum">
+        <b className="num">
+          {doneQ}/{list.length}
+        </b>
+        <span className="hint num">
+          {L.planned(Math.round(upto * 10) / 10, Math.round(plan * 10) / 10)}
+        </span>
+        <span className="r4rail__bar">
+          <i
+            style={{ width: `${Math.min(100, (upto / Math.max(1, tpl.minutes)) * 100)}%` }}
+            data-over={plan > tpl.minutes ? "yes" : undefined}
+          />
+        </span>
+      </div>
+      <ol className="r4rail__l">
+        {list.map((x, i) => {
+          const g = x.g !== lastG;
+          lastG = x.g;
+          const st = skipped(x.id) ? "skip" : valOf(x.id).trim() ? "done" : "todo";
+          return (
+            <Fragment key={x.id}>
+              {g && (
+                <li className="r4rail__g" aria-hidden="true">
+                  {grup(x.g)}
+                </li>
+              )}
+              <li>
                 <button
                   type="button"
                   className="r4rail__b"
                   data-st={st}
                   aria-current={i === qi ? "step" : undefined}
-                  onClick={() => setQi(i)}
+                  onClick={() => keQ(i)}
                 >
                   <span className="r4rail__d" aria-hidden="true" />
                   <span className="r4rail__t">{bi(x.t, lang)}</span>
-                  {x.only && <span className="r4rail__k">{t.onlyFm}</span>}
-                  {x.m ? <span className="hint num">{x.m}′</span> : null}
+                  {x.only && <span className="r4rail__k">{L.special.toLowerCase()}</span>}
+                  {x.m ? <span className="hint num">{x.m}′</span> : ""}
                 </button>
               </li>
-            );
-          })}
-        </ol>
-        {!locked && (
-          <label className="check" style={{ marginTop: 8 }}>
-            <input
-              type="checkbox"
-              checked={ans._lab === "1"}
-              onChange={(e) => setAns({ ...ans, _lab: e.target.checked ? "1" : "" })}
-            />
-            <span>{t.labToggle}</span>
-          </label>
-        )}
-      </aside>
+            </Fragment>
+          );
+        })}
+      </ol>
+      {!locked && (
+        <div className="r4own">
+          <input
+            className="field__input input"
+            value={ownText}
+            onChange={(e) => setOwnText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && tambahKartu()}
+            placeholder={L.own}
+            aria-label={L.ownAria}
+          />
+          <IconButton
+            icon={PlusIcon}
+            label={L.ownAdd}
+            onClick={tambahKartu}
+            disabled={!ownText.trim()}
+          />
+        </div>
+      )}
+      {!locked && (
+        <label className="check" style={{ marginTop: 8 }}>
+          <input
+            type="checkbox"
+            checked={ans._lab === "1"}
+            onChange={(e) => setAns({ ...ans, _lab: e.target.checked ? "1" : "" })}
+          />
+          <span>{L.labToggle}</span>
+        </label>
+      )}
+    </aside>
+  );
+  const pilih = narrow && list.length > 0 && (
+    <Dropdown
+      id="iv-q-pick"
+      label={L.steps[0]}
+      hideLabel
+      value={String(qi)}
+      onChange={(v) => keQ(Number(v))}
+      options={list.map((x, i) => ({ value: String(i), label: `${i + 1}. ${bi(x.t, lang)}` }))}
+    />
+  );
+
+  const tanya = (
+    <div className="r4qa">
+      {!narrow && rail}
       <div className="stack" style={{ minWidth: 0 }}>
+        {pilih}
         {q && (
           <section className="panel r4qc" data-key="q">
             <div className="row r4qc__top">
               <span className="eyebrow num">
-                {t.of(Math.min(qi, list.length - 1) + 1, list.length)} · {grup(q.g)}
+                {L.qEyebrow(Math.min(qi, list.length - 1) + 1, list.length, grup(q.g))}
               </span>
               <span className="grow" />
-              {q.only && <Pill tone="warn">{t.onlyFm}</Pill>}
-              {q.m ? <Pill>{q.m}′</Pill> : null}
+              {q.only && <Pill tone="warn">{L.special}</Pill>}
+              {q.g === "inggris" && <Pill>{L.en}</Pill>}
+              {q.m ? (
+                <Pill>
+                  <TimerIcon size={14} aria-hidden="true" /> {L.about(q.m)}
+                </Pill>
+              ) : null}
             </div>
             <h3 className="h2 r4qc__t">{bi(q.t, lang)}</h3>
             {q.h && (
@@ -630,74 +921,49 @@ export default function Lembar({
                 <span>{bi(q.h, lang)}</span>
               </div>
             )}
+            {q.only && <span className="hint">{L.shownBecause(L.cond[q.only])}</span>}
             {q.reveal && (
               <div className="r4reveal">
                 {score && data.scores ? (
                   <div className="rec-sum">
-                    <span className="hint">{t.reveal}</span>
+                    <span className="hint">{L.revealTotal}</span>
                     <b className="num">{data.scores.total ?? "-"}</b>
+                    {data.scores.rank !== null && (
+                      <>
+                        <span className="hint">{L.revealRank}</span>
+                        <b className="num">
+                          {data.scores.rank} {L.revealOf(data.scores.of)}
+                        </b>
+                      </>
+                    )}
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    className="btn btn--inverse btn--sm"
-                    onClick={() => setScore(true)}
-                  >
-                    {t.revealBtn}
+                  <button type="button" className="btn btn--inverse" onClick={() => setScore(true)}>
+                    <EyeIcon size={18} aria-hidden="true" />
+                    <span className="btn__label">{L.revealBtn}</span>
                   </button>
                 )}
+                <span className="hint">{L.revealHint}</span>
               </div>
             )}
             <label className="stack stack--sm">
-              <span className="hint">{t.answer}</span>
+              <span className="hint">{L.answer}</span>
               <textarea
                 className="field__input r4qc__a"
                 rows={6}
-                value={ans[q.id] ?? ""}
-                disabled={skip.includes(q.id) || locked}
-                placeholder={t.answerPh}
-                onChange={(e) => setAns({ ...ans, [q.id]: e.target.value })}
+                value={valOf(q.id)}
+                disabled={skipped(q.id) || locked}
+                placeholder={skipped(q.id) ? L.skippedPh : L.answerPh}
+                onChange={(e) => setVal(q.id, e.target.value)}
               />
             </label>
-            <div className="row" style={{ gap: 8 }}>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                disabled={locked}
-                onClick={() =>
-                  setSkip(skip.includes(q.id) ? skip.filter((x) => x !== q.id) : [...skip, q.id])
-                }
-              >
-                {skip.includes(q.id) ? t.unskip : t.skip}
-              </button>
-              <span className="grow" />
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                disabled={qi === 0}
-                onClick={() => setQi(qi - 1)}
-              >
-                {t.prev}
-              </button>
-              {qi < list.length - 1 ? (
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
-                  onClick={() => setQi(qi + 1)}
-                >
-                  {t.next}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
-                  onClick={() => setStep("simpul")}
-                >
-                  {t.toConcl}
-                </button>
-              )}
-            </div>
           </section>
+        )}
+        {mate && (
+          <div className="rec-note r4mate">
+            <span className="r4mate__d" aria-hidden="true" />
+            <span>{partnerAt ? L.mateLive(mate) : L.mate(mate)}</span>
+          </div>
         )}
       </div>
     </div>
@@ -705,9 +971,11 @@ export default function Lembar({
 
   const simpul = (
     <div className="stack r4par">
-      <div className="rec-note">
-        <span>{tpl.hideLevels ? t.levelHint : ""}</span>
-      </div>
+      {tpl.hideLevels && mate && (
+        <div className="rec-note">
+          <span>{L.levelHint(mate)}</span>
+        </div>
+      )}
       {tpl.params.map((p) => {
         const levels = Array.from({ length: p.max - p.min + 1 }, (_, i) => p.min + i);
         const v = lv[p.key];
@@ -718,17 +986,10 @@ export default function Lembar({
             data-done={v != null && (cl[p.key] ?? "").trim() ? "yes" : undefined}
           >
             <div className="row row--between" style={{ gap: 8 }}>
-              <h3 className="h3">
-                {bi(p.label, lang)}{" "}
-                {p.example && (
-                  <Pill tone="warn" title={w.tpl.exampleTip}>
-                    {w.tpl.example}
-                  </Pill>
-                )}
-              </h3>
+              <h3 className="h3">{bi(p.label, lang)}</h3>
               <span className="r4row__v">
                 {v == null ? (
-                  <span className="hint">-</span>
+                  <span className="hint">{L.notYet}</span>
                 ) : (
                   <>
                     <b className="num">{v}</b> <span>{bi(tpl.levels[v - p.min], lang)}</span>
@@ -749,7 +1010,7 @@ export default function Lembar({
               data-miss={miss === `lv-${p.key}` ? "yes" : undefined}
               data-set={v != null ? "yes" : undefined}
             >
-              <span className="hint">{t.levels}</span>
+              <span className="hint">{L.myLevel}</span>
               <div className="r4seg" role="radiogroup" aria-label={bi(p.label, lang)}>
                 {levels.map((n) => (
                   <button
@@ -773,13 +1034,13 @@ export default function Lembar({
               data-key={`cl-${p.key}`}
               data-miss={miss === `cl-${p.key}` ? "yes" : undefined}
             >
-              <span className="hint">{t.concl}</span>
+              <span className="hint">{L.sharedConcl}</span>
               <textarea
                 className="field__input"
                 rows={2}
                 value={cl[p.key] ?? ""}
                 disabled={locked}
-                placeholder={t.conclPh(bi(p.eg, lang))}
+                placeholder={bi(p.eg, lang)}
                 onChange={(e) => setCl({ ...cl, [p.key]: e.target.value })}
               />
             </label>
@@ -788,13 +1049,13 @@ export default function Lembar({
       })}
       <section className="panel r4p">
         <label className="stack stack--sm">
-          <h3 className="h3">{t.other}</h3>
+          <h3 className="h3">{L.other}</h3>
           <textarea
             className="field__input"
             rows={3}
             value={other}
             disabled={locked}
-            placeholder={t.otherPh}
+            placeholder={L.otherPh}
             onChange={(e) => setOther(e.target.value)}
           />
         </label>
@@ -802,6 +1063,8 @@ export default function Lembar({
     </div>
   );
 
+  const VICON = { lolos: CheckCircleIcon, ragu: QuestionIcon, cut: XCircleIcon } as const;
+  const kurangSimpul = missing.filter((m) => m !== "verdict").length;
   const putus = (
     <div className="r4end">
       <section
@@ -809,121 +1072,366 @@ export default function Lembar({
         data-key="verdict"
         data-miss={miss === "verdict" ? "yes" : undefined}
       >
-        <h3 className="h3">{t.verdict}</h3>
-        <div className="r4verd" role="radiogroup" aria-label={t.verdict}>
-          {VERDICTS.map((x) => (
-            <button
-              key={x}
-              type="button"
-              role="radio"
-              className="r4verd__b"
-              data-t={x === "lolos" ? "ok" : x === "ragu" ? "warn" : "danger"}
-              aria-checked={verdict === x}
-              disabled={locked}
-              onClick={() => setVerdict(x)}
-            >
-              <b>{w.mine.verdict[x]}</b>
+        <h3 className="h3">{L.verdictTitle}</h3>
+        <div className="r4verd" role="radiogroup" aria-label={L.steps[2]}>
+          {VERDICTS.map((x) => {
+            const Ic = VICON[x];
+            return (
+              <button
+                key={x}
+                type="button"
+                role="radio"
+                className="r4verd__b"
+                data-t={x === "lolos" ? "ok" : x === "ragu" ? "warn" : "danger"}
+                aria-checked={verdict === x}
+                disabled={locked}
+                onClick={() => setVerdict(x)}
+              >
+                <Ic size={28} aria-hidden="true" />
+                <b>{w.mine.verdict[x]}</b>
+              </button>
+            );
+          })}
+        </div>
+        <span className="hint">{L.verdictHint(mate)}</span>
+      </section>
+      <section className="panel r4p">
+        <h3 className="h3">{L.ba}</h3>
+        <div className="rec-chips">
+          {L.baChips.map((x) => (
+            <button key={x} type="button" className="chipbtn" onClick={() => tambahBa(x)}>
+              {x}
             </button>
           ))}
         </div>
-        {tpl.params.every((p) => lv[p.key] != null) && (
-          <span className="hint">
-            {sc}/100 · {w.mine.verdict[suggested]}
-          </span>
-        )}
-      </section>
-      <section className="panel r4p">
-        <h3 className="h3">{t.ba}</h3>
         <textarea
           className="field__input"
           rows={3}
           value={ba}
           disabled={locked}
-          placeholder={t.baPh}
+          placeholder={L.baPh}
           onChange={(e) => setBa(e.target.value)}
         />
+        {!locked && (
+          <span>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setKasus(true)}>
+              <WarningIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{L.caseBtn}</span>
+            </button>
+          </span>
+        )}
       </section>
-      {data.shared?.case && (
-        <div className="rec-note rec-note--warn">
-          <b>
-            {data.shared.case.status === "gugur"
-              ? w.mine.caseGugur
-              : data.shared.case.status === "susulan"
-                ? w.mine.caseSusulan
-                : w.kasus.tag.carry}
-          </b>
-          <span>{w.kasus.out[data.shared.case.note as keyof typeof w.kasus.out] ?? ""}</span>
-        </div>
-      )}
-      {mySent && (
-        <div className="rec-note">
-          <b>{t.sent}</b>
-          <span>{t.sentBody}</span>
-          <span>{sisa > 0 ? t.waitMate(sisa) : t.allSent}</span>
-        </div>
-      )}
-      {data.others.length > 0 && (
-        <section className="panel r4p">
-          <h3 className="h3">{t.mates}</h3>
-          <ul className="r4sum__l">
-            {data.others.map((o) => (
-              <li key={o.kode} data-ok="yes">
-                <span>
-                  {o.kode}: {sheetScore(o.levels, tpl.params)}/100
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <section className="panel r4sum">
+        <h3 className="h3">{L.before}</h3>
+        <ul className="r4sum__l">
+          <li data-ok={unanswered === 0 ? "yes" : "warn"}>
+            {unanswered === 0 ? (
+              <CheckCircleIcon size={18} aria-hidden="true" />
+            ) : (
+              <WarningIcon size={18} aria-hidden="true" />
+            )}
+            <span>{unanswered === 0 ? L.chkAll : L.chkQ(unanswered)}</span>
+          </li>
+          <li data-ok={kurangSimpul ? "no" : "yes"}>
+            {kurangSimpul ? (
+              <XCircleIcon size={18} aria-hidden="true" />
+            ) : (
+              <CheckCircleIcon size={18} aria-hidden="true" />
+            )}
+            <span>{kurangSimpul ? L.chkConcl(kurangSimpul) : L.chkConclOk}</span>
+          </li>
+          <li data-ok={verdict ? "yes" : "no"}>
+            {verdict ? (
+              <CheckCircleIcon size={18} aria-hidden="true" />
+            ) : (
+              <XCircleIcon size={18} aria-hidden="true" />
+            )}
+            <span>{verdict ? L.chkVerdict(verdictName) : L.chkNoVerdict}</span>
+          </li>
+          <li data-ok={rec ? "yes" : "warn"}>
+            {rec ? (
+              <CheckCircleIcon size={18} aria-hidden="true" />
+            ) : (
+              <WarningIcon size={18} aria-hidden="true" />
+            )}
+            <span>{rec ? L.chkRecOn : L.chkRecOff}</span>
+          </li>
+        </ul>
+      </section>
     </div>
   );
 
-  const aksi = locked ? null : mySent ? (
-    <button type="button" className="btn btn--ghost" onClick={() => void buka()}>
-      {t.reopen}
-    </button>
-  ) : (
-    <button type="button" className="btn btn--primary" onClick={() => void kirim()}>
-      {missing.length ? `${t.send} · ${missing.length}` : t.send}
-    </button>
+  const sentView = (
+    <div className="r4sent" data-rv>
+      <span className="r4sent__ic" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="28" pathLength="100" />
+          <path d="M20 33 l8 8 l16 -18" pathLength="100" />
+        </svg>
+      </span>
+      <h2 className="h2">{L.sentTitle(first)}</h2>
+      <p className="hint">
+        {L.sentBody(
+          verdictName,
+          allLv ? sc : 0,
+          PN[lang].cuttingOf[stage],
+          data.cutting ? dayLong(`${data.cutting}T12:00:00+07:00`) : null,
+        )}
+      </p>
+      <section className="panel r4next r4vid">
+        <span className="eyebrow">{L.vidEyebrow}</span>
+        <b>{L.vidTitle}</b>
+        <span className="hint">{L.vidBody}</span>
+        <div className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span className="hint">{L.vidClass}</span>
+          <div className="r4yn" role="radiogroup" aria-label={L.vidClass}>
+            {(
+              [
+                ["tidak", L.no],
+                ["ya", L.yes],
+              ] as const
+            ).map(([x, l]) => (
+              <button
+                key={x}
+                type="button"
+                role="radio"
+                className="r4yn__b"
+                aria-checked={vid.kelas === x}
+                onClick={() => setVid({ ...vid, kelas: x, ok: false })}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        {vid.kelas && (
+          <div className="row" style={{ gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <span className="hint">{L.vidDeadline}</span>
+            {vid.kelas === "tidak" ? (
+              <>
+                <b className="num">{vid.at} WIB</b>
+                <span className="hint">{L.vidPlus}</span>
+              </>
+            ) : (
+              <>
+                <input
+                  className="field__input input r4vid__t"
+                  type="time"
+                  value={vid.at}
+                  onChange={(e) => setVid({ ...vid, at: e.target.value, ok: false })}
+                  aria-label={L.vidDeadline}
+                />
+                <span className="hint">{L.vidAdjust}</span>
+              </>
+            )}
+            <span className="grow" />
+            <button
+              type="button"
+              className={`btn ${vid.ok ? "btn--ghost" : "btn--primary"}`}
+              disabled={vid.ok}
+              onClick={catatTenggat}
+            >
+              {vid.ok ? (
+                <CheckIcon size={18} aria-hidden="true" />
+              ) : (
+                <PaperPlaneTiltIcon size={18} aria-hidden="true" />
+              )}
+              <span className="btn__label">{vid.ok ? L.vidDone : L.vidTell}</span>
+            </button>
+          </div>
+        )}
+      </section>
+      {nextSlot && nextBooth && (
+        <div className="panel r4next">
+          <span className="eyebrow">{L.nextEyebrow}</span>
+          <div className="row row--between" style={{ gap: 10, flexWrap: "wrap" }}>
+            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <b className="r4next__n">
+                {nextSlot.room}
+                {stage === "wawancara" ? ` · ${L.nextBooth} ${nextBooth.index + 1}` : ""}
+              </b>
+              <span className="hint num">
+                {L.sub(dayLong(nextSlot.startsAt), hm(nextSlot.startsAt), hm(nextSlot.endsAt))}
+                {nextBooth.pair.length ? ` · ${L.withLabel} ${nextBooth.pair.join(", ")}` : ""}
+              </span>
+            </span>
+          </div>
+        </div>
+      )}
+      <div className="row r4sent__acts">
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={() => {
+            setView("sheet");
+            setStep("putus");
+          }}
+        >
+          {L.editSheet}
+        </button>
+        <button type="button" className="btn btn--primary" onClick={onClose}>
+          {L.backSlots}
+        </button>
+      </div>
+    </div>
   );
+  const kasusInfo = data.shared?.case ?? null;
+  const caseView = kasusInfo && (
+    <div className="r4sent r4sent--case" data-rv>
+      <span className="r4sent__ic r4sent__ic--w" aria-hidden="true">
+        <WarningIcon size={32} />
+      </span>
+      <h2 className="h2">
+        {kasusInfo.status === "gugur" ? L.caseGugur(first) : L.caseSusulan(first)}
+      </h2>
+      <p className="hint">
+        {kasusText(
+          w.kasus.out[kasusInfo.note as keyof typeof w.kasus.out] ?? "",
+          stage,
+          lang,
+          data.makeup
+            ? new Intl.DateTimeFormat(localeOf(lang), {
+                timeZone: "Asia/Jakarta",
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }).format(new Date(`${data.makeup}T12:00:00+07:00`))
+            : null,
+        )}
+      </p>
+      <p className="hint">{L.caseConfirm}</p>
+      <div className="row r4sent__acts">
+        <button type="button" className="btn btn--ghost" onClick={() => setView("sheet")}>
+          {L.caseUndo}
+        </button>
+        <button type="button" className="btn btn--primary" onClick={onClose}>
+          {L.backSlots}
+        </button>
+      </div>
+    </div>
+  );
+
+  const left = missing.length;
+  const nowSave = savedLabel
+    ? savedLabel
+    : mySent
+      ? L.sentAt(hm(data.mine.sentAt ?? new Date(now).toISOString()))
+      : Object.keys(ans).length || Object.keys(lv).length
+        ? L.saved(hm(new Date(now).toISOString()))
+        : L.empty;
+  const foot =
+    view !== "sheet" ? (
+      <>
+        <span className="grow" />
+        <button type="button" className="btn btn--ghost" onClick={onClose}>
+          {L.close}
+        </button>
+      </>
+    ) : (
+      <>
+        {mySent && !locked && (
+          <button type="button" className="btn btn--ghost" onClick={() => void tarik()}>
+            {L.withdraw}
+          </button>
+        )}
+        <span className="r4save hint" role="status">
+          {locked
+            ? t.locked
+            : partnerAt && save !== "saving" && save !== "fail"
+              ? t.partner
+              : nowSave}
+        </span>
+        <span className="grow" />
+        {allLv && (
+          <span className="r3score r4score">
+            <span className="hint">{L.mySheet}</span>
+            <b className="num">{sc}</b>
+            <span className="hint">/100</span>
+          </span>
+        )}
+        {step !== "tanya" && tpl.questions.length > 0 && (
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => geser(step === "putus" ? "simpul" : "tanya")}
+          >
+            <ArrowLeftIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{L.back}</span>
+          </button>
+        )}
+        {step === "tanya" && tpl.questions.length ? (
+          <>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              disabled={locked}
+              onClick={() => q && toggleSkip(q.id)}
+            >
+              {q && skipped(q.id) ? L.unskip : L.skip}
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              disabled={qi === 0}
+              onClick={() => keQ(qi - 1)}
+            >
+              <ArrowLeftIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{L.prev}</span>
+            </button>
+            {qi < list.length - 1 ? (
+              <button type="button" className="btn btn--primary" onClick={() => keQ(qi + 1)}>
+                <span className="btn__label">{L.next}</span>
+                <ArrowRightIcon size={18} aria-hidden="true" />
+              </button>
+            ) : (
+              <button type="button" className="btn btn--primary" onClick={() => geser("simpul")}>
+                <span className="btn__label">{L.toConcl}</span>
+                <ArrowRightIcon size={18} aria-hidden="true" />
+              </button>
+            )}
+          </>
+        ) : step === "simpul" ? (
+          <button
+            type="button"
+            className={`btn ${simpulLeft ? "btn--inverse" : "btn--primary"}`}
+            onClick={() => geser("putus")}
+          >
+            <span className="btn__label">{L.toVerdict}</span>
+            <ArrowRightIcon size={18} aria-hidden="true" />
+          </button>
+        ) : (
+          !locked && (
+            <button type="button" className="btn btn--primary" onClick={() => void kirim()}>
+              {mySent ? L.saveChanges : left ? L.sendLeft(left) : L.send}
+            </button>
+          )
+        )}
+      </>
+    );
 
   return (
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title={w.title[stage]}
-      description={`${data.slot.room} · ${slotJam}`}
+      title={L.title[stage]}
+      description={subLine}
       lang={lang}
       size="xl"
-      actions={
-        <>
-          <span className="r4save hint" role="status">
-            {locked
-              ? t.locked
-              : partnerAt && save !== "saving" && save !== "fail"
-                ? t.partner
-                : savedLabel}
-          </span>
-          <span className="grow" />
-          {tpl.params.every((p) => lv[p.key] != null) && (
-            <span className="r3score r4score">
-              <b className="num">{sc}</b>
-              <span className="hint">/100</span>
-            </span>
-          )}
-          {aksi}
-          <button type="button" className="btn btn--ghost" onClick={onClose}>
-            {t.close}
-          </button>
-        </>
-      }
+      actions={foot}
     >
       <div className="r4sheet" ref={body}>
-        {head}
-        {nav}
-        {step === "tanya" && tpl.questions.length ? tanya : step === "simpul" ? simpul : putus}
+        {view === "sent" ? (
+          sentView
+        ) : view === "kasus" && caseView ? (
+          caseView
+        ) : (
+          <>
+            {head}
+            {nav}
+            {step === "tanya" && tpl.questions.length ? tanya : step === "simpul" ? simpul : putus}
+          </>
+        )}
       </div>
       {kasus && (
         <Kasus
@@ -933,9 +1441,11 @@ export default function Lembar({
           onClose={() => setKasus(false)}
           onDone={() => {
             setKasus(false);
-            toast(w.kasus.tag.carry);
             void fetchIvSheet(stage, id).then((r) => {
-              if (!isFail(r)) setData(r);
+              if (isFail(r)) return;
+              setData(r);
+              if (r.shared?.case?.status) setView("kasus");
+              else toast(L.caseNoted);
             });
           }}
         />

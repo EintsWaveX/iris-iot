@@ -306,11 +306,11 @@ const ID: IvWords = {
   },
   kasus: {
     title: "Kasus Khusus",
-    desc: (n) => `Untuk ${n}. Pilih yang terjadi; ini aturan bawaan template.`,
+    desc: (n) => `Untuk ${n}. Pilih yang terjadi; aturan bawaan template {s}.`,
     kinds: {
       telat: "Terlambat",
       absen: "Tidak hadir",
-      sakit: "Sakit atau harus keluar saat sesi",
+      sakit: "Sakit atau harus keluar saat {s}",
       nametag: "Tidak membawa nametag",
       keluar: "Meninggalkan ruangan atau ke kamar mandi",
     },
@@ -332,13 +332,14 @@ const ID: IvWords = {
     out: {
       grace: "Masih dalam toleransi. Tidak ada tambahan waktu. Lanjutkan; dicatat di berita acara.",
       late_gugur:
-        "Lewat toleransi tanpa alasan akademik atau musibah: dinyatakan GUGUR. PJ luar ruangan mengonfirmasi ke PJ dulu.",
+        "Lewat toleransi tanpa alasan musibah atau akademik: dinyatakan GUGUR. PJ luar ruangan mengonfirmasi ke PJ {s} dulu.",
       late_susulan:
-        "Lewat toleransi karena akademik atau musibah: bisa ikut Susulan. PJ luar ruangan mengonfirmasi ke PJ.",
-      absen_gugur: "Tidak hadir tanpa alasan yang sah: dinyatakan GUGUR. Dikonfirmasi PJ dulu.",
-      absen_susulan: "Izin dengan bukti: ditawari Susulan. Izin harus masuk sebelum sesi mulai.",
+        "Lewat toleransi karena musibah atau akademik: bisa ikut Susulan {s}{d}. PJ luar ruangan mengonfirmasi ke PJ {s}.",
+      absen_gugur: "Tidak hadir tanpa alasan yang sah: dinyatakan GUGUR. Dikonfirmasi PJ {s} dulu.",
+      absen_susulan:
+        "Izin dengan bukti: ditawari Susulan {s}{d}. Izin harus masuk sebelum {s} dimulai.",
       sakit:
-        "Hentikan sesi dan izinkan CaAs keluar. Dia ditawari Susulan. Isian yang sudah masuk tetap tersimpan.",
+        "Hentikan {s} dan keluarkan CaAs. Dia ditawari Susulan {s}{d}. Jawaban yang sudah masuk tetap tersimpan.",
       nametag:
         "Tanyakan kenapa tidak membawa nametag dan catat. CaAs wajib menunjukkan KTM atau KTP.",
       keluar:
@@ -559,11 +560,11 @@ const EN: IvWords = {
   },
   kasus: {
     title: "Special Case",
-    desc: (n) => `For ${n}. Pick what happened; these are the template's default rules.`,
+    desc: (n) => `For ${n}. Pick what happened; these are the {s} template's default rules.`,
     kinds: {
       telat: "Late",
       absen: "Didn't come",
-      sakit: "Ill or has to leave mid-session",
+      sakit: "Ill or has to leave mid-{s}",
       nametag: "No name tag",
       keluar: "Left the room or went to the restroom",
     },
@@ -581,14 +582,14 @@ const EN: IvWords = {
     out: {
       grace: "Within the grace. No extra time. Carry on; it goes in the berita acara.",
       late_gugur:
-        "Past the grace with no class or misfortune reason: GUGUR. The outside PJ confirms with the PJ first.",
+        "Past the grace with no misfortune or class reason: GUGUR. The outside PJ confirms with PJ {s} first.",
       late_susulan:
-        "Past the grace for class or misfortune: can sit the makeup. The outside PJ confirms with the PJ.",
-      absen_gugur: "No valid reason: GUGUR. Confirmed with the PJ first.",
+        "Past the grace for misfortune or class: can sit the {s} makeup{d}. The outside PJ confirms with PJ {s}.",
+      absen_gugur: "No valid reason: GUGUR. Confirmed with PJ {s} first.",
       absen_susulan:
-        "Excused with proof: offered the makeup. Excuses must come in before the session starts.",
+        "Excused with proof: offered the {s} makeup{d}. Excuses must come in before the {s} starts.",
       sakit:
-        "Stop the session and let the CaAs leave. They are offered the makeup. Answers so far stay saved.",
+        "Stop the {s} and let the CaAs leave. They're offered the {s} makeup{d}. Answers so far stay saved.",
       nametag:
         "Ask why there is no name tag and note it. The CaAs must show a student or national ID.",
       keluar:
@@ -961,3 +962,18 @@ export const IV = (lang: Lang): IvWords => (lang === "id" ? ID : lang === "zh" ?
 
 /** The Indonesian or English half of a template text (Mandarin reads English). */
 export const bi = (x: Bi, lang: Lang): string => (lang === "id" ? x.id : x.en);
+
+/** The stage word the case texts use ({s}) and the makeup day after it ({d}, with its leading comma). */
+export const kasusText = (
+  txt: string,
+  stage: IvStage,
+  lang: Lang,
+  makeup: string | null,
+): string => {
+  const id = { wawancara: "Wawancara", mengajar: "Mengajar", tubes: "Presentasi" }[stage];
+  const en = { wawancara: "interview", mengajar: "teaching", tubes: "presentation" }[stage];
+  const zh = { wawancara: "面试", mengajar: "试讲", tubes: "展示" }[stage];
+  return txt
+    .replaceAll("{s}", lang === "id" ? id : lang === "zh" ? zh : en)
+    .replaceAll("{d}", makeup ? `, ${makeup}` : "");
+};

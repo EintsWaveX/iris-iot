@@ -2197,3 +2197,28 @@
     grid-template-columns: minmax(0, 1fr) auto auto;
   }
 }
+
+/* The tally strip (mockup rec2.css .r2tally), used by Penilaian */
+.r2tally {
+  display: grid;
+  gap: 10px;
+}
+.r2tally__nums {
+  display: flex;
+  gap: 10px 32px;
+  flex-wrap: wrap;
+}
+.r2tally__nums > span {
+  display: grid;
+}
+.r2tally__nums b {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.r2tally__nums b[data-t="ok"] {
+  color: var(--ok);
+}
+.r2tally__nums b[data-t="no"] {
+  color: var(--danger);
+}
