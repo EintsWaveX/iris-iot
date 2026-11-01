@@ -27,7 +27,7 @@ type Step = "tinjau" | "kode" | "konfirmasi";
 const TONE = { lolos: "ok", ragu: "warn", cut: "danger" } as const;
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 const tglJam = (iso: string, lang: Lang) =>
-  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", {
+  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
     timeZone: "Asia/Jakarta",
     day: "numeric",
     month: "long",
@@ -36,7 +36,7 @@ const tglJam = (iso: string, lang: Lang) =>
     minute: "2-digit",
   }).format(new Date(iso));
 const tgl = (iso: string, lang: Lang) =>
-  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", {
+  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
     timeZone: "Asia/Jakarta",
     day: "numeric",
     month: "long",

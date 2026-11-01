@@ -17,7 +17,7 @@ import { IV } from "./ivStrings";
 import "../../recruitment-r4.css";
 
 const hari = (iso: string, lang: Lang) =>
-  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", {
+  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
     timeZone: "Asia/Jakarta",
     weekday: "long",
     day: "numeric",
@@ -164,7 +164,7 @@ function Penilaian({
   const f1 = (v: number | null) =>
     v === null
       ? "-"
-      : v.toLocaleString(lang === "id" ? "id-ID" : "en-GB", {
+      : v.toLocaleString(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
           maximumFractionDigits: 1,
           minimumFractionDigits: 1,
         });

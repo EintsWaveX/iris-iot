@@ -1,6 +1,6 @@
 /**
  * Words for Penerimaan, Jadikan Asisten and closing the edition. Plain wording;
- * no em or en dashes. Mandarin is added last (the zh view reads the English).
+ * no em or en dashes.
  */
 import type { Lang } from "../../../../lib/kelas";
 
@@ -300,4 +300,106 @@ const EN: PnWords = {
   },
 };
 
-export const PNW = (lang: Lang): PnWords => (lang === "id" ? ID : EN);
+const ZH: PnWords = {
+  tab: "录取",
+  title: "录取",
+  lede: "通过试讲的 CaAs 的最终名单。主席审核、给每人分配代码，然后让他们成为助教。",
+  steps: ["审核", "代码", "确认"],
+  readOnly: "只有主席可以修改和确认这份名单。你只能查看。",
+  empty: "最终名单里还没有 CaAs",
+  emptyHint: "试讲淘汰筛选锁定、并且有人通过之后，名单才会出现。",
+  quota: (n, q) => `已录取 ${n} 人，目标约 ${q} 人`,
+  review: {
+    cols: {
+      name: "CaAs",
+      berkas: "材料",
+      tes: "笔试",
+      wawancara: "面试",
+      mengajar: "试讲",
+      decision: "决定",
+    },
+    accept: "录取",
+    reject: "不录取",
+    all: "全部",
+    inCount: (n, t) => `${t} 人中录取 ${n} 人`,
+    verdict: { lolos: "确定通过", ragu: "待定", cut: "确定淘汰" },
+    next: "去填代码",
+    promoted: "已是助教",
+  },
+  code: {
+    lede: "每位新助教都有一个唯一的三字母代码。建议代码由名字生成，确认之前你可以修改。",
+    col: "代码",
+    propose: "建议",
+    problem: {
+      kosong: "还没有代码",
+      format: "必须是三个字母",
+      ganda: "和另一行重复",
+      dipakai: "已被某位助教使用",
+    },
+    ok: "所有代码都已就绪",
+    fix: (n) => `${n} 个代码需要修改`,
+    saveFail: "代码没有保存成功。",
+    saved: "代码已保存。",
+    back: "返回",
+    next: "去确认",
+    placeholder: "ABC",
+    rule: "三个字母，唯一，没有被任何助教使用。",
+  },
+  confirm: {
+    title: "让他们成为助教",
+    summary: (a, b) => `${a} 位 CaAs 成为助教，${b} 位未被录取。`,
+    list: "将成为助教的人",
+    noDivision: "他们还没有分部；状态为在职。",
+    history: "他们的实验课学员记录会保留。",
+    twice: "运行两次不会重复创建任何人。",
+    audit: "会写入审计日志。",
+    envelope: (d) => `最终信封在 ${d} 开启。`,
+    hold: "长按以让他们成为助教",
+    holdHint: "按住按钮直到填满。这会创建助教账号并锁定最终信封。",
+    notKetua: "只有主席可以按这个按钮。",
+    blocked: (n) => `请先修改 ${n} 个代码。`,
+    back: "返回",
+  },
+  result: {
+    title: "成为助教的结果",
+    created: (n) => `已创建 ${n} 位新助教`,
+    already: "之前已经是助教",
+    nothing: "没有新的内容：全部都已经运行过了。",
+    rejected: (n) => `${n} 位 CaAs 未被录取；他们的信封里会告知这个消息。`,
+    codeAndNim: (c, n) => `${c} · ${n}`,
+    auditLine: "已写入审计日志。",
+    again: "已运行",
+    celebrate: "再庆祝一次",
+  },
+  celebrate: {
+    title: "欢迎新助教！",
+    sub: (n) => `${n} 人加入 IRIS 实验室`,
+    close: "关闭",
+  },
+  close: {
+    title: "关闭本届",
+    open: "本届仍然开放",
+    closed: "本届已关闭",
+    auto: (d, n) => `将在最终信封发出 ${n} 天后，即 ${d} 自动关闭。`,
+    noAuto: "最终信封有了开启时间之后，才会计算自动关闭。",
+    keep: (d, m) => `文件和答案保存 ${m} 个月，到 ${d} 为止，之后删除。`,
+    button: "立即关闭本届",
+    confirmTitle: "关闭这一届？",
+    confirmBody: "委员会的所有标签都会变成只读，数据保存期限开始计算。这里无法撤销。",
+    confirmLabel: "关闭本届",
+    done: "本届已关闭。",
+    byHand: (d) => `由主席于 ${d} 关闭。`,
+    banner: "本届已关闭。所有标签都是只读。",
+  },
+  err: {
+    tanpa_hak: "只有主席可以这样做。",
+    kode_bermasalah: "有些代码不对。",
+    sudah_dijadikan: "有些人已经是助教，他们的代码已锁定。",
+    tanpa_kandidat: "最终名单里还没有 CaAs。",
+    sudah_ditutup: "本届已经关闭。",
+    edisi_ditutup: "本届已关闭。",
+    offline: "没有网络连接。",
+  },
+};
+
+export const PNW = (lang: Lang): PnWords => (lang === "id" ? ID : lang === "zh" ? ZH : EN);

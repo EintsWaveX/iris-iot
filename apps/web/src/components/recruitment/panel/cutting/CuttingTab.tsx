@@ -815,9 +815,19 @@ export default function CuttingTab({
                   <th>{t.present}</th>
                   {ivStage ? (
                     <>
-                      <th className="num">{lang === "id" ? "Lembar" : "Sheets"}</th>
-                      <th className="num">{lang === "id" ? "Selisih" : "Spread"}</th>
-                      <th>{lang === "id" ? "Keputusan penguji" : "Examiners' verdict"}</th>
+                      <th className="num">
+                        {lang === "id" ? "Lembar" : lang === "zh" ? "评分表" : "Sheets"}
+                      </th>
+                      <th className="num">
+                        {lang === "id" ? "Selisih" : lang === "zh" ? "分歧" : "Spread"}
+                      </th>
+                      <th>
+                        {lang === "id"
+                          ? "Keputusan penguji"
+                          : lang === "zh"
+                            ? "考官的决定"
+                            : "Examiners' verdict"}
+                      </th>
                     </>
                   ) : (
                     <>
@@ -899,7 +909,9 @@ export default function CuttingTab({
                                   ? "Gugur"
                                   : lang === "id"
                                     ? "Susulan"
-                                    : "Makeup"}
+                                    : lang === "zh"
+                                      ? "补考"
+                                      : "Makeup"}
                               </Pill>
                             ) : c.iv?.verdict ? (
                               <Pill
