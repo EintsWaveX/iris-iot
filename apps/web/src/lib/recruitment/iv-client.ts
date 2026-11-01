@@ -4,7 +4,7 @@
  */
 import { usePoll } from "../hooks";
 import { isFail, recGet } from "./client";
-import type { IvStage, IvTemplate, Verdict, SheetLevels } from "./interview";
+import type { Bi, IvParam, IvStage, IvTemplate, Verdict, SheetLevels } from "./interview";
 
 export interface IvCandidate {
   id: number;
@@ -91,7 +91,21 @@ export interface IvSheetResponse {
   pair: { nim: string; kode: string; sent: boolean }[];
   me: string;
   cond: { fm: boolean };
-  scores: { total: number | null; parts: (number | null)[] } | null;
+  scores: {
+    total: number | null;
+    parts: (number | null)[];
+    /** Rank by Tes Tulis total among the candidates that have one */
+    rank: number | null;
+    of: number;
+  } | null;
+  /** The Susulan day of this stage from the Kalender (YYYY-MM-DD), or null */
+  makeup: string | null;
+  /** The day the Cutting of this stage starts (YYYY-MM-DD), until when a sheet can change */
+  cutting: string | null;
+  /** When the CaAs scanned in for this stage */
+  here: string | null;
+  /** The files the examiner may open (the Berkas button) */
+  files: { id: number; kind: string; label: Bi }[];
   locked: boolean;
   shared: IvSharedView | null;
   mine: { levels: Record<string, number>; sentAt: string | null };
@@ -111,15 +125,47 @@ export interface IvNilaiRow {
   verdict: Verdict | null;
   suggested: Verdict | null;
   case: { kind: string; status: "susulan" | "gugur" | null } | null;
+  /** Where and when this CaAs sat, the Tes Tulis total (Wawancara only, context), and the Rincian */
+  room: string | null;
+  startsAt: string | null;
+  booth: number | null;
+  total: number | null;
+  detail: { by: string; levels: Record<string, number>; at: string | null }[];
+  concl: Record<string, string>;
+  ba: string;
+  /** The examiners of this booth who have not sent yet */
+  waiting: string[];
 }
 
 export interface IvNilaiResponse {
   ok: true;
+  /** My own code, to mark my chips */
+  me: string | null;
   cut: [number, number];
   wide: number;
+  per: number;
+  params: IvParam[];
+  levels: Bi[];
   rows: IvNilaiRow[];
   penguji: { by: string; n: number; avg: number }[];
   avg: number | null;
+}
+
+/** What an examiner without the Penilaian right sees: only the sheets they sent themselves (Lembarku). */
+export interface IvLembarkuRow {
+  id: number;
+  nama: string;
+  room: string | null;
+  startsAt: string | null;
+  score: number;
+  verdict: Verdict | null;
+  /** Partner codes that have sent too; their levels stay hidden */
+  others: string[];
+}
+export interface IvLembarkuResponse {
+  ok: true;
+  mine: true;
+  rows: IvLembarkuRow[];
 }
 
 async function leaf<T extends { ok: true }>(
@@ -142,10 +188,10 @@ export const useIvCrew = (stage: IvStage, enabled = true) =>
 export const useIvMine = (stage: IvStage, enabled = true) =>
   usePoll(() => leaf<IvMineResponse>("iv-mine", { stage }), 300_000, enabled, TOPIK, 1_000, stage);
 
-/** Penilaian of a stage (Ketua, Akademik, Admin). */
+/** Penilaian of a stage (Ketua, Akademik, Admin), or Lembarku (my own sent sheets) for any other examiner. */
 export const useIvNilai = (stage: IvStage, enabled = true) =>
   usePoll(
-    () => leaf<IvNilaiResponse>("iv-nilai", { stage }),
+    () => leaf<IvNilaiResponse | IvLembarkuResponse>("iv-nilai", { stage }),
     300_000,
     enabled,
     TOPIK,
