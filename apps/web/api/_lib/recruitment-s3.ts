@@ -19,7 +19,6 @@ import { requireMethod } from "./http.js";
 import { currentSession, requireRole } from "./session.js";
 import { sesiOprec, wajibOprec } from "./recruitment-akun.js";
 import { handleBank } from "./recruitment-bank.js";
-import { handleLiveCode } from "./recruitment-livecode.js";
 import { handleLcc } from "./recruitment-lcc.js";
 import { handleRoom } from "./recruitment-room.js";
 import { handleScore } from "./recruitment-score.js";
@@ -36,8 +35,6 @@ export type S3Handler = (req: ApiRequest, res: ApiResponse, s: SessionPayload) =
 const OPREC_GET: Record<string, S3Handler> = {
   test: handleSeat,
   "test-ticket": handleSeat,
-  lc: handleLiveCode,
-  "lc-bin": handleLiveCode,
   lcc: handleLcc,
   ...S6_OPREC_GET,
   ...S7_OPREC_GET,
@@ -48,13 +45,7 @@ const OPREC_POST: Record<string, S3Handler> = {
   "test-strike": handleSeat,
   "test-submit": handleSeat,
   "test-hotspot": handleSeat,
-  "lc-spin": handleLiveCode,
   "lcc-send": handleLcc,
-  "lc-code": handleLiveCode,
-  "lc-board": handleLiveCode,
-  "lc-variant": handleLiveCode,
-  "lc-compile": handleLiveCode,
-  "lc-flash": handleLiveCode,
   ...S6_OPREC_POST,
   ...S7_OPREC_POST,
 };
@@ -62,7 +53,6 @@ const OPREC_POST: Record<string, S3Handler> = {
 /** A seat during its part or a Panitia member: the handler tells them apart. */
 const BERSAMA_GET: Record<string, S3Handler> = {
   media: handleBank,
-  "lc-ticket": handleLiveCode,
   ...S7_BERSAMA_GET,
 };
 
@@ -78,11 +68,7 @@ const ASISTEN_GET: Record<string, S3Handler> = {
   room: handleRoom,
   "room-ticket": handleRoom,
   "room-log": handleRoom,
-  "lc-room": handleLiveCode,
   "lcc-room": handleLcc,
-  "lc-rubric": handleLiveCode,
-  "lc-topics": handleLiveCode,
-  "lc-templates": handleLiveCode,
   scores: handleScore,
   "score-stats": handleScore,
   ...S4_GET,
@@ -107,13 +93,6 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "room-note": handleRoom,
   "room-kit": handleRoom,
   "room-move": handleRoom,
-  "lc-hotspot": handleLiveCode,
-  "lc-grade": handleLiveCode,
-  "lc-grade-withdraw": handleLiveCode,
-  "lc-topic-save": handleLiveCode,
-  "lc-topic-delete": handleLiveCode,
-  "lc-template-save": handleLiveCode,
-  "lc-rubric-save": handleLiveCode,
   "question-void": handleScore,
   "question-unvoid": handleScore,
   "score-finalize": handleScore,

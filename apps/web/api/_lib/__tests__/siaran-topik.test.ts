@@ -70,17 +70,11 @@ const BACA: Record<string, string[]> = {
     "slots",
     // S3 (2026-10-24), the reads of api/_lib/recruitment-s3.ts
     "test-ticket",
-    "lc-bin",
-    "lc-ticket",
     "exam-config",
     "bank-export",
     "room-ticket",
     "room-log",
-    "lc-room",
     "lcc-room",
-    "lc-rubric",
-    "lc-topics",
-    "lc-templates",
     "score-stats",
     // R4 and R6 (2026-11-01), api/_lib/recruitment-s4.ts
     "iv-crew",

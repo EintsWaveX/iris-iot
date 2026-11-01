@@ -30,7 +30,8 @@ import { ruangUjian } from "../../src/lib/recruitment/room-relay.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
 import { kirimRelay, terbitkan } from "./aliran.js";
 import type { Db } from "./recruitment-data.js";
-import { KLAIM_BASI_MS } from "./recruitment-lc-agent.js";
+/** A job claimed and unanswered this long goes back once, then fails agen_diam (9.4) */
+export const KLAIM_BASI_MS = 180_000;
 
 /** The protocol of the agent build that can judge (it reports `judge: true`) */
 export const PROTOKOL_JUDGE = 10;

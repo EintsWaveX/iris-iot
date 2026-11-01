@@ -38,13 +38,13 @@ import {
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
-import { ruangDinilai } from "./recruitment-lc-grade.js";
 import { bacaConfig } from "./recruitment-room.js";
 import {
   faseLc,
   muatGaram,
   muatKonteksSeat,
   nomorKursi,
+  ruangDinilai,
   tolakLc,
   type KonteksLc,
 } from "./recruitment-lc-common.js";

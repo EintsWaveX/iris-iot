@@ -1,44 +1,31 @@
 /**
- * What the Live Coding handlers share (prompt 12): the seat's context, the
- * gateway's secret and tokens, the hotspot a board uses, the seat's header and
- * its number in the room. Reads rows and asks the pure modules; it restates no
- * rule of the room's clock or the hotspot plan.
+ * What the Live Coding handlers share: the seat's context, the room's phase for
+ * Live Coding, the seat's number in the room, and who may grade a room. Reads
+ * rows and asks the pure modules; it restates no rule of the room's clock.
  */
-import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   recCandidate,
   recExamConfig,
+  recExamRoom,
   recExamSeat,
-  recKitLoan,
-  recLivecode,
   recSlot,
   recSlotAssignment,
-  server,
+  recSlotExaminer,
   type RecExamRoomRow,
   type RecExamSeatRow,
-  type RecLivecodeRow,
   type RecSlotRow,
 } from "../../src/lib/schema.js";
-import { PROTOCOLS } from "../../src/lib/recruitment/exam-types.js";
-import type { ExamConfig, Protocol, RoomState } from "../../src/lib/recruitment/exam-types.js";
+import type { ExamConfig, RoomState } from "../../src/lib/recruitment/exam-types.js";
 import { roomView } from "../../src/lib/recruitment/room.js";
-import {
-  planHotspots,
-  type HotspotPlan,
-  type SeatLoan,
-} from "../../src/lib/recruitment/hotspot.js";
-import type { KitBoard, RoomHotspot } from "../../src/lib/recruitment/room-types.js";
-import { buildHeader } from "../../src/lib/recruitment/lc-header.js";
-import { signLcClaim } from "../../src/lib/recruitment/lc-gateway.js";
-import { buka } from "./rahasia.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatKursiSendiri } from "./recruitment-seat.js";
-import { LABEL_HOTSPOT, muatConfig, sudahMasuk } from "./recruitment-room.js";
+import { muatConfig, sudahMasuk } from "./recruitment-room.js";
+import type { PelakuServer } from "./recruitment-rights.js";
 
-export const LABEL_MQTT = "rec-mqtt";
 const KURSI_STATUS: Record<string, number> = {
   belum_masuk: 403,
   bukan_peserta: 403,
@@ -50,17 +37,11 @@ const KURSI_STATUS: Record<string, number> = {
 export const tolakLc = (res: ApiResponse, kode: string, extra: Record<string, unknown> = {}) =>
   tolak(res, kode, KURSI_STATUS[kode] ?? 409, extra);
 
-/** The gateway Worker's shared secret (REC_GATEWAY_SECRET); null when it is not set up. */
-export function gatewaySecret(): string | null {
-  const s = process.env.REC_GATEWAY_SECRET?.trim();
-  return s && s.length >= 32 ? s : null;
-}
-
 /* ------------------------------------------------------------- the context */
 
 export type FaseLc = "belum" | "spin" | "kerja" | "usai" | "selesai";
 
-/** Where the room is for Live Coding: before the spins, spinning, the timer running, over, or finished. */
+/** Where the room is for Live Coding: before it, the timer running, over, or finished. */
 export function faseLc(state: RoomState, now: number): FaseLc {
   const { view, part } = roomView(state, now);
   if (view === "livecode-spin") return "spin";
@@ -79,7 +60,6 @@ export interface KonteksLc {
   seat: RecExamSeatRow;
   room: RecExamRoomRow;
   slot: RecSlotRow | null;
-  lc: RecLivecodeRow | null;
   config: ExamConfig;
   now: number;
 }
@@ -106,13 +86,8 @@ export async function muatKonteksSeat(
   const [slot = null] = room.slotId
     ? await db.select().from(recSlot).where(eq(recSlot.id, room.slotId)).limit(1)
     : [];
-  const [lc = null] = await db
-    .select()
-    .from(recLivecode)
-    .where(eq(recLivecode.seatId, seat.id))
-    .limit(1);
   const config = await muatConfig(db, edisi.id);
-  return { db, edisiId: edisi.id, seat, room, slot, lc, config, now: Date.now() };
+  return { db, edisiId: edisi.id, seat, room, slot, config, now: Date.now() };
 }
 
 export async function muatGaram(db: Db, edisiId: number): Promise<string> {
@@ -124,8 +99,6 @@ export async function muatGaram(db: Db, edisiId: number): Promise<string> {
   if (!r) throw new Error("the exam config has no salt yet");
   return r.salt;
 }
-
-/* ---------------------------------------------------------- numbers, tokens */
 
 /** The seat numbers of a room as the console prints them: candidates by NIM, from 1. */
 export async function nomorKursi(db: Db, room: RecExamRoomRow): Promise<Map<number, number>> {
@@ -152,144 +125,44 @@ export async function nomorKursi(db: Db, room: RecExamRoomRow): Promise<Map<numb
   return new Map(seats.map((x) => [x.id, noOf.get(x.candidateId) ?? 0]));
 }
 
-const JAM = 3600;
+/* ----------------------------------------------------------------- grading */
 
-const HARI = 24 * JAM;
-
-/**
- * When a seat's gateway token expires, in seconds. A real room's is 8 hours
- * after its evening ends, so it never changes between compiles. A practice
- * room has no evening and is used on any day after it was made, so its expiry
- * follows the day of use (UTC) instead of the day it was created: the start of
- * that day plus 32 hours, which leaves 8 hours or more at any moment of the
- * day and changes only when the day does (a header compiled yesterday shows
- * stale today, which asks for one recompile).
- */
-export function kedaluwarsaToken(
-  room: Pick<RecExamRoomRow, "createdAt">,
-  slot: Pick<RecSlotRow, "endsAt"> | null,
-  now = Date.now(),
-): number {
-  if (slot) return Math.floor(slot.endsAt.getTime() / 1000) + 8 * JAM;
-  const nowSec = Math.floor(Math.max(now, room.createdAt.getTime()) / 1000);
-  return nowSec - (nowSec % HARI) + HARI + 8 * JAM;
-}
-
-/** A seat's gateway token. Its expiry (see `kedaluwarsaToken`) holds still between compiles, so the header does not change. */
-export async function tokenKursi(
+/** Who may see a room's Live Coding results: the full right, the bank right, or a plotted pengawas. */
+async function bolehMenilai(
+  db: Db,
   room: RecExamRoomRow,
-  slot: RecSlotRow | null,
-  seatId: number,
-  now = Date.now(),
-): Promise<string> {
-  const secret = gatewaySecret();
-  if (!secret) return "";
-  return signLcClaim({ r: room.id, s: seatId, exp: kedaluwarsaToken(room, slot, now) }, secret);
-}
-
-/* ---------------------------------------------------------------- hotspots */
-
-export interface PapanTempat {
-  id: string;
-  ssid: string;
-  pass: string;
-  own: boolean;
-}
-
-export interface RencanaRuang {
-  plan: HotspotPlan;
-  rows: RoomHotspot[];
-  /** Every seat's livecode row */
-  lcs: Map<number, RecLivecodeRow>;
-  /** Boards the room's seats use */
-  loans: SeatLoan[];
-}
-
-/** The hotspot plan of a room from the lent boards, the seats' boards and the dealt protocols. */
-export async function rencanaRuang(db: Db, room: RecExamRoomRow): Promise<RencanaRuang> {
-  const seats = await db.select().from(recExamSeat).where(eq(recExamSeat.roomId, room.id));
-  const lcs = new Map(
-    (await db.select().from(recLivecode).where(eq(recLivecode.roomId, room.id))).map((r) => [
-      r.seatId,
-      r,
-    ]),
-  );
-  const kits = await db.select().from(recKitLoan).where(eq(recKitLoan.roomId, room.id));
-  const loans: SeatLoan[] = seats.map((x) => {
-    const lc = lcs.get(x.id);
-    const kit = kits.find((k) => k.candidateId === x.candidateId);
-    const boards: KitBoard[] =
-      lc && lc.boards.length
-        ? lc.boards.map((b) => ({ n: b.n, chip: b.chip }))
-        : kit && kit.boards.length
-          ? kit.boards
-          : [{ n: 1, chip: "esp32" }];
-    return { seatId: x.id, boards, protocol: lc?.protocol ?? null };
-  });
-  const moves: Record<string, string> = {};
-  for (const [seatId, lc] of lcs)
-    for (const b of lc.boards) if (b.moved) moves[`${seatId}:${b.n}`] = b.moved;
-  return { plan: planHotspots(room.hotspots, loans, moves), rows: room.hotspots, lcs, loans };
-}
-
-/** The hotspot a board uses, or null (a BLE seat, no phone with room, nothing set up). */
-export function papanDi(
-  r: RencanaRuang,
-  roomId: number,
-  seatId: number,
-  n: number,
-): PapanTempat | null {
-  const at = r.plan.assignments.find((a) => a.seatId === seatId && a.n === n)?.hotspot;
-  const row = at ? r.rows.find((h) => h.id === at) : undefined;
-  if (!row) return null;
-  const pass = buka(row.pass, `${roomId}:${row.id}`, LABEL_HOTSPOT);
-  if (pass === null) return null;
-  return { id: row.id, ssid: row.ssid, pass, own: typeof row.owner === "object" };
-}
-
-/* ------------------------------------------------------------------ header */
-
-/** The seat's MQTT account with its password opened, or null. */
-export function akunMqtt(lc: RecLivecodeRow | null): { user: string; pass: string } | null {
-  if (!lc?.mqtt) return null;
-  const pass = buka(lc.mqtt.p, String(lc.seatId), LABEL_MQTT);
-  return pass === null ? null : { user: lc.mqtt.u, pass };
-}
-
-/** iris_seat.h for one board of a seat. */
-export async function headerPapan(
-  c: Pick<KonteksLc, "room" | "slot" | "lc" | "seat">,
-  r: RencanaRuang,
-  n: 1 | 2,
-): Promise<string> {
-  const ble = c.lc?.protocol === "ble";
-  const tempat = ble ? null : papanDi(r, c.room.id, c.seat.id, n);
-  return buildHeader({
-    ssid: tempat?.ssid ?? null,
-    pass: tempat?.pass ?? null,
-    seatId: c.seat.id,
-    board: n,
-    token: await tokenKursi(c.room, c.slot, c.seat.id),
-    mqtt: c.lc?.protocol === "mqtt" ? akunMqtt(c.lc) : null,
-  });
-}
-
-/* ------------------------------------------------------------------- agent */
-
-/** Some agent reports it can compile and has beaten recently. */
-export async function agenSiap(db: Db, now = Date.now()): Promise<boolean> {
+  p: PelakuServer | null,
+  nim: string,
+): Promise<boolean> {
+  if (!p) return false;
+  if (p.penuh || p.hak.bank) return true;
+  if (room.slotId === null) return false;
   const [r] = await db
-    .select({ id: server.id })
-    .from(server)
+    .select({ n: recSlotExaminer.asistenNim })
+    .from(recSlotExaminer)
     .where(
       and(
-        sql`${server.infoSistem} -> 'kompilasi' is not null`,
-        gt(server.kondisiPada, new Date(now - 120_000)),
+        eq(recSlotExaminer.slotId, room.slotId),
+        eq(recSlotExaminer.asistenNim, nim),
+        eq(recSlotExaminer.role, "pengawas"),
       ),
     )
     .limit(1);
   return !!r;
 }
 
-/** @deprecated IoT Live Coding only (B7.7 deletes it): every protocol is allowed. */
-export const protokolBoleh = (_config: ExamConfig): Protocol[] => [...PROTOCOLS];
+export async function ruangDinilai(
+  db: Db,
+  edisiId: number,
+  id: number,
+  p: PelakuServer | null,
+  nim: string,
+): Promise<RecExamRoomRow | null> {
+  const [room] = await db
+    .select()
+    .from(recExamRoom)
+    .where(and(eq(recExamRoom.id, id), eq(recExamRoom.editionId, edisiId)))
+    .limit(1);
+  if (!room) return null;
+  return (await bolehMenilai(db, room, p, nim)) ? room : null;
+}
