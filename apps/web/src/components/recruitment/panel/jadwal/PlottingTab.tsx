@@ -24,7 +24,18 @@ import {
   type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { TrashIcon } from "@phosphor-icons/react";
+import {
+  BroadcastIcon,
+  CalendarBlankIcon,
+  ClockIcon,
+  LockSimpleIcon,
+  LockSimpleOpenIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
+import TabLine from "../../../ui/TabLine";
+import Dropdown from "../../../ui/Dropdown";
 import gsap from "gsap";
 import Confirm from "../../../ui/Confirm";
 import CrewBoard from "../iv/CrewBoard";
@@ -38,7 +49,6 @@ import Disclose from "../../../ui/Disclose";
 import DragLayer from "../../../ui/DragLayer";
 import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
-import SegmentedControl from "../../../ui/SegmentedControl";
 import type { Lang } from "../../../../lib/kelas";
 import { addDays } from "../../../../lib/recruitment/calendar";
 import { isFail, recPost, useRecBoard } from "../../../../lib/recruitment/client";
@@ -56,6 +66,7 @@ import type {
 import { S2 } from "../../s2Strings";
 import { tgl } from "../../shared";
 import { useRevealMotion } from "../../reveal/fx";
+import "../../recruitment-plot.css";
 
 type Slot = PlotBoardResponse["slots"][number];
 const wib = (iso: string) => tanggalWib(new Date(iso));
@@ -105,6 +116,12 @@ function SlotTab({
   const makeup = events.filter((e) => e.stage === stage && e.kind === "makeup");
   const [busy, setBusy] = useState(false);
   const [hapus, setHapus] = useState<Slot | null>(null);
+  // The room dialog: a new room on a day (with the makeup event it belongs to) or one slot being edited.
+  const [dlg, setDlg] = useState<{
+    day: string;
+    eventId?: number;
+    slot?: Slot;
+  } | null>(null);
 
   async function panggil(body: Record<string, unknown>, ok?: string) {
     setBusy(true);
@@ -130,38 +147,109 @@ function SlotTab({
   // Past its close time: the window only offers to open again, not to extend or close.
   const tutup = !!w && !w.open && !!sudahBuka;
 
+  const tiny = (jam: string) => jam.replace(":", ".");
+  const sampai = lang === "id" ? "sampai" : lang === "zh" ? "至" : "to";
+  const kartuHari = (d: string, judul: string, eventId?: number, susulan?: boolean) => {
+    const di = data.slots.filter((s) => wib(s.startsAt).tanggal === d);
+    return (
+      <section
+        className="panel n7-eve"
+        data-s={susulan ? "yes" : "no"}
+        key={`${d}${eventId ?? ""}`}
+      >
+        <div className="n7-eve__h">
+          <b>{judul}</b>
+          <span className="hint num">
+            {di.reduce((a, s) => a + s.capacity, 0)} {t.seats.toLowerCase()}
+          </span>
+        </div>
+        {!di.length && susulan && <span className="hint">{t.noSlotsYet}</span>}
+        <div className="n7-eve__rooms">
+          {di.map((s) => (
+            <div className="n7-room" key={s.id}>
+              <div className="stack" style={{ gap: 0, minWidth: 0 }}>
+                <b>{s.room}</b>
+                <span className="hint">
+                  {tiny(wib(s.startsAt).jam)} {sampai} {tiny(wib(s.endsAt).jam)}
+                </span>
+              </div>
+              <div className="n7-room__cap">
+                <Kapasitas s={s} />
+                <span className="hint num">
+                  {s.taken}/{s.capacity}
+                </span>
+              </div>
+              {can && (
+                <span className="n7-room__act">
+                  <IconButton
+                    icon={PencilSimpleIcon}
+                    label={t.edit}
+                    onClick={() => setDlg({ day: d, eventId, slot: s })}
+                  />
+                  <IconButton
+                    icon={TrashIcon}
+                    label={s.taken > 0 ? t.slotRule : t.delete}
+                    disabled={s.taken > 0}
+                    onClick={() => setHapus(s)}
+                  />
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+        {can && (
+          <button
+            type="button"
+            className="n7-addroom"
+            disabled={busy}
+            onClick={() => setDlg({ day: d, eventId })}
+          >
+            <PlusIcon size={18} aria-hidden="true" />
+            <span>{t.addRoom}</span>
+          </button>
+        )}
+      </section>
+    );
+  };
+  const Ik = w?.open ? BroadcastIcon : tutup ? LockSimpleIcon : ClockIcon;
+  const wst = w?.open ? "buka" : tutup ? "tutup" : "belum";
+
   return (
     <div className="stack">
       {w && pe && (
-        <section className="panel r2win">
-          <div className="stack stack--sm" style={{ minWidth: 0 }}>
-            <div className="row" style={{ gap: 8 }}>
-              <b>{t.window}</b>
-              <Pill tone={w.open ? "ok" : undefined}>
-                {w.open ? t.openBadge : sudahBuka ? t.closedBadge : t.soonBadge}
-              </Pill>
-            </div>
-            <span className="hint">{t.windowLine(bukaLabel, tutupLabel)}</span>
-            <div className="r2cap">
-              <span className="r2cap__bar">
-                <i style={{ width: `${Math.min(100, kursi ? (peserta / kursi) * 100 : 0)}%` }} />
-              </span>
-              <span className="hint num">{t.seatsFor(kursi, peserta)}</span>
+        <section className="panel n7-win" data-st={wst}>
+          <div className="n7-win__l">
+            <span className="n7-win__ic">
+              <Ik size={24} aria-hidden="true" />
+            </span>
+            <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <div className="row" style={{ gap: 8 }}>
+                <b className="n7-win__t">{t.window}</b>
+                <Pill tone={w.open ? "ok" : sudahBuka ? undefined : "warn"}>
+                  {w.open ? t.openBadge : sudahBuka ? t.closedBadge : t.soonBadge}
+                </Pill>
+              </div>
+              <span className="hint">{t.windowLine(bukaLabel, tutupLabel)}</span>
             </div>
           </div>
+          <div className="n7-win__m">
+            <Kapasitas s={{ taken: peserta, capacity: kursi } as Slot} />
+            <span className="hint num">{t.seatsFor(kursi, peserta)}</span>
+          </div>
           {can && (
-            <div className="row r2win__acts">
+            <div className="n7-win__a">
               <button
                 type="button"
                 className="btn btn--ghost"
                 onClick={() => bukaBagian("kalender")}
               >
+                <CalendarBlankIcon size={18} aria-hidden="true" />
                 <span className="btn__label">{t.calendar}</span>
               </button>
               {tutup ? (
                 <button
                   type="button"
-                  className="btn"
+                  className="btn btn--inverse"
                   disabled={busy}
                   onClick={async () => {
                     if (await panggil({ op: "window", stage, mode: "extend" }))
@@ -171,13 +259,14 @@ function SlotTab({
                       );
                   }}
                 >
+                  <LockSimpleOpenIcon size={18} aria-hidden="true" />
                   <span className="btn__label">{t.reopen}</span>
                 </button>
               ) : (
                 <>
                   <button
                     type="button"
-                    className="btn"
+                    className="btn btn--inverse"
                     disabled={busy}
                     onClick={async () => {
                       if (await panggil({ op: "window", stage, mode: "extend" }))
@@ -195,6 +284,7 @@ function SlotTab({
                         );
                     }}
                   >
+                    <PlusIcon size={18} aria-hidden="true" />
                     <span className="btn__label">{t.extend}</span>
                   </button>
                   <button
@@ -206,6 +296,7 @@ function SlotTab({
                         window.Toast?.show(t.closedNow, "warn");
                     }}
                   >
+                    <LockSimpleIcon size={18} aria-hidden="true" />
                     <span className="btn__label">{t.closeNow}</span>
                   </button>
                 </>
@@ -214,91 +305,36 @@ function SlotTab({
           )}
         </section>
       )}
-      <div className="r2setup">
-        {malam.map((d) => {
-          const di = data.slots.filter((s) => wib(s.startsAt).tanggal === d);
-          return (
-            <section className="panel r2eveset" key={d}>
-              <div className="panel__head">
-                <div className="stack" style={{ gap: 2 }}>
-                  <h3 className="panel__title">{tgl(d, lang)}</h3>
-                  <span className="hint">{t.eveningHint}</span>
-                </div>
-              </div>
-              {di.map((s) => (
-                <SlotRow
-                  key={s.id}
-                  s={s}
-                  lang={lang}
-                  can={can}
-                  busy={busy}
-                  onSave={(b) => panggil({ op: "edit", id: s.id, ...b })}
-                  onDelete={() => setHapus(s)}
-                />
-              ))}
-              {can && (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  disabled={busy}
-                  onClick={() =>
-                    void panggil(
-                      {
-                        op: "create",
-                        stage,
-                        room: `R${di.length + 1}`,
-                        startsAt: iso(d, "18:30"),
-                        endsAt: iso(d, "21:00"),
-                        capacity: 15,
-                      },
-                      t.slotAdded,
-                    )
-                  }
-                >
-                  <span className="btn__label">{t.addRoom}</span>
-                </button>
-              )}
-            </section>
-          );
-        })}
-        {makeup.map((e) => (
-          <section className="panel r2eveset" key={`m${e.id}`}>
-            <div className="panel__head">
-              <div className="stack" style={{ gap: 2 }}>
-                <h3 className="panel__title">{tgl(e.startsOn, lang)}</h3>
-                <span className="hint">{t.makeupHint}</span>
-              </div>
-            </div>
-            {data.slots.some((s) => wib(s.startsAt).tanggal === e.startsOn) ? null : (
-              <span className="hint">{t.noSlotsYet}</span>
-            )}
-            {can && (
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                disabled={busy}
-                onClick={() =>
-                  void panggil(
-                    {
-                      op: "create",
-                      stage,
-                      eventId: e.id,
-                      room: "R1",
-                      startsAt: iso(e.startsOn, e.dayStart ?? "18:30"),
-                      endsAt: iso(e.startsOn, e.dayEnd ?? "21:00"),
-                      capacity: 10,
-                    },
-                    t.slotAdded,
-                  )
-                }
-              >
-                <span className="btn__label">{t.addRoom}</span>
-              </button>
-            )}
-          </section>
-        ))}
+      <div className="n7-nights4">
+        {malam.map((d) => kartuHari(d, tgl(d, lang)))}
+        {makeup.map((e) =>
+          kartuHari(e.startsOn, `${tgl(e.startsOn, lang)} (${t.makeupWord})`, e.id, true),
+        )}
       </div>
       <p className="hint">{t.slotRule}</p>
+      {dlg && (
+        <RoomDlg
+          lang={lang}
+          stage={stage}
+          dlg={dlg}
+          busy={busy}
+          onClose={() => setDlg(null)}
+          onSave={async (b) => {
+            const ok = dlg.slot
+              ? await panggil({ op: "edit", id: dlg.slot.id, ...b }, t.slotSaved)
+              : await panggil(
+                  {
+                    op: "create",
+                    stage,
+                    ...(dlg.eventId ? { eventId: dlg.eventId } : {}),
+                    ...b,
+                  },
+                  t.slotAdded,
+                );
+            if (ok) setDlg(null);
+          }}
+        />
+      )}
       <Confirm
         open={!!hapus}
         onOpenChange={(o) => !o && setHapus(null)}
@@ -315,78 +351,93 @@ function SlotTab({
   );
 }
 
-function SlotRow({
-  s,
+function RoomDlg({
   lang,
-  can,
+  stage,
+  dlg,
   busy,
+  onClose,
   onSave,
-  onDelete,
 }: {
-  s: Slot;
   lang: Lang;
-  can: boolean;
+  stage: StageKey;
+  dlg: { day: string; eventId?: number; slot?: Slot };
   busy: boolean;
-  onSave: (b: Record<string, unknown>) => Promise<boolean>;
-  onDelete: () => void;
+  onClose: () => void;
+  onSave: (b: Record<string, unknown>) => Promise<void>;
 }) {
   const t = S2[lang].plot;
-  const d = wib(s.startsAt).tanggal;
-  const [room, setRoom] = useState(s.room);
-  useEffect(() => setRoom(s.room), [s.room]);
+  const ed = dlg.slot;
+  const [room, setRoom] = useState(ed?.room ?? "");
+  const [mulai, setMulai] = useState(ed ? wib(ed.startsAt).jam : "18:30");
+  const [akhir, setAkhir] = useState(ed ? wib(ed.endsAt).jam : "21:00");
+  const [cap, setCap] = useState(ed?.capacity ?? (dlg.eventId ? 10 : 15));
+  const salah = !room.trim() || akhir <= mulai;
   return (
-    <div className="r2slotset">
-      <label className="r2f">
-        <span className="hint">{t.room}</span>
-        <input
-          className="field__input"
-          value={room}
-          maxLength={24}
-          disabled={!can}
-          onChange={(e) => setRoom(e.target.value)}
-          onBlur={() => room.trim() && room.trim() !== s.room && void onSave({ room: room.trim() })}
-        />
-      </label>
-      <span className="r2f">
-        <span className="hint">{t.starts}</span>
-        <TimeField
-          value={wib(s.startsAt).jam}
-          from={16}
-          label={t.starts}
-          lang={lang}
-          onChange={(v) => can && void onSave({ startsAt: iso(d, v) })}
-        />
-      </span>
-      <span className="r2f">
-        <span className="hint">{t.ends}</span>
-        <TimeField
-          value={wib(s.endsAt).jam}
-          from={18}
-          label={t.ends}
-          lang={lang}
-          onChange={(v) => can && void onSave({ endsAt: iso(d, v) })}
-        />
-      </span>
-      <span className="r2f">
-        <span className="hint">{t.seats}</span>
-        <Stepper
-          value={s.capacity}
-          min={Math.max(1, s.taken)}
-          max={200}
-          label={t.capacity}
-          lessLabel="-"
-          moreLabel="+"
-          onChange={(v) => can && !busy && void onSave({ capacity: v })}
-        />
-      </span>
-      <span className="r2f r2f--n">
-        <span className="hint">{t.taken}</span>
-        <b className="num">{s.taken}</b>
-      </span>
-      {can && (
-        <IconButton icon={TrashIcon} label={t.delete} disabled={s.taken > 0} onClick={onDelete} />
-      )}
-    </div>
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={ed ? t.editRoom : t.addRoom}
+      size="sm"
+      lang={lang}
+      actions={
+        <>
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
+            {t.cancel}
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={busy || salah}
+            onClick={() =>
+              void onSave({
+                room: room.trim(),
+                startsAt: iso(dlg.day, mulai),
+                endsAt: iso(dlg.day, akhir),
+                capacity: cap,
+              })
+            }
+          >
+            <span className="btn__label">{t.save}</span>
+          </button>
+        </>
+      }
+    >
+      <div className="stack">
+        <label className="stack stack--sm">
+          <span className="hint">{t.room}</span>
+          <input
+            className="field__input"
+            value={room}
+            maxLength={24}
+            placeholder={stage === "wawancara" ? "TULT 0604" : "TULT 0604"}
+            onChange={(e) => setRoom(e.target.value)}
+          />
+        </label>
+        <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
+          <span className="stack stack--sm">
+            <span className="hint">{t.starts}</span>
+            <TimeField value={mulai} from={16} label={t.starts} lang={lang} onChange={setMulai} />
+          </span>
+          <span className="stack stack--sm">
+            <span className="hint">{t.ends}</span>
+            <TimeField value={akhir} from={18} label={t.ends} lang={lang} onChange={setAkhir} />
+          </span>
+        </div>
+        <span className="stack stack--sm">
+          <span className="hint">{t.capacity}</span>
+          <Stepper
+            value={cap}
+            min={Math.max(1, ed?.taken ?? 1)}
+            max={200}
+            label={t.capacity}
+            lessLabel="-"
+            moreLabel="+"
+            onChange={setCap}
+          />
+        </span>
+      </div>
+    </Dialog>
   );
 }
 
@@ -890,6 +941,13 @@ function Papan({
 
 /* ------------------------------------------------------------- the tab */
 
+/** The colour each stage wears in Plotting (the mockup's) */
+const STAGE_C: Partial<Record<StageKey, string>> = {
+  tes_tulis: "#fb7185",
+  wawancara: "#a78bfa",
+  mengajar: "#5eead4",
+};
+
 export default function PlottingTab({
   lang,
   events,
@@ -912,31 +970,36 @@ export default function PlottingTab({
   const bukaN = d?.requests.filter((r) => r.status === "open").length ?? 0;
   if (!d) return <span className="skeleton" style={{ height: 360 }} />;
   return (
-    <div className="stack">
-      <div className="row row--between r2plot__top">
-        <SegmentedControl
-          aria-label={t.title}
+    <div className="stack n7-plot" style={{ "--sc": STAGE_C[aktif] } as React.CSSProperties}>
+      <div className="n7-bar">
+        <TabLine
+          label={t.title}
           value={bag}
-          onValueChange={(v) => setBag(v as typeof bag)}
-          options={[
-            { value: "slot", label: t.slot },
-            { value: "minta", label: bukaN ? `${t.requests} (${bukaN})` : t.requests },
-            { value: "papan", label: t.board },
-            ...(isIvStage(aktif) ? [{ value: "crew", label: IV(lang).crew.examiners }] : []),
+          onChange={(v) => setBag(v)}
+          tabs={[
+            { v: "slot" as const, label: t.slot },
+            { v: "minta" as const, label: t.requests, n: bukaN || undefined },
+            { v: "papan" as const, label: t.board },
+            ...(isIvStage(aktif) ? [{ v: "crew" as const, label: IV(lang).crew.examiners }] : []),
           ]}
         />
+        <span className="grow" />
         {stages.length > 1 && (
-          <SegmentedControl
-            aria-label={t.stageLabel}
-            value={aktif}
-            onValueChange={(v) => setStage(v as StageKey)}
-            options={stages.map((s) => ({
-              value: s,
-              label: S2[lang].inbox.stage[s as "berkas"] ?? s,
-            }))}
-          />
+          <span className="n7-stagepick" style={{ "--sc": STAGE_C[aktif] } as React.CSSProperties}>
+            <span className="n7-stagepick__dot" />
+            <Dropdown
+              id="rec-plot-stage"
+              label={t.stageLabel}
+              hideLabel
+              value={aktif}
+              onChange={(v) => setStage(v as StageKey)}
+              options={stages.map((s) => ({
+                value: s,
+                label: S2[lang].inbox.stage[s as "berkas"] ?? s,
+              }))}
+            />
+          </span>
         )}
-        <span className="hint">{t.reuse}</span>
       </div>
       {bag === "slot" ? (
         <SlotTab

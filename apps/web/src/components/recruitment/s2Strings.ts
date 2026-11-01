@@ -276,6 +276,10 @@ export const S2 = dict({
       } as Record<Proposal, string>,
     },
     plot: {
+      edit: "Ubah",
+      editRoom: "Ubah Ruang",
+      save: "Simpan",
+      makeupWord: "Susulan",
       title: "Plotting",
       slot: "Slot",
       requests: "Permintaan",
@@ -755,6 +759,10 @@ export const S2 = dict({
       reason: { lolos: "Pass", gagal: "Fail" } as Record<Proposal, string>,
     },
     plot: {
+      edit: "Edit",
+      editRoom: "Edit Room",
+      save: "Save",
+      makeupWord: "Makeup",
       title: "Plotting",
       slot: "Slots",
       requests: "Requests",
@@ -1222,6 +1230,10 @@ export const S2 = dict({
       reason: { lolos: "通过", gagal: "淘汰" } as Record<Proposal, string>,
     },
     plot: {
+      edit: "修改",
+      editRoom: "修改教室",
+      save: "保存",
+      makeupWord: "补考",
       title: "排期",
       slot: "时段",
       requests: "申请",
