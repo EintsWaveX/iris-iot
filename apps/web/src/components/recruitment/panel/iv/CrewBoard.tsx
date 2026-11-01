@@ -164,12 +164,12 @@ export default function CrewBoard({
   return (
     <div className="stack">
       <section
-        className="card r4check"
+        className="panel r4check"
         data-ok={flags.length ? undefined : "yes"}
         aria-live="polite"
       >
-        <div className="card__head">
-          <h3 className="card__title">{t.check}</h3>
+        <div className="panel__head">
+          <h3 className="panel__title">{t.check}</h3>
           <span className="row" style={{ gap: 6 }}>
             {nD > 0 && <Pill tone="danger">{t.clashes(nD)}</Pill>}
             {nW > 0 && <Pill tone="warn">{t.toFill(nW)}</Pill>}
@@ -208,12 +208,12 @@ export default function CrewBoard({
           return (
             <section
               key={s.id}
-              className="card r4lane"
+              className="panel r4lane"
               data-short={s.penguji.length < want ? "yes" : undefined}
             >
-              <div className="card__head">
+              <div className="panel__head">
                 <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <h3 className="card__title">{s.room}</h3>
+                  <h3 className="panel__title">{s.room}</h3>
                   <span className="hint num">
                     {hari(s.startsAt, lang)}, {jam(s.startsAt)} - {jam(s.endsAt)} ·{" "}
                     {s.booths.length}/{s.capacity}
@@ -251,10 +251,10 @@ export default function CrewBoard({
       </div>
 
       {shifts.length > 0 && (d.template.pjOut > 0 || d.template.pjIn > 0) && (
-        <section className="card r4pj">
-          <div className="card__head">
+        <section className="panel r4pj">
+          <div className="panel__head">
             <div className="stack" style={{ gap: 2 }}>
-              <h3 className="card__title">{t.pjTitle}</h3>
+              <h3 className="panel__title">{t.pjTitle}</h3>
               <span className="hint">{t.pjLede}</span>
             </div>
           </div>

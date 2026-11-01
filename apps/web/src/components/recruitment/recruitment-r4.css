@@ -18,7 +18,7 @@
   gap: 14px;
   grid-template-columns: minmax(0, 1fr);
 }
-@container dev (min-width: 1100px) {
+@media (min-width: 1100px) {
   .r4top {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
@@ -298,7 +298,7 @@
   gap: 14px;
   grid-template-columns: minmax(0, 1fr);
 }
-@container dev (min-width: 1100px) {
+@media (min-width: 1100px) {
   .r4my {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
@@ -462,7 +462,7 @@
 .r4sheet__grid > * {
   min-width: 0;
 }
-@container dev (min-width: 1100px) {
+@media (min-width: 1100px) {
   .r4sheet__grid {
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
     align-items: start;
@@ -578,7 +578,7 @@
   font-size: 0.7rem;
   font-weight: 600;
 }
-@container dev (min-width: 600px) {
+@media (min-width: 600px) {
   .r4seg__w {
     display: block;
   }
@@ -650,7 +650,7 @@
   font-size: 1.4rem;
 }
 /* Phone: one row for the score and the send button, the draft state above it */
-@container dev (max-width: 519px) {
+@media (max-width: 519px) {
   .drawer:has(.r4sheet) .drawer__foot {
     flex-direction: row;
     flex-wrap: wrap;
@@ -741,7 +741,7 @@
   gap: 16px;
   grid-template-columns: minmax(0, 1fr);
 }
-@container dev (min-width: 1600px) {
+@media (min-width: 1600px) {
   .r4nilai {
     grid-template-columns: minmax(0, 1fr) 340px;
     align-items: start;
@@ -976,14 +976,14 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 20px;
 }
-@container dev (min-width: 820px) {
+@media (min-width: 820px) {
   .r4tally .r2tally__nums {
     grid-template-columns: repeat(4, max-content);
     gap: 10px 40px;
   }
 }
 /* Short desktop screens (800 px tall or less): the strip turns into one line, the header and rows tighten */
-@container dev (min-width: 1024px) {
+@media (min-width: 1024px) {
 }
 
 /* ===================================================================== 2026-10-28: the interview form (R4)
@@ -1186,7 +1186,7 @@
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
-@container dev (min-width: 900px) {
+@media (min-width: 900px) {
   .r4qa {
     grid-template-columns: 290px minmax(0, 1fr);
   }
@@ -1626,7 +1626,7 @@
 .r4tally .r2tally__nums {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-@container dev (min-width: 820px) {
+@media (min-width: 820px) {
   .r4tally .r2tally__nums {
     grid-template-columns: repeat(5, max-content);
     gap: 10px 36px;
@@ -1635,7 +1635,7 @@
 .r4bd__t td.hint {
   max-width: 340px;
 }
-@container dev (max-width: 719px) {
+@media (max-width: 719px) {
   .r4steps__b .hint {
     display: none;
   }
@@ -1654,7 +1654,7 @@
   }
 }
 /* Short desktop screens (800 px tall or less): tighter header, card and rail */
-@container dev (min-width: 1024px) {
+@media (min-width: 1024px) {
 }
 
 .r4rule__g .stepper,
@@ -1673,7 +1673,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-@container dev (max-width: 519px) {
+@media (max-width: 519px) {
   .r4steps {
     gap: 6px;
   }
@@ -1704,7 +1704,7 @@
   gap: 12px;
   align-items: end;
 }
-@container dev (max-width: 719px) {
+@media (max-width: 719px) {
   .r4ptl li {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -1758,7 +1758,7 @@
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
-@container dev (min-width: 980px) {
+@media (min-width: 980px) {
   .r6sus__g {
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   }
@@ -1861,7 +1861,7 @@
 .r6q__s {
   justify-self: start;
 }
-@container dev (max-width: 640px) {
+@media (max-width: 640px) {
   .r6q li {
     grid-template-columns: 46px minmax(0, 1fr);
   }
@@ -1924,7 +1924,7 @@
   gap: 8px;
   align-items: center;
 }
-@container dev (max-width: 640px) {
+@media (max-width: 640px) {
   .r6add {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -2022,7 +2022,7 @@
   gap: 4px;
   align-items: center;
 }
-@container dev (max-width: 820px) {
+@media (max-width: 820px) {
   .r6ptl .r6ptl__r {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }

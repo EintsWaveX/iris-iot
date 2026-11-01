@@ -127,8 +127,8 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
         <Pill tone="warn">{t.stc}</Pill>
       </div>
 
-      <section className="card stack">
-        <h3 className="card__title">{t.crew}</h3>
+      <section className="panel stack">
+        <h3 className="panel__title">{t.crew}</h3>
         <div className="r4rule__g">
           {num(t.per[d.mode], d.per, (n) => patch({ per: n }), 1, 8)}
           {num(t.pjOut, d.pjOut, (n) => patch({ pjOut: n }), 0, 6)}
@@ -141,8 +141,8 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
         </div>
       </section>
 
-      <section className="card stack">
-        <h3 className="card__title">{t.cut}</h3>
+      <section className="panel stack">
+        <h3 className="panel__title">{t.cut}</h3>
         <div className="r4rule__g">
           {num(t.cutLolos, d.cut[0], (n) => patch({ cut: [n, Math.min(d.cut[1], n)] }), 0, 100)}
           {num(
@@ -163,9 +163,9 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
         />
       </section>
 
-      <section className="card stack">
+      <section className="panel stack">
         <div className="row row--between">
-          <h3 className="card__title">{t.params}</h3>
+          <h3 className="panel__title">{t.params}</h3>
           {can && (
             <button
               type="button"
@@ -183,7 +183,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
               <label className="stack stack--sm">
                 <span className="hint">{t.paramName}</span>
                 <input
-                  className="input"
+                  className="field__input"
                   value={p.label.id}
                   disabled={!can}
                   onChange={(e) => setParam(i, { label: { ...p.label, id: e.target.value } })}
@@ -192,7 +192,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
               <label className="stack stack--sm">
                 <span className="hint">{t.paramNameEn}</span>
                 <input
-                  className="input"
+                  className="field__input"
                   value={p.label.en}
                   disabled={!can}
                   onChange={(e) => setParam(i, { label: { ...p.label, en: e.target.value } })}
@@ -204,7 +204,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
               <label className="stack stack--sm">
                 <span className="hint">{t.eg}</span>
                 <input
-                  className="input"
+                  className="field__input"
                   value={p.eg.id}
                   disabled={!can}
                   onChange={(e) => setParam(i, { eg: { ...p.eg, id: e.target.value } })}
@@ -213,7 +213,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
               <label className="stack stack--sm">
                 <span className="hint">{t.egEn}</span>
                 <input
-                  className="input"
+                  className="field__input"
                   value={p.eg.en}
                   disabled={!can}
                   onChange={(e) => setParam(i, { eg: { ...p.eg, en: e.target.value } })}
@@ -248,9 +248,9 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
       </section>
 
       {d.groups.length > 0 && (
-        <section className="card stack">
+        <section className="panel stack">
           <div className="row row--between">
-            <h3 className="card__title">
+            <h3 className="panel__title">
               {t.questions} <span className="hint num">({d.questions.length})</span>
             </h3>
             {can && (
@@ -269,14 +269,14 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
               <div key={q.id} className="r4tpl__q">
                 <span className="hint num">{i + 1}</span>
                 <input
-                  className="input"
+                  className="field__input"
                   aria-label={t.qText}
                   value={q.t.id}
                   disabled={!can}
                   onChange={(e) => setQ(i, { t: { ...q.t, id: e.target.value } })}
                 />
                 <input
-                  className="input"
+                  className="field__input"
                   aria-label={t.qTextEn}
                   value={q.t.en}
                   disabled={!can}

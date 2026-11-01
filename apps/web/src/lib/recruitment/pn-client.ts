@@ -68,3 +68,19 @@ export function useRecPn(enabled = true) {
     1_000,
   );
 }
+
+/** Only whether the edition is closed, for the read-only banner on every tab. */
+export function useRecPnState(enabled = true) {
+  return usePoll(
+    async () => {
+      const r = await recGet<{ ok: true; canConfirm: boolean; close: PnClose }>("pn-state");
+      if (!isFail(r)) return r;
+      if (r.kode === "offline" || r.status >= 500) throw new Error(String(r.status || 408));
+      return null;
+    },
+    300_000,
+    enabled,
+    ["recpn", "recedition"],
+    1_000,
+  );
+}

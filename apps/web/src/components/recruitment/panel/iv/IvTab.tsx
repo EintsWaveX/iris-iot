@@ -11,7 +11,6 @@ import type { Lang } from "../../../../lib/kelas";
 import { useIvMine, useIvNilai, type IvMineSlot } from "../../../../lib/recruitment/iv-client";
 import type { IvStage } from "../../../../lib/recruitment/interview";
 import type { RecRights } from "../../../../lib/recruitment/types";
-import { KepalaHalaman } from "../../shared";
 import Lembar from "./Lembar";
 import Template from "./Template";
 import { IV } from "./ivStrings";
@@ -51,10 +50,10 @@ function SlotCard({
   const w = IV(lang).mine;
   const mine = s.booths.filter((b) => b.mine);
   return (
-    <section className="card r4slot">
-      <div className="card__head">
+    <section className="panel r4slot">
+      <div className="panel__head">
         <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-          <h3 className="card__title">{w.slotTitle(s.room)}</h3>
+          <h3 className="panel__title">{w.slotTitle(s.room)}</h3>
           <span className="hint num">
             {w.when(hari(s.startsAt, lang), jam(s.startsAt), jam(s.endsAt))}
           </span>
@@ -249,8 +248,8 @@ function Penilaian({
         </table>
       </div>
       {d.penguji.length > 0 && (
-        <section className="card">
-          <h3 className="card__title">{w.perPenguji}</h3>
+        <section className="panel">
+          <h3 className="panel__title">{w.perPenguji}</h3>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             {d.penguji.map((p) => (
               <Pill key={p.by} mono>
@@ -282,7 +281,7 @@ export default function IvTab({
     bag === "nilai" && !bisaNilai ? "mine" : bag === "template" && !bisaTemplate ? "mine" : bag;
   return (
     <div className="stack">
-      <KepalaHalaman lang={lang} title={w.title[stage]} lede={w.lede[stage]} />
+      <p className="hint">{w.lede[stage]}</p>
       {(bisaNilai || bisaTemplate) && (
         <SegmentedControl
           aria-label={w.title[stage]}

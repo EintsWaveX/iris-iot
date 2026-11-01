@@ -232,6 +232,20 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           tab: "kalender",
           href: alamatBagian(prefix, "kalender"),
         },
+        {
+          key: "wawancara",
+          label: t.wawancara,
+          icon: ChatsIcon,
+          tab: "wawancara" as const,
+          href: alamatBagian(prefix, "wawancara"),
+        },
+        {
+          key: "mengajar",
+          label: t.mengajar,
+          icon: ChalkboardTeacherIcon,
+          tab: "mengajar" as const,
+          href: alamatBagian(prefix, "mengajar"),
+        },
         ...(adaRuang
           ? [
               {

@@ -19,7 +19,6 @@ import {
   type PnListResponse,
   type PnRow,
 } from "../../../../lib/recruitment/pn-client";
-import { KepalaHalaman } from "../../shared";
 import Rayakan from "./Rayakan";
 import { PNW } from "./pnStrings";
 import "../../recruitment-r8.css";
@@ -76,9 +75,9 @@ function Tutup({
     refresh();
   };
   return (
-    <section className="card r8close" data-closed={c.closed ? "yes" : undefined}>
-      <div className="card__head">
-        <h3 className="card__title">{w.title}</h3>
+    <section className="panel r8close" data-closed={c.closed ? "yes" : undefined}>
+      <div className="panel__head">
+        <h3 className="panel__title">{w.title}</h3>
         <Pill tone={c.closed ? "danger" : "ok"}>{c.closed ? w.closed : w.open}</Pill>
       </div>
       <ul className="r8close__l">
@@ -195,7 +194,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
   if (!rows.length)
     return (
       <div className="stack">
-        <KepalaHalaman lang={lang} title={w.title} lede={w.lede} />
+        <p className="hint">{w.lede}</p>
         <div className="rec-note">
           <b>{w.empty}</b>
           <span>{w.emptyHint}</span>
@@ -206,7 +205,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
 
   return (
     <div className="stack r8">
-      <KepalaHalaman lang={lang} title={w.title} lede={w.lede} />
+      <p className="hint">{w.lede}</p>
       {!d.canConfirm && (
         <div className="rec-note">
           <span>{w.readOnly}</span>
@@ -215,7 +214,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
       {stepNav}
 
       {step === "tinjau" && (
-        <section className="card stack">
+        <section className="panel stack">
           <div className="row row--between" style={{ gap: 12, flexWrap: "wrap" }}>
             <span className="hint">{w.quota(terima.length, d.quota)}</span>
             <Pill tone={terima.length >= d.quota ? "ok" : "warn"}>
@@ -296,7 +295,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
       )}
 
       {step === "kode" && (
-        <section className="card stack">
+        <section className="panel stack">
           <p className="hint">{w.code.lede}</p>
           <div className="scrollx">
             <table className="table r8table">
@@ -317,7 +316,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                       </td>
                       <td>
                         <input
-                          className="input r8code"
+                          className="field__input r8code"
                           maxLength={3}
                           value={r.code ?? ""}
                           placeholder={w.code.placeholder}
@@ -364,8 +363,8 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
       )}
 
       {step === "konfirmasi" && (
-        <section className="card stack">
-          <h3 className="card__title">{w.confirm.title}</h3>
+        <section className="panel stack">
+          <h3 className="panel__title">{w.confirm.title}</h3>
           <p>{w.confirm.summary(terima.length, rows.length - terima.length)}</p>
           <ul className="r8close__l">
             <li>{w.confirm.noDivision}</li>
@@ -415,8 +414,8 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
       )}
 
       {(hasil || d.done) && (
-        <section className="card stack r8hasil" aria-live="polite">
-          <h3 className="card__title">{w.result.title}</h3>
+        <section className="panel stack r8hasil" aria-live="polite">
+          <h3 className="panel__title">{w.result.title}</h3>
           {hasil ? (
             <>
               <p>

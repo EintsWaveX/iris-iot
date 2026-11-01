@@ -66,8 +66,8 @@ export default function Rayakan({
         ease: "back.out(1.6)",
       });
       gsap.to(".r8cel__glow", {
-        scale: 1.12,
-        opacity: 0.9,
+        scale: 1.1,
+        opacity: 0.4,
         duration: 2.4,
         yoyo: true,
         repeat: -1,

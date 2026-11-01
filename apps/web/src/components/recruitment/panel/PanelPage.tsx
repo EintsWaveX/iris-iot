@@ -23,6 +23,9 @@ import {
 } from "../../../lib/recruitment/client";
 import { useBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import { useRecRooms } from "../../../lib/recruitment/room-client";
+import { useRecPnState } from "../../../lib/recruitment/pn-client";
+import { PNW } from "./penerimaan/pnStrings";
+import { IV } from "./iv/ivStrings";
 import { CAL } from "../calendar/calendarStrings";
 import { KepalaHalaman, tgl, useHariIni } from "../shared";
 import Kandidat from "./Kandidat";
@@ -54,6 +57,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
   const cand = useRecCandidates(lihatKandidat);
   const kom = useRecCommittee(panitia);
   const ruang = useRecRooms(asisten);
+  const pnState = useRecPnState(panitia);
   const adaRuang = !!ruang.data && (ruang.data.rooms.length > 0 || ruang.data.canSetup);
 
   const tabs = useMemo<PanelTab[]>(
@@ -72,7 +76,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             ...(rights?.bank ? (["bank"] as const) : []),
             "panitia",
           ]
-        : ["kalender", ...(adaRuang ? (["tes"] as const) : [])],
+        : ["kalender", "wawancara", "mengajar", ...(adaRuang ? (["tes"] as const) : [])],
     [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting, rights?.bank, adaRuang],
   );
   const tab: PanelTab = bagian && tabs.includes(bagian) ? bagian : tabs[0];
@@ -106,10 +110,21 @@ export default function PanelPage({ lang }: { lang: Lang }) {
     <div className="rec-page" data-area={tab}>
       <KepalaHalaman
         lang={lang}
-        title={panitia ? t.title : CAL[lang].title}
+        title={
+          panitia
+            ? t.title
+            : tab === "wawancara" || tab === "mengajar"
+              ? IV(lang).title[tab]
+              : CAL[lang].title
+        }
         badge={seat ? <Pill lg>{t.division[seat.division]}</Pill> : undefined}
         lede={hariKe ? t.day(hariKe, tgl(hariIni, lang)) : t.dayPlain(tgl(hariIni, lang))}
       />
+      {panitia && pnState.data?.close.closed && (
+        <div className="rec-note rec-note--warn" role="status">
+          <b>{PNW(lang).close.banner}</b>
+        </div>
+      )}
       {panitia && edisi.data && (
         <TampilOprec
           lang={lang}

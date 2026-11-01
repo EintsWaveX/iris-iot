@@ -539,7 +539,7 @@ export default function Lembar({
       </aside>
       <div className="stack" style={{ minWidth: 0 }}>
         {q && (
-          <section className="card r4qc" data-key="q">
+          <section className="panel r4qc" data-key="q">
             <div className="row r4qc__top">
               <span className="eyebrow num">
                 {t.of(Math.min(qi, list.length - 1) + 1, list.length)} · {grup(q.g)}
@@ -575,7 +575,7 @@ export default function Lembar({
             <label className="stack stack--sm">
               <span className="hint">{t.answer}</span>
               <textarea
-                className="textarea r4qc__a"
+                className="field__input r4qc__a"
                 rows={6}
                 value={ans[q.id] ?? ""}
                 disabled={skip.includes(q.id) || locked}
@@ -638,7 +638,7 @@ export default function Lembar({
         return (
           <section
             key={p.key}
-            className="card r4p"
+            className="panel r4p"
             data-done={v != null && (cl[p.key] ?? "").trim() ? "yes" : undefined}
           >
             <div className="row row--between" style={{ gap: 8 }}>
@@ -699,7 +699,7 @@ export default function Lembar({
             >
               <span className="hint">{t.concl}</span>
               <textarea
-                className="textarea"
+                className="field__input"
                 rows={2}
                 value={cl[p.key] ?? ""}
                 disabled={locked}
@@ -710,11 +710,11 @@ export default function Lembar({
           </section>
         );
       })}
-      <section className="card r4p">
+      <section className="panel r4p">
         <label className="stack stack--sm">
           <h3 className="h3">{t.other}</h3>
           <textarea
-            className="textarea"
+            className="field__input"
             rows={3}
             value={other}
             disabled={locked}
@@ -729,7 +729,7 @@ export default function Lembar({
   const putus = (
     <div className="r4end">
       <section
-        className="card r4p"
+        className="panel r4p"
         data-key="verdict"
         data-miss={miss === "verdict" ? "yes" : undefined}
       >
@@ -756,10 +756,10 @@ export default function Lembar({
           </span>
         )}
       </section>
-      <section className="card r4p">
+      <section className="panel r4p">
         <h3 className="h3">{t.ba}</h3>
         <textarea
-          className="textarea"
+          className="field__input"
           rows={3}
           value={ba}
           disabled={locked}
@@ -787,7 +787,7 @@ export default function Lembar({
         </div>
       )}
       {data.others.length > 0 && (
-        <section className="card r4p">
+        <section className="panel r4p">
           <h3 className="h3">{t.mates}</h3>
           <ul className="r4sum__l">
             {data.others.map((o) => (
