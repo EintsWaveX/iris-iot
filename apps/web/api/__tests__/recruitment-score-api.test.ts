@@ -29,7 +29,6 @@ import {
   recSlot,
   recSlotAssignment,
 } from "../../src/lib/schema";
-import type { Rubric } from "../../src/lib/recruitment/exam-types";
 
 process.env.SESSION_SECRET = "x".repeat(40);
 
@@ -162,20 +161,6 @@ vi.mock("../_lib/recruitment-rights", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   muatPelaku: async (_db: unknown, _e: number, nim: string) => pelakuNim[nim] ?? null,
 }));
-
-const RUBRIK: Rubric = {
-  id: 1,
-  stage: "tes_tulis",
-  kind: "livecode",
-  rows: [
-    { key: "jalan", label: "Jalan", max: 4, weight: 3 },
-    { key: "protokol", label: "Protokol", max: 4, weight: 2 },
-    { key: "data", label: "Data", max: 4, weight: 2 },
-    { key: "kode", label: "Kode", max: 4, weight: 1 },
-    { key: "jelas", label: "Jelas", max: 4, weight: 2 },
-  ],
-};
-vi.mock("../_lib/recruitment-lc-pool", () => ({ muatRubrik: async () => RUBRIK }));
 
 const { handleScore, muatNilaiCutting, nilaiBeku } = await import("../_lib/recruitment-score");
 const { getDb } = await import("../../src/lib/db");

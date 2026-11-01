@@ -32,8 +32,8 @@ const area =
 vi.mock("../_lib/recruitment-bank", () => ({ handleBank: area("bank") }));
 vi.mock("../_lib/recruitment-seat", () => ({ handleSeat: area("seat") }));
 vi.mock("../_lib/recruitment-room", () => ({ handleRoom: area("room") }));
-vi.mock("../_lib/recruitment-livecode", () => ({ handleLiveCode: area("livecode") }));
 vi.mock("../_lib/recruitment-score", () => ({ handleScore: area("score") }));
+vi.mock("../_lib/recruitment-lcc", () => ({ handleLcc: area("lcc") }));
 vi.mock("../_lib/recruitment-s4", () => ({ S4_GET: {}, S4_POST: {} }));
 vi.mock("../_lib/recruitment-s6", () => ({
   S6_GET: {},
@@ -95,8 +95,8 @@ describe("S3 dispatch", () => {
       ["room-act", "POST", "room"],
       ["test", "GET", "seat"],
       ["test-answer", "POST", "seat"],
-      ["lc-grade", "POST", "livecode"],
-      ["lc", "GET", "livecode"],
+      ["lcc", "GET", "lcc"],
+      ["lcc-send", "POST", "lcc"],
       ["scores", "GET", "score"],
       ["score-finalize", "POST", "score"],
     ];
