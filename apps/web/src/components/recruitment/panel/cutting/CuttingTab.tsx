@@ -657,6 +657,18 @@ export default function CuttingTab({
           {board.data.scoreFinal ? t.scoresFinal : t.scoresProvisional}
         </Pill>
       )}
+      {/* A stage with no cut line (Berkas) still has its start and targets to set */}
+      {!garis && bisaAtur && (
+        <button
+          type="button"
+          className="iconbtn iconbtn--sm"
+          aria-label={CS[lang].setStart}
+          title={CS[lang].setStart}
+          onClick={() => setAtur(true)}
+        >
+          <SlidersHorizontalIcon size={18} aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 

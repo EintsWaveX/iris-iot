@@ -7,6 +7,7 @@
  * Panitia (an Asisten session; each action checks its own right):
  * GET  /api/recruitment/iv-crew?stage=      slots with their examiners and PJ, and the pool to pick from
  * POST /api/recruitment/iv-crew-set         { stage, slotIds, role, nims }  plotPengawas (Ketua, Akademik)
+ * POST /api/recruitment/iv-standin           { stage, slotId, from }  the inside PJ takes the seat of an examiner who did not come
  * GET  /api/recruitment/iv-mine?stage=      my slots, the booths and the sheet states
  * GET  /api/recruitment/iv-sheet?id=&stage= one CaAs's sheet: shared part, my levels, the template
  * POST /api/recruitment/iv-sheet-save       { id, stage, shared?, levels? }  autosave
@@ -257,6 +258,59 @@ async function handleCrewSet(req: ApiRequest, res: ApiResponse, s: SessionPayloa
         );
   });
   await writeAudit(s.nim, "rec_iv_crew", { stage: b.stage, slotIds, role: b.role, nims });
+  return void res.status(200).json({ ok: true });
+}
+
+/**
+ * Gantikan Pewawancara: an examiner suddenly does not show, and the PJ who sits inside the room takes their
+ * seat (same position, so the booth and the partner stay as they were). Only that slot's inside PJ may do it;
+ * one who excused themselves the day before is replaced in Plotting instead.
+ */
+async function handleStandIn(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const slotId = Number(b.slotId);
+  const from = typeof b.from === "string" ? b.from : "";
+  if (!isIvStage(b.stage) || !Number.isInteger(slotId) || slotId <= 0 || !from)
+    return void tolak(res, "data_salah", 400);
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const [slot] = await db
+    .select({ id: recSlot.id })
+    .from(recSlot)
+    .where(
+      and(eq(recSlot.id, slotId), eq(recSlot.editionId, edisi.id), eq(recSlot.stage, b.stage)),
+    );
+  if (!slot) return void tolak(res, "slot_tidak_ada", 404);
+  const crew = await db.select().from(recSlotExaminer).where(eq(recSlotExaminer.slotId, slotId));
+  const dalam = crew.some((x) => x.role === "pj_dalam" && x.asistenNim === s.nim);
+  if (!dalam) return void tolak(res, "tanpa_hak", 403);
+  if (crew.some((x) => x.role === "penguji" && x.asistenNim === s.nim))
+    return void tolak(res, "sudah_penguji", 409);
+  const target = crew.find((x) => x.role === "penguji" && x.asistenNim === from);
+  if (!target) return void tolak(res, "bukan_penguji", 404);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(recSlotExaminer)
+      .set({ asistenNim: s.nim })
+      .where(
+        and(
+          eq(recSlotExaminer.slotId, slotId),
+          eq(recSlotExaminer.asistenNim, from),
+          eq(recSlotExaminer.role, "penguji"),
+        ),
+      );
+    await tx
+      .delete(recSlotExaminer)
+      .where(
+        and(
+          eq(recSlotExaminer.slotId, slotId),
+          eq(recSlotExaminer.asistenNim, s.nim),
+          eq(recSlotExaminer.role, "pj_dalam"),
+        ),
+      );
+  });
+  await writeAudit(s.nim, "rec_iv_standin", { stage: b.stage, slotId, from });
   return void res.status(200).json({ ok: true });
 }
 
@@ -853,6 +907,7 @@ export const S4_GET: Record<string, H> = {
 };
 export const S4_POST: Record<string, H> = {
   "iv-crew-set": handleCrewSet,
+  "iv-standin": handleStandIn,
   "iv-sheet-save": handleSheetSave,
   "iv-sheet-send": handleSheetSend,
   "iv-sheet-reopen": handleSheetReopen,
