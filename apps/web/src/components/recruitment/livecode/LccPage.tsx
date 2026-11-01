@@ -9,13 +9,25 @@
  */
 import {
   ArrowCounterClockwiseIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
   CheckIcon,
   CopyIcon,
   PaperPlaneTiltIcon,
   PlayIcon,
   PlugsIcon,
+  QuestionIcon,
 } from "@phosphor-icons/react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import type { Lang } from "../../../lib/kelas";
 import { usePoll } from "../../../lib/hooks";
 import type { Verdict } from "../../../lib/recruitment/c-problem";
@@ -24,6 +36,8 @@ import type { LccProblem, LccSelf, LccSendReply, LccSub } from "../../../lib/rec
 import type { SeatPhase } from "../../../lib/recruitment/seat-state";
 import type { TestView } from "../../../lib/recruitment/seat-types";
 import { Gate, Timer, type Motion } from "../exam/parts";
+import { TS } from "../exam/testStrings";
+import type { PlanPart } from "../../../lib/recruitment/seat-types";
 import { Md } from "../exam/render/text";
 import { Notice } from "../exam/Screens";
 import { LCC } from "./lccStrings";
@@ -131,51 +145,257 @@ export default function LccPage({
     );
   }
 
+  const working = phase.k === "work";
   return (
-    <div className="lcc" data-m={motion}>
-      {phase.k === "work" ? (
-        <Workbench
-          lang={lang}
-          nim={tv.me.nim}
-          lcc={lcc}
-          left={phase.left}
-          paused={phase.paused}
-          linkDown={linkDown}
-          refresh={refresh}
+    <>
+      <LccTop
+        lang={lang}
+        plan={tv.plan}
+        left={working ? phase.left : lcc.minutes * 60_000}
+        frozen={!working || phase.paused}
+        label={working ? undefined : t.drawTime}
+        linkDown={linkDown}
+      />
+      <div className="lcc" data-m={motion}>
+        {working ? (
+          <Workbench
+            lang={lang}
+            nim={tv.me.nim}
+            lcc={lcc}
+            left={phase.left}
+            paused={phase.paused}
+            linkDown={linkDown}
+            refresh={refresh}
+          />
+        ) : (
+          <Hand lang={lang} lcc={lcc} motion={motion} />
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ----------------------------------------------------------------- the top bar */
+
+/** The same bar as the written parts (r3top): logo, part, save chip, timer and the evening rail. */
+function LccTop({
+  lang,
+  plan,
+  left,
+  frozen,
+  label,
+  linkDown,
+}: {
+  lang: Lang;
+  plan: PlanPart[];
+  left: number;
+  frozen: boolean;
+  label?: string;
+  linkDown: boolean;
+}) {
+  const t = LCC[lang];
+  const ts = TS[lang];
+  const pc = Math.max(
+    0,
+    plan.findIndex((p) => p.key === "livecode"),
+  );
+  return (
+    <header className="r3top" data-chips={linkDown ? "2" : "1"}>
+      <div className="r3top__id">
+        <img
+          className="r3top__logo"
+          src="/brand/iris-logo-mark.png"
+          alt="IRIS"
+          width="62"
+          height="28"
         />
-      ) : (
-        <Hand lang={lang} lcc={lcc} />
-      )}
-    </div>
+        <div className="stack" style={{ gap: 0, minWidth: 0 }}>
+          <span className="eyebrow rec-eyebrow">{t.eyebrow}</span>
+          <b className="r3top__part">
+            <span className="r3top__long">{ts.part.livecode.l}</span>
+            <span className="r3top__short">{ts.part.livecode.s}</span>{" "}
+            <span className="hint">· {t.partOf(pc + 1, plan.length)}</span>
+          </b>
+        </div>
+      </div>
+      <div className="r3top__right">
+        {!frozen || label === undefined ? (
+          <span className="r3save" data-s="ok" role="status">
+            <i className="r3save__dot" />
+            {t.saved}
+          </span>
+        ) : null}
+        <Timer left={left} frozen={frozen} lang={lang} big label={label} />
+      </div>
+      <ol className="n7t-rail" aria-label={ts.lobby.tonight}>
+        {plan.map((p, i) => (
+          <li
+            key={p.key}
+            style={{ flexGrow: p.minutes }}
+            data-st={i < pc ? "done" : i === pc ? "now" : "next"}
+            title={ts.part[p.key].l}
+          />
+        ))}
+      </ol>
+    </header>
   );
 }
 
 /* ----------------------------------------------------------------- the hand */
 
-function Hand({ lang, lcc }: { lang: Lang; lcc: LccSelf }) {
+function Hand({ lang, lcc, motion }: { lang: Lang; lcc: LccSelf; motion: Motion }) {
   const t = LCC[lang];
+  const key = `iris-lcc-up-${lcc.hand.map((p) => p.id).join("-")}`;
+  const n = lcc.hand.length;
+  const [up, setUp] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState(0);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // A reload keeps the cards open: the draw itself is the server's and never changes.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(key)) setUp(n);
+    } catch {
+      /* private window */
+    }
+    const ts = timers.current;
+    return () => ts.forEach(clearTimeout);
+  }, [key, n]);
+  const all = up >= n;
+  const go = () => {
+    if (busy || all) return;
+    setBusy(true);
+    const gap = motion === "reduce" ? 0 : motion === "ldm" ? 200 : 380;
+    lcc.hand.forEach((_, i) =>
+      timers.current.push(
+        setTimeout(
+          () => {
+            setUp(i + 1);
+            if (i === n - 1) {
+              setBusy(false);
+              try {
+                sessionStorage.setItem(key, "1");
+              } catch {
+                /* private window */
+              }
+            }
+          },
+          250 + i * gap,
+        ),
+      ),
+    );
+  };
   return (
-    <section className="lcc-hand">
-      <header className="lcc-hand__head">
-        <span className="eyebrow rec-eyebrow">{t.drawEyebrow}</span>
-        <h1 className="lcc-hand__title">{t.drawTitle}</h1>
-        <p className="hint">{t.drawLede(lcc.hand.length, lcc.minutes)}</p>
-      </header>
-      <ol className="lcc-hand__list">
-        {lcc.hand.map((p, i) => (
-          <li key={p.id} className="lcc-card lcc-hand__item">
-            <span className="lcc-num">{i + 1}</span>
-            <b className="lcc-hand__name">{p.title}</b>
-            <span className="lcc-chip" data-tier={p.tier}>
-              {t.tier[p.tier]}
-            </span>
-            <span className="lcc-chip lcc-chip--pts">{t.points(p.points)}</span>
-          </li>
-        ))}
-      </ol>
-      <p className="hint lcc-hand__wait" role="status">
-        {t.drawWait}
-      </p>
+    <section className="lcc-draw">
+      <div className="stack lcc-draw__head" style={{ gap: 8 }}>
+        <ol className="r3steps lc-steps" aria-label={t.drawEyebrow}>
+          {t.drawSteps.map((s, i) => (
+            <li
+              key={s}
+              data-st={i < step ? "done" : i === step ? "now" : "next"}
+              aria-current={i === step ? "step" : undefined}
+            >
+              <span className="r3steps__n num">
+                {i < step ? <CheckIcon weight="bold" /> : i + 1}
+              </span>
+              {s}
+            </li>
+          ))}
+        </ol>
+        <h1 className="lcc-hand__title lcc-draw__title" key={step}>
+          {step === 0 ? t.drawHead(n) : t.drawHeadAfter}
+        </h1>
+        <p className="lede">{step === 0 ? t.drawLedeNew(n) : t.drawLedeAfter}</p>
+      </div>
+      {step === 0 ? (
+        <>
+          <div className="lc-hand" role="list" aria-label={t.drawEyebrow} data-m={motion}>
+            {lcc.hand.map((p, i) => (
+              <div
+                key={p.id}
+                className="lc-card"
+                data-up={i < up ? "yes" : "no"}
+                data-tier={p.tier}
+                style={{ "--i": i } as CSSProperties}
+                role="listitem"
+                aria-label={i < up ? p.title : t.drawCardClosed}
+              >
+                <div className="lc-card__in">
+                  <div className="lc-card__back" aria-hidden="true">
+                    <i className="lc-card__ring" />
+                    <QuestionIcon size={36} />
+                  </div>
+                  <div className="lc-card__front">
+                    <span className="lcc-num">{i + 1}</span>
+                    <span className="lcc-chip" data-tier={p.tier}>
+                      {t.tier[p.tier]}
+                    </span>
+                    <b>{p.title}</b>
+                    <span className="hint">
+                      {t.points(p.points)} · {t.testsN(p.tests)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="lc-hand__go">
+            <button
+              type="button"
+              className={"btn btn--lg " + (all ? "btn--inverse" : "btn--primary")}
+              disabled={busy || all}
+              onClick={go}
+            >
+              {busy ? t.drawOpening : all ? t.drawDone : t.drawGo}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="lc-after">
+          <ol className="lcc-card lc-tasks">
+            {lcc.hand.map((p, i) => (
+              <li key={p.id}>
+                <span className="lcc-num">{i + 1}</span>
+                <b>{p.title}</b>
+                <span className="lcc-chip" data-tier={p.tier}>
+                  {t.tier[p.tier]}
+                </span>
+                <b className="num lc-tasks__pts">{p.points}</b>
+              </li>
+            ))}
+          </ol>
+          <div className="rec-note">
+            <b>{t.scoreTitle}</b>
+            <span>{t.scoreBody}</span>
+          </div>
+          <div className="r3wait">
+            <i className="r3wait__dot" aria-hidden="true" />
+            <b>{t.drawWaitEditor}</b>
+          </div>
+        </div>
+      )}
+      <div className="lcc-draw__bar">
+        {step > 0 ? (
+          <button type="button" className="btn btn--ghost" onClick={() => setStep(0)}>
+            <ArrowLeftIcon aria-hidden="true" />
+            <span className="btn__label">{t.drawBack}</span>
+          </button>
+        ) : (
+          <span className="hint">{all ? t.drawIn : t.drawNoTime}</span>
+        )}
+        <span style={{ flex: 1 }} />
+        {step === 0 && (
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={!all}
+            onClick={() => setStep(1)}
+          >
+            <span className="btn__label">{t.drawSee}</span>
+            <ArrowRightIcon aria-hidden="true" />
+          </button>
+        )}
+      </div>
     </section>
   );
 }
@@ -247,21 +467,6 @@ function Workbench({
 
   return (
     <div className="lcc-work">
-      <header className="lcc-top">
-        <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-          <span className="eyebrow rec-eyebrow">{t.eyebrow}</span>
-          <h1 className="lcc-top__title">{t.title}</h1>
-        </div>
-        <div className="row lcc-top__chips">
-          <span className="r3save" data-s="ok" role="status">
-            <i className="r3save__dot" />
-            {t.saved}
-          </span>
-          <Timer left={left} frozen={paused} lang={lang} />
-          {linkDown && <span className="hint">·</span>}
-        </div>
-      </header>
-
       {!lcc.judgeReady && (
         <div className="lcc-banner" role="alert">
           <PlugsIcon size={20} aria-hidden="true" />

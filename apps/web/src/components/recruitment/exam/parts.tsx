@@ -102,17 +102,20 @@ export function CheckRow({
   st,
   title,
   sub,
+  act,
 }: {
-  st: "ok" | "warn" | "wait" | "todo";
+  st: "ok" | "warn" | "bad" | "wait" | "todo";
   title: string;
   sub?: string;
+  /** A small button at the end of the row (Bukan Aku) */
+  act?: ReactNode;
 }) {
   return (
     <li className="r3chk" data-st={st}>
       <span className="r3chk__ic">
         {st === "wait" ? (
           <i className="r3spin" aria-hidden="true" />
-        ) : st === "warn" ? (
+        ) : st === "warn" || st === "bad" ? (
           <WarningIcon weight="bold" />
         ) : st === "ok" ? (
           <CheckIcon weight="bold" />
@@ -124,6 +127,7 @@ export function CheckRow({
         <b>{title}</b>
         {sub && <span className="hint">{sub}</span>}
       </span>
+      {act}
     </li>
   );
 }

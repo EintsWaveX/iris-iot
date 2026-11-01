@@ -30,7 +30,7 @@ export const BK = dict({
     partsLong: {
       logika: "Logika",
       fitb: "Isi Celah (FITB)",
-      kodingan: "Debugging Kodingan",
+      kodingan: "Code Tracing",
     } as Parts,
     langs: { c: "C" } as Langs,
     formats: {
@@ -378,7 +378,7 @@ export const BK = dict({
     partsLong: {
       logika: "Logic",
       fitb: "Fill in the Blanks (FITB)",
-      kodingan: "Debugging: Code",
+      kodingan: "Code Tracing",
     } as Parts,
     langs: { c: "C" } as Langs,
     formats: {
@@ -715,7 +715,7 @@ export const BK = dict({
     partsLong: {
       logika: "逻辑",
       fitb: "填空 (FITB)",
-      kodingan: "代码调试",
+      kodingan: "代码追踪",
     } as Parts,
     langs: { c: "C" } as Langs,
     formats: {

@@ -120,7 +120,7 @@ async function tanganKursi(c: KonteksLc): Promise<number[] | null> {
 
 /* ------------------------------------------------------------------- read */
 
-async function judgeSiap(db: Db, now = Date.now()): Promise<boolean> {
+export async function judgeSiap(db: Db, now = Date.now()): Promise<boolean> {
   const [r] = await db
     .select({ id: server.id })
     .from(server)

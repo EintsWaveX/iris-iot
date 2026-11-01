@@ -730,8 +730,13 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         onOpenChange={setJadwalOpen}
         title={t.tools.jadwalTitle}
         description={t.tools.jadwalDesc}
-        size="lg"
+        size="xl"
         lang={lang}
+        actions={
+          <button type="button" className="btn btn--ghost" onClick={() => setJadwalOpen(false)}>
+            {r.close}
+          </button>
+        }
       >
         <div className="stack">
           {pickCards && pickCards.length ? (
@@ -747,6 +752,11 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         title={t.tools.amplopTitle}
         size="lg"
         lang={lang}
+        actions={
+          <button type="button" className="btn btn--ghost" onClick={() => setAmplopOpen(false)}>
+            {r.close}
+          </button>
+        }
       >
         {inbox}
       </Dialog>

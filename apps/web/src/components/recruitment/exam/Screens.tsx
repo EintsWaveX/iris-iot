@@ -7,10 +7,12 @@
  */
 import {
   ArrowsOutIcon,
-  BookOpenIcon,
+  ClockIcon,
   FloppyDiskIcon,
+  MonitorIcon,
   SealCheckIcon,
   TimerIcon,
+  UserIcon,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import type { PartKey } from "../../../lib/recruitment/exam-types";
@@ -22,7 +24,6 @@ import { tanggalWib } from "../../../lib/recruitment/gates";
 import RecNav from "../RecNav";
 import { href } from "../../../lib/app";
 import { tgl } from "../shared";
-import HotspotCard from "./HotspotCard";
 import { CheckRow, Gate, type Motion } from "./parts";
 import { TS } from "./testStrings";
 
@@ -100,13 +101,11 @@ export function Lobby({
   tv,
   phase,
   motion,
-  onChanged,
 }: {
   lang: Lang;
   tv: TestView;
   phase: SeatPhase;
   motion: Motion;
-  onChanged?: () => void;
 }) {
   const t = TS[lang];
   const l = t.lobby;
@@ -137,6 +136,24 @@ export function Lobby({
           </div>
         </div>
         {elsewhere.size > 0 && <p className="lede">{l.susulanBody}</p>}
+        <div className="r3seat" aria-label={l.seat}>
+          <span className="r3seat__c">
+            <UserIcon size={16} aria-hidden="true" />
+            {tv.me.nama}
+          </span>
+          {tv.info?.title && (
+            <span className="r3seat__c">
+              <MonitorIcon size={16} aria-hidden="true" />
+              {tv.info.title}
+            </span>
+          )}
+          {when && (
+            <span className="r3seat__c">
+              <ClockIcon size={16} aria-hidden="true" />
+              {tgl(tanggalWib(when).tanggal, lang)}
+            </span>
+          )}
+        </div>
         <div className="panel r3tl">
           <div className="panel__head">
             <h2 className="panel__title">{l.tonight}</h2>
@@ -158,11 +175,22 @@ export function Lobby({
                 <i />
                 <b>{t.part[p.key].l}</b>
                 <span className="hint num">
-                  {p.minutes} {t.minShort} · {p.count ? t.questions(p.count) : t.topic}
+                  {p.minutes} {t.minShort} · {t.questions(p.count ?? 0)}
                 </span>
               </li>
             ))}
           </ol>
+          <ul className="r3rules r3rules--grid">
+            {[ArrowsOutIcon, FloppyDiskIcon, TimerIcon].map((Ic, i) => (
+              <li key={i}>
+                <span className="r3rules__ic">
+                  <Ic />
+                </span>
+                <span>{l.rule[i]}</span>
+              </li>
+            ))}
+          </ul>
+          {!doneKey && <span className="hint">{l.lcBoard}</span>}
         </div>
         {elsewhere.size > 0 && (
           <div className="panel">
@@ -182,42 +210,6 @@ export function Lobby({
             </ul>
           </div>
         )}
-        <div className="r3lobby__grid">
-          <div className="panel">
-            <div className="panel__head">
-              <h2 className="panel__title">{l.rules}</h2>
-            </div>
-            <ul className="r3rules">
-              {[ArrowsOutIcon, FloppyDiskIcon, BookOpenIcon, TimerIcon].map((Ic, i) => (
-                <li key={i}>
-                  <span className="r3rules__ic">
-                    <Ic />
-                  </span>
-                  <span>{l.rule[i]}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="panel">
-            <div className="panel__head">
-              <h2 className="panel__title">{l.seat}</h2>
-            </div>
-            <div className="rec-sum">
-              <span className="hint">{l.name}</span>
-              <b>{tv.me.nama}</b>
-              <span className="hint">{l.room}</span>
-              <b>{tv.info?.title}</b>
-              {when && (
-                <>
-                  <span className="hint">{l.date}</span>
-                  <b>{tgl(tanggalWib(when).tanggal, lang)}</b>
-                </>
-              )}
-            </div>
-            {!doneKey && <span className="hint">{l.lcBoard}</span>}
-          </div>
-        </div>
-        {tv.seat && <HotspotCard lang={lang} saved={tv.hotspot} compact onChanged={onChanged} />}
       </div>
     </div>
   );

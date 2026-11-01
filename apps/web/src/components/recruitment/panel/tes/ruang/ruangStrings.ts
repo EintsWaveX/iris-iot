@@ -13,19 +13,19 @@ import type { RerollReason } from "../../../../../lib/recruitment/room-api";
 const partId: Record<PartKey, { l: string; s: string }> = {
   logika: { l: "Logika", s: "Logika" },
   fitb: { l: "FITB", s: "FITB" },
-  kodingan: { l: "Debugging Kodingan", s: "Kodingan" },
+  kodingan: { l: "Code Tracing", s: "Kodingan" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partEn: Record<PartKey, { l: string; s: string }> = {
   logika: { l: "Logic", s: "Logic" },
   fitb: { l: "Fill in the Blanks", s: "FITB" },
-  kodingan: { l: "Debugging: Code", s: "Code" },
+  kodingan: { l: "Code Tracing", s: "Code" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partZh: Record<PartKey, { l: string; s: string }> = {
   logika: { l: "逻辑", s: "逻辑" },
   fitb: { l: "填空", s: "填空" },
-  kodingan: { l: "代码调试", s: "代码" },
+  kodingan: { l: "代码追踪", s: "代码" },
   livecode: { l: "现场编程", s: "现场编程" },
 };
 

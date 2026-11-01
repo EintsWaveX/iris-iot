@@ -1,13 +1,15 @@
 /**
- * Check-in on /recruitment/test (prompt 10, mockup r3-checkin, EXAM-ENGINE
- * 5.5): three steps on one card. Full screen (a button, since the browser
- * needs a click), a connection check (the server round trip, the live link,
- * the clock offset jamServer() already applied, and the Chromium check for
- * Live Coding, which warns but never blocks), and the name. Each step is a
- * POST test-checkin; the console's seat tile fills its dots as they arrive.
+ * Check-in on /recruitment/test (mockup r3-checkin, EXAM-ENGINE 5.5): one
+ * card, no steps. The checks start on their own (the name first, then the
+ * server round trip, the live link, the laptop clock and the lab PC's C
+ * judge), so nobody presses Lanjut to learn the server answered. One press
+ * then asks for full screen, which the browser only allows from a click, and
+ * records the three steps (fullscreen, connection, name) the console's seat
+ * tile fills its dots from. A failed server check stops the button and
+ * offers Coba Lagi; the judge and the browser only warn.
  */
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon } from "@phosphor-icons/react";
+import { ArrowsOutIcon, HandWavingIcon, WarningIcon, WifiHighIcon } from "@phosphor-icons/react";
 import type { Lang } from "../../../lib/kelas";
 import { selisihJam } from "../../../lib/jam";
 import { isFail, recGet } from "../../../lib/recruitment/client";
@@ -19,22 +21,13 @@ import { CheckRow, type Motion } from "./parts";
 import { postCheckin, toast } from "./seatApi";
 import { TS } from "./testStrings";
 
-type Chromium = { ok: boolean; name: string };
-
-/** Web Serial and Web Bluetooth are what Live Coding flashes and pairs with */
-function chromium(): Chromium {
-  const nav = navigator as Navigator & {
-    serial?: unknown;
-    bluetooth?: unknown;
-    userAgentData?: { brands?: { brand: string; version: string }[] };
-  };
-  const brand = nav.userAgentData?.brands?.find(
-    (b) => /chrom|edge/i.test(b.brand) && !/not/i.test(b.brand),
-  );
-  const name = brand
-    ? `${brand.brand} ${brand.version}`
-    : (/(Firefox|Safari)\/[\d.]+/.exec(navigator.userAgent)?.[0] ?? "");
-  return { ok: !!nav.serial && !!nav.bluetooth, name };
+/** The lab computers run Chrome; anything else only gets a warning row */
+function chromium(): boolean {
+  const nav = navigator as Navigator & { userAgentData?: { brands?: { brand: string }[] } };
+  const brands = nav.userAgentData?.brands?.map((b) => b.brand) ?? [];
+  return brands.length
+    ? brands.some((b) => /chrom|edge/i.test(b) && !/not/i.test(b))
+    : /Chrome\/|Edg\//.test(navigator.userAgent);
 }
 
 export function roomLine(tv: TestView, lang: Lang): string {
@@ -69,16 +62,15 @@ export default function CheckIn({
 }) {
   const t = TS[lang].check;
   const c = tv.seat?.checkin ?? {};
-  const step = !c.fullscreen ? 0 : !c.connection ? 1 : 2;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [rtt, setRtt] = useState<number | null | false>(null);
   const [liveWait, setLiveWait] = useState(true);
-  const cr = useRef(chromium());
+  const [round, setRound] = useState(0);
+  const okBrowser = useRef(chromium());
 
-  // Step 2: one round trip to the API (the faster of two), then the live link gets a few seconds.
+  // One round trip to the API (the faster of two); the live link gets a few seconds.
   useEffect(() => {
-    if (step !== 1) return;
     let off = false;
     setRtt(null);
     setLiveWait(true);
@@ -96,158 +88,134 @@ export default function CheckIn({
       off = true;
       clearTimeout(w);
     };
-  }, [step]);
+  }, [round]);
 
-  async function goFullscreen() {
-    setBusy(true);
-    setErr(null);
-    const ok = await enter();
-    if (!ok) {
-      setErr(t.fsFail);
-      setBusy(false);
-      return;
-    }
-    const r = await postCheckin("fullscreen");
-    setBusy(false);
-    if (!r.ok) return setErr(t.failed);
-    refresh();
-  }
-  async function goConnection() {
-    setBusy(true);
-    setErr(null);
-    const r = await postCheckin("connection", {
-      rttMs: typeof rtt === "number" ? rtt : undefined,
-      offsetMs: selisihJam(),
-      chromium: cr.current.ok,
-    });
-    setBusy(false);
-    if (!r.ok) return setErr(t.failed);
-    refresh();
-  }
-  async function goName() {
-    setBusy(true);
-    setErr(null);
-    const r = await postCheckin("name");
-    setBusy(false);
-    if (!r.ok) return setErr(t.failed);
-    refresh();
-  }
-
-  const serverSt = rtt === null ? "wait" : rtt === false ? "warn" : "ok";
+  const serverSt = rtt === null ? "wait" : rtt === false ? "bad" : "ok";
   const liveOk = link === "live";
   const liveSt = liveOk ? "ok" : liveWait && link !== "mati" ? "wait" : "warn";
   const clockSt = rtt === null ? "wait" : "ok";
-  const ready = rtt !== null && rtt !== false && !(liveSt === "wait");
-  const initials = tv.me.nama
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join("");
+  const judgeSt = rtt === null ? "wait" : tv.judge ? "ok" : "warn";
+  const failed = rtt === false;
+  const ready = rtt !== null && rtt !== false && liveSt !== "wait";
+  const hero = failed ? "gagal" : ready ? "nama" : "sambungan";
+
+  // One press: full screen (needs this click), then the three steps the server keeps.
+  async function masuk() {
+    setBusy(true);
+    setErr(null);
+    try {
+      if (!c.fullscreen) {
+        if (!(await enter())) return setErr(t.fsFail);
+        if (!(await postCheckin("fullscreen")).ok) return setErr(t.failed);
+      }
+      if (!c.connection) {
+        const r = await postCheckin("connection", {
+          rttMs: typeof rtt === "number" ? rtt : undefined,
+          offsetMs: selisihJam(),
+          chromium: okBrowser.current,
+        });
+        if (!r.ok) return setErr(t.failed);
+      }
+      if (!(await postCheckin("name")).ok) return setErr(t.failed);
+      refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="r3gate" data-m={motion}>
-      <div className="panel panel--raised r3gate__card">
-        <div className="stack" style={{ gap: 4 }}>
-          <span className="eyebrow rec-eyebrow">{TS[lang].eyebrow}</span>
-          <h1 className="r3h1">{t.title}</h1>
-          <span className="hint">{roomLine(tv, lang)}</span>
+      <div className="panel panel--raised r3gate__card r3gate__card--check">
+        <div className="n7t-gatehead">
+          <span className="n7t-hero" data-s={hero} key={hero} aria-hidden="true">
+            <i />
+            <i />
+            {failed ? (
+              <WarningIcon size={30} />
+            ) : ready ? (
+              <ArrowsOutIcon size={30} />
+            ) : (
+              <WifiHighIcon size={30} />
+            )}
+          </span>
+          <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+            <span className="eyebrow rec-eyebrow">{TS[lang].eyebrow}</span>
+            <h1 className="r3h1">{t.title}</h1>
+            <span className="hint">{roomLine(tv, lang)}</span>
+          </div>
         </div>
-        <ol className="r3steps" aria-label={t.stepsLabel}>
-          {t.steps.map((s, i) => (
-            <li key={s} data-st={i < step ? "done" : i === step ? "now" : "next"}>
-              <span className="r3steps__n num">
-                {i < step ? <CheckIcon weight="bold" /> : i + 1}
-              </span>
-              {s}
-            </li>
-          ))}
-        </ol>
-        <div className="stack r3step" key={step}>
-          {step === 0 && (
-            <>
-              <p className="lede">{t.fsLede}</p>
+        <ul className="r3chks" aria-label={t.checksLabel}>
+          <CheckRow
+            st="ok"
+            title={tv.me.nama}
+            sub={tv.me.nim}
+            act={
               <button
                 type="button"
-                className="btn btn--primary btn--lg"
-                disabled={busy}
-                onClick={goFullscreen}
+                className="r3chk__act"
+                onClick={() => toast(t.notMeToast, "warn")}
               >
-                {t.fsGo}
+                {t.notMe}
               </button>
-            </>
-          )}
-          {step === 1 && (
-            <>
-              <ul className="r3chks">
-                <CheckRow
-                  st={serverSt}
-                  title={t.server}
-                  sub={rtt === null ? t.wait : rtt === false ? t.serverBad : t.serverOk(rtt)}
-                />
-                <CheckRow
-                  st={liveSt}
-                  title={t.live}
-                  sub={liveOk ? t.liveOk : liveSt === "wait" ? t.waiting : t.liveBad}
-                />
-                <CheckRow
-                  st={clockSt}
-                  title={t.clock}
-                  sub={
-                    rtt === null ? t.waiting : t.clockOk((Math.abs(selisihJam()) / 1000).toFixed(1))
-                  }
-                />
-                <CheckRow
-                  st={cr.current.ok ? "ok" : "warn"}
-                  title={t.browser}
-                  sub={cr.current.ok ? t.browserOk(cr.current.name || "Chrome") : t.browserBad}
-                />
-              </ul>
-              <button
-                type="button"
-                className="btn btn--primary btn--lg"
-                disabled={busy || !ready}
-                onClick={goConnection}
-              >
-                {t.next}
-              </button>
-            </>
-          )}
-          {step === 2 && (
-            <>
-              <p className="lede">{t.nameLede}</p>
-              <div className="r3me">
-                <span className="r3me__av" aria-hidden="true">
-                  {initials}
-                </span>
-                <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <b className="r3me__n">{tv.me.nama}</b>
-                  <span className="hint mono">{tv.me.nim}</span>
-                </div>
-              </div>
-              <div className="row r3gate__acts">
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  onClick={() => toast(t.notMeToast, "warn")}
-                >
-                  {t.notMe}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--primary btn--lg"
-                  disabled={busy}
-                  onClick={goName}
-                >
-                  {t.itsMe}
-                </button>
-              </div>
-            </>
-          )}
+            }
+          />
+          <CheckRow
+            st={serverSt}
+            title={t.server}
+            sub={rtt === null ? t.wait : rtt === false ? t.serverDown : t.serverOk(rtt)}
+          />
+          <CheckRow
+            st={liveSt}
+            title={t.live}
+            sub={liveOk ? t.liveOk : liveSt === "wait" ? t.waiting : t.liveBad}
+          />
+          <CheckRow
+            st={clockSt}
+            title={t.clock}
+            sub={rtt === null ? t.waiting : t.clockOk((Math.abs(selisihJam()) / 1000).toFixed(1))}
+          />
+          {!okBrowser.current && <CheckRow st="warn" title={t.browser} sub={t.browserBad} />}
+          <CheckRow
+            st={judgeSt}
+            title={t.judge}
+            sub={rtt === null ? t.waiting : tv.judge ? t.judgeOk : t.judgeBad}
+          />
+        </ul>
+        <div className="stack">
+          <div className="row r3gate__help">
+            <span className="hint">{t.help}</span>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => toast(t.callToast, "warn")}
+            >
+              <HandWavingIcon size={16} aria-hidden="true" />
+              <span className="btn__label">{t.callAsisten}</span>
+            </button>
+          </div>
+          <span className="hint">{t.fsNote}</span>
           {err && (
             <span className="field__error" role="alert">
               {err}
             </span>
+          )}
+          {failed ? (
+            <button
+              type="button"
+              className="btn btn--primary btn--lg"
+              onClick={() => setRound((n) => n + 1)}
+            >
+              {t.retry}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn--primary btn--lg"
+              disabled={busy || !ready}
+              onClick={() => void masuk()}
+            >
+              {ready ? t.enter : t.checking}
+            </button>
           )}
         </div>
       </div>

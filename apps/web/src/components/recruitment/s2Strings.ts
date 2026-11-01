@@ -439,6 +439,7 @@ export const S2 = dict({
       noRight: "Layar ini untuk Panitia yang mengurus absensi.",
       signIn: "Masuk sebagai Panitia untuk membuka layar ini.",
       logoAlt: "IRIS",
+      close: "Tutup dinding absensi",
       scan: {
         hadir: "Kamu tercatat hadir",
         sudah: "Sudah tercatat tadi",
@@ -923,6 +924,7 @@ export const S2 = dict({
       noRight: "This screen is for the Panitia who run attendance.",
       signIn: "Sign in as Panitia to open this screen.",
       logoAlt: "IRIS",
+      close: "Close the attendance wall",
       scan: {
         hadir: "You're marked present",
         sudah: "Already marked",
@@ -1389,6 +1391,7 @@ export const S2 = dict({
       noRight: "这个屏幕给负责签到的招募组使用。",
       signIn: "请以招募组身份登录后打开这个屏幕。",
       logoAlt: "IRIS",
+      close: "关闭签到屏",
       scan: {
         hadir: "已记录你到场",
         sudah: "刚才已经记录过了",

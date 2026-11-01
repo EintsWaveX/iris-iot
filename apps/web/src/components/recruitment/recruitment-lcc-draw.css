@@ -1,0 +1,149 @@
+/* The Live Coding draw (mockup r3-putar): two steps, five cards that turn over on one press, then the
+   problem list and how it is scored. The bar above is the written parts' top bar (recruitment-runner-look.css). */
+.lcc-draw {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: calc(100dvh - 140px);
+  width: 100%;
+}
+.lcc-draw__title {
+  color: color-mix(in srgb, var(--text) 82%, var(--gold, #e8b64d));
+  font-size: 2.6rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.lcc-draw .lede {
+  margin: 0;
+}
+.lc-steps {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 420px;
+}
+.lc-hand {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  perspective: 1100px;
+}
+@media (max-width: 899px) {
+  .lc-hand {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.lc-card {
+  min-height: 190px;
+}
+.lc-card__in {
+  height: 100%;
+  min-height: 190px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 420ms ease-out;
+}
+.lc-card[data-up="yes"] .lc-card__in {
+  transform: rotateY(180deg);
+}
+.lc-hand[data-m="ldm"] .lc-card__in {
+  transition-duration: 200ms;
+}
+.lc-hand[data-m="reduce"] .lc-card__in {
+  transition: none;
+}
+.lc-card__back,
+.lc-card__front {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 8px;
+  inset: 0;
+  padding: 14px;
+  position: absolute;
+}
+.lc-card__back {
+  align-content: center;
+  background: var(--bg-sunken, var(--surface-1));
+  color: var(--text-faint);
+  overflow: hidden;
+  place-items: center;
+}
+.lc-card__ring {
+  border: 1.5px dashed var(--hairline-strong);
+  border-radius: calc(var(--radius-lg) - 6px);
+  inset: 8px;
+  position: absolute;
+}
+.lc-card__front {
+  align-content: space-between;
+  background: var(--surface-2);
+  justify-items: start;
+  transform: rotateY(180deg);
+}
+.lc-card[data-tier="easy"][data-up="yes"] .lc-card__front {
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--hairline));
+}
+.lc-card[data-tier="medium"][data-up="yes"] .lc-card__front {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--hairline));
+}
+.lc-card__front b {
+  font-size: 1.12rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  min-height: calc(1.2em * 2);
+  overflow-wrap: anywhere;
+}
+.lc-hand__go {
+  display: flex;
+  justify-content: center;
+}
+.lc-hand__go .btn {
+  min-width: 240px;
+}
+.lc-after {
+  display: grid;
+  gap: 16px;
+}
+.lc-tasks {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 6px 16px;
+}
+.lc-tasks li {
+  align-items: center;
+  border-top: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  padding: 12px 0;
+}
+.lc-tasks li:first-child {
+  border-top: 0;
+}
+.lc-tasks__pts {
+  min-width: 3ch;
+  text-align: right;
+}
+@media (max-width: 599px) {
+  .lc-tasks li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .lc-tasks li > .lc-tasks__pts {
+    display: none;
+  }
+}
+.lcc-draw__bar {
+  align-items: center;
+  background: var(--bg);
+  border-top: 1px solid var(--hairline);
+  bottom: 0;
+  display: flex;
+  gap: 12px;
+  margin-top: auto;
+  padding: 12px 0;
+  position: sticky;
+}

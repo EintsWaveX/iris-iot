@@ -10,8 +10,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import qrcode from "qrcode-generator";
 import gsap from "gsap";
+import { XIcon } from "@phosphor-icons/react";
 import Dropdown from "../../ui/Dropdown";
-import { useTick } from "../../../lib/app";
+import IconButton from "../../ui/IconButton";
+import { href, useTick } from "../../../lib/app";
 import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recGet, useRecEdition, useRecQrEvents } from "../../../lib/recruitment/client";
@@ -170,6 +172,12 @@ export default function QrWall({ lang }: { lang: Lang }) {
           </div>
         )}
         <WallClock />
+        <IconButton
+          icon={XIcon}
+          label={t.close}
+          tipSide="bottom"
+          onClick={() => location.assign(href(lang, "/recruitment/panel"))}
+        />
       </div>
       {!aktif ? (
         <div className="r2proj__info">

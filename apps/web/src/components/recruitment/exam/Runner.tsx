@@ -264,6 +264,16 @@ export default function Runner({
           <SaveChip s={save} lang={lang} />
           {timer}
         </div>
+        <ol className="n7t-rail" aria-label={TS[lang].lobby.tonight}>
+          {tv.plan.map((p, i) => (
+            <li
+              key={p.key}
+              style={{ flexGrow: p.minutes }}
+              data-st={i < pc ? "done" : i === pc ? "now" : "next"}
+              title={t.part[p.key].l}
+            />
+          ))}
+        </ol>
       </header>
       {linkDown && (
         <div className="r3connbar" role="status">
@@ -286,11 +296,21 @@ export default function Runner({
               <h2 className="r3h3">{t.run.questions}</h2>
               <span className="hint num">{t.run.answeredOf(answered.size, counted)}</span>
             </div>
+            <div
+              className="n7t-meter"
+              style={{ "--p": answered.size / Math.max(1, counted) } as CSSProperties}
+            >
+              <i />
+            </div>
             {cells(false)}
             <div className="r3legend hint">
               <span>
                 <i className="r3lg" data-a="yes" />
                 {t.run.legend[0]}
+              </span>
+              <span>
+                <i className="r3lg" data-c="yes" />
+                {t.run.legend[3]}
               </span>
               <span>
                 <i className="r3lg" />
@@ -300,13 +320,26 @@ export default function Runner({
                 <i className="r3lg" data-f="yes" />
                 {t.run.legend[2]}
               </span>
+              {voided.size > 0 && (
+                <span>
+                  <i className="r3lg" data-v="yes" />
+                  {t.run.legend[4]}
+                </span>
+              )}
             </div>
           </div>
-          <div className="stack stack--sm">
-            <h2 className="r3h3">{TS[lang].lobby.tonight}</h2>
+          <details className="n7t-parts">
+            <summary>
+              {TS[lang].lobby.tonight}{" "}
+              <span className="hint">{t.run.partOf(pc + 1, tv.plan.length)}</span>
+            </summary>
             <PartsMini plan={tv.plan} cur={key} lang={lang} />
-          </div>
-          <button type="button" className="btn btn--inverse" onClick={() => setAsk(true)}>
+          </details>
+          <button
+            type="button"
+            className={"btn " + (unans.length === 0 ? "btn--primary" : "btn--inverse")}
+            onClick={() => setAsk(true)}
+          >
             {t.run.handIn(t.part[key].l)}
           </button>
         </aside>
