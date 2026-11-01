@@ -138,6 +138,8 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
           {d.mode === "panel" && num(t.gap, d.gap, (n) => patch({ gap: n }), 0, 60)}
           {num(t.late, d.late, (n) => patch({ late: n }), 0, 120)}
           {num(t.excuse, d.excuse, (n) => patch({ excuse: n }), 0, 1440)}
+          {num(t.makeupDays, d.makeupDays, (n) => patch({ makeupDays: n }), 0, 14)}
+          {num(t.makeupHour, d.makeupHour, (n) => patch({ makeupHour: n }), 0, 23)}
         </div>
       </section>
 

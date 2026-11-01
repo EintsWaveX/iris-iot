@@ -30,6 +30,8 @@ import Confirm from "../../../ui/Confirm";
 import CrewBoard from "../iv/CrewBoard";
 import { IV } from "../iv/ivStrings";
 import { isIvStage } from "../../../../lib/recruitment/interview";
+import { isMakeupStage } from "../../../../lib/recruitment/makeup";
+import PapanSusulan from "./PapanSusulan";
 import { Stepper, TimeField } from "../../../ui/Controls";
 import Dialog from "../../../ui/Dialog";
 import Disclose from "../../../ui/Disclose";
@@ -950,7 +952,10 @@ export default function PlottingTab({
       ) : bag === "minta" ? (
         <Requests lang={lang} data={d} can={can} refresh={board.refresh} />
       ) : (
-        <Papan lang={lang} stage={aktif} data={d} can={can} refresh={board.refresh} />
+        <>
+          <Papan lang={lang} stage={aktif} data={d} can={can} refresh={board.refresh} />
+          {isMakeupStage(aktif) && <PapanSusulan lang={lang} stage={aktif} can={can} />}
+        </>
       )}
     </div>
   );

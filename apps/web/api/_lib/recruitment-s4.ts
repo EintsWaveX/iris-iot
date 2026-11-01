@@ -60,6 +60,7 @@ import { muatEvents, muatKolam, tolak, wajibEdisi, type Db } from "./recruitment
 import { anggotaPanitia, muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
+import { muatBarisMakeup, muatMakeupCtx, posisiMakeup } from "./recruitment-makeup.js";
 
 const ROLES = ["penguji", "pj_luar", "pj_dalam"] as const;
 type CrewRole = (typeof ROLES)[number];
@@ -737,6 +738,23 @@ export interface NilaiBaris {
   case: { kind: string; status: "susulan" | "gugur" | null } | null;
 }
 
+/**
+ * What the case of a sheet comes to once the Susulan is counted: a CaAs who
+ * declined it, or let the deadline pass, is Gugur; one who sat it (a sent
+ * sheet) no longer carries the case.
+ */
+function kasusAkhir(
+  info: SheetCase | null,
+  makeup: string,
+  sudahDinilai: boolean,
+): NilaiBaris["case"] {
+  if (!info) return null;
+  if (info.status !== "susulan") return { kind: info.kind, status: info.status };
+  if (makeup === "mundur") return { kind: info.kind, status: "gugur" };
+  if (sudahDinilai) return null;
+  return { kind: info.kind, status: "susulan" };
+}
+
 /** Every CaAs of the stage with the sent sheets, the mean and the verdict. Used by Penilaian and Cutting. */
 export async function muatNilaiTahap(
   db: Db,
@@ -756,6 +774,9 @@ export async function muatNilaiTahap(
     .from(recSheetShared)
     .where(and(inArray(recSheetShared.candidateId, kandIds), eq(recSheetShared.stage, stage)));
   const kode = await kodeMap(db);
+  const mctx = await muatMakeupCtx(db, edisiId, stage);
+  const mrows = await muatBarisMakeup(db, stage, kandIds);
+  const now = new Date();
   const out: NilaiBaris[] = [];
   for (const sl of slots)
     sl.booths.forEach((bth, i) => {
@@ -782,7 +803,11 @@ export async function muatNilaiTahap(
         wide: spread !== null && spread >= t.wide,
         verdict: sd?.verdict ?? null,
         suggested: mean === null ? null : verdictOf(mean, t.cut),
-        case: sd?.caseInfo ? { kind: sd.caseInfo.kind, status: sd.caseInfo.status } : null,
+        case: kasusAkhir(
+          sd?.caseInfo ?? null,
+          posisiMakeup(mctx, mrows.get(bth.id), sl.startsAt, now).state,
+          mean !== null,
+        ),
       });
     });
   return out;

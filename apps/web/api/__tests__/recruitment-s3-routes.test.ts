@@ -35,6 +35,12 @@ vi.mock("../_lib/recruitment-room", () => ({ handleRoom: area("room") }));
 vi.mock("../_lib/recruitment-livecode", () => ({ handleLiveCode: area("livecode") }));
 vi.mock("../_lib/recruitment-score", () => ({ handleScore: area("score") }));
 vi.mock("../_lib/recruitment-s4", () => ({ S4_GET: {}, S4_POST: {} }));
+vi.mock("../_lib/recruitment-s6", () => ({
+  S6_GET: {},
+  S6_POST: {},
+  S6_OPREC_GET: {},
+  S6_OPREC_POST: {},
+}));
 vi.mock("../_lib/recruitment-s5", () => ({
   S5_GET: {},
   S5_POST: {},

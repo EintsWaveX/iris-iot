@@ -34,7 +34,7 @@ const jam = (iso: string) =>
     .format(new Date(iso))
     .replace(":", ".");
 const hari = (iso: string, lang: Lang) =>
-  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", {
+  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
     timeZone: "Asia/Jakarta",
     weekday: "long",
     day: "numeric",

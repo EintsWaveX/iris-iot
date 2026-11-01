@@ -336,7 +336,15 @@ export type RecError =
   | "terlalu_banyak_alihan"
   | "tidak_aman"
   // The Google Form is the way in (2026-10-25)
-  | "daftar_lewat_formulir";
+  | "daftar_lewat_formulir"
+  // The Susulan offer
+  | "bukan_susulan"
+  | "tanpa_hari_susulan"
+  | "sudah_ditawari"
+  | "belum_ditawari"
+  | "tanpa_kursi"
+  | "sudah_dijawab"
+  | "lewat_batas";
 
 export interface RecFail {
   ok: false;
