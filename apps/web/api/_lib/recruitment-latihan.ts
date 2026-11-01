@@ -24,12 +24,10 @@ import {
   pengaturan,
   recAccount,
   recCandidate,
-  recCProblem,
   recEdition,
   recEvent,
   recEventLog,
   recExamConfig,
-  recQuestion,
 } from "../../src/lib/schema.js";
 import {
   LATIHAN_COOKIE,
@@ -44,7 +42,9 @@ import {
 import type { EditionInfo } from "../../src/lib/recruitment/types.js";
 import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { SETTING_PREFIX } from "../../src/lib/recruitment/settings.js";
+import { randomBytes } from "node:crypto";
 import { muatOrang } from "./hak.js";
+import { pasangBawaanKe } from "./recruitment-bank.js";
 import { jalankanLatihan, konteksLatihan } from "./recruitment-latihan-ctx.js";
 
 export { konteksLatihan };
@@ -101,10 +101,10 @@ const kolam = (db: Db) =>
 
 /**
  * Makes the practice edition from the live one, wiping the old one first: the
- * calendar (moved so it starts today), the exam settings, the question bank
- * and the Live Coding problems, and one sample CaAs per Asisten, verified and
- * waiting at the start of the road. No candidates, scores or envelopes of the
- * live edition are copied.
+ * calendar (moved so it starts today), the exam settings (with a fresh salt),
+ * the built-in sample question bank and Live Coding problems, and one sample
+ * CaAs per Asisten, verified and waiting at the start of the road. No
+ * candidates, scores, envelopes or live questions are copied.
  */
 export async function siapkanLatihan(db: Db, nim: string): Promise<{ caas: number } | null> {
   const [live] = await db
@@ -157,47 +157,20 @@ export async function siapkanLatihan(db: Db, nim: string): Promise<{ caas: numbe
       );
     }
 
+    // Exam settings keep the live values but get their own salt, so no draw of the real exam repeats here.
     const [cfg] = await tx.select().from(recExamConfig).where(eq(recExamConfig.editionId, live.id));
     if (cfg) {
       await tx.insert(recExamConfig).values({
         editionId: baru,
         config: cfg.config,
-        salt: cfg.salt,
+        salt: randomBytes(16).toString("hex"),
         lockedAt: null,
         updatedBy: nim,
       });
     }
-
-    const soal = await tx
-      .select()
-      .from(recQuestion)
-      .where(eq(recQuestion.editionId, live.id));
-    const soalDipakai = soal.filter((q) => q.voidedAt === null);
-    for (let i = 0; i < soalDipakai.length; i += 25) {
-      await tx.insert(recQuestion).values(
-        soalDipakai.slice(i, i + 25).map(({ id: _id, ...q }) => ({
-          ...q,
-          editionId: baru,
-          refs: [],
-          shownAt: null,
-          updatedBy: nim,
-          updatedAt: new Date(),
-        })),
-      );
-    }
-
-    const masalah = await tx.select().from(recCProblem).where(eq(recCProblem.editionId, live.id));
-    if (masalah.length > 0) {
-      await tx.insert(recCProblem).values(
-        masalah.map(({ id: _id, ...p }) => ({
-          ...p,
-          editionId: baru,
-          shownAt: null,
-          updatedBy: nim,
-          updatedAt: new Date(),
-        })),
-      );
-    }
+    // The bank is the built-in sample set, never the live one: a practicing Asisten holds every right here,
+    // and the live questions and their answer keys are for the people who hold the bank right on the live edition.
+    await pasangBawaanKe(tx as unknown as Db, baru, nim);
 
     if (orang.length > 0) {
       // A name for the Cutting and Plotting lists (they join rec_account); no password, so no sign in.
