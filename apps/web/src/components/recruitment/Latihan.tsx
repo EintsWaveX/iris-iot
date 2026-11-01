@@ -45,7 +45,11 @@ export function LatihanBar({ lang }: { lang: Lang }) {
       </div>
       <span className="lat-bar__grow" />
       <span className="lat-seg" role="group" aria-label={t.actAs}>
-        <button type="button" aria-pressed={mode === "asisten"} onClick={() => void pindah("asisten")}>
+        <button
+          type="button"
+          aria-pressed={mode === "asisten"}
+          onClick={() => void pindah("asisten")}
+        >
           {t.asAsisten}
         </button>
         <button type="button" aria-pressed={mode === "caas"} onClick={() => void pindah("caas")}>
@@ -127,7 +131,11 @@ export function LatihanCard({ lang }: { lang: Lang }) {
           </button>
         ) : (
           <>
-            <button type="button" className="btn btn--primary" onClick={() => void masuk("asisten")}>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => void masuk("asisten")}
+            >
               <SparkleIcon size={18} aria-hidden="true" />
               <span className="btn__label">{t.enter}</span>
             </button>

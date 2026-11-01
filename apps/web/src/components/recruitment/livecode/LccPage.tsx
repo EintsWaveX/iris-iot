@@ -406,9 +406,6 @@ function Workbench({
   lang,
   nim,
   lcc,
-  left,
-  paused,
-  linkDown,
   refresh,
 }: {
   lang: Lang;

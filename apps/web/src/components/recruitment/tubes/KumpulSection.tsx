@@ -67,7 +67,6 @@ function PartView({ c, team, part }: { c: PanelCtx; team: TubesBoardTeam; part: 
           </span>
         )}
         {url && isVideo && (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
           <video
             className="tb-video"
             src={url}

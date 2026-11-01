@@ -51,7 +51,8 @@ export async function bacaSetting<K extends SettingKey>(
     .from(pengaturan)
     .where(inArray(pengaturan.kunci, urut));
   // In practice its own row wins, then the live one, then the default.
-  const r = urut.length === 1 ? rows[0] : urut.map((k) => rows.find((x) => x.kunci === k)).find(Boolean);
+  const r =
+    urut.length === 1 ? rows[0] : urut.map((k) => rows.find((x) => x.kunci === k)).find(Boolean);
   if (!r) return SETTINGS[key].def;
   return (SETTINGS[key].check(r.nilai) ?? SETTINGS[key].def) as (typeof SETTINGS)[K]["def"];
 }

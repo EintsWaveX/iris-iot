@@ -233,11 +233,11 @@ export async function handleLatihan(
   }
   const sekarang = bacaModeLatihan(cookies[LATIHAN_COOKIE]);
   if (aksi === "latihan") {
-    if (req.method !== "GET") return tolak(res, "metode", 405), true;
+    if (req.method !== "GET") return (tolak(res, "metode", 405), true);
     res.status(200).json({ ok: true, latihan: await ringkas(db, sekarang) });
     return true;
   }
-  if (req.method !== "POST") return tolak(res, "metode", 405), true;
+  if (req.method !== "POST") return (tolak(res, "metode", 405), true);
 
   if (aksi === "latihan-keluar") {
     res.setHeader("Set-Cookie", cookieLatihan(null));
@@ -246,11 +246,11 @@ export async function handleLatihan(
   }
   if (aksi === "latihan-masuk" || aksi === "latihan-ganti") {
     const mode = bacaModeLatihan(jsonBody(req).as);
-    if (!mode) return tolak(res, "data_salah", 400), true;
-    if (aksi === "latihan-ganti" && !sekarang) return tolak(res, "latihan_mati", 409), true;
+    if (!mode) return (tolak(res, "data_salah", 400), true);
+    if (aksi === "latihan-ganti" && !sekarang) return (tolak(res, "latihan_mati", 409), true);
     if (!(await muatEdisiLatihan(db))) {
       const dibuat = await siapkanLatihan(db, s.nim);
-      if (!dibuat) return tolak(res, "tidak_ada_edisi", 404), true;
+      if (!dibuat) return (tolak(res, "tidak_ada_edisi", 404), true);
     }
     res.setHeader("Set-Cookie", cookieLatihan(mode));
     res.status(200).json({ ok: true, latihan: await ringkas(db, mode) });
@@ -258,7 +258,7 @@ export async function handleLatihan(
   }
   if (aksi === "latihan-reset") {
     const dibuat = await siapkanLatihan(db, s.nim);
-    if (!dibuat) return tolak(res, "tidak_ada_edisi", 404), true;
+    if (!dibuat) return (tolak(res, "tidak_ada_edisi", 404), true);
     res.status(200).json({ ok: true, latihan: await ringkas(db, sekarang) });
     return true;
   }

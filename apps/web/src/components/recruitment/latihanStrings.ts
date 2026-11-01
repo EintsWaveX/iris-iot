@@ -32,7 +32,8 @@ export const LAT = dict({
     enterAsCaas: "Coba Sebagai CaAs",
     noEdition: "Belum ada edisi sungguhan, jadi belum ada yang bisa dilatih.",
     failed: "Gagal membuka Mode Latihan. Coba lagi.",
-    calendarNote: "Kalender latihan mulai hari ini. Geser tanggalnya di Kalender untuk mencoba tahap berikutnya.",
+    calendarNote:
+      "Kalender latihan mulai hari ini. Geser tanggalnya di Kalender untuk mencoba tahap berikutnya.",
     hidden: "Tombol ini tidak berlaku di Mode Latihan.",
   },
   en: {

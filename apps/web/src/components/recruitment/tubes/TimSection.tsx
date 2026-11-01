@@ -16,7 +16,6 @@ import {
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import IconButton from "../../ui/IconButton";
-import Pill from "../../ui/Pill";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import type {
   TubesBoardCandidate,

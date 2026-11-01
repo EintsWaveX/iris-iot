@@ -673,7 +673,6 @@ function Ruang({
 /* ------------------------------------------------------------------- tab */
 
 export default function TesTab({ lang }: { lang: Lang }) {
-  const t = RG[lang];
   const rooms = useRecRooms(true);
   const [id, pilih] = useRuangDipilih();
   // Rooms, or the scores of everyone who sat in them (prompt 13)

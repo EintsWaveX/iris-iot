@@ -283,7 +283,10 @@ const TUBES_PARAMS: IvParam[] = [
   P(
     "kode",
     b("Kualitas Kode", "Code Quality"),
-    [b("Rapi dan terstruktur", "Tidy and structured"), b("Bisa dijalankan ulang", "Can be run again")],
+    [
+      b("Rapi dan terstruktur", "Tidy and structured"),
+      b("Bisa dijalankan ulang", "Can be run again"),
+    ],
     b(
       "Contoh: kode terbagi per fungsi, ada petunjuk menjalankan.",
       "E.g. code split by function, with run instructions.",

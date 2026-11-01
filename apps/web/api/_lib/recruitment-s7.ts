@@ -39,7 +39,6 @@ import {
 import { bacaTanda, tandaiJson } from "../../src/lib/tanda.js";
 import { kunciTubes, TP_MIME } from "../../src/lib/tp-r2.js";
 import {
-  asking,
   canInviteMore,
   checkFile,
   checkLink,
@@ -77,7 +76,7 @@ import { muatPelaku } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
 import { depNyata } from "./recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah, urlBaca } from "./tp-simpan.js";
-import { joined, labelTim, muatKelayakan, muatTim, namaTim, type Tim } from "./recruitment-tim.js";
+import { joined, muatKelayakan, muatTim, namaTim, type Tim } from "./recruitment-tim.js";
 
 export type H = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => unknown;
 

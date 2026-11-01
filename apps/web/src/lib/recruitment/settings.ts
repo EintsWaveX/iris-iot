@@ -17,14 +17,7 @@ import type { CommitteeDivision, DocKind } from "./types.js";
 export const SETTING_PREFIX = "rec_cfg_";
 
 export type SettingKey =
-  | "docs"
-  | "words"
-  | "cutting"
-  | "wawancara"
-  | "mengajar"
-  | "tubes"
-  | "tim"
-  | "penerimaan";
+  "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "tubes" | "tim" | "penerimaan";
 
 export interface DocSetting {
   /** One of DOC_KINDS; the `kind` stored with an upload. The keys never change once stored. */

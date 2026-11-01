@@ -214,7 +214,6 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
     }
   };
   const siap = masalah.length === 0 && baru.length + rows.filter((r) => r.promotedNim).length > 0;
-  const tahan = (r: PnRow) => r.decision === "terima" && !r.promotedNim;
 
   const simpanKode = async (): Promise<boolean> => {
     const r = await recPost<{ ok: true }>("pn-codes", {

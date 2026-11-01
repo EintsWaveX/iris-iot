@@ -217,7 +217,6 @@ function Reel({
     el.style.transform = `translateY(${to}px)`;
     const t = window.setTimeout(onDone, 2300);
     return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runKey]);
   return (
     <div className="tp-reel" aria-live="polite">
