@@ -6,7 +6,21 @@
  * those who may see it) and today's events with the next deadline.
  */
 import { useState } from "react";
-import { ArrowRightIcon, CaretRightIcon, CheckIcon } from "@phosphor-icons/react";
+import {
+  ArrowRightIcon,
+  CaretRightIcon,
+  ChalkboardTeacherIcon,
+  CheckIcon,
+  ClipboardTextIcon,
+  CpuIcon,
+  FileTextIcon,
+  GraduationCapIcon,
+  MapPinIcon,
+  SealCheckIcon,
+  TimerIcon,
+  type IconProps,
+} from "@phosphor-icons/react";
+import type { ComponentType } from "react";
 import type { Lang } from "../../../lib/kelas";
 import { href } from "../../../lib/app";
 import { lite } from "../../../lib/recruitment/banner";
@@ -44,6 +58,41 @@ import { NS, stepText, type StepVars } from "./nextStrings";
 import { PN } from "./panelStrings";
 import "../recruitment-b1.css";
 
+/** One icon per stage of the journey (the mockup's STAGE_IC) */
+const STAGE_IC: Record<StageKey | "daftar", ComponentType<IconProps>> = {
+  daftar: ClipboardTextIcon,
+  berkas: FileTextIcon,
+  first_meet: MapPinIcon,
+  tes_tulis: TimerIcon,
+  wawancara: ChalkboardTeacherIcon,
+  tubes: CpuIcon,
+  mengajar: GraduationCapIcon,
+  penerimaan: SealCheckIcon,
+};
+
+/** Sign-ups per day over the last twelve days, as a line (real counts, from the candidate list) */
+function Spark({ candidates, hariIni }: { candidates: readonly CandidateRow[]; hariIni: string }) {
+  const days = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(Date.parse(`${hariIni}T00:00:00Z`) - (11 - i) * 86_400_000);
+    return d.toISOString().slice(0, 10);
+  });
+  const per = days.map((d) => candidates.filter((c) => c.appliedAt.slice(0, 10) === d).length);
+  const max = Math.max(1, ...per);
+  const pts = per.map((v, i) => `${(i / 11) * 158 + 1},${27 - (v / max) * 24}`).join(" ");
+  return (
+    <svg className="b1-spark" viewBox="0 0 160 28" aria-hidden="true">
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 /** The event a step is about, so its text carries a real date. */
 function tanggalLangkah(key: StepKey, events: readonly RecEvent[], where: StageKey | "daftar") {
   const e = (stage: StageKey, kind: RecEvent["kind"]) => eventOf(events, stage, kind);
@@ -76,6 +125,7 @@ export default function Ringkasan({
   seats,
   division,
   tabs,
+  hariKe,
 }: {
   lang: Lang;
   events: RecEvent[];
@@ -87,6 +137,8 @@ export default function Ringkasan({
   division: CommitteeDivision | null;
   /** The parts this person has */
   tabs: readonly PanelTab[];
+  /** Day of registration, null outside it */
+  hariKe: number | null;
 }) {
   const t = PN[lang].sum;
   const n = NS[lang === "id" ? "id" : "en"];
@@ -140,6 +192,8 @@ export default function Ringkasan({
   const stageNow: StageKey = where.stage === "daftar" ? "berkas" : where.stage;
   const stageIdx = STAGES.indexOf(stageNow);
   const cur = funnel?.[stageIdx];
+  const Ik = STAGE_IC[where.stage];
+  const daftarSaja = where.stage === "daftar";
 
   const Baris2 = ({ s, i }: { s: Step; i: number }) => {
     const isi = (
@@ -167,12 +221,19 @@ export default function Ringkasan({
   return (
     <div className="b1-sum">
       <section className="panel b1-next" data-stage={stageNow} aria-labelledby="b1-next-t">
-        <span className="eyebrow">
-          {n.title} · {n.stages[stageNow]}
-        </span>
-        <h2 id="b1-next-t" className="b1-next__t">
-          {stepText(lang, langkah.key, vars(langkah.key))}
-        </h2>
+        <div className="b1-next__top">
+          <span className="b1-next__ic">
+            <Ik size={24} aria-hidden="true" />
+          </span>
+          <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+            <span className="eyebrow">
+              {n.title} · {n.stages[where.stage]}
+            </span>
+            <h2 id="b1-next-t" className="b1-next__t">
+              {stepText(lang, langkah.key, vars(langkah.key))}
+            </h2>
+          </div>
+        </div>
         {others.length > 0 && (
           <ol className="b1-steps" aria-label={n.others}>
             {others.map((s, i) => (
@@ -195,77 +256,6 @@ export default function Ringkasan({
           )}
         </div>
       </section>
-
-      <Kartu title={n.funnel} className="b1-fun">
-        {funnel && cur ? (
-          <>
-            <ol className="b1-fun__rail">
-              {funnel.map((f, i) => {
-                const st = i < stageIdx ? "done" : i === stageIdx ? "cur" : "next";
-                const v = st === "done" ? f.through : st === "cur" ? f.here : null;
-                const base = Math.max(1, f.reached);
-                return (
-                  <li key={f.stage} data-st={st}>
-                    <b className="b1-fun__n num">{v === null ? "-" : v}</b>
-                    <span className="b1-fun__bar">
-                      <i
-                        style={{ width: `${v === null ? 0 : Math.min(100, (v / base) * 100)}%` }}
-                      />
-                    </span>
-                    <span className="b1-fun__l">{n.stages[f.stage]}</span>
-                    <span className="hint b1-fun__s">
-                      {v === null ? n.notYet : st === "cur" ? n.here : n.reached(f.reached)}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-            <div className="b1-fun__det">
-              <div className="stack stack--sm">
-                <span className="eyebrow">{n.stageNow}</span>
-                <b className="b1-fun__big">
-                  <span className="num">{cur.here}</span>{" "}
-                  <span className="hint">
-                    {where.stage === "daftar" ? t.aim : `/ ${cur.reached}`}
-                  </span>
-                </b>
-              </div>
-              {stageNow === "berkas" && hitung && (
-                <ul className="rec-funnel__rows">
-                  {(
-                    [
-                      [t.applicants, hitung.total, "var(--accent)"],
-                      [t.verified, hitung.verified, "var(--ok)"],
-                      [t.waiting, hitung.waiting, "var(--warn)"],
-                      [t.fix, hitung.fix, "var(--danger)"],
-                    ] as [string, number, string][]
-                  ).map(([l, k, c]) => (
-                    <li key={l}>
-                      <span>{l}</span>
-                      <span className="rec-funnel__bar">
-                        <i
-                          style={{
-                            width: `${(k / Math.max(100, hitung.total)) * 100}%`,
-                            ["--c" as string]: c,
-                          }}
-                        />
-                      </span>
-                      <b className="num">{k}</b>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {stageNow !== "berkas" && cur.out > 0 && (
-                <span className="hint">
-                  {cur.out} {n.cut}
-                </span>
-              )}
-            </div>
-          </>
-        ) : (
-          <span className="hint">{t.noRight}</span>
-        )}
-      </Kartu>
 
       <Kartu
         title={t.today}
@@ -305,6 +295,106 @@ export default function Ringkasan({
               <Countdown ke={deadline.ke} label={deadline.title} lang={lang} />
             )}
           </div>
+        )}
+      </Kartu>
+
+      <Kartu title={n.funnel} className="b1-fun">
+        {funnel && cur && hitung ? (
+          <>
+            <ol className="b1-fun__rail">
+              {[
+                {
+                  stage: "daftar" as const,
+                  st: daftarSaja ? "cur" : "done",
+                  v: hitung.total,
+                  base: Math.max(100, hitung.total),
+                  sub: t.applicants.toLowerCase(),
+                },
+                ...funnel.map((f, i) => {
+                  const aktifDi = !daftarSaja && i === stageIdx;
+                  const sudah = !daftarSaja && i < stageIdx;
+                  return {
+                    stage: f.stage,
+                    st: aktifDi ? "cur" : sudah ? "done" : "next",
+                    v: aktifDi ? f.here : sudah ? f.through : null,
+                    base: Math.max(1, f.reached),
+                    sub: aktifDi ? n.here : sudah ? n.reached(f.reached) : n.notYet,
+                  };
+                }),
+              ].map((f) => {
+                const I = f.st === "done" ? CheckIcon : STAGE_IC[f.stage];
+                return (
+                  <li key={f.stage} data-st={f.st}>
+                    <span className="b1-fun__ic">
+                      <I size={14} aria-hidden="true" />
+                    </span>
+                    <b className="b1-fun__n num">{f.v === null ? "-" : f.v}</b>
+                    <span className="b1-fun__bar">
+                      <i
+                        style={{
+                          width: `${f.v === null ? 0 : Math.min(100, (f.v / f.base) * 100)}%`,
+                        }}
+                      />
+                    </span>
+                    <span className="b1-fun__l">{n.stages[f.stage]}</span>
+                    <span className="hint b1-fun__s">{f.sub}</span>
+                  </li>
+                );
+              })}
+            </ol>
+            <div className="b1-fun__det">
+              <div className="stack stack--sm b1-fun__lead">
+                <span className="eyebrow">{n.stageNow}</span>
+                <b className="b1-fun__big">
+                  <span className="num">{daftarSaja ? hitung.total : cur.here}</span>{" "}
+                  <span className="hint">
+                    {daftarSaja ? (hariKe ? n.inDays(hariKe) : "") : `/ ${cur.reached}`}
+                  </span>
+                </b>
+                {daftarSaja ? (
+                  <>
+                    <span className="hint">{t.aim}</span>
+                    {candidates && <Spark candidates={candidates} hariIni={hariIni} />}
+                  </>
+                ) : (
+                  <span className="hint">{n.stages[stageNow]}</span>
+                )}
+              </div>
+              {stageNow === "berkas" ? (
+                <ul className="rec-funnel__rows b1-fun__rows">
+                  {(
+                    [
+                      ...(daftarSaja ? [[t.applicants, hitung.total, "var(--accent)"]] : []),
+                      [t.verified, hitung.verified, "var(--ok)"],
+                      [t.waiting, hitung.waiting, "var(--warn)"],
+                      [t.fix, hitung.fix, "var(--danger)"],
+                    ] as [string, number, string][]
+                  ).map(([l, k, c]) => (
+                    <li key={l}>
+                      <span>{l}</span>
+                      <span className="rec-funnel__bar">
+                        <i
+                          style={{
+                            width: `${(k / Math.max(daftarSaja ? 100 : hitung.total, 1)) * 100}%`,
+                            ["--c" as string]: c,
+                          }}
+                        />
+                      </span>
+                      <b className="num">{k}</b>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                cur.out > 0 && (
+                  <span className="hint">
+                    {cur.out} {n.cut}
+                  </span>
+                )
+              )}
+            </div>
+          </>
+        ) : (
+          <span className="hint">{t.noRight}</span>
         )}
       </Kartu>
       {hadirDi !== null && hidup && hidup.id === hadirDi && (

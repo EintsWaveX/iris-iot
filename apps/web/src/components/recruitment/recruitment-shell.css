@@ -1,0 +1,306 @@
+/*
+ * The panel's shell, ported from the mockup (rec7.css, rec9.css, rec11.css):
+ * the compact header, the Oprec switch, the area colours of the navbar, the
+ * count badge and the tab swap. --tc is the area's colour; --tx is the same
+ * colour made safe to read as text in the light theme.
+ */
+
+/* ------------------------------------------------------------ the page */
+.rec-page[data-area] {
+  gap: 26px;
+  padding-top: 32px;
+}
+.rec-page[data-area] .rec-head2,
+.rec-head2 {
+  --tx: var(--tc, var(--accent));
+}
+:root[data-theme="light"] .rec-head2,
+:root[data-theme="light"] .rec-nav .appnav__link[data-k] {
+  --tx: color-mix(in srgb, var(--tc) 42%, var(--text));
+}
+
+/* ------------------------------------------------------------ compact header */
+.rec-head2 {
+  --tc: var(--accent);
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  padding: 4px 0 2px;
+}
+.rec-head2__ic {
+  align-items: center;
+  background: color-mix(in srgb, var(--tc) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tc) 45%, transparent);
+  border-radius: 14px;
+  color: var(--tx);
+  display: grid;
+  flex: none;
+  height: 46px;
+  place-items: center;
+  width: 46px;
+}
+.rec-head2__t {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.rec-head2__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+.rec-head2__h {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.2vw, 1.95rem);
+  font-weight: var(--display-weight, 700);
+  letter-spacing: var(--display-track, -0.02em);
+  line-height: 1.1;
+  margin: 0;
+  white-space: nowrap;
+}
+.rec-head2__area {
+  align-items: center;
+  background: color-mix(in srgb, var(--tc) 18%, transparent);
+  border-radius: 999px;
+  color: var(--tx);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 700;
+  min-height: 26px;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+:root[data-theme="light"] .rec-head2__area {
+  background: color-mix(in srgb, var(--tc) 26%, var(--surface-1));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc) 55%, transparent);
+  color: color-mix(in srgb, var(--tx) 45%, var(--text));
+}
+:root:not([data-motion-tier="0"]) .rec-head2__ic {
+  animation: rec-pop 420ms var(--ease-out-expo) both;
+}
+:root:not([data-motion-tier="0"]) .rec-head2__area {
+  animation: rec-slide-r 320ms var(--ease-out-expo) both;
+}
+@keyframes rec-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rec-slide-r {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* STC: Subject to Change, on the dates of the later stages */
+.rec-stc {
+  align-items: center;
+  background: var(--warn-soft);
+  border: 1px dashed color-mix(in srgb, var(--warn) 65%, transparent);
+  border-radius: 6px;
+  color: var(--warn);
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 800;
+  height: 18px;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 0 6px;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ Oprec switch */
+.rec-oprec {
+  align-items: center;
+  border: 1px solid;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 0.92rem;
+  font-weight: 650;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 12px;
+  transition:
+    background 200ms,
+    color 200ms,
+    border-color 200ms,
+    transform 200ms var(--ease-out-expo);
+}
+.rec-oprec:hover {
+  transform: translateY(-1px);
+}
+.rec-oprec[data-on="no"] {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+  color: var(--warn);
+}
+.rec-oprec[data-on="yes"] {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+  color: var(--ok);
+}
+.rec-oprec__dot {
+  background: currentColor;
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+:root:not([data-motion-tier="0"]) .rec-oprec__dot {
+  animation: rec-blip 2s ease-in-out infinite;
+}
+@keyframes rec-blip {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+.rec-oprec__pop {
+  width: min(360px, calc(100vw - 16px));
+}
+
+/* ------------------------------------------------------------ tab swap
+   The page slides in from the side the new tab sits on. */
+.rec-swap {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+:root:not([data-motion-tier="0"]) .rec-swap {
+  animation: rec-in-f 300ms var(--ease-out-expo) both;
+}
+:root:not([data-motion-tier="0"]) .rec-swap[data-dir="b"] {
+  animation-name: rec-in-b;
+}
+@keyframes rec-in-f {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rec-in-b {
+  from {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------ navbar */
+.rec-nav .appnav__link {
+  font-size: 1.08rem;
+  padding: 0 15px;
+}
+.rec-nav .appnav__link[data-k][aria-current="page"] {
+  color: var(--tx);
+}
+.rec-nav .appnav__link[data-k][aria-current="page"]::after {
+  background: var(--tc);
+  background-image: none;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--tc) 60%, transparent);
+  transform-origin: left;
+}
+:root:not([data-motion-tier="0"]) .rec-nav .appnav__link[data-k][aria-current="page"]::after {
+  animation: rec-draw 360ms var(--ease-out-expo) both;
+}
+@keyframes rec-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.rec-nav .appnav__link[data-k] {
+  --tx: var(--tc);
+}
+.rec-nav .appnav__link[data-k="ringkasan"],
+.rec-nav .appnav__link[data-k="kalender"],
+.rec-nav .appnav__link[data-k="panitia"] {
+  --tc: #7dd3fc;
+}
+.rec-nav .appnav__link[data-k="kandidat"],
+.rec-nav .appnav__link[data-k="cutting"],
+.rec-nav .appnav__link[data-k="plotting"] {
+  --tc: #5eead4;
+}
+.rec-nav .appnav__link[data-k="tes"],
+.rec-nav .appnav__link[data-k="bank"],
+.rec-nav .appnav__link[data-k="wawancara"],
+.rec-nav .appnav__link[data-k="mengajar"] {
+  --tc: #8fb0ff;
+}
+.rec-nav .appnav__link[data-k="penerimaan"] {
+  --tc: #e879f9;
+}
+.rec-nav__n {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 99px;
+  color: var(--accent-ink);
+  display: inline-grid;
+  font: 800 0.72rem var(--font-body);
+  height: 20px;
+  margin-left: 6px;
+  min-width: 20px;
+  padding: 0 6px;
+  place-items: center;
+  vertical-align: 2px;
+}
+.appbar__icon {
+  position: relative;
+}
+.appbar__icon .rec-nav__n {
+  font-size: 0.68rem;
+  height: 18px;
+  margin: 0;
+  min-width: 18px;
+  position: absolute;
+  right: -14px;
+  top: -6px;
+}
+
+@media (max-width: 720px) {
+  .rec-head2 {
+    flex-wrap: wrap;
+  }
+  .rec-head2__t {
+    flex: 1 1 0;
+  }
+  .rec-head2__row {
+    flex-wrap: wrap;
+  }
+  .rec-head2 > .grow {
+    display: none;
+  }
+  .rec-head2 > .rec-oprec {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  .rec-head2__area {
+    display: none;
+  }
+}

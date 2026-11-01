@@ -21,33 +21,38 @@ import * as RadixPopover from "@radix-ui/react-popover";
 import {
   CalendarBlankIcon,
   ClipboardTextIcon,
-  DatabaseIcon,
   DoorOpenIcon,
   DotsThreeIcon,
+  FileTextIcon,
+  GraduationCapIcon,
   ListChecksIcon,
+  MapPinIcon,
   ScissorsIcon,
+  SealCheckIcon,
   SignOutIcon,
   SlidersHorizontalIcon,
   StarIcon,
-  TableIcon,
   TimerIcon,
   UsersThreeIcon,
   type IconProps,
-  ChalkboardTeacherIcon,
-  ChatsIcon,
-  MedalIcon,
+  ChatsCircleIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
 import DisplayPanel, { BUKA_TAMPILAN } from "../shell/DisplayPanel";
-import NavClock from "../shell/NavClock";
 import AlertRail from "../shell/AlertRail";
 import OfflineNotice from "../shell/OfflineNotice";
 import Avatar from "../shell/Avatar";
 import { href, meChanged, postJson, useMe } from "../../lib/app";
 import { pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
-import { bukaAkun, recPost, useRecAkun, useRecEdition } from "../../lib/recruitment/client";
+import {
+  bukaAkun,
+  recPost,
+  useRecAkun,
+  useRecCandidates,
+  useRecEdition,
+} from "../../lib/recruitment/client";
 import { useRecRooms } from "../../lib/recruitment/room-client";
 import AkunDialog from "./candidate/AkunDialog";
 import { AK } from "./candidate/akunStrings";
@@ -60,6 +65,7 @@ import {
 import { REC } from "./recruitmentStrings";
 import "../shell/AppNav.css";
 import "./recruitment.css";
+import "./recruitment-shell.css";
 
 type Ikon = ComponentType<IconProps>;
 
@@ -68,6 +74,8 @@ interface Bagian {
   label: string;
   icon: Ikon;
   href: string;
+  /** A count badge beside the name (Kandidat: how many registered) */
+  n?: number;
   /** Opens a panel part in place when the panel is already on screen */
   tab?: PanelTab;
   /** Where the fold puts it: "wide" below 1100, "narrow" below 820 (set from its place in the list) */
@@ -79,16 +87,35 @@ interface Bagian {
  * top bar keeps 5 (4 under 820) and the rest go into Lainnya; the phone's
  * bottom bar keeps all of them up to 5 and from 6 on shows 4 plus Lainnya.
  * The first paint is CSS on data attributes. Once mounted, the top bar is
- * measured instead: it shows exactly as many tabs as fit beside the clock, the
- * live status and the account (label widths differ per language and per who is
- * looking), and Lainnya holds the rest. When the active tab is folded,
- * Lainnya wears its name.
+ * measured instead: it shows as many tabs as fit beside the display button and
+ * the account (label widths differ per language and per who is looking), and
+ * Lainnya holds the rest, least used first (FOLD_ORDER). When the active tab is
+ * folded, Lainnya wears its name.
  * Later prompts only append to `links`.
  */
 const KEEP_WIDE = 5;
 const KEEP_NARROW = 4;
 /** A long bar (more than eight parts) folds the rest into Lainnya below 1400 too */
 const KEEP_MID = 8;
+
+/**
+ * When the bar is too narrow the least used tabs fold into Lainnya first
+ * (the mockup's FOLD): Bank Soal, Panitia, Kalender, then the latest stages,
+ * so Wawancara, Mengajar and Penerimaan stay one click away.
+ */
+const FOLD_ORDER = [
+  "bank",
+  "panitia",
+  "kalender",
+  "penerimaan",
+  "mengajar",
+  "wawancara",
+  "tes",
+  "plotting",
+  "cutting",
+  "kandidat",
+  "ringkasan",
+];
 
 const useLayoutAman = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -202,6 +229,8 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
   // Tes Tulis: the rooms this person may watch (a plotted pengawas is not always on the committee).
   const ruang = useRecRooms(asisten);
   const adaRuang = !!ruang.data && (ruang.data.rooms.length > 0 || ruang.data.canSetup);
+  const cand = useRecCandidates(panitia && rights?.candidates === true);
+  const nKandidat = cand.data?.candidates.length;
   const current = barePath(path);
   const onPanel = current.startsWith("/recruitment/panel");
   const bagian = useBagian();
@@ -209,24 +238,25 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
 
   const links = useMemo<Bagian[]>(() => {
     if (panitia) {
-      const tab = (k: PanelTab, label: string, icon: Ikon): Bagian => ({
+      const tab = (k: PanelTab, label: string, icon: Ikon, n?: number): Bagian => ({
         key: k,
         label,
         icon,
+        n,
         tab: k,
         href: alamatBagian(prefix, k),
       });
       return [
         tab("ringkasan", t.ringkasan, ClipboardTextIcon),
         tab("kalender", t.kalender, CalendarBlankIcon),
-        ...(rights?.candidates ? [tab("kandidat", t.kandidat, ListChecksIcon)] : []),
+        ...(rights?.candidates ? [tab("kandidat", t.kandidat, ListChecksIcon, nKandidat)] : []),
         ...(rights?.cuttingPropose ? [tab("cutting", t.cutting, ScissorsIcon)] : []),
-        ...(rights?.plotting ? [tab("plotting", t.plotting, TableIcon)] : []),
-        tab("wawancara", t.wawancara, ChatsIcon),
-        tab("mengajar", t.mengajar, ChalkboardTeacherIcon),
-        tab("penerimaan", t.penerimaan, MedalIcon),
+        ...(rights?.plotting ? [tab("plotting", t.plotting, MapPinIcon)] : []),
         ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
-        ...(rights?.bank ? [tab("bank", t.bank, DatabaseIcon)] : []),
+        ...(rights?.bank ? [tab("bank", t.bank, FileTextIcon)] : []),
+        tab("wawancara", t.wawancara, ChatsCircleIcon),
+        tab("mengajar", t.mengajar, GraduationCapIcon),
+        tab("penerimaan", t.penerimaan, SealCheckIcon),
         tab("panitia", t.panitia, UsersThreeIcon),
       ];
     }
@@ -242,14 +272,14 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         {
           key: "wawancara",
           label: t.wawancara,
-          icon: ChatsIcon,
+          icon: ChatsCircleIcon,
           tab: "wawancara" as const,
           href: alamatBagian(prefix, "wawancara"),
         },
         {
           key: "mengajar",
           label: t.mengajar,
-          icon: ChalkboardTeacherIcon,
+          icon: GraduationCapIcon,
           tab: "mengajar" as const,
           href: alamatBagian(prefix, "mengajar"),
         },
@@ -283,6 +313,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
     rights?.cuttingPropose,
     rights?.plotting,
     rights?.bank,
+    nKandidat,
     prefix,
     t,
   ]);
@@ -316,10 +347,10 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           : undefined;
   // The phone's bar: everything up to 5, from 6 on four and Lainnya.
   const barKeep = n > KEEP_WIDE ? KEEP_NARROW : n;
-  // How many top-bar tabs fit (null until measured: the CSS fold stands in).
+  // Which top-bar tabs are folded into Lainnya (null until measured: the CSS fold stands in).
   const navRef = useRef<HTMLElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState<number | null>(null);
+  const [hide, setHide] = useState<string[] | null>(null);
   useLayoutAman(() => {
     const nav = navRef.current;
     const ghost = ghostRef.current;
@@ -329,20 +360,23 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
       const avail = nav.clientWidth;
       // Hidden (the phone shows the bottom bar instead): nothing to measure.
       if (!avail) return;
-      const ws = Array.from(ghost.querySelectorAll<HTMLElement>('[data-g="l"]')).map(
-        (e) => e.offsetWidth,
+      const ws = new Map(
+        Array.from(ghost.querySelectorAll<HTMLElement>('[data-g="l"]')).map(
+          (e) => [e.dataset.k ?? "", e.offsetWidth] as const,
+        ),
       );
       const more = ghost.querySelector<HTMLElement>('[data-g="m"]')?.offsetWidth ?? 96;
-      const all = ws.reduce((a, w) => a + w + GAP, 0) - GAP;
-      if (all <= avail) return void setFit(ws.length);
-      let used = more + GAP;
-      let k = 0;
-      for (const w of ws) {
-        if (used + w + GAP > avail) break;
-        used += w + GAP;
-        k++;
+      const width = (gone: string[]) =>
+        [...ws].reduce((a, [k, w]) => (gone.includes(k) ? a : a + w + GAP), 0) - GAP;
+      if (width([]) <= avail) return void setHide((h) => (h && !h.length ? h : []));
+      // Fold in the order of FOLD_ORDER until the rest and Lainnya fit.
+      const gone: string[] = [];
+      for (const k of [...FOLD_ORDER, ...ws.keys()]) {
+        if (!ws.has(k) || gone.includes(k)) continue;
+        gone.push(k);
+        if (width(gone) + GAP + more <= avail) break;
       }
-      setFit(k);
+      setHide((h) => (h && h.join() === gone.join() ? h : gone));
     };
     calc();
     const ro = new ResizeObserver(calc);
@@ -350,7 +384,12 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
     void document.fonts?.ready.then(calc);
     return () => ro.disconnect();
   }, [lipat, lang]);
-  const kept = fit ?? KEEP_NARROW;
+  const folded = hide ?? null;
+  // What Lainnya holds: the folded tabs in the order they fold (the mockup's), or the CSS fold's tail.
+  const rest = folded
+    ? folded.map((k) => lipat.find((l) => l.key === k)).filter((l): l is Bagian => !!l)
+    : lipat.slice(KEEP_NARROW);
+  const aktifDalam = folded ? folded.includes(aktif) : false;
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 4);
@@ -448,32 +487,34 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         </a>
 
         <nav className="appnav__links" aria-label={t.main} ref={navRef}>
-          {lipat.map((l, i) => (
+          {lipat.map((l) => (
             <a
               key={l.key}
               className="appnav__link"
               href={l.href}
-              data-fold={fit === null ? l.fold : undefined}
-              data-hide={fit !== null && i >= fit ? "yes" : undefined}
+              data-k={l.key}
+              data-fold={folded === null ? l.fold : undefined}
+              data-hide={folded?.includes(l.key) ? "yes" : undefined}
               aria-current={aktifLink(l)}
               onClick={(e) => go(e, l)}
             >
               <span>{l.label}</span>
+              {l.n ? <span className="rec-nav__n">{l.n}</span> : null}
             </a>
           ))}
-          {(fit === null ? moreTop : fit < n ? "js" : undefined) && (
+          {(folded === null ? moreTop : folded.length ? "js" : undefined) && (
             <Lainnya
-              rest={lipat.slice(kept)}
+              rest={rest}
               label={t.more}
               active={
-                (fit === null ? actTop : iAktif >= fit ? "js" : undefined)
+                (folded === null ? actTop : aktifDalam ? "js" : undefined)
                   ? lipat[iAktif]
                   : undefined
               }
               side="bottom"
               variant="top"
-              more={fit === null ? moreTop : "js"}
-              act={fit === null ? actTop : iAktif >= fit ? "js" : undefined}
+              more={folded === null ? moreTop : "js"}
+              act={folded === null ? actTop : aktifDalam ? "js" : undefined}
               onGo={go}
               aktif={aktif}
             />
@@ -483,8 +524,9 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         {/* Off screen: the width of every tab and of Lainnya, so the bar can tell how many fit. */}
         <div className="rec-nav__ghost" aria-hidden="true" ref={ghostRef}>
           {lipat.map((l) => (
-            <span key={l.key} className="appnav__link" data-g="l">
+            <span key={l.key} className="appnav__link" data-g="l" data-k={l.key}>
               <span>{l.label}</span>
+              {l.n ? <span className="rec-nav__n">{l.n}</span> : null}
             </span>
           ))}
           <span className="appnav__link rec-more" data-g="m">
@@ -506,7 +548,6 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         )}
 
         <div className="appnav__side">
-          <NavClock lang={lang} inSession={false} />
           <RadixPopover.Root open={dispPop} onOpenChange={setDispPop}>
             <RadixPopover.Trigger asChild>
               <IconButton icon={SlidersHorizontalIcon} label={t.display} tipSide="bottom" />
@@ -552,7 +593,6 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           )}
         </div>
 
-        <NavClock lang={lang} inSession={false} className="navclock--mobile" />
         <IconButton
           icon={SlidersHorizontalIcon}
           label={t.display}
@@ -597,6 +637,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           >
             <span className="appbar__icon">
               <l.icon size={21} aria-hidden="true" />
+              {l.n ? <span className="rec-nav__n">{l.n}</span> : null}
             </span>
             <span className="appbar__label">{l.label}</span>
           </a>

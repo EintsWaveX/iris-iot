@@ -108,7 +108,9 @@ export const NS = {
     filterStage: "Saring tahap",
     openCutting: "Buka Cutting",
     setDocs: "Atur Berkas",
+    inDays: (n: number) => `dalam ${n} hari`,
     stages: {
+      daftar: "Daftar",
       berkas: "Berkas",
       first_meet: "First Meet",
       tes_tulis: "Tes Tulis",
@@ -147,7 +149,9 @@ export const NS = {
     filterStage: "Filter stage",
     openCutting: "Open Cutting",
     setDocs: "Set Documents",
+    inDays: (n: number) => `in ${n} ${n === 1 ? "day" : "days"}`,
     stages: {
+      daftar: "Sign-up",
       berkas: "Documents",
       first_meet: "First Meet",
       tes_tulis: "Written Test",
