@@ -1,0 +1,314 @@
+/* Cutting, matched to the mockup (rec7.css n7-cut*): the stage bar, the cut line beside the lock card, the table. */
+.n7-cut {
+  --tc: #fb7185;
+  --tx: var(--tc);
+  display: grid;
+  gap: 16px;
+}
+:root[data-theme="light"] .n7-cut {
+  --tx: color-mix(in srgb, var(--tc) 42%, var(--text));
+  --n7-ok: #0b6b5f;
+  --n7-bad: #b42318;
+  --n7-warn: #8a5200;
+}
+.n7-cut {
+  --n7-ok: var(--ok);
+  --n7-bad: var(--danger);
+  --n7-warn: var(--warn);
+}
+:root[data-theme="light"] .n7-cut {
+  --n7-ok: #0b6b5f;
+  --n7-bad: #b42318;
+  --n7-warn: #8a5200;
+}
+.n7-bar {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-strong);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  max-width: 100%;
+  min-width: 0;
+}
+.n7-bar > .tabline {
+  border-bottom: 0;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+.n7-bar > .tabline button {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+.n7-miniRail {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.n7-miniRail li {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 650;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 13px;
+}
+.n7-miniRail li[data-st="cur"] {
+  background: color-mix(in srgb, var(--tc) 14%, transparent);
+  border-color: color-mix(in srgb, var(--tc) 55%, transparent);
+  color: var(--tx);
+}
+.n7-miniRail li[data-st="done"] {
+  background: var(--ok-soft);
+  color: var(--n7-ok);
+}
+.n7-cutrow {
+  align-items: stretch;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+}
+@media (max-width: 1100px) {
+  .n7-cutrow {
+    grid-template-columns: 1fr;
+  }
+}
+.n7-cutline {
+  border-top: 3px solid var(--tc);
+  gap: 16px;
+}
+.n7-cutline .panel__title {
+  font-size: 1.2rem;
+}
+/* the distribution chart reads like the mockup's bars: rounded tops, a baseline */
+.n7-cutline .r2dist {
+  border-bottom: 1px solid var(--hairline);
+  height: 92px;
+}
+.n7-range__v {
+  color: var(--text-muted);
+}
+.n7-range__v b {
+  color: var(--text);
+}
+.n7-lock {
+  border-top: 3px solid var(--n7-warn);
+  gap: 14px;
+}
+.n7-lock[data-locked="yes"] {
+  border-top-color: var(--n7-ok);
+}
+.n7-count3 {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.n7-count3 div {
+  display: grid;
+}
+.n7-count3 b {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1.1;
+}
+.n7-count3 small {
+  color: var(--text-muted);
+}
+.n7-count3 [data-t="ok"] b {
+  color: var(--n7-ok);
+}
+.n7-count3 [data-t="bad"] b {
+  color: var(--n7-bad);
+}
+.n7-stack3 {
+  display: flex;
+  gap: 3px;
+  height: 10px;
+}
+.n7-stack3 i {
+  border-radius: 5px;
+  min-width: 4px;
+  transition: flex 400ms var(--ease-out-expo);
+}
+.n7-stack3 [data-t="ok"] {
+  background: var(--n7-ok);
+}
+.n7-stack3 [data-t="bad"] {
+  background: var(--n7-bad);
+}
+.n7-stack3 [data-t="faint"] {
+  background: var(--surface-4);
+}
+.n7-link {
+  background: none;
+  border: 0;
+  color: var(--accent-bright);
+  cursor: pointer;
+  font-weight: 650;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.n7-note {
+  align-items: flex-start;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.n7-tablecard {
+  overflow: hidden;
+  padding: 0;
+}
+.n7-ctable th {
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  padding: 10px 14px;
+  text-align: left;
+  text-transform: uppercase;
+}
+.n7-ctable td {
+  border-bottom: 1px solid var(--hairline-faint);
+  padding: 10px 14px;
+}
+.n7-crow {
+  transition: background 140ms;
+}
+.n7-crow td:first-child {
+  border-left: 3px solid transparent;
+  color: var(--text-muted);
+  width: 40px;
+}
+.n7-crow[data-p="lolos"] td:first-child {
+  border-left-color: var(--n7-ok);
+}
+.n7-crow[data-p="gagal"] td:first-child {
+  border-left-color: var(--n7-bad);
+}
+@media (hover: hover) and (pointer: fine) {
+  .n7-crow:hover {
+    background: var(--surface-2);
+  }
+}
+.n7-tag {
+  align-items: center;
+  border-radius: 7px;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 800;
+  height: 24px;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  margin-right: 4px;
+  min-width: 30px;
+  padding: 0 8px;
+}
+.n7-tag[data-ok="yes"] {
+  background: var(--ok-soft);
+  color: var(--n7-ok);
+}
+.n7-tag[data-ok="no"] {
+  background: color-mix(in srgb, var(--n7-bad) 14%, transparent);
+  color: var(--n7-bad);
+}
+.n7-crow__tot {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 56px auto;
+}
+.n7-crow__tot b {
+  font-size: 1.05rem;
+}
+.n7-parts {
+  align-items: flex-end;
+  display: inline-flex;
+  gap: 3px;
+  height: 22px;
+}
+.n7-parts i {
+  background: var(--n7-bad);
+  border-radius: 2px;
+  width: 6px;
+}
+.n7-seg {
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-faint);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+}
+.n7-seg button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 650;
+  min-height: 32px;
+  padding: 0 14px;
+  transition:
+    background 160ms,
+    color 160ms;
+}
+.n7-seg button:hover:not(:disabled) {
+  color: var(--text);
+}
+.n7-seg button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.n7-seg button[data-v="lolos"][aria-pressed="true"] {
+  background: var(--n7-ok);
+  color: #04130f;
+}
+.n7-seg button[data-v="gagal"][aria-pressed="true"] {
+  background: var(--n7-bad);
+  color: #1a0505;
+}
+:root[data-theme="light"] .n7-seg button[aria-pressed="true"] {
+  color: #fff;
+}
+.n7-by {
+  background: var(--surface-3);
+  border-radius: 6px;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 2px 9px;
+}
+.n7-cutmark td {
+  border: 0 !important;
+  padding: 0 !important;
+}
+.n7-cutmark span {
+  align-items: center;
+  background: color-mix(in srgb, var(--tc) 8%, transparent);
+  border: 1.5px dashed var(--tc);
+  border-radius: 8px;
+  color: var(--tx);
+  display: flex;
+  font-size: 0.84rem;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  margin: 6px 14px;
+  padding: 6px;
+}
