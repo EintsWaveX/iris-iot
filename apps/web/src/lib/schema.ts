@@ -3103,6 +3103,44 @@ export const recAcceptance = pgTable(
 
 export type RecAcceptanceRow = typeof recAcceptance.$inferSelect;
 
+/**
+ * Susulan of Wawancara and Mengajar (R4, R6): the offer made to a CaAs whose
+ * sheet says "Susulan", and the answer. A row exists once Panitia confirmed
+ * and offered it. `status` is what was last answered (tawar: no answer yet,
+ * ya, mundur); an offer nobody answered by the deadline counts as withdrawn
+ * when it is read (src/lib/recruitment/makeup.ts), and where the CaAs sits in
+ * the Susulan is their slot assignment, not a column here. `via` and `note`
+ * keep an answer Panitia recorded for someone who replied in a chat app.
+ */
+export const MAKEUP_STATUS = ["tawar", "ya", "mundur"] as const;
+export const MAKEUP_VIA = ["web", "line", "wa", "telp", "langsung", "lain"] as const;
+
+export const recMakeup = pgTable(
+  "rec_makeup",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage").notNull(),
+    /** The slot the CaAs held when the offer was made: where they go back to if they give up the Susulan seat */
+    fromSlotId: integer("from_slot_id"),
+    status: text("status", { enum: MAKEUP_STATUS }).notNull().default("tawar"),
+    via: text("via", { enum: MAKEUP_VIA }).notNull().default("web"),
+    note: text("note").notNull().default(""),
+    /** Panitia who recorded the answer or reinstated the CaAs; null for the CaAs's own answer */
+    answeredBy: text("answered_by"),
+    offeredBy: text("offered_by").notNull(),
+    offeredAt: timestamp("offered_at", { withTimezone: true }).notNull().defaultNow(),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /** Set when Panitia reinstated a withdrawn CaAs: the deadline no longer applies to this row */
+    reinstatedAt: timestamp("reinstated_at", { withTimezone: true }),
+  },
+  (t) => [unique("rec_makeup_unik").on(t.candidateId, t.stage)],
+);
+
+export type RecMakeupRow = typeof recMakeup.$inferSelect;
+
 export type RecSheetRow = typeof recSheet.$inferSelect;
 export type RecSheetSharedRow = typeof recSheetShared.$inferSelect;
 

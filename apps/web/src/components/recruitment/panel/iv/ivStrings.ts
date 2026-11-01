@@ -151,6 +151,8 @@ export interface IvWords {
     gap: string;
     late: string;
     excuse: string;
+    makeupDays: string;
+    makeupHour: string;
     cut: string;
     cutLolos: string;
     cutRagu: string;
@@ -380,6 +382,8 @@ const ID: IvWords = {
     gap: "Jeda antar giliran (menit)",
     late: "Toleransi terlambat (menit)",
     excuse: "Izin paling lambat (menit sebelum sesi)",
+    makeupDays: "Jawab Susulan paling lambat (hari sebelum Susulan)",
+    makeupHour: "Jam batas jawab Susulan (WIB)",
     cut: "Batas keputusan",
     cutLolos: "Fix Lolos mulai",
     cutRagu: "Ragu-ragu mulai",
@@ -620,6 +624,8 @@ const EN: IvWords = {
     gap: "Changeover between turns (minutes)",
     late: "Grace for lateness (minutes)",
     excuse: "Excuse at the latest (minutes before)",
+    makeupDays: "Makeup answer due (days before the makeup)",
+    makeupHour: "Makeup answer due at (hour, WIB)",
     cut: "Verdict thresholds",
     cutLolos: "Fix Pass from",
     cutRagu: "Undecided from",

@@ -2159,3 +2159,41 @@
     background: var(--surface-3, var(--surface-2));
   }
 }
+
+/* ============================================================ Susulan (Papan) */
+.msus__l {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.msus__r {
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--hairline-strong);
+}
+.msus__r[data-st="ditempatkan"] {
+  border-left-color: var(--ok);
+}
+.msus__r[data-st="mundur"] {
+  border-left-color: var(--danger);
+}
+.msus__r[data-st="tunggu"] {
+  border-left-color: var(--warn);
+}
+.msus__slot {
+  justify-content: flex-start;
+  text-align: left;
+}
+@media (min-width: 900px) {
+  .msus__r {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+}

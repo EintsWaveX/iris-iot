@@ -13,6 +13,7 @@ import {
   recDocument,
   recEdition,
   recEvent,
+  recMakeup,
   recSlot,
   recSlotAssignment,
   recStageResult,
@@ -309,14 +310,32 @@ export async function muatWaktuGagal(db: Db, kandidatId: number, now: Date): Pro
   return r?.at ? new Date(r.at) : null;
 }
 
-/** The events a candidate sits in (their slots): the calendar shows these to them (audience own). */
+/**
+ * The events a candidate sits in (their slots), and the Susulan of a stage they
+ * were offered and did not decline: the calendar shows these to them (audience
+ * own, offered).
+ */
 export async function muatEventSendiri(db: Db, kandidatId: number): Promise<number[]> {
   const rows = await db
     .select({ eventId: recSlot.eventId })
     .from(recSlotAssignment)
     .innerJoin(recSlot, eq(recSlot.id, recSlotAssignment.slotId))
     .where(eq(recSlotAssignment.candidateId, kandidatId));
-  return rows.map((r) => r.eventId).filter((v): v is number => v !== null);
+  const ids = rows.map((r) => r.eventId).filter((v): v is number => v !== null);
+  const tawaran = await db
+    .select({ id: recEvent.id })
+    .from(recMakeup)
+    .innerJoin(recCandidate, eq(recCandidate.id, recMakeup.candidateId))
+    .innerJoin(
+      recEvent,
+      and(
+        eq(recEvent.editionId, recCandidate.editionId),
+        eq(recEvent.stage, recMakeup.stage),
+        eq(recEvent.kind, "makeup"),
+      ),
+    )
+    .where(and(eq(recMakeup.candidateId, kandidatId), inArray(recMakeup.status, ["tawar", "ya"])));
+  return [...new Set([...ids, ...tawaran.map((r) => r.id)])];
 }
 
 /** The files as Admin checks them: with the verdict and whether a re-upload replaced an earlier one. */

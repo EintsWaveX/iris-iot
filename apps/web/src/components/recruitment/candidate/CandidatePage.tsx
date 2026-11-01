@@ -110,6 +110,8 @@ function Kartu404({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
 }
 
 import { useDocRules } from "../../../lib/recruitment/doc-rules";
+import { useMakeupMine } from "../../../lib/recruitment/makeup-client";
+import MakeupCard from "./MakeupCard";
 export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
@@ -183,6 +185,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const sebelum = !buka && !!opensOn && hariIni < opensOn;
   const panitia = asisten && edisi.data?.viewer === "panitia";
   const slots = useRecSlots(praktikan && applied && !reveal);
+  const susulan = useMakeupMine(praktikan && applied && !reveal);
   // The envelope arrives on time without a refresh, counting from the server's clock.
   useRevealClock(
     rec.data?.now,
@@ -532,6 +535,20 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           nextCard
         )}
         {stageOut && <ThanksCard lang={lang} stage={stageOut} />}
+        {praktikan &&
+          applied &&
+          susulan.data?.offers.map((o) => (
+            <MakeupCard
+              key={o.stage}
+              lang={lang}
+              offer={o}
+              onChanged={() => {
+                susulan.refresh();
+                slots.refresh();
+                rec.refresh();
+              }}
+            />
+          ))}
         {praktikan && applied && perluPilih.length > 0 && (
           <div className="rec-note b3-nudge">
             <b>{S2[lang].pick.eyebrow(r.stage[perluPilih[0].window.stage])}</b>

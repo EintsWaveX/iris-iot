@@ -83,6 +83,9 @@ export interface IvTemplate {
   late: number;
   /** An excuse has to come in this many minutes before the turn */
   excuse: number;
+  /** A CaAs offered the Susulan answers by this hour (WIB, 0 to 23), this many days before it */
+  makeupDays: number;
+  makeupHour: number;
   /** Who sees what */
   hideLevels: boolean;
 }
@@ -576,6 +579,8 @@ export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
     gap: 0,
     late: 10,
     excuse: 30,
+    makeupDays: 1,
+    makeupHour: 12,
     hideLevels: true,
   },
   mengajar: {
@@ -594,6 +599,8 @@ export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
     gap: 3,
     late: 10,
     excuse: 30,
+    makeupDays: 1,
+    makeupHour: 12,
     hideLevels: true,
   },
 };
@@ -696,6 +703,9 @@ export function checkTemplate(v: unknown): IvTemplate | null {
   const gap = int(v.gap, 0, 60);
   const late = int(v.late, 0, 120);
   const excuse = int(v.excuse, 0, 1440);
+  // Saved before the Susulan offer existed: the defaults stand in.
+  const makeupDays = v.makeupDays === undefined ? 1 : int(v.makeupDays, 0, 14);
+  const makeupHour = v.makeupHour === undefined ? 12 : int(v.makeupHour, 0, 23);
   if (
     per === null ||
     pjOut === null ||
@@ -705,6 +715,8 @@ export function checkTemplate(v: unknown): IvTemplate | null {
     gap === null ||
     late === null ||
     excuse === null ||
+    makeupDays === null ||
+    makeupHour === null ||
     maxMinutes < minutes
   )
     return null;
@@ -726,6 +738,8 @@ export function checkTemplate(v: unknown): IvTemplate | null {
     gap,
     late,
     excuse,
+    makeupDays,
+    makeupHour,
     hideLevels: v.hideLevels !== false,
   };
 }

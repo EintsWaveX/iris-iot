@@ -25,6 +25,7 @@ import { handleRoom } from "./recruitment-room.js";
 import { handleScore } from "./recruitment-score.js";
 import { S4_GET, S4_POST } from "./recruitment-s4.js";
 import { S5_GET, S5_POST, guardTutup } from "./recruitment-s5.js";
+import { S6_GET, S6_OPREC_GET, S6_OPREC_POST, S6_POST } from "./recruitment-s6.js";
 import { handleSeat } from "./recruitment-seat.js";
 
 export type S3Handler = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => unknown;
@@ -36,6 +37,7 @@ const OPREC_GET: Record<string, S3Handler> = {
   lc: handleLiveCode,
   "lc-bin": handleLiveCode,
   lcc: handleLcc,
+  ...S6_OPREC_GET,
 };
 const OPREC_POST: Record<string, S3Handler> = {
   "test-checkin": handleSeat,
@@ -50,6 +52,7 @@ const OPREC_POST: Record<string, S3Handler> = {
   "lc-variant": handleLiveCode,
   "lc-compile": handleLiveCode,
   "lc-flash": handleLiveCode,
+  ...S6_OPREC_POST,
 };
 
 /** A seat during its part or a Panitia member: the handler tells them apart. */
@@ -79,6 +82,7 @@ const ASISTEN_GET: Record<string, S3Handler> = {
   "score-stats": handleScore,
   ...S4_GET,
   ...S5_GET,
+  ...S6_GET,
 };
 const ASISTEN_POST: Record<string, S3Handler> = {
   "exam-config-save": handleBank,
@@ -109,6 +113,7 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "score-unfreeze": handleScore,
   ...S4_POST,
   ...S5_POST,
+  ...S6_POST,
 };
 
 type Jalur = {
