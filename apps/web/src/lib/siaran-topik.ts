@@ -61,6 +61,11 @@ export const TOPIK = [
   "recscore",
   // R4 and R6 (2026-11-01): the examiners of a slot, a sheet sent or taken back, a special case.
   "reciv",
+  // The shared interview sheet was edited (iv-sheet-save): only an open sheet listens, so the
+  // other examiner of the pair sees the answers appear while the CaAs is still in the chair.
+  "recsheet",
+  // Live Coding: a CaAs sent a run or submit, or a PC judged or compiled one. The judge tabs of the room refresh.
+  "recjudge",
   // R8 (2026-11-01): the final list, the codes, Jadikan Asisten, closing the edition.
   "recpn",
 ] as const;
@@ -236,7 +241,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:test-hotspot": [],
   "recruitment:lc-spin": [],
   "recruitment:lc-code": [],
-  "recruitment:lcc-send": [],
+  "recruitment:lcc-send": ["recjudge"],
   "recruitment:lc-board": [],
   "recruitment:lc-variant": [],
   "recruitment:lc-compile": [],
@@ -270,7 +275,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:score-unfreeze": ["recscore", "reccutting"],
   "recruitment:iv-crew-set": ["reciv", "recplotting"],
   "recruitment:iv-standin": ["reciv", "recplotting"],
-  "recruitment:iv-sheet-save": [],
+  "recruitment:iv-sheet-save": ["recsheet"],
   "recruitment:iv-sheet-send": ["reciv", "reccutting"],
   "recruitment:iv-sheet-reopen": ["reciv", "reccutting"],
   "recruitment:iv-case": ["reciv", "reccutting", "recplotting"],

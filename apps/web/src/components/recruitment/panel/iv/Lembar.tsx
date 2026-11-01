@@ -15,6 +15,8 @@ import { Stepper } from "../../../ui/Controls";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
 import { fetchIvSheet, type IvSheetResponse } from "../../../../lib/recruitment/iv-client";
+import { useSiaran } from "../../../../lib/siaran";
+import { baseOf, mixSheet, sheetDelta, type SheetBase } from "../../../../lib/recruitment/iv-sync";
 import {
   CASE_KINDS,
   EXCUSE_WHY,
@@ -207,9 +209,21 @@ export default function Lembar({
   const [score, setScore] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [started, setStarted] = useState<string | null>(null);
+  const [partnerAt, setPartnerAt] = useState(0);
   const ready = useRef(false);
-  const last = useRef("");
+  /** What the server last held (and this examiner last sent): the autosave sends only what differs from it. */
+  const base = useRef<SheetBase>(baseOf(null));
   const body = useRef<HTMLDivElement | null>(null);
+  /** The latest values on screen, for a refresh that lands while the examiner is typing. */
+  const now_ = useRef({
+    ans: {} as Record<string, string>,
+    skip: [] as string[],
+    cl: {} as Record<string, string>,
+    other: "",
+    verdict: null as Verdict | null,
+    ba: "",
+    rec: false,
+  });
 
   const init = useCallback((d: IvSheetResponse) => {
     setData(d);
@@ -225,17 +239,45 @@ export default function Lembar({
     setLv(d.mine.levels);
     setSent(!!d.mine.sentAt);
     setStep(d.template.questions.length ? "tanya" : "simpul");
-    last.current = JSON.stringify([
-      s?.answers ?? {},
-      s?.skipped ?? [],
-      d.mine.levels,
-      s?.concl ?? {},
-      s?.other ?? "",
-      s?.verdict ?? null,
-      s?.ba ?? "",
-      s?.recording ?? false,
-    ]);
+    base.current = baseOf(d);
     ready.current = true;
+  }, []);
+
+  /** The pair shares one sheet, so what the other examiner saved comes in while
+   *  this one is open. A field this examiner has not touched since the last sync
+   *  takes the other's value; one they are typing in keeps theirs. */
+  const join = useCallback((d: IvSheetResponse) => {
+    const b = base.current;
+    const r = baseOf(d);
+    const c = now_.current;
+    const m = mixSheet(
+      {
+        answers: c.ans,
+        skipped: c.skip,
+        concl: c.cl,
+        other: c.other,
+        verdict: c.verdict,
+        ba: c.ba,
+        recording: c.rec,
+      },
+      b,
+      r,
+    );
+    setAns(m.next.answers);
+    setSkip(m.next.skipped);
+    setCl(m.next.concl);
+    setOther(m.next.other);
+    setVerdict(m.next.verdict);
+    setBa(m.next.ba);
+    setRec(m.next.recording);
+    setStarted(d.shared?.startedAt ?? null);
+    setSent(!!d.mine.sentAt);
+    setData(d);
+    base.current = { ...r, levels: b.levels };
+    if (m.changed) {
+      setPartnerAt(Date.now());
+      setTimeout(() => setPartnerAt(0), 4000);
+    }
   }, []);
 
   useEffect(() => {
@@ -259,31 +301,66 @@ export default function Lembar({
   const tpl = data?.template ?? null;
   const locked = !!data?.locked;
   const snap = JSON.stringify([ans, skip, lv, cl, other, verdict, ba, rec]);
+  now_.current = { ans, skip, cl, other, verdict, ba, rec };
 
   const flush = useCallback(async (): Promise<boolean> => {
     if (!data || locked) return true;
-    setSave("saving");
-    const r = await recPost<{ ok: true }>("iv-sheet-save", {
-      stage,
-      id,
-      shared: { answers: ans, skipped: skip, concl: cl, other, verdict, ba, recording: rec },
+    const sent_ = sheetDelta(base.current, {
+      answers: ans,
+      skipped: skip,
+      concl: cl,
+      other,
+      verdict,
+      ba,
+      recording: rec,
       levels: lv,
     });
+    if (!sent_) return true;
+    setSave("saving");
+    const r = await recPost<{ ok: true }>("iv-sheet-save", { stage, id, ...sent_.body });
     if (isFail(r)) {
       setSave("fail");
       return false;
     }
-    last.current = snap;
+    // Only what was sent counts as saved; a change made meanwhile is still pending.
+    base.current = sent_.next;
     setSave("saved");
     return true;
   }, [data, locked, stage, id, snap]);
 
   // Autosave 1.2 s after the last change; a failed save tries again.
   useEffect(() => {
-    if (!ready.current || locked || snap === last.current) return;
+    if (!ready.current || locked) return;
+    if (
+      !sheetDelta(base.current, {
+        answers: ans,
+        skipped: skip,
+        concl: cl,
+        other,
+        verdict,
+        ba,
+        recording: rec,
+        levels: lv,
+      })
+    )
+      return;
     const tm = setTimeout(() => void flush(), save === "fail" ? 4000 : 1200);
     return () => clearTimeout(tm);
   }, [snap, locked, flush, save]);
+
+  // The other examiner of the pair writes into the same sheet: ask again when it
+  // changes (or when a sheet is sent), then mix it in without touching what is being typed.
+  useSiaran(
+    ["recsheet", "reciv"],
+    () => {
+      if (!ready.current) return;
+      void fetchIvSheet(stage, id).then((r) => {
+        if (!isFail(r)) join(r);
+      });
+    },
+    !fail,
+    800,
+  );
 
   const missing = useMemo(
     () => (tpl ? sheetMissing({ levels: lv, concl: cl, verdict }, tpl.params) : []),
@@ -823,7 +900,11 @@ export default function Lembar({
       actions={
         <>
           <span className="r4save hint" role="status">
-            {locked ? t.locked : savedLabel}
+            {locked
+              ? t.locked
+              : partnerAt && save !== "saving" && save !== "fail"
+                ? t.partner
+                : savedLabel}
           </span>
           <span className="grow" />
           {tpl.params.every((p) => lv[p.key] != null) && (

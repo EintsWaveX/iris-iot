@@ -73,7 +73,7 @@ export default function Kesiapan({
     },
     60_000,
     true,
-    ["recroom"],
+    ["recroom", "recjudge"],
     300,
   );
   if (!v) return <span className="skeleton" style={{ height: 300 }} />;

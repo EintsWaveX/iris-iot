@@ -73,6 +73,7 @@ export interface IvWords {
     saved: string;
     saving: string;
     saveFail: string;
+    partner: string;
     locked: string;
     labToggle: string;
     revealBtn: string;
@@ -283,6 +284,7 @@ const ID: IvWords = {
     saved: "Tersimpan",
     saving: "Menyimpan",
     saveFail: "Belum tersimpan, mencoba lagi",
+    partner: "Pasanganmu baru mengisi",
     locked: "Cutting tahap ini sudah dikunci. Lembar tidak bisa diubah.",
     labToggle: "CaAs ini juga mendaftar lab lain",
     revealBtn: "Lihat nilai asli",
@@ -528,6 +530,7 @@ const EN: IvWords = {
     saved: "Saved",
     saving: "Saving",
     saveFail: "Not saved yet, retrying",
+    partner: "Your partner just filled something in",
     locked: "Cutting for this stage is locked. The sheet can't be changed.",
     labToggle: "This CaAs also applied to another lab",
     revealBtn: "Show the real scores",
@@ -767,6 +770,7 @@ const ZH: IvWords = {
     saved: "已保存",
     saving: "保存中",
     saveFail: "还没保存成功，正在重试",
+    partner: "搭档刚刚填写了内容",
     locked: "这个阶段的淘汰筛选已锁定，评分表不能再修改。",
     labToggle: "这位 CaAs 也申请了另一个实验室",
     revealBtn: "显示真实成绩",

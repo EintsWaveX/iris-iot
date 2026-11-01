@@ -22,7 +22,7 @@ import { sekarangDetik, tandaiTp, TP_PUT_DETIK, relayHttps } from "../../src/lib
 import type { PesanAliran } from "../../src/lib/aliran.js";
 import { buildHeader } from "../../src/lib/recruitment/lc-header.js";
 import { DEFAULT_TEMPLATES } from "../../src/lib/recruitment/lc-defaults.js";
-import { terbitkan } from "./aliran.js";
+import { kirimRelay, terbitkan } from "./aliran.js";
 import { konsolEnv } from "./konsol.js";
 import { bungkus, buka } from "./rahasia.js";
 import { kepala } from "./tp-simpan.js";
@@ -312,6 +312,7 @@ export async function terimaHasilKompilasi(
       ]);
     }
     await siarkanAntrean(db, job.roomId);
+    await kirimRelay(["recjudge"]).catch(() => undefined);
   }
   return done;
 }
