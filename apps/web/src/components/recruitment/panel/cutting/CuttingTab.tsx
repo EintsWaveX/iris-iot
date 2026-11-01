@@ -271,9 +271,6 @@ function Att({ c, lang }: { c: CutRowView; lang: Lang }) {
   );
 }
 
-const nilai = (v: number | null) =>
-  v == null ? <span className="hint">-</span> : <span className="num">{v}</span>;
-
 /* ---------------------------------------------------------------- distribution */
 
 function Dist({ rows, rule, skala = 4000 }: { rows: CutRowView[]; rule: Ambang; skala?: number }) {
@@ -663,7 +660,6 @@ export default function CuttingTab({
     </div>
   );
 
-  const adaSkor = baris.some((r) => r.total !== null);
   const garisCard = (
     <section className="panel n7-cutline">
       <div className="panel__head">

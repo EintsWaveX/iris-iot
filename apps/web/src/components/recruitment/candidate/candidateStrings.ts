@@ -36,8 +36,8 @@ export const CP = dict({
       noNote: "Ada berkas yang perlu diganti. Buka Berkasku untuk melihat yang mana.",
     },
     journey: {
-      title: "Tahapan",
-      hint: "Ketuk bintang untuk melihat tanggalnya",
+      title: "Perjalanan",
+      hint: "Ketuk bintang untuk melihat tanggalnya. Yang di depan masih berkabut.",
       done: "Sudah kamu lewati",
       cur: "Tahapmu sekarang",
       stage: (i: number) => `Tahap ${i}`,
@@ -149,8 +149,8 @@ export const CP = dict({
       noNote: "A document needs replacing. Open My Documents to see which one.",
     },
     journey: {
-      title: "Stages",
-      hint: "Tap a star for its dates",
+      title: "Journey",
+      hint: "Tap a star for its dates. What is ahead is still foggy.",
       done: "You passed this",
       cur: "Your stage now",
       stage: (i: number) => `Stage ${i}`,
@@ -260,8 +260,8 @@ export const CP = dict({
       noNote: "有材料需要更换。打开“我的材料”看看是哪一份。",
     },
     journey: {
-      title: "各阶段",
-      hint: "点一下星星看日期",
+      title: "旅程",
+      hint: "点一下星星看日期。前面的路还在雾中。",
       done: "你已经走过",
       cur: "你现在的阶段",
       stage: (i: number) => `第 ${i} 阶段`,

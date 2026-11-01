@@ -38,7 +38,7 @@ import {
   showsNextCard,
   tanggalWib,
 } from "../../../lib/recruitment/gates";
-import { alamatBagian } from "../../../lib/recruitment/panel-tab";
+import { alamatBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import {
   CUT_STAGES,
   type CutStage,
@@ -51,6 +51,9 @@ import {
   type WithdrawResponse,
 } from "../../../lib/recruitment/types";
 import { FORMULIR } from "../../../lib/recruitment/formulir";
+import { AREA } from "../panel/areas";
+import "../recruitment-shell.css";
+import "../recruitment-caas.css";
 import { REC } from "../recruitmentStrings";
 import { Agenda, RecCalendar } from "../calendar/RecCalendar";
 import {
@@ -112,6 +115,49 @@ function Kartu404({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
 import { useDocRules } from "../../../lib/recruitment/doc-rules";
 import { useMakeupMine } from "../../../lib/recruitment/makeup-client";
 import MakeupCard from "./MakeupCard";
+/** The candidate page's compact header (the mockup's n7-chead): the stage's icon tile, the title, the status and the edition. */
+function CaasHead({
+  lang,
+  title,
+  stage,
+  badge,
+  lede,
+}: {
+  lang: Lang;
+  title: string;
+  stage: StageKey | null;
+  badge?: React.ReactNode;
+  lede?: React.ReactNode;
+}) {
+  const tab: PanelTab =
+    (
+      {
+        berkas: "kandidat",
+        first_meet: "kalender",
+        tes_tulis: "tes",
+        wawancara: "wawancara",
+        mengajar: "mengajar",
+        penerimaan: "penerimaan",
+      } as Partial<Record<StageKey, PanelTab>>
+    )[stage ?? "berkas"] ?? "ringkasan";
+  const a = AREA[stage ? tab : "ringkasan"];
+  return (
+    <header className="rec-head2 rec-head2--caas" style={{ "--tc": a.c } as React.CSSProperties}>
+      <span className="rec-head2__ic" key={stage ?? "x"}>
+        <a.icon size={24} aria-hidden="true" />
+      </span>
+      <div className="rec-head2__t">
+        <div className="rec-head2__row">
+          <h1 className="rec-head2__h">{title}</h1>
+          {badge}
+          <span className="rec-head2__area">{REC[lang].eyebrow}</span>
+        </div>
+        {lede && <span className="hint">{lede}</span>}
+      </div>
+    </header>
+  );
+}
+
 export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
@@ -248,7 +294,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     <div className="rec-calwrap" id="kalender">
       <Kartu
         className="rec-calcard"
-        title={CAL[lang].title}
+        title={CAL[lang].calendar}
         aside={
           <SegmentedControl
             aria-label={CAL[lang].view}
@@ -514,10 +560,11 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
 
   return (
     <div className="rec-page">
-      <KepalaHalaman
+      <CaasHead
         lang={lang}
         title={applied ? t.titleApplied : asisten ? t.titleStaff : t.titleOpen}
-        badge={applied && cand ? <StatusPill status={cand.status} lang={lang} lg /> : undefined}
+        stage={applied && cand ? cand.stage : null}
+        badge={applied && cand ? <StatusPill status={cand.status} lang={lang} /> : undefined}
         lede={lede}
       />
       <div className="b3-page">
@@ -525,12 +572,15 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         {cta}
         <TestDoor lang={lang} enabled={praktikan && applied} />
         {sealedEnv ? (
-          <SealedHero
-            lang={lang}
-            stage={sealedEnv.stage}
-            motion={motion}
-            onOpen={() => setReveal(sealedEnv)}
-          />
+          <div className="b3-hero">
+            <SealedHero
+              lang={lang}
+              stage={sealedEnv.stage}
+              motion={motion}
+              onOpen={() => setReveal(sealedEnv)}
+            />
+            {nextCard}
+          </div>
         ) : (
           nextCard
         )}

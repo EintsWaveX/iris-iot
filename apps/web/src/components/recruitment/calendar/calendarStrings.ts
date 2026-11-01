@@ -4,6 +4,7 @@ import { dict } from "../../../lib/app";
 export const CAL = dict({
   id: {
     title: "Kalender Rekrutmen",
+    calendar: "Kalender",
     month: "Bulan",
     agenda: "Agenda",
     view: "Tampilan",
@@ -74,6 +75,7 @@ export const CAL = dict({
   },
   en: {
     title: "Recruitment Calendar",
+    calendar: "Calendar",
     month: "Month",
     agenda: "Agenda",
     view: "View",
@@ -142,6 +144,7 @@ export const CAL = dict({
   },
   zh: {
     title: "招募日程",
+    calendar: "日程",
     month: "月",
     agenda: "列表",
     view: "视图",

@@ -268,8 +268,10 @@
     background 160ms,
     color 160ms;
 }
-.n7-seg button:hover:not(:disabled) {
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .n7-seg button:hover:not(:disabled) {
+    color: var(--text);
+  }
 }
 .n7-seg button:disabled {
   cursor: not-allowed;

@@ -10,7 +10,7 @@
  * one request to slot-set, slot-decide or slot-autofill, answered by the
  * server, live on the recplotting topic.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,

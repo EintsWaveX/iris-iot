@@ -10,7 +10,6 @@ import {
   FolderOpenIcon,
   SignOutIcon,
 } from "@phosphor-icons/react";
-import Pill from "../../ui/Pill";
 import "../recruitment-b1.css";
 import type { Lang } from "../../../lib/kelas";
 
@@ -124,13 +123,13 @@ export default function CaasTools({
             data-tone={x.quiet ? "quiet" : undefined}
             onClick={x.onOpen}
           >
-            <x.icon size={22} weight="regular" aria-hidden />
+            <span className="b3-tool__ic">
+              <x.icon size={22} weight="regular" aria-hidden />
+            </span>
             <span className="b3-tool__t">{t[x.key]}</span>
             <span className="b3-tool__s">{x.sub}</span>
             {x.badge !== undefined && (
-              <span className="b3-tool__badge">
-                <Pill tone="warn">{String(x.badge)}</Pill>
-              </span>
+              <span className="b3-tool__dot" role="img" aria-label={String(x.badge)} />
             )}
           </button>
         </li>

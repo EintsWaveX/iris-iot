@@ -140,8 +140,10 @@
     border-color 200ms,
     transform 200ms var(--ease-out-expo);
 }
-.rec-oprec:hover {
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .rec-oprec:hover {
+    transform: translateY(-1px);
+  }
 }
 .rec-oprec[data-on="no"] {
   background: var(--warn-soft);

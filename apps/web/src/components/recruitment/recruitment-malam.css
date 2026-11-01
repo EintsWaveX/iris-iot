@@ -42,9 +42,11 @@
     background 180ms,
     transform 180ms var(--ease-out-expo);
 }
-.n7-night:hover {
-  border-color: var(--hairline-strong);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .n7-night:hover {
+    border-color: var(--hairline-strong);
+    transform: translateY(-2px);
+  }
 }
 .n7-night b {
   font-size: 0.98rem;
@@ -163,7 +165,11 @@
   display: grid;
   height: 36px;
   place-items: center;
-  transition: all 300ms var(--ease-out-expo);
+  transition:
+    background 300ms var(--ease-out-expo),
+    border-color 300ms var(--ease-out-expo),
+    box-shadow 300ms var(--ease-out-expo),
+    color 300ms var(--ease-out-expo);
   width: 36px;
 }
 .n7-rail li[data-st="done"] {
