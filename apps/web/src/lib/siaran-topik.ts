@@ -61,6 +61,8 @@ export const TOPIK = [
   "recscore",
   // R4 and R6 (2026-11-01): the examiners of a slot, a sheet sent or taken back, a special case.
   "reciv",
+  // R8 (2026-11-01): the final list, the codes, Jadikan Asisten, closing the edition.
+  "recpn",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -265,6 +267,9 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:iv-sheet-send": ["reciv", "reccutting"],
   "recruitment:iv-sheet-reopen": ["reciv", "reccutting"],
   "recruitment:iv-case": ["reciv", "reccutting", "recplotting"],
+  "recruitment:pn-codes": ["recpn"],
+  "recruitment:pn-confirm": ["recpn", "reccandidates", "reccutting", "recedition"],
+  "recruitment:pn-close": ["recpn", "recedition"],
   // Oprec accounts (2026-10-24): a sign-up, sign-in or sign-out changes no
   // page but the candidate's own; Reset Akun answers its code to the one asking.
   "recruitment:account-signup": [],

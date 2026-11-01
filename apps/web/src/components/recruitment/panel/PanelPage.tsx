@@ -29,6 +29,7 @@ import Kandidat from "./Kandidat";
 import CuttingTab from "./cutting/CuttingTab";
 import PlottingTab from "./jadwal/PlottingTab";
 import IvTab from "./iv/IvTab";
+import PenerimaanTab from "./penerimaan/PenerimaanTab";
 import BankTab from "./tes/bank/BankTab";
 import TesTab from "./tes/ruang/TesTab";
 import KalenderTab from "./KalenderTab";
@@ -66,6 +67,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             ...(rights?.plotting ? (["plotting"] as const) : []),
             "wawancara",
             "mengajar",
+            "penerimaan",
             ...(adaRuang ? (["tes"] as const) : []),
             ...(rights?.bank ? (["bank"] as const) : []),
             "panitia",
@@ -154,6 +156,8 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           <PlottingTab lang={lang} events={events} rights={rights} />
         ) : tab === "wawancara" || tab === "mengajar" ? (
           <IvTab lang={lang} stage={tab} rights={rights} />
+        ) : tab === "penerimaan" ? (
+          <PenerimaanTab lang={lang} />
         ) : tab === "tes" ? (
           <TesTab lang={lang} />
         ) : tab === "bank" && rights?.bank ? (

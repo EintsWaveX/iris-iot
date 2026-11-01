@@ -15,6 +15,7 @@ export const PANEL_TABS = [
   "plotting",
   "wawancara",
   "mengajar",
+  "penerimaan",
   "tes",
   "bank",
   "panitia",

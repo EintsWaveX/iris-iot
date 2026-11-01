@@ -15,7 +15,7 @@ import type { CommitteeDivision, DocKind } from "./types.js";
 
 export const SETTING_PREFIX = "rec_cfg_";
 
-export type SettingKey = "docs" | "words" | "cutting" | "wawancara" | "mengajar";
+export type SettingKey = "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "penerimaan";
 
 export interface DocSetting {
   /** One of DOC_KINDS; the `kind` stored with an upload. The keys never change once stored. */
@@ -81,6 +81,28 @@ export interface SettingMap {
   cutting: Record<string, CuttingSetting>;
   wawancara: IvTemplate;
   mengajar: IvTemplate;
+  penerimaan: AcceptSetting;
+}
+
+/** Penerimaan: the target number of new Asisten, when the edition closes by itself, and how long the data is kept. */
+export interface AcceptSetting {
+  /** About how many new Asisten (shown in Tinjau as a target, never a limit) */
+  quota: number;
+  /** The edition closes by itself this many days after the final reveal */
+  closeDays: number;
+  /** Documents and answers are kept this many months after it closed */
+  retentionMonths: number;
+}
+
+export const ACCEPT_DEFAULT: AcceptSetting = { quota: 24, closeDays: 30, retentionMonths: 6 };
+
+function checkAccept(v: unknown): AcceptSetting | null {
+  if (!isObj(v)) return null;
+  const quota = int(v.quota, 1, 200);
+  const closeDays = int(v.closeDays, 0, 365);
+  const retentionMonths = int(v.retentionMonths, 1, 60);
+  if (quota === null || closeDays === null || retentionMonths === null) return null;
+  return { quota, closeDays, retentionMonths };
 }
 
 export interface SettingDef<K extends SettingKey> {
@@ -272,6 +294,13 @@ export const SETTINGS: { [K in SettingKey]: SettingDef<K> } = {
     roles: ["ketua", "akademik"],
     def: IV_DEFAULT.mengajar,
     check: checkTemplate,
+  },
+  penerimaan: {
+    key: "penerimaan",
+    label: { id: "Penerimaan dan penutupan edisi", en: "Acceptance and closing the edition" },
+    roles: ["ketua"],
+    def: ACCEPT_DEFAULT,
+    check: checkAccept,
   },
 };
 

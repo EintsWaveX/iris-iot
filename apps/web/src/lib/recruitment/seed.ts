@@ -360,3 +360,51 @@ export function pickSeedSql(): string {
       `INSERT INTO "rec_event" ("edition_id", "kind", "title", "starts_on", "ends_on", "day_start", "day_end", "place", "internal", "audience", "gates", "stage", "color", "sort")\nSELECT (SELECT "id" FROM "rec_edition" WHERE "year" = ${y}), ${q(v.kind)}, ${q(v.title)}, ${q(v.startsOn)}, ${q(v.endsOn)}, ${qn(v.dayStart)}, ${qn(v.dayEnd)}, ${qn(v.place)}, ${v.internal}, ${q(v.audience)}, ${q(JSON.stringify(v.gates))}::jsonb, ${qn(v.stage)}, ${qn(v.color)}, ${v.sort}\nWHERE EXISTS (SELECT 1 FROM "rec_edition" WHERE "year" = ${y})\n  AND NOT EXISTS (SELECT 1 FROM "rec_event" WHERE "edition_id" = (SELECT "id" FROM "rec_edition" WHERE "year" = ${y}) AND "kind" = 'pick' AND "stage" = ${qn(v.stage)});`,
   ).join("\n");
 }
+
+/**
+ * The last step (R8), added by migration 0057 for the edition 0048 seeded: the
+ * Ketua confirms the final list on Penerimaan Asisten Baru, and the final
+ * envelopes open at the Pengumuman Penerimaan (12.00 by default), the same
+ * day as the Pengumuman Mengajar and as a separate envelope (M2).
+ */
+export const ACCEPT_SEED: Omit<RecEvent, "id">[] = [
+  {
+    kind: "acceptance",
+    title: "Penerimaan Asisten Baru",
+    startsOn: "2027-01-06",
+    endsOn: "2027-01-06",
+    dayStart: null,
+    dayEnd: null,
+    place: null,
+    internal: true,
+    audience: "all",
+    gates: ["accept"],
+    stage: "penerimaan",
+    color: null,
+    sort: 0,
+  },
+  {
+    kind: "announcement",
+    title: "Pengumuman Penerimaan",
+    startsOn: "2027-01-06",
+    endsOn: "2027-01-06",
+    dayStart: null,
+    dayEnd: null,
+    place: null,
+    internal: false,
+    audience: "all",
+    gates: ["reveal"],
+    stage: "penerimaan",
+    color: null,
+    sort: 0,
+  },
+].map((e, i) => ({ ...e, sort: EVENT_SEED.length + PICK_SEED.length + i }) as Omit<RecEvent, "id">);
+
+/** The statements migration 0057 carries; each is skipped when the edition already has that event. */
+export function acceptSeedSql(): string {
+  const y = EDITION_SEED.year;
+  return ACCEPT_SEED.map(
+    (v) =>
+      `INSERT INTO "rec_event" ("edition_id", "kind", "title", "starts_on", "ends_on", "day_start", "day_end", "place", "internal", "audience", "gates", "stage", "color", "sort")\nSELECT (SELECT "id" FROM "rec_edition" WHERE "year" = ${y}), ${q(v.kind)}, ${q(v.title)}, ${q(v.startsOn)}, ${q(v.endsOn)}, ${qn(v.dayStart)}, ${qn(v.dayEnd)}, ${qn(v.place)}, ${v.internal}, ${q(v.audience)}, ${q(JSON.stringify(v.gates))}::jsonb, ${qn(v.stage)}, ${qn(v.color)}, ${v.sort}\nWHERE EXISTS (SELECT 1 FROM "rec_edition" WHERE "year" = ${y})\n  AND NOT EXISTS (SELECT 1 FROM "rec_event" WHERE "edition_id" = (SELECT "id" FROM "rec_edition" WHERE "year" = ${y}) AND "kind" = ${q(v.kind)} AND "stage" = ${qn(v.stage)});`,
+  ).join("\n");
+}

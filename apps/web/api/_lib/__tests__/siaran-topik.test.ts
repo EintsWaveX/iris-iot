@@ -87,6 +87,9 @@ const BACA: Record<string, string[]> = {
     "iv-mine",
     "iv-sheet",
     "iv-nilai",
+    // R8, api/_lib/recruitment-s5.ts
+    "pn-list",
+    "pn-state",
   ],
 };
 
@@ -101,6 +104,7 @@ const RUTE: Record<string, string[]> = {
     "api/recruitment/[aksi].ts",
     "api/_lib/recruitment-s3.ts",
     "api/_lib/recruitment-s4.ts",
+    "api/_lib/recruitment-s5.ts",
   ],
 };
 

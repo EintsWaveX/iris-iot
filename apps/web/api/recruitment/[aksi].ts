@@ -54,6 +54,7 @@ import { and, asc, eq, ilike, or } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, pgErrorCode, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
+import { guardTutup } from "../_lib/recruitment-s5.js";
 import { denganSiaran } from "../_lib/siaran.js";
 import { muatOrang } from "../_lib/hak.js";
 import { getDb } from "../../src/lib/db.js";
@@ -1132,6 +1133,8 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
   if (!requireMethod(req, res, "POST")) return;
+  // A closed edition is read-only for the Panitia.
+  if (await guardTutup(res)) return;
   if (aksi === "propose") return handleUsul(req, res, s);
   if (aksi === "lock") return handleKunci(req, res, s);
   if (aksi === "unlock") return handleBukaKunci(req, res, s);

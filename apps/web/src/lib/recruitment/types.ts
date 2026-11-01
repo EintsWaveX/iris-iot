@@ -410,7 +410,7 @@ export interface AccountResetResponse {
 
 /** GET settings: every editable setting, for a Panitia member. */
 export interface SettingView {
-  key: "docs" | "words" | "cutting" | "wawancara" | "mengajar";
+  key: "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "penerimaan";
   label: { id: string; en: string };
   value: unknown;
   default: unknown;
@@ -673,7 +673,14 @@ export interface SeatResponse {
 /* ===================================================================== S2 */
 
 /** The stages that end in a Cutting and an envelope. */
-export const CUT_STAGES = ["berkas", "tes_tulis", "wawancara", "tubes", "mengajar"] as const;
+export const CUT_STAGES = [
+  "berkas",
+  "tes_tulis",
+  "wawancara",
+  "tubes",
+  "mengajar",
+  "penerimaan",
+] as const;
 export type CutStage = (typeof CUT_STAGES)[number];
 
 /** One file as Admin sees it while checking Berkas. */

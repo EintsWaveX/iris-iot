@@ -46,6 +46,7 @@ export const REC = dict({
       plotting: "Plotting",
       wawancara: "Wawancara",
       mengajar: "Mengajar",
+      penerimaan: "Penerimaan",
       tes: "Tes Tulis",
       bank: "Bank Soal",
       panitia: "Panitia",
@@ -144,6 +145,7 @@ export const REC = dict({
       plotting: "Plotting",
       wawancara: "Interview",
       mengajar: "Teaching",
+      penerimaan: "Acceptance",
       tes: "Written Test",
       bank: "Question Bank",
       panitia: "Committee",
@@ -164,7 +166,6 @@ export const REC = dict({
       wawancara: "Interview",
       tubes: "Final Project",
       mengajar: "Teaching Test",
-      penerimaan: "Acceptance",
     } as Record<StageKey | "daftar", string>,
     stageShort: {
       daftar: "Apply",
@@ -242,6 +243,7 @@ export const REC = dict({
       plotting: "排期",
       wawancara: "面试",
       mengajar: "试讲",
+      penerimaan: "录取",
       tes: "笔试",
       bank: "题库",
       panitia: "招募组",
@@ -262,7 +264,6 @@ export const REC = dict({
       wawancara: "面试",
       tubes: "期末项目",
       mengajar: "试讲",
-      penerimaan: "录取",
     } as Record<StageKey | "daftar", string>,
     stageShort: {
       daftar: "报名",
@@ -272,7 +273,6 @@ export const REC = dict({
       wawancara: "面试",
       tubes: "项目",
       mengajar: "试讲",
-      penerimaan: "录取",
     } as Record<StageKey | "daftar", string>,
     kind: {
       registration: "报名",

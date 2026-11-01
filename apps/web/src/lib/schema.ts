@@ -2140,6 +2140,9 @@ export const recEdition = pgTable("rec_edition", {
   status: text("status", { enum: EDITION_STATUS }).notNull().default("draft"),
   createdBy: text("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Set when the Ketua closes the edition (or it closes itself N days after the reveal): read-only from then on */
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  closedBy: text("closed_by"),
 });
 
 /**
@@ -3065,6 +3068,40 @@ export const recSheetShared = pgTable(
   },
   (t) => [unique("rec_sheet_shared_unik").on(t.candidateId, t.stage)],
 );
+
+/**
+ * Penerimaan (R8): the Ketua's plan for each CaAs who passed Mengajar. The
+ * code proposed for the new Asisten (unique, editable until confirmed), whether
+ * they are accepted, and once Jadikan Asisten ran, the Asisten NIM it made.
+ * `promotedAt` makes the promotion idempotent: a second run creates nobody.
+ */
+export const ACCEPT_DECISION = ["terima", "tolak"] as const;
+
+export const recAcceptance = pgTable(
+  "rec_acceptance",
+  {
+    candidateId: integer("candidate_id")
+      .primaryKey()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    code: text("code"),
+    decision: text("decision", { enum: ACCEPT_DECISION }).notNull().default("terima"),
+    promotedNim: text("promoted_nim"),
+    promotedAt: timestamp("promoted_at", { withTimezone: true }),
+    promotedBy: text("promoted_by"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("rec_acceptance_kode")
+      .on(t.editionId, t.code)
+      .where(sql`${t.code} is not null`),
+  ],
+);
+
+export type RecAcceptanceRow = typeof recAcceptance.$inferSelect;
 
 export type RecSheetRow = typeof recSheet.$inferSelect;
 export type RecSheetSharedRow = typeof recSheetShared.$inferSelect;

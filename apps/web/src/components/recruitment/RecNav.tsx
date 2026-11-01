@@ -35,6 +35,7 @@ import {
   type IconProps,
   ChalkboardTeacherIcon,
   ChatsIcon,
+  MedalIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
@@ -216,6 +217,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         ...(rights?.plotting ? [tab("plotting", t.plotting, TableIcon)] : []),
         tab("wawancara", t.wawancara, ChatsIcon),
         tab("mengajar", t.mengajar, ChalkboardTeacherIcon),
+        tab("penerimaan", t.penerimaan, MedalIcon),
         ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
         ...(rights?.bank ? [tab("bank", t.bank, DatabaseIcon)] : []),
         tab("panitia", t.panitia, UsersThreeIcon),

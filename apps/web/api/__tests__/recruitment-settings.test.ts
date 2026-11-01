@@ -237,7 +237,14 @@ describe("settings", () => {
     const r = await panggil("GET", "settings", { cookie: asistenCookie() });
     expect(r.code).toBe(200);
     const list = r.body.settings as { key: string; custom: boolean; canEdit: boolean }[];
-    expect(list.map((x) => x.key)).toEqual(["docs", "words", "cutting", "wawancara", "mengajar"]);
+    expect(list.map((x) => x.key)).toEqual([
+      "docs",
+      "words",
+      "cutting",
+      "wawancara",
+      "mengajar",
+      "penerimaan",
+    ]);
     expect(list.every((x) => !x.custom && !x.canEdit)).toBe(true);
   });
   it("is closed to an Asisten with no seat", async () => {

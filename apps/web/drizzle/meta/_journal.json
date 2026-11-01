@@ -400,6 +400,13 @@
       "when": 1793487517465,
       "tag": "0056_rec_interview",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1793492023111,
+      "tag": "0057_rec_acceptance",
+      "breakpoints": true
     }
   ]
 }
