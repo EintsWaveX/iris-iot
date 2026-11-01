@@ -22,8 +22,6 @@ import { Pool, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
 import * as schema from "./schema.js";
-import pgLocal from "pg"; // RIG-ONLY
-import { drizzle as drizzleLocal } from "drizzle-orm/node-postgres"; // RIG-ONLY
 
 // Node's own global WebSocket (available from Node 22+, which is this
 // project's floor per package.json's engines field) would otherwise be
@@ -38,13 +36,6 @@ let cachedDb: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 export function getDb() {
   if (cachedDb) return cachedDb;
-  if (process.env.LOCAL_TEST_PG) {
-    // RIG-ONLY
-    cachedDb = drizzleLocal(new pgLocal.Pool({ connectionString: process.env.LOCAL_TEST_PG }), {
-      schema,
-    }) as unknown as typeof cachedDb; // RIG-ONLY
-    return cachedDb!; // RIG-ONLY
-  } // RIG-ONLY
 
   const url = process.env.DATABASE_URL;
   if (!url) {
