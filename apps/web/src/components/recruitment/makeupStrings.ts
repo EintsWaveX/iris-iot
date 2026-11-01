@@ -52,6 +52,10 @@ export interface MkWords {
     reinstate: string;
     place: string;
     release: string;
+    retract: string;
+    retractTitle: (name: string) => string;
+    retractBody: string;
+    retractYes: string;
     placeTitle: string;
     placeDesc: (name: string) => string;
     slotLine: (room: string, when: string, taken: number, cap: number) => string;
@@ -86,6 +90,7 @@ export interface MkWords {
       reinstated: (name: string) => string;
       placed: (name: string) => string;
       released: (name: string) => string;
+      retracted: (name: string) => string;
       fail: string;
       err: Record<string, string>;
     };
@@ -165,6 +170,11 @@ const ID: MkWords = {
     reinstate: "Pulihkan",
     place: "Tempatkan",
     release: "Lepas",
+    retract: "Tarik Tawaran",
+    retractTitle: (n) => `Tarik tawaran Susulan untuk ${n}?`,
+    retractBody:
+      "Tawaran, jawaban dan kursi Susulannya dihapus; dia kembali seperti sebelum ditawari dan bisa ditawari lagi. Kalau dia sudah melihat tawarannya, kabari dia.",
+    retractYes: "Tarik Tawaran",
     placeTitle: "Tempatkan di Susulan",
     placeDesc: (name) => `Pilih slot Susulan untuk ${name}. Dia diberi tahu di halamannya.`,
     slotLine: (room, when, taken, cap) => `${room} · ${when} · ${taken}/${cap}`,
@@ -201,6 +211,7 @@ const ID: MkWords = {
       reinstated: (n) => `${n} dipulihkan ke Susulan. Dia diberi tahu.`,
       placed: (n) => `${n} ditempatkan di Susulan. Dia diberi tahu.`,
       released: (n) => `${n} dilepas dari Susulan.`,
+      retracted: (n) => `Tawaran untuk ${n} ditarik.`,
       fail: "Belum tersimpan. Coba lagi.",
       err: {
         bukan_susulan: "Lembarnya belum mencatat Susulan.",
@@ -289,6 +300,11 @@ const EN: MkWords = {
     reinstate: "Reinstate",
     place: "Place",
     release: "Release",
+    retract: "Withdraw Offer",
+    retractTitle: (n) => `Withdraw the makeup offer for ${n}?`,
+    retractBody:
+      "Their offer, answer and makeup seat are removed; they go back to how they were before the offer and can be offered again. If they already saw it, tell them.",
+    retractYes: "Withdraw Offer",
     placeTitle: "Place in the Makeup",
     placeDesc: (name) => `Pick a makeup slot for ${name}. They're told on their page.`,
     slotLine: (room, when, taken, cap) => `${room} · ${when} · ${taken}/${cap}`,
@@ -325,6 +341,7 @@ const EN: MkWords = {
       reinstated: (n) => `${n} was reinstated for the makeup. They're told.`,
       placed: (n) => `${n} placed in the makeup. They're told.`,
       released: (n) => `${n} released from the makeup.`,
+      retracted: (n) => `The offer to ${n} is withdrawn.`,
       fail: "Not saved. Try again.",
       err: {
         bukan_susulan: "Their sheet doesn't say makeup.",
@@ -410,6 +427,11 @@ const ZH: MkWords = {
     reinstate: "恢复",
     place: "安排",
     release: "释放",
+    retract: "撤回邀请",
+    retractTitle: (n) => `撤回对${n}的补考邀请？`,
+    retractBody:
+      "他们的邀请、回复和补考座位都会被删除，恢复到被邀请之前的样子，之后可以再次邀请。如果他们已经看到了邀请，请告知他们。",
+    retractYes: "撤回邀请",
     placeTitle: "安排到补考",
     placeDesc: (name) => `为${name}选择一个补考时段。他们会在自己的页面上收到通知。`,
     slotLine: (room, when, taken, cap) => `${room} · ${when} · ${taken}/${cap}`,
@@ -446,6 +468,7 @@ const ZH: MkWords = {
       reinstated: (n) => `${n}已恢复补考资格，并已通知。`,
       placed: (n) => `${n}已安排到补考，并已通知。`,
       released: (n) => `${n}已从补考中释放。`,
+      retracted: (n) => `已撤回对${n}的邀请。`,
       fail: "没有保存成功，请再试一次。",
       err: {
         bukan_susulan: "他们的评分表没有补考记录。",

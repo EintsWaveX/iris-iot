@@ -16,7 +16,7 @@
  * another Asisten gets the calendar; a candidate, a Praktikan and a visitor
  * get the recruitment page with its calendar.
  */
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   CalendarBlankIcon,
@@ -78,14 +78,19 @@ interface Bagian {
  * The fold (06, agreed with 08c): from 1100 px every tab shows. Below that the
  * top bar keeps 5 (4 under 820) and the rest go into Lainnya; the phone's
  * bottom bar keeps all of them up to 5 and from 6 on shows 4 plus Lainnya.
- * All of it is CSS on data attributes (no width read in script, so the first
- * paint is right). When the active tab is folded, Lainnya wears its name.
+ * The first paint is CSS on data attributes. Once mounted, the top bar is
+ * measured instead: it shows exactly as many tabs as fit beside the clock, the
+ * live status and the account (label widths differ per language and per who is
+ * looking), and Lainnya holds the rest. When the active tab is folded,
+ * Lainnya wears its name.
  * Later prompts only append to `links`.
  */
 const KEEP_WIDE = 5;
 const KEEP_NARROW = 4;
 /** A long bar (more than eight parts) folds the rest into Lainnya below 1400 too */
 const KEEP_MID = 8;
+
+const useLayoutAman = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function Lainnya({
   rest,
@@ -104,9 +109,9 @@ function Lainnya({
   side: "top" | "bottom";
   variant: "top" | "bar";
   /** Top bar: when the button shows ("wide": below 1100, "narrow": below 820) */
-  more?: "mid" | "wide" | "narrow";
+  more?: "mid" | "wide" | "narrow" | "js";
   /** When the active tab is inside, and so the label is its name */
-  act?: "mid" | "wide" | "narrow" | "bar";
+  act?: "mid" | "wide" | "narrow" | "bar" | "js";
   onGo: (e: React.MouseEvent, l: Bagian) => void;
   aktif: string;
 }) {
@@ -311,6 +316,41 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           : undefined;
   // The phone's bar: everything up to 5, from 6 on four and Lainnya.
   const barKeep = n > KEEP_WIDE ? KEEP_NARROW : n;
+  // How many top-bar tabs fit (null until measured: the CSS fold stands in).
+  const navRef = useRef<HTMLElement>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<number | null>(null);
+  useLayoutAman(() => {
+    const nav = navRef.current;
+    const ghost = ghostRef.current;
+    if (!nav || !ghost) return;
+    const GAP = 2;
+    const calc = () => {
+      const avail = nav.clientWidth;
+      // Hidden (the phone shows the bottom bar instead): nothing to measure.
+      if (!avail) return;
+      const ws = Array.from(ghost.querySelectorAll<HTMLElement>('[data-g="l"]')).map(
+        (e) => e.offsetWidth,
+      );
+      const more = ghost.querySelector<HTMLElement>('[data-g="m"]')?.offsetWidth ?? 96;
+      const all = ws.reduce((a, w) => a + w + GAP, 0) - GAP;
+      if (all <= avail) return void setFit(ws.length);
+      let used = more + GAP;
+      let k = 0;
+      for (const w of ws) {
+        if (used + w + GAP > avail) break;
+        used += w + GAP;
+        k++;
+      }
+      setFit(k);
+    };
+    calc();
+    const ro = new ResizeObserver(calc);
+    ro.observe(nav);
+    void document.fonts?.ready.then(calc);
+    return () => ro.disconnect();
+  }, [lipat, lang]);
+  const kept = fit ?? KEEP_NARROW;
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 4);
@@ -407,33 +447,54 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           <img src="/brand/iris-logo-mark.png" alt="" width="198" height="90" />
         </a>
 
-        <nav className="appnav__links" aria-label={t.main}>
-          {lipat.map((l) => (
+        <nav className="appnav__links" aria-label={t.main} ref={navRef}>
+          {lipat.map((l, i) => (
             <a
               key={l.key}
               className="appnav__link"
               href={l.href}
-              data-fold={l.fold}
+              data-fold={fit === null ? l.fold : undefined}
+              data-hide={fit !== null && i >= fit ? "yes" : undefined}
               aria-current={aktifLink(l)}
               onClick={(e) => go(e, l)}
             >
               <span>{l.label}</span>
             </a>
           ))}
-          {moreTop && (
+          {(fit === null ? moreTop : fit < n ? "js" : undefined) && (
             <Lainnya
-              rest={lipat.slice(KEEP_NARROW)}
+              rest={lipat.slice(kept)}
               label={t.more}
-              active={actTop ? lipat[iAktif] : undefined}
+              active={
+                (fit === null ? actTop : iAktif >= fit ? "js" : undefined)
+                  ? lipat[iAktif]
+                  : undefined
+              }
               side="bottom"
               variant="top"
-              more={moreTop}
-              act={actTop}
+              more={fit === null ? moreTop : "js"}
+              act={fit === null ? actTop : iAktif >= fit ? "js" : undefined}
               onGo={go}
               aktif={aktif}
             />
           )}
         </nav>
+
+        {/* Off screen: the width of every tab and of Lainnya, so the bar can tell how many fit. */}
+        <div className="rec-nav__ghost" aria-hidden="true" ref={ghostRef}>
+          {lipat.map((l) => (
+            <span key={l.key} className="appnav__link" data-g="l">
+              <span>{l.label}</span>
+            </span>
+          ))}
+          <span className="appnav__link rec-more" data-g="m">
+            <span>
+              {[t.more, ...lipat.map((l) => l.label)].reduce((a, b) =>
+                b.length > a.length ? b : a,
+              )}
+            </span>
+          </span>
+        </div>
 
         {tamu && (
           <div className="appnav__center">

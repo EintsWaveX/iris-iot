@@ -95,6 +95,7 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "bank-seed": handleBank,
   "media-ticket": handleBank,
   "room-setup": handleRoom,
+  "room-delete": handleRoom,
   "room-act": handleRoom,
   "room-master": handleRoom,
   "room-note": handleRoom,

@@ -43,7 +43,7 @@
  * POST /api/recruitment/account-reset { nim }  forget an oprec password (approve right)
  *
  * hakPenuh, while the Google Form is the way in (api/_lib/recruitment-tambah.ts):
- * POST /api/recruitment/candidate-add | candidate-ticket | candidate-document
+ * POST /api/recruitment/candidate-add | candidate-ticket | candidate-document | candidate-delete
  *
  * A candidate only ever reads their own row: every candidate read is
  * filtered by the session's NIM and checked again in code. Editing or
@@ -139,6 +139,7 @@ import {
 } from "../_lib/recruitment-sembunyi.js";
 import {
   handleDokumenPanitia,
+  handleHapusKandidat,
   handleTambahKandidat,
   handleTiketPanitia,
 } from "../_lib/recruitment-tambah.js";
@@ -1166,6 +1167,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "account-reset") return handleResetAkun(req, res, s);
   if (aksi === "candidate-add") return handleTambahKandidat(req, res, s);
+  if (aksi === "candidate-delete") return handleHapusKandidat(req, res, s);
   if (aksi === "candidate-ticket") return handleTiketPanitia(req, res, s);
   if (aksi === "candidate-document") return handleDokumenPanitia(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);

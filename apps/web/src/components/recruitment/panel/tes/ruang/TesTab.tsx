@@ -5,7 +5,9 @@
  * the back button and a shared link both work.
  */
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeftIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, TrashIcon } from "@phosphor-icons/react";
+import Confirm from "../../../../ui/Confirm";
+import IconButton from "../../../../ui/IconButton";
 import Fade from "../../../../ui/Fade";
 import Pill from "../../../../ui/Pill";
 import TabLine from "../../../../ui/TabLine";
@@ -82,6 +84,72 @@ function viewLabel(lang: Lang, view: RoomRow["view"], part: RoomRow["part"]): st
     : t.view[view];
 }
 
+/* ----------------------------------------------------------------- delete */
+
+/** The delete button of a room and its confirm. A real room goes only before anyone ran it. */
+function HapusRuang({
+  lang,
+  id,
+  title,
+  rehearsal,
+  seats,
+  view,
+  selesai,
+  done,
+}: {
+  lang: Lang;
+  id: number;
+  title: string;
+  rehearsal: boolean;
+  seats: number;
+  view: ReturnType<typeof roomView>["view"];
+  /** Some part has run in it */
+  selesai: boolean;
+  done: () => void;
+}) {
+  const t = RG[lang].list.del;
+  const [open, setOpen] = useState(false);
+  const jalan = view === "part-running" || view === "livecode-running" || view === "part-paused";
+  const dipakai = !rehearsal && selesai;
+  const alasan = jalan ? t.running : dipakai ? t.used : undefined;
+  return (
+    <>
+      <IconButton
+        icon={TrashIcon}
+        kind="danger"
+        label={t.aria}
+        tip={alasan}
+        disabled={!!alasan}
+        onClick={() => setOpen(true)}
+      />
+      <Confirm
+        open={open}
+        onOpenChange={setOpen}
+        title={t.title(title)}
+        body={rehearsal ? t.bodyPractice(seats) : t.bodyReal(seats)}
+        confirmLabel={t.confirm}
+        lang={lang}
+        onConfirm={async () => {
+          const r = await recPost<{ ok: true }>("room-delete", { id });
+          if (isFail(r)) {
+            toast(
+              r.kode === "ruang_berjalan"
+                ? t.running
+                : r.kode === "ruang_sudah_dipakai"
+                  ? t.used
+                  : t.fail,
+              "danger",
+            );
+            return false;
+          }
+          toast(t.done);
+          done();
+        }}
+      />
+    </>
+  );
+}
+
 /* ------------------------------------------------------------------ list */
 
 function Daftar({
@@ -142,10 +210,22 @@ function Daftar({
                 </div>
               )}
               {r.mine && <span className="hint">{t.mine}</span>}
-              <div className="row">
+              <div className="row" style={{ gap: 8 }}>
                 <button type="button" className="btn btn--primary" onClick={() => buka(r.id)}>
                   {t.open}
                 </button>
+                {data.canSetup && (
+                  <HapusRuang
+                    lang={lang}
+                    id={r.id}
+                    title={r.title}
+                    rehearsal={r.rehearsal}
+                    seats={r.seats}
+                    view={r.view}
+                    selesai={r.view === "finished" || r.part !== null}
+                    done={refresh}
+                  />
+                )}
               </div>
             </section>
           ))}
@@ -207,11 +287,13 @@ function Ruang({
   id,
   people,
   kembali,
+  rooms,
 }: {
   lang: Lang;
   id: number;
   people: { nim: string; nama: string; kode: string }[];
   kembali: () => void;
+  rooms: { refresh: () => void };
 }) {
   const t = RG[lang];
   const room = useRecRoom(id, true);
@@ -269,6 +351,21 @@ function Ruang({
           {viewLabel(lang, rv.view, rv.part)}
         </Pill>
         {v.room.rehearsal && <Pill>{t.list.practice}</Pill>}
+        {v.me.canSetup && (
+          <HapusRuang
+            lang={lang}
+            id={id}
+            title={v.room.title}
+            rehearsal={v.room.rehearsal}
+            seats={v.seats.length}
+            view={rv.view}
+            selesai={Object.keys(v.state.runs).length > 0 || v.state.stage === "finished"}
+            done={() => {
+              rooms.refresh();
+              kembali();
+            }}
+          />
+        )}
         {live.status === "putus" && (
           <span className="r3conn" title={t.liveDownTip}>
             <i />
@@ -316,7 +413,13 @@ export default function TesTab({ lang }: { lang: Lang }) {
   if (!rooms.data) return <span className="skeleton" style={{ height: 320 }} />;
   if (id !== null)
     return (
-      <Ruang lang={lang} id={id} people={rooms.data.people ?? []} kembali={() => pilih(null)} />
+      <Ruang
+        lang={lang}
+        id={id}
+        people={rooms.data.people ?? []}
+        kembali={() => pilih(null)}
+        rooms={rooms}
+      />
     );
   return (
     <div className="stack">

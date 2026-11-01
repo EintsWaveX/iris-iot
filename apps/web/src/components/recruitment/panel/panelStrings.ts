@@ -92,6 +92,14 @@ export const PN = dict({
       uploading: (p: number) => `Mengunggah ${p}%`,
       uploaded: "Berkas tersimpan.",
       edit: "Ubah Data",
+      del: "Hapus CaAs",
+      delTitle: (n: string) => `Hapus ${n}?`,
+      delBody:
+        "Semua data CaAs ini di edisi ini ikut terhapus: berkas, slot, kursi ujian, lembar dan hasil. Akun oprecnya tetap ada. Ini tidak bisa dibatalkan, jadi pakai hanya untuk data yang salah masuk.",
+      delYes: "Hapus CaAs",
+      delDone: "CaAs dihapus.",
+      delFail: "CaAs belum terhapus. Coba lagi.",
+      delBlocked: "Tidak bisa dihapus: hasilnya sudah dibuka atau dia sudah jadi Asisten.",
     },
     tambah: {
       btn: "Tambah CaAs",
@@ -261,6 +269,14 @@ export const PN = dict({
       uploading: (p: number) => `Uploading ${p}%`,
       uploaded: "File saved.",
       edit: "Edit Details",
+      del: "Delete CaAs",
+      delTitle: (n: string) => `Delete ${n}?`,
+      delBody:
+        "Everything of this CaAs in this edition goes with them: documents, slots, exam seats, sheets and results. Their oprec account stays. This can't be undone, so use it only for an entry that went in by mistake.",
+      delYes: "Delete CaAs",
+      delDone: "CaAs deleted.",
+      delFail: "The CaAs wasn't deleted. Try again.",
+      delBlocked: "Can't be deleted: their result was opened or they are already an Asisten.",
     },
     tambah: {
       btn: "Add CaAs",
@@ -433,6 +449,14 @@ export const PN = dict({
       uploading: (p: number) => `上传中 ${p}%`,
       uploaded: "文件已保存。",
       edit: "修改资料",
+      del: "删除 CaAs",
+      delTitle: (n: string) => `删除${n}？`,
+      delBody:
+        "这位 CaAs 在本届的所有数据都会一起删除：文件、时段、考试座位、评分表和结果。他们的 oprec 账号会保留。此操作无法撤销，只用于误录入的数据。",
+      delYes: "删除 CaAs",
+      delDone: "CaAs 已删除。",
+      delFail: "CaAs 没有删除成功，请重试。",
+      delBlocked: "无法删除：结果已被打开，或者他们已经是助教。",
     },
     tambah: {
       btn: "添加 CaAs",

@@ -9,6 +9,7 @@
  * POST /api/recruitment/candidate-add       { nim, nama, sandi, biodata, ubah? }
  * POST /api/recruitment/candidate-ticket    { id, kind, ukuran, sha256, halaman? }
  * POST /api/recruitment/candidate-document  { id, kind, tiket }
+ * POST /api/recruitment/candidate-delete    { id }  a CaAs added by mistake (nothing opened yet)
  *
  * No calendar window: the Panitia keep typing in late arrivals of the form
  * after registration closes. The PDFs go through the same tickets, relay and
@@ -19,7 +20,14 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, pgErrorCode } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
 import { hashPassword, writeAudit, type SessionPayload } from "../../src/lib/auth.js";
-import { asisten, recAccount, recCandidate, recDocument } from "../../src/lib/schema.js";
+import {
+  asisten,
+  recAccount,
+  recAcceptance,
+  recCandidate,
+  recDocument,
+  recStageResult,
+} from "../../src/lib/schema.js";
 import { cekNama, cekNimOprec, cekSandi } from "../../src/lib/recruitment/akun.js";
 import { cekBiodataFormulir } from "../../src/lib/recruitment/validate.js";
 import { type CandidateStatus } from "../../src/lib/recruitment/types.js";
@@ -66,6 +74,38 @@ async function kandidatId(db: Db, edisiId: number, id: unknown): Promise<Kandida
     .where(and(eq(recCandidate.id, id as number), eq(recCandidate.editionId, edisiId)))
     .limit(1);
   return k ?? null;
+}
+
+/**
+ * Take a CaAs out of the edition, for one added by mistake (a typo in the NIM,
+ * a double entry). Everything of theirs goes with them (documents, slots, seats,
+ * sheets, results). Refused once they are an Asisten, or once an envelope of
+ * theirs was opened, since that is a decision a person already saw. The oprec
+ * account stays (Reset Akun is its own thing), and the PDFs in R2 are removed
+ * with the edition's cleanup.
+ */
+export async function handleHapusKandidat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  if (!(await wajibPenuh(res, db, edisi.id, s))) return;
+  const k = await kandidatId(db, edisi.id, jsonBody(req).id);
+  if (!k) return tolak(res, "tidak_ditemukan", 404);
+  if (k.status === "accepted") return tolak(res, "sudah_jadi_asisten", 409);
+  const [dibuka] = await db
+    .select({ id: recStageResult.id })
+    .from(recStageResult)
+    .where(and(eq(recStageResult.candidateId, k.id), sql`${recStageResult.openedAt} is not null`))
+    .limit(1);
+  const [jadi] = await db
+    .select({ id: recAcceptance.candidateId })
+    .from(recAcceptance)
+    .where(and(eq(recAcceptance.candidateId, k.id), sql`${recAcceptance.promotedAt} is not null`))
+    .limit(1);
+  if (dibuka || jadi) return tolak(res, "sudah_ada_hasil", 409);
+  await db.delete(recCandidate).where(eq(recCandidate.id, k.id));
+  await writeAudit(s.nim, "rec_kandidat_hapus", { id: k.id, nim: k.nim, status: k.status });
+  return void res.status(200).json({ ok: true });
 }
 
 /** A candidate from the Google Form, or a correction of one already added (`ubah`). */

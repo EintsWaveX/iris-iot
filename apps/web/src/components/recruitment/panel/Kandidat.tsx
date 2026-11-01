@@ -14,6 +14,7 @@
  * candidate's own page through the reccandidates topic.
  */
 import { useEffect, useState } from "react";
+import Confirm from "../../ui/Confirm";
 import Dialog from "../../ui/Dialog";
 import Dropdown from "../../ui/Dropdown";
 import Pill from "../../ui/Pill";
@@ -84,6 +85,7 @@ function Lembar({
   const [galat, setGalat] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [ubah, setUbah] = useState(false);
+  const [hapus, setHapus] = useState(false);
 
   const muat = async () => {
     const res = await recGet<CandidateDetailResponse>("candidate", { id: String(id) });
@@ -225,13 +227,20 @@ function Lembar({
             )}
           </section>
           {canAdd && (
-            <div>
+            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
               <button
                 type="button"
                 className="btn btn--ghost btn--sm"
                 onClick={() => setUbah(true)}
               >
                 {t.edit}
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => setHapus(true)}
+              >
+                {t.del}
               </button>
             </div>
           )}
@@ -246,6 +255,31 @@ function Lembar({
             </div>
           )}
         </div>
+      )}
+      {hapus && c && (
+        <Confirm
+          open
+          onOpenChange={(o) => !o && setHapus(false)}
+          title={t.delTitle(c.nama)}
+          body={t.delBody}
+          confirmLabel={t.delYes}
+          lang={lang}
+          onConfirm={async () => {
+            const res = await recPost<{ ok: true }>("candidate-delete", { id });
+            if (isFail(res)) {
+              window.Toast?.show(
+                res.kode === "sudah_ada_hasil" || res.kode === "sudah_jadi_asisten"
+                  ? t.delBlocked
+                  : t.delFail,
+                "danger",
+              );
+              return false;
+            }
+            window.Toast?.show(t.delDone, "ok");
+            onChanged();
+            onClose();
+          }}
+        />
       )}
       {ubah && c && (
         <TambahCaAs

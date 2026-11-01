@@ -9,6 +9,7 @@
  * GET  room-log?id= the room's actions, newest first
  * GET  room-ticket?id=  a relay ticket for the Panitia's socket
  * POST room-setup   { slotId?, rehearsal?, title?, pengawas, hotspots? }  (plotPengawas)
+ * POST room-delete  { id }  a room nobody has run, or a practice room that is not running  (plotPengawas)
  * POST room-act     { id, seq, act, ...params }  the Master's controls
  * POST room-master  { id, act: claim | ask | give | decline | release | ping, to? }
  * POST room-note    { id, candidateId, text }  a pengawas' note on a seat
@@ -36,6 +37,10 @@ import {
   recExamRoom,
   recExamSeat,
   recKitLoan,
+  recLivecode,
+  recCompileJob,
+  recMqttJob,
+  recCSubmission,
   recQuestion,
   recAttendance,
   recSeatNote,
@@ -378,6 +383,8 @@ export async function handleRoom(req: ApiRequest, res: ApiResponse, s: SessionPa
       return tiket(ctx);
     case "room-setup":
       return aturRuang(ctx);
+    case "room-delete":
+      return hapusRuang(ctx);
     case "room-act":
       return aksiRuang(ctx);
     case "room-master":
@@ -958,6 +965,39 @@ async function aturRuang({ req, res, s, db, edisi, p }: Ctx) {
     pengawas: pe.map((x) => ({ nim: x.nim, nama: x.nama, kode: x.kode })),
     hotspots: fin.hotspots.map(toView),
   });
+}
+
+/**
+ * Delete a room. A real room only while nobody has run a part in it (its seats
+ * hold no answers to lose); a practice room any time it is not running, since
+ * it counts toward nobody's score. Its seats and what hangs off them go with it.
+ */
+async function hapusRuang({ req, res, s, db, edisi, p }: Ctx) {
+  if (!bisaSetup(p)) return void tolak(res, "tanpa_hak", 403, { hak: "plotPengawas" });
+  const id = Number(jsonBody(req).id);
+  if (!idOk(id)) return void tolak(res, "data_salah", 400, { field: "id" });
+  const muat = await muatRuang(db, edisi.id, id);
+  if (!muat) return void tolak(res, "tidak_ditemukan", 404);
+  const { room } = muat;
+  const jalan = room.state.stage === "parts" || room.state.stage === "spin";
+  if (jalan) return void tolak(res, "ruang_berjalan", 409);
+  const pernahJalan = Object.keys(room.state.runs).length > 0 || room.state.stage === "finished";
+  if (!room.rehearsal && pernahJalan) return void tolak(res, "ruang_sudah_dipakai", 409);
+  await db.transaction(async (tx) => {
+    await tx.delete(recStrike).where(eq(recStrike.roomId, room.id));
+    await tx.delete(recCSubmission).where(eq(recCSubmission.roomId, room.id));
+    await tx.delete(recLivecode).where(eq(recLivecode.roomId, room.id));
+    await tx.delete(recCompileJob).where(eq(recCompileJob.roomId, room.id));
+    await tx.delete(recMqttJob).where(eq(recMqttJob.roomId, room.id));
+    await tx.delete(recExamSeat).where(eq(recExamSeat.roomId, room.id));
+    await tx.delete(recExamRoom).where(eq(recExamRoom.id, room.id));
+  });
+  await writeAudit(s.nim, "rec_ruang_hapus", {
+    id: room.id,
+    title: room.title,
+    rehearsal: room.rehearsal,
+  });
+  return void res.status(200).json({ ok: true });
 }
 
 /* ------------------------------------------------------------ the Master */

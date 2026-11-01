@@ -246,6 +246,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:media-ticket": [],
   "recruitment:bank-seed": ["recbank"],
   "recruitment:room-setup": ["recroom"],
+  "recruitment:room-delete": ["recroom"],
   "recruitment:room-act": ["recroom"],
   "recruitment:room-master": [],
   "recruitment:room-note": [],
@@ -269,6 +270,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:iv-case": ["reciv", "reccutting", "recplotting"],
   "recruitment:ms-offer": ["recplotting", "reccutting", "reccandidates"],
   "recruitment:ms-record": ["recplotting", "reccutting", "reccandidates"],
+  "recruitment:ms-retract": ["recplotting", "reccutting", "reccandidates"],
   "recruitment:ms-release": ["recplotting", "reccutting", "reccandidates"],
   "recruitment:ms-answer": ["recplotting", "reccutting"],
   "recruitment:pn-codes": ["recpn"],
@@ -282,6 +284,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:account-reset": [],
   // Tambah CaAs (2026-10-25): the Panitia add a candidate and their PDFs.
   "recruitment:candidate-add": ["reccandidates"],
+  "recruitment:candidate-delete": ["reccandidates", "reccutting", "recplotting", "recroom"],
   "recruitment:candidate-ticket": [],
   "recruitment:candidate-document": ["reccandidates"],
   // Register, edit, delete a PC, a new token, and every queued command.
