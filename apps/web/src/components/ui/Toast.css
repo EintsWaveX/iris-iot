@@ -177,3 +177,13 @@
     animation: none;
   }
 }
+
+/* On a phone a dialog or drawer fills the screen and its buttons sit along the bottom edge, exactly where a toast lands: the toast
+   would cover Selesai, Kirim or Setujui for its whole stay. While one is open the toast goes to the top. */
+@media (max-width: 759px) {
+  body:has(.dialog__panel:not([data-state="closed"]), .drawer:not([data-state="closed"]))
+    .toast-host {
+    bottom: auto;
+    top: max(12px, env(safe-area-inset-top, 0px));
+  }
+}

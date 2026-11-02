@@ -166,7 +166,11 @@ function Lembar({
               </button>
             )}
           </>
-        ) : undefined
+        ) : (
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
+            {PN[lang].tambah.tutup}
+          </button>
+        )
       }
     >
       {d === null ? (
@@ -504,22 +508,25 @@ export default function Kandidat({
               {c.nim} · {c.kelas ?? "-"} · {c.angkatan ?? "-"}
             </span>
           </span>
-          <span className="rec9-row__stage" title={k.stageNow}>
-            <Tg size={16} aria-hidden="true" />
-            <span>{ns.stages[c.stage]}</span>
-          </span>
-          {!late && (
-            <span className="rec9-row__docs" aria-label={k.docsOf(c.docs, dokumen)}>
-              {Array.from({ length: dokumen }, (_, i) => (
-                <i key={i} data-on={i < c.docs ? "yes" : "no"} />
-              ))}
-              <small className="num">
-                {c.docs}/{dokumen}
-              </small>
+          {/* One group: on a wide row its parts sit in the row's own columns; on a narrow one they wrap under the name. */}
+          <span className="rec9-row__meta">
+            <span className="rec9-row__stage" title={k.stageNow}>
+              <Tg size={16} aria-hidden="true" />
+              <span>{ns.stages[c.stage]}</span>
             </span>
-          )}
-          <span className="rec9-row__at hint">{pendek(c.appliedAt, lang)}</span>
-          <StatusPill status={c.status} lang={lang} />
+            {!late && (
+              <span className="rec9-row__docs" aria-label={k.docsOf(c.docs, dokumen)}>
+                {Array.from({ length: dokumen }, (_, i) => (
+                  <i key={i} data-on={i < c.docs ? "yes" : "no"} />
+                ))}
+                <small className="num">
+                  {c.docs}/{dokumen}
+                </small>
+              </span>
+            )}
+            <span className="rec9-row__at hint">{pendek(c.appliedAt, lang)}</span>
+            <StatusPill status={c.status} lang={lang} />
+          </span>
           <CaretRightIcon size={16} aria-hidden="true" />
         </button>
         {bisaCut && (ADA_CUTTING.has(c.stage) || penerimaan) && (
@@ -534,7 +541,7 @@ export default function Kandidat({
             ) : (
               <ScissorsIcon size={18} aria-hidden="true" />
             )}
-            <span className="btn__label">
+            <span className="btn__label rec9-line__lbl">
               {penerimaan ? k.accept : k.cutting(ns.stages[c.stage])}
             </span>
           </button>
@@ -545,97 +552,100 @@ export default function Kandidat({
 
   return (
     <div className="stack rec9-kand">
-      <div className="rec9-kbar">
-        <div className="rec9-chips" role="group" aria-label={k.filterStatus}>
-          {(["semua", ...kunci] as const).map((a) => {
-            const Ik = a === "semua" ? null : IK_ANTRE[a];
+      {/* The size container: the list changes shape with the room it has, not with the window (the dialogs below stay outside it). */}
+      <div className="rec9-kcon">
+        <div className="rec9-kbar">
+          <div className="rec9-chips" role="group" aria-label={k.filterStatus}>
+            {(["semua", ...kunci] as const).map((a) => {
+              const Ik = a === "semua" ? null : IK_ANTRE[a];
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  className="rec9-chip"
+                  data-k={a}
+                  aria-pressed={f === a}
+                  onClick={() => setF(a)}
+                >
+                  {Ik && <Ik size={16} aria-hidden="true" />}
+                  <span>{a === "semua" ? k.all : k.q[a].t}</span>
+                  <b className="num">{a === "semua" ? rows.length : cnt(a)}</b>
+                </button>
+              );
+            })}
+          </div>
+          <span className="grow" />
+          {desk && berikut && (
+            <button type="button" className="btn btn--primary" onClick={() => setSel(berikut.id)}>
+              <span className="btn__label">{k.checkNext}</span>
+              <ArrowRightIcon size={18} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        <div className="row rec-tools">
+          <div className="rec9-search">
+            <MagnifyingGlassIcon size={16} aria-hidden="true" />
+            <input
+              className="field__input"
+              placeholder={t.search}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              aria-label={t.searchLabel}
+            />
+          </div>
+          <span className="grow" />
+          <span className="hint num">{t.count(tampil.length, rows.length)}</span>
+          {desk && (
+            <button type="button" className="btn btn--inverse btn--sm" onClick={unduh}>
+              <DownloadSimpleIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{k.download}</span>
+            </button>
+          )}
+          {rights.documents && (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAtur(true)}>
+              <SlidersHorizontalIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{ns.setDocs}</span>
+            </button>
+          )}
+          {canAdd && (
+            <button
+              type="button"
+              className="btn btn--inverse btn--sm"
+              onClick={() => setTambah(true)}
+            >
+              <UserPlusIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{PN[lang].tambah.btn}</span>
+            </button>
+          )}
+        </div>
+        {grup.length ? (
+          grup.map(([a, baris]) => {
+            const Ik = IK_ANTRE[a];
             return (
-              <button
-                key={a}
-                type="button"
-                className="rec9-chip"
-                data-k={a}
-                aria-pressed={f === a}
-                onClick={() => setF(a)}
-              >
-                {Ik && <Ik size={16} aria-hidden="true" />}
-                <span>{a === "semua" ? k.all : k.q[a].t}</span>
-                <b className="num">{a === "semua" ? rows.length : cnt(a)}</b>
-              </button>
+              <section className="rec9-group" data-st={a} key={a}>
+                <div className="rec9-group__h">
+                  <span className="rec9-group__ic">
+                    <Ik size={16} aria-hidden="true" />
+                  </span>
+                  <b>{k.q[a].t}</b>
+                  <span className="hint">{k.q[a].h}</span>
+                  <span className="grow" />
+                  <span className="hint num">{baris.length}</span>
+                </div>
+                <ul className="rec9-rows">
+                  {baris.map((x) => (
+                    <Baris key={x.c.id} c={x.c} st={x.st} />
+                  ))}
+                </ul>
+              </section>
             );
-          })}
-        </div>
-        <span className="grow" />
-        {desk && berikut && (
-          <button type="button" className="btn btn--primary" onClick={() => setSel(berikut.id)}>
-            <span className="btn__label">{k.checkNext}</span>
-            <ArrowRightIcon size={18} aria-hidden="true" />
-          </button>
+          })
+        ) : (
+          <section className="panel">
+            <span className="hint">{rows.length ? t.emptyFilter : t.empty}</span>
+          </section>
         )}
       </div>
-      <div className="row rec-tools">
-        <div className="rec9-search">
-          <MagnifyingGlassIcon size={16} aria-hidden="true" />
-          <input
-            className="field__input"
-            placeholder={t.search}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label={t.searchLabel}
-          />
-        </div>
-        <span className="grow" />
-        <span className="hint num">{t.count(tampil.length, rows.length)}</span>
-        {desk && (
-          <button type="button" className="btn btn--inverse btn--sm" onClick={unduh}>
-            <DownloadSimpleIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{k.download}</span>
-          </button>
-        )}
-        {rights.documents && (
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAtur(true)}>
-            <SlidersHorizontalIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{ns.setDocs}</span>
-          </button>
-        )}
-        {canAdd && (
-          <button
-            type="button"
-            className="btn btn--inverse btn--sm"
-            onClick={() => setTambah(true)}
-          >
-            <UserPlusIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{PN[lang].tambah.btn}</span>
-          </button>
-        )}
-      </div>
-      {grup.length ? (
-        grup.map(([a, baris]) => {
-          const Ik = IK_ANTRE[a];
-          return (
-            <section className="rec9-group" data-st={a} key={a}>
-              <div className="rec9-group__h">
-                <span className="rec9-group__ic">
-                  <Ik size={16} aria-hidden="true" />
-                </span>
-                <b>{k.q[a].t}</b>
-                <span className="hint">{k.q[a].h}</span>
-                <span className="grow" />
-                <span className="hint num">{baris.length}</span>
-              </div>
-              <ul className="rec9-rows">
-                {baris.map((x) => (
-                  <Baris key={x.c.id} c={x.c} st={x.st} />
-                ))}
-              </ul>
-            </section>
-          );
-        })
-      ) : (
-        <section className="panel">
-          <span className="hint">{rows.length ? t.emptyFilter : t.empty}</span>
-        </section>
-      )}
       {sel !== null && rights.documents && rights.approve && (
         <BerkasReview
           lang={lang}

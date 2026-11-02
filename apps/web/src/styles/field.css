@@ -60,6 +60,46 @@ textarea.field__input {
   font-size: var(--fs-small);
 }
 
+/* The mockup's bare .input and .textarea (styles.css, KIT inputs). The live app only had .field__input, so a plain
+   className="textarea" (Minta Perbaikan, Cutting notes, the Plotting note, Bank Soal) drew the browser's own box.
+   Same look as .field__input, so a bare control and a labelled one match. */
+.input,
+.textarea {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  min-height: max(var(--tap), var(--tap-lg, 48px));
+  padding: 10px 14px;
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal);
+  width: 100%;
+}
+.textarea {
+  font-family: var(--font-body);
+  line-height: 1.5;
+  min-height: 110px;
+  resize: vertical;
+}
+.textarea.mono,
+.input.mono {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+.input:focus-visible,
+.textarea:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-faint);
+}
+
 /* A multi-line field (Phase 9): the same box, taller, growing by hand. */
 .field__textarea {
   font: inherit;
@@ -67,4 +107,10 @@ textarea.field__input {
   min-height: 120px;
   padding: var(--space-3) var(--space-4);
   resize: vertical;
+}
+
+/* Mockup (r2-berkas light theme): a placeholder in mid grey on a tinted field; muted text holds 4.5 to 1 on it. */
+:root[data-theme="light"] :is(.input, .textarea, .field__input)::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }

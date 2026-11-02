@@ -633,13 +633,13 @@ export interface WithdrawResponse {
 /** POST review */
 export interface ReviewRequest {
   id: number;
-  decision: "approve" | "revision";
+  decision: "approve" | "revision" | "withdraw";
   /** Required with a revision */
   note?: string;
 }
 export interface ReviewResponse {
   ok: true;
-  status: "approved" | "revision";
+  status: "approved" | "revision" | "applied";
 }
 
 /** POST event-save: create (no id) or edit */

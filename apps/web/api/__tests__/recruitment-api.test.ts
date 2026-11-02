@@ -668,6 +668,29 @@ describe("review", () => {
       reviewedBy: "101022300900",
     });
   });
+  it("takes an approval back to waiting while the CaAs is at the document check, and only then", async () => {
+    sebagaiAsisten();
+    rows.asisten = [ORANG("101022300900")];
+    rows.committee = [KURSI("admin")];
+    rows.candidate = [KANDIDAT("101022300001", "approved")];
+    const r = await panggil("POST", "review", { body: { id: 7, decision: "withdraw" } });
+    expect(r.body).toEqual({ ok: true, status: "applied" });
+    expect(tulis.find((w) => w.tabel === "candidate")?.nilai).toMatchObject({
+      status: "applied",
+      reviewNote: null,
+      reviewedBy: null,
+      reviewedAt: null,
+    });
+    // Not approved: nothing to take back. Past the document check: the road has begun.
+    rows.candidate = [KANDIDAT("101022300001", "applied")];
+    expect(
+      (await panggil("POST", "review", { body: { id: 7, decision: "withdraw" } })).body.kode,
+    ).toBe("status_salah");
+    rows.candidate = [{ ...KANDIDAT("101022300001", "approved"), currentStage: "tes_tulis" }];
+    expect(
+      (await panggil("POST", "review", { body: { id: 7, decision: "withdraw" } })).body.kode,
+    ).toBe("status_salah");
+  });
   it("will not approve a file set that is not complete", async () => {
     sebagaiAsisten();
     rows.asisten = [ORANG("101022300900")];

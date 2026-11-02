@@ -5,6 +5,8 @@
 
 .dialog__overlay {
   animation: dialog-fade-in 220ms ease both;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   background: var(--scrim);
   inset: 0;
   position: fixed;
@@ -333,4 +335,11 @@
   .dialog__panel[data-shake] {
     animation-duration: 1ms;
   }
+}
+
+/* The mockup's stacked layers (styles.css, data-under): a dialog or drawer with another dialog opened over it steps back,
+   so the one on top is the one that reads. The panels are siblings in the page, in the order they opened. */
+.drawer:has(~ .dialog__overlay:not([data-state="closed"])),
+.dialog__panel:has(~ .dialog__overlay:not([data-state="closed"])) {
+  filter: brightness(0.8) saturate(0.9);
 }
