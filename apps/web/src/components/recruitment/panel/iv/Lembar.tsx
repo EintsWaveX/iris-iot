@@ -9,6 +9,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  WrenchIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   ArrowSquareOutIcon,
@@ -46,7 +47,7 @@ import {
 import { useSiaran } from "../../../../lib/siaran";
 import { baseOf, mixSheet, sheetDelta, type SheetBase } from "../../../../lib/recruitment/iv-sync";
 import {
-  CASE_KINDS,
+  caseKindsFor,
   EXCUSE_WHY,
   LATE_WHY,
   caseOutcome,
@@ -59,6 +60,18 @@ import {
 } from "../../../../lib/recruitment/interview";
 import { IV, STEP, bi, kasusText } from "./ivStrings";
 import { LM } from "./lembarStrings";
+import { M6 } from "./lembar6Strings";
+import {
+  Amati,
+  NOTE_PREFIX,
+  PanelSent,
+  TOPIC_KEY,
+  TurnClock,
+  mmss,
+  newNoteId,
+  noteValue,
+  readNotes,
+} from "./MengajarParts";
 import { PN } from "./penilaianStrings";
 
 type Step = "tanya" | "simpul" | "putus";
@@ -101,6 +114,8 @@ const CASE_ICON: Record<CaseKind, typeof UserIcon> = {
   telat: ClockCountdownIcon,
   absen: UserMinusIcon,
   sakit: WarningIcon,
+  teknis: WrenchIcon,
+  lewat: TimerIcon,
   nametag: UserIcon,
   keluar: DoorOpenIcon,
 };
@@ -167,7 +182,7 @@ function Kasus({
     >
       <div className="stack">
         <div className="r4cases" role="radiogroup" aria-label={t.title}>
-          {CASE_KINDS.map((k) => (
+          {caseKindsFor(stage).map((k) => (
             <button
               key={k}
               type="button"
@@ -252,11 +267,14 @@ export default function Lembar({
   stage,
   id,
   onClose,
+  onNext,
 }: {
   lang: Lang;
   stage: IvStage;
   id: number;
   onClose: () => void;
+  /** Open the sheet of the next CaAs in the slot (the teaching test's Giliran Berikutnya) */
+  onNext?: (id: number) => void;
 }) {
   const w = IV(lang);
   const t = w.sheet;
@@ -285,6 +303,11 @@ export default function Lembar({
   const [ownAns, setOwnAns] = useState<Record<string, string>>(() => readOwn(stage, id).ans);
   const [ownSkip, setOwnSkip] = useState<string[]>(() => readOwn(stage, id).skip);
   const [ownText, setOwnText] = useState("");
+  const [tag, setTag] = useState("");
+  const [noteTxt, setNoteTxt] = useState("");
+  /** The teaching clock can be paused on this laptop (a technical problem); the pause is not shared */
+  const [pauseAt, setPauseAt] = useState<number | null>(null);
+  const [pausedMs, setPausedMs] = useState(0);
   const [fopen, setFopen] = useState(false);
   const [vid, setVid] = useState<{ kelas: "tidak" | "ya" | null; at: string; ok: boolean }>({
     kelas: null,
@@ -308,34 +331,37 @@ export default function Lembar({
     rec: false,
   });
 
-  const init = useCallback((d: IvSheetResponse) => {
-    setData(d);
-    const s = d.shared;
-    setAns(s?.answers ?? {});
-    setSkip(s?.skipped ?? []);
-    setCl(s?.concl ?? {});
-    setOther(s?.other ?? "");
-    setVerdict(s?.verdict ?? null);
-    setBa(s?.ba ?? "");
-    setRec(s?.recording ?? false);
-    setStarted(s?.startedAt ?? null);
-    setLv(d.mine.levels);
-    setSent(!!d.mine.sentAt);
-    setView(d.mine.sentAt ? "sent" : "sheet");
-    setVid({
-      kelas: null,
-      at: new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Jakarta",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(new Date(Date.parse(d.slot.endsAt) + 3_600_000)),
-      ok: false,
-    });
-    setStep(d.template.questions.length ? "tanya" : "simpul");
-    base.current = baseOf(d);
-    ready.current = true;
-  }, []);
+  const init = useCallback(
+    (d: IvSheetResponse) => {
+      setData(d);
+      const s = d.shared;
+      setAns(s?.answers ?? {});
+      setSkip(s?.skipped ?? []);
+      setCl(s?.concl ?? {});
+      setOther(s?.other ?? "");
+      setVerdict(s?.verdict ?? null);
+      setBa(s?.ba ?? "");
+      setRec(s?.recording ?? false);
+      setStarted(s?.startedAt ?? null);
+      setLv(d.mine.levels);
+      setSent(!!d.mine.sentAt);
+      setView(d.mine.sentAt ? "sent" : "sheet");
+      setVid({
+        kelas: null,
+        at: new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Jakarta",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(new Date(Date.parse(d.slot.endsAt) + 3_600_000)),
+        ok: false,
+      });
+      setStep(d.template.questions.length || stage === "mengajar" ? "tanya" : "simpul");
+      base.current = baseOf(d);
+      ready.current = true;
+    },
+    [stage],
+  );
 
   /** The pair shares one sheet, so what the other examiner saved comes in while
    *  this one is open. A field this examiner has not touched since the last sync
@@ -560,6 +586,11 @@ export default function Lembar({
   };
   const mate = data.pair.find((p) => p.nim !== data.me)?.kode ?? "";
   const first = (data.candidate.nama ?? "").split(" ")[0];
+  const meKode = data.pair.find((p) => p.nim === data.me)?.kode ?? "";
+  /** Me first, then the partner or the rest of the panel (the form's "Kode Pewawancara": you / your partner) */
+  const pairMeFirst = [...data.pair].sort(
+    (a, b) => Number(b.nim === data.me) - Number(a.nim === data.me),
+  );
   const doneParams = tpl.params.filter((p) => lv[p.key] != null && (cl[p.key] ?? "").trim()).length;
   const simpulLeft = tpl.params.length - doneParams;
   const hm = (iso: string) =>
@@ -581,24 +612,81 @@ export default function Lembar({
   const durShort = (min: number) => `${Math.floor(min / 60)}:${pad(Math.round(min % 60))}`;
   const verdictName = verdict ? w.mine.verdict[verdict] : "-";
 
+  // The teaching test (mockup r6-lembar): a turn of the panel, timed notes, a countdown that can be paused.
+  const mg = stage === "mengajar";
+  const M = M6[lang];
+  const mates = data.pair.filter((p) => p.nim !== data.me).map((p) => p.kode);
+  const notes = mg ? readNotes(ans) : [];
+  const topic = ans[TOPIC_KEY] ?? "";
+  const turnMs = (tpl.minutes + tpl.gap) * 60_000;
+  const turnFrom = new Date(Date.parse(data.slot.startsAt) + (data.slot.booth - 1) * turnMs);
+  const turnTo = new Date(turnFrom.getTime() + tpl.minutes * 60_000);
+  const startedMs = started ? new Date(started).getTime() : 0;
+  const turnSec = started
+    ? Math.max(0, Math.floor(((pauseAt ?? now) - startedMs - pausedMs) / 1000))
+    : 0;
+  const turnLeft = tpl.minutes * 60 - turnSec;
+  const turnOver = started && turnLeft < 0;
+  const addNote = (text: string, row?: string) => {
+    const t = text.trim();
+    if (!t || locked) return;
+    const nid = newNoteId();
+    setAns({
+      ...ans,
+      [NOTE_PREFIX + nid]: noteValue({
+        t: mmss(Math.min(turnSec, 99 * 60)),
+        row: row ?? tag,
+        text: t,
+      }),
+    });
+    setNoteTxt("");
+  };
+  const removeNote = (nid: string) => setAns({ ...ans, [NOTE_PREFIX + nid]: "" });
+  const togglePause = () => {
+    if (pauseAt === null) setPauseAt(Date.now());
+    else {
+      setPausedMs((m) => m + (Date.now() - pauseAt));
+      setPauseAt(null);
+    }
+  };
+  const nextTurnCand = mg
+    ? mine.data?.slots
+        .find((x) => x.id === data.slot.id)
+        ?.booths.filter((b) => b.index + 1 > data.slot.booth && b.candidate)[0]
+    : undefined;
+
   const steps: { v: Step; l: string; sub: string; ok: boolean }[] = [
-    ...(tpl.questions.length
+    ...(mg
       ? [
           {
             v: "tanya" as Step,
-            l: L.steps[0],
-            sub: L.ofN(doneQ, list.length),
-            ok: unanswered === 0,
+            l: M.steps[0],
+            sub: M.notesN(notes.length),
+            ok: notes.length > 0,
           },
         ]
-      : []),
+      : tpl.questions.length
+        ? [
+            {
+              v: "tanya" as Step,
+              l: L.steps[0],
+              sub: L.ofN(doneQ, list.length),
+              ok: unanswered === 0,
+            },
+          ]
+        : []),
     {
       v: "simpul",
-      l: L.steps[1],
+      l: mg ? M.steps[1] : L.steps[1],
       sub: L.ofN(doneParams, tpl.params.length),
       ok: simpulLeft === 0,
     },
-    { v: "putus", l: L.steps[2], sub: verdict ? verdictName : L.notYet, ok: !!verdict },
+    {
+      v: "putus",
+      l: mg ? M.steps[2] : L.steps[2],
+      sub: verdict ? verdictName : L.notYet,
+      ok: !!verdict,
+    },
   ];
 
   const geser = (s: Step) => {
@@ -641,7 +729,7 @@ export default function Lembar({
     if (isFail(r)) return toast(w.err[r.kode] ?? r.kode, "danger");
     setSent(false);
     setView("sheet");
-    toast(L.withdrawn(mate), "warn");
+    toast(mg ? M.withdrawn : L.withdrawn(mate), "warn");
   };
   const mulai = async () => {
     const r = await recPost<{ ok: true }>("iv-sheet-save", { stage, id, shared: { start: true } });
@@ -719,7 +807,14 @@ export default function Lembar({
     <header className="r4cand">
       <div className="stack" style={{ gap: 2, minWidth: 0 }}>
         <span className="eyebrow rec-eyebrow num">
-          {L.eyebrow(data.slot.booth, data.slot.room, slotFrom, slotTo, stage)}
+          {mg
+            ? M.turn(
+                data.slot.booth,
+                data.slot.room,
+                hm(turnFrom.toISOString()),
+                hm(turnTo.toISOString()),
+              )
+            : L.eyebrow(data.slot.booth, data.slot.room, slotFrom, slotTo, stage)}
         </span>
         <h2 className="h2 r4cand__n">{data.candidate.nama}</h2>
         <span className="hint mono">
@@ -727,9 +822,9 @@ export default function Lembar({
         </span>
       </div>
       <div className="r4cand__side">
-        <Tooltip label={L.pairTip}>
+        <Tooltip label={mg ? M.panelTip : L.pairTip}>
           <span className="r4pair">
-            {data.pair.map((p, i) => (
+            {pairMeFirst.map((p, i) => (
               <Fragment key={p.nim}>
                 {i > 0 && <span className="r4pair__s">/</span>}
                 <span className={`acode${p.nim === data.me ? " acode--me" : ""}`}>{p.kode}</span>
@@ -738,21 +833,31 @@ export default function Lembar({
           </span>
         </Tooltip>
         {data.here && <Pill tone="ok">{L.here(hm(data.here))}</Pill>}
-        {files}
-        <button
-          type="button"
-          className="r4rec"
-          aria-pressed={rec}
-          data-warn={!rec && !!started ? "yes" : undefined}
-          title={L.recTip}
-          disabled={locked}
-          onClick={() => setRec(!rec)}
-        >
-          <RecordIcon size={18} aria-hidden="true" />
-          <span>{rec ? L.recOn : L.recOff}</span>
-        </button>
+        {!mg && files}
+        {!mg && (
+          <button
+            type="button"
+            className="r4rec"
+            aria-pressed={rec}
+            data-warn={!rec && !!started ? "yes" : undefined}
+            title={L.recTip}
+            disabled={locked}
+            onClick={() => setRec(!rec)}
+          >
+            <RecordIcon size={18} aria-hidden="true" />
+            <span>{rec ? L.recOn : L.recOff}</span>
+          </button>
+        )}
         {!mySent &&
-          (started ? (
+          (mg && started ? (
+            <TurnClock
+              lang={lang}
+              minutes={tpl.minutes}
+              left={turnLeft}
+              running={pauseAt === null}
+              onToggle={togglePause}
+            />
+          ) : started ? (
             <span
               className="r4clock"
               data-over={over ? "yes" : undefined}
@@ -774,7 +879,7 @@ export default function Lembar({
                 className="btn btn--inverse btn--sm"
                 onClick={() => void mulai()}
               >
-                <span className="btn__label">{L.start}</span>
+                <span className="btn__label">{mg ? M.startTurn : L.start}</span>
               </button>
             )
           ))}
@@ -860,7 +965,11 @@ export default function Lembar({
             className="field__input input"
             value={ownText}
             onChange={(e) => setOwnText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && tambahKartu()}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              tambahKartu();
+            }}
             placeholder={L.own}
             aria-label={L.ownAria}
           />
@@ -969,11 +1078,30 @@ export default function Lembar({
     </div>
   );
 
+  const amati = (
+    <Amati
+      lang={lang}
+      tpl={tpl}
+      notes={notes}
+      topic={topic}
+      tag={tag}
+      txt={noteTxt}
+      locked={locked}
+      mates={mates}
+      partnerLive={!!partnerAt}
+      setTopic={(v) => setAns({ ...ans, [TOPIC_KEY]: v })}
+      setTag={setTag}
+      setTxt={setNoteTxt}
+      addNote={addNote}
+      removeNote={removeNote}
+    />
+  );
+
   const simpul = (
     <div className="stack r4par">
       {tpl.hideLevels && mate && (
         <div className="rec-note">
-          <span>{L.levelHint(mate)}</span>
+          <span>{mg ? M.levelHint(mates.join(", ")) : L.levelHint(mate)}</span>
         </div>
       )}
       {tpl.params.map((p) => {
@@ -986,7 +1114,9 @@ export default function Lembar({
             data-done={v != null && (cl[p.key] ?? "").trim() ? "yes" : undefined}
           >
             <div className="row row--between" style={{ gap: 8 }}>
-              <h3 className="h3">{bi(p.label, lang)}</h3>
+              <h3 className="h3">
+                {bi(p.label, lang)} {mg && p.example && <Pill tone="warn">{M.sample}</Pill>}
+              </h3>
               <span className="r4row__v">
                 {v == null ? (
                   <span className="hint">{L.notYet}</span>
@@ -1002,6 +1132,17 @@ export default function Lembar({
                 {p.ind.map((x, i) => (
                   <li key={i}>{bi(x, lang)}</li>
                 ))}
+              </ul>
+            )}
+            {mg && notes.some((n) => n.row === p.key) && (
+              <ul className="r6mini">
+                {notes
+                  .filter((n) => n.row === p.key)
+                  .map((n) => (
+                    <li key={n.id}>
+                      <span className="num">{n.t}</span> {n.text}
+                    </li>
+                  ))}
               </ul>
             )}
             <div
@@ -1055,7 +1196,7 @@ export default function Lembar({
             rows={3}
             value={other}
             disabled={locked}
-            placeholder={L.otherPh}
+            placeholder={mg ? M.otherPh : L.otherPh}
             onChange={(e) => setOther(e.target.value)}
           />
         </label>
@@ -1072,7 +1213,7 @@ export default function Lembar({
         data-key="verdict"
         data-miss={miss === "verdict" ? "yes" : undefined}
       >
-        <h3 className="h3">{L.verdictTitle}</h3>
+        <h3 className="h3">{mg ? M.verdictTitle : L.verdictTitle}</h3>
         <div className="r4verd" role="radiogroup" aria-label={L.steps[2]}>
           {VERDICTS.map((x) => {
             const Ic = VICON[x];
@@ -1093,12 +1234,12 @@ export default function Lembar({
             );
           })}
         </div>
-        <span className="hint">{L.verdictHint(mate)}</span>
+        <span className="hint">{mg ? M.verdictHint(mates.join(", ")) : L.verdictHint(mate)}</span>
       </section>
       <section className="panel r4p">
         <h3 className="h3">{L.ba}</h3>
         <div className="rec-chips">
-          {L.baChips.map((x) => (
+          {(mg ? M.baChips : L.baChips).map((x) => (
             <button key={x} type="button" className="chipbtn" onClick={() => tambahBa(x)}>
               {x}
             </button>
@@ -1109,7 +1250,7 @@ export default function Lembar({
           rows={3}
           value={ba}
           disabled={locked}
-          placeholder={L.baPh}
+          placeholder={mg ? M.baPh : L.baPh}
           onChange={(e) => setBa(e.target.value)}
         />
         {!locked && (
@@ -1124,13 +1265,21 @@ export default function Lembar({
       <section className="panel r4sum">
         <h3 className="h3">{L.before}</h3>
         <ul className="r4sum__l">
-          <li data-ok={unanswered === 0 ? "yes" : "warn"}>
-            {unanswered === 0 ? (
+          <li data-ok={(mg ? notes.length > 0 : unanswered === 0) ? "yes" : "warn"}>
+            {(mg ? notes.length > 0 : unanswered === 0) ? (
               <CheckCircleIcon size={18} aria-hidden="true" />
             ) : (
               <WarningIcon size={18} aria-hidden="true" />
             )}
-            <span>{unanswered === 0 ? L.chkAll : L.chkQ(unanswered)}</span>
+            <span>
+              {mg
+                ? notes.length > 0
+                  ? M.chkNotes(notes.length)
+                  : M.chkNoNotes
+                : unanswered === 0
+                  ? L.chkAll
+                  : L.chkQ(unanswered)}
+            </span>
           </li>
           <li data-ok={kurangSimpul ? "no" : "yes"}>
             {kurangSimpul ? (
@@ -1138,7 +1287,13 @@ export default function Lembar({
             ) : (
               <CheckCircleIcon size={18} aria-hidden="true" />
             )}
-            <span>{kurangSimpul ? L.chkConcl(kurangSimpul) : L.chkConclOk}</span>
+            <span>
+              {kurangSimpul
+                ? L.chkConcl(kurangSimpul)
+                : mg
+                  ? M.chkRows(tpl.params.length)
+                  : L.chkConclOk}
+            </span>
           </li>
           <li data-ok={verdict ? "yes" : "no"}>
             {verdict ? (
@@ -1148,13 +1303,21 @@ export default function Lembar({
             )}
             <span>{verdict ? L.chkVerdict(verdictName) : L.chkNoVerdict}</span>
           </li>
-          <li data-ok={rec ? "yes" : "warn"}>
-            {rec ? (
+          <li data-ok={(mg ? !turnOver : rec) ? "yes" : "warn"}>
+            {(mg ? !turnOver : rec) ? (
               <CheckCircleIcon size={18} aria-hidden="true" />
             ) : (
               <WarningIcon size={18} aria-hidden="true" />
             )}
-            <span>{rec ? L.chkRecOn : L.chkRecOff}</span>
+            <span>
+              {mg
+                ? turnOver
+                  ? M.chkTimeOver(mmss(Math.abs(turnLeft)), tpl.minutes)
+                  : M.chkTimeOk
+                : rec
+                  ? L.chkRecOn
+                  : L.chkRecOff}
+            </span>
           </li>
         </ul>
       </section>
@@ -1171,108 +1334,137 @@ export default function Lembar({
       </span>
       <h2 className="h2">{L.sentTitle(first)}</h2>
       <p className="hint">
-        {L.sentBody(
-          verdictName,
-          allLv ? sc : 0,
-          PN[lang].cuttingOf[stage],
-          data.cutting ? dayLong(`${data.cutting}T12:00:00+07:00`) : null,
-        )}
-      </p>
-      <section className="panel r4next r4vid">
-        <span className="eyebrow">{L.vidEyebrow}</span>
-        <b>{L.vidTitle}</b>
-        <span className="hint">{L.vidBody}</span>
-        <div className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <span className="hint">{L.vidClass}</span>
-          <div className="r4yn" role="radiogroup" aria-label={L.vidClass}>
-            {(
-              [
-                ["tidak", L.no],
-                ["ya", L.yes],
-              ] as const
-            ).map(([x, l]) => (
-              <button
-                key={x}
-                type="button"
-                role="radio"
-                className="r4yn__b"
-                aria-checked={vid.kelas === x}
-                onClick={() => setVid({ ...vid, kelas: x, ok: false })}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-        </div>
-        {vid.kelas && (
-          <div className="row" style={{ gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <span className="hint">{L.vidDeadline}</span>
-            {vid.kelas === "tidak" ? (
-              <>
-                <b className="num">{vid.at} WIB</b>
-                <span className="hint">{L.vidPlus}</span>
-              </>
-            ) : (
-              <>
-                <input
-                  className="field__input input r4vid__t"
-                  type="time"
-                  value={vid.at}
-                  onChange={(e) => setVid({ ...vid, at: e.target.value, ok: false })}
-                  aria-label={L.vidDeadline}
-                />
-                <span className="hint">{L.vidAdjust}</span>
-              </>
+        {mg
+          ? M.sentBody(
+              verdictName,
+              allLv ? sc : 0,
+              data.cutting ? dayLong(`${data.cutting}T12:00:00+07:00`) : null,
+            )
+          : L.sentBody(
+              verdictName,
+              allLv ? sc : 0,
+              PN[lang].cuttingOf[stage],
+              data.cutting ? dayLong(`${data.cutting}T12:00:00+07:00`) : null,
             )}
-            <span className="grow" />
-            <button
-              type="button"
-              className={`btn ${vid.ok ? "btn--ghost" : "btn--primary"}`}
-              disabled={vid.ok}
-              onClick={catatTenggat}
-            >
-              {vid.ok ? (
-                <CheckIcon size={18} aria-hidden="true" />
-              ) : (
-                <PaperPlaneTiltIcon size={18} aria-hidden="true" />
-              )}
-              <span className="btn__label">{vid.ok ? L.vidDone : L.vidTell}</span>
-            </button>
-          </div>
-        )}
-      </section>
-      {nextSlot && nextBooth && (
-        <div className="panel r4next">
-          <span className="eyebrow">{L.nextEyebrow}</span>
-          <div className="row row--between" style={{ gap: 10, flexWrap: "wrap" }}>
-            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-              <b className="r4next__n">
-                {nextSlot.room}
-                {stage === "wawancara" ? ` · ${L.nextBooth} ${nextBooth.index + 1}` : ""}
-              </b>
-              <span className="hint num">
-                {L.sub(dayLong(nextSlot.startsAt), hm(nextSlot.startsAt), hm(nextSlot.endsAt))}
-                {nextBooth.pair.length ? ` · ${L.withLabel} ${nextBooth.pair.join(", ")}` : ""}
-              </span>
-            </span>
-          </div>
+      </p>
+      {mg ? (
+        <PanelSent
+          lang={lang}
+          tpl={tpl}
+          me={meKode}
+          panel={pairMeFirst.map((p) => ({ kode: p.kode, sent: p.sent }))}
+          levelsOf={(k) =>
+            k === meKode ? lv : (data.others.find((o) => o.kode === k)?.levels ?? {})
+          }
+          revealed={data.pair.every((p) => p.sent) || !tpl.hideLevels}
+          nextName={nextTurnCand?.candidate?.nama ?? null}
+          nextWhen={
+            nextTurnCand
+              ? `${hm(new Date(Date.parse(data.slot.startsAt) + nextTurnCand.index * turnMs).toISOString())} ${M.turnTo} ${hm(new Date(Date.parse(data.slot.startsAt) + nextTurnCand.index * turnMs + tpl.minutes * 60_000).toISOString())}`
+              : null
+          }
+        />
+      ) : (
+        <>
+          <section className="panel r4next r4vid">
+            <span className="eyebrow">{L.vidEyebrow}</span>
+            <b>{L.vidTitle}</b>
+            <span className="hint">{L.vidBody}</span>
+            <div className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <span className="hint">{L.vidClass}</span>
+              <div className="r4yn" role="radiogroup" aria-label={L.vidClass}>
+                {(
+                  [
+                    ["tidak", L.no],
+                    ["ya", L.yes],
+                  ] as const
+                ).map(([x, l]) => (
+                  <button
+                    key={x}
+                    type="button"
+                    role="radio"
+                    className="r4yn__b"
+                    aria-checked={vid.kelas === x}
+                    onClick={() => setVid({ ...vid, kelas: x, ok: false })}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {vid.kelas && (
+              <div className="row" style={{ gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <span className="hint">{L.vidDeadline}</span>
+                {vid.kelas === "tidak" ? (
+                  <>
+                    <b className="num">{vid.at} WIB</b>
+                    <span className="hint">{L.vidPlus}</span>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      className="field__input input r4vid__t"
+                      type="time"
+                      value={vid.at}
+                      onChange={(e) => setVid({ ...vid, at: e.target.value, ok: false })}
+                      aria-label={L.vidDeadline}
+                    />
+                    <span className="hint">{L.vidAdjust}</span>
+                  </>
+                )}
+                <span className="grow" />
+                <button
+                  type="button"
+                  className={`btn ${vid.ok ? "btn--ghost" : "btn--primary"}`}
+                  disabled={vid.ok}
+                  onClick={catatTenggat}
+                >
+                  {vid.ok ? (
+                    <CheckIcon size={18} aria-hidden="true" />
+                  ) : (
+                    <PaperPlaneTiltIcon size={18} aria-hidden="true" />
+                  )}
+                  <span className="btn__label">{vid.ok ? L.vidDone : L.vidTell}</span>
+                </button>
+              </div>
+            )}
+          </section>
+          {nextSlot && nextBooth && (
+            <div className="panel r4next">
+              <span className="eyebrow">{L.nextEyebrow}</span>
+              <div className="row row--between" style={{ gap: 10, flexWrap: "wrap" }}>
+                <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+                  <b className="r4next__n">
+                    {nextSlot.room}
+                    {stage === "wawancara" ? ` · ${L.nextBooth} ${nextBooth.index + 1}` : ""}
+                  </b>
+                  <span className="hint num">
+                    {L.sub(dayLong(nextSlot.startsAt), hm(nextSlot.startsAt), hm(nextSlot.endsAt))}
+                    {nextBooth.pair.length ? ` · ${L.withLabel} ${nextBooth.pair.join(", ")}` : ""}
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      {!mg && (
+        <div className="row r4sent__acts">
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => {
+              setView("sheet");
+              setStep("putus");
+            }}
+          >
+            {L.editSheet}
+          </button>
+          <button type="button" className="btn btn--primary" onClick={onClose}>
+            {L.backSlots}
+          </button>
         </div>
       )}
-      <div className="row r4sent__acts">
-        <button
-          type="button"
-          className="btn btn--ghost"
-          onClick={() => {
-            setView("sheet");
-            setStep("putus");
-          }}
-        >
-          {L.editSheet}
-        </button>
-        <button type="button" className="btn btn--primary" onClick={onClose}>
-          {L.backSlots}
-        </button>
-      </div>
     </div>
   );
   const kasusInfo = data.shared?.case ?? null;
@@ -1320,8 +1512,36 @@ export default function Lembar({
       : Object.keys(ans).length || Object.keys(lv).length
         ? L.saved(hm(new Date(now).toISOString()))
         : L.empty;
+  const goEdit = () => {
+    setView("sheet");
+    setStep("putus");
+  };
   const foot =
-    view !== "sheet" ? (
+    view === "sent" && mg ? (
+      <>
+        <button type="button" className="btn btn--ghost" onClick={goEdit}>
+          {L.editSheet}
+        </button>
+        <span className="grow" />
+        <button
+          type="button"
+          className={`btn ${nextTurnCand && onNext ? "btn--ghost" : "btn--primary"}`}
+          onClick={onClose}
+        >
+          {L.backSlots}
+        </button>
+        {nextTurnCand && onNext && (
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => nextTurnCand.candidate && onNext(nextTurnCand.candidate.id)}
+          >
+            <span className="btn__label">{M.nextBtn}</span>
+            <ArrowRightIcon size={18} aria-hidden="true" />
+          </button>
+        )}
+      </>
+    ) : view !== "sheet" ? (
       <>
         <span className="grow" />
         <button type="button" className="btn btn--ghost" onClick={onClose}>
@@ -1350,7 +1570,7 @@ export default function Lembar({
             <span className="hint">/100</span>
           </span>
         )}
-        {step !== "tanya" && tpl.questions.length > 0 && (
+        {step !== "tanya" && (mg || tpl.questions.length > 0) && (
           <button
             type="button"
             className="btn btn--ghost"
@@ -1360,7 +1580,12 @@ export default function Lembar({
             <span className="btn__label">{L.back}</span>
           </button>
         )}
-        {step === "tanya" && tpl.questions.length ? (
+        {step === "tanya" && mg ? (
+          <button type="button" className="btn btn--primary" onClick={() => geser("simpul")}>
+            <span className="btn__label">{L.toConcl}</span>
+            <ArrowRightIcon size={18} aria-hidden="true" />
+          </button>
+        ) : step === "tanya" && tpl.questions.length ? (
           <>
             <button
               type="button"
@@ -1414,7 +1639,7 @@ export default function Lembar({
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title={L.title[stage]}
+      title={mg ? M.title : L.title[stage]}
       description={subLine}
       lang={lang}
       size="xl"
@@ -1429,7 +1654,13 @@ export default function Lembar({
           <>
             {head}
             {nav}
-            {step === "tanya" && tpl.questions.length ? tanya : step === "simpul" ? simpul : putus}
+            {step === "tanya" && (mg || tpl.questions.length)
+              ? mg
+                ? amati
+                : tanya
+              : step === "simpul"
+                ? simpul
+                : putus}
           </>
         )}
       </div>

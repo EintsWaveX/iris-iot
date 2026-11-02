@@ -3,6 +3,13 @@ import { dict } from "../../../../lib/app";
 
 interface PnWords {
   tabMine: string;
+  /** What differs per stage: the tally sentence, the absent label, the last sort tab, the context column */
+  stage: Record<
+    "mengajar" | "tubes",
+    { hint: string; absent: string; sortLast: string; ctx: string | null; ctxTip: string }
+  >;
+  sample: string;
+  sampleTip: string;
   topLine: (date: string, time: string, stage: string) => string;
   cuttingOf: { wawancara: string; mengajar: string; tubes: string };
   tally: {
@@ -67,6 +74,25 @@ interface PnWords {
 export const PN = dict<PnWords>({
   id: {
     tabMine: "Lembarku",
+    stage: {
+      mengajar: {
+        hint: "Satu kandidat, satu panel, satu dokumen. Skor tiap lembar dari 100, dari tingkat 1 sampai 5 di tiap baris rubrik. Nilai Mengajar kandidat adalah rata-rata lembarnya; Cutting membacanya bersama Wawancara dan Tubes.",
+        absent: "tidak hadir, Susulan",
+        sortLast: "Giliran",
+        ctx: "Wawancara · Tubes",
+        ctxTip: "Rata-rata Wawancara dan nilai Tubes, hanya konteks",
+      },
+      tubes: {
+        hint: "Satu kandidat, satu pasang penguji, satu dokumen. Skor tiap lembar dari 100, dari tingkat 1 sampai 5 di tiap baris rubrik (usulan). Nilai Presentasi kandidat adalah rata-rata lembarnya; Cutting membacanya bersama kelengkapan pengumpulan dan kehadiran.",
+        absent: "tidak hadir, ditawari Susulan",
+        sortLast: "Nama",
+        ctx: null,
+        ctxTip: "",
+      },
+    },
+    sample: "Rubrik Contoh",
+    sampleTip:
+      "Baris rubrik dan tingkat 1 sampai 5 masih contoh. Akademik menetapkannya di tab Template.",
     topLine: (d, t, s) => `${d} pukul ${t}. Lembar masih bisa diubah sampai Cutting ${s} dimulai.`,
     cuttingOf: { wawancara: "Wawancara", mengajar: "Mengajar", tubes: "Tubes" },
     tally: {
@@ -141,6 +167,25 @@ export const PN = dict<PnWords>({
   },
   en: {
     tabMine: "My Sheets",
+    stage: {
+      mengajar: {
+        hint: "One candidate, one panel, one document. Each sheet scores out of 100 from the 1 to 5 levels on each rubric row. A candidate's Teaching score is the average of their sheets; Cutting reads it beside the Interview and Tubes.",
+        absent: "absent, makeup",
+        sortLast: "Turn",
+        ctx: "Interview · Tubes",
+        ctxTip: "Interview average and Project score, for context only",
+      },
+      tubes: {
+        hint: "One candidate, one pair of examiners, one document. Each sheet scores out of 100 from the 1 to 5 levels on each rubric row (a proposal). A candidate's Presentation score is the average of their sheets; Cutting reads it beside completeness of submission and attendance.",
+        absent: "absent, offered the makeup",
+        sortLast: "Name",
+        ctx: null,
+        ctxTip: "",
+      },
+    },
+    sample: "Sample Rubric",
+    sampleTip:
+      "The rubric rows and the 1 to 5 levels are still samples. The Akademik sets them in the Template tab.",
     topLine: (d, t, s) => `${d} at ${t}. Sheets can still change until the ${s} Cutting starts.`,
     cuttingOf: { wawancara: "Interview", mengajar: "Teaching", tubes: "Tubes" },
     tally: {
@@ -215,6 +260,24 @@ export const PN = dict<PnWords>({
   },
   zh: {
     tabMine: "我的表格",
+    stage: {
+      mengajar: {
+        hint: "一位候选人、一个评审组、一份文件。每份表格满分 100，由每个评分行的 1 至 5 级算出。候选人的试讲成绩是其各份表格的平均分；Cutting 会连同面试与 Tubes 一起读取。",
+        absent: "缺席，补考",
+        sortLast: "场次",
+        ctx: "面试 · Tubes",
+        ctxTip: "面试平均分与 Tubes 分数，仅供参考",
+      },
+      tubes: {
+        hint: "一位候选人、一对考官、一份文件。每份表格满分 100，由每个评分行的 1 至 5 级（建议）算出。候选人的展示成绩是其各份表格的平均分；Cutting 会连同提交完整度和出席一起读取。",
+        absent: "缺席，已提供补考",
+        sortLast: "姓名",
+        ctx: null,
+        ctxTip: "",
+      },
+    },
+    sample: "示例评分表",
+    sampleTip: "评分行和 1 至 5 级仍是示例。Akademik 在“模板”页确定它们。",
     topLine: (d, t, s) => `${d} ${t}。在${s}淘汰开始之前，表格仍可修改。`,
     cuttingOf: { wawancara: "面试", mengajar: "试讲", tubes: "Tubes" },
     tally: {
