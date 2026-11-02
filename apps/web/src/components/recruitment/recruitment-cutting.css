@@ -331,3 +331,43 @@
   gap: 6px;
   padding-inline: 16px;
 }
+
+/* The mockup's tab line (rec7.css .tabline): the chosen tab takes the page's area colour, with a solid line
+   that draws in from the left and a soft glow, and a plain focus ring; no rainbow sweep, no hover ring. */
+.n7-bar .tabs__tab[aria-selected="true"] {
+  color: var(--tc, var(--text));
+}
+.n7-bar .tabs__tab[aria-selected="true"]::after {
+  animation: n7-draw 360ms var(--ease-out-expo) both;
+  background: var(--tc, var(--accent));
+  background-size: auto;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--tc, var(--accent)) 60%, transparent);
+  transform-origin: left;
+}
+.n7-bar .tabs__tab::before {
+  display: none;
+}
+.n7-bar .tabs__tab:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+:root[data-theme="light"] .n7-bar .tabs__tab[aria-selected="true"] {
+  color: color-mix(in srgb, var(--tc, var(--text)) 32%, #0a0f1c);
+}
+:root[data-theme="light"] .n7-bar .tabs__tab[aria-selected="true"]::after {
+  box-shadow: none;
+}
+@keyframes n7-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .n7-bar .tabs__tab[aria-selected="true"]::after {
+    animation: none;
+  }
+}

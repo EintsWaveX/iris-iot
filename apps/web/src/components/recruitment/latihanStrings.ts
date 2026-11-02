@@ -29,11 +29,10 @@ export const LAT = dict({
     enter: "Masuk Latihan",
     enterMenu: "Masuk Mode Latihan",
     leaveMenu: "Keluar Mode Latihan",
-    enterAsCaas: "Coba Sebagai CaAs",
+    prepare: "Siapkan Dari Daftar Asisten",
+    prepared: (n: number) => `${n} Asisten dari database disiapkan sebagai CaAs contoh.`,
     noEdition: "Belum ada edisi sungguhan, jadi belum ada yang bisa dilatih.",
     failed: "Gagal membuka Mode Latihan. Coba lagi.",
-    calendarNote:
-      "Kalender latihan mulai hari ini. Geser tanggalnya di Kalender untuk mencoba tahap berikutnya.",
     hidden: "Tombol ini tidak berlaku di Mode Latihan.",
   },
   en: {
@@ -60,11 +59,10 @@ export const LAT = dict({
     enter: "Enter Practice",
     enterMenu: "Enter Practice Mode",
     leaveMenu: "Leave Practice Mode",
-    enterAsCaas: "Try As CaAs",
+    prepare: "Prepare From the Asisten List",
+    prepared: (n: number) => `${n} Asisten from the database were prepared as sample CaAs.`,
     noEdition: "There is no live edition yet, so there is nothing to practice on.",
     failed: "Could not open Practice Mode. Try again.",
-    calendarNote:
-      "The practice calendar starts today. Move its dates in Kalender to try the later stages.",
     hidden: "This switch does not apply in Practice Mode.",
   },
   zh: {
@@ -89,10 +87,10 @@ export const LAT = dict({
     enter: "进入练习",
     enterMenu: "进入练习模式",
     leaveMenu: "退出练习模式",
-    enterAsCaas: "扮演候选人试试",
+    prepare: "用助教名单准备",
+    prepared: (n: number) => `已用数据库中的 ${n} 位助教准备为示例 CaAs。`,
     noEdition: "目前没有正式一届，所以没有可练习的内容。",
     failed: "无法打开练习模式，请重试。",
-    calendarNote: "练习日历从今天开始。在日历中移动日期即可试用后面的阶段。",
     hidden: "此开关在练习模式中不适用。",
   },
 });

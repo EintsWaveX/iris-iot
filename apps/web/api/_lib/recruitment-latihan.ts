@@ -283,6 +283,15 @@ export async function handleLatihan(
     res.status(200).json({ ok: true, latihan: await ringkas(db, null) });
     return true;
   }
+  if (aksi === "latihan-siapkan") {
+    // Makes the practice edition only when there is none; it never wipes one that people are using.
+    if (!(await muatEdisiLatihan(db))) {
+      const dibuat = await siapkanLatihan(db, s.nim);
+      if (!dibuat) return (tolak(res, "tidak_ada_edisi", 404), true);
+    }
+    res.status(200).json({ ok: true, latihan: await ringkas(db, sekarang) });
+    return true;
+  }
   if (aksi === "latihan-masuk" || aksi === "latihan-ganti") {
     const mode = bacaModeLatihan(jsonBody(req).as);
     if (!mode) return (tolak(res, "data_salah", 400), true);

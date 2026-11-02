@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { ArrowsClockwiseIcon, SparkleIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import Confirm from "../ui/Confirm";
+import Pill from "../ui/Pill";
 import type { Lang } from "../../lib/kelas";
 import { isFail } from "../../lib/recruitment/client";
 import {
@@ -14,6 +15,7 @@ import {
   latihanKeluar,
   latihanMasuk,
   latihanReset,
+  latihanSiapkan,
   useLatihanMode,
   useLatihanRingkas,
 } from "../../lib/recruitment/latihan-client";
@@ -95,13 +97,18 @@ export function LatihanCard({ lang }: { lang: Lang }) {
     const g = await latihanMasuk(as, awalan(lang));
     setGalat(g ? (isFail(g) && g.kode === "tidak_ada_edisi" ? t.noEdition : t.failed) : null);
   };
+  const siapkan = async () => {
+    const g = await latihanSiapkan();
+    if (isFail(g)) return setGalat(g.kode === "tidak_ada_edisi" ? t.noEdition : t.failed);
+    setGalat(null);
+    ringkas.refresh();
+    window.Toast?.show(t.prepared(g.latihan.asisten));
+  };
   return (
     <section className="panel lat-card" data-on={mode ? "yes" : "no"}>
       <div className="panel__head">
         <h2 className="panel__title">{t.title}</h2>
-        <span className="lat-badge" data-on={mode ? "yes" : "no"}>
-          {mode ? t.on : t.off}
-        </span>
+        <Pill tone={mode ? "gold" : undefined}>{mode ? t.on : t.off}</Pill>
       </div>
       <span className="hint">{t.cardText}</span>
       <div className="lat-card__stats">
@@ -118,7 +125,7 @@ export function LatihanCard({ lang }: { lang: Lang }) {
           <small>{t.statEdition}</small>
         </div>
       </div>
-      <span className="hint">{galat ?? t.calendarNote}</span>
+      {galat && <span className="hint">{galat}</span>}
       <div className="lat-card__row">
         {mode ? (
           <button
@@ -130,21 +137,15 @@ export function LatihanCard({ lang }: { lang: Lang }) {
             <span className="btn__label">{t.leaveMenu}</span>
           </button>
         ) : (
-          <>
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={() => void masuk("asisten")}
-            >
-              <SparkleIcon size={18} aria-hidden="true" />
-              <span className="btn__label">{t.enter}</span>
-            </button>
-            <button type="button" className="btn btn--ghost" onClick={() => void masuk("caas")}>
-              <UsersThreeIcon size={18} aria-hidden="true" />
-              <span className="btn__label">{t.enterAsCaas}</span>
-            </button>
-          </>
+          <button type="button" className="btn btn--primary" onClick={() => void masuk("asisten")}>
+            <SparkleIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{t.enter}</span>
+          </button>
         )}
+        <button type="button" className="btn btn--ghost" onClick={() => void siapkan()}>
+          <UsersThreeIcon size={18} aria-hidden="true" />
+          <span className="btn__label">{t.prepare}</span>
+        </button>
       </div>
     </section>
   );

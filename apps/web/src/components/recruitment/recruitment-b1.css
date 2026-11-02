@@ -456,22 +456,83 @@
 .rec-page[data-area="kalender"] .rec-calcard {
   border-color: color-mix(in srgb, var(--rec) 35%, var(--hairline));
 }
-/* Papan: a tighter pool that never outgrows the screen, and columns that fit more on a laptop */
-.rec-page[data-area="panitia"] .rec-pool {
-  border-color: color-mix(in srgb, var(--rec) 35%, var(--hairline));
-}
-.rec-page[data-area="panitia"] .rec-pool__list {
-  max-height: clamp(160px, calc(100dvh - 380px), 440px);
-}
-.rec-page[data-area="panitia"] .rec-col {
-  padding: 12px 10px 10px;
-  gap: 8px;
-}
-.rec-page[data-area="panitia"] .rec-col__list {
-  gap: 5px;
+/* Papan, the mockup's compact board (rec9.css rec9-board, rec9-pool, rec9-col; rec11.css name clamp). --a is the area colour. */
+.rec9-board {
+  --a: var(--tc, #f472b6);
+  --ai: color-mix(in srgb, var(--a) 62%, var(--text));
+  gap: 14px;
 }
 @media (min-width: 1100px) {
-  .rec-page[data-area="panitia"] .rec-board[data-pool="yes"] {
-    grid-template-columns: 250px minmax(0, 1fr);
+  .rec9-board[data-pool="yes"] {
+    grid-template-columns: 236px minmax(0, 1fr);
   }
+  .rec9-pool {
+    top: 76px;
+  }
+}
+.rec9-pool {
+  background:
+    linear-gradient(170deg, color-mix(in srgb, var(--a) 9%, transparent), transparent 40%),
+    var(--surface-1);
+  border-top: 3px solid var(--a);
+  gap: 10px;
+  padding: 14px;
+}
+.rec9-pool .rec-pool__list {
+  gap: 5px;
+  max-height: 380px;
+}
+.rec9-board .rec-cols {
+  gap: 10px;
+}
+.rec9-col {
+  gap: 7px;
+  padding: 11px 9px 9px;
+}
+.rec9-col .rec-col__head {
+  padding: 0 3px;
+}
+.rec9-col .rec-col__list {
+  gap: 5px;
+  min-height: 48px;
+}
+.rec9-board .rec-pp {
+  gap: 8px;
+  min-height: 40px;
+  padding: 5px 6px 5px 8px;
+}
+.rec9-board .rec-pp__code {
+  background: color-mix(in srgb, var(--a) 14%, var(--surface-4));
+  font-size: 0.74rem;
+  padding: 2px 6px;
+}
+.rec9-board .rec-pp > .stack {
+  min-width: 0;
+}
+.rec9-board .rec-pp__name {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  font-size: 0.88rem;
+  line-height: 1.25;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.rec9-board .rec-pp .hint {
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+.rec9-board .rec-pp[data-koor] {
+  background:
+    linear-gradient(110deg, color-mix(in srgb, var(--a) 15%, transparent), transparent 70%),
+    var(--surface-2);
+  border-color: color-mix(in srgb, var(--a) 60%, transparent);
+}
+.rec9-board .rec-pp__star {
+  height: 28px;
+  width: 28px;
+}
+.rec9-board .rec-pp__star[aria-pressed="true"] {
+  color: var(--ai);
 }

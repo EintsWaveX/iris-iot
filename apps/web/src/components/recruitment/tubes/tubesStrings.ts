@@ -152,6 +152,7 @@ export interface TubesWords {
     editTopic: string;
     shareEvenly: string;
     topicExample: string;
+    topicExampleTag: string;
     topicTitle: string;
     topicBrief: string;
     topicCap: string;
@@ -453,6 +454,7 @@ const ID: TubesWords = {
     editTopic: "Ubah Topik",
     shareEvenly: "Bagi Rata",
     topicExample: "Topik di bawah adalah contoh bila belum kamu ganti.",
+    topicExampleTag: "Contoh",
     topicTitle: "Judul",
     topicBrief: "Brief untuk tim",
     topicCap: "Paling banyak berapa tim",
@@ -760,6 +762,7 @@ const EN: TubesWords = {
     editTopic: "Edit Topic",
     shareEvenly: "Share Out Evenly",
     topicExample: "The topics below are examples until you replace them.",
+    topicExampleTag: "Example",
     topicTitle: "Title",
     topicBrief: "Brief for the teams",
     topicCap: "Most teams for this topic",
@@ -1053,6 +1056,7 @@ const ZH: TubesWords = {
     editTopic: "修改题目",
     shareEvenly: "平均分配",
     topicExample: "未替换前，下面的题目只是示例。",
+    topicExampleTag: "示例",
     topicTitle: "标题",
     topicBrief: "给小组的说明",
     topicCap: "此题目最多几组",

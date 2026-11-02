@@ -11,7 +11,7 @@
  * timer, every 15 s.
  */
 import { useEffect, useMemo, useState } from "react";
-import { NotePencilIcon } from "@phosphor-icons/react";
+import { ListChecksIcon, NotePencilIcon } from "@phosphor-icons/react";
 import Dialog from "../../../../ui/Dialog";
 import Drawer from "../../../../ui/Drawer";
 import HoldButton from "../../../../ui/HoldButton";
@@ -1168,7 +1168,17 @@ function Feed({ lang, v, log }: { lang: Lang; v: ConsoleView; log: RoomLogLine[]
 
 /* ------------------------------------------------------------- Finished */
 
-function Selesai({ lang, v, now }: { lang: Lang; v: ConsoleView; now: number }) {
+function Selesai({
+  lang,
+  v,
+  now,
+  onNilai,
+}: {
+  lang: Lang;
+  v: ConsoleView;
+  now: number;
+  onNilai?: () => void;
+}) {
   const t = RG[lang].con.done;
   const st = v.state;
   return (
@@ -1211,6 +1221,14 @@ function Selesai({ lang, v, now }: { lang: Lang; v: ConsoleView; now: number }) 
           <li key={e}>{e}</li>
         ))}
       </ul>
+      {onNilai && (
+        <div className="row" style={{ gap: 10 }}>
+          <button type="button" className="btn btn--inverse" onClick={onNilai}>
+            <ListChecksIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{t.grade}</span>
+          </button>
+        </div>
+      )}
     </section>
   );
 }
@@ -1226,10 +1244,12 @@ export default function Konsol({
   kemajuan,
   log,
   refresh,
+  onNilai,
 }: {
   lang: Lang;
   v: ConsoleView;
   now: number;
+  onNilai?: () => void;
   hadir: Hadir | null;
   live: StatusLangsung;
   kemajuan: Kemajuan;
@@ -1243,7 +1263,7 @@ export default function Konsol({
     <div className="stack r3con__body">
       <MasterBar lang={lang} v={v} jalan={jalan} />
       {rv === "finished" ? (
-        <Selesai lang={lang} v={v} now={now} />
+        <Selesai lang={lang} v={v} now={now} onNilai={onNilai} />
       ) : (
         <>
           {v.me.isMaster && <Transport lang={lang} v={v} now={now} jalan={jalan} />}

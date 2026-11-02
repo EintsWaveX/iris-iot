@@ -310,7 +310,7 @@ export const S2 = dict({
       delete: "Hapus slot",
       addRoom: "Tambah Ruang",
       slotRule:
-        "Kapasitas tidak bisa di bawah jumlah yang sudah terisi, dan slot yang sudah ada isinya tidak bisa dihapus. Pindahkan orangnya dulu di Papan.",
+        "Kapasitas tidak bisa di bawah jumlah yang sudah terisi. Slot yang sudah ada isinya tidak bisa dihapus: pindahkan orangnya dulu di Papan.",
       slotAdded: "Slot baru ditambahkan.",
       slotSaved: "Slot disimpan.",
       slotGone: "Slot dihapus.",
@@ -794,7 +794,7 @@ export const S2 = dict({
       delete: "Delete slot",
       addRoom: "Add a Room",
       slotRule:
-        "Capacity can't go below the seats taken, and a slot with people in it can't be deleted. Move them first on the Board.",
+        "Capacity cannot go below how many are filled. A slot that has people in it cannot be deleted: move them in Board first.",
       slotAdded: "Slot added.",
       slotSaved: "Slot saved.",
       slotGone: "Slot deleted.",

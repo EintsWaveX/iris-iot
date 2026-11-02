@@ -181,7 +181,7 @@ export const PN = dict({
     },
     board: {
       pool: "Asisten",
-      search: "Cari nama atau kode",
+      search: "Cari Asisten",
       searchLabel: "Cari Asisten",
       hint: "Seret ke kolom divisi. Bintang menandai koordinator, satu per divisi.",
       hintView: "Papan ini hanya bisa dilihat. Ketua yang mengatur kursinya.",
