@@ -5,6 +5,7 @@
  * slot short of examiners and every room over capacity. Picking is by dialog;
  * each change is one request (iv-crew-set), live on the reciv topic.
  */
+import CrewRule from "./CrewRule";
 import { useMemo, useState } from "react";
 import Dialog from "../../../ui/Dialog";
 import Pill from "../../../ui/Pill";
@@ -50,6 +51,7 @@ interface Flag {
 }
 
 export default function CrewBoard({
+  part = "all",
   lang,
   stage,
   rights,
@@ -57,6 +59,9 @@ export default function CrewBoard({
   lang: Lang;
   stage: IvStage;
   rights: RecRights;
+
+  /** The mockup puts the crew rule and the PJ of each shift in the Slot tab, the board check and the examiner rows in the Papan */
+  part?: "all" | "slot" | "papan";
 }) {
   const w = IV(lang);
   const t = w.crew;
@@ -162,94 +167,102 @@ export default function CrewBoard({
 
   return (
     <div className="stack">
-      <section
-        className="panel r4check"
-        data-ok={flags.length ? undefined : "yes"}
-        aria-live="polite"
-      >
-        <div className="panel__head">
-          <h3 className="panel__title">{t.check}</h3>
-          <span className="row" style={{ gap: 6 }}>
-            {nD > 0 && <Pill tone="danger">{t.clashes(nD)}</Pill>}
-            {nW > 0 && <Pill tone="warn">{t.toFill(nW)}</Pill>}
-            {!flags.length && <Pill tone="ok">{t.ready}</Pill>}
-          </span>
-        </div>
-        {flags.length > 0 && (
-          <ul className="r4check__list">
-            {flags.map((f, i) => (
-              <li key={i} data-t={f.tone}>
-                <span className="r4check__dot" aria-hidden="true" />
-                <span className="stack" style={{ gap: 0, minWidth: 0 }}>
-                  <b>{f.text}</b>
-                  <span className="hint">{f.at}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <p className="hint">{t.lede[d.template.mode]}</p>
-      <button
-        type="button"
-        className="btn btn--ghost btn--sm"
-        style={{ alignSelf: "flex-start" }}
-        onClick={() => bukaBagian(stage)}
-      >
-        {w.seg.template}
-      </button>
-
-      {d.slots.length === 0 && <p className="hint">{w.nilai.none}</p>}
-      <div className="stack">
-        {d.slots.map((s) => {
-          const want = crewNeed(s.booths.length, d.template);
-          return (
-            <section
-              key={s.id}
-              className="panel r4lane"
-              data-short={s.penguji.length < want ? "yes" : undefined}
-            >
-              <div className="panel__head">
-                <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <h3 className="panel__title">{s.room}</h3>
-                  <span className="hint num">
-                    {hari(s.startsAt, lang)}, {jam(s.startsAt)} - {jam(s.endsAt)} ·{" "}
-                    {s.booths.length}/{s.capacity}
+      {part !== "slot" && (
+        <section
+          className="panel r4check"
+          data-ok={flags.length ? undefined : "yes"}
+          aria-live="polite"
+        >
+          <div className="panel__head">
+            <h3 className="panel__title">{t.check}</h3>
+            <span className="row" style={{ gap: 6 }}>
+              {nD > 0 && <Pill tone="danger">{t.clashes(nD)}</Pill>}
+              {nW > 0 && <Pill tone="warn">{t.toFill(nW)}</Pill>}
+              {!flags.length && <Pill tone="ok">{t.ready}</Pill>}
+            </span>
+          </div>
+          {flags.length > 0 && (
+            <ul className="r4check__list">
+              {flags.map((f, i) => (
+                <li key={i} data-t={f.tone}>
+                  <span className="r4check__dot" aria-hidden="true" />
+                  <span className="stack" style={{ gap: 0, minWidth: 0 }}>
+                    <b>{f.text}</b>
+                    <span className="hint">{f.at}</span>
                   </span>
-                </div>
-                <span className="r4lane__n num">{t.count(s.penguji.length, want)}</span>
-              </div>
-              <div className="r4lane__z">
-                {s.penguji.map((n) =>
-                  chip(
-                    n,
-                    () =>
-                      void simpan(
-                        [s],
-                        "penguji",
-                        s.penguji.filter((x) => x !== n),
-                      ),
-                    !!bentrok(n, [s], "penguji"),
-                  ),
-                )}
-                {!s.penguji.length && <span className="r4lane__none">{t.empty}</span>}
-                {can && (
-                  <button
-                    type="button"
-                    className="btn btn--ghost btn--sm"
-                    onClick={() => setPick({ role: "penguji", slots: [s] })}
-                  >
-                    +
-                  </button>
-                )}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
-      {shifts.length > 0 && (d.template.pjOut > 0 || d.template.pjIn > 0) && (
+      {part !== "slot" && (
+        <>
+          <p className="hint">{t.lede[d.template.mode]}</p>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            style={{ alignSelf: "flex-start" }}
+            onClick={() => bukaBagian(stage)}
+          >
+            {w.seg.template}
+          </button>
+
+          {d.slots.length === 0 && <p className="hint">{w.nilai.none}</p>}
+          <div className="stack">
+            {d.slots.map((s) => {
+              const want = crewNeed(s.booths.length, d.template);
+              return (
+                <section
+                  key={s.id}
+                  className="panel r4lane"
+                  data-short={s.penguji.length < want ? "yes" : undefined}
+                >
+                  <div className="panel__head">
+                    <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+                      <h3 className="panel__title">{s.room}</h3>
+                      <span className="hint num">
+                        {hari(s.startsAt, lang)}, {jam(s.startsAt)} - {jam(s.endsAt)} ·{" "}
+                        {s.booths.length}/{s.capacity}
+                      </span>
+                    </div>
+                    <span className="r4lane__n num">{t.count(s.penguji.length, want)}</span>
+                  </div>
+                  <div className="r4lane__z">
+                    {s.penguji.map((n) =>
+                      chip(
+                        n,
+                        () =>
+                          void simpan(
+                            [s],
+                            "penguji",
+                            s.penguji.filter((x) => x !== n),
+                          ),
+                        !!bentrok(n, [s], "penguji"),
+                      ),
+                    )}
+                    {!s.penguji.length && <span className="r4lane__none">{t.empty}</span>}
+                    {can && (
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => setPick({ role: "penguji", slots: [s] })}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {part !== "papan" && <CrewRule lang={lang} stage={stage} />}
+
+      {part !== "papan" && shifts.length > 0 && (d.template.pjOut > 0 || d.template.pjIn > 0) && (
         <section className="panel r4pj">
           <div className="panel__head">
             <div className="stack" style={{ gap: 2 }}>

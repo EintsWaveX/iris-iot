@@ -39,7 +39,6 @@ import Dropdown from "../../../ui/Dropdown";
 import gsap from "gsap";
 import Confirm from "../../../ui/Confirm";
 import CrewBoard from "../iv/CrewBoard";
-import { IV } from "../iv/ivStrings";
 import { isIvStage } from "../../../../lib/recruitment/interview";
 import { isMakeupStage } from "../../../../lib/recruitment/makeup";
 import PapanSusulan from "./PapanSusulan";
@@ -83,6 +82,37 @@ function Kapasitas({ s }: { s: Slot }) {
 }
 
 /* ------------------------------------------------------------- Slot */
+
+/** The window card says what the stage is, and an interview slot counts booths (bilik) rather than seats. */
+const WIN_TITLE: Record<Lang, Partial<Record<StageKey, string>>> = {
+  id: { wawancara: "Jadwal Tes Wawancara", mengajar: "Jadwal Tes Mengajar" },
+  en: { wawancara: "Interview Schedule", mengajar: "Teaching Test Schedule" },
+  zh: { wawancara: "面试日程", mengajar: "试讲日程" },
+};
+const winTitle = (lang: Lang, stage: StageKey, fallback: string) =>
+  WIN_TITLE[lang][stage] ?? fallback;
+const seatUnit = (lang: Lang, stage: StageKey, seats: string) =>
+  stage === "wawancara"
+    ? lang === "id"
+      ? "bilik"
+      : lang === "zh"
+        ? "间"
+        : "booths"
+    : seats.toLowerCase();
+const seatsText = (
+  lang: Lang,
+  stage: StageKey,
+  kursi: number,
+  peserta: number,
+  fallback: (s: number, n: number) => string,
+) =>
+  stage === "wawancara"
+    ? lang === "id"
+      ? `${kursi} bilik untuk ${peserta} kandidat`
+      : lang === "zh"
+        ? `${kursi} 间，${peserta} 位候选人`
+        : `${kursi} booths for ${peserta} candidates`
+    : fallback(kursi, peserta);
 
 function SlotTab({
   lang,
@@ -160,7 +190,7 @@ function SlotTab({
         <div className="n7-eve__h">
           <b>{judul}</b>
           <span className="hint num">
-            {di.reduce((a, s) => a + s.capacity, 0)} {t.seats.toLowerCase()}
+            {di.reduce((a, s) => a + s.capacity, 0)} {seatUnit(lang, stage, t.seats)}
           </span>
         </div>
         {!di.length && susulan && <span className="hint">{t.noSlotsYet}</span>}
@@ -224,7 +254,7 @@ function SlotTab({
             </span>
             <div className="stack" style={{ gap: 2, minWidth: 0 }}>
               <div className="row" style={{ gap: 8 }}>
-                <b className="n7-win__t">{t.window}</b>
+                <b className="n7-win__t">{winTitle(lang, stage, t.window)}</b>
                 <Pill tone={w.open ? "ok" : sudahBuka ? undefined : "warn"}>
                   {w.open ? t.openBadge : sudahBuka ? t.closedBadge : t.soonBadge}
                 </Pill>
@@ -234,7 +264,7 @@ function SlotTab({
           </div>
           <div className="n7-win__m">
             <Kapasitas s={{ taken: peserta, capacity: kursi } as Slot} />
-            <span className="hint num">{t.seatsFor(kursi, peserta)}</span>
+            <span className="hint num">{seatsText(lang, stage, kursi, peserta, t.seatsFor)}</span>
           </div>
           {can && (
             <div className="n7-win__a">
@@ -963,7 +993,7 @@ export default function PlottingTab({
   );
   const [stage, setStage] = useState<StageKey>("tes_tulis");
   const aktif = stages.includes(stage) ? stage : (stages[0] ?? "tes_tulis");
-  const [bag, setBag] = useState<"slot" | "minta" | "papan" | "crew">("slot");
+  const [bag, setBag] = useState<"slot" | "minta" | "papan">("slot");
   const board = useRecBoard(aktif, true);
   const can = rights.plotting;
   const d = board.data;
@@ -980,7 +1010,6 @@ export default function PlottingTab({
             { v: "slot" as const, label: t.slot },
             { v: "minta" as const, label: t.requests, n: bukaN || undefined },
             { v: "papan" as const, label: t.board },
-            ...(isIvStage(aktif) ? [{ v: "crew" as const, label: IV(lang).crew.examiners }] : []),
           ]}
         />
         <span className="grow" />
@@ -1002,20 +1031,22 @@ export default function PlottingTab({
         )}
       </div>
       {bag === "slot" ? (
-        <SlotTab
-          lang={lang}
-          stage={aktif}
-          events={events}
-          data={d}
-          can={can}
-          refresh={board.refresh}
-        />
-      ) : bag === "crew" && isIvStage(aktif) ? (
-        <CrewBoard lang={lang} stage={aktif} rights={rights} />
+        <>
+          <SlotTab
+            lang={lang}
+            stage={aktif}
+            events={events}
+            data={d}
+            can={can}
+            refresh={board.refresh}
+          />
+          {isIvStage(aktif) && <CrewBoard lang={lang} stage={aktif} rights={rights} part="slot" />}
+        </>
       ) : bag === "minta" ? (
         <Requests lang={lang} data={d} can={can} refresh={board.refresh} />
       ) : (
         <>
+          {isIvStage(aktif) && <CrewBoard lang={lang} stage={aktif} rights={rights} part="papan" />}
           <Papan lang={lang} stage={aktif} data={d} can={can} refresh={board.refresh} />
           {isMakeupStage(aktif) && <PapanSusulan lang={lang} stage={aktif} can={can} />}
         </>

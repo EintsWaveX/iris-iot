@@ -445,7 +445,7 @@ const ID: IvWords = {
     shift: (d, a, b) => `${d}, ${a} sampai ${b}`,
     out: "PJ luar ruangan",
     inn: "PJ dalam ruangan",
-    check: "Periksa Susunan",
+    check: "Periksa Papan",
     ready: "Siap",
     clashes: (n) => `${n} bentrok`,
     toFill: (n) => `${n} perlu diisi`,
