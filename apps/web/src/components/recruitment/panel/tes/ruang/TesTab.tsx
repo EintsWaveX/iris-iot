@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeftIcon,
   BroadcastIcon,
+  CheckCircleIcon,
   CheckIcon,
   ClockIcon,
   FlagIcon,
@@ -38,6 +39,7 @@ import {
 } from "../../../../../lib/recruitment/room-client";
 import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
+import { bukaBagian } from "../../../../../lib/recruitment/panel-tab";
 import { useRevealMotion } from "../../../reveal/fx";
 import Konsol from "./Konsol";
 import { RuangPengaturan } from "./RuangSetup";
@@ -309,6 +311,11 @@ function Daftar({
   const [sibuk, setSibuk] = useState(false);
   const [pilih, setPilih] = useState<string | null>(null);
   const [aturId, setAturId] = useState<number | null>(null);
+  /** The two small dialogs: who joins a practice room, and which Plotting slot becomes a room tonight */
+  const [dlg, setDlg] = useState<null | "latihan" | "ruang">(null);
+  const [orang, setOrang] = useState<string[]>([]);
+  const [slotPick, setSlotPick] = useState<number[]>([]);
+  const jamWib = (iso: string) => tanggalWib(new Date(iso)).jam.replace(":", ".");
   async function siapkan(body: Record<string, unknown>) {
     setSibuk(true);
     const r = await recPost<{ ok: true; room: { id: number } }>("room-setup", {
@@ -441,7 +448,10 @@ function Daftar({
               type="button"
               className="btn btn--primary btn--lg"
               disabled={sibuk}
-              onClick={() => void siapkan({ rehearsal: true, title: "Ruang Latihan" })}
+              onClick={() => {
+                setOrang([]);
+                setDlg("latihan");
+              }}
             >
               <PlusIcon size={18} aria-hidden="true" />
               <span className="btn__label">{m.makePractice}</span>
@@ -467,7 +477,10 @@ function Daftar({
                 type="button"
                 className="btn btn--inverse"
                 disabled={sibuk}
-                onClick={() => void siapkan({ slotId: sl.id, title: sl.room })}
+                onClick={() => {
+                  setSlotPick([sl.id]);
+                  setDlg("ruang");
+                }}
               >
                 <PlusIcon size={18} aria-hidden="true" />
                 <span className="btn__label">{m.prepare}</span>
@@ -481,6 +494,19 @@ function Daftar({
           <section className="panel n7-empty">
             <h2 className="h3">{m.emptyNight}</h2>
             <span className="hint">{m.emptyNightHint}</span>
+            {data.canSetup && (
+              <button
+                type="button"
+                className="btn btn--primary btn--lg"
+                onClick={() => {
+                  setSlotPick([]);
+                  setDlg("ruang");
+                }}
+              >
+                <PlusIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{m.prepare}</span>
+              </button>
+            )}
           </section>
         )}
       </>
@@ -546,6 +572,138 @@ function Daftar({
         </section>
       ) : (
         isiMalam()
+      )}
+      {dlg === "latihan" && (
+        <Dialog
+          open
+          onOpenChange={(o) => !o && setDlg(null)}
+          title={m.practiceRoom}
+          description={m.practiceDlgDesc}
+          size="sm"
+          lang={lang}
+          actions={
+            <>
+              <button type="button" className="btn btn--ghost" onClick={() => setDlg(null)}>
+                {m.cancel}
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={sibuk}
+                onClick={() => {
+                  setDlg(null);
+                  void siapkan({ rehearsal: true, title: m.practiceRoom, pengawas: orang });
+                }}
+              >
+                <SparkleIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{m.makeRoom}</span>
+              </button>
+            </>
+          }
+        >
+          <div className="n7-people">
+            {(data.people ?? []).map((p) => {
+              const on = orang.includes(p.nim);
+              return (
+                <button
+                  key={p.nim}
+                  type="button"
+                  className="n7-person"
+                  aria-pressed={on}
+                  onClick={() =>
+                    setOrang(on ? orang.filter((x) => x !== p.nim) : [...orang, p.nim])
+                  }
+                >
+                  <b className="mono">{p.kode}</b>
+                  <span>{p.nama}</span>
+                  <CheckCircleIcon size={18} weight={on ? "fill" : "regular"} aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+        </Dialog>
+      )}
+      {dlg === "ruang" && (
+        <Dialog
+          open
+          onOpenChange={(o) => !o && setDlg(null)}
+          title={m.prepare}
+          description={m.prepareDesc}
+          size="sm"
+          lang={lang}
+          actions={
+            data.pending.some((sl) => hariWib(sl.startsAt) === cur) ? (
+              <>
+                <button type="button" className="btn btn--ghost" onClick={() => setDlg(null)}>
+                  {m.cancel}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={sibuk || slotPick.length === 0}
+                  onClick={async () => {
+                    setDlg(null);
+                    for (const id of slotPick) {
+                      const sl = data.pending.find((x) => x.id === id);
+                      if (sl) await siapkan({ slotId: sl.id, title: sl.room });
+                    }
+                  }}
+                >
+                  {m.prepareDo}
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="btn btn--ghost" onClick={() => setDlg(null)}>
+                  {m.cancel}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => {
+                    setDlg(null);
+                    bukaBagian("plotting");
+                  }}
+                >
+                  {m.openPlotting}
+                </button>
+              </>
+            )
+          }
+        >
+          {data.pending.some((sl) => hariWib(sl.startsAt) === cur) ? (
+            <div className="stack stack--sm">
+              {data.pending
+                .filter((sl) => hariWib(sl.startsAt) === cur)
+                .map((sl) => {
+                  const on = slotPick.includes(sl.id);
+                  return (
+                    <button
+                      key={sl.id}
+                      type="button"
+                      className="n7-person"
+                      aria-pressed={on}
+                      onClick={() =>
+                        setSlotPick(on ? slotPick.filter((x) => x !== sl.id) : [...slotPick, sl.id])
+                      }
+                    >
+                      <b className="mono">{sl.room}</b>
+                      <span>
+                        {jamWib(sl.startsAt)} {m.until} {jamWib(sl.endsAt)} · {m.seats(sl.capacity)}
+                      </span>
+                      <CheckCircleIcon
+                        size={18}
+                        weight={on ? "fill" : "regular"}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  );
+                })}
+            </div>
+          ) : (
+            <span className="hint">{m.noSlotTonight}</span>
+          )}
+        </Dialog>
       )}
       {aturId !== null && (
         <AturRuang

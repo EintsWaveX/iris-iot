@@ -11,8 +11,9 @@
  * timer, every 15 s.
  */
 import { useEffect, useMemo, useState } from "react";
-import { ListChecksIcon, NotePencilIcon } from "@phosphor-icons/react";
+import { ListChecksIcon, NotePencilIcon, SealCheckIcon } from "@phosphor-icons/react";
 import Dialog from "../../../../ui/Dialog";
+import Disclose from "../../../../ui/Disclose";
 import Drawer from "../../../../ui/Drawer";
 import HoldButton from "../../../../ui/HoldButton";
 import Pill from "../../../../ui/Pill";
@@ -1181,55 +1182,94 @@ function Selesai({
 }) {
   const t = RG[lang].con.done;
   const st = v.state;
+  const sat = v.seats.filter((x) => x.checkedIn);
+  const hadir = sat.length;
+  const kejadian = v.seats.reduce((n, x) => n + x.count, 0);
+  // Minutes a seat still had when the last part ended: the time left of those who handed it in early.
+  const lastRun = PART_KEYS.map((p) => st.runs[p])
+    .filter((r): r is PartRun => !!r)
+    .pop();
+  const lastPart = PART_KEYS.filter((p) => st.runs[p]).pop();
+  const akhir = lastRun ? (lastRun.endedAt ?? now) : now;
+  const sisa = sat.length
+    ? Math.round(
+        sat.reduce((n, x) => {
+          const d = lastPart ? x.done[lastPart] : undefined;
+          return n + (d ? Math.max(0, akhir - d) : 0);
+        }, 0) /
+          sat.length /
+          MIN,
+      )
+    : 0;
+  const stat: [number, string, string][] = [
+    [hadir, t.submitted, "ok"],
+    [v.seats.length - hadir, t.absent, "faint"],
+    [kejadian, t.incidents, "warn"],
+    [sisa, t.avgLeft, "accent"],
+  ];
   return (
-    <section className="panel r3done">
-      <div className="panel__head">
-        <h2 className="panel__title">
-          {t.title} {st.finishedAt ? hm(st.finishedAt) : hm(now)}
-        </h2>
-        {v.master && <Pill tone="ok">{t.by(v.master.nama)}</Pill>}
-      </div>
-      <div className="r3done__tbl">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t.part}</th>
-              <th>{t.ran}</th>
-              <th>{t.minutes}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PART_KEYS.filter((p) => st.runs[p]).map((p) => {
-              const r = st.runs[p]!;
-              return (
-                <tr key={p}>
-                  <td>
-                    <b>{RG[lang].part[p].l}</b>
-                  </td>
-                  <td className="hint">
-                    {hm(r.startedAt)} {t.until} {r.endedAt ? hm(r.endedAt) : hm(now)}
-                  </td>
-                  <td className="num">{Math.round(clock(r, r.endedAt ?? now) / MIN)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <ul className="hint" style={{ margin: 0, paddingLeft: 18 }}>
-        {t.effects.map((e) => (
-          <li key={e}>{e}</li>
-        ))}
-      </ul>
-      {onNilai && (
-        <div className="row" style={{ gap: 10 }}>
-          <button type="button" className="btn btn--inverse" onClick={onNilai}>
-            <ListChecksIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{t.grade}</span>
-          </button>
+    <div className="stack">
+      <section className="panel n7-done">
+        <span className="n7-done__seal">
+          <SealCheckIcon size={32} aria-hidden="true" />
+        </span>
+        <div className="stack stack--sm">
+          <h2 className="h3">{t.title}</h2>
+          <span className="hint">{t.hint(st.finishedAt ? hm(st.finishedAt) : hm(now))}</span>
+          {v.master && <Pill tone="ok">{t.by(v.master.nama)}</Pill>}
         </div>
-      )}
-    </section>
+        <div className="n7-done__stats">
+          {stat.map(([n, l, tone]) => (
+            <div key={l} data-t={tone}>
+              <b className="num">{n}</b>
+              <small>{l}</small>
+            </div>
+          ))}
+        </div>
+        {onNilai && (
+          <div className="row" style={{ gap: 10 }}>
+            <button type="button" className="btn btn--inverse" onClick={onNilai}>
+              <ListChecksIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{t.grade}</span>
+            </button>
+          </div>
+        )}
+      </section>
+      <Disclose head={<b>{t.details}</b>}>
+        <div className="r3done__tbl">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t.part}</th>
+                <th>{t.ran}</th>
+                <th>{t.minutes}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PART_KEYS.filter((p) => st.runs[p]).map((p) => {
+                const r = st.runs[p]!;
+                return (
+                  <tr key={p}>
+                    <td>
+                      <b>{RG[lang].part[p].l}</b>
+                    </td>
+                    <td className="hint">
+                      {hm(r.startedAt)} {t.until} {r.endedAt ? hm(r.endedAt) : hm(now)}
+                    </td>
+                    <td className="num">{Math.round(clock(r, r.endedAt ?? now) / MIN)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <ul className="hint" style={{ margin: 0, paddingLeft: 18 }}>
+          {t.effects.map((e) => (
+            <li key={e}>{e}</li>
+          ))}
+        </ul>
+      </Disclose>
+    </div>
   );
 }
 

@@ -386,6 +386,7 @@ export default function BerkasReview({
                   </div>
                 </Disclose>
               )}
+              <CatatanPanitia key={c.id} lang={lang} id={c.id} note={c.panitiaNote} />
               {canAdd && (
                 <Disclose head={<b>{t.upload}</b>}>
                   <BerkasPanitia
@@ -531,5 +532,37 @@ export default function BerkasReview({
         </Dialog>
       )}
     </Drawer>
+  );
+}
+
+/** Catatan Panitia: a note only the Panitia read; it saves when the box loses focus. */
+function CatatanPanitia({ lang, id, note }: { lang: Lang; id: number; note: string | null }) {
+  const t = S2[lang].berkas;
+  const [teks, setTeks] = useState(note ?? "");
+  const [simpan, setSimpan] = useState(note ?? "");
+  const untuk = `rec-note-${id}`;
+  async function kirim() {
+    if (teks.trim() === simpan.trim()) return;
+    const r = await recPost<{ ok: true }>("candidate-note", { id, note: teks });
+    if (isFail(r)) return void window.Toast?.show(t.noteFail, "danger");
+    setSimpan(teks);
+    window.Toast?.show(t.noteSaved, "ok");
+  }
+  return (
+    <section className="stack stack--sm">
+      <h3 className="h3">
+        <label htmlFor={untuk}>{t.note}</label>
+      </h3>
+      <textarea
+        id={untuk}
+        className="textarea"
+        rows={3}
+        maxLength={2000}
+        placeholder={t.notePh}
+        value={teks}
+        onChange={(e) => setTeks(e.target.value)}
+        onBlur={() => void kirim()}
+      />
+    </section>
   );
 }

@@ -315,6 +315,13 @@ export const RG = dict({
       },
       done: {
         title: "Ruang Selesai",
+        hint: (t: string) =>
+          `Selesai ${t}. Skor tetap sementara sampai Susulan selesai dan Akademik menekan Finalkan.`,
+        submitted: "menyerahkan",
+        absent: "tidak hadir",
+        incidents: "kejadian",
+        avgLeft: "menit tersisa rata-rata",
+        details: "Waktu tiap bagian",
         grade: "Buka Penilaian",
         by: (n: string) => `Ditutup ${n}`,
         part: "Bagian",
@@ -717,6 +724,13 @@ export const RG = dict({
       },
       done: {
         title: "Room Finished",
+        hint: (t: string) =>
+          `Finished ${t}. Scores stay provisional until the makeup room closes and Akademik presses Finalize.`,
+        submitted: "submitted",
+        absent: "absent",
+        incidents: "incidents",
+        avgLeft: "avg minutes left",
+        details: "Time of each part",
         grade: "Open Grading",
         by: (n: string) => `Closed by ${n}`,
         part: "Part",
@@ -1113,6 +1127,12 @@ export const RG = dict({
       },
       done: {
         title: "考场已结束",
+        hint: (t: string) => `${t} 结束。补考考场结束且学术组按下“定稿”之前，成绩都是暂定的。`,
+        submitted: "已交卷",
+        absent: "缺席",
+        incidents: "事件",
+        avgLeft: "平均剩余分钟",
+        details: "各部分用时",
         grade: "打开评分",
         by: (n: string) => `由 ${n} 关闭`,
         part: "部分",

@@ -29,7 +29,7 @@ export interface IvCrewResponse {
   ok: true;
   template: Pick<IvTemplate, "mode" | "per" | "pjOut" | "pjIn" | "minutes" | "maxMinutes" | "gap">;
   slots: IvCrewSlot[];
-  pool: { nim: string; nama: string; kode: string }[];
+  pool: { nim: string; nama: string; kode: string; div: string | null }[];
 }
 
 export interface IvBooth {

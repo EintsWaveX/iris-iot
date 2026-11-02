@@ -1,0 +1,1 @@
+ALTER TABLE "rec_candidate" ADD COLUMN "panitia_note" text;

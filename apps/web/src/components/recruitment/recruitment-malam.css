@@ -426,3 +426,87 @@ button.n7-task {
   cursor: default;
   opacity: 0.7;
 }
+
+/* The small pickers of the Tes Tulis night (Ruang Latihan: who joins; Siapkan Ruang: which slot). */
+.n7-people {
+  display: grid;
+  gap: 8px;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+}
+.n7-person {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms,
+    background-color 160ms;
+}
+.n7-person[aria-pressed="true"] {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+.n7-person[aria-pressed="true"] svg {
+  color: var(--ok);
+}
+.n7-person svg {
+  color: var(--text-faint);
+}
+
+/* The finished room: a seal, what happened in numbers, and the way to grading (mockup n7-done). */
+.n7-done {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  border-top: 3px solid var(--ok);
+}
+.n7-done__seal {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.n7-done__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.n7-done__stats div {
+  display: grid;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.n7-done__stats b {
+  font-size: 2rem;
+  font-family: var(--font-display);
+}
+.n7-done__stats [data-t="ok"] b {
+  color: var(--ok);
+}
+.n7-done__stats [data-t="warn"] b {
+  color: var(--warn);
+}
+.n7-done__stats [data-t="accent"] b {
+  color: var(--accent-bright);
+}
+.n7-done__stats small {
+  color: var(--text-faint);
+}
+@media (max-width: 720px) {
+  .n7-done__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -102,6 +102,8 @@ function Slider({
   fmt: (v: number) => string;
 }) {
   const track = useRef<HTMLDivElement>(null);
+  // A stored value can outgrow the range (N teratas = 40 on a pool of 22): the thumb stays on the track.
+  value = Math.max(min, Math.min(max, value));
   const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
   const set = (x: number) => {
     const el = track.current;
@@ -331,6 +333,32 @@ export default function CuttingTab({
   const [stage, setStage] = useState<CutStage | null>(null);
   const pilih: CutStage | null = stage && aktif.includes(stage) ? stage : (aktif[0] ?? null);
   const board = useRecCut(pilih ?? "berkas", pilih !== null);
+  // Only the stages whose Cutting is on the Kalender but has not started yet (Penerimaan has no Cutting).
+  const laterNames = CUT_STAGES.filter(
+    (s) =>
+      s !== "berkas" &&
+      !aktif.includes(s) &&
+      events.some((e) => e.stage === s && e.kind === "cutting"),
+  ).map((s) => t.stageName[s]);
+  const cutEv = events.find((e) => e.stage === pilih && e.kind === "cutting");
+  const laterText = [
+    cutEv && pilih
+      ? t.cutWhen(
+          t.stageName[pilih],
+          tgl(cutEv.startsOn, lang),
+          cutEv.endsOn !== cutEv.startsOn ? tgl(cutEv.endsOn, lang) : null,
+        )
+      : "",
+    laterNames.length
+      ? t.laterSome(
+          laterNames.length > 1
+            ? `${laterNames.slice(0, -1).join(", ")} ${t.laterAnd} ${laterNames[laterNames.length - 1]}`
+            : laterNames[0],
+        )
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   // Wawancara and Mengajar score out of 100 (the examiners' sheets); the written test out of 4000.
   const ivStage = pilih === "wawancara" || pilih === "mengajar" || pilih === "tubes";
   const skala = ivStage ? 100 : 4000;
@@ -524,7 +552,7 @@ export default function CuttingTab({
           };
         })}
       />
-      <span className="hint r2cut__later">{t.later}</span>
+      {laterText && <span className="hint r2cut__later">{laterText}</span>}
       <span className="grow" />
       <ol className="n7-miniRail" aria-label={CS[lang].railLabel}>
         {rail.map((r, i) => {

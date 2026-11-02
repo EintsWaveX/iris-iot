@@ -428,6 +428,13 @@
       "when": 1793616582720,
       "tag": "0060_rec_acceptance_reason",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793630485369,
+      "tag": "0061_rec_candidate_note",
+      "breakpoints": true
     }
   ]
 }

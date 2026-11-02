@@ -1567,6 +1567,8 @@ li.r2cutline {
   flex: none;
   width: 196px;
   display: grid;
+  /* Columns stretch to the tallest one; the rows stay at the top instead of spreading out. */
+  align-content: start;
   gap: 8px;
   padding: 10px;
   border-radius: var(--radius-lg);

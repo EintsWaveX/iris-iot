@@ -29,6 +29,7 @@ import {
   recAccount,
   recAttendance,
   recCandidate,
+  recCommittee,
   recDocument,
   recSheet,
   recSheetShared,
@@ -199,7 +200,16 @@ async function handleCrew(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
   const p = await muatPelaku(db, edisi.id, s.nim);
   if (!anggotaPanitia(p)) return void tolak(res, "tanpa_hak", 403);
   const t = await bacaSetting(db, stage);
-  const [slots, pool] = await Promise.all([muatSlotCrew(db, edisi.id, stage), muatKolam(db)]);
+  const [slots, pool, seats] = await Promise.all([
+    muatSlotCrew(db, edisi.id, stage),
+    muatKolam(db),
+    db
+      .select({ nim: recCommittee.asistenNim, division: recCommittee.division })
+      .from(recCommittee)
+      .where(eq(recCommittee.editionId, edisi.id)),
+  ]);
+  // The pool chips wear their division's colour (the mockup's Penguji card).
+  const divisi = new Map(seats.map((x) => [x.nim, x.division]));
   return void res.status(200).json({
     ok: true,
     template: {
@@ -216,7 +226,7 @@ async function handleCrew(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       startsAt: x.startsAt.toISOString(),
       endsAt: x.endsAt.toISOString(),
     })),
-    pool,
+    pool: pool.map((x) => ({ ...x, div: divisi.get(x.nim) ?? null })),
   });
 }
 

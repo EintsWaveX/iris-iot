@@ -286,6 +286,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   // Tambah CaAs (2026-10-25): the Panitia add a candidate and their PDFs.
   "recruitment:candidate-add": ["reccandidates"],
   "recruitment:candidate-delete": ["reccandidates", "reccutting", "recplotting", "recroom"],
+  "recruitment:candidate-note": ["reccandidates"],
   "recruitment:candidate-ticket": [],
   "recruitment:candidate-document": ["reccandidates"],
   // Tubes (R5)

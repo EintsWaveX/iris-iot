@@ -98,6 +98,19 @@ export interface LccRoomSeat {
 /** `GET lcc-room?id=`: the judge, its queue and every seat's results, for the room's staff. */
 export interface LccRoom {
   judgeReady: boolean;
+  /** The Judge card: who answers, how fast, with what limits. Null where the lab PC does not say. */
+  info: {
+    host: string | null;
+    gcc: string | null;
+    sandbox: string | null;
+    workers: number;
+    /** Typical time of a judged run (ms), from the last 60 */
+    avgMs: number | null;
+    timeMs: number | null;
+    memKb: number | null;
+    /** May change the workers (the bank right) */
+    canWorkers: boolean;
+  };
   queue: { waiting: number; running: number };
   cap: number;
   seats: LccRoomSeat[];

@@ -2256,6 +2256,8 @@ export const recCandidate = pgTable(
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     /** Nilai Berkas, 0 to 100, optional. Whether Berkas gets a score is still open (PRD 12); Cutting ignores it. */
     berkasScore: integer("berkas_score"),
+    /** Catatan Panitia: a free note only the Panitia see (never sent to the CaAs). */
+    panitiaNote: text("panitia_note"),
   },
   (t) => [
     check(

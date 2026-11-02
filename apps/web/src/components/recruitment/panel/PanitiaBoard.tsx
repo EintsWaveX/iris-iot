@@ -42,17 +42,11 @@ import type {
 } from "../../../lib/recruitment/types";
 import { REC } from "../recruitmentStrings";
 import { PN } from "./panelStrings";
+import { WARNA_DIVISI } from "./divisi";
 
 type Kolom = "inti" | "acara" | "akademik" | "logistik" | "admin" | "pdd";
 const KOLOM: Kolom[] = ["inti", "acara", "akademik", "logistik", "admin", "pdd"];
-const WARNA: Record<Kolom, string> = {
-  inti: "var(--yellow)",
-  acara: "var(--accent)",
-  akademik: "var(--violet)",
-  logistik: "var(--teal)",
-  admin: "var(--red)",
-  pdd: "var(--accent-bright)",
-};
+const WARNA = WARNA_DIVISI as Record<Kolom, string>;
 const kolomDari = (d: CommitteeDivision): Kolom => (d === "ketua" || d === "wakil" ? "inti" : d);
 
 interface Orang {
