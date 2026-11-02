@@ -154,7 +154,9 @@ function Nilai({
   const sc = (
     <span
       className="r8-sc"
-      style={{ "--v": `${Math.round(Math.max(0, Math.min(100, (v / max) * 100)))}%` } as CSSProperties}
+      style={
+        { "--v": `${Math.round(Math.max(0, Math.min(100, (v / max) * 100)))}%` } as CSSProperties
+      }
       data-strong={tone === "gold" ? "yes" : undefined}
     >
       <b className="num">{Math.round(v)}</b>
