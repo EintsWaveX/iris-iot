@@ -16,6 +16,8 @@ export interface QuestionSummary {
   version: number;
   /** A real seat has been dealt it: its structure is locked */
   shown: boolean;
+  /** Seats dealt it (real rooms only) */
+  seats: number;
   voided: boolean;
   updatedAt: string;
 }

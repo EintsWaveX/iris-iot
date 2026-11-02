@@ -7,6 +7,8 @@ export interface PnRow {
   nim: string;
   nama: string;
   kelas: string | null;
+  /** Also on the Praktikan list */
+  alsoPraktikan: boolean;
   scores: {
     berkas: number | null;
     tes: number | null;
@@ -32,12 +34,24 @@ export interface PnClose {
   keepUntil: string | null;
   closeDays: number;
   retentionMonths: number;
+  autoClose: boolean;
+}
+
+/** One run of Jadikan Asisten, from the audit log */
+export interface PnRun {
+  at: string;
+  by: string;
+  created: number;
+  skipped: number;
+  rejected: number;
 }
 
 export interface PnListResponse {
   ok: true;
   rows: PnRow[];
   taken: string[];
+  /** The same codes with the Asisten who hold them */
+  takenNames: { kode: string; nama: string }[];
   quota: number;
   canConfirm: boolean;
   done: boolean;
@@ -45,6 +59,7 @@ export interface PnListResponse {
   revealAt: string | null;
   revealed: boolean;
   close: PnClose;
+  runs: PnRun[];
 }
 
 export interface PnConfirmResponse {

@@ -98,9 +98,16 @@ export interface AcceptSetting {
   closeDays: number;
   /** Documents and answers are kept this many months after it closed */
   retentionMonths: number;
+  /** Whether the edition closes by itself closeDays after the reveal (the Ketua can always close it sooner) */
+  autoClose: boolean;
 }
 
-export const ACCEPT_DEFAULT: AcceptSetting = { quota: 24, closeDays: 30, retentionMonths: 6 };
+export const ACCEPT_DEFAULT: AcceptSetting = {
+  quota: 24,
+  closeDays: 14,
+  retentionMonths: 6,
+  autoClose: true,
+};
 
 function checkAccept(v: unknown): AcceptSetting | null {
   if (!isObj(v)) return null;
@@ -108,7 +115,9 @@ function checkAccept(v: unknown): AcceptSetting | null {
   const closeDays = int(v.closeDays, 0, 365);
   const retentionMonths = int(v.retentionMonths, 1, 60);
   if (quota === null || closeDays === null || retentionMonths === null) return null;
-  return { quota, closeDays, retentionMonths };
+  // Rows saved before the switch existed have none: they keep closing by themselves.
+  if (v.autoClose !== undefined && typeof v.autoClose !== "boolean") return null;
+  return { quota, closeDays, retentionMonths, autoClose: v.autoClose ?? true };
 }
 
 export interface SettingDef<K extends SettingKey> {

@@ -32,6 +32,7 @@ const full = (d: ReturnType<typeof parseBank>[number]["draft"], id: number): Que
     status: d!.status,
     sample: true,
     shown: false,
+    seats: 0,
     voided: false,
     updatedAt: "2026-10-25T00:00:00Z",
     body: d!.body,

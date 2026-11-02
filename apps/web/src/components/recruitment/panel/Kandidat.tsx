@@ -482,6 +482,15 @@ export default function Kandidat({
       ]),
       "Pendaftar",
     );
+    // The mockup says so when the file starts (the browser shows its own download bar too).
+    window.Toast?.show(
+      lang === "id"
+        ? "Mengunduh pendaftar-oprec-2026.xlsx."
+        : lang === "zh"
+          ? "正在下载 pendaftar-oprec-2026.xlsx。"
+          : "Downloading pendaftar-oprec-2026.xlsx.",
+      "ok",
+    );
   }
 
   const Baris = ({ c, st }: { c: CandidateRow; st: Antre }) => {

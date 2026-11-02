@@ -160,7 +160,7 @@ export default function BankList({
                     <td>{t.formats[r.format]}</td>
                     <td>{t.langs[r.lang]}</td>
                     <td className="num">
-                      {r.shown ? t.shownYes : <span className="hint">{t.notYet}</span>}
+                      {r.shown ? t.shownSeats(r.seats) : <span className="hint">{t.notYet}</span>}
                     </td>
                     <td className="num hint">v{r.version}</td>
                     <td>

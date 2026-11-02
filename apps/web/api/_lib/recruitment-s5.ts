@@ -13,7 +13,7 @@
  * Once the edition is closed (by hand, or N days after the reveal) every
  * Panitia write is refused (guardTutup in the router); reads still work.
  */
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { konteksLatihan } from "./recruitment-latihan-ctx.js";
@@ -21,6 +21,7 @@ import { getDb } from "../../src/lib/db.js";
 import {
   ACCEPT_REASON,
   asisten,
+  audit,
   praktikan,
   recAccount,
   recAcceptance,
@@ -53,6 +54,8 @@ interface PoolRow {
   nama: string;
   kelas: string | null;
   berkas: number | null;
+  /** Also on the Praktikan list (their history stays with them) */
+  alsoPraktikan: boolean;
 }
 
 /** The CaAs who passed Mengajar: a locked Mengajar result that says Lolos. */
@@ -64,6 +67,7 @@ async function muatKolamAkhir(db: Db, edisiId: number): Promise<PoolRow[]> {
       nama: namaKandidat,
       bio: recCandidate.biodata,
       berkas: recCandidate.berkasScore,
+      prak: praktikan.nim,
     })
     .from(recStageResult)
     .innerJoin(recCandidate, eq(recCandidate.id, recStageResult.candidateId))
@@ -84,6 +88,7 @@ async function muatKolamAkhir(db: Db, edisiId: number): Promise<PoolRow[]> {
       nama: r.nama ?? r.nim,
       kelas: r.bio?.kelas ?? null,
       berkas: r.berkas,
+      alsoPraktikan: r.prak !== null,
     }))
     .sort((a, b) => (a.nim < b.nim ? -1 : 1));
 }
@@ -98,6 +103,8 @@ export interface TutupInfo {
   keepUntil: string | null;
   closeDays: number;
   retentionMonths: number;
+  /** Whether it closes by itself at closeAt */
+  autoClose: boolean;
 }
 
 async function muatTutup(db: Db, edisiId: number, now: Date): Promise<TutupInfo> {
@@ -119,7 +126,7 @@ async function muatTutup(db: Db, edisiId: number, now: Date): Promise<TutupInfo>
       ),
     )
     .limit(1);
-  const auto = tutupOtomatis(akhir?.at ?? null, cfg.closeDays);
+  const auto = cfg.autoClose ? tutupOtomatis(akhir?.at ?? null, cfg.closeDays) : null;
   const tutup = e?.closedAt ?? (auto && auto <= now ? auto : null);
   const dasar = e?.closedAt ?? auto;
   return {
@@ -130,7 +137,33 @@ async function muatTutup(db: Db, edisiId: number, now: Date): Promise<TutupInfo>
     keepUntil: dasar ? simpanSampai(dasar, cfg.retentionMonths).toISOString() : null,
     closeDays: cfg.closeDays,
     retentionMonths: cfg.retentionMonths,
+    autoClose: cfg.autoClose,
   };
+}
+
+/** The runs of Jadikan Asisten, newest first: who pressed it, when, and what it did. */
+async function muatRuns(db: Db) {
+  const rows = await db
+    .select({ at: audit.pada, by: audit.aktorNim, detail: audit.detail })
+    .from(audit)
+    .where(eq(audit.aksi, "rec_pn_konfirmasi"))
+    .orderBy(desc(audit.pada))
+    .limit(20);
+  return rows.map((r) => {
+    let d: { dibuat?: number; sudahAda?: number; tolak?: number } = {};
+    try {
+      d = JSON.parse(r.detail ?? "{}");
+    } catch {
+      /* an entry without detail still shows its time and who */
+    }
+    return {
+      at: r.at.toISOString(),
+      by: r.by,
+      created: d.dibuat ?? 0,
+      skipped: d.sudahAda ?? 0,
+      rejected: d.tolak ?? 0,
+    };
+  });
 }
 
 /**
@@ -184,6 +217,7 @@ async function handleList(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
       nim: r.nim,
       nama: r.nama,
       kelas: r.kelas,
+      alsoPraktikan: r.alsoPraktikan,
       scores: {
         berkas: r.berkas,
         tes: tes.get(r.id)?.total ?? null,
@@ -214,6 +248,7 @@ async function handleList(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
     ok: true,
     rows,
     taken: [...dipakai],
+    takenNames: kolam.map((a) => ({ kode: a.kode, nama: a.nama })),
     quota: cfg.quota,
     canConfirm: p?.penuh === true || p?.kursi?.division === "ketua",
     done: rows.length > 0 && rows.every((r) => r.decision === "tolak" || r.promotedNim !== null),
@@ -221,6 +256,7 @@ async function handleList(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
     revealAt: akhir?.at?.toISOString() ?? null,
     revealed: !!akhir?.at && akhir.at <= now,
     close: await muatTutup(db, edisi.id, now),
+    runs: await muatRuns(db),
   });
 }
 

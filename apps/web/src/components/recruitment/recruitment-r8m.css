@@ -1511,3 +1511,8 @@
 .panel.r8-check {
   display: grid;
 }
+
+/* The mockup pads a table card's own head; the live head is a .panel__head */
+.r8-tablecard > .panel__head {
+  padding: 14px 16px 6px;
+}
