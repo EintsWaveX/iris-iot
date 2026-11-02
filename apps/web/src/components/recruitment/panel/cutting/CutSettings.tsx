@@ -9,6 +9,7 @@
  * Both save through the settings API (audited with before and after).
  */
 import { useState } from "react";
+import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import Dialog from "../../../ui/Dialog";
 import SegmentedControl from "../../../ui/SegmentedControl";
 import TabLine from "../../../ui/TabLine";
@@ -38,10 +39,28 @@ const T = {
     less: "Kurangi",
     more: "Tambah",
     start: {
-      title: "Atur Titik Awal",
-      desc: "Angka yang dipakai kartu ambang saat Cutting dibuka, dan jumlah CaAs yang ingin diloloskan dek.",
+      title: "Titik Awal Cutting",
+      desc: "Garis potong dibuka dari angka-angka ini. Pleno tetap memutuskan siapa yang lanjut. Hanya Ketua dan Akademik yang mengubahnya.",
+      topLabel: "Teratas N",
+      topHint: "Berapa yang lolos saat garis dibuka dengan cara Teratas N.",
+      minLabel: "Nilai minimal",
+      minHint: "Nilai terendah yang lolos saat garis dibuka dengan Nilai Minimal.",
+      tgtMinLabel: "Sasaran deck: paling sedikit",
+      tgtMinHint: "Berapa kandidat yang diharapkan lanjut ke tahap berikutnya.",
+      tgtMinHintTes: "Berapa kandidat yang diharapkan lanjut ke Wawancara.",
+      tgtMaxLabel: "Sasaran deck: paling banyak",
+      apply: "Pakai di Garis Potong",
+      done: "Selesai",
+      restore: "Kembalikan Bawaan",
+      short: {
+        berkas: "Berkas",
+        tes_tulis: "Tes Tulis",
+        wawancara: "Wawancara",
+        tubes: "Tubes",
+        mengajar: "Mengajar",
+      },
       saved: "Titik awal Cutting disimpan.",
-      back: "Titik awal Cutting kembali ke bawaan.",
+      back: "Titik awal kembali ke bawaan.",
       top: "Top N awal",
       min: "Nilai minimum awal",
       from: "Target dek, dari",
@@ -96,10 +115,28 @@ const T = {
     less: "Less",
     more: "More",
     start: {
-      title: "Set Starting Point",
-      desc: "The numbers the threshold card opens on when a Cutting starts, and how many CaAs the deck aims to pass.",
+      title: "Starting Cut",
+      desc: "The cut line opens from these numbers. The Pleno still decides who moves on. Only the Ketua and the Akademik change them.",
+      topLabel: "Top N",
+      topHint: "How many pass when the line opens as Top N.",
+      minLabel: "Minimum score",
+      minHint: "The lowest score that passes when the line opens as Minimum Score.",
+      tgtMinLabel: "Deck target: at least",
+      tgtMinHint: "How many candidates are expected to move on to the next stage.",
+      tgtMinHintTes: "How many candidates are expected to move on to the Interview.",
+      tgtMaxLabel: "Deck target: at most",
+      apply: "Use on the Cut Line",
+      done: "Done",
+      restore: "Restore the Default",
+      short: {
+        berkas: "Documents",
+        tes_tulis: "Written Test",
+        wawancara: "Interview",
+        tubes: "Project",
+        mengajar: "Teaching",
+      },
       saved: "Cutting starting point saved.",
-      back: "Cutting starting point is back to the default.",
+      back: "The starting cut is back to the default.",
       top: "Starting Top N",
       min: "Starting minimum score",
       from: "Deck target, from",
@@ -159,12 +196,18 @@ export function AturTitikAwal({
   onOpenChange,
   value,
   onSaved,
+  stage,
+  onApply,
 }: {
   lang: Lang;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   value: SettingMap["cutting"] | undefined;
   onSaved: () => void;
+  /** The stage whose Cutting is open: the mockup's dialog is one stage at a time */
+  stage: CuttingStageKey;
+  /** Open the cut line as Top N after saving ("Pakai di Garis Potong") */
+  onApply?: () => void;
 }) {
   const t = T[lang === "id" ? "id" : "en"];
   const s = t.start;
@@ -179,7 +222,9 @@ export function AturTitikAwal({
   const set = (k: CuttingStageKey, p: Partial<CuttingSetting>) =>
     setDraft((d) => ({ ...d, [k]: { ...d[k], ...p } }));
 
-  async function simpan() {
+  const sama = JSON.stringify(draft[stage]) === JSON.stringify(CUTTING_DEFAULT[stage]);
+
+  async function simpan(pakai: boolean) {
     if (Object.values(draft).some((c) => c.targetMin > c.targetMax)) return setGalat(s.bad);
     setGalat(null);
     setBusy(true);
@@ -188,110 +233,119 @@ export function AturTitikAwal({
     if (isFail(res)) return setGalat(t.fail);
     window.Toast?.show(s.saved, "ok");
     onSaved();
+    if (pakai) onApply?.();
     onOpenChange(false);
   }
+  // Back to the built-in numbers for this stage only; the other stages keep what they have.
   async function pulihkan() {
+    const next = { ...draft, [stage]: { ...CUTTING_DEFAULT[stage] } };
     setBusy(true);
-    const res = await recPost<{ ok: true }>("setting-reset", { key: "cutting" });
+    const res = await recPost<{ ok: true }>("setting-save", { key: "cutting", value: next });
     setBusy(false);
     if (isFail(res)) return setGalat(t.fail);
+    setDraft(next);
     window.Toast?.show(s.back, "ok");
     onSaved();
-    onOpenChange(false);
   }
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={s.title}
+      title={`${s.title} · ${s.short[stage]}`}
       description={s.desc}
       size="form"
       lang={lang}
       alt={
-        <button type="button" className="btn btn--ghost" disabled={busy} onClick={pulihkan}>
-          {t.reset}
+        <button type="button" className="btn btn--ghost" disabled={busy || sama} onClick={pulihkan}>
+          <ArrowCounterClockwiseIcon size={18} aria-hidden="true" />
+          <span className="btn__label">{s.restore}</span>
         </button>
       }
       actions={
         <>
-          <button type="button" className="btn btn--ghost" onClick={() => onOpenChange(false)}>
-            {t.cancel}
+          <button
+            type="button"
+            className="btn btn--inverse"
+            disabled={busy}
+            onClick={() => void simpan(true)}
+          >
+            <span className="btn__label">{s.apply}</span>
           </button>
-          <button type="button" className="btn btn--primary" disabled={busy} onClick={simpan}>
-            <span className="btn__label">{t.save}</span>
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={busy}
+            onClick={() => void simpan(false)}
+          >
+            <span className="btn__label">{s.done}</span>
           </button>
         </>
       }
     >
       <div className="stack">
-        {(Object.keys(draft) as CuttingStageKey[]).map((k) => (
-          <section className="panel b6-start" key={k}>
-            <h3 className="panel__title">{s.stage[k]}</h3>
-            <div className="b6-start__grid">
-              <div className="field">
-                <span className="field__label">{s.top}</span>
-                <Stepper
-                  value={draft[k].top}
-                  min={1}
-                  max={500}
-                  label={`${s.stage[k]}: ${s.top}`}
-                  fmt={s.people}
-                  lessLabel={t.less}
-                  moreLabel={t.more}
-                  onChange={(v) => set(k, { top: v })}
-                />
-              </div>
-              {k === "tes_tulis" && (
-                <div className="field">
-                  <span className="field__label">{s.min}</span>
-                  <Stepper
-                    value={draft[k].minScore}
-                    min={0}
-                    max={4000}
-                    step={50}
-                    label={`${s.stage[k]}: ${s.min}`}
-                    fmt={s.score}
-                    lessLabel={t.less}
-                    moreLabel={t.more}
-                    onChange={(v) => set(k, { minScore: v })}
-                  />
-                </div>
-              )}
-              <div className="field">
-                <span className="field__label">{s.from}</span>
-                <Stepper
-                  value={draft[k].targetMin}
-                  min={1}
-                  max={500}
-                  label={`${s.stage[k]}: ${s.from}`}
-                  fmt={s.people}
-                  lessLabel={t.less}
-                  moreLabel={t.more}
-                  onChange={(v) => set(k, { targetMin: v })}
-                />
-              </div>
-              <div className="field">
-                <span className="field__label">{s.to}</span>
-                <Stepper
-                  value={draft[k].targetMax}
-                  min={1}
-                  max={500}
-                  label={`${s.stage[k]}: ${s.to}`}
-                  fmt={s.people}
-                  lessLabel={t.less}
-                  moreLabel={t.more}
-                  onChange={(v) => set(k, { targetMax: v })}
-                />
-              </div>
-            </div>
-            <span className="hint">
-              {`${s.builtIn}: Top ${CUTTING_DEFAULT[k].top}${
-                k === "tes_tulis" ? `, ${s.score(CUTTING_DEFAULT[k].minScore)}` : ""
-              }, ${CUTTING_DEFAULT[k].targetMin} - ${CUTTING_DEFAULT[k].targetMax}`}
+        <div className="r6sets">
+          <label className="r6set">
+            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <b>{s.topLabel}</b>
+              <span className="hint">{s.topHint}</span>
             </span>
-          </section>
-        ))}
+            <Stepper
+              value={draft[stage].top}
+              min={1}
+              max={500}
+              label={s.topLabel}
+              lessLabel={t.less}
+              moreLabel={t.more}
+              onChange={(v) => set(stage, { top: v })}
+            />
+          </label>
+          <label className="r6set">
+            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <b>{s.minLabel}</b>
+              <span className="hint">{s.minHint}</span>
+            </span>
+            <Stepper
+              value={draft[stage].minScore}
+              min={0}
+              max={stage === "tes_tulis" ? 4000 : 100}
+              step={stage === "tes_tulis" ? 50 : 1}
+              label={s.minLabel}
+              lessLabel={t.less}
+              moreLabel={t.more}
+              onChange={(v) => set(stage, { minScore: v })}
+            />
+          </label>
+          <label className="r6set">
+            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <b>{s.tgtMinLabel}</b>
+              <span className="hint">{stage === "tes_tulis" ? s.tgtMinHintTes : s.tgtMinHint}</span>
+            </span>
+            <Stepper
+              value={draft[stage].targetMin}
+              min={1}
+              max={draft[stage].targetMax}
+              label={s.tgtMinLabel}
+              lessLabel={t.less}
+              moreLabel={t.more}
+              onChange={(v) => set(stage, { targetMin: v })}
+            />
+          </label>
+          <label className="r6set">
+            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <b>{s.tgtMaxLabel}</b>
+            </span>
+            <Stepper
+              value={draft[stage].targetMax}
+              min={draft[stage].targetMin}
+              max={500}
+              label={s.tgtMaxLabel}
+              lessLabel={t.less}
+              moreLabel={t.more}
+              onChange={(v) => set(stage, { targetMax: v })}
+            />
+          </label>
+        </div>
         {galat && (
           <p className="banner banner--warn" role="alert">
             {galat}

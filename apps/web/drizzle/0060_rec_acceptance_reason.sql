@@ -1,0 +1,1 @@
+ALTER TABLE "rec_acceptance" ADD COLUMN "reason" text;

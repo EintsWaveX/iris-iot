@@ -50,7 +50,11 @@ import {
   type RecEvent,
   type RecRights,
 } from "../../../../lib/recruitment/types";
-import { cuttingFor, type SettingMap } from "../../../../lib/recruitment/settings";
+import {
+  cuttingFor,
+  type CuttingStageKey,
+  type SettingMap,
+} from "../../../../lib/recruitment/settings";
 import { S2 } from "../../s2Strings";
 import "../../recruitment-b1.css";
 import "../../recruitment-kandidat.css";
@@ -1083,6 +1087,8 @@ export default function CuttingTab({
         <AturTitikAwal
           lang={lang}
           open
+          stage={pilih as CuttingStageKey}
+          onApply={() => setMode("top")}
           onOpenChange={setAtur}
           value={cfgOf("cutting")?.value as SettingMap["cutting"] | undefined}
           onSaved={() => {

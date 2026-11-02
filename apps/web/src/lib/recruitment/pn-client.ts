@@ -19,6 +19,8 @@ export interface PnRow {
   proposedCode: string | null;
   saved: boolean;
   decision: "terima" | "tolak";
+  /** Why not accepted (Panitia only); null while accepted */
+  reason: "Kuota" | "Mundur" | "Pleno" | "Lain" | null;
   promotedNim: string | null;
 }
 

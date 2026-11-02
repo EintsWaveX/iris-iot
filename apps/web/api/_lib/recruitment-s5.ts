@@ -19,6 +19,7 @@ import { writeAudit } from "../../src/lib/auth.js";
 import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 import { getDb } from "../../src/lib/db.js";
 import {
+  ACCEPT_REASON,
   asisten,
   praktikan,
   recAccount,
@@ -195,6 +196,7 @@ async function handleList(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
       proposedCode: a?.code ? null : usul,
       saved: !!a?.code,
       decision: a?.decision ?? "terima",
+      reason: (a?.decision ?? "terima") === "tolak" ? (a?.reason ?? "Kuota") : null,
       promotedNim: a?.promotedNim ?? null,
     };
   });
@@ -235,7 +237,12 @@ async function handleCodes(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const p = await muatPelaku(db, edisi.id, s.nim);
   if (!wajibHak(res, p, "accept")) return;
   const pool = new Set((await muatKolamAkhir(db, edisi.id)).map((r) => r.id));
-  const bersih: { id: number; code: string | null; decision?: "terima" | "tolak" }[] = [];
+  const bersih: {
+    id: number;
+    code: string | null;
+    decision?: "terima" | "tolak";
+    reason?: (typeof ACCEPT_REASON)[number];
+  }[] = [];
   for (const it of items) {
     const x = it as Record<string, unknown>;
     const id = Number(x.id);
@@ -244,7 +251,10 @@ async function handleCodes(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     if (x.decision !== undefined && !decision)
       return void tolak(res, "data_salah", 400, { field: "decision" });
     const code = x.code === undefined || x.code === null || x.code === "" ? null : normKode(x.code);
-    bersih.push({ id, code, decision });
+    const reason = ACCEPT_REASON.find((r) => r === x.reason);
+    if (x.reason !== undefined && x.reason !== null && !reason)
+      return void tolak(res, "data_salah", 400, { field: "reason" });
+    bersih.push({ id, code, decision, reason });
   }
   const ids = bersih.map((i) => i.id);
   const sudah = await db
@@ -277,6 +287,7 @@ async function handleCodes(req: ApiRequest, res: ApiResponse, s: SessionPayload)
           editionId: edisi.id,
           code: i.code,
           decision: i.decision ?? "terima",
+          reason: i.decision === "tolak" ? (i.reason ?? "Kuota") : null,
           updatedBy: s.nim,
           updatedAt: now,
         })
@@ -284,7 +295,12 @@ async function handleCodes(req: ApiRequest, res: ApiResponse, s: SessionPayload)
           target: recAcceptance.candidateId,
           set: {
             code: i.code,
-            ...(i.decision ? { decision: i.decision } : {}),
+            ...(i.decision
+              ? {
+                  decision: i.decision,
+                  reason: i.decision === "tolak" ? (i.reason ?? "Kuota") : null,
+                }
+              : {}),
             updatedBy: s.nim,
             updatedAt: now,
           },
