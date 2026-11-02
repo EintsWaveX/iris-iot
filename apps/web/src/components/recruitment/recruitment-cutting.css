@@ -44,9 +44,11 @@
 }
 .n7-miniRail {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   list-style: none;
   margin: 0;
+  max-width: 100%;
   padding: 0;
 }
 .n7-miniRail li {
@@ -370,4 +372,14 @@
   .n7-bar .tabs__tab[aria-selected="true"]::after {
     animation: none;
   }
+}
+
+/* A long button label in the cut card wraps instead of pushing the page wider on a 320 px phone. */
+.n7-cutline .btn {
+  max-width: 100%;
+  min-height: 44px;
+  height: auto;
+  white-space: normal;
+  text-align: left;
+  padding-block: 6px;
 }

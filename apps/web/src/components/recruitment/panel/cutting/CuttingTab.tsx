@@ -294,7 +294,10 @@ function Dist({ rows, rule, skala = 4000 }: { rows: CutRowView[]; rule: Ambang; 
             data-pass={i < rule.n ? "yes" : undefined}
           />
         ))}
-        <span className="r2dist__cut" style={{ left: `${(rule.n / urut.length) * 100}%` }} />
+        <span
+          className="r2dist__cut"
+          style={{ left: `${Math.min(100, (rule.n / urut.length) * 100)}%` }}
+        />
       </div>
     );
   }
@@ -310,7 +313,10 @@ function Dist({ rows, rule, skala = 4000 }: { rows: CutRowView[]; rule: Ambang; 
           data-pass={i * 200 >= rule.min ? "yes" : undefined}
         />
       ))}
-      <span className="r2dist__cut" style={{ left: `${(rule.min / skala) * 100}%` }} />
+      <span
+        className="r2dist__cut"
+        style={{ left: `${Math.max(0, Math.min(100, (rule.min / skala) * 100))}%` }}
+      />
     </div>
   );
 }
