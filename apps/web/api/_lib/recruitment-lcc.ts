@@ -134,6 +134,51 @@ export async function judgeSiap(db: Db, now = Date.now()): Promise<boolean> {
   return !!r;
 }
 
+/**
+ * What the Judge card says about the judge: the lab PC's name, its compiler and sandbox when it reports them,
+ * the workers the exam config asks for, the typical time of a judged run (the last 60) and the program limits.
+ */
+async function infoJudge(
+  db: Db,
+  edisiId: number,
+  workers: number,
+): Promise<Omit<LccRoom["info"], "canWorkers">> {
+  const [[pc], waktu, batas] = await Promise.all([
+    db
+      .select({ nama: server.nama, info: server.infoSistem })
+      .from(server)
+      .where(sql`${server.infoSistem} -> 'judge' = 'true'::jsonb`)
+      .orderBy(desc(server.kondisiPada))
+      .limit(1),
+    db.execute(
+      sql`select coalesce(avg(extract(epoch from (finished_at - claimed_at)) * 1000), 0)::int as ms, count(*)::int as n
+          from (select finished_at, claimed_at from rec_c_submission
+                where status = 'selesai' and finished_at is not null and claimed_at is not null
+                order by id desc limit 60) x`,
+    ),
+    db
+      .select({ limits: recCProblem.limits })
+      .from(recCProblem)
+      .where(and(eq(recCProblem.editionId, edisiId), eq(recCProblem.status, "ready"))),
+  ]);
+  const rows = (
+    Array.isArray(waktu) ? waktu : ((waktu as { rows?: unknown[] } | undefined)?.rows ?? [])
+  ) as { ms: number; n: number }[];
+  const w = rows[0];
+  const sys = (pc?.info ?? {}) as Record<string, unknown>;
+  const teks = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
+  const lim = batas.map((b) => b.limits as { timeMs?: number; memKb?: number });
+  return {
+    host: pc?.nama ?? null,
+    gcc: teks(sys.gcc),
+    sandbox: teks(sys.sandbox),
+    workers,
+    avgMs: w && w.n > 0 ? w.ms : null,
+    timeMs: lim.length ? Math.max(...lim.map((x) => x.timeMs ?? 1000)) : null,
+    memKb: lim.length ? Math.max(...lim.map((x) => x.memKb ?? 65536)) : null,
+  };
+}
+
 async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
   const ids = await tanganKursi(c);
   if (!ids) return void tolak(res, "soal_kurang", 503);
@@ -305,8 +350,10 @@ async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
       lastAt: mine.length ? Math.max(...mine.map((x) => x.requestedAt.getTime())) : null,
     };
   });
+  const infoJ = await infoJudge(db, edisi.id, config.livecode.workers);
   const body: LccRoom = {
     judgeReady: await judgeSiap(db),
+    info: { ...infoJ, canWorkers: p?.hak.bank === true },
     queue: {
       waiting: queue.find((q) => q.status === "antre")?.n ?? 0,
       running: queue.find((q) => q.status === "diambil")?.n ?? 0,

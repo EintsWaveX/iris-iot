@@ -8,7 +8,7 @@ import { CheckIcon, PlusIcon } from "@phosphor-icons/react";
 import Drawer from "../../../../ui/Drawer";
 import Pill from "../../../../ui/Pill";
 import TabLine from "../../../../ui/TabLine";
-import { Switch } from "../../../../ui/Controls";
+import { Stepper, Switch } from "../../../../ui/Controls";
 import { dict } from "../../../../../lib/app";
 import type { Lang } from "../../../../../lib/kelas";
 import { usePoll } from "../../../../../lib/hooks";
@@ -38,6 +38,19 @@ const W = dict({
     waiting: (n: number) => `${n} menunggu`,
     running: (n: number) => `${n} sedang dinilai`,
     check: "Cek Judge",
+    judgeSub: (host: string | null, gcc: string | null, sandbox: string | null) =>
+      [host, gcc, sandbox && `kotak pasir ${sandbox}`].filter(Boolean).join(" · "),
+    workers: "Pekerja bersamaan",
+    workersWho: "Akademik dan Ketua",
+    workersSet: (n: number) => `Judge worker jadi ${n}. Tercatat di log.`,
+    typical: "Waktu rata-rata",
+    perSub: (s: string) => `${s} detik per submission`,
+    limits: "Batas program",
+    limitsVal: (ms: number, kb: number) =>
+      `${ms >= 1000 ? `${(ms / 1000).toString().replace(".", ",")} detik` : `${ms} ms`}, ${Math.round(kb / 1024)} MB per test`,
+    noData: "Belum ada",
+    stepLess: "Kurangi",
+    stepMore: "Tambah",
   },
   en: {
     title: "Set Up the Room",
@@ -59,6 +72,19 @@ const W = dict({
     waiting: (n: number) => `${n} waiting`,
     running: (n: number) => `${n} being graded`,
     check: "Check the Judge",
+    judgeSub: (host: string | null, gcc: string | null, sandbox: string | null) =>
+      [host, gcc, sandbox && `${sandbox} sandbox`].filter(Boolean).join(" · "),
+    workers: "Parallel workers",
+    workersWho: "Akademik and Ketua",
+    workersSet: (n: number) => `Judge workers set to ${n}. Logged.`,
+    typical: "Typical time",
+    perSub: (s: string) => `${s} seconds per submission`,
+    limits: "Program limits",
+    limitsVal: (ms: number, kb: number) =>
+      `${ms >= 1000 ? `${ms / 1000} second${ms === 1000 ? "" : "s"}` : `${ms} ms`}, ${Math.round(kb / 1024)} MB per test`,
+    noData: "None yet",
+    stepLess: "Fewer",
+    stepMore: "More",
   },
   zh: {
     title: "设置考场",
@@ -80,6 +106,19 @@ const W = dict({
     waiting: (n: number) => `${n} 个等待`,
     running: (n: number) => `${n} 个评分中`,
     check: "检查评测",
+    judgeSub: (host: string | null, gcc: string | null, sandbox: string | null) =>
+      [host, gcc, sandbox && `沙箱 ${sandbox}`].filter(Boolean).join(" · "),
+    workers: "并行线程",
+    workersWho: "学术组和主席",
+    workersSet: (n: number) => `评测线程已设为 ${n}，已记录。`,
+    typical: "平均耗时",
+    perSub: (s: string) => `每次提交 ${s} 秒`,
+    limits: "程序限制",
+    limitsVal: (ms: number, kb: number) =>
+      `${ms >= 1000 ? `${ms / 1000} 秒` : `${ms} 毫秒`}，每个测试 ${Math.round(kb / 1024)} MB`,
+    noData: "暂无",
+    stepLess: "减少",
+    stepMore: "增加",
   },
 });
 
@@ -103,6 +142,7 @@ export default function AturRuang({
   const v = rv.data;
   const [tab, setTab] = useState<"pengawas" | "judge">("pengawas");
   const [busy, setBusy] = useState(false);
+  const [workers, setWorkers] = useState<number | null>(null);
   const juri = usePoll<LccRoom | null>(
     async () => {
       const r = await recGet<LccRoom & { ok: true }>("lcc-room", { id: String(id) });
@@ -116,6 +156,23 @@ export default function AturRuang({
   );
   const pilih = v?.pengawas.map((p) => p.nim) ?? [];
   const selesai = v?.view === "finished";
+
+  /** The judge's parallel workers live in the exam config; this changes just that number. */
+  async function ubahPekerja(n: number) {
+    setWorkers(n);
+    const cur = await recGet<{ ok: true; config: { livecode: { workers: number } } }>(
+      "exam-config",
+    );
+    if (isFail(cur)) return window.Toast?.show(t.fail, "danger");
+    const cfg = { ...cur.config, livecode: { ...cur.config.livecode, workers: n } };
+    const r = await recPost<{ ok: true }>("exam-config-save", { config: cfg });
+    if (isFail(r)) {
+      setWorkers(null);
+      return window.Toast?.show(t.fail, "danger");
+    }
+    window.Toast?.show(t.workersSet(n), "ok");
+    juri.refresh();
+  }
 
   async function ubah(nim: string) {
     if (!v || busy || selesai) return;
@@ -207,14 +264,54 @@ export default function AturRuang({
         ) : (
           <div className="stack">
             <span className="hint">{t.judgeLede}</span>
-            <section className="panel">
+            <section className="panel lc-judge" data-st={juri.data?.judgeReady ? "ok" : "off"}>
               <div className="panel__head">
-                <h3 className="panel__title">C Judge</h3>
+                <div className="stack" style={{ gap: 2 }}>
+                  <h3 className="panel__title">C Judge</h3>
+                  {juri.data && (
+                    <span className="hint">
+                      {t.judgeSub(juri.data.info.host, juri.data.info.gcc, juri.data.info.sandbox)}
+                    </span>
+                  )}
+                </div>
                 <Pill tone={juri.data?.judgeReady ? "ok" : "warn"}>
                   {juri.data?.judgeReady ? t.judgeReady : t.judgeNot}
                 </Pill>
               </div>
               <div className="rec-sum">
+                <span className="hint">{t.workers}</span>
+                <span className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+                  {juri.data?.info.canWorkers ? (
+                    <Stepper
+                      value={workers ?? juri.data.info.workers}
+                      min={1}
+                      max={8}
+                      label={t.workers}
+                      lessLabel={t.stepLess}
+                      moreLabel={t.stepMore}
+                      onChange={(v) => void ubahPekerja(v)}
+                    />
+                  ) : (
+                    <b className="num">{juri.data?.info.workers ?? "-"}</b>
+                  )}
+                  <span className="hint">{t.workersWho}</span>
+                </span>
+                <span className="hint">{t.typical}</span>
+                <b className="num">
+                  {juri.data?.info.avgMs
+                    ? t.perSub(
+                        (juri.data.info.avgMs / 1000)
+                          .toFixed(1)
+                          .replace(".", lang === "id" ? "," : "."),
+                      )
+                    : t.noData}
+                </b>
+                <span className="hint">{t.limits}</span>
+                <b>
+                  {juri.data?.info.timeMs && juri.data.info.memKb
+                    ? t.limitsVal(juri.data.info.timeMs, juri.data.info.memKb)
+                    : t.noData}
+                </b>
                 <span className="hint">{t.queue}</span>
                 <b>
                   {juri.data

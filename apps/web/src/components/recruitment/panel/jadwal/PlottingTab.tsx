@@ -30,6 +30,7 @@ import {
   ClockIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
+  MagnifyingGlassIcon,
   PencilSimpleIcon,
   PlusIcon,
   TrashIcon,
@@ -39,6 +40,9 @@ import Dropdown from "../../../ui/Dropdown";
 import gsap from "gsap";
 import Confirm from "../../../ui/Confirm";
 import CrewBoard from "../iv/CrewBoard";
+import type { CrewCtx, ExData } from "../iv/CrewPapan";
+import { CB } from "../iv/crewBoardStrings";
+import { unduhXlsx } from "../../../../lib/xlsx";
 import { isIvStage } from "../../../../lib/recruitment/interview";
 import { isMakeupStage } from "../../../../lib/recruitment/makeup";
 import PapanSusulan from "./PapanSusulan";
@@ -703,19 +707,25 @@ function Lajur({
   className,
   children,
   over,
+  col,
+  flag,
 }: {
   id: string;
   disabled: boolean;
   className: string;
   children: React.ReactNode;
   over?: boolean;
+  col?: number;
+  flag?: "danger" | "warn";
 }) {
   const { setNodeRef, isOver } = useDroppable({ id, disabled });
   return (
     <section
       ref={setNodeRef}
       className={className}
+      data-col={col}
       data-over={over ? "yes" : undefined}
+      data-flag={flag}
       data-drop={isOver && !disabled ? "yes" : undefined}
     >
       {children}
@@ -729,19 +739,23 @@ function Papan({
   data,
   can,
   refresh,
+  crew,
 }: {
   lang: Lang;
   stage: StageKey;
   data: PlotBoardResponse;
   can: boolean;
   refresh: () => void;
+  /** Wawancara and Mengajar: the examiner pieces to place (the pool above the board, a lane in each slot card) */
+  crew?: CrewCtx;
 }) {
   const t = S2[lang].plot;
+  const cb = CB(lang);
   const motion = useRevealMotion();
   const root = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState("");
   const [tanya, setTanya] = useState<{ c: Kartu; ke: Slot } | null>(null);
-  const [angkat, setAngkat] = useState<Kartu | null>(null);
+  const [angkat, setAngkat] = useState<Kartu | ExData | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
@@ -776,8 +790,10 @@ function Papan({
   }
   function selesai(e: DragEndEvent) {
     setAngkat(null);
-    const c = e.active.data.current as Kartu | undefined;
+    const dr = e.active.data.current as Kartu | ExData | undefined;
     const ke = e.over ? String(e.over.id) : null;
+    if (dr && "ex" in dr) return crew?.drop(dr, ke);
+    const c = dr as Kartu | undefined;
     if (!c || !ke) return;
     if (ke === "pool") return c.dari === "pool" ? undefined : void pindah(c, null);
     const slot = data.slots.find((s) => `slot:${s.id}` === ke);
@@ -842,11 +858,31 @@ function Papan({
       }, 250),
     );
   }
+  const unduh = () => {
+    const rows: (string | number | null)[][] = data.slots.flatMap((sl) =>
+      sl.seats.map((x, i) => [
+        sl.room,
+        tgl(wib(sl.startsAt).tanggal, lang),
+        `${wib(sl.startsAt).jam} - ${wib(sl.endsAt).jam}`,
+        i + 1,
+        x.nama,
+        x.nim,
+      ]),
+    );
+    pool.forEach((x) => rows.push(["", "", "", "", x.nama, x.nim]));
+    void unduhXlsx(
+      `plotting-${stage}`,
+      ["Ruang", "Tanggal", "Jam", "#", "Kandidat", "NIM"],
+      rows,
+      "Plotting",
+    ).then(() => window.Toast?.show(cb.xlsxDone(`plotting-${stage}`), "ok"));
+  };
   const cocok = (n: string) => !!q.trim() && n.toLowerCase().includes(q.trim().toLowerCase());
   return (
     <div className="stack" ref={root}>
       <div className="row rec-tools">
         <div className="rec-search">
+          <MagnifyingGlassIcon className="ic" size={16} aria-hidden="true" />
           <input
             className="field__input"
             placeholder={t.search}
@@ -857,6 +893,11 @@ function Papan({
         </div>
         <span className="grow" />
         <span className="hint">{t.noMark}</span>
+        {can && (
+          <button type="button" className="btn btn--inverse btn--sm" onClick={unduh}>
+            <span className="btn__label">{cb.xlsx}</span>
+          </button>
+        )}
         {can && (
           <button
             type="button"
@@ -876,10 +917,11 @@ function Papan({
         <DndContext
           sensors={sensors}
           collisionDetection={cari}
-          onDragStart={(e) => setAngkat(e.active.data.current as Kartu)}
+          onDragStart={(e) => setAngkat(e.active.data.current as Kartu | ExData)}
           onDragEnd={selesai}
           onDragCancel={() => setAngkat(null)}
         >
+          {crew?.top}
           <div className="r2board scrollx">
             <Lajur id="pool" disabled={!can} className="r2col r2col--pool">
               <div className="r2col__head">
@@ -903,15 +945,38 @@ function Papan({
                       <Lajur
                         key={s.id}
                         id={`slot:${s.id}`}
+                        col={s.id}
                         disabled={!can}
                         className="r2col"
                         over={s.taken > s.capacity}
+                        flag={
+                          crew?.flagsOf(s.id).some((f) => f.tone === "danger")
+                            ? "danger"
+                            : crew?.flagsOf(s.id).length
+                              ? "warn"
+                              : undefined
+                        }
                       >
                         <div className="r2col__head">
                           <b>{s.room}</b>
                           <span className="num r2col__n">{`${s.taken}/${s.capacity}`}</span>
                         </div>
+                        {crew && (
+                          <span className="hint num r2col__t">
+                            {wib(s.startsAt).jam} {cb.to} {wib(s.endsAt).jam}
+                          </span>
+                        )}
                         <Kapasitas s={s} />
+                        {crew?.lane(s.id)}
+                        {crew && crew.flagsOf(s.id).length > 0 && (
+                          <ul className="r4flags">
+                            {crew.flagsOf(s.id).map((f, i) => (
+                              <li key={i} data-t={f.tone}>
+                                {f.text}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                         <div className="r2col__list">
                           {s.seats.map((x) => (
                             <Chip
@@ -931,13 +996,18 @@ function Papan({
           </div>
           <DragLayer>
             {angkat ? (
-              <div className="r2chip">
-                <span className="r2chip__n">{angkat.nama}</span>
-              </div>
+              "ex" in angkat ? (
+                crew?.overlay(angkat)
+              ) : (
+                <div className="r2chip">
+                  <span className="r2chip__n">{angkat.nama}</span>
+                </div>
+              )
             ) : null}
           </DragLayer>
         </DndContext>
       )}
+      {crew?.picker}
       {tanya && (
         <Dialog
           open
@@ -1054,8 +1124,22 @@ export default function PlottingTab({
         <Requests lang={lang} data={d} can={can} refresh={board.refresh} />
       ) : (
         <>
-          {isIvStage(aktif) && <CrewBoard lang={lang} stage={aktif} rights={rights} part="papan" />}
-          <Papan lang={lang} stage={aktif} data={d} can={can} refresh={board.refresh} />
+          {isIvStage(aktif) ? (
+            <CrewBoard lang={lang} stage={aktif} rights={rights} part="papan">
+              {(crew) => (
+                <Papan
+                  lang={lang}
+                  stage={aktif}
+                  data={d}
+                  can={can}
+                  refresh={board.refresh}
+                  crew={crew}
+                />
+              )}
+            </CrewBoard>
+          ) : (
+            <Papan lang={lang} stage={aktif} data={d} can={can} refresh={board.refresh} />
+          )}
           {isMakeupStage(aktif) && <PapanSusulan lang={lang} stage={aktif} can={can} />}
         </>
       )}
