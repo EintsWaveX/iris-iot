@@ -408,7 +408,14 @@ describe("me is the signed in NIM's own row", () => {
     expect(r.body.candidate).toMatchObject({ status: "applied", stage: "berkas" });
     // The id is what berkas needs to open it; berkas itself answers 404 for anyone else's.
     expect(r.body.documents).toEqual([
-      { id: 3, kind: "cv", size: 10, uploadedAt: "2026-10-26T03:00:00.000Z", note: null },
+      {
+        id: 3,
+        kind: "cv",
+        size: 10,
+        uploadedAt: "2026-10-26T03:00:00.000Z",
+        note: null,
+        verdict: null,
+      },
     ]);
     expect(r.body.daftarOpen).toBe(true);
   });
@@ -667,6 +674,18 @@ describe("review", () => {
       reviewNote: "CV buram, unggah ulang",
       reviewedBy: "101022300900",
     });
+  });
+  it("counts a fresh revision ask once, and not an edit of the ask already open", async () => {
+    sebagaiAsisten();
+    rows.asisten = [ORANG("101022300900")];
+    rows.committee = [KURSI("admin")];
+    rows.candidate = [KANDIDAT("101022300001", "applied")];
+    await panggil("POST", "review", { body: { id: 7, decision: "revision", note: "KHS buram" } });
+    expect(tulis.find((w) => w.tabel === "candidate")?.nilai).toHaveProperty("revisionRound");
+    tulis.length = 0;
+    rows.candidate = [KANDIDAT("101022300001", "revision")];
+    await panggil("POST", "review", { body: { id: 7, decision: "revision", note: "KHS dan CV" } });
+    expect(tulis.find((w) => w.tabel === "candidate")?.nilai).not.toHaveProperty("revisionRound");
   });
   it("takes an approval back to waiting while the CaAs is at the document check, and only then", async () => {
     sebagaiAsisten();

@@ -204,6 +204,8 @@ export interface RecDocument {
   size: number;
   uploadedAt: string;
   note: string | null;
+  /** The Admin's check of this file, shown to the CaAs only while a revision is asked */
+  verdict?: DocVerdict | null;
 }
 
 /* ------------------------------------------------------------- the viewer */
@@ -533,6 +535,14 @@ export interface CandidateRow {
   appliedAt: string;
   /** How many of the required documents are uploaded */
   docs: number;
+  /** The Google Form's prodi, on candidates the Panitia added by hand; null otherwise */
+  prodi: Prodi | null;
+  /** IPK as a number (2.85), null when none was entered */
+  ipk: number | null;
+  /** Potensi Cut: flagged by the Panitia while checking the files */
+  potensiCut: boolean;
+  /** How many times a revision was asked; with the status "applied" it means "resubmitted, check again" */
+  revisions: number;
 }
 
 /** GET candidates (Panitia). Query: stage, status, q. */

@@ -409,6 +409,58 @@ describe("candidate-note (Catatan Panitia)", () => {
   });
 });
 
+describe("candidate-meta (IPK and Potensi Cut)", () => {
+  it("saves a GPA as hundredths and the cut flag, together or alone", async () => {
+    sebagai("admin");
+    rows.candidate = [{ id: 3, nim: NIM, status: "applied" }];
+    const r = await panggil("POST", "candidate-meta", {
+      body: { id: 3, ipk: 2.85, potensiCut: true },
+      cookie: asistenCookie(),
+    });
+    expect(r.code).toBe(200);
+    expect(tulis.find((w) => w.tabel === "candidate")?.nilai).toMatchObject({
+      ipkX100: 285,
+      potensiCut: true,
+    });
+    expect(audit[0]).toMatchObject({ aksi: "rec_kandidat_meta" });
+  });
+  it("null clears the GPA", async () => {
+    sebagai("admin");
+    rows.candidate = [{ id: 3, nim: NIM, status: "applied" }];
+    const r = await panggil("POST", "candidate-meta", {
+      body: { id: 3, ipk: null },
+      cookie: asistenCookie(),
+    });
+    expect(r.code).toBe(200);
+    expect(tulis.find((w) => w.tabel === "candidate")?.nilai).toMatchObject({ ipkX100: null });
+  });
+  it("refuses a GPA outside 0 to 4 or with a third decimal, nothing to change, and the unseated", async () => {
+    sebagai("admin");
+    rows.candidate = [{ id: 3, nim: NIM, status: "applied" }];
+    for (const ipk of [4.01, -1, 2.855, "3,5"]) {
+      sebagai("admin");
+      const r = await panggil("POST", "candidate-meta", {
+        body: { id: 3, ipk },
+        cookie: asistenCookie(),
+      });
+      expect(r.body).toMatchObject({ kode: "data_salah", field: "ipk" });
+    }
+    sebagai("admin");
+    const kosong = await panggil("POST", "candidate-meta", {
+      body: { id: 3 },
+      cookie: asistenCookie(),
+    });
+    expect(kosong.code).toBe(400);
+    antrean.asisten = [[orang("asisten")]];
+    rows.committee = [];
+    const luar = await panggil("POST", "candidate-meta", {
+      body: { id: 3, ipk: 3 },
+      cookie: asistenCookie(),
+    });
+    expect(luar.code).toBe(403);
+  });
+});
+
 describe("while the Google Form is the way in", () => {
   it("nobody makes an oprec account themselves", async () => {
     rows.asisten = [];

@@ -201,6 +201,7 @@ export async function muatDokumen(
       size: recDocument.size,
       uploadedAt: recDocument.uploadedAt,
       note: recDocument.note,
+      verdict: recDocument.verdict,
     })
     .from(recDocument)
     .where(eq(recDocument.candidateId, kandidatId))
