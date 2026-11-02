@@ -387,3 +387,42 @@ button.n7-task {
     flex-wrap: wrap;
   }
 }
+
+/* Atur Ruang's Pengawas list: one full-width row per Asisten, a plus to add and a check once picked */
+.r3pick {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.r3pick__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+.r3pick__row[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--ok) 14%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .r3pick__row:hover:not(:disabled) {
+    border-color: var(--hairline-strong);
+  }
+}
+.r3pick__row:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
