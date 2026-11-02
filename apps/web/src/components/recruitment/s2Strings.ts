@@ -334,7 +334,7 @@ export const S2 = dict({
       withdrawnBadge: "Dibatalkan",
       declineTitle: "Tolak Permintaan?",
       declineDesc: (nama: string, ruang: string) =>
-        `${nama} tetap di ${ruang} dan membaca catatan ini.`,
+        `${nama} tetap di ${ruang}, dan membaca catatan ini.`,
       declineReasons: ["Tujuan sudah penuh", "Alasannya kurang jelas", "Sertakan bukti jadwal"],
       declineNote: "Catatan untuk kandidat (boleh kosong)",
       moved: (nama: string, ruang: string) => `${nama} dipindah ke ${ruang}. Dia diberi tahu.`,
@@ -845,7 +845,7 @@ export const S2 = dict({
       withdrawnBadge: "Withdrawn",
       declineTitle: "Decline the Request?",
       declineDesc: (nama: string, ruang: string) =>
-        `${nama} stays in ${ruang} and reads this note.`,
+        `${nama} stays in ${ruang}, and reads this note.`,
       declineReasons: ["Target is full", "Reason isn't clear", "Add your timetable"],
       declineNote: "A note for the candidate (optional)",
       moved: (nama: string, ruang: string) => `${nama} moved to ${ruang}. They're told.`,

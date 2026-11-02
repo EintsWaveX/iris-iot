@@ -39,7 +39,8 @@ export interface CrewFlag {
 
 /** What CrewBoard hands to the board: pieces to place, and the handler for an examiner drop. */
 export interface CrewCtx {
-  top: ReactNode;
+  /** The check card and the pool; `extra` are flags the board adds (a candidate with two slots at once) */
+  top: (extra: CrewFlag[]) => ReactNode;
   lane: (slotId: number) => ReactNode;
   flagsOf: (slotId: number) => CrewFlag[];
   drop: (data: ExData, overId: string | null) => void;

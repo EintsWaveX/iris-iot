@@ -18,6 +18,16 @@ export interface CrewBoardWords {
   clashNow: (code: string, room: string, panel: boolean) => string;
   added: (code: string, room: string, when: string) => string;
   to: string;
+  twoSlots: (nama: string) => string;
+  twoAt: (
+    where: string,
+    at: string,
+    stage: string,
+    from: string,
+    to: string,
+    room: string,
+  ) => string;
+  clashTip: (stage: string, from: string, to: string, room: string) => string;
   xlsx: string;
   xlsxDone: (name: string) => string;
 }
@@ -43,6 +53,9 @@ const ID: CrewBoardWords = {
     `${c} sekarang bentrok: dia juga di ${room} ${panel ? "malam" : "jam"} ini. Tetap tersimpan dan ditandai merah.`,
   added: (c, room, when) => `${c} menguji ${room}, ${when}. Dia diberi tahu.`,
   to: "sampai",
+  twoSlots: (n) => `${n} punya dua jadwal`,
+  twoAt: (w, at, st, a, b, r) => `${w} pukul ${at}, dan ${st} ${a} sampai ${b} di ${r}`,
+  clashTip: (stage, from, to, room) => `Bentrok: ${stage}, ${from} sampai ${to}, ${room}`,
   xlsx: "Download XLSX",
   xlsxDone: (n) => `${n}.xlsx sudah diunduh.`,
 };
@@ -68,6 +81,9 @@ const EN: CrewBoardWords = {
     `${c} now clashes: they're also in ${room} ${panel ? "this evening" : "at this time"}. Saved, and marked red.`,
   added: (c, room, when) => `${c} examines ${room}, ${when}. They're told.`,
   to: "to",
+  twoSlots: (n) => `${n} has two slots at once`,
+  twoAt: (w, at, st, a, b, r) => `${w} at ${at}, and ${st} ${a} to ${b} in ${r}`,
+  clashTip: (stage, from, to, room) => `Clash: ${stage}, ${from} to ${to}, ${room}`,
   xlsx: "Download XLSX",
   xlsxDone: (n) => `${n}.xlsx downloaded.`,
 };
@@ -93,6 +109,9 @@ const ZH: CrewBoardWords = {
     `${c} 现在冲突了：${panel ? "这晚" : "这个时间"}还在 ${room}。已保存并标红。`,
   added: (c, room, when) => `${c} 负责 ${room}（${when}），已通知。`,
   to: "至",
+  twoSlots: (n) => `${n} 同时有两个时段`,
+  twoAt: (w, at, st, a, b, r) => `${w} ${at}，以及${st} ${a} 至 ${b}（${r}）`,
+  clashTip: (stage, from, to, room) => `冲突：${stage}，${from} 至 ${to}，${room}`,
   xlsx: "下载 XLSX",
   xlsxDone: (n) => `${n}.xlsx 已下载。`,
 };
