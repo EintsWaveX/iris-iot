@@ -223,6 +223,25 @@ async function hitungHadir(db: Db, eventId: number): Promise<number> {
   return rows.length;
 }
 
+/**
+ * The events whose QR screen this Asisten may open without holding the attendance right:
+ * the shifts where they are the outside PJ. Their reach stops at their own shifts.
+ */
+export async function acaraPjLuar(db: Db, edisiId: number, nim: string): Promise<Set<number>> {
+  const rows = await db
+    .select({ eventId: recSlot.eventId })
+    .from(recSlotExaminer)
+    .innerJoin(recSlot, eq(recSlot.id, recSlotExaminer.slotId))
+    .where(
+      and(
+        eq(recSlotExaminer.asistenNim, nim),
+        eq(recSlotExaminer.role, "pj_luar"),
+        eq(recSlot.editionId, edisiId),
+      ),
+    );
+  return new Set(rows.flatMap((r) => (r.eventId === null ? [] : [r.eventId])));
+}
+
 /* ------------------------------------------------------------- handlers */
 
 /** GET qr-events: what the projector may show right now, with the counts. */
@@ -231,10 +250,16 @@ export async function handleQrAcara(_req: ApiRequest, res: ApiResponse, s: Sessi
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
   const p = await muatPelaku(db, edisi.id, s.nim);
-  if (!wajibHak(res, p, "attendance")) return;
+  // The attendance keepers see every live event; an outside PJ sees only their own shifts' events.
+  const sendiri = p && !p.hak.attendance ? await acaraPjLuar(db, edisi.id, s.nim) : null;
+  if (!sendiri) {
+    if (!wajibHak(res, p, "attendance")) return;
+  } else if (sendiri.size === 0) {
+    return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "attendance" });
+  }
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
-  const hidup = events.filter((e) => bisaDipindai(e, now));
+  const hidup = events.filter((e) => bisaDipindai(e, now) && (!sendiri || sendiri.has(e.id)));
   const daftar = [];
   for (const e of hidup)
     daftar.push({
@@ -255,7 +280,11 @@ export async function handleQrToken(req: ApiRequest, res: ApiResponse, s: Sessio
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
   const p = await muatPelaku(db, edisi.id, s.nim);
-  if (!wajibHak(res, p, "attendance")) return;
+  if (p && !p.hak.attendance) {
+    // Not an attendance keeper: only the outside PJ of a shift of this very event may.
+    if (!(await acaraPjLuar(db, edisi.id, s.nim)).has(id))
+      return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "attendance" });
+  } else if (!wajibHak(res, p, "attendance")) return;
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
   const e = events.find((v) => v.id === id);

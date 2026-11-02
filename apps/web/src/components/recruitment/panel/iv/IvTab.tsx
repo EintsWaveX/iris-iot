@@ -336,10 +336,13 @@ function Slotku({
   stage,
   onOpen,
   qr,
+  qrPj,
 }: {
   lang: Lang;
   stage: IvStage;
   onOpen: (id: number) => void;
+  /** The outside PJ's own shift may show its QR screen even without the attendance right */
+  qrPj: boolean;
   qr: boolean;
 }) {
   const w = IV(lang).mine;
@@ -413,7 +416,7 @@ function Slotku({
             lang={lang}
             stage={stage}
             s={s}
-            qr={qr}
+            qr={qr || (qrPj && s.role === "pj_luar")}
             refresh={mine.refresh}
           />
         ))}
@@ -426,12 +429,15 @@ export default function IvTab({
   lang,
   stage,
   rights,
+  qrShift,
   lead,
   templateLabel,
 }: {
   lang: Lang;
   stage: IvStage;
   rights: RecRights | null;
+  /** Outside PJ of a shift: may open that shift's QR screen without the attendance right */
+  qrShift?: boolean;
   /** A tab in front of Slotku (Tubes: the running order). */
   lead?: { label: string; node: ReactNode };
   /** Overrides the Template tab's label. */
@@ -470,7 +476,13 @@ export default function IvTab({
       {aktif === "lead" && lead ? (
         lead.node
       ) : aktif === "mine" ? (
-        <Slotku lang={lang} stage={stage} onOpen={setBuka} qr={rights?.attendance === true} />
+        <Slotku
+          lang={lang}
+          stage={stage}
+          onOpen={setBuka}
+          qr={rights?.attendance === true}
+          qrPj={qrShift === true}
+        />
       ) : aktif === "nilai" ? (
         <Penilaian lang={lang} stage={stage} />
       ) : (

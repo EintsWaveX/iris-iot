@@ -213,7 +213,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
         ) : tab === "plotting" && rights ? (
           <PlottingTab lang={lang} events={events} rights={rights} />
         ) : tab === "wawancara" || tab === "mengajar" ? (
-          <IvTab lang={lang} stage={tab} rights={rights} />
+          <IvTab lang={lang} stage={tab} rights={rights} qrShift={edisi.data?.qrShift === true} />
         ) : tab === "tubes" ? (
           <TubesTab lang={lang} rights={rights} />
         ) : tab === "penerimaan" ? (

@@ -379,6 +379,8 @@ export interface EditionResponse {
   viewer: ViewerKind;
   /** null unless the viewer sits on the committee or holds hakPenuh */
   rights: RecRights | null;
+  /** Asisten without the attendance right: they are the outside PJ of a shift, so they may open that shift's QR screen */
+  qrShift?: boolean;
   /** The viewer's seat, when they have one */
   seat: { division: CommitteeDivision; isKoor: boolean; title: string | null } | null;
   /** Mode Latihan: this request ran on the practice edition, as this side (Asisten only) */

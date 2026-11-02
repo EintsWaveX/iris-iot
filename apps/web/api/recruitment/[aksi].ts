@@ -161,6 +161,7 @@ import {
   handleHadir,
   handleHadirManual,
   handleKehadiran,
+  acaraPjLuar,
   handleQrAcara,
   handleQrToken,
 } from "../_lib/recruitment-attendance.js";
@@ -322,6 +323,11 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     viewer: kind,
     rights: pelaku && anggotaPanitia(pelaku) ? pelaku.hak : null,
     seat: pelaku?.kursi ?? null,
+    // An outside PJ of a shift may open that shift's QR screen without the attendance right.
+    ...(pelaku &&
+      !pelaku.hak.attendance && {
+        qrShift: (await acaraPjLuar(db, edisi.id, pelaku.orang.nim)).size > 0,
+      }),
     ...(konteksLatihan() && { latihan: konteksLatihan()!.mode }),
     // The Plotting count in the navbar: slot change requests nobody has decided yet.
     ...(pelaku &&
