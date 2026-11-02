@@ -788,7 +788,7 @@ async function handleTinjau(req: ApiRequest, res: ApiResponse, s: SessionPayload
   const b = jsonBody(req);
   const id = Number(b.id);
   if (!Number.isInteger(id) || id <= 0) return tolak(res, "data_salah", 400, { field: "id" });
-  if (b.decision !== "approve" && b.decision !== "revision")
+  if (b.decision !== "approve" && b.decision !== "revision" && b.decision !== "withdraw")
     return tolak(res, "data_salah", 400, { field: "decision" });
   const catatan = typeof b.note === "string" ? b.note.trim() : "";
   if (catatan.length > 500) return tolak(res, "data_salah", 400, { field: "note" });
@@ -826,6 +826,17 @@ async function handleTinjau(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!k) return tolak(res, "tidak_ditemukan", 404);
   if (!["applied", "revision", "approved"].includes(k.status))
     return tolak(res, "status_salah", 409);
+  // Batalkan Persetujuan (mockup): an approval goes back to waiting while the CaAs is still at the document check.
+  if (b.decision === "withdraw") {
+    if (k.status !== "approved" || k.currentStage !== "berkas")
+      return tolak(res, "status_salah", 409);
+    await db
+      .update(recCandidate)
+      .set({ status: "applied", reviewNote: null, reviewedBy: null, reviewedAt: null })
+      .where(eq(recCandidate.id, k.id));
+    await writeAudit(s.nim, "rec_tinjau", { id: k.id, nim: k.nim, status: "applied" });
+    return void res.status(200).json({ ok: true, status: "applied" });
+  }
   if (b.decision === "approve") {
     const wajib = (await aturanDokumen(db)).required;
     const n = (await hitungDokumen(db, [k.id], wajib)).get(k.id) ?? 0;

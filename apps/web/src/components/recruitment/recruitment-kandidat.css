@@ -228,11 +228,18 @@
   gap: 1px;
   min-width: 0;
 }
+/* The whole name and the NIM line always show: they wrap instead of being cut with "...". */
 .rec9-row__who b,
 .rec9-row__who .hint {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.rec9-row__who b {
+  line-height: 1.3;
+}
+/* On a wide row the group has no box of its own: its parts are the row's columns. */
+.rec9-row__meta {
+  display: contents;
 }
 .rec9-row__stage {
   align-items: center;
@@ -274,27 +281,93 @@
 .rec9-row > svg:last-child {
   color: var(--text-faint);
 }
-@media (max-width: 899px) {
+/* The list changes shape with the room it has (the panel column), in four steps:
+   wide: every column and the labelled Cutting button; 990-1159: the button shrinks to its icon;
+   700-989: the document bar and the date go; under 700: a card, with the stage, date and status wrapped under the full name. */
+.rec9-kcon {
+  container: kand / inline-size;
+  display: grid;
+  gap: 14px;
+}
+@container kand (max-width: 1159px) {
+  .rec9-line > .btn {
+    font-size: 0;
+    gap: 0;
+    padding-inline: 10px;
+  }
+  .rec9-line > .btn svg {
+    height: 1.2rem;
+    width: 1.2rem;
+  }
+}
+@container kand (max-width: 989px) {
   .rec9-row,
   .rec9-row[data-late="yes"] {
-    grid-template-columns: 36px minmax(0, 1fr) auto auto 16px;
+    grid-template-columns: 36px minmax(0, 1fr) 118px auto 16px;
   }
   .rec9-row__docs,
   .rec9-row__at {
     display: none;
   }
-  .rec9-row__stage {
-    max-width: 110px;
-  }
 }
-@media (max-width: 639px) {
-  .rec9-row__stage span {
-    display: none;
+@container kand (max-width: 699px) {
+  .rec9-row,
+  .rec9-row[data-late="yes"] {
+    align-items: start;
+    grid-template-columns: 36px minmax(0, 1fr) 16px;
+    row-gap: 8px;
+  }
+  .rec9-row > svg:last-child {
+    align-self: center;
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+  .rec9-row__st {
+    grid-row: 1 / span 2;
+  }
+  .rec9-row__meta {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    grid-column: 2;
+  }
+  .rec9-row__docs,
+  .rec9-row__at {
+    display: inline-flex;
+  }
+  .rec9-row .pill {
+    justify-self: auto;
   }
   .rec9-line > .btn {
-    font-size: 0;
-    gap: 0;
-    padding-inline: 10px;
+    align-self: stretch;
+  }
+  /* The one main action ("Periksa Berikutnya") takes the whole line, easy to hit with a thumb. */
+  .rec9-kbar > .grow {
+    display: none;
+  }
+  .rec9-kbar > .btn--primary {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  /* Search and the count share the first line; the buttons share the next one. */
+  .rec-tools {
+    gap: 8px;
+  }
+  .rec9-search {
+    flex: 1 1 180px;
+    max-width: none;
+  }
+  .rec-tools > .grow {
+    display: none;
+  }
+  /* Two buttons share a line, the last one takes a line of its own. */
+  .rec-tools > .btn {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
+  .rec-tools > .btn:last-child:nth-child(even) {
+    flex-basis: 100%;
   }
 }
 
@@ -459,4 +532,44 @@
   align-items: center;
   display: flex;
   gap: 10px;
+}
+
+/* The Berkas review drawer, as in the mockup (rec2.css and rec11.css). */
+/* The Kandidat area colour on the head: a bar along the top edge and a dot before the name. */
+.drawer:has(.r2rev) .drawer__head {
+  box-shadow: inset 0 3px 0 #a78bfa;
+}
+.drawer:has(.r2rev) .drawer__title::before {
+  background: #a78bfa;
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  height: 10px;
+  margin-right: 10px;
+  vertical-align: 0.05em;
+  width: 10px;
+}
+/* The body scrolls under the footer: a 28px fade at the bottom edge says there is more, and the same padding keeps the last block clear of it. */
+.drawer:has(.r2rev) .drawer__body {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  padding-bottom: 46px;
+}
+/* The documents' tabs hug their words and start at the left, like the mockup's tab line (the shared kit stretches them to fill the row). */
+.r2rev__nav .tabs__tab {
+  flex: 0 0 auto;
+}
+/* A fix note on a light surface: a tint that reads on white (mockup rec11.css). */
+:root[data-theme="light"] .rec-note--warn {
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface-1));
+}
+/* On a phone the review drawer's one column was as wide as the whole tab row (it would not shrink), so the Perbaiki chips and the
+   side column ran off the right edge. One column that may shrink, and every block in it too. */
+.r2rev {
+  grid-template-columns: minmax(0, 1fr);
+}
+.r2rev > *,
+.r2rev__nav > *,
+.r2rev__side > * {
+  min-width: 0;
 }

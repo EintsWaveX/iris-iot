@@ -127,7 +127,10 @@ export default function BerkasReview({
     setDoc(rules.required[0] ?? rules.optional[0]);
   };
 
-  async function putus(decision: "approve" | "revision", note?: string): Promise<boolean> {
+  async function putus(
+    decision: "approve" | "revision" | "withdraw",
+    note?: string,
+  ): Promise<boolean> {
     setBusy(true);
     const r = await recPost<ReviewResponse>("review", {
       id,
@@ -190,9 +193,25 @@ export default function BerkasReview({
       foot={
         c ? (
           sudah ? (
-            <span className="hint">
-              {c.reviewedAt ? t.approvedAt(waktu(c.reviewedAt, lang)) : ""}
-            </span>
+            <>
+              <span className="hint">
+                {c.reviewedAt ? t.approvedAt(waktu(c.reviewedAt, lang)) : ""}
+              </span>
+              <span className="grow" />
+              {/* Only while the CaAs is still at the document check; the server says no past it. */}
+              {c.stage === "berkas" && (
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  disabled={busy}
+                  onClick={async () => {
+                    if (await putus("withdraw")) window.Toast?.show(t.withdrawn, "warn");
+                  }}
+                >
+                  {t.withdraw}
+                </button>
+              )}
+            </>
           ) : (
             <>
               <button
