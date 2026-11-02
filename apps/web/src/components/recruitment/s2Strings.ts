@@ -155,6 +155,10 @@ export const S2 = dict({
     cut: {
       stage: "Tahap",
       later: "Wawancara, Tubes dan Mengajar muncul saat Cutting-nya dimulai.",
+      laterSome: (nama: string) => `${nama} muncul saat Cutting-nya dimulai.`,
+      laterAnd: "dan",
+      cutWhen: (stage: string, a: string, b: string | null) =>
+        `Cutting ${stage}: ${b ? `${a} sampai ${b}` : a}.`,
       proposedPass: "usul lolos",
       proposedFail: "usul gagal",
       wouldPass: "akan lolos",
@@ -244,7 +248,7 @@ export const S2 = dict({
       allProposed: "Semua kandidat sudah punya usulan.",
       hold: "Kunci Hasil",
       keepProposing: "Kamu bisa mengusulkan sampai dikunci.",
-      lockedBy: (siapa: string, kapan: string) => `Dikunci ${siapa}, ${kapan}`,
+      lockedBy: (siapa: string, kapan: string) => `Dikunci${siapa ? ` ${siapa}` : ""}, ${kapan}`,
       announced: (kapan: string) => `Diumumkan ${kapan}`,
       openedCount: (a: number, b: number) =>
         `${a} dari ${b} kandidat sudah membuka amplopnya. Kuncinya tidak bisa dibuka lagi setelah pengumuman.`,
@@ -390,6 +394,10 @@ export const S2 = dict({
       scoreNone: "Menunggu keputusan",
       scoreHint:
         "Kolom ini ada kalau Panitia memutuskan berkas dinilai. Sampai itu, nilainya tidak dipakai di Cutting.",
+      note: "Catatan Panitia",
+      notePh: "Hanya terlihat oleh Panitia",
+      noteSaved: "Catatan disimpan.",
+      noteFail: "Catatan belum tersimpan. Coba lagi.",
       scoreLabel: "Nilai berkas",
       less: "Kurangi",
       more: "Tambah",
@@ -660,6 +668,10 @@ export const S2 = dict({
     cut: {
       stage: "Stage",
       later: "Interview, Project and Teaching appear when their Cutting starts.",
+      laterSome: (nama: string) => `${nama} appear when their Cutting starts.`,
+      laterAnd: "and",
+      cutWhen: (stage: string, a: string, b: string | null) =>
+        `${stage} Cutting: ${b ? `${a} to ${b}` : a}.`,
       proposedPass: "proposed pass",
       proposedFail: "proposed fail",
       wouldPass: "would pass",
@@ -750,7 +762,7 @@ export const S2 = dict({
       allProposed: "Every candidate has a proposal.",
       hold: "Lock Results",
       keepProposing: "You can propose until it's locked.",
-      lockedBy: (siapa: string, kapan: string) => `Locked by ${siapa}, ${kapan}`,
+      lockedBy: (siapa: string, kapan: string) => `Locked${siapa ? ` by ${siapa}` : ""}, ${kapan}`,
       announced: (kapan: string) => `Announced ${kapan}`,
       openedCount: (a: number, b: number) =>
         `${a} of ${b} candidates have opened their envelope. It can't be unlocked after the announcement.`,
@@ -893,6 +905,10 @@ export const S2 = dict({
       scoreNone: "Not decided",
       scoreHint:
         "This is here in case Panitia decide documents get a score. Until then, Cutting doesn't use it.",
+      note: "Panitia Notes",
+      notePh: "Only Panitia see this",
+      noteSaved: "Note saved.",
+      noteFail: "The note was not saved. Try again.",
       scoreLabel: "Document score",
       less: "Less",
       more: "More",
@@ -1155,6 +1171,10 @@ export const S2 = dict({
     cut: {
       stage: "阶段",
       later: "面试、项目和试讲在各自的筛选开始后出现。",
+      laterSome: (nama: string) => `${nama}在各自的筛选开始后出现。`,
+      laterAnd: "和",
+      cutWhen: (stage: string, a: string, b: string | null) =>
+        `${stage}筛选：${b ? `${a} 至 ${b}` : a}。`,
       proposedPass: "建议通过",
       proposedFail: "建议淘汰",
       wouldPass: "将通过",
@@ -1242,7 +1262,7 @@ export const S2 = dict({
       allProposed: "每位候选人都有建议了。",
       hold: "锁定结果",
       keepProposing: "在锁定之前你都可以提出建议。",
-      lockedBy: (siapa: string, kapan: string) => `${siapa} 于 ${kapan} 锁定`,
+      lockedBy: (siapa: string, kapan: string) => `${siapa ? `${siapa} 于 ` : ""}${kapan} 锁定`,
       announced: (kapan: string) => `${kapan}已公布`,
       openedCount: (a: number, b: number) =>
         `${b} 位候选人中有 ${a} 位已拆开信封。公布之后不能再解锁。`,
@@ -1379,6 +1399,10 @@ export const S2 = dict({
       score: "资料分数",
       scoreNone: "尚未决定",
       scoreHint: "如果招募组决定给资料打分，就用这一栏。在那之前，筛选不会用到它。",
+      note: "委员会备注",
+      notePh: "只有委员会能看到",
+      noteSaved: "备注已保存。",
+      noteFail: "备注没有保存，请重试。",
       scoreLabel: "资料分数",
       less: "减少",
       more: "增加",

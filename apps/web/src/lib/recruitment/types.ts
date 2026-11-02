@@ -550,6 +550,8 @@ export interface CandidateDetailResponse {
     reviewedAt: string | null;
     /** Nilai Berkas, only with the documents right */
     berkasScore: number | null;
+    /** Catatan Panitia: only the Panitia see it */
+    panitiaNote: string | null;
   };
   biodata: Biodata | null;
   documents: BerkasFile[] | null;

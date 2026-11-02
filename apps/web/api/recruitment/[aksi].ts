@@ -143,6 +143,7 @@ import {
 } from "../_lib/recruitment-sembunyi.js";
 import {
   handleDokumenPanitia,
+  handleCatatanKandidat,
   handleHapusKandidat,
   handleTambahKandidat,
   handleTiketPanitia,
@@ -506,6 +507,7 @@ async function handleKandidatRinci(req: ApiRequest, res: ApiResponse, s: Session
       reviewedBy: k.reviewedBy,
       reviewedAt: k.reviewedAt ? k.reviewedAt.toISOString() : null,
       berkasScore: lengkap ? k.berkasScore : null,
+      panitiaNote: k.panitiaNote,
     },
     biodata: lengkap ? k.biodata : null,
     documents: dokumen,
@@ -1227,6 +1229,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "account-reset") return handleResetAkun(req, res, s);
   if (aksi === "candidate-add") return handleTambahKandidat(req, res, s);
   if (aksi === "candidate-delete") return handleHapusKandidat(req, res, s);
+  if (aksi === "candidate-note") return handleCatatanKandidat(req, res, s);
   if (aksi === "candidate-ticket") return handleTiketPanitia(req, res, s);
   if (aksi === "candidate-document") return handleDokumenPanitia(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);

@@ -365,6 +365,50 @@ describe("the Panitia's uploads", () => {
   });
 });
 
+describe("candidate-note (Catatan Panitia)", () => {
+  it("saves the trimmed note for a Panitia member who may see candidates", async () => {
+    sebagai("admin");
+    rows.candidate = [{ id: 3, nim: NIM, status: "applied" }];
+    const r = await panggil("POST", "candidate-note", {
+      body: { id: 3, note: "  Datang terlambat 4 menit.  " },
+      cookie: asistenCookie(),
+    });
+    expect(r.code).toBe(200);
+    expect(tulis.find((w) => w.tabel === "candidate")?.nilai).toMatchObject({
+      panitiaNote: "Datang terlambat 4 menit.",
+    });
+    expect(audit[0]).toMatchObject({ aksi: "rec_kandidat_catatan", isi: { id: 3, kosong: false } });
+  });
+  it("an empty text clears the note", async () => {
+    sebagai("admin");
+    rows.candidate = [{ id: 3, nim: NIM, status: "applied" }];
+    const r = await panggil("POST", "candidate-note", {
+      body: { id: 3, note: "   " },
+      cookie: asistenCookie(),
+    });
+    expect(r.code).toBe(200);
+    expect(tulis.find((w) => w.tabel === "candidate")?.nilai).toMatchObject({ panitiaNote: null });
+  });
+  it("refuses a note over 2000 characters, and someone outside the Panitia", async () => {
+    sebagai("admin");
+    rows.candidate = [{ id: 3, nim: NIM, status: "applied" }];
+    const lang = await panggil("POST", "candidate-note", {
+      body: { id: 3, note: "x".repeat(2001) },
+      cookie: asistenCookie(),
+    });
+    expect(lang.body).toMatchObject({ kode: "data_salah", field: "note" });
+    antrean.asisten = [[orang("asisten")]];
+    rows.committee = [];
+    const luar = await panggil("POST", "candidate-note", {
+      body: { id: 3, note: "x" },
+      cookie: asistenCookie(),
+    });
+    expect(luar.code).toBe(403);
+    const anon = await panggil("POST", "candidate-note", { body: { id: 3, note: "x" } });
+    expect(anon.code).toBe(401);
+  });
+});
+
 describe("while the Google Form is the way in", () => {
   it("nobody makes an oprec account themselves", async () => {
     rows.asisten = [];

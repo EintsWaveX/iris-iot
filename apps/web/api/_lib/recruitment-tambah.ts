@@ -33,7 +33,7 @@ import { cekBiodataFormulir } from "../../src/lib/recruitment/validate.js";
 import { type CandidateStatus } from "../../src/lib/recruitment/types.js";
 import { kunciRekrutmen } from "../../src/lib/tp-r2.js";
 import { tolak, wajibEdisi, muatKandidat, type Db } from "./recruitment-data.js";
-import { muatPelaku, type PelakuServer } from "./recruitment-rights.js";
+import { muatPelaku, wajibHak, type PelakuServer } from "./recruitment-rights.js";
 import { aturanDokumen } from "./recruitment-settings.js";
 import { bacaTiketRek, buatTiketRek, cekParamTiket, periksaBerkas } from "./recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah } from "./tp-simpan.js";
@@ -105,6 +105,26 @@ export async function handleHapusKandidat(req: ApiRequest, res: ApiResponse, s: 
   if (dibuka || jadi) return tolak(res, "sudah_ada_hasil", 409);
   await db.delete(recCandidate).where(eq(recCandidate.id, k.id));
   await writeAudit(s.nim, "rec_kandidat_hapus", { id: k.id, nim: k.nim, status: k.status });
+  return void res.status(200).json({ ok: true });
+}
+
+/** Catatan Panitia: a free note on a candidate that only the Panitia read. An empty text clears it. */
+export async function handleCatatanKandidat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (!wajibHak(res, p, "candidates")) return;
+  const b = jsonBody(req);
+  const k = await kandidatId(db, edisi.id, b.id);
+  if (!k) return tolak(res, "tidak_ditemukan", 404);
+  const teks = typeof b.note === "string" ? b.note.trim() : "";
+  if (teks.length > 2000) return tolak(res, "data_salah", 400, { field: "note" });
+  await db
+    .update(recCandidate)
+    .set({ panitiaNote: teks || null })
+    .where(eq(recCandidate.id, k.id));
+  await writeAudit(s.nim, "rec_kandidat_catatan", { id: k.id, kosong: !teks });
   return void res.status(200).json({ ok: true });
 }
 
