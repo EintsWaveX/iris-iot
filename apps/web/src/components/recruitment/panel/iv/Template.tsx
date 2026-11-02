@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  CheckIcon,
   DownloadSimpleIcon,
   PencilSimpleIcon,
   PlusIcon,
@@ -93,6 +94,8 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
   const w = IV(lang);
   const t = w.tpl;
   const p = TP[lang];
+  const rb = p.rubric;
+  const mg = stage !== "wawancara";
   const set = useRecSettings(true);
   const view = set.data?.settings.find((s) => s.key === stage) ?? null;
   const saved = useMemo(() => (view ? (view.value as IvTemplate) : null), [view]);
@@ -162,6 +165,17 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
       questions: d.questions.filter((q) => q.p !== key),
     });
     undoable(p.removedParam, before);
+  };
+  const geserParam = (i: number, dir: number) => {
+    const j = i + dir;
+    if (j < 0 || j >= d.params.length) return;
+    const a = d.params.slice();
+    [a[i], a[j]] = [a[j], a[i]];
+    patch({ params: a });
+  };
+  const tetapkan = () => {
+    patch({ params: d.params.map((x) => ({ ...x, example: false })) });
+    toast(rb.confirmed);
   };
   const tambahQ = () => {
     if (!d.groups.length || !d.params.length) return;
@@ -262,13 +276,13 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
   return (
     <div className="stack">
       <div className="row row--between" style={{ gap: 8, flexWrap: "wrap" }}>
-        <span className="hint">{can ? p.top : t.readOnly}</span>
+        <span className="hint">{can ? (mg ? rb.top : p.top) : t.readOnly}</span>
         <span className="row" style={{ gap: 8 }}>
           <button type="button" className="btn btn--ghost btn--sm" onClick={unduh}>
             <DownloadSimpleIcon size={18} aria-hidden="true" />
             <span className="btn__label">{p.download}</span>
           </button>
-          {can && d.groups.length > 0 && (
+          {can && !mg && d.groups.length > 0 && (
             <button
               type="button"
               className="btn btn--inverse btn--sm"
@@ -285,31 +299,49 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
       <section className="panel r4tpl__sum">
         <div className="panel__head">
           <div className="stack" style={{ gap: 2 }}>
-            <h3 className="panel__title">{p.params.title}</h3>
-            <span className="hint">{p.params.hint}</span>
+            <h3 className="panel__title">{mg ? rb.title : p.params.title}</h3>
+            <span className="hint">{mg ? rb.hint : p.params.hint}</span>
           </div>
           {can && (
-            <button
-              type="button"
-              className="btn btn--inverse btn--sm"
-              onClick={tambahParam}
-              disabled={d.params.length >= 12}
-            >
-              <PlusIcon size={18} aria-hidden="true" />
-              <span className="btn__label">{p.params.add}</span>
-            </button>
+            <span className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+              {mg && d.params.some((x) => x.example) && (
+                <button type="button" className="btn btn--primary btn--sm" onClick={tetapkan}>
+                  <CheckIcon size={18} aria-hidden="true" />
+                  <span className="btn__label">{rb.confirm}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn--inverse btn--sm"
+                onClick={tambahParam}
+                disabled={d.params.length >= 12}
+              >
+                <PlusIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{mg ? rb.add : p.params.add}</span>
+              </button>
+            </span>
           )}
         </div>
-        <ul className="r4ptl">
+        <ul className={mg ? "r4ptl r6ptl" : "r4ptl"}>
           {d.params.map((x, i) => (
-            <li key={x.key}>
+            <li key={x.key} className={mg ? "r6ptl__r" : undefined}>
               <label className="stack stack--sm">
-                <span className="hint">{p.params.name}</span>
+                <span className="hint">
+                  {p.params.name} {mg && x.example && <Pill tone="warn">{rb.sample}</Pill>}
+                </span>
                 <input
                   className="field__input input"
                   value={x.label[lg(lang)]}
                   disabled={!can}
-                  onChange={(e) => setParam(i, { label: setBi(x.label, e.target.value, lang) })}
+                  onChange={(e) =>
+                    patch({
+                      params: d.params.map((y, j) =>
+                        j === i
+                          ? { ...y, label: setBi(y.label, e.target.value, lang), example: false }
+                          : y,
+                      ),
+                    })
+                  }
                 />
               </label>
               <label className="stack stack--sm">
@@ -318,19 +350,65 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                   ind={x.ind}
                   lang={lang}
                   disabled={!can}
-                  onChange={(next) => setParam(i, { ind: next })}
+                  onChange={(next) =>
+                    patch({
+                      params: d.params.map((y, j) =>
+                        j === i ? { ...y, ind: next, example: false } : y,
+                      ),
+                    })
+                  }
                 />
               </label>
-              {can && (
-                <IconButton
-                  sm
-                  kind="danger"
-                  icon={TrashIcon}
-                  label={d.params.length < 2 ? p.params.one : p.params.del}
-                  disabled={d.params.length < 2}
-                  onClick={() => hapusParam(i)}
-                />
+              {mg && (
+                <label className="stack stack--sm">
+                  <span className="hint">{rb.weight}</span>
+                  <Stepper
+                    value={x.weight}
+                    onChange={(n) => setParam(i, { weight: n })}
+                    min={1}
+                    max={10}
+                    label={rb.weight}
+                    disabled={!can}
+                    {...STEP(lang)}
+                  />
+                </label>
               )}
+              {can &&
+                (mg ? (
+                  <span className="r6ptl__a">
+                    <IconButton
+                      sm
+                      icon={ArrowUpIcon}
+                      label={p.up}
+                      disabled={i === 0}
+                      onClick={() => geserParam(i, -1)}
+                    />
+                    <IconButton
+                      sm
+                      icon={ArrowDownIcon}
+                      label={p.down}
+                      disabled={i === d.params.length - 1}
+                      onClick={() => geserParam(i, 1)}
+                    />
+                    <IconButton
+                      sm
+                      kind="danger"
+                      icon={TrashIcon}
+                      label={d.params.length < 2 ? p.params.one : p.params.del}
+                      disabled={d.params.length < 2}
+                      onClick={() => hapusParam(i)}
+                    />
+                  </span>
+                ) : (
+                  <IconButton
+                    sm
+                    kind="danger"
+                    icon={TrashIcon}
+                    label={d.params.length < 2 ? p.params.one : p.params.del}
+                    disabled={d.params.length < 2}
+                    onClick={() => hapusParam(i)}
+                  />
+                ))}
             </li>
           ))}
         </ul>
@@ -361,15 +439,17 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                     onChange={(e) => setParam(i, { eg: setBi(x.eg, e.target.value, lang) })}
                   />
                 </label>
-                <Stepper
-                  value={x.weight}
-                  onChange={(n) => setParam(i, { weight: n })}
-                  min={1}
-                  max={10}
-                  label={p.weight.name}
-                  disabled={!can}
-                  {...STEP(lang)}
-                />
+                {!mg && (
+                  <Stepper
+                    value={x.weight}
+                    onChange={(n) => setParam(i, { weight: n })}
+                    min={1}
+                    max={10}
+                    label={p.weight.name}
+                    disabled={!can}
+                    {...STEP(lang)}
+                  />
+                )}
               </li>
             ))}
           </ul>

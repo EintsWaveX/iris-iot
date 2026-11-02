@@ -21,6 +21,7 @@ import type { RecRights } from "../../../../lib/recruitment/types";
 import Lembar from "./Lembar";
 import Penilaian from "./Penilaian";
 import Template from "./Template";
+import { TeachCard, TeachPj, teachSample, teachTop } from "./TeachSlotku";
 import { PN } from "./penilaianStrings";
 import { IV } from "./ivStrings";
 import { SK } from "./slotStrings";
@@ -357,6 +358,41 @@ function Slotku({
   const slots = mine.data.slots;
   const pj = slots.filter((s) => s.role !== "penguji");
   const own = slots.filter((s) => s.role === "penguji");
+  if (stage === "mengajar") {
+    const sample = teachSample(lang);
+    return (
+      <div className="stack">
+        <div className="row row--between r4my__top">
+          <span className="hint">{teachTop(lang, own.length, pj.length)}</span>
+          {mine.data.template.example && (
+            <span title={sample.tip}>
+              <Pill tone="warn">{sample.label}</Pill>
+            </span>
+          )}
+        </div>
+        {pj.length > 0 && (
+          <div className="r4my">
+            {pj.map((s) => (
+              <TeachPj key={`${s.id}-${s.role}`} lang={lang} s={s} qr={qr} refresh={mine.refresh} />
+            ))}
+          </div>
+        )}
+        <div className="r4my">
+          {own.map((s) => (
+            <TeachCard
+              key={s.id}
+              lang={lang}
+              s={s}
+              tpl={mine.data!.template}
+              me={mine.data!.me.kode}
+              qr={qr}
+              onOpen={onOpen}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="stack">
       <div className="row row--between r4my__top">
@@ -432,7 +468,14 @@ export default function IvTab({
         <Template lang={lang} stage={stage} />
       )}
       {buka !== null && (
-        <Lembar lang={lang} stage={stage} id={buka} onClose={() => setBuka(null)} />
+        <Lembar
+          lang={lang}
+          stage={stage}
+          id={buka}
+          key={buka}
+          onClose={() => setBuka(null)}
+          onNext={setBuka}
+        />
       )}
     </div>
   );

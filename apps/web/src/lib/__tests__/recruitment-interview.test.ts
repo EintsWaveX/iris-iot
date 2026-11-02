@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   IV_DEFAULT,
+  caseKindsFor,
   caseOutcome,
   checkTemplate,
   crewFor,
@@ -193,5 +194,31 @@ describe("a sheet ready to send", () => {
     expect(sheetMissing({ ...full, concl: { ...full.concl, attitude: "  " } }, W.params)).toEqual([
       "cl-attitude",
     ]);
+  });
+});
+
+describe("the cases of the teaching test", () => {
+  it("offers the teaching test's own cases and the interview's own", () => {
+    expect(caseKindsFor("mengajar")).toEqual([
+      "telat",
+      "absen",
+      "sakit",
+      "teknis",
+      "lewat",
+      "nametag",
+    ]);
+    expect(caseKindsFor("wawancara")).toEqual(["telat", "absen", "sakit", "nametag", "keluar"]);
+  });
+  it("carries on after a technical problem or when the time ran out, never ending the turn", () => {
+    expect(caseOutcome({ kind: "teknis" }, { late: 10 })).toEqual({
+      status: null,
+      end: false,
+      code: "teknis",
+    });
+    expect(caseOutcome({ kind: "lewat" }, { late: 10 })).toEqual({
+      status: null,
+      end: false,
+      code: "lewat",
+    });
   });
 });

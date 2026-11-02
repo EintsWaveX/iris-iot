@@ -5,7 +5,7 @@
  * the English), since Panitia write them.
  */
 import type { Lang } from "../../../../lib/kelas";
-import type { Bi, IvStage } from "../../../../lib/recruitment/interview";
+import type { Bi, CaseKind, IvStage } from "../../../../lib/recruitment/interview";
 
 export interface IvWords {
   tab: Record<IvStage, string>;
@@ -89,7 +89,7 @@ export interface IvWords {
   kasus: {
     title: string;
     desc: (n: string) => string;
-    kinds: Record<"telat" | "absen" | "sakit" | "nametag" | "keluar", string>;
+    kinds: Record<CaseKind, string>;
     minutes: string;
     why: string;
     lateWhy: Record<"akademik" | "musibah" | "lain", string>;
@@ -101,6 +101,8 @@ export interface IvWords {
       | "absen_gugur"
       | "absen_susulan"
       | "sakit"
+      | "teknis"
+      | "lewat"
       | "nametag"
       | "keluar",
       string
@@ -310,7 +312,9 @@ const ID: IvWords = {
     kinds: {
       telat: "Terlambat",
       absen: "Tidak hadir",
-      sakit: "Sakit atau harus keluar saat {s}",
+      sakit: "Sakit atau harus keluar saat {l}",
+      teknis: "Masalah teknis (proyektor, listrik)",
+      lewat: "Waktu habis sebelum selesai",
       nametag: "Tidak membawa nametag",
       keluar: "Meninggalkan ruangan atau ke kamar mandi",
     },
@@ -337,9 +341,13 @@ const ID: IvWords = {
         "Lewat toleransi karena musibah atau akademik: bisa ikut Susulan {s}{d}. PJ luar ruangan mengonfirmasi ke PJ {s}.",
       absen_gugur: "Tidak hadir tanpa alasan yang sah: dinyatakan GUGUR. Dikonfirmasi PJ {s} dulu.",
       absen_susulan:
-        "Izin dengan bukti: ditawari Susulan {s}{d}. Izin harus masuk sebelum {s} dimulai.",
+        "Izin dengan bukti: ditawari Susulan {s}{d}. Izin harus masuk sebelum {l} dimulai.",
       sakit:
-        "Hentikan {s} dan keluarkan CaAs. Dia ditawari Susulan {s}{d}. Jawaban yang sudah masuk tetap tersimpan.",
+        "Hentikan {l} dan keluarkan CaAs. Dia ditawari Susulan {s}{d}. Jawaban yang sudah masuk tetap tersimpan.",
+      teknis:
+        "Hentikan jam, perbaiki, lalu lanjutkan. Tambahan waktu secukupnya; bila lama, putuskan di panel dan catat di berita acara.",
+      lewat:
+        "Hentikan dengan sopan saat waktu habis. Nilai berdasarkan yang sudah disampaikan; tidak ada tambahan waktu. Catat di Penggunaan waktu.",
       nametag:
         "Tanyakan kenapa tidak membawa nametag dan catat. CaAs wajib menunjukkan KTM atau KTP.",
       keluar:
@@ -564,7 +572,9 @@ const EN: IvWords = {
     kinds: {
       telat: "Late",
       absen: "Didn't come",
-      sakit: "Ill or has to leave mid-{s}",
+      sakit: "Ill or has to leave mid-{l}",
+      teknis: "Technical problem (projector, power)",
+      lewat: "Time ran out",
       nametag: "No name tag",
       keluar: "Left the room or went to the restroom",
     },
@@ -584,12 +594,16 @@ const EN: IvWords = {
       late_gugur:
         "Past the grace with no misfortune or class reason: GUGUR. The outside PJ confirms with PJ {s} first.",
       late_susulan:
-        "Past the grace for misfortune or class: can sit the {s} makeup{d}. The outside PJ confirms with PJ {s}.",
+        "Past the grace for misfortune or class: can sit the {l} makeup{d}. The outside PJ confirms with PJ {s}.",
       absen_gugur: "No valid reason: GUGUR. Confirmed with PJ {s} first.",
       absen_susulan:
-        "Excused with proof: offered the {s} makeup{d}. Excuses must come in before the {s} starts.",
+        "Excused with proof: offered the {l} makeup{d}. Excuses must come in before the {l} starts.",
       sakit:
-        "Stop the {s} and let the CaAs leave. They're offered the {s} makeup{d}. Answers so far stay saved.",
+        "Stop the {l} and let the CaAs leave. They're offered the {l} makeup{d}. Answers so far stay saved.",
+      teknis:
+        "Stop the clock, fix it, then carry on. Extra time as needed; if it takes long, the panel decides and notes it in the berita acara.",
+      lewat:
+        "Stop politely when the time is up. Score what was delivered; no extra time. Note it under Use of time.",
       nametag:
         "Ask why there is no name tag and note it. The CaAs must show a student or national ID.",
       keluar:
@@ -806,6 +820,8 @@ const ZH: IvWords = {
       telat: "迟到",
       absen: "没来",
       sakit: "生病或中途要离开",
+      teknis: "技术问题（投影仪、电力）",
+      lewat: "时间用完仍未结束",
       nametag: "没戴名牌",
       keluar: "离开房间或去洗手间",
     },
@@ -827,6 +843,8 @@ const ZH: IvWords = {
       absen_gugur: "没有正当理由：淘汰。先与负责人确认。",
       absen_susulan: "有证明的请假：邀请参加补考。请假必须在考核开始前提出。",
       sakit: "停止考核，让 CaAs 离开。邀请他们参加补考。已填的内容会保留。",
+      teknis: "先停表并排除故障，再继续。按需延长时间；若耗时较长，由评审组决定并记入会议记录。",
+      lewat: "时间到时礼貌地结束。按已完成的内容评分，不加时。记在“时间使用”下。",
       nametag: "询问为什么没有名牌并记录。CaAs 必须出示学生证或身份证。",
       keluar: "CaAs 不得离开房间。如果实在等不了，可以允许，但不延长时间。",
     },
@@ -973,7 +991,9 @@ export const kasusText = (
   const id = { wawancara: "Wawancara", mengajar: "Mengajar", tubes: "Presentasi" }[stage];
   const en = { wawancara: "interview", mengajar: "teaching", tubes: "presentation" }[stage];
   const zh = { wawancara: "面试", mengajar: "试讲", tubes: "展示" }[stage];
+  const lower = { wawancara: "wawancara", mengajar: "mengajar", tubes: "presentasi" }[stage];
   return txt
     .replaceAll("{s}", lang === "id" ? id : lang === "zh" ? zh : en)
+    .replaceAll("{l}", lang === "id" ? lower : lang === "zh" ? zh : en)
     .replaceAll("{d}", makeup ? `, ${makeup}` : "");
 };

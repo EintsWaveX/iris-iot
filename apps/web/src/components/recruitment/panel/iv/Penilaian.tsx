@@ -384,6 +384,8 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
           : slotAt(a) - slotAt(b) || (a.booth ?? 0) - (b.booth ?? 0),
     );
   const showTes = stage === "wawancara";
+  const sx = stage === "wawancara" ? null : p.stage[stage];
+  const showCtx = !!sx?.ctx;
   const toggle = (id: number) => setOpenK(openK === id ? null : id);
   const where = (r: IvNilaiRow) =>
     r.room && r.startsAt ? `${r.room} · ${dayShort(r.startsAt, lang)} ${hm(r.startsAt)}` : "";
@@ -442,10 +444,10 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
         </span>
         <span>
           <b className="num">{isAbsent.length}</b>
-          <span className="hint">{p.tally.absent}</span>
+          <span className="hint">{sx ? sx.absent : p.tally.absent}</span>
         </span>
       </div>
-      <span className="hint">{p.tally.hint}</span>
+      <span className="hint">{sx ? sx.hint : p.tally.hint}</span>
     </div>
   );
 
@@ -484,7 +486,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
         options={[
           { value: "rata", label: p.sorts.rata },
           { value: "sebar", label: p.sorts.sebar },
-          { value: "slot", label: p.sorts.slot },
+          { value: "slot", label: sx ? sx.sortLast : p.sorts.slot },
         ]}
       />
       <span className="grow" />
@@ -538,6 +540,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
               <th className="num">{p.cols.gap}</th>
               <th>{p.cols.verdict}</th>
               {showTes && <th className="num">{p.cols.tes}</th>}
+              {showCtx && <th className="num">{sx?.ctx}</th>}
               <th>
                 <span className="sr">{p.cols.details}</span>
               </th>
@@ -573,6 +576,14 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
                     <Verd r={r} lang={lang} />
                   </td>
                   {showTes && <td className="num hint">{r.total ?? "-"}</td>}
+                  {showCtx && (
+                    <td className="num">
+                      <span className="hint num" title={sx?.ctxTip}>
+                        {f1(r.ctx?.[0] ?? null, lang)} ·{" "}
+                        {r.ctx?.[1] == null ? "-" : Math.round(r.ctx[1])}
+                      </span>
+                    </td>
+                  )}
                   <td>
                     {r.detail.length > 0 && (
                       <IconButton
@@ -587,7 +598,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
                 </tr>
                 {openK === r.id && (
                   <tr className="r4tab__bd">
-                    <td colSpan={showTes ? 9 : 8}>
+                    <td colSpan={showTes || showCtx ? 9 : 8}>
                       <Rincian r={r} d={d} me={me} lang={lang} />
                     </td>
                   </tr>
@@ -604,10 +615,16 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
     <div className="stack">
       <div className="row row--between" style={{ gap: 8, flexWrap: "wrap" }}>
         <span className="hint">{p.topLine(dayLong(now, lang), hm(now), p.cuttingOf[stage])}</span>
-        {stage === "wawancara" && (
+        {stage === "wawancara" ? (
           <span title={SK[lang].proposalTip}>
             <Pill tone="warn">{SK[lang].proposal}</Pill>
           </span>
+        ) : (
+          d.example && (
+            <span title={p.sampleTip}>
+              <Pill tone="warn">{p.sample}</Pill>
+            </span>
+          )
         )}
       </div>
       {tally}

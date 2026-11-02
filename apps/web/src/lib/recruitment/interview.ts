@@ -902,8 +902,22 @@ export const turnsFit = (window: number, t: Pick<IvTemplate, "minutes" | "gap">)
 
 /* ------------------------------------------------------------ special cases */
 
-export const CASE_KINDS = ["telat", "absen", "sakit", "nametag", "keluar"] as const;
+export const CASE_KINDS = [
+  "telat",
+  "absen",
+  "sakit",
+  "teknis",
+  "lewat",
+  "nametag",
+  "keluar",
+] as const;
 export type CaseKind = (typeof CASE_KINDS)[number];
+
+/** The cases each stage offers (the interview form's, and the teaching test's own: a technical problem, time ran out). */
+export const caseKindsFor = (stage: IvStage): readonly CaseKind[] =>
+  stage === "mengajar"
+    ? ["telat", "absen", "sakit", "teknis", "lewat", "nametag"]
+    : ["telat", "absen", "sakit", "nametag", "keluar"];
 export const LATE_WHY = ["akademik", "musibah", "lain"] as const;
 export const EXCUSE_WHY = ["kuliah", "rohani", "sehat", "malang", "keluarga", "tanpa"] as const;
 
@@ -926,6 +940,8 @@ export interface CaseOutcome {
     | "absen_gugur"
     | "absen_susulan"
     | "sakit"
+    | "teknis"
+    | "lewat"
     | "nametag"
     | "keluar";
 }
@@ -944,6 +960,8 @@ export function caseOutcome(c: CaseInput, t: Pick<IvTemplate, "late">): CaseOutc
       ? { status: "gugur", end: true, code: "absen_gugur" }
       : { status: "susulan", end: true, code: "absen_susulan" };
   if (c.kind === "sakit") return { status: "susulan", end: true, code: "sakit" };
+  if (c.kind === "teknis") return { status: null, end: false, code: "teknis" };
+  if (c.kind === "lewat") return { status: null, end: false, code: "lewat" };
   if (c.kind === "nametag") return { status: null, end: false, code: "nametag" };
   return { status: null, end: false, code: "keluar" };
 }

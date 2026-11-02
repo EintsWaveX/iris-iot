@@ -39,7 +39,7 @@ import {
   type SheetCase,
 } from "../../src/lib/schema.js";
 import {
-  CASE_KINDS,
+  caseKindsFor,
   EXCUSE_WHY,
   LATE_WHY,
   caseOutcome,
@@ -370,6 +370,8 @@ async function handleMine(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       minutes: t.minutes,
       maxMinutes: t.maxMinutes,
       gap: t.gap,
+      // The rubric is still the sample one: the mockup shows a "Rubrik Contoh" badge until Akademik replaces it
+      example: t.params.some((p) => p.example),
     },
     slots: mine.map((x) => {
       const role = x.penguji.includes(s.nim)
@@ -780,7 +782,7 @@ async function handleCase(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
   const b = jsonBody(req);
   const a = await bukaAkses(res, s, b.stage, b.id, true);
   if (!a) return;
-  if (!(CASE_KINDS as readonly unknown[]).includes(b.kind))
+  if (!(caseKindsFor(b.stage as IvStage) as readonly unknown[]).includes(b.kind))
     return void tolak(res, "data_salah", 400, { field: "kind" });
   const kind = b.kind as CaseKind;
   const minutes = b.minutes === undefined ? undefined : Number(b.minutes);
@@ -989,6 +991,20 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     : [];
   const kode = await kodeMap(db);
   const tes = stage === "wawancara" ? (await muatNilaiCutting(db, edisi.id)).byCandidate : null;
+  // The teaching test reads the interview average and the Tubes score beside its own (context only).
+  const wawMean =
+    stage === "mengajar"
+      ? new Map((await muatNilaiTahap(db, edisi.id, "wawancara")).map((r) => [r.id, r.mean]))
+      : null;
+  const tubesMean =
+    stage === "mengajar"
+      ? new Map(
+          (await muatNilaiTahap(db, edisi.id, "tubes", { anggota: true })).map((r) => [
+            r.id,
+            r.mean,
+          ]),
+        )
+      : null;
   const where = new Map<
     number,
     { room: string; startsAt: string; booth: number; crew: string[] }
@@ -1019,6 +1035,7 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
       startsAt: w?.startsAt ?? null,
       booth: w?.booth ?? null,
       total: tes?.get(r.id)?.total ?? null,
+      ctx: wawMean && tubesMean ? [wawMean.get(r.id) ?? null, tubesMean.get(r.id) ?? null] : null,
       detail: byKode,
       concl: sd?.concl ?? {},
       ba: sd?.ba ?? "",
@@ -1031,6 +1048,7 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     cut: t.cut,
     wide: t.wide,
     per: t.per,
+    example: t.params.some((x) => x.example),
     params: t.params,
     levels: t.levels,
     rows: rinci,

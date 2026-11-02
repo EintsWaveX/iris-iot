@@ -3,6 +3,17 @@ import { dict } from "../../../../lib/app";
 
 interface TpWords {
   top: string;
+  rubric: {
+    top: string;
+    title: string;
+    hint: string;
+    confirm: string;
+    confirmed: string;
+    add: string;
+    sample: string;
+    weight: string;
+    newRow: string;
+  };
   download: string;
   addQuestion: string;
   docTitle: (stage: string) => string;
@@ -76,6 +87,17 @@ export const TP = dict<TpWords>({
     top: "Pewawancara memakai daftar ini di lembar mereka. Mereka boleh menambah kartu sendiri, yang tidak mengubah template dan hanya terlihat olehnya.",
     download: "Download Template",
     addQuestion: "Tambah Pertanyaan",
+    rubric: {
+      top: "Penguji memakai ini di lembar mereka. Perubahan muncul di lembar berikutnya yang dibuka; lembar yang sudah terkirim tidak berubah.",
+      title: "Baris Rubrik",
+      hint: "Tiap baris punya kesimpulan bersama dan tingkat 1 sampai 5 di lembar. Barisnya contoh sampai kamu mengubah atau menetapkannya; tidak ada yang tetap.",
+      confirm: "Tetapkan Rubrik",
+      confirmed: "Rubrik ditetapkan. Tanda Contoh hilang dari lembar.",
+      add: "Tambah Baris",
+      sample: "Contoh",
+      weight: "Bobot",
+      newRow: "Baris baru",
+    },
     docTitle: (s) => `Template Pertanyaan ${s}`,
     docParams: "Parameter Penilaian",
     docQuestions: "Daftar Pertanyaan",
@@ -159,6 +181,17 @@ export const TP = dict<TpWords>({
     top: "Interviewers use this list in their sheet. They may add cards of their own, which don't change the template and only they see.",
     download: "Download Template",
     addQuestion: "Add Question",
+    rubric: {
+      top: "Examiners use this in their sheet. A change shows on the next sheet that opens; sheets already sent don't change.",
+      title: "Rubric Rows",
+      hint: "Each row gets a shared conclusion and a 1 to 5 level on the sheet. The rows are samples until you change or confirm them; nothing is fixed.",
+      confirm: "Confirm Rubric",
+      confirmed: "Rubric confirmed. The Sample tag leaves the sheets.",
+      add: "Add Row",
+      sample: "Sample",
+      weight: "Weight",
+      newRow: "New row",
+    },
     docTitle: (s) => `${s} Question Template`,
     docParams: "Scoring Parameters",
     docQuestions: "Questions",
@@ -242,6 +275,17 @@ export const TP = dict<TpWords>({
     top: "面试官在表格中使用这份清单。他们可以自己加卡片，这不会改变模板，也只有他们自己看得到。",
     download: "下载模板",
     addQuestion: "添加问题",
+    rubric: {
+      top: "考官在自己的表格中使用这些内容。修改会在下一份打开的表格中生效；已提交的表格不受影响。",
+      title: "评分行",
+      hint: "每一行在表格上有共同结论和 1 至 5 级。在你修改或确认之前，这些行都只是示例；没有任何固定内容。",
+      confirm: "确认评分表",
+      confirmed: "评分表已确认。表格上的示例标记已消失。",
+      add: "添加评分行",
+      sample: "示例",
+      weight: "权重",
+      newRow: "新评分行",
+    },
     docTitle: (s) => `${s}问题模板`,
     docParams: "评分参数",
     docQuestions: "问题清单",

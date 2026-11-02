@@ -60,7 +60,9 @@ export interface IvMineSlot {
 export interface IvMineResponse {
   ok: true;
   me: { nim: string; kode: string | null };
-  template: Pick<IvTemplate, "mode" | "per" | "minutes" | "maxMinutes" | "gap">;
+  template: Pick<IvTemplate, "mode" | "per" | "minutes" | "maxMinutes" | "gap"> & {
+    example: boolean;
+  };
   slots: IvMineSlot[];
 }
 
@@ -130,6 +132,8 @@ export interface IvNilaiRow {
   startsAt: string | null;
   booth: number | null;
   total: number | null;
+  /** Teaching test: the interview average and the Tubes score, for context */
+  ctx: [number | null, number | null] | null;
   detail: { by: string; levels: Record<string, number>; at: string | null }[];
   concl: Record<string, string>;
   ba: string;
@@ -144,6 +148,8 @@ export interface IvNilaiResponse {
   cut: [number, number];
   wide: number;
   per: number;
+  /** The rubric is still the sample one */
+  example: boolean;
   params: IvParam[];
   levels: Bi[];
   rows: IvNilaiRow[];
