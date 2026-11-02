@@ -235,6 +235,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
           id: x.id,
           code: x.decision === "terima" ? (x.code ?? "") : "",
           decision: x.decision,
+          reason: x.decision === "tolak" ? (x.reason ?? "Kuota") : null,
         })),
     });
     if (isFail(r)) {
@@ -550,12 +551,41 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                                   data-v={x === "terima" ? "lolos" : "gagal"}
                                   aria-pressed={r.decision === x}
                                   disabled={!can}
-                                  onClick={() => set(r.id, { decision: x })}
+                                  onClick={() => {
+                                    if ((x === "terima") === (r.decision === "terima")) return;
+                                    set(r.id, {
+                                      decision: x,
+                                      reason: x === "tolak" ? "Kuota" : null,
+                                    });
+                                    toast(
+                                      (x === "terima" ? l.toastYes : l.toastNo)(
+                                        r.nama.split(" ")[0],
+                                      ),
+                                    );
+                                  }}
                                 >
                                   {x === "terima" ? w.review.accept : l.rejectShort}
                                 </button>
                               ))}
                             </span>
+                            {r.decision === "tolak" && (
+                              <Dropdown
+                                id={`pn-alasan-${r.id}`}
+                                label={l.reasonLabel}
+                                hideLabel
+                                value={r.reason ?? "Kuota"}
+                                disabled={!can}
+                                onChange={(v) =>
+                                  set(r.id, { reason: v as NonNullable<PnRow["reason"]> })
+                                }
+                                options={(["Kuota", "Mundur", "Pleno", "Lain"] as const).map(
+                                  (k) => ({
+                                    value: k,
+                                    label: l.reasons[k],
+                                  }),
+                                )}
+                              />
+                            )}
                           </div>
                         )}
                       </td>

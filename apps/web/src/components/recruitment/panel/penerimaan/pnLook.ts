@@ -18,6 +18,15 @@ export const PL = dict({
         : diff > 0
           ? `${n} diterima · ${diff} di bawah target`
           : `${n} diterima · ${-diff} melebihi target`,
+    reasonLabel: "Alasan (hanya Panitia)",
+    reasons: {
+      Kuota: "Kuota terpenuhi",
+      Mundur: "Mengundurkan diri",
+      Pleno: "Keputusan Pleno",
+      Lain: "Lainnya",
+    },
+    toastNo: (n: string) => `${n} tidak diterima. Alasannya hanya terlihat Panitia.`,
+    toastYes: (n: string) => `${n} diterima.`,
     stcTip: "Subject to Change: angkanya bisa berubah",
     rejectShort: "Tidak",
     targetNote:
@@ -122,6 +131,10 @@ export const PL = dict({
         : diff > 0
           ? `${n} accepted · ${diff} under the target`
           : `${n} accepted · ${-diff} over the target`,
+    reasonLabel: "Reason (Panitia only)",
+    reasons: { Kuota: "Quota reached", Mundur: "Withdrew", Pleno: "Pleno decision", Lain: "Other" },
+    toastNo: (n: string) => `${n} not accepted. The reason is visible to Panitia only.`,
+    toastYes: (n: string) => `${n} accepted.`,
     stcTip: "Subject to Change: the number may move",
     rejectShort: "No",
     targetNote:
@@ -226,6 +239,10 @@ export const PL = dict({
         : diff > 0
           ? `已录取 ${n} 人 · 低于目标 ${diff}`
           : `已录取 ${n} 人 · 超出目标 ${-diff}`,
+    reasonLabel: "原因（仅组委可见）",
+    reasons: { Kuota: "名额已满", Mundur: "自行退出", Pleno: "全员会议决定", Lain: "其他" },
+    toastNo: (n: string) => `${n} 未录取。原因仅组委可见。`,
+    toastYes: (n: string) => `${n} 已录取。`,
     stcTip: "可能调整：数字可能会变",
     rejectShort: "否",
     targetNote: "仅供参考：名单来自试讲筛选，由全员会议决定谁通过。",

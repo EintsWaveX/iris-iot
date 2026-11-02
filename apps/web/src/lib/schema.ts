@@ -3076,6 +3076,8 @@ export const recSheetShared = pgTable(
  * `promotedAt` makes the promotion idempotent: a second run creates nobody.
  */
 export const ACCEPT_DECISION = ["terima", "tolak"] as const;
+/** Why a CaAs is not accepted; only Panitia see it (the mockup's Alasan list). */
+export const ACCEPT_REASON = ["Kuota", "Mundur", "Pleno", "Lain"] as const;
 
 export const recAcceptance = pgTable(
   "rec_acceptance",
@@ -3088,6 +3090,7 @@ export const recAcceptance = pgTable(
       .references(() => recEdition.id, { onDelete: "cascade" }),
     code: text("code"),
     decision: text("decision", { enum: ACCEPT_DECISION }).notNull().default("terima"),
+    reason: text("reason", { enum: ACCEPT_REASON }),
     promotedNim: text("promoted_nim"),
     promotedAt: timestamp("promoted_at", { withTimezone: true }),
     promotedBy: text("promoted_by"),
