@@ -233,6 +233,46 @@ export async function handleSlot(req: ApiRequest, res: ApiResponse, s: SessionPa
     decidedBy: m.decidedBy,
     decidedAt: m.decidedAt ? m.decidedAt.toISOString() : null,
   }));
+  // Someone with two slots at once (this stage or another) is marked in the board, as the mockup does.
+  const lain = duduk.length
+    ? await db
+        .select({
+          candidateId: recSlotAssignment.candidateId,
+          slotId: recSlot.id,
+          stage: recSlot.stage,
+          room: recSlot.room,
+          startsAt: recSlot.startsAt,
+          endsAt: recSlot.endsAt,
+        })
+        .from(recSlotAssignment)
+        .innerJoin(recSlot, eq(recSlot.id, recSlotAssignment.slotId))
+        .where(
+          and(
+            eq(recSlot.editionId, edisi.id),
+            inArray(
+              recSlotAssignment.candidateId,
+              duduk.map((d) => d.candidateId),
+            ),
+          ),
+        )
+    : [];
+  const bentrok = (d: (typeof duduk)[number], x: (typeof slots)[number]) => {
+    const o = lain.find(
+      (l) =>
+        l.candidateId === d.candidateId &&
+        l.slotId !== x.id &&
+        l.startsAt.getTime() < Date.parse(x.endsAt) &&
+        Date.parse(x.startsAt) < l.endsAt.getTime(),
+    );
+    return o
+      ? {
+          stage: o.stage,
+          room: o.room,
+          startsAt: o.startsAt.toISOString(),
+          endsAt: o.endsAt.toISOString(),
+        }
+      : null;
+  };
   res.status(200).json({
     ok: true,
     stage,
@@ -246,6 +286,7 @@ export async function handleSlot(req: ApiRequest, res: ApiResponse, s: SessionPa
           nim: d.nim,
           nama: d.nama ?? "",
           via: d.via as SlotVia,
+          clash: bentrok(d, x),
         })),
     })),
     unplaced: peserta.filter((c) => !ditempatkan.has(c.candidateId)),

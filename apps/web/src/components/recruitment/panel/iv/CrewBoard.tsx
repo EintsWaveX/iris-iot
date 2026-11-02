@@ -354,7 +354,15 @@ export default function CrewBoard({
   if (part === "papan") {
     const ctx: CrewCtx = {
       stage,
-      top: <CrewTop env={env} flags={flags} jump={jump} />,
+      top: (extra) => (
+        <CrewTop
+          env={env}
+          flags={[...flags, ...extra].sort((a, b) =>
+            a.tone === b.tone ? 0 : a.tone === "danger" ? -1 : 1,
+          )}
+          jump={jump}
+        />
+      ),
       lane: (id) => {
         const s = slotOf(id);
         return s ? <CrewLane env={env} s={s} /> : null;

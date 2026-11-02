@@ -968,6 +968,8 @@ export interface BoardSeat {
   nim: string;
   nama: string;
   via: SlotVia;
+  /** Another slot (any stage) the same candidate holds at the same time, if any */
+  clash?: { stage: StageKey; room: string; startsAt: string; endsAt: string } | null;
 }
 export interface BoardRequest {
   id: number;

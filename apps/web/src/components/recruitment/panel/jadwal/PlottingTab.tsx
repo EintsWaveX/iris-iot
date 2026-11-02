@@ -74,6 +74,14 @@ import "../../recruitment-plot.css";
 type Slot = PlotBoardResponse["slots"][number];
 const wib = (iso: string) => tanggalWib(new Date(iso));
 const iso = (tanggal: string, jam: string) => `${tanggal}T${jam}:00+07:00`;
+/** "Selasa, 17 Nov": the short date a request card shows for a slot (the mockup's). */
+const hariRingkas = (iso: string, lang: Lang) =>
+  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
+    timeZone: "Asia/Jakarta",
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(iso));
 const label = (s: Slot, lang: Lang) => `${s.room}, ${tgl(wib(s.startsAt).tanggal, lang)}`;
 const depan = (n: string) => n.split(" ")[0] ?? n;
 
@@ -526,7 +534,7 @@ function Requests({
     return (
       <span className="r2req__slot">
         <b>{s?.room ?? "-"}</b>
-        <span className="hint">{s ? tgl(wib(s.startsAt).tanggal, lang) : ""}</span>
+        <span className="hint">{s ? hariRingkas(s.startsAt, lang) : ""}</span>
       </span>
     );
   };
@@ -616,7 +624,13 @@ function Requests({
           open
           onOpenChange={(o) => !o && setTolak(null)}
           title={t.declineTitle}
-          description={t.declineDesc(tolak.nama, slot(tolak.fromSlot)?.room ?? "")}
+          description={t.declineDesc(
+            tolak.nama,
+            (() => {
+              const x = slot(tolak.fromSlot);
+              return x ? label(x, lang) : "";
+            })(),
+          )}
           size="sm"
           lang={lang}
           actions={
@@ -675,10 +689,12 @@ interface Kartu {
   nama: string;
   via: "self" | "auto" | "panitia" | null;
   dari: number | "pool";
+  clash?: Slot["seats"][number]["clash"];
 }
 
 function Chip({ x, can, hit, lang }: { x: Kartu; can: boolean; hit: boolean; lang: Lang }) {
   const t = S2[lang].plot;
+  const cb = CB(lang);
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
     id: `c:${x.candidateId}`,
     data: x,
@@ -690,6 +706,17 @@ function Chip({ x, can, hit, lang }: { x: Kartu; can: boolean; hit: boolean; lan
       className="r2chip"
       data-dnd-id={x.candidateId}
       data-hit={hit ? "yes" : undefined}
+      data-flag={x.clash ? "yes" : undefined}
+      title={
+        x.clash
+          ? cb.clashTip(
+              S2[lang].inbox.stage[x.clash.stage as "berkas"] ?? x.clash.stage,
+              wib(x.clash.startsAt).jam,
+              wib(x.clash.endsAt).jam,
+              x.clash.room,
+            )
+          : undefined
+      }
       data-static={can ? undefined : "yes"}
       style={isDragging ? { opacity: 0.4 } : undefined}
       {...(can ? { ...attributes, ...listeners } : {})}
@@ -921,7 +948,26 @@ function Papan({
           onDragEnd={selesai}
           onDragCancel={() => setAngkat(null)}
         >
-          {crew?.top}
+          {crew?.top(
+            data.slots.flatMap((sl) =>
+              sl.seats
+                .filter((x) => x.clash)
+                .map((x) => ({
+                  tone: "danger" as const,
+                  text: cb.twoSlots(x.nama),
+                  at: cb.twoAt(
+                    label(sl, lang),
+                    wib(sl.startsAt).jam,
+                    S2[lang].inbox.stage[x.clash!.stage as "berkas"] ?? x.clash!.stage,
+                    wib(x.clash!.startsAt).jam,
+                    wib(x.clash!.endsAt).jam,
+                    x.clash!.room,
+                  ),
+                  go: sl.id,
+                  slotId: null,
+                })),
+            ),
+          )}
           <div className="r2board scrollx">
             <Lajur id="pool" disabled={!can} className="r2col r2col--pool">
               <div className="r2col__head">
