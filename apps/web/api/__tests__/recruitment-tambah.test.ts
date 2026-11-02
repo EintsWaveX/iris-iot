@@ -61,7 +61,12 @@ function chain(): unknown {
 function tulisan(op: string, t: unknown) {
   const tabel = tabelNama.get(t) ?? "";
   const p: Record<string, unknown> = {};
-  for (const m of ["where", "onConflictDoUpdate"]) p[m] = () => p;
+  for (const m of ["onConflictDoUpdate"]) p[m] = () => p;
+  // A delete has no values: note it when its where() arrives.
+  p.where = () => {
+    if (op === "delete") tulis.push({ op, tabel });
+    return p;
+  };
   p.values = (nilai: unknown) => (tulis.push({ op, tabel, nilai }), p);
   p.set = (nilai: unknown) => (tulis.push({ op, tabel, nilai }), p);
   p.returning = () => p;
@@ -458,6 +463,86 @@ describe("candidate-meta (IPK and Potensi Cut)", () => {
       cookie: asistenCookie(),
     });
     expect(luar.code).toBe(403);
+  });
+});
+
+describe("candidate-document-delete (take a file off a CaAs)", () => {
+  const BERKAS = { id: 3, nim: NIM, status: "approved", stage: "berkas" };
+  it("removes the file and sends an approved CaAs back to waiting when it was required", async () => {
+    sebagai("admin");
+    rows.candidate = [BERKAS];
+    rows.document = [{ id: 9 }];
+    const r = await panggil("POST", "candidate-document-delete", {
+      body: { id: 3, kind: "cv" },
+      cookie: asistenCookie(),
+    });
+    expect(r.body).toEqual({ ok: true, status: "applied" });
+    expect(tulis.some((w) => w.op === "delete" && w.tabel === "document")).toBe(true);
+    expect(tulis.find((w) => w.tabel === "candidate")?.nilai).toMatchObject({ status: "applied" });
+    expect(audit[0]).toMatchObject({ aksi: "rec_berkas_hapus" });
+  });
+  it("leaves a CaAs who is past the document check where they are", async () => {
+    sebagai("admin");
+    rows.candidate = [{ ...BERKAS, stage: "tes_tulis" }];
+    rows.document = [{ id: 9 }];
+    const r = await panggil("POST", "candidate-document-delete", {
+      body: { id: 3, kind: "cv" },
+      cookie: asistenCookie(),
+    });
+    expect(r.body).toEqual({ ok: true, status: "approved" });
+    expect(tulis.some((w) => w.tabel === "candidate")).toBe(false);
+  });
+  it("refuses an unknown kind, a file that is not there, and someone without full rights", async () => {
+    sebagai("admin");
+    rows.candidate = [BERKAS];
+    rows.document = [{ id: 9 }];
+    const salah = await panggil("POST", "candidate-document-delete", {
+      body: { id: 3, kind: "foto" },
+      cookie: asistenCookie(),
+    });
+    expect(salah.body).toMatchObject({ kode: "data_salah", field: "kind" });
+    sebagai("admin");
+    rows.document = [];
+    const kosong = await panggil("POST", "candidate-document-delete", {
+      body: { id: 3, kind: "cv" },
+      cookie: asistenCookie(),
+    });
+    expect(kosong.code).toBe(404);
+    antrean.asisten = [[orang("asisten")]];
+    rows.committee = [];
+    const luar = await panggil("POST", "candidate-document-delete", {
+      body: { id: 3, kind: "cv" },
+      cookie: asistenCookie(),
+    });
+    expect(luar.code).toBe(403);
+  });
+});
+
+describe("candidate-delete and the oprec account", () => {
+  it("removes an account nobody signed in to, so the NIM can be added again", async () => {
+    sebagai("admin");
+    antrean.candidate = [[{ id: 3, nim: NIM, status: "applied" }], []];
+    rows.account = [{ masuk: null }];
+    const r = await panggil("POST", "candidate-delete", {
+      body: { id: 3 },
+      cookie: asistenCookie(),
+    });
+    expect(r.code).toBe(200);
+    expect(tulis.some((w) => w.op === "delete" && w.tabel === "account")).toBe(true);
+    expect(audit[0]).toMatchObject({ aksi: "rec_kandidat_hapus", isi: { akun: true } });
+  });
+  it("keeps an account somebody used, or one the NIM still holds a row for", async () => {
+    sebagai("admin");
+    antrean.candidate = [[{ id: 3, nim: NIM, status: "applied" }], []];
+    rows.account = [{ masuk: new Date("2026-10-30T10:00:00Z") }];
+    await panggil("POST", "candidate-delete", { body: { id: 3 }, cookie: asistenCookie() });
+    expect(tulis.some((w) => w.op === "delete" && w.tabel === "account")).toBe(false);
+    tulis.length = 0;
+    sebagai("admin");
+    antrean.candidate = [[{ id: 3, nim: NIM, status: "applied" }], [{ id: 77 }]];
+    rows.account = [{ masuk: null }];
+    await panggil("POST", "candidate-delete", { body: { id: 3 }, cookie: asistenCookie() });
+    expect(tulis.some((w) => w.op === "delete" && w.tabel === "account")).toBe(false);
   });
 });
 

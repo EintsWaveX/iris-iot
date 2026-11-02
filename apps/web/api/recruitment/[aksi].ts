@@ -145,6 +145,7 @@ import {
   handleDokumenPanitia,
   handleCatatanKandidat,
   handleMetaKandidat,
+  handleHapusBerkas,
   handleHapusKandidat,
   handleTambahKandidat,
   handleTiketPanitia,
@@ -1259,6 +1260,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "candidate-delete") return handleHapusKandidat(req, res, s);
   if (aksi === "candidate-note") return handleCatatanKandidat(req, res, s);
   if (aksi === "candidate-meta") return handleMetaKandidat(req, res, s);
+  if (aksi === "candidate-document-delete") return handleHapusBerkas(req, res, s);
   if (aksi === "candidate-ticket") return handleTiketPanitia(req, res, s);
   if (aksi === "candidate-document") return handleDokumenPanitia(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);

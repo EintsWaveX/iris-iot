@@ -288,6 +288,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:candidate-delete": ["reccandidates", "reccutting", "recplotting", "recroom"],
   "recruitment:candidate-note": ["reccandidates"],
   "recruitment:candidate-meta": ["reccandidates"],
+  "recruitment:candidate-document-delete": ["reccandidates"],
   "recruitment:candidate-ticket": [],
   "recruitment:candidate-document": ["reccandidates"],
   // Tubes (R5)
