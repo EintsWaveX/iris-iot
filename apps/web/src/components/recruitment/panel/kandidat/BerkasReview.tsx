@@ -596,7 +596,7 @@ function DataPanitia({
   }
   return (
     <section className="stack stack--sm">
-      <div className="row" style={{ gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+      <div className="row" style={{ gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
         <div className="stack stack--sm" style={{ width: 120 }}>
           <h3 className="h3">
             <label htmlFor={untuk}>{t.ipk}</label>
