@@ -85,7 +85,11 @@ function useWhere(): [Where, (w: Partial<Where>, push?: boolean) => void] {
   return [w, go];
 }
 
-const BANK_MORE: Record<Lang, string> = { id: "Lainnya", en: "More", zh: "更多" };
+const BANK_MORE: Record<Lang, string> = {
+  id: "Impor dan Ekspor",
+  en: "Import and Export",
+  zh: "导入和导出",
+};
 
 const IK_PART: Record<Phase1Part, ComponentType<IconProps>> = {
   logika: LightbulbIcon,
