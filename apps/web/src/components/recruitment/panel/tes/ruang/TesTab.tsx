@@ -25,7 +25,7 @@ import Fade from "../../../../ui/Fade";
 import Pill from "../../../../ui/Pill";
 import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
-import { isFail, recPost } from "../../../../../lib/recruitment/client";
+import { isFail, recPost, useRecCalendar } from "../../../../../lib/recruitment/client";
 import { roomView } from "../../../../../lib/recruitment/room";
 import type { RoomRow } from "../../../../../lib/recruitment/room-api";
 import {
@@ -46,7 +46,6 @@ import { RG } from "./ruangStrings";
 import { KS, MG } from "./malamStrings";
 import Kesiapan from "./Kesiapan";
 import PenilaianTab from "../penilaian/PenilaianTab";
-import { PN } from "../penilaian/penilaianStrings";
 
 import "../../../recruitment-s3-room.css";
 import "../../../recruitment-malam.css";
@@ -291,11 +290,14 @@ function Rel({ at, lang }: { at: 0 | 1 | 2; lang: Lang }) {
 function Daftar({
   lang,
   data,
+  jadwal,
   buka,
   refresh,
 }: {
   lang: Lang;
   data: Daftarku;
+  /** Every evening of the written test and its makeup, from the Kalender: a night shows before it has a room. */
+  jadwal: string[];
   buka: (id: number, b?: "atur") => void;
   refresh: () => void;
 }) {
@@ -322,6 +324,7 @@ function Daftar({
     if (!malam.has(d)) malam.set(d, { rooms: [], pending: [] });
     return malam.get(d)!;
   };
+  for (const d of jadwal) hari(d);
   for (const r of data.rooms) if (r.slot) hari(hariWib(r.slot.startsAt)).rooms.push(r);
   for (const sl of data.pending) hari(hariWib(sl.startsAt)).pending.push(sl);
   const latihan = data.rooms.filter((r) => !r.slot);
@@ -556,12 +559,14 @@ function Ruang({
   people,
   kembali,
   rooms,
+  onNilai,
 }: {
   lang: Lang;
   id: number;
   people: { nim: string; nama: string; kode: string }[];
   kembali: () => void;
   rooms: { refresh: () => void };
+  onNilai: () => void;
 }) {
   const t = RG[lang];
   const room = useRecRoom(id, true);
@@ -663,6 +668,7 @@ function Ruang({
             kemajuan={live.kemajuan}
             log={log.data?.log ?? []}
             refresh={refresh}
+            onNilai={onNilai}
           />
         )}
       </Fade>
@@ -672,12 +678,31 @@ function Ruang({
 
 /* ------------------------------------------------------------------- tab */
 
+const tambahHari = (d: string, n: number) =>
+  new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
 export default function TesTab({ lang }: { lang: Lang }) {
   const rooms = useRecRooms(true);
+  const cal = useRecCalendar(true);
   const [id, pilih] = useRuangDipilih();
-  // Rooms, or the scores of everyone who sat in them (prompt 13)
-  const [atas, setAtas] = useState<"ruang" | "nilai">("ruang");
+  // The scores of everyone who sat in the rooms: opened from a finished room (Buka Penilaian), as in the mockup
+  const [nilai, setNilai] = useState(false);
   if (!rooms.data) return <span className="skeleton" style={{ height: 320 }} />;
+  const jadwal = new Set<string>();
+  for (const e of cal.data?.events ?? [])
+    if (e.stage === "tes_tulis" && ["test", "makeup"].includes(e.kind))
+      for (let d = e.startsOn; d <= e.endsOn; d = tambahHari(d, 1)) jadwal.add(d);
+  if (nilai)
+    return (
+      <div className="stack">
+        <div className="row">
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setNilai(false)}>
+            <ArrowLeftIcon size={16} aria-hidden="true" /> {RG[lang].con.back}
+          </button>
+        </div>
+        <PenilaianTab lang={lang} />
+      </div>
+    );
   if (id !== null)
     return (
       <Ruang
@@ -686,28 +711,18 @@ export default function TesTab({ lang }: { lang: Lang }) {
         people={rooms.data.people ?? []}
         kembali={() => pilih(null)}
         rooms={rooms}
+        onNilai={() => setNilai(true)}
       />
     );
   return (
     <div className="stack">
-      <div className="n7-bar">
-        <TabLine
-          tabs={[
-            { v: "ruang" as const, label: PN[lang].room },
-            { v: "nilai" as const, label: PN[lang].title },
-          ]}
-          value={atas}
-          onChange={setAtas}
-          label={PN[lang].tabs.aria}
-        />
-      </div>
-      {atas === "nilai" ? (
-        <PenilaianTab lang={lang} />
-      ) : (
-        <>
-          <Daftar lang={lang} data={rooms.data} buka={pilih} refresh={rooms.refresh} />
-        </>
-      )}
+      <Daftar
+        lang={lang}
+        data={rooms.data}
+        jadwal={[...jadwal].sort()}
+        buka={pilih}
+        refresh={rooms.refresh}
+      />
     </div>
   );
 }

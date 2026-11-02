@@ -4,7 +4,7 @@
  * and booths, never another examiner's CaAs); Penilaian is for the Ketua,
  * Akademik and Admin seats; Template for the Ketua and Akademik.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { UserSwitchIcon } from "@phosphor-icons/react";
 import Dialog from "../../../ui/Dialog";
 import Disclose from "../../../ui/Disclose";
@@ -428,17 +428,24 @@ export default function IvTab({
   lang,
   stage,
   rights,
+  lead,
+  templateLabel,
 }: {
   lang: Lang;
   stage: IvStage;
   rights: RecRights | null;
+  /** A tab in front of Slotku (Tubes: the running order). */
+  lead?: { label: string; node: ReactNode };
+  /** Overrides the Template tab's label. */
+  templateLabel?: string;
 }) {
   const w = IV(lang);
   const bisaNilai = rights?.plotting === true;
   const bisaTemplate = rights?.bank === true;
-  const [bag, setBag] = useState<"mine" | "nilai" | "template">("mine");
+  const [bag, setBag] = useState<"lead" | "mine" | "nilai" | "template">(lead ? "lead" : "mine");
   const [buka, setBuka] = useState<number | null>(null);
-  const aktif = bag === "template" && !bisaTemplate ? "mine" : bag;
+  const aktif =
+    bag === "template" && !bisaTemplate ? "mine" : bag === "lead" && !lead ? "mine" : bag;
   return (
     <div className="stack">
       <div className="n7-bar">
@@ -447,20 +454,24 @@ export default function IvTab({
           value={aktif}
           onChange={(v) => setBag(v)}
           tabs={[
+            ...(lead ? [{ v: "lead" as const, label: lead.label }] : []),
             { v: "mine" as const, label: w.seg.mine },
             { v: "nilai" as const, label: bisaNilai ? w.seg.nilai : PN[lang].tabMine },
             ...(bisaTemplate
               ? [
                   {
                     v: "template" as const,
-                    label: stage === "wawancara" ? w.seg.templateWaw : w.seg.template,
+                    label:
+                      templateLabel ?? (stage === "wawancara" ? w.seg.templateWaw : w.seg.template),
                   },
                 ]
               : []),
           ]}
         />
       </div>
-      {aktif === "mine" ? (
+      {aktif === "lead" && lead ? (
+        lead.node
+      ) : aktif === "mine" ? (
         <Slotku lang={lang} stage={stage} onOpen={setBuka} qr={rights?.attendance === true} />
       ) : aktif === "nilai" ? (
         <Penilaian lang={lang} stage={stage} />

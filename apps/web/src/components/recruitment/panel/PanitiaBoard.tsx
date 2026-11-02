@@ -25,9 +25,13 @@ import {
   type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { DotsSixVerticalIcon, LockSimpleIcon, StarIcon } from "@phosphor-icons/react";
+import {
+  DotsSixVerticalIcon,
+  LockSimpleIcon,
+  MagnifyingGlassIcon,
+  StarIcon,
+} from "@phosphor-icons/react";
 import DragLayer from "../../ui/DragLayer";
-import IconButton from "../../ui/IconButton";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recPost, useRecCommittee } from "../../../lib/recruitment/client";
 import type {
@@ -115,15 +119,16 @@ function Kartu({
         </span>
       </span>
       {onStar && o.dari !== "pool" && o.dari !== "ketua" && o.dari !== "wakil" && (
-        <IconButton
-          icon={StarIcon}
-          sm
-          kind="ghost"
-          pressed={o.isKoor}
-          label={o.isKoor ? t.board.isKoor : t.board.makeKoor}
-          tip={o.isKoor ? t.board.isKoor : t.board.makeKoor}
+        <button
+          type="button"
+          className="rec-pp__star"
+          aria-pressed={o.isKoor}
+          aria-label={o.isKoor ? t.board.isKoor : t.board.makeKoor}
+          title={o.isKoor ? t.board.isKoor : t.board.makeKoor}
           onClick={onStar}
-        />
+        >
+          <StarIcon size={18} aria-hidden="true" />
+        </button>
       )}
       {kunci && o.dari === "ketua" && (
         <span className="rec-pp__lock" title={t.board.lockedKetua} aria-label={t.board.lockedKetua}>
@@ -268,14 +273,15 @@ export default function PanitiaBoard({ lang, rights }: { lang: Lang; rights: Rec
       onDragCancel={() => setAngkat(null)}
       accessibility={{ screenReaderInstructions: { draggable: t.board.srHint } }}
     >
-      <div className="rec-board" data-pool={bisaAtur ? "yes" : "no"}>
+      <div className="rec-board rec9-board" data-pool={bisaAtur ? "yes" : "no"}>
         {bisaAtur && (
-          <Lajur id="pool" disabled={!bisaAtur} className="panel rec-pool">
+          <Lajur id="pool" disabled={!bisaAtur} className="panel rec-pool rec9-pool">
             <div className="panel__head">
               <h3 className="panel__title">{t.board.pool}</h3>
               <span className="hint num">{kolam.length}</span>
             </div>
             <div className="rec-search">
+              <MagnifyingGlassIcon className="ic" size={18} aria-hidden="true" />
               <input
                 className="field__input"
                 placeholder={t.board.search}
@@ -307,7 +313,7 @@ export default function PanitiaBoard({ lang, rights }: { lang: Lang; rights: Rec
                 key={k}
                 id={`col:${k}`}
                 disabled={!bisaAtur}
-                className="rec-col"
+                className="rec-col rec9-col"
                 style={{ "--c": WARNA[k] } as CSSProperties}
               >
                 <div className="rec-col__head">

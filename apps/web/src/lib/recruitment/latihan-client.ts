@@ -81,3 +81,11 @@ export const latihanGanti = (as: LatihanMode, prefix: string) =>
   aksi("latihan-ganti", { as }, as, prefix);
 export const latihanReset = (prefix: string) => aksi("latihan-reset", {}, bacaLatihan(), prefix);
 export const latihanKeluar = (prefix: string) => aksi("latihan-keluar", {}, null, prefix);
+
+/** Prepares the sample CaAs from the Asisten list without entering practice or moving the page. */
+export async function latihanSiapkan(): Promise<LatihanJawab | RecFail> {
+  const r = await recPost<LatihanJawab>("latihan-siapkan", {});
+  if (isFail(r)) return r;
+  window.dispatchEvent(new Event(LATIHAN_BERUBAH));
+  return r;
+}

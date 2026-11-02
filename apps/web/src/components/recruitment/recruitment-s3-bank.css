@@ -25,8 +25,8 @@
   flex-wrap: nowrap;
   margin-left: auto;
 }
-/* The eight tabs need about 1010px; the three buttons beside them need 330px more. */
-@media (min-width: 1560px) {
+/* The five tabs and the buttons beside them fit one row from 1100px, as in the mockup (rec3.css). */
+@media (min-width: 1100px) {
   .r3bank__bar {
     flex-wrap: nowrap;
   }

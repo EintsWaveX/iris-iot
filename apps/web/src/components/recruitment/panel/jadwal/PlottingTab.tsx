@@ -85,9 +85,17 @@ function Kapasitas({ s }: { s: Slot }) {
 
 /** The window card says what the stage is, and an interview slot counts booths (bilik) rather than seats. */
 const WIN_TITLE: Record<Lang, Partial<Record<StageKey, string>>> = {
-  id: { wawancara: "Jadwal Tes Wawancara", mengajar: "Jadwal Tes Mengajar" },
-  en: { wawancara: "Interview Schedule", mengajar: "Teaching Test Schedule" },
-  zh: { wawancara: "面试日程", mengajar: "试讲日程" },
+  id: {
+    tes_tulis: "Jadwal Tes Tulis dan Program",
+    wawancara: "Jadwal Tes Wawancara",
+    mengajar: "Jadwal Tes Mengajar",
+  },
+  en: {
+    tes_tulis: "Written and Coding Test Schedule",
+    wawancara: "Interview Schedule",
+    mengajar: "Teaching Test Schedule",
+  },
+  zh: { tes_tulis: "笔试与编程日程", wawancara: "面试日程", mengajar: "试讲日程" },
 };
 const winTitle = (lang: Lang, stage: StageKey, fallback: string) =>
   WIN_TITLE[lang][stage] ?? fallback;

@@ -9,14 +9,17 @@ import {
   DiceFiveIcon,
   EyeIcon,
   PencilSimpleIcon,
+  PlusIcon,
   ShuffleIcon,
   TrashIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
+import { Stepper } from "../../ui/Controls";
 import HoldButton from "../../ui/HoldButton";
 import IconButton from "../../ui/IconButton";
 import Pill from "../../ui/Pill";
+import type { Lang } from "../../../lib/kelas";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import { useLatihanMode } from "../../../lib/recruitment/latihan-client";
 import type { TubesBoardTopic } from "../../../lib/recruitment/tubes-api";
@@ -343,6 +346,12 @@ function DrawDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
 
 /* ------------------------------------------------------------ the section */
 
+const STEP: Record<Lang, { less: string; more: string }> = {
+  id: { less: "Kurangi", more: "Tambah" },
+  en: { less: "Less", more: "More" },
+  zh: { less: "减少", more: "增加" },
+};
+
 export default function TopikSection({ c }: { c: PanelCtx }) {
   const { w, b, lang } = c;
   const can = b.rights.topics;
@@ -358,6 +367,7 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
   const over = b.topics.filter((t) => t.used > t.cap).length;
   const drawn = b.teams.filter((t) => t.drawn).length;
 
+  const step = { less: STEP[lang].less, more: STEP[lang].more };
   const setting = (patch: Partial<typeof b.setting>) =>
     c.post("setting-save", { key: "tim", value: { ...b.setting, ...patch } });
 
@@ -385,41 +395,29 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
           </div>
           <div className="stack stack--sm">
             <span className="hint">{w.teamSize}</span>
-            <div className="row" style={{ gap: 8 }}>
-              <label className="row" style={{ gap: 6 }}>
-                <span className="hint">{w.teamMin}</span>
-                <input
-                  className="field__input"
-                  type="number"
-                  min={2}
-                  max={b.setting.teamMax}
-                  value={b.setting.teamMin}
-                  disabled={!b.rights.config}
-                  style={{ width: 72 }}
-                  onChange={(e) => {
-                    const n = Number(e.target.value);
-                    if (Number.isInteger(n) && n >= 2 && n <= b.setting.teamMax)
-                      void setting({ teamMin: n });
-                  }}
-                />
-              </label>
-              <label className="row" style={{ gap: 6 }}>
-                <span className="hint">{w.teamMax}</span>
-                <input
-                  className="field__input"
-                  type="number"
-                  min={b.setting.teamMin}
-                  max={8}
-                  value={b.setting.teamMax}
-                  disabled={!b.rights.config}
-                  style={{ width: 72 }}
-                  onChange={(e) => {
-                    const n = Number(e.target.value);
-                    if (Number.isInteger(n) && n >= b.setting.teamMin && n <= 8)
-                      void setting({ teamMax: n });
-                  }}
-                />
-              </label>
+            <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+              <Stepper
+                value={b.setting.teamMin}
+                min={2}
+                max={b.setting.teamMax}
+                label={`${w.teamSize}: ${w.teamMin}`}
+                fmt={(v) => `${w.teamMin} ${v}`}
+                lessLabel={step.less}
+                moreLabel={step.more}
+                disabled={!b.rights.config || c.busy}
+                onChange={(n) => void setting({ teamMin: n })}
+              />
+              <Stepper
+                value={b.setting.teamMax}
+                min={b.setting.teamMin}
+                max={8}
+                label={`${w.teamSize}: ${w.teamMax}`}
+                fmt={(v) => `${w.teamMax} ${v}`}
+                lessLabel={step.less}
+                moreLabel={step.more}
+                disabled={!b.rights.config || c.busy}
+                onChange={(n) => void setting({ teamMax: n })}
+              />
             </div>
           </div>
         </div>
@@ -488,10 +486,11 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
           </button>
           <button
             type="button"
-            className="btn btn--primary btn--sm"
+            className="btn btn--inverse btn--sm"
             disabled={!can}
             onClick={() => setEdit("new")}
           >
+            <PlusIcon size={16} aria-hidden="true" />
             <span className="btn__label">{w.addTopic}</span>
           </button>
         </span>
@@ -512,7 +511,10 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
                   <h3 className="h4" style={{ margin: 0, overflowWrap: "anywhere" }}>
                     {t.title}
                   </h3>
-                  <span className="hint num">{w.topicTeams(t.used, t.cap)}</span>
+                  <span className="row" style={{ gap: 6 }}>
+                    {latihan && <Pill>{w.topicExampleTag}</Pill>}
+                    <span className="hint num">{w.topicTeams(t.used, t.cap)}</span>
+                  </span>
                 </div>
                 <span className="row" style={{ gap: 4 }}>
                   <IconButton
@@ -533,17 +535,19 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
                 </span>
               </div>
               <p className="tp-top__b">{t.brief}</p>
-              <div className="tp-bar2" aria-hidden="true">
-                <i
-                  style={{
-                    transform: `translateX(${Math.min(100, Math.round((t.used / t.cap) * 100)) - 100}%)`,
-                  }}
-                />
+              <div
+                className="tp-bar2"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.min(100, Math.round((t.used / t.cap) * 100))}
+              >
+                <i style={{ width: `${Math.min(100, Math.round((t.used / t.cap) * 100))}%` }} />
               </div>
               <div>
                 <button
                   type="button"
-                  className="btn btn--ghost btn--sm"
+                  className="btn btn--inverse btn--sm"
                   onClick={() => setWho(t.id)}
                 >
                   <UsersThreeIcon size={16} aria-hidden="true" />

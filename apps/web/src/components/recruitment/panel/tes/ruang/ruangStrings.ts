@@ -315,6 +315,7 @@ export const RG = dict({
       },
       done: {
         title: "Ruang Selesai",
+        grade: "Buka Penilaian",
         by: (n: string) => `Ditutup ${n}`,
         part: "Bagian",
         ran: "Jalan",
@@ -716,6 +717,7 @@ export const RG = dict({
       },
       done: {
         title: "Room Finished",
+        grade: "Open Grading",
         by: (n: string) => `Closed by ${n}`,
         part: "Part",
         ran: "Ran",
@@ -1111,6 +1113,7 @@ export const RG = dict({
       },
       done: {
         title: "考场已结束",
+        grade: "打开评分",
         by: (n: string) => `由 ${n} 关闭`,
         part: "部分",
         ran: "进行时间",

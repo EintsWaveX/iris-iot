@@ -5,17 +5,28 @@
  * themselves (file types and limits) for the Akademik and the Ketua to edit.
  */
 import { useState } from "react";
+import type { Lang } from "../../../lib/kelas";
 import {
   ArrowSquareOutIcon,
   FileArchiveIcon,
   FilePdfIcon,
   LinkIcon,
+  LockSimpleIcon,
+  LockSimpleOpenIcon,
+  MagnifyingGlassIcon,
+  PackageIcon,
   PlayIcon,
+  SlidersHorizontalIcon,
+  TimerIcon,
+  UsersThreeIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
-import Pill from "../../ui/Pill";
 import { isFail } from "../../../lib/recruitment/client";
-import { TUBES_MAX_MB, type TubesPart } from "../../../lib/recruitment/tubes";
+import {
+  TUBES_MAX_MB,
+  type SubmissionStatus,
+  type TubesPart,
+} from "../../../lib/recruitment/tubes";
 import type { TubesBoardTeam, TubesFileView } from "../../../lib/recruitment/tubes-api";
 import { bacaFileTubes } from "../../../lib/recruitment/tubes-client";
 import { dariLokal, kapan, keLokal, StatusPill, toast, type PanelCtx } from "./panelShared";
@@ -228,13 +239,15 @@ function TeamDialog({
   c,
   team,
   onClose,
+  startOv = false,
 }: {
   c: PanelCtx;
   team: TubesBoardTeam;
   onClose: () => void;
+  startOv?: boolean;
 }) {
   const { w, b } = c;
-  const [ov, setOv] = useState(false);
+  const [ov, setOv] = useState(startOv);
   const closed = b.times.submit === "tutup" || b.times.submit === "izin";
   return (
     <Dialog
@@ -450,83 +463,320 @@ function PartsDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
 
 /* ------------------------------------------------------------ the section */
 
+const KX: Record<
+  Lang,
+  {
+    closesIn: (d: string) => string;
+    closedTitle: string;
+    closeNote: (when: string) => string;
+    partsLong: string;
+    search: string;
+    searchAria: string;
+    filterAria: string;
+    all: string;
+    of: string;
+    teamNote: (max: number) => string;
+    open: string;
+    allow: string;
+    onlyKetua: string;
+    miss: string;
+    optional: string;
+    optionalTip: string;
+    statusHead: string;
+    actionsHead: string;
+    d: string;
+    h: string;
+    m: string;
+  }
+> = {
+  id: {
+    closesIn: (d) => `Tutup dalam ${d}`,
+    closedTitle: "Pengumpulan sudah ditutup",
+    closeNote: (when) =>
+      `Tutup saat Presentasi mulai: ${when}. Diambil dari Kalender. Yang telat ditolak; hanya Ketua yang bisa membukanya lagi, dengan catatan.`,
+    partsLong: "Atur Isi Pengumpulan",
+    search: "Cari nama",
+    searchAria: "Cari tim",
+    filterAria: "Saring menurut status",
+    all: "Semua",
+    of: "dari",
+    teamNote: (n) =>
+      `Satu pengumpulan untuk seluruh tim (sampai ${n} orang), dan satu nilai Presentasi untuk semuanya. Satu baris di sini adalah satu tim.`,
+    open: "Buka",
+    allow: "Beri Izin",
+    onlyKetua: "Hanya Ketua",
+    miss: "Belum ada",
+    optional: "opsional",
+    optionalTip: "Boleh kosong",
+    statusHead: "Status",
+    actionsHead: "Aksi",
+    d: "hari",
+    h: "jam",
+    m: "menit",
+  },
+  en: {
+    closesIn: (d) => `Closes in ${d}`,
+    closedTitle: "The submission is closed",
+    closeNote: (when) =>
+      `Closes when Presentasi starts: ${when}. Taken from the Calendar. Late ones are refused; only the Ketua can reopen one, with a note.`,
+    partsLong: "Set What Is Submitted",
+    search: "Search name",
+    searchAria: "Search teams",
+    filterAria: "Filter by status",
+    all: "All",
+    of: "of",
+    teamNote: (n) =>
+      `One submission for the whole team (up to ${n} people), and one Presentasi score for all of them. One row here is one team.`,
+    open: "Open",
+    allow: "Allow",
+    onlyKetua: "Only the Ketua",
+    miss: "Missing",
+    optional: "optional",
+    optionalTip: "Can stay empty",
+    statusHead: "Status",
+    actionsHead: "Actions",
+    d: "d",
+    h: "h",
+    m: "min",
+  },
+  zh: {
+    closesIn: (d) => `${d}后截止`,
+    closedTitle: "提交已截止",
+    closeNote: (when) =>
+      `答辩开始时截止：${when}。取自日历。迟交会被拒绝；只有组长可以备注后重新开放。`,
+    partsLong: "设置提交内容",
+    search: "搜索名称",
+    searchAria: "搜索小组",
+    filterAria: "按状态筛选",
+    all: "全部",
+    of: "/",
+    teamNote: (n) => `整个小组（最多 ${n} 人）一次提交、一个答辩成绩。这里一行就是一个小组。`,
+    open: "打开",
+    allow: "允许",
+    onlyKetua: "仅组长",
+    miss: "缺少",
+    optional: "可选",
+    optionalTip: "可以留空",
+    statusHead: "状态",
+    actionsHead: "操作",
+    d: "天",
+    h: "小时",
+    m: "分钟",
+  },
+};
+
+const partIcon = (p: TubesPart) =>
+  p.ext.some((e) => e.toLowerCase() === ".zip")
+    ? PackageIcon
+    : p.ext.some((e) => e.toLowerCase() === ".pdf")
+      ? FilePdfIcon
+      : PlayIcon;
+
+function PartChip({
+  p,
+  f,
+  k,
+}: {
+  p: TubesPart;
+  f: TubesFileView | undefined;
+  k: (typeof KX)["id"];
+}) {
+  const Ic = partIcon(p);
+  if (f) {
+    const size = f.kind === "link" ? "link" : `${(f.size / 1048576).toFixed(1)} MB`;
+    return (
+      <span
+        className="tp-pc"
+        data-ok="yes"
+        title={f.kind === "link" ? f.name : `${f.name} · ${size}`}
+      >
+        <Ic size={16} aria-hidden="true" />
+        <span className="num">{size}</span>
+      </span>
+    );
+  }
+  return (
+    <span
+      className="tp-pc"
+      data-ok={p.required ? "no" : "opt"}
+      title={p.required ? k.miss : k.optionalTip}
+    >
+      <Ic size={16} aria-hidden="true" />
+      <span>{p.required ? "-" : k.optional}</span>
+    </span>
+  );
+}
+
 export default function KumpulSection({ c }: { c: PanelCtx }) {
   const { w, b, lang } = c;
-  const [view, setView] = useState<TubesBoardTeam | null>(null);
+  const k = KX[lang];
+  const [view, setView] = useState<{ t: TubesBoardTeam; ov: boolean } | null>(null);
   const [parts, setParts] = useState(false);
-  const live = view ? (b.teams.find((t) => t.id === view.id) ?? view) : null;
+  const [f, setF] = useState<"semua" | SubmissionStatus>("semua");
+  const [q, setQ] = useState("");
+  const live = view ? (b.teams.find((t) => t.id === view.t.id) ?? view.t) : null;
+  const closed = b.times.submit === "tutup" || b.times.submit === "izin";
+  const left = b.times.closeAt
+    ? Math.max(0, new Date(b.times.closeAt).getTime() - new Date(b.times.now).getTime())
+    : 0;
+  const dur = (ms: number) => {
+    const m = Math.floor(ms / 60000);
+    const d = Math.floor(m / 1440);
+    const h = Math.floor((m % 1440) / 60);
+    const mi = m % 60;
+    return d ? `${d} ${k.d} ${h} ${k.h}` : h ? `${h} ${k.h} ${mi} ${k.m}` : `${mi} ${k.m}`;
+  };
+  const STS: SubmissionStatus[] = ["complete", "partial", "none", "late", "over"];
+  const cnt = (s: SubmissionStatus) => b.teams.filter((t) => t.status === s).length;
+  const shown = b.teams.filter(
+    (t) =>
+      (f === "semua" || t.status === f) &&
+      (!q || t.name.toLowerCase().includes(q.trim().toLowerCase())),
+  );
   return (
     <div className="stack">
-      <div className="tp-bar">
-        <span className="hint">
-          {b.times.closeAt ? w.closeAt(kapan(b.times.closeAt, lang)) : ""}
+      <section className="panel tp-close" data-closed={closed ? "yes" : "no"}>
+        <span className="tp-close__ic">
+          {closed ? (
+            <LockSimpleIcon size={22} aria-hidden="true" />
+          ) : (
+            <TimerIcon size={22} aria-hidden="true" />
+          )}
         </span>
+        <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+          <b>{closed ? k.closedTitle : k.closesIn(dur(left))}</b>
+          <span className="hint">
+            {b.times.closeAt ? k.closeNote(kapan(b.times.closeAt, lang)) : ""}
+          </span>
+        </div>
         <button
           type="button"
-          className="btn btn--ghost btn--sm"
+          className="btn btn--ghost"
           disabled={!b.rights.config}
           onClick={() => setParts(true)}
         >
-          <span className="btn__label">{w.partsEdit}</span>
+          <SlidersHorizontalIcon size={18} aria-hidden="true" />
+          <span className="btn__label">{k.partsLong}</span>
         </button>
-      </div>
+      </section>
       {b.teams.length === 0 ? (
         <p className="hint">{w.noTeamYet}</p>
       ) : (
-        <div className="tp-wrap panel panel--flush">
-          <table className="tp-table">
-            <thead>
-              <tr>
-                <th>{w.teams}</th>
-                {b.setting.parts.map((p) => (
-                  <th key={p.key}>{p.label[lang === "en" ? "en" : "id"]}</th>
-                ))}
-                <th />
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {b.teams.map((t) => (
-                <tr key={t.id}>
-                  <td>
-                    <b>{t.name}</b>
-                    <div className="hint">
-                      {b.topics.find((x) => x.id === t.topicId)?.title ?? w.topicNone}
-                    </div>
-                  </td>
-                  {b.setting.parts.map((p) => {
-                    const f = t.files.find((x) => x.part === p.key);
-                    return (
-                      <td key={p.key}>
-                        {f ? (
-                          <Pill tone="ok">
-                            {f.kind === "link" ? "link" : `${(f.size / 1048576).toFixed(1)} MB`}
-                          </Pill>
-                        ) : (
-                          <span className="hint">{p.required ? "-" : "·"}</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td>
-                    <StatusPill s={t.status} w={w} />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      onClick={() => setView(t)}
-                    >
-                      <span className="btn__label">{w.view}</span>
-                    </button>
-                  </td>
-                </tr>
+        <>
+          <div className="row rec-tools">
+            <div className="rec-search">
+              <MagnifyingGlassIcon className="ic" size={18} aria-hidden="true" />
+              <input
+                className="field__input input"
+                placeholder={k.search}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                aria-label={k.searchAria}
+              />
+            </div>
+            <div className="tp-subt" role="group" aria-label={k.filterAria}>
+              <button
+                type="button"
+                className="tp-subt__b"
+                aria-pressed={f === "semua"}
+                onClick={() => setF("semua")}
+              >
+                <b className="num">{b.teams.length}</b>
+                <span className="hint">{k.all}</span>
+              </button>
+              {STS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="tp-subt__b"
+                  aria-pressed={f === s}
+                  onClick={() => setF(f === s ? "semua" : s)}
+                >
+                  <b className="num" data-t={s === "late" ? "no" : undefined}>
+                    {cnt(s)}
+                  </b>
+                  <span className="hint">{w.status[s]}</span>
+                </button>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+            <span className="grow" />
+            <span className="hint num">
+              {shown.length} {k.of} {b.teams.length}
+            </span>
+          </div>
+          <div className="rec-note tp-teamnote">
+            <UsersThreeIcon size={16} aria-hidden="true" />
+            <span>{k.teamNote(b.setting.teamMax)}</span>
+          </div>
+          <div className="tp-wrap panel panel--flush">
+            <table className="tp-table tp-subtab">
+              <thead>
+                <tr>
+                  <th>{w.teams}</th>
+                  {b.setting.parts.map((p) => (
+                    <th key={p.key}>{p.label[lang === "en" ? "en" : "id"].split(" (")[0]}</th>
+                  ))}
+                  <th>{k.statusHead}</th>
+                  <th>
+                    <span className="sr">{k.actionsHead}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((t) => (
+                  <tr key={t.id} data-st={t.status}>
+                    <td>
+                      <span className="stack" style={{ gap: 0 }}>
+                        <b>{t.name}</b>
+                        <span className="hint">
+                          {b.topics.find((x) => x.id === t.topicId)?.title ?? w.topicNone}
+                        </span>
+                      </span>
+                    </td>
+                    {b.setting.parts.map((p) => (
+                      <td key={p.key}>
+                        <PartChip p={p} f={t.files.find((x) => x.part === p.key)} k={k} />
+                      </td>
+                    ))}
+                    <td>
+                      <StatusPill s={t.status} w={w} />
+                    </td>
+                    <td>
+                      <div className="tp-act">
+                        <button
+                          type="button"
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => setView({ t, ov: false })}
+                        >
+                          <span className="btn__label">{k.open}</span>
+                        </button>
+                        {closed &&
+                          t.status !== "complete" &&
+                          t.status !== "over" &&
+                          !t.override && (
+                            <button
+                              type="button"
+                              className="btn btn--inverse btn--sm"
+                              disabled={!b.rights.override}
+                              title={b.rights.override ? undefined : k.onlyKetua}
+                              onClick={() => setView({ t, ov: true })}
+                            >
+                              <LockSimpleOpenIcon size={16} aria-hidden="true" />
+                              <span className="btn__label">{k.allow}</span>
+                            </button>
+                          )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
-      {live && <TeamDialog c={c} team={live} onClose={() => setView(null)} />}
+      {live && view && (
+        <TeamDialog c={c} team={live} startOv={view.ov} onClose={() => setView(null)} />
+      )}
       {parts && <PartsDialog c={c} onClose={() => setParts(false)} />}
     </div>
   );

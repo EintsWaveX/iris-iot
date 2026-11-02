@@ -8,6 +8,7 @@ import { useState } from "react";
 import type { Lang } from "../../../lib/kelas";
 import type { RecRights } from "../../../lib/recruitment/types";
 import { useTubesBoard } from "../../../lib/recruitment/tubes-client";
+import TabLine from "../../ui/TabLine";
 import KumpulSection from "./KumpulSection";
 import PresentasiSection from "./PresentasiSection";
 import TimSection from "./TimSection";
@@ -28,22 +29,14 @@ export default function TubesTab({ lang, rights }: { lang: Lang; rights: RecRigh
   if (!b) return <span className="skeleton" style={{ height: 360 }} />;
   const cc = { ...c, b };
   return (
-    <div className="tp">
-      <div className="tp-bar">
-        <div className="tp-seg" role="radiogroup" aria-label={w.title}>
-          {SECS.map((k) => (
-            <button
-              key={k}
-              type="button"
-              role="radio"
-              aria-checked={sec === k}
-              className="tp-seg__b"
-              onClick={() => setSec(k)}
-            >
-              {w.sections[k]}
-            </button>
-          ))}
-        </div>
+    <div className="tp n7-plot" style={{ "--sc": "#a3e635" } as React.CSSProperties}>
+      <div className="n7-bar">
+        <TabLine
+          label={w.title}
+          value={sec}
+          onChange={(v) => setSec(v)}
+          tabs={SECS.map((k) => ({ v: k, label: w.sections[k] }))}
+        />
       </div>
       {sec === "topik" ? (
         <TopikSection c={cc} />

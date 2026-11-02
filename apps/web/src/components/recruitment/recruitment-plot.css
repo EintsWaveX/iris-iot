@@ -99,11 +99,10 @@
   display: flex;
   gap: 8px;
   justify-content: space-between;
-  min-height: 48px;
+  min-height: 44px;
 }
 .n7-eve__h b {
   font-size: 0.98rem;
-  text-wrap: balance;
 }
 .n7-eve__h .hint {
   white-space: nowrap;
@@ -195,5 +194,17 @@
 @media (max-width: 720px) {
   .n7-nights4 {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Wide frames put the schedule card's buttons on their own row under the text and the meter (mockup rec11.css). */
+@media (min-width: 1100px) {
+  .n7-win {
+    grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.9fr);
+    row-gap: 14px;
+  }
+  .n7-win__a {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
   }
 }

@@ -12,6 +12,7 @@ import {
   PencilSimpleIcon,
   QrCodeIcon,
   TrashIcon,
+  UserMinusIcon,
   UserPlusIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
@@ -503,33 +504,18 @@ function TeamCard({
                   dayOk() && (
                     <button
                       type="button"
-                      className="btn btn--ghost btn--sm"
+                      className="btn btn--inverse btn--sm"
                       onClick={() => onTick({ id: m.candidateId, nama: m.nama })}
                     >
                       <span className="btn__label">{w.tick}</span>
                     </button>
                   )
                 ))}
-              {can && !m.leader && (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  disabled={c.busy}
-                  onClick={() =>
-                    void c.post("tubes-team-admin", {
-                      op: "remove",
-                      teamId: t.id,
-                      candidateId: m.candidateId,
-                    })
-                  }
-                >
-                  <span className="btn__label">{w.removeMember}</span>
-                </button>
-              )}
               {can && !m.leader && m.status === "joined" && (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
+                <IconButton
+                  sm
+                  icon={CrownSimpleIcon}
+                  label={w.makeLeader}
                   disabled={c.busy}
                   onClick={() =>
                     void c.post("tubes-team-admin", {
@@ -538,9 +524,22 @@ function TeamCard({
                       candidateId: m.candidateId,
                     })
                   }
-                >
-                  <span className="btn__label">{w.makeLeader}</span>
-                </button>
+                />
+              )}
+              {can && !m.leader && (
+                <IconButton
+                  sm
+                  icon={UserMinusIcon}
+                  label={w.removeMember}
+                  disabled={c.busy}
+                  onClick={() =>
+                    void c.post("tubes-team-admin", {
+                      op: "remove",
+                      teamId: t.id,
+                      candidateId: m.candidateId,
+                    })
+                  }
+                />
               )}
             </span>
           </li>
@@ -558,7 +557,7 @@ function TeamCard({
         </span>
         {can && (
           <div>
-            <button type="button" className="btn btn--ghost btn--sm" onClick={onMove}>
+            <button type="button" className="btn btn--inverse btn--sm" onClick={onMove}>
               <span className="btn__label">{w.move}</span>
             </button>
           </div>
