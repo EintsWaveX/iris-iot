@@ -1506,3 +1506,11 @@ html:has(.r3page:not(.r3page--shell)) {
   background: color-mix(in srgb, var(--accent) 14%, var(--surface-3));
   color: var(--accent-bright, var(--accent));
 }
+
+/* Mockup rules that were never ported: the timeline panel gap, and fill-in-the-blank code keeps its spaces */
+.r3tl {
+  gap: 16px;
+}
+.r3fitb .r3hl {
+  white-space: pre;
+}

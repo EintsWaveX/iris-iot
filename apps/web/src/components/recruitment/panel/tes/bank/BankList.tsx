@@ -5,6 +5,7 @@
  * through; a default one carries the Bawaan badge until a person edits it.
  */
 import { useMemo, useState } from "react";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import Dropdown from "../../../../ui/Dropdown";
 import Pill from "../../../../ui/Pill";
 import { useMinWidth } from "../../../../../lib/hooks";
@@ -96,6 +97,7 @@ export default function BankList({
       </div>
       <div className="row rec-tools">
         <div className="rec-search">
+          <MagnifyingGlassIcon className="ic" size={18} aria-hidden="true" />
           <input
             className="field__input"
             id="r3-bank-q"

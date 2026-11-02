@@ -862,9 +862,10 @@
 }
 
 /* ============================================================ Berkas review */
+/* The mockup's review drawer is a side drawer: min(880px, 94%) (rec7.css .drawer--side.drawer--wide). */
 @media (min-width: 1024px) {
   .drawer:has(.r2rev) {
-    width: min(1180px, 94%);
+    width: min(880px, 94%);
   }
 }
 .r2rev {

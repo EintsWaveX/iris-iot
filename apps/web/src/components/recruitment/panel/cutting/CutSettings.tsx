@@ -59,7 +59,7 @@ const T = {
       builtIn: "Bawaan",
     },
     words: {
-      title: "Ubah Teks Amplop",
+      title: "Teks Amplop",
       desc: "Heading dan kalimat yang dibaca CaAs saat membuka amplop. Kotak kosong memakai teks bawaan. Tulis {nama} untuk nama depan CaAs.",
       saved: "Teks amplop disimpan.",
       back: "Teks amplop kembali ke bawaan.",
@@ -117,7 +117,7 @@ const T = {
       builtIn: "Default",
     },
     words: {
-      title: "Edit Envelope Wording",
+      title: "Envelope Wording",
       desc: "The heading and lines a CaAs reads when they open an envelope. An empty box keeps the built-in text. Write {nama} for the CaAs's first name.",
       saved: "Envelope wording saved.",
       back: "Envelope wording is back to the default.",
@@ -206,7 +206,7 @@ export function AturTitikAwal({
       onOpenChange={onOpenChange}
       title={s.title}
       description={s.desc}
-      size="xl"
+      size="form"
       lang={lang}
       alt={
         <button type="button" className="btn btn--ghost" disabled={busy} onClick={pulihkan}>
@@ -390,7 +390,7 @@ export function UbahTeksAmplop({
       onOpenChange={onOpenChange}
       title={w.title}
       description={w.desc}
-      size="xl"
+      size="form"
       lang={lang}
       alt={
         <button type="button" className="btn btn--ghost" disabled={busy} onClick={pulihkanSemua}>

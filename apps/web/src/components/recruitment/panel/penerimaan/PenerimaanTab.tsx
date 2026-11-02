@@ -6,16 +6,16 @@
  * Konfirmasi (a summary and a hold button). Only the Ketua confirms; the rest
  * of the Panitia read. Under it: the result, and closing the edition.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   ArrowDownIcon,
   ArrowRightIcon,
   ArrowsClockwiseIcon,
   CalendarCheckIcon,
-  CaretLeftIcon,
   CaretRightIcon,
   CheckCircleIcon,
   CheckIcon,
+  EnvelopeSimpleIcon,
   ClockIcon,
   ConfettiIcon,
   InfoIcon,
@@ -29,6 +29,8 @@ import {
 } from "@phosphor-icons/react";
 import Confirm from "../../../ui/Confirm";
 import Dialog from "../../../ui/Dialog";
+import { Stepper } from "../../../ui/Controls";
+import { Stc } from "../../shared";
 import Dropdown from "../../../ui/Dropdown";
 import HoldButton from "../../../ui/HoldButton";
 import Pill from "../../../ui/Pill";
@@ -46,6 +48,7 @@ import Rayakan from "./Rayakan";
 import { PNW } from "./pnStrings";
 import { PL } from "./pnLook";
 import "../../recruitment-r8.css";
+import "../../recruitment-r8m.css";
 
 type Step = "tinjau" | "kode" | "konfirmasi";
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
@@ -148,18 +151,25 @@ function Nilai({
   verdictLabel?: string;
 }) {
   if (v === null) return <span className="hint">-</span>;
-  return (
-    <span className="r8sc" data-tone={tone}>
-      <b className="num">{v}</b>
-      <span className="r8sc__bar">
-        <i style={{ width: `${Math.max(0, Math.min(100, (v / max) * 100))}%` }} />
-      </span>
-      {verdict && verdictLabel && (
-        <span className="r8vd" data-v={verdict}>
-          {verdictLabel}
-        </span>
-      )}
+  const sc = (
+    <span
+      className="r8-sc"
+      style={{ "--v": `${Math.round(Math.max(0, Math.min(100, (v / max) * 100)))}%` } as CSSProperties}
+      data-strong={tone === "gold" ? "yes" : undefined}
+    >
+      <b className="num">{Math.round(v)}</b>
+      <i />
     </span>
+  );
+  return verdict && verdictLabel ? (
+    <div className="r8-waw">
+      {sc}
+      <span className="r8-vd" data-v={verdict}>
+        {verdictLabel}
+      </span>
+    </div>
+  ) : (
+    sc
   );
 }
 
@@ -270,7 +280,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
   };
 
   const cards = (
-    <nav className="r8st" aria-label={w.title}>
+    <ol className="r8-steps" aria-label={w.title}>
       {(["tinjau", "kode", "konfirmasi"] as Step[]).map((s, i) => {
         const selesai =
           s === "tinjau"
@@ -279,31 +289,32 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               ? step === "konfirmasi" && masalah.length === 0
               : false;
         return (
-          <button
-            key={s}
-            type="button"
-            className="r8st__c"
-            aria-current={step === s ? "step" : undefined}
-            data-done={selesai ? "yes" : undefined}
-            onClick={() => setStep(s)}
-          >
-            <span className="r8st__n">
-              {selesai ? <CheckIcon size={16} weight="bold" aria-hidden="true" /> : i + 1}
-            </span>
-            <span className="stack" style={{ gap: 0, minWidth: 0 }}>
-              <b>{w.steps[i]}</b>
-              <span className="hint">
-                {s === "tinjau"
-                  ? l.stepSub.tinjau(catatan.length)
-                  : s === "kode"
-                    ? l.stepSub.kode(terima.length, masalah.length)
-                    : l.stepSub.konfirmasi(siap && catatan.length === 0)}
+          <li key={s}>
+            <button
+              type="button"
+              className="r8-step"
+              data-st={step === s ? "cur" : selesai ? "done" : "next"}
+              aria-current={step === s ? "step" : undefined}
+              onClick={() => setStep(s)}
+            >
+              <span className="r8-step__n">
+                {selesai && step !== s ? <CheckIcon size={16} aria-hidden="true" /> : i + 1}
               </span>
-            </span>
-          </button>
+              <span className="r8-step__t">
+                <b>{w.steps[i]}</b>
+                <small>
+                  {s === "tinjau"
+                    ? l.stepSub.tinjau(catatan.length)
+                    : s === "kode"
+                      ? l.stepSub.kode(terima.length, masalah.length)
+                      : l.stepSub.konfirmasi(siap && catatan.length === 0)}
+                </small>
+              </span>
+            </button>
+          </li>
         );
       })}
-    </nav>
+    </ol>
   );
 
   if (!rows.length)
@@ -349,48 +360,48 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
 
       {step === "tinjau" && (
         <>
-          <section className="panel r8tg">
-            <div className="stack" style={{ gap: 8 }}>
-              <span className="eyebrow">{l.target}</span>
-              <div className="row" style={{ gap: 10, alignItems: "center" }}>
-                <span className="r8tg__step">
-                  <button
-                    type="button"
-                    className="iconbtn"
-                    aria-label={l.targetLess}
-                    disabled={!can}
-                    onClick={() => void ubahTarget(-1)}
-                  >
-                    <CaretLeftIcon size={16} aria-hidden="true" />
-                  </button>
-                  <b className="num">{d.quota}</b>
-                  <button
-                    type="button"
-                    className="iconbtn"
-                    aria-label={l.targetMore}
-                    disabled={!can}
-                    onClick={() => void ubahTarget(1)}
-                  >
-                    <CaretRightIcon size={16} aria-hidden="true" />
-                  </button>
-                </span>
+          <section
+            className="panel r8-quota"
+            data-st={diff < 0 ? "over" : diff === 0 ? "at" : "under"}
+            aria-label={l.target}
+          >
+            <div className="r8-quota__main">
+              <span className="eyebrow">
+                {l.target} <Stc tip={l.stcTip} />
+              </span>
+              <div className="row" style={{ gap: 10, flexWrap: "nowrap" }}>
+                {can ? (
+                  <Stepper
+                    value={d.quota}
+                    min={1}
+                    max={60}
+                    onChange={(v) => void ubahTarget(v - d.quota)}
+                    label={l.target}
+                    lessLabel={l.targetLess}
+                    moreLabel={l.targetMore}
+                  />
+                ) : (
+                  <b className="r8-quota__n num">{d.quota}</b>
+                )}
                 <span className="hint">{l.targetUnit(ACCEPT_DEFAULT.quota)}</span>
               </div>
             </div>
-            <span className="r8tg__bar" aria-hidden="true">
+            <div className="r8-quota__bar" aria-hidden="true">
               <i
-                style={{ width: `${Math.min(100, (terima.length / Math.max(1, d.quota)) * 100)}%` }}
+                style={{
+                  width: `${Math.min(100, Math.round((terima.length / Math.max(1, d.quota)) * 100))}%`,
+                }}
               />
-            </span>
-            <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+            </div>
+            <div className="stack" style={{ gap: 2, minWidth: 0 }}>
               <b>{l.targetLine(terima.length, diff)}</b>
               <span className="hint">{l.targetNote}</span>
             </div>
           </section>
 
-          <div className="row rec-tools r8tools">
-            <label className="rec9-search">
-              <MagnifyingGlassIcon size={18} aria-hidden="true" />
+          <div className="row rec-tools r8-tools">
+            <div className="rec-search">
+              <MagnifyingGlassIcon className="ic" size={18} aria-hidden="true" />
               <input
                 className="field__input"
                 value={cari}
@@ -398,8 +409,8 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                 aria-label={l.search}
                 onChange={(e) => setCari(e.target.value)}
               />
-            </label>
-            <div className="rec9-chips" role="group">
+            </div>
+            <div className="row" style={{ gap: 6, flexWrap: "wrap" }} role="group">
               {(
                 [
                   ["semua", l.fAll, rows.length],
@@ -411,21 +422,12 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                 <button
                   key={k}
                   type="button"
-                  className="rec9-chip"
-                  data-k={
-                    k === "terima"
-                      ? "disetujui"
-                      : k === "tolak"
-                        ? "revisi"
-                        : k === "cek"
-                          ? "menunggu"
-                          : "semua"
-                  }
+                  className="n7-chip r8-chip"
+                  data-k={k}
                   aria-pressed={saring === k}
                   onClick={() => setSaring(k)}
                 >
-                  <span>{t}</span>
-                  <b className="num">{n}</b>
+                  {t} <b className="num">{n}</b>
                 </button>
               ))}
             </div>
@@ -443,9 +445,9 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             />
           </div>
 
-          <section className="panel rec-tablecard r8card">
+          <section className="panel rec-tablecard r8-tablecard">
             <div className="scrollx">
-              <table className="table rec-table r8table">
+              <table className="table rec-table r8-table">
                 <thead>
                   <tr>
                     <th>{l.colNo}</th>
@@ -460,8 +462,13 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                 </thead>
                 <tbody>
                   {tampil.map((r, i) => (
-                    <tr key={r.id} data-out={r.decision === "tolak" ? "yes" : undefined}>
-                      <td className="num r8rank">{i + 1}</td>
+                    <tr
+                      key={r.id}
+                      className="r8-row"
+                      data-in={r.decision === "tolak" ? "no" : "yes"}
+                      data-need={ragu(r) && !ack.includes(r.id) ? "yes" : undefined}
+                    >
+                      <td className="num r8-rank">{i + 1}</td>
                       <td>
                         <span className="stack" style={{ gap: 0 }}>
                           <b>{r.nama}</b>
@@ -505,14 +512,14 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                       </td>
                       <td>
                         {ragu(r) ? (
-                          <span className="r8note">
-                            <span className="r8flag" data-t="warn">
+                          <div className="r8-notes">
+                            <span className="r8-flag" data-t="warn">
                               <WarningIcon size={14} aria-hidden="true" />
                               {l.noteRagu}
                             </span>
                             <button
                               type="button"
-                              className="r8ack"
+                              className="r8-ack"
                               aria-pressed={ack.includes(r.id)}
                               onClick={() => tandai(r.id)}
                             >
@@ -523,7 +530,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                               )}
                               {ack.includes(r.id) ? l.checked : l.markChecked}
                             </button>
-                          </span>
+                          </div>
                         ) : (
                           <span className="hint">-</span>
                         )}
@@ -532,21 +539,21 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                         {r.promotedNim ? (
                           <Pill tone="ok">{w.review.promoted}</Pill>
                         ) : (
-                          <div className="r8seg" role="radiogroup" aria-label={r.nama}>
-                            {(["terima", "tolak"] as const).map((x) => (
-                              <button
-                                key={x}
-                                type="button"
-                                role="radio"
-                                className="r8seg__b"
-                                data-t={x === "terima" ? "ok" : "danger"}
-                                aria-checked={r.decision === x}
-                                disabled={!can}
-                                onClick={() => set(r.id, { decision: x })}
-                              >
-                                {x === "terima" ? w.review.accept : w.review.reject}
-                              </button>
-                            ))}
+                          <div className="r8-dec">
+                            <span className="n7-seg r8-seg" role="group" aria-label={r.nama}>
+                              {(["terima", "tolak"] as const).map((x) => (
+                                <button
+                                  key={x}
+                                  type="button"
+                                  data-v={x === "terima" ? "lolos" : "gagal"}
+                                  aria-pressed={r.decision === x}
+                                  disabled={!can}
+                                  onClick={() => set(r.id, { decision: x })}
+                                >
+                                  {x === "terima" ? w.review.accept : l.rejectShort}
+                                </button>
+                              ))}
+                            </span>
                           </div>
                         )}
                       </td>
@@ -563,9 +570,9 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               </table>
             </div>
           </section>
-          <span className="hint r8legend">{l.legend(rows.length - terima.length)}</span>
-          <div className="r8bar">
-            <span className="hint">
+          <span className="hint r8-legend">{l.legend(rows.length - terima.length)}</span>
+          <div className="r8-foot">
+            <span className="r8-foot__info">
               {l.foot(terima.length, rows.length - terima.length, catatan.length)}
             </span>
             <span className="grow" />
@@ -589,13 +596,15 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
 
       {step === "kode" && (
         <>
-          <section className="panel r8rule">
-            <span className="r8rule__ic">
-              <KeyIcon size={20} aria-hidden="true" />
-            </span>
-            <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-              <b>{l.ruleTitle}</b>
-              <span className="hint">{l.ruleHint}</span>
+          <section className="panel r8-rule">
+            <div className="r8-rule__t">
+              <span className="r8-rule__ic">
+                <KeyIcon size={20} aria-hidden="true" />
+              </span>
+              <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+                <b>{l.ruleTitle}</b>
+                <span className="hint">{l.ruleHint}</span>
+              </div>
             </div>
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setPakai(true)}>
               <ListChecksIcon size={16} aria-hidden="true" />
@@ -607,7 +616,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             onOpenChange={setPakai}
             title={l.usedTitle}
             description={l.usedHint(d.taken.length)}
-            size="lg"
+            size="form"
             lang={lang}
             actions={
               <button type="button" className="btn btn--primary" onClick={() => setPakai(false)}>
@@ -615,16 +624,16 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               </button>
             }
           >
-            <div className="r8used">
+            <div className="r8-used">
               {[...d.taken].sort().map((k) => (
-                <b key={k} className="r8usedc mono">
-                  {k}
-                </b>
+                <span key={k} className="r8-usedc">
+                  <b className="mono">{k}</b>
+                </span>
               ))}
             </div>
           </Dialog>
           {masalah.length > 0 && (
-            <div className="rec-note rec-note--warn" role="alert">
+            <div className="rec-note rec-note--warn r8-clashnote" role="alert">
               <b>{l.clash(masalah.length)}</b>
               <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                 {masalah.map((c) => {
@@ -633,7 +642,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                     <button
                       key={c.id}
                       type="button"
-                      className="r8clashchip"
+                      className="r8-clashchip"
                       onClick={() => {
                         const el = document.querySelector<HTMLElement>(`[data-code="${c.id}"]`);
                         el?.scrollIntoView({ block: "center" });
@@ -648,9 +657,9 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               </div>
             </div>
           )}
-          <section className="panel rec-tablecard r8card">
+          <section className="panel rec-tablecard r8-tablecard">
             <div className="scrollx">
-              <table className="table rec-table r8table">
+              <table className="table rec-table r8-table r8-ctable">
                 <thead>
                   <tr>
                     <th>{l.colNo}</th>
@@ -665,18 +674,21 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                   {terima.map((r, i) => {
                     const c = cek.find((x) => x.id === r.id);
                     return (
-                      <tr key={r.id} data-bad={c?.problem ? "yes" : undefined}>
-                        <td className="num r8rank">{i + 1}</td>
+                      <tr key={r.id} className="r8-row" data-bad={c?.problem ? "yes" : undefined}>
+                        <td className="num r8-rank">{i + 1}</td>
                         <td>
-                          <span className="stack" style={{ gap: 0 }}>
+                          <div className="r8-who">
                             <b>{r.nama}</b>
                             <span className="hint mono">{r.nim}</span>
-                          </span>
+                          </div>
                         </td>
                         <td>
                           <input
-                            className="field__input r8code"
+                            className="input mono r8-code"
                             data-code={r.id}
+                            data-bad={c?.problem ? "yes" : undefined}
+                            spellCheck={false}
+                            autoCapitalize="characters"
                             maxLength={3}
                             value={r.code ?? ""}
                             placeholder={w.code.placeholder}
@@ -731,7 +743,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
           <span className={masalah.length ? "hint r8bad" : "hint r8good"} role="status">
             {masalah.length ? w.code.fix(masalah.length) : w.code.ok} · {w.code.rule}
           </span>
-          <div className="r8bar">
+          <div className="r8-foot">
             <button type="button" className="btn btn--ghost" onClick={() => setStep("tinjau")}>
               <span className="btn__label">{w.code.back}</span>
             </button>
@@ -751,15 +763,15 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
 
       {step === "konfirmasi" && (
         <>
-          <div className="r8konf">
-            <section className="panel r8check">
+          <div className="r8-konf">
+            <section className="panel r8-check">
               <div className="panel__head">
                 <h3 className="panel__title">{l.readiness}</h3>
                 <Pill tone={siap && catatan.length === 0 ? "ok" : "warn"}>
                   {siap && catatan.length === 0 ? l.ready : l.notReady}
                 </Pill>
               </div>
-              <ul className="r8tasks">
+              <ul className="r8-tasks">
                 {(
                   [
                     {
@@ -819,13 +831,13 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                   <li key={r.t}>
                     <button
                       type="button"
-                      className="r8task"
+                      className="r8-task"
                       data-ok={r.ok ? "yes" : "no"}
                       data-info={r.info ? "yes" : undefined}
                       disabled={!r.go}
                       onClick={r.go}
                     >
-                      <span className="r8task__st">
+                      <span className="r8-task__st">
                         {r.info ? (
                           <InfoIcon size={20} aria-hidden="true" />
                         ) : r.ok ? (
@@ -834,10 +846,10 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                           <ClockIcon size={20} aria-hidden="true" />
                         )}
                       </span>
-                      <span className="r8task__ic">
+                      <span className="r8-task__ic">
                         <r.ic size={18} aria-hidden="true" />
                       </span>
-                      <span className="stack" style={{ gap: 1, minWidth: 0 }}>
+                      <span className="r8-task__b">
                         <b>{r.t}</b>
                         <span className="hint">{r.sub}</span>
                       </span>
@@ -847,14 +859,14 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                 ))}
               </ul>
             </section>
-            <aside className="panel r8go" data-ready={siap && catatan.length === 0 ? "yes" : "no"}>
+            <aside className="panel r8-go" data-ready={siap && catatan.length === 0 ? "yes" : "no"}>
               <span className="eyebrow">{l.goEyebrow}</span>
-              <div className="r8go__big">
+              <div className="r8-go__big">
                 <b className="num">{terima.length}</b>
                 <span>{l.goUnit}</span>
               </div>
               <span className="hint">{l.goHint}</span>
-              <span className="r8go__hint">
+              <span className="r8-go__hint">
                 <ArrowDownIcon size={14} aria-hidden="true" />
                 {d.canConfirm ? l.goBar : w.confirm.notKetua}
               </span>
@@ -865,7 +877,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               <span>{w.confirm.blocked(masalah.length)}</span>
             </div>
           )}
-          <div className="r8bar">
+          <div className="r8-foot">
             <button type="button" className="btn btn--ghost" onClick={() => setStep("kode")}>
               <span className="btn__label">{w.confirm.back}</span>
             </button>
@@ -885,7 +897,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             onOpenChange={setRingkas}
             title={l.sumTitle}
             description={l.sumDesc}
-            size="lg"
+            size="form"
             lang={lang}
             actions={
               <>
@@ -907,8 +919,8 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               </>
             }
           >
-            <div className="r8sum">
-              <div className="r8tiles">
+            <div className="r8-sum">
+              <div className="r8-tiles">
                 <div data-t="ok">
                   <b className="num">{terima.length}</b>
                   <small>{l.sumBecome}</small>
@@ -918,25 +930,33 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                   <small>{l.sumOut}</small>
                 </div>
               </div>
-              <div className="r8sum2">
+              <div className="r8-sum2">
                 <section className="stack stack--sm">
                   <h3 className="h3">{l.sumCodes}</h3>
-                  <div className="r8chips">
+                  <div className="r8-codes">
                     {terima.map((r) => (
-                      <span key={r.id} className="r8chip" title={r.nama}>
-                        <b className="acode">{r.code || "---"}</b>
-                        {r.nama.split(" ")[0]}
+                      <span key={r.id} className="r8-codec" title={r.nama}>
+                        <b className="mono">{r.code || "---"}</b>
+                        <span>{r.nama.split(" ")[0]}</span>
                       </span>
                     ))}
                   </div>
                 </section>
                 <section className="stack stack--sm">
                   <h3 className="h3">{l.sumWhat}</h3>
-                  <ul className="r8will">
+                  <ul className="r8-will">
                     {l.what.map((x) => (
-                      <li key={x}>{x}</li>
+                      <li key={x}>
+                        <CheckIcon size={16} aria-hidden="true" />
+                        <span>{x}</span>
+                      </li>
                     ))}
-                    {d.revealAt && <li>{w.confirm.envelope(tglJam(d.revealAt, lang))}</li>}
+                    {d.revealAt && (
+                      <li>
+                        <EnvelopeSimpleIcon size={16} aria-hidden="true" />
+                        <span>{w.confirm.envelope(tglJam(d.revealAt, lang))}</span>
+                      </li>
+                    )}
                   </ul>
                 </section>
               </div>
@@ -946,13 +966,13 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
       )}
 
       {(hasil || d.done) && (
-        <section className="panel r8hero" data-st={hasil ? "new" : "again"} aria-live="polite">
-          <span className="r8hero__seal">
+        <section className="panel r8-hero" data-st={hasil ? "new" : "again"} aria-live="polite">
+          <span className="r8-hero__seal">
             <SealCheckIcon size={30} aria-hidden="true" />
           </span>
           <div className="stack stack--sm" style={{ minWidth: 0 }}>
             <span className="eyebrow">{hasil ? l.doneEyebrow : l.doneAgain}</span>
-            <h2 className="r8hero__t">
+            <h2 className="r8-hero__t">
               {hasil && hasil.created.length
                 ? w.result.created(hasil.created.length)
                 : w.result.nothing}
@@ -972,12 +992,12 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
         </section>
       )}
       {hasil && hasil.created.length > 0 && (
-        <section className="panel rec-tablecard r8card">
+        <section className="panel rec-tablecard r8-tablecard">
           <div className="panel__head">
             <h3 className="panel__title">{l.created}</h3>
           </div>
           <div className="scrollx">
-            <table className="table rec-table r8table">
+            <table className="table rec-table r8-table r8-htable">
               <thead>
                 <tr>
                   <th>{l.colCode}</th>
@@ -987,12 +1007,15 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               </thead>
               <tbody>
                 {hasil.created.map((c) => (
-                  <tr key={c.nim}>
+                  <tr key={c.nim} className="r8-row">
                     <td>
-                      <b className="acode">{c.kode}</b>
+                      <span className="r8-pcode mono">{c.kode}</span>
                     </td>
                     <td>
-                      <b>{c.nama}</b>
+                      <div className="r8-who">
+                        <b>{c.nama}</b>
+                        <span className="mono hint">{c.nim}</span>
+                      </div>
                     </td>
                     <td className="hint mono">{c.nim}</td>
                   </tr>

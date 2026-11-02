@@ -375,3 +375,15 @@ button.n7-task {
     display: none;
   }
 }
+
+/* Mockup rules that were never ported: the stage head actions sit to the right and wrap on a narrow bar */
+.n7-stagehead__act {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+@media (max-width: 1100px) {
+  .n7-stagehead__act {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

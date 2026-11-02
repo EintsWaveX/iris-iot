@@ -35,7 +35,7 @@ import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
 import Popover from "../../../ui/Popover";
 import Tooltip from "../../../ui/Tooltip";
-import { Stepper } from "../../../ui/Controls";
+import { Checkbox, Stepper } from "../../../ui/Controls";
 import { localeOf } from "../../../../lib/app";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
@@ -554,7 +554,7 @@ export default function Lembar({
         onOpenChange={(o) => !o && onClose()}
         title={w.title[stage]}
         lang={lang}
-        size="xl"
+        size="lembar"
       >
         <span className="skeleton" style={{ height: 320 }} />
       </Dialog>
@@ -982,14 +982,13 @@ export default function Lembar({
         </div>
       )}
       {!locked && (
-        <label className="check" style={{ marginTop: 8 }}>
-          <input
-            type="checkbox"
+        <div style={{ marginTop: 8 }}>
+          <Checkbox
             checked={ans._lab === "1"}
-            onChange={(e) => setAns({ ...ans, _lab: e.target.checked ? "1" : "" })}
+            onChange={(v) => setAns({ ...ans, _lab: v ? "1" : "" })}
+            label={L.labToggle}
           />
-          <span>{L.labToggle}</span>
-        </label>
+        </div>
       )}
     </aside>
   );
@@ -1642,7 +1641,7 @@ export default function Lembar({
       title={mg ? M.title : L.title[stage]}
       description={subLine}
       lang={lang}
-      size="xl"
+      size="lembar"
       actions={foot}
     >
       <div className="r4sheet" ref={body}>

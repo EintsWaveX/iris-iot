@@ -8,6 +8,7 @@ import { UserSwitchIcon } from "@phosphor-icons/react";
 import Dialog from "../../../ui/Dialog";
 import Disclose from "../../../ui/Disclose";
 import Dropdown from "../../../ui/Dropdown";
+import { Checkbox } from "../../../ui/Controls";
 import Pill from "../../../ui/Pill";
 import Tooltip from "../../../ui/Tooltip";
 import { dict, href, localeOf, useTick } from "../../../../lib/app";
@@ -242,10 +243,7 @@ function Prep({ lang, id }: { lang: Lang; id: number }) {
       <ul className="r4prep">
         {t.prepItems.map((p, i) => (
           <li key={p}>
-            <label className="check">
-              <input type="checkbox" checked={on[i]} onChange={() => ubah(i)} />
-              <span>{p}</span>
-            </label>
+            <Checkbox checked={on[i]} onChange={() => ubah(i)} label={p} />
           </li>
         ))}
       </ul>
