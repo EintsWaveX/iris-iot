@@ -2222,3 +2222,29 @@
 .r2tally__nums b[data-t="no"] {
   color: var(--danger);
 }
+
+/* The examiner rows of the Papan are cards of their own here (the mockup tucks them into each room card), so the chips
+   sit in a wrapping row instead of two wide columns. */
+.panel.r4lane {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+}
+.panel.r4lane[data-short] {
+  border-style: dashed;
+}
+.panel.r4lane .r4lane__z {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.panel.r4lane .r4ex {
+  min-width: 72px;
+  justify-content: space-between;
+}
