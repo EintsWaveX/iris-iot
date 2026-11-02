@@ -60,7 +60,7 @@ interface Props {
   /** sm 540px (confirms), md 680px (default), lg 740px, form 1100px (the mockup's large
    *  dialog), xl 1040px, wide
    *  1560px (slides, nearly the whole screen). */
-  size?: "sm" | "md" | "lg" | "form" | "xl" | "wide";
+  size?: "sm" | "md" | "lg" | "form" | "lembar" | "xl" | "wide";
   lang?: Lang;
   children?: ReactNode;
   /** The footer's buttons: Cancel, then the main action. */

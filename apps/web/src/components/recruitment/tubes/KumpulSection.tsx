@@ -21,6 +21,7 @@ import {
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
+import { Checkbox } from "../../ui/Controls";
 import { isFail } from "../../../lib/recruitment/client";
 import {
   TUBES_MAX_MB,
@@ -403,22 +404,12 @@ function PartsDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
               </label>
             </div>
             <div className="row" style={{ gap: 18, flexWrap: "wrap" }}>
-              <label className="row" style={{ gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={p.required}
-                  onChange={(e) => set(i, { required: e.target.checked })}
-                />
-                <span>{w.partReq}</span>
-              </label>
-              <label className="row" style={{ gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={p.link}
-                  onChange={(e) => set(i, { link: e.target.checked })}
-                />
-                <span>{w.partLink}</span>
-              </label>
+              <Checkbox
+                checked={p.required}
+                onChange={(v) => set(i, { required: v })}
+                label={w.partReq}
+              />
+              <Checkbox checked={p.link} onChange={(v) => set(i, { link: v })} label={w.partLink} />
               {parts.length > 1 && (
                 <button
                   type="button"

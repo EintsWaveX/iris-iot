@@ -1634,6 +1634,10 @@ html[data-detail="ldm"] .rec-funnel__bar i {
 .rec-search .field__input {
   width: 100%;
 }
+/* The icon sits over the left padding; without it the text ran under the magnifier */
+.rec-search > .ic ~ .field__input {
+  padding-left: 40px;
+}
 
 /* The board's cards: the grab area is the card, the star and the lock sit beside it */
 .rec-pp__grab {

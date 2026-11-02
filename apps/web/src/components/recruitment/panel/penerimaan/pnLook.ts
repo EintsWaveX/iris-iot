@@ -18,6 +18,8 @@ export const PL = dict({
         : diff > 0
           ? `${n} diterima · ${diff} di bawah target`
           : `${n} diterima · ${-diff} melebihi target`,
+    stcTip: "Subject to Change: angkanya bisa berubah",
+    rejectShort: "Tidak",
     targetNote:
       "Hanya panduan: daftar ini berasal dari Cutting Tes Mengajar, dan Pleno yang menentukan siapa yang lolos.",
     search: "Cari nama atau NIM",
@@ -120,6 +122,8 @@ export const PL = dict({
         : diff > 0
           ? `${n} accepted · ${diff} under the target`
           : `${n} accepted · ${-diff} over the target`,
+    stcTip: "Subject to Change: the number may move",
+    rejectShort: "No",
     targetNote:
       "A guide only: this list comes from the Teaching Test Cutting, and the Pleno decides who passes.",
     search: "Search name or NIM",
@@ -222,6 +226,8 @@ export const PL = dict({
         : diff > 0
           ? `已录取 ${n} 人 · 低于目标 ${diff}`
           : `已录取 ${n} 人 · 超出目标 ${-diff}`,
+    stcTip: "可能调整：数字可能会变",
+    rejectShort: "否",
     targetNote: "仅供参考：名单来自试讲筛选，由全员会议决定谁通过。",
     search: "搜索姓名或学号",
     fAll: "全部",

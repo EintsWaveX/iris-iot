@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useState, type ComponentType } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
+  DownloadSimpleIcon,
+  FileArrowUpIcon,
   CpuIcon,
   DotsThreeIcon,
   GearSixIcon,
@@ -167,21 +169,28 @@ export default function BankTab({ lang }: { lang: Lang }) {
                 </RadixPopover.Trigger>
                 <RadixPopover.Portal>
                   <RadixPopover.Content
-                    className="appnav__menu sweep-edge"
+                    className="popover__panel"
+                    style={{ width: 240 }}
                     align="end"
                     sideOffset={8}
                     collisionPadding={12}
                   >
-                    <div className="acct">
-                      <button type="button" className="acct__row" onClick={() => setImp(true)}>
-                        <span>{t.import}</span>
+                    <div className="stack stack--sm">
+                      <button
+                        type="button"
+                        className="btn btn--inverse btn--block"
+                        onClick={() => setImp(true)}
+                      >
+                        <FileArrowUpIcon size={18} aria-hidden="true" />
+                        <span className="btn__label">{t.import}</span>
                       </button>
                       <a
-                        className="acct__row"
+                        className="btn btn--inverse btn--block"
                         href={`/api/recruitment/bank-export?part=${part}`}
                         download={t.exportFile(part)}
                       >
-                        <span>{t.export}</span>
+                        <DownloadSimpleIcon size={18} aria-hidden="true" />
+                        <span className="btn__label">{t.export}</span>
                       </a>
                     </div>
                   </RadixPopover.Content>

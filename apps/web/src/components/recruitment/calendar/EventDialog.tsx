@@ -109,7 +109,7 @@ export default function EventDialog({
         onOpenChange={onOpenChange}
         title={isNew ? c.add : c.edit}
         description={isNew ? c.addDesc : rentangAcara(event, lang)}
-        size="lg"
+        size={isNew ? "md" : "lg"}
         lang={lang}
         alt={
           event ? (
