@@ -254,7 +254,7 @@ export function AturTitikAwal({
       onOpenChange={onOpenChange}
       title={`${s.title} · ${s.short[stage]}`}
       description={s.desc}
-      size="form"
+      size="lg"
       lang={lang}
       alt={
         <button type="button" className="btn btn--ghost" disabled={busy || sama} onClick={pulihkan}>

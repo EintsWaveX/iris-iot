@@ -96,7 +96,7 @@ export default function AttendanceDrawer({
       onOpenChange={(o) => !o && onClose()}
       title={t.absen(judulAcara(event, lang))}
       description={`${kapanAcara(event, lang)}${event.place ? ` · ${event.place}` : ""}`}
-      size="form"
+      size="lg"
       lang={lang}
       alt={
         <button type="button" className="btn btn--ghost" onClick={unduh}>

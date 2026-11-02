@@ -18,7 +18,9 @@ import {
   TerminalWindowIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react";
-import type { ComponentType } from "react";
+import { useState, type ComponentType } from "react";
+import Dialog from "../../../../ui/Dialog";
+import { MapPinIcon } from "@phosphor-icons/react";
 import { ProgressRing } from "../../../../ui/Display";
 import type { Lang } from "../../../../../lib/kelas";
 import { usePoll } from "../../../../../lib/hooks";
@@ -76,6 +78,7 @@ export default function Kesiapan({
     ["recroom", "recjudge"],
     300,
   );
+  const [open, setOpen] = useState<null | "slot" | "soal" | "juri" | "mulai">(null);
   if (!v) return <span className="skeleton" style={{ height: 300 }} />;
 
   const tertulis = v.config.order.filter((p) => p !== "livecode");
@@ -98,7 +101,7 @@ export default function Kesiapan({
         ? t.slotSub(v.room.title, jam(slot.startsAt, lang), jam(slot.endsAt, lang), kursi)
         : t.slotPractice(v.room.title),
       siap: true,
-      aksi: () => bukaBagian("plotting"),
+      aksi: () => setOpen("slot"),
     },
     {
       k: "soal",
@@ -108,7 +111,7 @@ export default function Kesiapan({
         ? t.soalOk(tertulis.map((p) => `${part[p].l} ${siap(p)}`).join(", "))
         : t.soalNo(part[kurang ?? tertulis[0]].l),
       siap: soalOk,
-      aksi: () => bukaBagian("bank"),
+      aksi: () => setOpen("soal"),
     },
     {
       k: "pengawas",
@@ -124,7 +127,7 @@ export default function Kesiapan({
       judul: t.juri,
       sub: juriOk ? t.juriOk : t.juriNo,
       siap: juriOk,
-      aksi: () => juri.refresh(),
+      aksi: () => setOpen("juri"),
     },
   ];
   const nSiap = baris.filter((b) => b.siap).length;
@@ -202,7 +205,11 @@ export default function Kesiapan({
         <span className="eyebrow">{t.go}</span>
         <b className="n7-go__big">{semua ? t.allSet : t.notReady(baris.length - nSiap)}</b>
         <span className="hint">{t.goHint}</span>
-        <button type="button" className="btn btn--primary btn--lg" onClick={buka}>
+        <button
+          type="button"
+          className="btn btn--primary btn--lg"
+          onClick={() => (semua ? buka() : setOpen("mulai"))}
+        >
           <RocketLaunchIcon size={20} aria-hidden={true} />
           <span className="btn__label">{t.go}</span>
           <ArrowRightIcon size={18} aria-hidden={true} />
@@ -221,6 +228,125 @@ export default function Kesiapan({
           <span className="btn__label">{t.tryFirst}</span>
         </button>
       </aside>
+      <Dialog
+        open={open === "slot"}
+        onOpenChange={(o) => !o && setOpen(null)}
+        title={t.slot}
+        description={v.room.title}
+        size="md"
+        lang={lang}
+        actions={
+          <button type="button" className="btn btn--ghost" onClick={() => setOpen(null)}>
+            {t.close}
+          </button>
+        }
+      >
+        <div className="stack">
+          <span className="hint">{t.slotBody}</span>
+          <button
+            type="button"
+            className="btn btn--inverse btn--block"
+            onClick={() => {
+              setOpen(null);
+              bukaBagian("plotting");
+            }}
+          >
+            <MapPinIcon size={18} aria-hidden={true} />
+            <span className="btn__label">{t.openPlotting}</span>
+          </button>
+        </div>
+      </Dialog>
+      <Dialog
+        open={open === "soal"}
+        onOpenChange={(o) => !o && setOpen(null)}
+        title={t.soal}
+        description={v.room.title}
+        size="md"
+        lang={lang}
+        actions={
+          <button type="button" className="btn btn--ghost" onClick={() => setOpen(null)}>
+            {t.close}
+          </button>
+        }
+      >
+        <div className="stack">
+          <span className="hint">{baris[1].sub}</span>
+          <button
+            type="button"
+            className="btn btn--inverse btn--block"
+            onClick={() => {
+              setOpen(null);
+              bukaBagian("bank");
+            }}
+          >
+            <FileTextIcon size={18} aria-hidden={true} />
+            <span className="btn__label">{t.openBank}</span>
+          </button>
+        </div>
+      </Dialog>
+      <Dialog
+        open={open === "juri"}
+        onOpenChange={(o) => !o && setOpen(null)}
+        title={t.juri}
+        description={v.room.title}
+        size="lg"
+        lang={lang}
+        actions={
+          <button type="button" className="btn btn--ghost" onClick={() => setOpen(null)}>
+            {t.close}
+          </button>
+        }
+      >
+        <div className="stack">
+          <span className="hint">{t.juriBody}</span>
+          <section className="panel">
+            <div className="panel__head">
+              <h3 className="panel__title">{t.juri}</h3>
+              <span className="n7-task__tag">{juriOk ? t.ready : t.todo}</span>
+            </div>
+            <div className="rec-sum">
+              <span className="hint">{t.queueLabel}</span>
+              <b>{juri.data ? t.queue(juri.data.queue.waiting, juri.data.queue.running) : "-"}</b>
+            </div>
+            <div className="row row--end">
+              <button type="button" className="btn btn--inverse" onClick={() => juri.refresh()}>
+                <span className="btn__label">{t.checkJudge}</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </Dialog>
+      <Dialog
+        open={open === "mulai"}
+        onOpenChange={(o) => !o && setOpen(null)}
+        title={t.startAnyway}
+        description={t.startMissing(
+          baris.length - nSiap,
+          baris.filter((b) => !b.siap).map((b) => b.judul),
+        )}
+        size="sm"
+        lang={lang}
+        actions={
+          <>
+            <button type="button" className="btn btn--ghost" onClick={() => setOpen(null)}>
+              {t.backToSetup}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => {
+                setOpen(null);
+                buka();
+              }}
+            >
+              <RocketLaunchIcon size={18} aria-hidden={true} />
+              <span className="btn__label">{t.startAlso}</span>
+            </button>
+          </>
+        }
+      >
+        <p className="hint">{t.startBody}</p>
+      </Dialog>
     </div>
   );
 }

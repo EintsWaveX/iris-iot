@@ -45,6 +45,7 @@ import JudgeTab from "./JudgeTab";
 import { RG } from "./ruangStrings";
 import { KS, MG } from "./malamStrings";
 import Kesiapan from "./Kesiapan";
+import AturRuang from "./AturRuang";
 import PenilaianTab from "../penilaian/PenilaianTab";
 
 import "../../../recruitment-s3-room.css";
@@ -307,6 +308,7 @@ function Daftar({
   const [ubah, setUbah] = useState<Daftarku["rooms"][number] | null>(null);
   const [sibuk, setSibuk] = useState(false);
   const [pilih, setPilih] = useState<string | null>(null);
+  const [aturId, setAturId] = useState<number | null>(null);
   async function siapkan(body: Record<string, unknown>) {
     setSibuk(true);
     const r = await recPost<{ ok: true; room: { id: number } }>("room-setup", {
@@ -373,7 +375,7 @@ function Daftar({
                 <button
                   type="button"
                   className="btn btn--ghost btn--sm"
-                  onClick={() => buka(r.id, "atur")}
+                  onClick={() => setAturId(r.id)}
                 >
                   <GearIcon size={16} aria-hidden="true" />
                   <span className="btn__label">{k.setup}</span>
@@ -411,7 +413,7 @@ function Daftar({
             lang={lang}
             room={r}
             buka={() => buka(r.id)}
-            atur={() => buka(r.id, "atur")}
+            atur={() => setAturId(r.id)}
             latihan={() => setPilih("latihan")}
           />
         )}
@@ -544,6 +546,15 @@ function Daftar({
         </section>
       ) : (
         isiMalam()
+      )}
+      {aturId !== null && (
+        <AturRuang
+          lang={lang}
+          id={aturId}
+          people={data.people ?? []}
+          onClose={() => setAturId(null)}
+          refresh={refresh}
+        />
       )}
     </div>
   );
