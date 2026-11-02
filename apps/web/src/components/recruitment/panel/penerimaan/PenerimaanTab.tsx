@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   ArrowDownIcon,
+  ArrowLeftIcon,
   ArrowRightIcon,
   ArrowsClockwiseIcon,
   CalendarCheckIcon,
@@ -17,9 +18,9 @@ import {
   CheckIcon,
   EnvelopeSimpleIcon,
   ClockIcon,
-  ConfettiIcon,
   InfoIcon,
   KeyIcon,
+  NotePencilIcon,
   ListChecksIcon,
   LockSimpleIcon,
   MagnifyingGlassIcon,
@@ -27,7 +28,6 @@ import {
   UsersThreeIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
-import Confirm from "../../../ui/Confirm";
 import Dialog from "../../../ui/Dialog";
 import { Stepper } from "../../../ui/Controls";
 import { Stc } from "../../shared";
@@ -41,10 +41,10 @@ import { ACCEPT_DEFAULT } from "../../../../lib/recruitment/settings";
 import {
   useRecPn,
   type PnConfirmResponse,
-  type PnListResponse,
   type PnRow,
 } from "../../../../lib/recruitment/pn-client";
 import Rayakan from "./Rayakan";
+import { Hasil, Tutup } from "./PenerimaanFasa";
 import { PNW } from "./pnStrings";
 import { PL } from "./pnLook";
 import "../../recruitment-r8.css";
@@ -61,67 +61,6 @@ const tglJam = (iso: string, lang: Lang) =>
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(iso));
-const tgl = (iso: string, lang: Lang) =>
-  new Intl.DateTimeFormat(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
-    timeZone: "Asia/Jakarta",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(iso));
-
-function Tutup({
-  lang,
-  d,
-  can,
-  refresh,
-}: {
-  lang: Lang;
-  d: PnListResponse;
-  can: boolean;
-  refresh: () => void;
-}) {
-  const w = PNW(lang).close;
-  const err = PNW(lang).err;
-  const [tanya, setTanya] = useState(false);
-  const c = d.close;
-  const tutup = async () => {
-    const r = await recPost<{ ok: true }>("pn-close", { confirm: true });
-    if (isFail(r)) return toast(err[r.kode] ?? r.kode, "danger");
-    toast(w.done);
-    refresh();
-  };
-  return (
-    <section className="panel r8close" data-closed={c.closed ? "yes" : undefined}>
-      <div className="panel__head">
-        <h3 className="panel__title">{w.title}</h3>
-        <Pill tone={c.closed ? "danger" : "ok"}>{c.closed ? w.closed : w.open}</Pill>
-      </div>
-      <ul className="r8close__l">
-        {c.closedAt && c.closedBy && <li>{w.byHand(tglJam(c.closedAt, lang))}</li>}
-        {!c.closedAt && c.closeAt && <li>{w.auto(tgl(c.closeAt, lang), c.closeDays)}</li>}
-        {!c.closeAt && !c.closedAt && <li className="hint">{w.noAuto}</li>}
-        {c.keepUntil && <li>{w.keep(tgl(c.keepUntil, lang), c.retentionMonths)}</li>}
-      </ul>
-      {can && !c.closed && (
-        <>
-          <button type="button" className="btn btn--ghost" onClick={() => setTanya(true)}>
-            {w.button}
-          </button>
-          <Confirm
-            open={tanya}
-            onOpenChange={setTanya}
-            title={w.confirmTitle}
-            body={w.confirmBody}
-            confirmLabel={w.confirmLabel}
-            cancelLabel={PNW(lang).confirm.back}
-            lang={lang}
-            onConfirm={() => void tutup()}
-          />
-        </>
-      )}
-    </section>
-  );
-}
 
 const ACK_KEY = "iris:rec:pn-ack";
 const bacaAck = (): number[] => {
@@ -191,6 +130,8 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
   const [ack, setAck] = useState<number[]>(bacaAck);
   const [pakai, setPakai] = useState(false);
   const [ringkas, setRingkas] = useState(false);
+  // After the confirm the screen is the result, then closing the edition; the person can step between them.
+  const [fasaPilih, setFasaPilih] = useState<"hasil" | "tutup" | null>(null);
 
   // The server's list seeds the local edits; a change from elsewhere replaces it unless the Ketua is mid-edit.
   const sumber = useMemo(() => (d ? JSON.stringify(d.rows) : ""), [d]);
@@ -260,14 +201,28 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
     if (isFail(r)) return toast(w.err[r.kode] ?? r.kode, "danger");
     setHasil(r);
     pn.refresh();
+    setFasaPilih("hasil");
     if (r.created.length) setPesta(true);
+    else if (r.again)
+      toast(
+        lang === "id"
+          ? `Sudah dilakukan. ${r.already.length} Asisten sudah ada, tidak ada yang dibuat dua kali.`
+          : lang === "zh"
+            ? `已经完成。${r.already.length} 名助教已存在，没有重复创建。`
+            : `Already done. ${r.already.length} Asisten already exist, nobody was created twice.`,
+      );
   };
   const ubahTarget = async (delta: number) => {
     const q = Math.max(1, Math.min(200, d.quota + delta));
     if (q === d.quota) return;
     const r = await recPost<{ ok: true }>("setting-save", {
       key: "penerimaan",
-      value: { quota: q, closeDays: d.close.closeDays, retentionMonths: d.close.retentionMonths },
+      value: {
+        quota: q,
+        closeDays: d.close.closeDays,
+        retentionMonths: d.close.retentionMonths,
+        autoClose: d.close.autoClose,
+      },
     });
     if (isFail(r)) return toast(w.err[r.kode] ?? r.kode, "danger");
     pn.refresh();
@@ -320,6 +275,42 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
     </ol>
   );
 
+  const fasa = d.close.closed ? (fasaPilih ?? "tutup") : d.done ? (fasaPilih ?? "hasil") : "wizard";
+  if (fasa !== "wizard") {
+    const baruList =
+      hasil?.created ??
+      rows
+        .filter((r) => r.promotedNim)
+        .map((r) => ({ nim: r.nim, nama: r.nama, kode: r.code ?? "" }));
+    return (
+      <div className="stack r8" data-phase={fasa}>
+        {fasa === "hasil" ? (
+          <Hasil
+            lang={lang}
+            d={d}
+            rows={rows}
+            can={d.canConfirm && !d.close.closed}
+            onAgain={() => void jalankan()}
+            onReplay={() => setPesta(true)}
+            onClose={() => setFasaPilih("tutup")}
+          />
+        ) : (
+          <Tutup
+            lang={lang}
+            d={d}
+            rows={rows}
+            can={d.canConfirm}
+            onBack={() => setFasaPilih("hasil")}
+            refresh={pn.refresh}
+          />
+        )}
+        {pesta && baruList.length > 0 && (
+          <Rayakan lang={lang} baru={baruList} onClose={() => setPesta(false)} />
+        )}
+      </div>
+    );
+  }
+
   if (!rows.length)
     return (
       <div className="stack">
@@ -327,7 +318,6 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
           <b>{w.empty}</b>
           <span>{w.emptyHint}</span>
         </div>
-        <Tutup lang={lang} d={d} can={d.canConfirm} refresh={pn.refresh} />
       </div>
     );
 
@@ -657,9 +647,10 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             }
           >
             <div className="r8-used">
-              {[...d.taken].sort().map((k) => (
-                <span key={k} className="r8-usedc">
-                  <b className="mono">{k}</b>
+              {[...d.takenNames].map((a) => (
+                <span key={a.kode} className="r8-usedc">
+                  <b className="mono">{a.kode}</b>
+                  <span>{a.nama}</span>
                 </span>
               ))}
             </div>
@@ -772,23 +763,37 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               </table>
             </div>
           </section>
-          <span className={masalah.length ? "hint r8bad" : "hint r8good"} role="status">
-            {masalah.length ? w.code.fix(masalah.length) : w.code.ok} · {w.code.rule}
-          </span>
-          <div className="r8-foot">
-            <button type="button" className="btn btn--ghost" onClick={() => setStep("tinjau")}>
-              <span className="btn__label">{w.code.back}</span>
-            </button>
-            <span className="grow" />
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={busy}
-              onClick={() => void kePindah("konfirmasi")}
-            >
-              <span className="btn__label">{w.code.next}</span>
-              <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
-            </button>
+          <div className="r8-foot" role="status">
+            <span className="r8-foot__info">
+              {masalah.length
+                ? l.footCodeClash(masalah.length, terima.length)
+                : l.footCodeOk(terima.length)}
+            </span>
+            <span className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+              <button type="button" className="btn btn--ghost" onClick={() => setStep("tinjau")}>
+                <ArrowLeftIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{l.backBtn}</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={busy}
+                onClick={() => {
+                  if (masalah.length) {
+                    document
+                      .querySelector<HTMLElement>(`[data-code="${masalah[0].id}"]`)
+                      ?.scrollIntoView({ block: "center" });
+                    return;
+                  }
+                  void kePindah("konfirmasi");
+                }}
+              >
+                <span className="btn__label">
+                  {masalah.length ? l.footCodeFix(masalah.length) : w.code.next}
+                </span>
+                <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
+              </button>
+            </span>
           </div>
         </>
       )}
@@ -832,6 +837,18 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                       ic: UsersThreeIcon,
                       t: l.rowTarget,
                       sub: l.targetLine(terima.length, diff),
+                      go: () => setStep("tinjau"),
+                    },
+                    {
+                      ok: true,
+                      info: true,
+                      ic: NotePencilIcon,
+                      t: l.rowChanged,
+                      sub:
+                        rows.length - terima.length === 0
+                          ? l.rowChangedNone
+                          : l.rowChangedSome(rows.length - terima.length),
+                      go: rows.length - terima.length ? () => setStep("tinjau") : undefined,
                     },
                     ...(d.revealAt
                       ? [
@@ -844,6 +861,13 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
                           },
                         ]
                       : []),
+                    {
+                      ok: true,
+                      info: true,
+                      ic: EnvelopeSimpleIcon,
+                      t: l.rowEnv,
+                      sub: l.rowEnvSub,
+                    },
                     {
                       ok: true,
                       info: true,
@@ -910,19 +934,35 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             </div>
           )}
           <div className="r8-foot">
-            <button type="button" className="btn btn--ghost" onClick={() => setStep("kode")}>
-              <span className="btn__label">{w.confirm.back}</span>
-            </button>
-            <span className="grow" />
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={!can || masalah.length > 0 || busy}
-              onClick={() => setRingkas(true)}
-            >
-              <SealCheckIcon size={18} aria-hidden="true" />
-              <span className="btn__label">{d.done ? w.result.again : l.goButton}</span>
-            </button>
+            <span className="r8-foot__info">
+              {siap && catatan.length === 0 ? l.footKonfReady : l.footKonfNot}
+            </span>
+            <span className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+              <button type="button" className="btn btn--ghost" onClick={() => setStep("kode")}>
+                <ArrowLeftIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{l.backBtn}</span>
+              </button>
+              {can && (
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={busy}
+                  onClick={() => {
+                    if (siap && catatan.length === 0) return setRingkas(true);
+                    if (catatan.length) {
+                      setSaring("cek");
+                      return setStep("tinjau");
+                    }
+                    setStep("kode");
+                  }}
+                >
+                  <SealCheckIcon size={18} aria-hidden="true" />
+                  <span className="btn__label">
+                    {siap && catatan.length === 0 ? l.openSummary : l.showMissing}
+                  </span>
+                </button>
+              )}
+            </span>
           </div>
           <Dialog
             open={ringkas}
@@ -995,72 +1035,6 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             </div>
           </Dialog>
         </>
-      )}
-
-      {(hasil || d.done) && (
-        <section className="panel r8-hero" data-st={hasil ? "new" : "again"} aria-live="polite">
-          <span className="r8-hero__seal">
-            <SealCheckIcon size={30} aria-hidden="true" />
-          </span>
-          <div className="stack stack--sm" style={{ minWidth: 0 }}>
-            <span className="eyebrow">{hasil ? l.doneEyebrow : l.doneAgain}</span>
-            <h2 className="r8-hero__t">
-              {hasil && hasil.created.length
-                ? w.result.created(hasil.created.length)
-                : w.result.nothing}
-            </h2>
-            <span className="hint">{l.doneHint}</span>
-            {hasil && hasil.rejected > 0 && (
-              <span className="hint">{w.result.rejected(hasil.rejected)}</span>
-            )}
-          </div>
-          <span className="grow" />
-          {hasil && hasil.created.length > 0 && (
-            <button type="button" className="btn btn--inverse" onClick={() => setPesta(true)}>
-              <ConfettiIcon size={18} aria-hidden="true" />
-              <span className="btn__label">{w.result.celebrate}</span>
-            </button>
-          )}
-        </section>
-      )}
-      {hasil && hasil.created.length > 0 && (
-        <section className="panel rec-tablecard r8-tablecard">
-          <div className="panel__head">
-            <h3 className="panel__title">{l.created}</h3>
-          </div>
-          <div className="scrollx">
-            <table className="table rec-table r8-table r8-htable">
-              <thead>
-                <tr>
-                  <th>{l.colCode}</th>
-                  <th>{l.colName}</th>
-                  <th>{l.colNim}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hasil.created.map((c) => (
-                  <tr key={c.nim} className="r8-row">
-                    <td>
-                      <span className="r8-pcode mono">{c.kode}</span>
-                    </td>
-                    <td>
-                      <div className="r8-who">
-                        <b>{c.nama}</b>
-                        <span className="mono hint">{c.nim}</span>
-                      </div>
-                    </td>
-                    <td className="hint mono">{c.nim}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      <Tutup lang={lang} d={d} can={d.canConfirm} refresh={pn.refresh} />
-      {pesta && hasil && (
-        <Rayakan lang={lang} baru={hasil.created} onClose={() => setPesta(false)} />
       )}
     </div>
   );

@@ -220,7 +220,7 @@ const stateOf = (r: RecQuestionRow): StoredState => ({
   sample: r.sample,
 });
 
-function summary(r: RecQuestionRow) {
+function summary(r: RecQuestionRow, seats = 0) {
   return {
     id: r.id,
     part: r.part,
@@ -231,9 +231,27 @@ function summary(r: RecQuestionRow) {
     sample: r.sample,
     version: r.version,
     shown: r.shownAt !== null,
+    /** How many real seats were dealt it (rehearsal rooms do not count) */
+    seats,
     voided: r.voidedAt !== null,
     updatedAt: r.updatedAt.toISOString(),
   };
+}
+
+/** Seats dealt each question, from the draws kept on the seats of real (not rehearsal) rooms. */
+async function kursiPerSoal(db: Db, edisiId: number): Promise<Map<number, number>> {
+  const r = await db.execute(sql`
+    select (it->>'q')::int as q, count(*)::int as n
+    from rec_exam_seat s
+    join rec_exam_room m on m.id = s.room_id and m.edition_id = ${edisiId} and m.rehearsal = false
+    cross join lateral jsonb_each(s.draw) d(part, entry)
+    cross join lateral jsonb_array_elements(coalesce(d.entry->'items', '[]'::jsonb)) it
+    group by 1`);
+  const rows = (Array.isArray(r) ? r : ((r as { rows?: unknown[] } | undefined)?.rows ?? [])) as {
+    q: number;
+    n: number;
+  }[];
+  return new Map(rows.map((x) => [Number(x.q), Number(x.n)]));
 }
 
 function full(r: RecQuestionRow) {
@@ -314,7 +332,11 @@ async function daftarSoal(k: Konteks) {
     (r) =>
       (!part || r.part === part) && (!lang || r.lang === lang) && (!status || r.status === status),
   );
-  k.res.status(200).json({ ok: true, questions: rows.map(summary) });
+  const kursi = await kursiPerSoal(k.db, k.edisiId);
+  k.res.status(200).json({
+    ok: true,
+    questions: rows.map((r) => summary(r, kursi.get(r.id) ?? 0)),
+  });
 }
 
 async function bacaSoal(k: Konteks) {

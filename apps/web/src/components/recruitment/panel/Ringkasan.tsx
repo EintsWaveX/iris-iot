@@ -7,6 +7,7 @@
  */
 import { useState } from "react";
 import {
+  QrCodeIcon,
   ArrowRightIcon,
   CaretRightIcon,
   ChalkboardTeacherIcon,
@@ -22,7 +23,6 @@ import {
 } from "@phosphor-icons/react";
 import type { ComponentType } from "react";
 import type { Lang } from "../../../lib/kelas";
-import { href } from "../../../lib/app";
 import { lite } from "../../../lib/recruitment/banner";
 import {
   eventHadir,
@@ -273,17 +273,15 @@ export default function Ringkasan({
         )}
         {rights?.attendance && hidup && (
           <div className="row r2today">
-            <a
+            <button
+              type="button"
               className="btn btn--primary btn--sm"
-              href={href(lang, "/recruitment/qr")}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => setHadirDi(hidup.id)}
             >
-              <span className="btn__label">{S2[lang].attend.todayQr}</span>
-            </a>
-            <button type="button" className="btn btn--sm" onClick={() => setHadirDi(hidup.id)}>
-              <span className="btn__label">{S2[lang].attend.todayAttend}</span>
+              <QrCodeIcon size={16} aria-hidden="true" />
+              <span className="btn__label">{S2[lang].attend.todayAbsen}</span>
             </button>
+            <span className="hint">{S2[lang].attend.todayHint}</span>
           </div>
         )}
         {deadline && (
