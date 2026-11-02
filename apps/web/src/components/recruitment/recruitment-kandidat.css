@@ -582,7 +582,7 @@
 }
 .rec9-sum th,
 .rec9-sum td {
-  padding: 10px 12px;
+  padding: 10px 8px;
   text-align: left;
   border-bottom: 1px solid var(--line, rgba(127, 127, 127, 0.25));
   white-space: nowrap;
