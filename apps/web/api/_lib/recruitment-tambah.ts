@@ -128,6 +128,41 @@ export async function handleCatatanKandidat(req: ApiRequest, res: ApiResponse, s
   return void res.status(200).json({ ok: true });
 }
 
+/**
+ * IPK and Potensi Cut on a candidate (the sheet's IPK column and POTENSI-CUT status).
+ * Either may be sent alone. IPK is a number from 0 to 4 with at most two decimals, or null to clear it.
+ */
+export async function handleMetaKandidat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (!wajibHak(res, p, "candidates")) return;
+  const b = jsonBody(req);
+  const k = await kandidatId(db, edisi.id, b.id);
+  if (!k) return tolak(res, "tidak_ditemukan", 404);
+  const set: { ipkX100?: number | null; potensiCut?: boolean } = {};
+  if (b.ipk !== undefined) {
+    if (b.ipk === null) set.ipkX100 = null;
+    else {
+      const n = typeof b.ipk === "number" ? b.ipk : Number.NaN;
+      const x100 = Math.round(n * 100);
+      if (!Number.isFinite(n) || n < 0 || n > 4 || Math.abs(n * 100 - x100) > 1e-6)
+        return tolak(res, "data_salah", 400, { field: "ipk" });
+      set.ipkX100 = x100;
+    }
+  }
+  if (b.potensiCut !== undefined) {
+    if (typeof b.potensiCut !== "boolean")
+      return tolak(res, "data_salah", 400, { field: "potensiCut" });
+    set.potensiCut = b.potensiCut;
+  }
+  if (!Object.keys(set).length) return tolak(res, "data_salah", 400, { field: "ipk" });
+  await db.update(recCandidate).set(set).where(eq(recCandidate.id, k.id));
+  await writeAudit(s.nim, "rec_kandidat_meta", { id: k.id, ...set });
+  return void res.status(200).json({ ok: true });
+}
+
 /** A candidate from the Google Form, or a correction of one already added (`ubah`). */
 export async function handleTambahKandidat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const db = getDb();

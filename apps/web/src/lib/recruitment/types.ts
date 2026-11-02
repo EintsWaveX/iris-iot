@@ -204,6 +204,8 @@ export interface RecDocument {
   size: number;
   uploadedAt: string;
   note: string | null;
+  /** The Admin's check of this file, shown to the CaAs only while a revision is asked */
+  verdict?: DocVerdict | null;
 }
 
 /* ------------------------------------------------------------- the viewer */
@@ -379,6 +381,8 @@ export interface EditionResponse {
   viewer: ViewerKind;
   /** null unless the viewer sits on the committee or holds hakPenuh */
   rights: RecRights | null;
+  /** Asisten without the attendance right: they are the outside PJ of a shift, so they may open that shift's QR screen */
+  qrShift?: boolean;
   /** The viewer's seat, when they have one */
   seat: { division: CommitteeDivision; isKoor: boolean; title: string | null } | null;
   /** Mode Latihan: this request ran on the practice edition, as this side (Asisten only) */
@@ -531,6 +535,14 @@ export interface CandidateRow {
   appliedAt: string;
   /** How many of the required documents are uploaded */
   docs: number;
+  /** The Google Form's prodi, on candidates the Panitia added by hand; null otherwise */
+  prodi: Prodi | null;
+  /** IPK as a number (2.85), null when none was entered */
+  ipk: number | null;
+  /** Potensi Cut: flagged by the Panitia while checking the files */
+  potensiCut: boolean;
+  /** How many times a revision was asked; with the status "applied" it means "resubmitted, check again" */
+  revisions: number;
 }
 
 /** GET candidates (Panitia). Query: stage, status, q. */

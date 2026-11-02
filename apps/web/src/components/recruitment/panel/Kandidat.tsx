@@ -31,6 +31,7 @@ import {
   ScissorsIcon,
   SealCheckIcon,
   SlidersHorizontalIcon,
+  TableIcon,
   TimerIcon,
   UserPlusIcon,
   WarningIcon,
@@ -50,6 +51,7 @@ import {
   type ReviewResponse,
 } from "../../../lib/recruitment/types";
 import { CP } from "../candidate/candidateStrings";
+import { S2 } from "../s2Strings";
 import { REC } from "../recruitmentStrings";
 import { StatusPill } from "../shared";
 import { NS } from "./nextStrings";
@@ -437,6 +439,8 @@ export default function Kandidat({
   const k = KS[lang];
   const [q, setQ] = useState("");
   const [f, setF] = useState<Antre | "semua">("semua");
+  const [cutSaja, setCutSaja] = useState(false);
+  const [prodiBuka, setProdiBuka] = useState(false);
   const ns = NS[lang === "id" ? "id" : "en"];
   const rules = useDocRules();
   const [sel, setSel] = useState<number | null>(null);
@@ -457,6 +461,7 @@ export default function Kandidat({
   const tampil = tiap.filter(
     (x) =>
       (f === "semua" || x.st === f) &&
+      (!cutSaja || x.c.potensiCut) &&
       (!cari || `${x.c.nama} ${x.c.nim}`.toLowerCase().includes(cari)),
   );
   const grup = kunci
@@ -479,6 +484,10 @@ export default function Kandidat({
         pendek(c.appliedAt, lang),
         ns.stages[c.stage],
         REC[lang].status[c.status],
+        c.prodi ? PN[lang].tambah.prodiNama[c.prodi] : "",
+        c.ipk ?? "",
+        c.potensiCut ? "x" : "",
+        c.revisions,
       ]),
       "Pendaftar",
     );
@@ -515,6 +524,8 @@ export default function Kandidat({
             <b>{c.nama}</b>
             <span className="hint mono">
               {c.nim} · {c.kelas ?? "-"} · {c.angkatan ?? "-"}
+              {c.ipk !== null &&
+                ` · ${k.ipkOf(String(c.ipk).replace(".", lang === "id" ? "," : "."))}`}
             </span>
           </span>
           {/* One group: on a wide row its parts sit in the row's own columns; on a narrow one they wrap under the name. */}
@@ -534,6 +545,18 @@ export default function Kandidat({
               </span>
             )}
             <span className="rec9-row__at hint">{pendek(c.appliedAt, lang)}</span>
+            {c.potensiCut && (
+              <Pill tone="warn">
+                <FlagIcon size={14} aria-hidden="true" /> {k.cutChip}
+              </Pill>
+            )}
+            {c.revisions > 0 && (c.status === "applied" || c.status === "revision") && (
+              <Pill tone={c.status === "applied" ? "accent" : "warn"}>
+                {c.status === "applied"
+                  ? S2[lang].berkas.resent
+                  : S2[lang].berkas.round(c.revisions)}
+              </Pill>
+            )}
             <StatusPill status={c.status} lang={lang} />
           </span>
           <CaretRightIcon size={16} aria-hidden="true" />
@@ -582,6 +605,20 @@ export default function Kandidat({
                 </button>
               );
             })}
+            {rows.some((c) => c.potensiCut) && (
+              <button
+                type="button"
+                className="rec9-chip"
+                data-k="potensi"
+                aria-pressed={cutSaja}
+                title={k.cutChipHint}
+                onClick={() => setCutSaja((v) => !v)}
+              >
+                <FlagIcon size={16} aria-hidden="true" />
+                <span>{k.cutChip}</span>
+                <b className="num">{rows.filter((c) => c.potensiCut).length}</b>
+              </button>
+            )}
           </div>
           <span className="grow" />
           {desk && berikut && (
@@ -604,6 +641,16 @@ export default function Kandidat({
           </div>
           <span className="grow" />
           <span className="hint num">{t.count(tampil.length, rows.length)}</span>
+          {rights.candidates && (
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => setProdiBuka(true)}
+            >
+              <TableIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{k.byProdi}</span>
+            </button>
+          )}
           {desk && (
             <button type="button" className="btn btn--inverse btn--sm" onClick={unduh}>
               <DownloadSimpleIcon size={18} aria-hidden="true" />
@@ -681,6 +728,78 @@ export default function Kandidat({
       {canAdd && (
         <TambahCaAs lang={lang} open={tambah} onOpenChange={setTambah} onSaved={refresh} />
       )}
+      <Dialog
+        open={prodiBuka}
+        onOpenChange={setProdiBuka}
+        title={k.prodiTitle}
+        description={k.prodiSub}
+        size="md"
+        lang={lang}
+      >
+        <ProdiHitung lang={lang} tiap={tiap} />
+      </Dialog>
+    </div>
+  );
+}
+
+/** SUMMARY of the sheet, kept live: registrants per prodi and where each stands. */
+function ProdiHitung({ lang, tiap }: { lang: Lang; tiap: { c: CandidateRow; st: Antre }[] }) {
+  const k = KS[lang];
+  const nama = PN[lang].tambah.prodiNama;
+  const kunci = ["te", "tt", "tb", null] as const;
+  const baris = kunci
+    .map((p) => {
+      const di = tiap.filter((x) => (x.c.prodi ?? null) === p);
+      const n = (a: Antre) => di.filter((x) => x.st === a).length;
+      return {
+        p,
+        isi: [
+          di.length,
+          n("menunggu"),
+          n("revisi"),
+          n("disetujui") + n("aktif"),
+          di.filter((x) => x.c.potensiCut).length,
+          n("berhenti") + n("mundur"),
+        ],
+      };
+    })
+    .filter((r) => r.p !== null || r.isi[0] > 0);
+  const jumlah = k.prodiCols.slice(1).map((_, i) => baris.reduce((a, r) => a + r.isi[i], 0));
+  return (
+    <div className="rec9-sum scrollx">
+      <table>
+        <thead>
+          <tr>
+            {k.prodiCols.map((h, i) => (
+              <th key={h} scope="col" className={i ? "num" : undefined}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {baris.map((r) => (
+            <tr key={r.p ?? "none"}>
+              <th scope="row">{r.p ? nama[r.p] : k.prodiNone}</th>
+              {r.isi.map((v, i) => (
+                <td key={i} className="num">
+                  {v}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">{k.total}</th>
+            {jumlah.map((v, i) => (
+              <td key={i} className="num">
+                {v}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }

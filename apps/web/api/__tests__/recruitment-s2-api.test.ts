@@ -776,6 +776,29 @@ describe("QR attendance", () => {
     );
   });
 
+  it("lets the outside PJ of a shift open that shift's QR screen, and no other event's", async () => {
+    malam();
+    sebagaiAsisten();
+    rows.asisten = [ORANG("101022300900")];
+    rows.committee = [];
+    rows.candidate = [];
+    const q = { query: { event: String(FIRST_MEET) } };
+    // Not a PJ of any shift: no QR.
+    rows.examiner = [];
+    expect((await panggil("GET", "qr-token", q)).code).toBe(403);
+    expect((await panggil("GET", "qr-events")).code).toBe(403);
+    // PJ of a shift that belongs to another event: still no QR for this one.
+    rows.examiner = [{ eventId: FIRST_MEET + 1000 }];
+    expect((await panggil("GET", "qr-token", q)).code).toBe(403);
+    // PJ of a shift of this event: the token, and the event in the list.
+    rows.examiner = [{ eventId: FIRST_MEET }];
+    const t = await panggil("GET", "qr-token", q);
+    expect(t.body).toMatchObject({ ok: true });
+    expect(bacaToken(t.body.token)).toMatchObject({ eventId: FIRST_MEET });
+    const l = await panggil("GET", "qr-events");
+    expect((l.body as { events: { id: number }[] }).events.map((e) => e.id)).toEqual([FIRST_MEET]);
+  });
+
   it("lists only the evenings people come to on the projector, not a pick window running at the same time", async () => {
     malam();
     panitia("acara");

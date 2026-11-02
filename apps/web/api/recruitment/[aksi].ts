@@ -50,7 +50,7 @@
  * deleting an event whose stage has started asks for `confirm: true` and is
  * written to rec_event_log.
  */
-import { and, asc, count, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, asc, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, pgErrorCode, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
@@ -144,6 +144,7 @@ import {
 import {
   handleDokumenPanitia,
   handleCatatanKandidat,
+  handleMetaKandidat,
   handleHapusKandidat,
   handleTambahKandidat,
   handleTiketPanitia,
@@ -161,6 +162,7 @@ import {
   handleHadir,
   handleHadirManual,
   handleKehadiran,
+  acaraPjLuar,
   handleQrAcara,
   handleQrToken,
 } from "../_lib/recruitment-attendance.js";
@@ -322,6 +324,11 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     viewer: kind,
     rights: pelaku && anggotaPanitia(pelaku) ? pelaku.hak : null,
     seat: pelaku?.kursi ?? null,
+    // An outside PJ of a shift may open that shift's QR screen without the attendance right.
+    ...(pelaku &&
+      !pelaku.hak.attendance && {
+        qrShift: (await acaraPjLuar(db, edisi.id, pelaku.orang.nim)).size > 0,
+      }),
     ...(konteksLatihan() && { latihan: konteksLatihan()!.mode }),
     // The Plotting count in the navbar: slot change requests nobody has decided yet.
     ...(pelaku &&
@@ -388,7 +395,13 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
     edition: edisi,
     candidate: k ? { ...kandidatSendiri(k), status: lihat!.status, stage: lihat!.stage } : null,
     // The ids are the candidate's own: berkas answers 404 for anyone else's.
-    documents: k ? await muatDokumen(db, k.id) : [],
+    // The Admin's mark on each file reaches the CaAs only while a fix is asked (a re-upload clears it).
+    documents: k
+      ? (await muatDokumen(db, k.id)).map((d) => ({
+          ...d,
+          verdict: lihat?.status === "revision" ? (d.verdict ?? null) : null,
+        }))
+      : [],
     envelopes: amplop.envelopes,
     pending: amplop.pending,
     daftarOpen: gateOpen(events, "daftar", now),
@@ -424,6 +437,9 @@ async function handleDaftarKandidat(req: ApiRequest, res: ApiResponse, s: Sessio
       stage: recCandidate.currentStage,
       appliedAt: recCandidate.appliedAt,
       biodata: recCandidate.biodata,
+      ipk: recCandidate.ipkX100,
+      potensiCut: recCandidate.potensiCut,
+      revisions: recCandidate.revisionRound,
     })
     .from(recCandidate)
     .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
@@ -461,6 +477,10 @@ async function handleDaftarKandidat(req: ApiRequest, res: ApiResponse, s: Sessio
         stage: st.stage,
         appliedAt: r.appliedAt.toISOString(),
         docs: jumlah.get(r.id) ?? 0,
+        prodi: r.biodata?.prodi ?? null,
+        ipk: r.ipk === null ? null : r.ipk / 100,
+        potensiCut: r.potensiCut,
+        revisions: r.revisions,
       };
     })
     .filter((c) => (!stage || c.stage === stage) && (!status || c.status === status));
@@ -503,6 +523,10 @@ async function handleKandidatRinci(req: ApiRequest, res: ApiResponse, s: Session
       stage: st.stage,
       appliedAt: k.appliedAt.toISOString(),
       docs: dokumen ? dokumen.filter((d) => aturan.required.includes(d.kind)).length : 0,
+      prodi: k.biodata?.prodi ?? null,
+      ipk: k.ipkX100 === null ? null : k.ipkX100 / 100,
+      potensiCut: k.potensiCut,
+      revisions: k.revisionRound,
       reviewNote: k.reviewNote,
       reviewedBy: k.reviewedBy,
       reviewedAt: k.reviewedAt ? k.reviewedAt.toISOString() : null,
@@ -853,6 +877,10 @@ async function handleTinjau(req: ApiRequest, res: ApiResponse, s: SessionPayload
       reviewedBy: s.nim,
       reviewedAt: new Date(),
       ...(skor !== undefined ? { berkasScore: skor } : {}),
+      // Each new ask counts once; editing the note of an ask already open does not.
+      ...(status === "revision" && k.status !== "revision"
+        ? { revisionRound: sql`${recCandidate.revisionRound} + 1` }
+        : {}),
     })
     .where(eq(recCandidate.id, k.id));
   for (const [kind, v] of vonis)
@@ -1230,6 +1258,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "candidate-add") return handleTambahKandidat(req, res, s);
   if (aksi === "candidate-delete") return handleHapusKandidat(req, res, s);
   if (aksi === "candidate-note") return handleCatatanKandidat(req, res, s);
+  if (aksi === "candidate-meta") return handleMetaKandidat(req, res, s);
   if (aksi === "candidate-ticket") return handleTiketPanitia(req, res, s);
   if (aksi === "candidate-document") return handleDokumenPanitia(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);

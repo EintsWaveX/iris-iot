@@ -52,7 +52,8 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const t = S2[lang].qr;
   const me = useRecOrang();
   const edisi = useRecEdition(me?.role === "asisten");
-  const izin = edisi.data?.rights?.attendance === true;
+  // The attendance keepers, or the outside PJ of a shift (the server then lists only their own shifts)
+  const izin = edisi.data?.rights?.attendance === true || edisi.data?.qrShift === true;
   const events = useRecQrEvents(izin);
   const motion = useRevealMotion();
   const [pilih, setPilih] = useState<number | null>(null);

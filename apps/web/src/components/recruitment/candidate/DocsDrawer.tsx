@@ -140,6 +140,14 @@ export default function DocsDrawer({
                       ? `${kb(doc.size)} · ${t.uploaded(when(doc.uploadedAt))}`
                       : t.missing}
                 </span>
+                {doc?.verdict && (
+                  <span
+                    className={`pill pill--${doc.verdict === "fix" ? "danger" : "ok"}`}
+                    style={{ alignSelf: "flex-start" }}
+                  >
+                    {doc.verdict === "fix" ? t.markFix : t.markOk}
+                  </span>
+                )}
                 {galat?.kind === kind && (
                   <span className="field__error" role="alert">
                     {galat.msg}

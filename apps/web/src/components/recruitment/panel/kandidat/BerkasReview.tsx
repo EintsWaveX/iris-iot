@@ -23,7 +23,7 @@ import IconButton from "../../../ui/IconButton";
 import PdfViewer from "../../../ui/PdfViewer";
 import Pill from "../../../ui/Pill";
 import SegmentedControl from "../../../ui/SegmentedControl";
-import { Stepper } from "../../../ui/Controls";
+import { Stepper, Switch } from "../../../ui/Controls";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recGet, recPost } from "../../../../lib/recruitment/client";
 import { tanggalWib } from "../../../../lib/recruitment/gates";
@@ -386,6 +386,19 @@ export default function BerkasReview({
                   </div>
                 </Disclose>
               )}
+              {c.revisions > 0 && (
+                <span className="hint">
+                  {c.status === "applied" ? t.resent : t.round(c.revisions)}
+                </span>
+              )}
+              <DataPanitia
+                key={`d${c.id}`}
+                lang={lang}
+                id={c.id}
+                ipk={c.ipk}
+                potensi={c.potensiCut}
+                onChanged={onChanged}
+              />
               <CatatanPanitia key={c.id} lang={lang} id={c.id} note={c.panitiaNote} />
               {canAdd && (
                 <Disclose head={<b>{t.upload}</b>}>
@@ -532,6 +545,92 @@ export default function BerkasReview({
         </Dialog>
       )}
     </Drawer>
+  );
+}
+
+/** IPK and Potensi Cut: what the sheet's IPK column and POTENSI-CUT status did. Both save at once. */
+function DataPanitia({
+  lang,
+  id,
+  ipk,
+  potensi,
+  onChanged,
+}: {
+  lang: Lang;
+  id: number;
+  ipk: number | null;
+  potensi: boolean;
+  onChanged: () => void;
+}) {
+  const t = S2[lang].berkas;
+  const tulis = (n: number | null) =>
+    n === null ? "" : String(n).replace(".", lang === "id" ? "," : ".");
+  const [teks, setTeks] = useState(tulis(ipk));
+  const [simpan, setSimpan] = useState(tulis(ipk));
+  const [salah, setSalah] = useState(false);
+  const [on, setOn] = useState(potensi);
+  const [sibuk, setSibuk] = useState(false);
+  const untuk = `rec-ipk-${id}`;
+  async function kirim(body: { ipk?: number | null; potensiCut?: boolean }) {
+    const r = await recPost<{ ok: true }>("candidate-meta", { id, ...body });
+    if (isFail(r)) {
+      window.Toast?.show(t.metaFail, "danger");
+      return false;
+    }
+    window.Toast?.show(t.metaSaved, "ok");
+    onChanged();
+    return true;
+  }
+  async function simpanIpk() {
+    const v = teks.trim().replace(",", ".");
+    if (v === simpan.trim().replace(",", ".")) return;
+    const n = v === "" ? null : Number(v);
+    if (n !== null && (!Number.isFinite(n) || n < 0 || n > 4)) return setSalah(true);
+    setSalah(false);
+    if (await kirim({ ipk: n === null ? null : Math.round(n * 100) / 100 })) setSimpan(teks);
+  }
+  async function ubahCut(v: boolean) {
+    setSibuk(true);
+    if (await kirim({ potensiCut: v })) setOn(v);
+    setSibuk(false);
+  }
+  return (
+    <section className="stack stack--sm">
+      <div className="row" style={{ gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+        <div className="stack stack--sm" style={{ width: 120 }}>
+          <h3 className="h3">
+            <label htmlFor={untuk}>{t.ipk}</label>
+          </h3>
+          <input
+            id={untuk}
+            className="field__input"
+            inputMode="decimal"
+            maxLength={4}
+            placeholder={t.ipkPh}
+            value={teks}
+            aria-invalid={salah || undefined}
+            onChange={(e) => setTeks(e.target.value)}
+            onBlur={() => void simpanIpk()}
+          />
+        </div>
+        <div className="stack stack--sm">
+          <h3 className="h3">{t.cutFlag}</h3>
+          <Switch
+            on={on}
+            onChange={(v) => void ubahCut(v)}
+            label={t.cutFlag}
+            busy={sibuk}
+            disabled={sibuk}
+          />
+        </div>
+      </div>
+      {salah && (
+        <span className="field__error" role="alert">
+          {t.ipkBad}
+        </span>
+      )}
+      <span className="hint">{t.cutHint}</span>
+    </section>
   );
 }
 

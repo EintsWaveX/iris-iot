@@ -2258,8 +2258,15 @@ export const recCandidate = pgTable(
     berkasScore: integer("berkas_score"),
     /** Catatan Panitia: a free note only the Panitia see (never sent to the CaAs). */
     panitiaNote: text("panitia_note"),
+    /** IPK times 100 (285 is 2.85), 0 to 400, optional: the sheet's IPK column. A first-year has none. */
+    ipkX100: integer("ipk_x100"),
+    /** Potensi Cut: a Panitia flag while checking the files; only a mark, Cutting still decides. */
+    potensiCut: boolean("potensi_cut").notNull().default(false),
+    /** How many times the Panitia asked for a revision (a second ask means it was resubmitted and still wrong). */
+    revisionRound: integer("revision_round").notNull().default(0),
   },
   (t) => [
+    check("rec_candidate_ipk", sql`${t.ipkX100} is null or (${t.ipkX100} between 0 and 400)`),
     check(
       "rec_candidate_nilai_berkas",
       sql`${t.berkasScore} is null or (${t.berkasScore} between 0 and 100)`,
