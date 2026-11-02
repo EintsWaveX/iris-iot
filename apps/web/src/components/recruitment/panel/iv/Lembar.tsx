@@ -61,6 +61,7 @@ import {
 import { IV, STEP, bi, kasusText } from "./ivStrings";
 import { LM } from "./lembarStrings";
 import { M6 } from "./lembar6Strings";
+import { ASKED_PREFIX, CATATAN_KEY, Catatan, T5, readAsked } from "./TubesParts";
 import {
   Amati,
   NOTE_PREFIX,
@@ -304,6 +305,7 @@ export default function Lembar({
   const [ownSkip, setOwnSkip] = useState<string[]>(() => readOwn(stage, id).skip);
   const [ownText, setOwnText] = useState("");
   const [tag, setTag] = useState("");
+  const [askDraft, setAskDraft] = useState("");
   const [noteTxt, setNoteTxt] = useState("");
   /** The teaching clock can be paused on this laptop (a technical problem); the pause is not shared */
   const [pauseAt, setPauseAt] = useState<number | null>(null);
@@ -356,7 +358,11 @@ export default function Lembar({
         }).format(new Date(Date.parse(d.slot.endsAt) + 3_600_000)),
         ok: false,
       });
-      setStep(d.template.questions.length || stage === "mengajar" ? "tanya" : "simpul");
+      setStep(
+        d.template.questions.length || stage === "mengajar" || stage === "tubes"
+          ? "tanya"
+          : "simpul",
+      );
       base.current = baseOf(d);
       ready.current = true;
     },
@@ -614,6 +620,18 @@ export default function Lembar({
 
   // The teaching test (mockup r6-lembar): a turn of the panel, timed notes, a countdown that can be paused.
   const mg = stage === "mengajar";
+  const tb = stage === "tubes";
+  const T = T5[lang];
+  const asked = tb ? readAsked(ans) : [];
+  const catatan = ans[CATATAN_KEY] ?? "";
+  const addAsked = () => {
+    const tx = askDraft.trim();
+    if (!tx || locked) return;
+    const nid = `${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`;
+    setAns({ ...ans, [ASKED_PREFIX + nid]: tx });
+    setAskDraft("");
+  };
+  const removeAsked = (qid: string) => setAns({ ...ans, [ASKED_PREFIX + qid]: "" });
   const M = M6[lang];
   const mates = data.pair.filter((p) => p.nim !== data.me).map((p) => p.kode);
   const notes = mg ? readNotes(ans) : [];
@@ -656,34 +674,43 @@ export default function Lembar({
     : undefined;
 
   const steps: { v: Step; l: string; sub: string; ok: boolean }[] = [
-    ...(mg
+    ...(tb
       ? [
           {
             v: "tanya" as Step,
-            l: M.steps[0],
-            sub: M.notesN(notes.length),
-            ok: notes.length > 0,
+            l: T.steps[0],
+            sub: T.count(asked.length),
+            ok: catatan.trim().length > 0 || asked.length > 0,
           },
         ]
-      : tpl.questions.length
+      : mg
         ? [
             {
               v: "tanya" as Step,
-              l: L.steps[0],
-              sub: L.ofN(doneQ, list.length),
-              ok: unanswered === 0,
+              l: M.steps[0],
+              sub: M.notesN(notes.length),
+              ok: notes.length > 0,
             },
           ]
-        : []),
+        : tpl.questions.length
+          ? [
+              {
+                v: "tanya" as Step,
+                l: L.steps[0],
+                sub: L.ofN(doneQ, list.length),
+                ok: unanswered === 0,
+              },
+            ]
+          : []),
     {
       v: "simpul",
-      l: mg ? M.steps[1] : L.steps[1],
+      l: tb ? T.steps[1] : mg ? M.steps[1] : L.steps[1],
       sub: L.ofN(doneParams, tpl.params.length),
       ok: simpulLeft === 0,
     },
     {
       v: "putus",
-      l: mg ? M.steps[2] : L.steps[2],
+      l: tb ? T.steps[2] : mg ? M.steps[2] : L.steps[2],
       sub: verdict ? verdictName : L.notYet,
       ok: !!verdict,
     },
@@ -807,14 +834,16 @@ export default function Lembar({
     <header className="r4cand">
       <div className="stack" style={{ gap: 2, minWidth: 0 }}>
         <span className="eyebrow rec-eyebrow num">
-          {mg
-            ? M.turn(
-                data.slot.booth,
-                data.slot.room,
-                hm(turnFrom.toISOString()),
-                hm(turnTo.toISOString()),
-              )
-            : L.eyebrow(data.slot.booth, data.slot.room, slotFrom, slotTo, stage)}
+          {tb
+            ? T.turn(data.slot.room, data.slot.booth, hm(turnFrom.toISOString()))
+            : mg
+              ? M.turn(
+                  data.slot.booth,
+                  data.slot.room,
+                  hm(turnFrom.toISOString()),
+                  hm(turnTo.toISOString()),
+                )
+              : L.eyebrow(data.slot.booth, data.slot.room, slotFrom, slotTo, stage)}
         </span>
         <h2 className="h2 r4cand__n">{data.candidate.nama}</h2>
         <span className="hint mono">
@@ -833,8 +862,8 @@ export default function Lembar({
           </span>
         </Tooltip>
         {data.here && <Pill tone="ok">{L.here(hm(data.here))}</Pill>}
-        {!mg && files}
-        {!mg && (
+        {!mg && !tb && files}
+        {!mg && !tb && (
           <button
             type="button"
             className="r4rec"
@@ -879,7 +908,7 @@ export default function Lembar({
                 className="btn btn--inverse btn--sm"
                 onClick={() => void mulai()}
               >
-                <span className="btn__label">{mg ? M.startTurn : L.start}</span>
+                <span className="btn__label">{tb ? T.start : mg ? M.startTurn : L.start}</span>
               </button>
             )
           ))}
@@ -1076,6 +1105,21 @@ export default function Lembar({
         )}
       </div>
     </div>
+  );
+
+  const catatanStep = (
+    <Catatan
+      lang={lang}
+      text={catatan}
+      asked={asked}
+      draft={askDraft}
+      locked={locked}
+      mates={mates}
+      setText={(v) => setAns({ ...ans, [CATATAN_KEY]: v })}
+      setDraft={setAskDraft}
+      add={addAsked}
+      remove={removeAsked}
+    />
   );
 
   const amati = (
@@ -1570,7 +1614,7 @@ export default function Lembar({
             <span className="hint">/100</span>
           </span>
         )}
-        {step !== "tanya" && (mg || tpl.questions.length > 0) && (
+        {step !== "tanya" && (mg || tb || tpl.questions.length > 0) && (
           <button
             type="button"
             className="btn btn--ghost"
@@ -1580,9 +1624,9 @@ export default function Lembar({
             <span className="btn__label">{L.back}</span>
           </button>
         )}
-        {step === "tanya" && mg ? (
+        {step === "tanya" && (mg || tb) ? (
           <button type="button" className="btn btn--primary" onClick={() => geser("simpul")}>
-            <span className="btn__label">{L.toConcl}</span>
+            <span className="btn__label">{tb ? T.toScoring : L.toConcl}</span>
             <ArrowRightIcon size={18} aria-hidden="true" />
           </button>
         ) : step === "tanya" && tpl.questions.length ? (
@@ -1639,7 +1683,7 @@ export default function Lembar({
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title={mg ? M.title : L.title[stage]}
+      title={tb ? T.sheet : mg ? M.title : L.title[stage]}
       description={subLine}
       lang={lang}
       size="xl"
@@ -1654,10 +1698,12 @@ export default function Lembar({
           <>
             {head}
             {nav}
-            {step === "tanya" && (mg || tpl.questions.length)
-              ? mg
-                ? amati
-                : tanya
+            {step === "tanya" && (mg || tb || tpl.questions.length)
+              ? tb
+                ? catatanStep
+                : mg
+                  ? amati
+                  : tanya
               : step === "simpul"
                 ? simpul
                 : putus}
