@@ -18,6 +18,25 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+/* On a phone the filters are one swipeable row, not five stacked lines. */
+@media (max-width: 640px) {
+  .rec9-chips {
+    contain: inline-size;
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .rec9-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .rec9-chip {
+    flex: none;
+  }
+}
 .rec9-chip {
   --k: var(--a);
   align-items: center;

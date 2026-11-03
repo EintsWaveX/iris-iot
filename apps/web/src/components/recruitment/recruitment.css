@@ -306,6 +306,23 @@
 .rec-next .rec-count {
   margin-top: 8px;
 }
+/* Alone on the page (no envelope beside it) the card reads as one line: what, when, and the countdown on the right. */
+@media (min-width: 900px) {
+  .b3-page > .rec-next {
+    display: grid;
+    align-items: center;
+    column-gap: 24px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .b3-page > .rec-next > * {
+    grid-column: 1;
+  }
+  .b3-page > .rec-next > .rec-count {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    margin-top: 0;
+  }
+}
 .rec-docs__list {
   list-style: none;
   margin: 0;

@@ -28,7 +28,6 @@ import {
   MagnifyingGlassIcon,
   MapPinIcon,
   PathIcon,
-  ScissorsIcon,
   SealCheckIcon,
   SlidersHorizontalIcon,
   TableIcon,
@@ -55,7 +54,6 @@ import { S2 } from "../s2Strings";
 import { REC } from "../recruitmentStrings";
 import { StatusPill } from "../shared";
 import { NS } from "./nextStrings";
-import { bukaBagian } from "../../../lib/recruitment/panel-tab";
 import { PN } from "./panelStrings";
 import AkunCek from "./kandidat/AkunCek";
 import { KS, type Antre } from "./kandidat/kandidatStrings";
@@ -415,16 +413,6 @@ function antreOf(c: CandidateRow): Antre {
   return c.stage === "berkas" ? "disetujui" : "aktif";
 }
 
-/** The stages that have a Cutting tab, in order; Penerimaan has a tab of its own. */
-const TAHAP_AKSI = [
-  "berkas",
-  "first_meet",
-  "tes_tulis",
-  "wawancara",
-  "mengajar",
-  "penerimaan",
-] as const satisfies readonly CandidateRow["stage"][];
-
 export default function Kandidat({
   lang,
   rights,
@@ -479,11 +467,6 @@ export default function Kandidat({
     .filter((g) => g[1].length);
   const desk = rights.documents && rights.approve;
   const berikut = rows.find((c) => c.status === "applied");
-  // One shortcut per stage that has candidates, in the toolbar (not one button on every row).
-  const tahapAksi = rights.cuttingPropose
-    ? TAHAP_AKSI.filter((s) => rows.some((c) => c.stage === s))
-    : [];
-
   function unduh() {
     void unduhXlsx(
       "pendaftar-oprec",
@@ -618,13 +601,6 @@ export default function Kandidat({
               </button>
             )}
           </div>
-          <span className="grow" />
-          {desk && berikut && (
-            <button type="button" className="btn btn--primary" onClick={() => setSel(berikut.id)}>
-              <span className="btn__label">{k.checkNext}</span>
-              <ArrowRightIcon size={18} aria-hidden="true" />
-            </button>
-          )}
         </div>
         <div className="row rec-tools">
           <div className="rec9-search">
@@ -639,24 +615,12 @@ export default function Kandidat({
           </div>
           <span className="grow" />
           <span className="hint num">{t.count(tampil.length, rows.length)}</span>
-          {tahapAksi.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="btn btn--ghost btn--sm"
-              title={s === "penerimaan" ? k.acceptOpen : k.cuttingOpen(ns.stages[s])}
-              onClick={() => bukaBagian(s === "penerimaan" ? "penerimaan" : "cutting")}
-            >
-              {s === "penerimaan" ? (
-                <SealCheckIcon size={18} aria-hidden="true" />
-              ) : (
-                <ScissorsIcon size={18} aria-hidden="true" />
-              )}
-              <span className="btn__label">
-                {s === "penerimaan" ? k.accept : k.cutting(ns.stages[s])}
-              </span>
+          {desk && berikut && (
+            <button type="button" className="btn btn--primary" onClick={() => setSel(berikut.id)}>
+              <span className="btn__label">{k.checkNext}</span>
+              <ArrowRightIcon size={18} aria-hidden="true" />
             </button>
-          ))}
+          )}
           {rights.candidates && (
             <button
               type="button"

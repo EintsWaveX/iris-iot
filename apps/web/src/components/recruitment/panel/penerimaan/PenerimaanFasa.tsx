@@ -50,6 +50,7 @@ type Words = {
   audit: {
     title: string;
     entries: (n: number) => string;
+    run: string;
     skipOnly: (n: number) => string;
     made: (n: number, m: number) => string;
     again: string;
@@ -139,6 +140,7 @@ const W: Record<Lang, Words> = {
     },
     audit: {
       title: "Catatan Audit",
+      run: "Jadikan Asisten dijalankan",
       entries: (n) => `${n} entri`,
       skipOnly: (n) => `0 dibuat, ${n} dilewati karena sudah ada`,
       made: (n, m) => `${n} dibuat, ${m} dilewati`,
@@ -258,6 +260,7 @@ const W: Record<Lang, Words> = {
     },
     audit: {
       title: "Audit Log",
+      run: "Make Them Asisten run",
       entries: (n) => `${n} ${n === 1 ? "entry" : "entries"}`,
       skipOnly: (n) => `0 created, ${n} skipped because they exist`,
       made: (n, m) => `${n} created, ${m} skipped`,
@@ -382,6 +385,7 @@ const W: Record<Lang, Words> = {
     },
     audit: {
       title: "审计记录",
+      run: "转为助教已运行",
       entries: (n) => `${n} 条`,
       skipOnly: (n) => `创建 0 人，${n} 人已存在而跳过`,
       made: (n, m) => `创建 ${n} 人，跳过 ${m} 人`,
@@ -611,7 +615,7 @@ export function Hasil({
                     )}
                   </span>
                   <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                    <b className="mono">rec_pn_konfirmasi</b>
+                    <b>{t.audit.run}</b>
                     <span className="hint">
                       {e.created === 0
                         ? t.audit.skipOnly(e.skipped)

@@ -608,7 +608,7 @@ export default function CuttingTab({
       />
       {laterText && <span className="hint r2cut__later">{laterText}</span>}
       <span className="grow" />
-      <span className="hint" aria-hidden="true">
+      <span className="hint n7-railhead" aria-hidden="true">
         {CS[lang].railHead}
       </span>
       <ol className="n7-miniRail" aria-label={CS[lang].railLabel}>

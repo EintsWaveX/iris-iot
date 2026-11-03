@@ -4,7 +4,7 @@
  * and booths, never another examiner's CaAs); Penilaian is for the Ketua,
  * Akademik and Admin seats; Template for the Ketua and Akademik.
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { UserSwitchIcon } from "@phosphor-icons/react";
 import Dialog from "../../../ui/Dialog";
 import Disclose from "../../../ui/Disclose";
@@ -338,12 +338,15 @@ function Slotku({
   qr,
   qrPj,
   onNilai,
+  onEmpty,
 }: {
   lang: Lang;
   stage: IvStage;
   onOpen: (id: number) => void;
   /** Who may read everyone's scores gets a way there from an empty Slotku. */
   onNilai?: () => void;
+  /** Called once when the viewer has no slot at all, so the tab can open on Penilaian instead. */
+  onEmpty?: () => void;
   /** The outside PJ's own shift may show its QR screen even without the attendance right */
   qrPj: boolean;
   qr: boolean;
@@ -351,6 +354,10 @@ function Slotku({
   const w = IV(lang).mine;
   const k = SK[lang];
   const mine = useIvMine(stage);
+  const kosong = mine.data ? mine.data.slots.length === 0 : false;
+  useEffect(() => {
+    if (kosong) onEmpty?.();
+  }, [kosong]);
   if (!mine.data) return <span className="skeleton" style={{ height: 240 }} />;
   if (!mine.data.slots.length)
     return (
@@ -458,6 +465,7 @@ export default function IvTab({
   const bisaTemplate = rights?.bank === true;
   const [bag, setBag] = useState<"lead" | "mine" | "nilai" | "template">(lead ? "lead" : "mine");
   const [buka, setBuka] = useState<number | null>(null);
+  const sudahLompat = useRef(false);
   const aktif =
     bag === "template" && !bisaTemplate ? "mine" : bag === "lead" && !lead ? "mine" : bag;
   return (
@@ -493,6 +501,15 @@ export default function IvTab({
           qr={rights?.attendance === true}
           qrPj={qrShift === true}
           onNilai={bisaNilai ? () => setBag("nilai") : undefined}
+          onEmpty={
+            bisaNilai
+              ? () => {
+                  if (sudahLompat.current) return;
+                  sudahLompat.current = true;
+                  setBag("nilai");
+                }
+              : undefined
+          }
         />
       ) : aktif === "nilai" ? (
         <Penilaian lang={lang} stage={stage} />
