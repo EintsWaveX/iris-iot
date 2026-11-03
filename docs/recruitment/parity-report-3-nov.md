@@ -65,3 +65,16 @@ Ran on the rig rebuilt from main at PR #31: `pair.mjs` for 14 screens at 1440 (m
 - **Cutting, per-stage propose button (PR #35):** the mockup's "Usulkan dari Keputusan Wawancara / Presentasi / Penguji" was missing live. Added, using the existing bulk propose action (Lolos stays Lolos, cut becomes Gagal; Ragu-ragu, makeup and already-proposed rows are left for the Pleno). Checked on the rig: of 4 candidates with a verdict, 2 were proposed, 2 left alone, and the toast shows the mockup's wording.
 - **Kalender "Pilih Jadwal" row:** the enumerator saw a modal live and an inline expand in the mockup, but the mockup's footnote says a click on a bar changes its content, so both open an editor. Not a difference.
 - **Still open:** Tes Tulis "Hapus ruang" (confirm vs undo toast, your call), Penerimaan Tinjau, Kode and Konfirmasi not re-shot, Tubes parked, a full light-theme and phone pass of the seeded later stages beyond the screens listed above.
+
+## Part 5 (3 Nov evening, rig rebuilt from main after PR #39)
+
+Ran on a fresh build of the code that is on prod (rig API restarted, static site rebuilt). `pair.mjs` at 1440 dark, `pair2.mjs` at 1440 light and 390 phone dark, for the 12 panel and CaAs screens; the new QR screens were driven on the rig as Ketua.
+
+- **Structure:** all 12 pairs have the same structure at 1440 (dark and light) and at 390. What differs is data and state: dates, who is seated, which stage is selected, Wawancara and Mengajar saying "Kamu belum dapat slot" for a Ketua with no slot, Penerimaan sitting on its Hasil screen, the CaAs card showing a finished journey where the mockup shows an unopened envelope. The Kandidat row's document dots are hidden by the mockup's own "late" rule once registration is closed.
+- **Deliberate differences from the mockup (user's call):**
+  - Kandidat toolbar: one Cutting button per stage with candidates, plus Penerimaan, next to Hitungan per Prodi, instead of one button on every row. Also extra chips (Berjalan, Tidak lolos). With the extra chips, "Periksa Berikutnya" wraps to its own row at 1440 (the mockup keeps it at the right of the chip row).
+  - Home banner restyled (no stage names, no timeline).
+  - QR wall: the Google Form option, the Atur QR gear, the last four scans from the responses sheet, and "Belum Mulai" for events within 3 days (Asisten only).
+- **Fixed in this pass:** the "Belum Mulai" placeholder on the QR wall was a blank white square (the white QR box showed through); it is now a dashed, readable placeholder in both themes.
+- **Checked on the rig, end to end:** the wall lists the not-yet-started Tes Tulis event as "Belum Mulai" with no token and no count; Atur QR opens, switches to Google Form, shows a live QR preview of the pasted link, saves, and the wall then shows the form QR with the "sheet can't be read" message for a made-up sheet; the setting was reset afterwards. The per-stage Cutting buttons render at 1440, 700 and 390.
+- **Not done:** Penerimaan Tinjau, Kode and Konfirmasi (the rig stays on Hasil; the user asked for the rig to be left as it is), Tubes (parked), the CaAs-side envelope reveal and Pilih Jadwal states (they need reseeding), and a pass against real prod data (prod needs a signed-in session the agent does not use).
