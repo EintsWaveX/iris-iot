@@ -204,7 +204,11 @@ export default function Kesiapan({
           </li>
         </ul>
       </section>
-      <aside className="panel n7-go" data-ready={semua ? "yes" : "no"} aria-label={`${t.go}: ${v.room.title}`}>
+      <aside
+        className="panel n7-go"
+        data-ready={semua ? "yes" : "no"}
+        aria-label={`${t.go}: ${v.room.title}`}
+      >
         <span className="eyebrow">{t.go}</span>
         <b className="n7-go__big">{semua ? t.allSet : t.notReady(baris.length - nSiap)}</b>
         <span className="hint">{t.goHint}</span>
