@@ -238,7 +238,7 @@ export const BK = dict({
     voidOpen: "Batalkan Soal",
     voidTitle: "Batalkan Soal Ini?",
     voidDesc:
-      "Soal keluar dari nilai semua kursi yang mendapatkannya, di semua malam. Kandidat yang masih mengerjakan melihat Soal ini dibatalkan. Bisa dikembalikan dengan catatan selama nilai belum Final.",
+      "Soal ini tidak dihitung lagi di nilai semua kursi yang mendapatkannya, di semua malam. Kandidat yang masih mengerjakan melihat 'Soal ini dibatalkan'. Bisa dikembalikan dengan catatan selama nilai belum Final.",
     voidHold: "Tahan untuk Membatalkan",
     voidDone: "Soal dibatalkan.",
     voidMissing: "Pembatalan belum aktif di server ini.",
@@ -580,7 +580,7 @@ export const BK = dict({
     voidOpen: "Withdraw Question",
     voidTitle: "Withdraw This Question?",
     voidDesc:
-      "It leaves the score of every seat that drew it, on every evening. Candidates still working see This question was withdrawn. It can be restored with a note while scores aren't final.",
+      "It stops counting toward the score of every seat that drew it, on every evening. Candidates still working see 'This question was withdrawn'. You can restore it with a note while scores aren't final.",
     voidHold: "Hold to Withdraw",
     voidDone: "Question withdrawn.",
     voidMissing: "Withdrawing is not active on this server yet.",
