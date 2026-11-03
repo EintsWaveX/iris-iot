@@ -250,7 +250,7 @@ function PerExaminer({ d, me, lang }: { d: IvNilaiResponse; me: string | null; l
     <section className="panel r4per">
       <div className="panel__head">
         <div className="stack" style={{ gap: 2 }}>
-          <h3 className="panel__title">{p.per.title}</h3>
+          <h2 className="panel__title">{p.per.title}</h2>
           <span className="hint">{p.per.hint(f1(all, lang))}</span>
         </div>
       </div>

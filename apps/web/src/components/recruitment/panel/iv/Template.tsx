@@ -299,7 +299,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
       <section className="panel r4tpl__sum">
         <div className="panel__head">
           <div className="stack" style={{ gap: 2 }}>
-            <h3 className="panel__title">{mg ? rb.title : p.params.title}</h3>
+            <h2 className="panel__title">{mg ? rb.title : p.params.title}</h2>
             <span className="hint">{mg ? rb.hint : p.params.hint}</span>
           </div>
           {can && (
@@ -459,7 +459,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
       <section className="panel r4tpl__sum">
         <div className="panel__head">
           <div className="stack" style={{ gap: 2 }}>
-            <h3 className="panel__title">{p.rules.title}</h3>
+            <h2 className="panel__title">{p.rules.title}</h2>
             <span className="hint">{p.rules.hint}</span>
           </div>
         </div>
@@ -488,7 +488,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
       <section className="panel r4tpl__sum">
         <div className="panel__head">
           <div className="stack" style={{ gap: 2 }}>
-            <h3 className="panel__title">{p.limits.title}</h3>
+            <h2 className="panel__title">{p.limits.title}</h2>
             <span className="hint">{p.limits.hint}</span>
           </div>
         </div>

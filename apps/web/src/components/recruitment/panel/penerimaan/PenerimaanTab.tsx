@@ -822,7 +822,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
           <div className="r8-konf">
             <section className="panel r8-check">
               <div className="panel__head">
-                <h3 className="panel__title">{l.readiness}</h3>
+                <h2 className="panel__title">{l.readiness}</h2>
                 <Pill tone={siap && catatan.length === 0 ? "ok" : "warn"}>
                   {siap && catatan.length === 0 ? l.ready : l.notReady}
                 </Pill>

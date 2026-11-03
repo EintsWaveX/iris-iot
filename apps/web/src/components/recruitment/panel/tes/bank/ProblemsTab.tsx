@@ -78,7 +78,7 @@ export default function ProblemsTab({ lang }: { lang: Lang }) {
     <section className="stack" style={{ gap: 12 }}>
       <div className="panel__head">
         <div className="stack" style={{ gap: 2 }}>
-          <h3 className="panel__title">{t.title}</h3>
+          <h2 className="panel__title">{t.title}</h2>
           <span className="hint">{t.lede}</span>
         </div>
         <button type="button" className="btn btn--primary" onClick={() => setOpen("new")}>
@@ -394,7 +394,7 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
         </div>
       </div>
       <div className="stack" style={{ gap: 2 }}>
-        <h3 className="panel__title">{draft.title.trim() || t.newTitle}</h3>
+        <h2 className="panel__title">{draft.title.trim() || t.newTitle}</h2>
         <span className="hint">
           {t.status[meta.status]} · v{meta.version || 1}
         </span>

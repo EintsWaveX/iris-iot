@@ -106,7 +106,7 @@ export default function CrewRule({ lang, stage }: { lang: Lang; stage: IvStage }
     <section className="panel r4rule">
       <div className="panel__head">
         <div className="stack" style={{ gap: 2 }}>
-          <h3 className="panel__title">{w.title}</h3>
+          <h2 className="panel__title">{w.title}</h2>
           <span className="hint">{w.hint}</span>
         </div>
       </div>

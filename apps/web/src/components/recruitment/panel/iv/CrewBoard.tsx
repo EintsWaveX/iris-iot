@@ -392,7 +392,7 @@ export default function CrewBoard({
         <section className="panel r4pj">
           <div className="panel__head">
             <div className="stack" style={{ gap: 2 }}>
-              <h3 className="panel__title">{t.pjTitle}</h3>
+              <h2 className="panel__title">{t.pjTitle}</h2>
               <span className="hint">{t.pjLede}</span>
             </div>
           </div>

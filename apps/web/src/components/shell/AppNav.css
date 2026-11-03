@@ -486,6 +486,8 @@
 
 .appnav__avatar[data-role="praktikan"] {
   background: var(--g, var(--group-4));
+  /* Dark or light letters, whichever reads on this group colour (relative colour syntax; the line above is the fallback). */
+  color: oklch(from var(--g, var(--group-4)) clamp(0.15, calc((0.64 - l) * 1000), 0.98) 0 0);
 }
 
 .appnav__avatar[data-pencipta="yes"] {

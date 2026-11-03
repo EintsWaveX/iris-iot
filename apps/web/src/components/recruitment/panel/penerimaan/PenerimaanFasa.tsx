@@ -545,7 +545,7 @@ export function Hasil({
       <div className="r8-hcols">
         <section className="panel rec-tablecard r8-tablecard">
           <div className="panel__head">
-            <h3 className="panel__title">{t.table.title}</h3>
+            <h2 className="panel__title">{t.table.title}</h2>
             <span className="hint">{t.table.hint(baru.length)}</span>
           </div>
           <Paged items={baru} id="penerimaan-hasil" size={20} noun={NOUN[lang].caas} lang={lang}>
@@ -601,7 +601,7 @@ export function Hasil({
         <aside className="stack">
           <section className="panel r8-audit">
             <div className="panel__head">
-              <h3 className="panel__title">{t.audit.title}</h3>
+              <h2 className="panel__title">{t.audit.title}</h2>
               <Pill>{t.audit.entries(runs.length)}</Pill>
             </div>
             <ul className="r8-log">
@@ -637,7 +637,7 @@ export function Hasil({
           </section>
           <section className="panel r8-next">
             <div className="panel__head">
-              <h3 className="panel__title">{t.next.title}</h3>
+              <h2 className="panel__title">{t.next.title}</h2>
             </div>
             <ol className="r8-nextl">
               <li>
@@ -807,7 +807,7 @@ export function Tutup({
       <section className="panel r8-how" aria-label={t.howTitle}>
         <div className="panel__head">
           <div className="stack" style={{ gap: 2 }}>
-            <h3 className="panel__title">{t.howTitle}</h3>
+            <h2 className="panel__title">{t.howTitle}</h2>
             <span className="hint">{t.howLede}</span>
           </div>
           <Stc tip="Subject to Change" />
@@ -883,7 +883,7 @@ export function Tutup({
       <div className="r8-tcols">
         <section className="panel">
           <div className="panel__head">
-            <h3 className="panel__title">{t.roTitle}</h3>
+            <h2 className="panel__title">{t.roTitle}</h2>
             <Pill tone={closed ? "warn" : undefined}>{closed ? t.roLocked : t.roAfter}</Pill>
           </div>
           <ul className="r8-locks">
@@ -898,7 +898,7 @@ export function Tutup({
         </section>
         <section className="panel">
           <div className="panel__head">
-            <h3 className="panel__title">{t.dataTitle}</h3>
+            <h2 className="panel__title">{t.dataTitle}</h2>
           </div>
           <ul className="r8-keeps">
             {t.keeps.map((k) => {

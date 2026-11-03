@@ -247,9 +247,9 @@ function TableCard({
   return (
     <section className="panel tp-tbl">
       <div className="stack" style={{ gap: 2 }}>
-        <h3 className="h4" style={{ margin: 0 }}>
+        <h2 className="h4" style={{ margin: 0 }}>
           {w.table(t.room)}
-        </h3>
+        </h2>
         <span className="hint num">
           {x.turns(t.teamIds.length)} · {x.range(wibTime(t.startsAt), wibTime(end))}
         </span>
@@ -343,9 +343,9 @@ function Urutan({ c, rights }: { c: PanelCtx; rights: RecRights | null }) {
       <div className="tp-two">
         <section className="panel tp-fmt">
           <div className="stack" style={{ gap: 2 }}>
-            <h3 className="h4" style={{ margin: 0 }}>
+            <h2 className="h4" style={{ margin: 0 }}>
               {x.formatTitle}
-            </h3>
+            </h2>
             <span className="hint">
               {x.formatBody(b.times.presentasiAt ? kapan(b.times.presentasiAt, lang) : "")}
             </span>
@@ -392,9 +392,9 @@ function Urutan({ c, rights }: { c: PanelCtx; rights: RecRights | null }) {
         </section>
         <section className="panel tp-chk">
           <div className="row row--between" style={{ gap: 8 }}>
-            <h3 className="h4" style={{ margin: 0 }}>
+            <h2 className="h4" style={{ margin: 0 }}>
               {x.checkTitle}
-            </h3>
+            </h2>
             <Pill tone={issues.length ? "warn" : "ok"}>
               {issues.length ? x.needCheck(issues.length) : x.checkOk}
             </Pill>
@@ -424,9 +424,9 @@ function Urutan({ c, rights }: { c: PanelCtx; rights: RecRights | null }) {
         </div>
       )}
       <section className="stack">
-        <h3 className="h4" style={{ margin: 0 }}>
+        <h2 className="h4" style={{ margin: 0 }}>
           {w.examiners}
-        </h3>
+        </h2>
         <span className="hint">{w.examinersHint}</span>
         {rights && <CrewBoard lang={c.lang} stage="tubes" rights={rights} />}
       </section>

@@ -505,9 +505,9 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
             >
               <div className="row row--between" style={{ gap: 8, alignItems: "flex-start" }}>
                 <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <h3 className="h4" style={{ margin: 0, overflowWrap: "anywhere" }}>
+                  <h2 className="h4" style={{ margin: 0, overflowWrap: "anywhere" }}>
                     {t.title}
-                  </h3>
+                  </h2>
                   <span className="row" style={{ gap: 6 }}>
                     {latihan && <Pill>{w.topicExampleTag}</Pill>}
                     <span className="hint num">{w.topicTeams(t.used, t.cap)}</span>
@@ -535,6 +535,7 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
               <div
                 className="tp-bar2"
                 role="progressbar"
+                aria-label={t.title}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.min(100, Math.round((t.used / t.cap) * 100))}

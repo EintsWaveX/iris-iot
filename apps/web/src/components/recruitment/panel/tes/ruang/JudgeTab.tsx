@@ -116,7 +116,7 @@ export default function JudgeTab({ lang, roomId }: { lang: Lang; roomId: number 
     <section className="stack" style={{ gap: 16 }}>
       <div className="panel__head">
         <div className="stack" style={{ gap: 2 }}>
-          <h3 className="panel__title">{t.title}</h3>
+          <h2 className="panel__title">{t.title}</h2>
           <span className="hint">{t.lede}</span>
         </div>
         <button type="button" className="btn btn--inverse btn--sm" onClick={poll.refresh}>
