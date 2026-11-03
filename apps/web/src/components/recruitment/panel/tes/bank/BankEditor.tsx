@@ -49,6 +49,7 @@ import {
 import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
 import { ImagesEditor } from "./BankAttach";
+import CodeBox from "./CodeBox";
 import {
   ChoiceKeys,
   FitbKeys,
@@ -96,20 +97,20 @@ function CodeArea({
           aria-label={t.codeLang}
           value={lang}
           onValueChange={(v) => onLang(v as CodeLang)}
-          options={(["cpp", "py", "text"] as const).map((v) => ({
+          options={(["c", "text"] as const).map((v) => ({
             value: v,
             label: t.codeLangs[v],
           }))}
         />
       </div>
-      <textarea
-        className="field__input r3src"
+      <CodeBox
         id={id}
+        lang={lang === "text" ? "text" : "c"}
+        ariaLabel={t.codeLabel}
         rows={9}
+        maxRows={30}
         value={value}
-        spellCheck={false}
-        wrap="off"
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
       />
       <span className="hint">{t.codeHint}</span>
     </div>
@@ -393,8 +394,8 @@ export default function BankEditor({
             <div className="r3problems" role="status">
               <b>{t.problems}</b>
               <ul>
-                {probs.map((p, i) => (
-                  <li key={i}>{t.problem(p)}</li>
+                {[...new Set(probs.map((p) => t.problem(p)))].map((text) => (
+                  <li key={text}>{text}</li>
                 ))}
               </ul>
             </div>
@@ -440,17 +441,19 @@ export default function BankEditor({
               onChange={(e) => set({ ...d, title: e.target.value })}
             />
           </label>
-          <label className="stack stack--sm">
+          <div className="stack stack--sm">
             <span className="label-caps">{t.fieldPrompt}</span>
-            <textarea
-              className="field__input r3prompt"
+            <CodeBox
               id="r3-q-prompt"
+              lang="md"
+              ariaLabel={t.fieldPrompt}
               rows={6}
+              maxRows={20}
               value={body.prompt}
-              onChange={(e) => set({ ...d, body: { ...d.body, prompt: e.target.value } } as Draft)}
+              onChange={(v) => set({ ...d, body: { ...d.body, prompt: v } } as Draft)}
             />
             <span className="hint">{t.promptHint}</span>
-          </label>
+          </div>
           {needsCode && (
             <CodeArea
               id="r3-q-code"
@@ -480,7 +483,7 @@ export default function BankEditor({
                 onValueChange={(l) =>
                   set({ ...d, body: { ...d.body, lang: l as CodeLang } } as Draft)
                 }
-                options={(["cpp", "py", "text"] as const).map((v) => ({
+                options={(["c", "text"] as const).map((v) => ({
                   value: v,
                   label: t.codeLangs[v],
                 }))}

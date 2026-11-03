@@ -38,7 +38,7 @@ export interface CodeEditorHandle {
 
 const css = (v: string, fallback: string) => `var(${v}, ${fallback})`;
 
-const theme = EditorView.theme({
+export const cmTheme = EditorView.theme({
   "&": {
     color: css("--text", "#e8e9f2"),
     backgroundColor: "transparent",
@@ -78,7 +78,7 @@ const theme = EditorView.theme({
   },
 });
 
-const highlight = HighlightStyle.define([
+export const cmHighlight = HighlightStyle.define([
   {
     tag: [t.keyword, t.controlKeyword, t.operatorKeyword, t.modifier],
     color: "var(--syn-keyword, #c3a6ff)",
@@ -161,8 +161,8 @@ const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor(
           highlightActiveLine(),
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
           cpp(),
-          syntaxHighlighting(highlight),
-          theme,
+          syntaxHighlighting(cmHighlight),
+          cmTheme,
           todoStripes,
           EditorView.contentAttributes.of({
             "aria-label": ariaLabel,
