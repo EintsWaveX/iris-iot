@@ -97,6 +97,13 @@ export const PN = dict({
       delBody:
         "Semua data CaAs ini di edisi ini ikut terhapus: berkas, slot, kursi ujian, lembar dan hasil. Akun oprecnya tetap ada. Ini tidak bisa dibatalkan, jadi pakai hanya untuk data yang salah masuk.",
       delYes: "Hapus CaAs",
+      fileDel: "Hapus berkas",
+      fileDelTitle: (k: string) => `Hapus ${k}?`,
+      fileDelBody:
+        "Berkas ini dilepas dari CaAs. Kalau dia sudah disetujui dan berkas ini wajib, dia kembali ke Menunggu Verifikasi.",
+      fileDelYes: "Hapus Berkas",
+      fileDeleted: "Berkas dihapus.",
+      fileDelFail: "Berkas belum terhapus. Coba lagi.",
       delDone: "CaAs dihapus.",
       delFail: "CaAs belum terhapus. Coba lagi.",
       delBlocked: "Tidak bisa dihapus: hasilnya sudah dibuka atau dia sudah jadi Asisten.",
@@ -294,6 +301,13 @@ export const PN = dict({
       delBody:
         "Everything of this CaAs in this edition goes with them: documents, slots, exam seats, sheets and results. Their oprec account stays. This can't be undone, so use it only for an entry that went in by mistake.",
       delYes: "Delete CaAs",
+      fileDel: "Delete file",
+      fileDelTitle: (k: string) => `Delete ${k}?`,
+      fileDelBody:
+        "This file is taken off the CaAs. If they were approved and this file is required, they go back to Awaiting Checks.",
+      fileDelYes: "Delete File",
+      fileDeleted: "File deleted.",
+      fileDelFail: "The file was not deleted. Try again.",
       delDone: "CaAs deleted.",
       delFail: "The CaAs wasn't deleted. Try again.",
       delBlocked: "Can't be deleted: their result was opened or they are already an Asisten.",
@@ -494,6 +508,12 @@ export const PN = dict({
       delBody:
         "这位 CaAs 在本届的所有数据都会一起删除：文件、时段、考试座位、评分表和结果。他们的 oprec 账号会保留。此操作无法撤销，只用于误录入的数据。",
       delYes: "删除 CaAs",
+      fileDel: "删除文件",
+      fileDelTitle: (k: string) => `删除${k}？`,
+      fileDelBody: "这份文件会从该 CaAs 身上移除。若他们已通过且这份文件是必需的，会回到等待审核。",
+      fileDelYes: "删除文件",
+      fileDeleted: "文件已删除。",
+      fileDelFail: "文件没有删除，请重试。",
       delDone: "CaAs 已删除。",
       delFail: "CaAs 没有删除成功，请重试。",
       delBlocked: "无法删除：结果已被打开，或者他们已经是助教。",

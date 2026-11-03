@@ -15,8 +15,10 @@ import {
   FilePdfIcon,
   KeyIcon,
   SealCheckIcon,
+  TrashIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
+import Confirm from "../../../ui/Confirm";
 import Dialog from "../../../ui/Dialog";
 import Dropdown from "../../../ui/Dropdown";
 import SegmentedControl from "../../../ui/SegmentedControl";
@@ -91,6 +93,28 @@ export function BerkasPanitia({
   const [galat, setGalat] = useState<{ kind: DocKind; msg: string } | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const target = useRef<DocKind | null>(null);
+  const [hapus, setHapus] = useState<DocKind | null>(null);
+
+  const hapusDialog = hapus && (
+    <Confirm
+      open
+      onOpenChange={(o) => !o && setHapus(null)}
+      title={t.fileDelTitle(rules.label(hapus, lang, nama[hapus]))}
+      body={t.fileDelBody}
+      confirmLabel={t.fileDelYes}
+      lang={lang}
+      onConfirm={async () => {
+        const r = await recPost<{ ok: true }>("candidate-document-delete", { id, kind: hapus });
+        if (isFail(r)) {
+          window.Toast?.show(t.fileDelFail, "danger");
+          return false;
+        }
+        window.Toast?.show(t.fileDeleted, "ok");
+        setHapus(null);
+        onChanged();
+      }}
+    />
+  );
 
   async function unggah(kind: DocKind, f: File) {
     setBusy(kind);
@@ -156,6 +180,7 @@ export function BerkasPanitia({
     return (
       <>
         {picker}
+        {hapusDialog}
         <ul className="rec9-uplist">
           {[...rules.required, ...rules.optional].map((kind) => {
             const doc = documents.find((x) => x.kind === kind);
@@ -213,6 +238,18 @@ export function BerkasPanitia({
                       ? t.uploading(persen)
                       : tt.pilihPdf}
                 </button>
+                {st === "lengkap" && (
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    aria-label={t.fileDel}
+                    title={t.fileDel}
+                    disabled={busy !== null}
+                    onClick={() => setHapus(kind)}
+                  >
+                    <TrashIcon size={18} aria-hidden="true" />
+                  </button>
+                )}
               </li>
             );
           })}
@@ -223,6 +260,7 @@ export function BerkasPanitia({
   return (
     <div className="stack stack--sm">
       {picker}
+      {hapusDialog}
       {[...rules.required, ...rules.optional].map((kind) => {
         const doc = documents.find((x) => x.kind === kind);
         const opsional = rules.optional.includes(kind);
@@ -267,6 +305,18 @@ export function BerkasPanitia({
               >
                 {doc ? t.replace : t.upload}
               </button>
+              {doc && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  aria-label={t.fileDel}
+                  title={t.fileDel}
+                  disabled={busy !== null}
+                  onClick={() => setHapus(kind)}
+                >
+                  <TrashIcon size={18} aria-hidden="true" />
+                </button>
+              )}
             </span>
           </div>
         );

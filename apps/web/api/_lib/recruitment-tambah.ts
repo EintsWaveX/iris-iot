@@ -30,7 +30,7 @@ import {
 } from "../../src/lib/schema.js";
 import { cekNama, cekNimOprec, cekSandi } from "../../src/lib/recruitment/akun.js";
 import { cekBiodataFormulir } from "../../src/lib/recruitment/validate.js";
-import { type CandidateStatus } from "../../src/lib/recruitment/types.js";
+import { DOC_KINDS, type CandidateStatus, type DocKind } from "../../src/lib/recruitment/types.js";
 import { kunciRekrutmen } from "../../src/lib/tp-r2.js";
 import { tolak, wajibEdisi, muatKandidat, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak, type PelakuServer } from "./recruitment-rights.js";
@@ -80,9 +80,11 @@ async function kandidatId(db: Db, edisiId: number, id: unknown): Promise<Kandida
  * Take a CaAs out of the edition, for one added by mistake (a typo in the NIM,
  * a double entry). Everything of theirs goes with them (documents, slots, seats,
  * sheets, results). Refused once they are an Asisten, or once an envelope of
- * theirs was opened, since that is a decision a person already saw. The oprec
- * account stays (Reset Akun is its own thing), and the PDFs in R2 are removed
- * with the edition's cleanup.
+ * theirs was opened, since that is a decision a person already saw. The PDFs in
+ * R2 are removed with the edition's cleanup. The oprec account goes too when it
+ * was made by hand for this CaAs (never signed in to, and no other edition row
+ * holds the NIM), so the same NIM can be added again; an account somebody used
+ * stays (Reset Akun is its own thing).
  */
 export async function handleHapusKandidat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const db = getDb();
@@ -104,8 +106,74 @@ export async function handleHapusKandidat(req: ApiRequest, res: ApiResponse, s: 
     .limit(1);
   if (dibuka || jadi) return tolak(res, "sudah_ada_hasil", 409);
   await db.delete(recCandidate).where(eq(recCandidate.id, k.id));
-  await writeAudit(s.nim, "rec_kandidat_hapus", { id: k.id, nim: k.nim, status: k.status });
+  const [lain] = await db
+    .select({ id: recCandidate.id })
+    .from(recCandidate)
+    .where(eq(recCandidate.nim, k.nim))
+    .limit(1);
+  let akunDihapus = false;
+  if (!lain) {
+    const [akun] = await db
+      .select({ masuk: recAccount.lastSigninAt })
+      .from(recAccount)
+      .where(eq(recAccount.nim, k.nim))
+      .limit(1);
+    if (akun && akun.masuk === null) {
+      await db.delete(recAccount).where(eq(recAccount.nim, k.nim));
+      akunDihapus = true;
+    }
+  }
+  await writeAudit(s.nim, "rec_kandidat_hapus", {
+    id: k.id,
+    nim: k.nim,
+    status: k.status,
+    akun: akunDihapus,
+  });
   return void res.status(200).json({ ok: true });
+}
+
+/**
+ * Take one uploaded file off a CaAs (a wrong PDF put in by hand). Full rights only.
+ * Their approval stands only while the required files are all there, so removing a
+ * required one sends an approved CaAs at the document check back to waiting.
+ * The PDF in R2 stays until the edition's cleanup (the key is its hash, and a
+ * twin upload may share it).
+ */
+export async function handleHapusBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  if (!(await wajibPenuh(res, db, edisi.id, s))) return;
+  const b = jsonBody(req);
+  const k = await kandidatId(db, edisi.id, b.id);
+  if (!k) return tolak(res, "tidak_ditemukan", 404);
+  if (typeof b.kind !== "string" || !(DOC_KINDS as readonly string[]).includes(b.kind))
+    return tolak(res, "data_salah", 400, { field: "kind" });
+  const kind = b.kind as DocKind;
+  const [ada] = await db
+    .select({ id: recDocument.id })
+    .from(recDocument)
+    .where(and(eq(recDocument.candidateId, k.id), eq(recDocument.kind, kind)))
+    .limit(1);
+  if (!ada) return tolak(res, "tidak_ditemukan", 404);
+  await db.delete(recDocument).where(eq(recDocument.id, ada.id));
+  let status: CandidateStatus = k.status;
+  if (k.status === "approved" && (await aturanDokumen(db)).required.includes(kind)) {
+    const [c] = await db
+      .select({ stage: recCandidate.currentStage })
+      .from(recCandidate)
+      .where(eq(recCandidate.id, k.id))
+      .limit(1);
+    if (c?.stage === "berkas") {
+      await db
+        .update(recCandidate)
+        .set({ status: "applied", reviewNote: null, reviewedBy: null, reviewedAt: null })
+        .where(eq(recCandidate.id, k.id));
+      status = "applied";
+    }
+  }
+  await writeAudit(s.nim, "rec_berkas_hapus", { id: k.id, nim: k.nim, kind, status });
+  return void res.status(200).json({ ok: true, status });
 }
 
 /** Catatan Panitia: a free note on a candidate that only the Panitia read. An empty text clears it. */
