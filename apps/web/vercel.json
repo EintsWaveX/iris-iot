@@ -48,8 +48,8 @@
       "permanent": false
     },
     {
-      "source": "/zh/:path*",
-      "destination": "/en/:path*",
+      "source": "/zh/(.*)",
+      "destination": "/en/$1",
       "permanent": false
     }
   ],
