@@ -59,3 +59,9 @@ Ran on the rig rebuilt from main at PR #31: `pair.mjs` for 14 screens at 1440 (m
 - **CaAs journey**, four seeded states (unopened envelope, opened pass, fail, reveal in the future): each renders its own card, journey line and counter as intended.
 - **Not redone**: Penerimaan Tinjau, Kode and Konfirmasi (the rig is on the Hasil screen after its test run; those screens were matched on 2 Nov and no PR since touched them). Tubes stays parked.
 - **Side effect to know**: the click enumerator clicks every Hapus on the rig, so the rig's Wawancara and Mengajar templates lost rows. Rig only.
+
+## Part 4 (3 Nov)
+
+- **Cutting, per-stage propose button (PR #35):** the mockup's "Usulkan dari Keputusan Wawancara / Presentasi / Penguji" was missing live. Added, using the existing bulk propose action (Lolos stays Lolos, cut becomes Gagal; Ragu-ragu, makeup and already-proposed rows are left for the Pleno). Checked on the rig: of 4 candidates with a verdict, 2 were proposed, 2 left alone, and the toast shows the mockup's wording.
+- **Kalender "Pilih Jadwal" row:** the enumerator saw a modal live and an inline expand in the mockup, but the mockup's footnote says a click on a bar changes its content, so both open an editor. Not a difference.
+- **Still open:** Tes Tulis "Hapus ruang" (confirm vs undo toast, your call), Penerimaan Tinjau, Kode and Konfirmasi not re-shot, Tubes parked, a full light-theme and phone pass of the seeded later stages beyond the screens listed above.
