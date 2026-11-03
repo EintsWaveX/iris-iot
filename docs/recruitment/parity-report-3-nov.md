@@ -38,3 +38,13 @@ What ran: the click enumerator (`rig/parity/oc.mjs`) on all 11 menus, mockup and
 2. Reset the rig to Tinjau for Penerimaan and seed Tes Tulis before start, Cutting results per stage and the CaAs journey (`seed_*.mjs`).
 3. Run `pair.mjs` for all screens at 1440 and 390 in dark and light, read each pair, and run `audit9.mjs` for overflow.
 4. Turn each remaining difference into "deliberate" or a fix.
+
+## Part 2 (3 Nov, after the rig restart)
+
+Ran on the rig rebuilt from main at PR #31: `pair.mjs` for 14 screens at 1440 (mockup and live side by side, dark theme), and `audit9.mjs` at 390 px for 14 deep states.
+
+- **Overflow at 390 px:** none, in all 14 deep states.
+- **Layout and structure:** the 14 pairs have the same structure. The differences left are state and data (dates, which stage is selected, who is seated, a live MQTT banner on the rig), not markup.
+- **Fixed from the pairs:** Oprec dropdowns now read in Title Case (trigger and options) like the mockup (`Semua Kandidat`, `Semua Format`); the Tes Tulis Soal Siap row reads "51 soal tertulis dan 8 soal C siap, cukup untuk 24 kursi" from real counts; the Mulai Ujian button has no trailing arrow.
+- **Checked and fine:** the Penerimaan audit log shows the raw action code in monospace, as the mockup does.
+- **Not run:** light theme pairs, phone-width pairs (only overflow was checked at 390), the 320 px width, and the seeded states for Gantikan Pewawancara and the CaAs journey. The `daftar` and `home` pairs compare different screens and are not valid.
