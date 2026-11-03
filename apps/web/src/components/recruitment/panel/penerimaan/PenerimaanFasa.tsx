@@ -124,7 +124,7 @@ const W: Record<Lang, Words> = {
       again: "Sudah dilakukan",
       created: (n) => `${n} Asisten baru dibuat`,
       byAgain: (by, at, n) =>
-        `Dijalankan ${by} pada ${at}. Percobaan berikutnya melewati ${n} orang yang sudah ada dan tidak membuat siapa pun dua kali.`,
+        `Dijalankan oleh ${by} pada ${at}. Kalau dijalankan lagi, ${n} orang yang sudah ada dilewati.`,
       by: (by, at, reveal) => `Oleh ${by} pada ${at}. Amplop mereka terbuka ${reveal}.`,
       celebrate: "Putar Perayaan",
       toClose: "Lanjut Tutup Edisi",
@@ -244,7 +244,7 @@ const W: Record<Lang, Words> = {
       again: "Already done",
       created: (n) => `${n} new Asisten created`,
       byAgain: (by, at, n) =>
-        `Run by ${by} on ${at}. The later attempt skipped the ${n} who already exist and created nobody twice.`,
+        `Run by ${by} on ${at}. If it runs again, the ${n} who already exist are skipped.`,
       by: (by, at, reveal) => `By ${by} on ${at}. Their envelopes open ${reveal}.`,
       celebrate: "Play the Celebration",
       toClose: "Continue to Close",
