@@ -442,6 +442,13 @@
       "when": 1793644494308,
       "tag": "0062_rec_candidate_review_meta",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793712549139,
+      "tag": "0063_rec_stage_proposal_log",
+      "breakpoints": true
     }
   ]
 }

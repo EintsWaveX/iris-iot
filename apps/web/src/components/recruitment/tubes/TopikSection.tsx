@@ -59,7 +59,6 @@ function TopicDialog({
       onOpenChange={(o) => !o && onClose()}
       title={topic ? w.editTopic : w.addTopic}
       lang={c.lang}
-      size="lg"
       actions={
         <>
           <button type="button" className="btn btn--ghost" onClick={onClose}>
@@ -141,7 +140,6 @@ function WhoDialog({
       title={topic.title}
       description={w.topicTeams(topic.used, topic.cap)}
       lang={c.lang}
-      size="lg"
       actions={
         <button type="button" className="btn btn--ghost" onClick={onClose}>
           <span className="btn__label">{w.close}</span>
@@ -278,7 +276,6 @@ function DrawDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
       title={w.drawTitle}
       description={w.drawLede}
       lang={c.lang}
-      size="xl"
       actions={
         <>
           <button

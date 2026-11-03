@@ -260,7 +260,6 @@ function TeamDialog({
         .map((m) => m.nama)
         .join(", ")}
       lang={c.lang}
-      size="xl"
       actions={
         <>
           {closed && (

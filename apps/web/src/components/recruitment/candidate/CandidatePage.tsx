@@ -736,7 +736,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         onOpenChange={setJadwalOpen}
         title={t.tools.jadwalTitle}
         description={t.tools.jadwalDesc}
-        size="xl"
         lang={lang}
         actions={
           <button type="button" className="btn btn--ghost" onClick={() => setJadwalOpen(false)}>
@@ -756,7 +755,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         open={amplopOpen}
         onOpenChange={setAmplopOpen}
         title={t.tools.amplopTitle}
-        size="lg"
         lang={lang}
         actions={
           <button type="button" className="btn btn--ghost" onClick={() => setAmplopOpen(false)}>

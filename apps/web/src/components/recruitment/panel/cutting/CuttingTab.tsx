@@ -38,7 +38,16 @@ import SegmentedControl from "../../../ui/SegmentedControl";
 import { useMinWidth } from "../../../../lib/hooks";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost, useRecCut, useRecSettings } from "../../../../lib/recruitment/client";
-import { thresholdProposals, type Ambang, type CutRow } from "../../../../lib/recruitment/cutting";
+import {
+  boardOrder,
+  matchesReason,
+  reasonsOf,
+  thresholdProposals,
+  type Ambang,
+  type CutRow,
+  type Reason,
+  type ReasonFilter,
+} from "../../../../lib/recruitment/cutting";
 import { tanggalWib } from "../../../../lib/recruitment/gates";
 import {
   CUT_STAGES,
@@ -61,6 +70,9 @@ import "../../recruitment-kandidat.css";
 import "../../recruitment-cutting.css";
 import { TUBES } from "../../tubes/tubesStrings";
 import { CS } from "./cutStrings";
+import { CW } from "./cutWhyStrings";
+import CuttingDrawer from "./CuttingDrawer";
+import ReasonTags from "./ReasonTags";
 import { AturTitikAwal, UbahTeksAmplop } from "./CutSettings";
 import { Countdown, tgl } from "../../shared";
 
@@ -400,8 +412,14 @@ export default function CuttingTab({
     Record<number, { proposal: Proposal | null; note?: string | null }>
   >({});
   const bar = useRef<HTMLDivElement>(null);
+  // The candidate whose drawer is open (3 Nov 2026): the reasons, Berkas, attendance and notes in one place.
+  const [terbuka, setTerbuka] = useState<number | null>(null);
   useEffect(() => setLokal({}), [board.data?.now, pilih]);
   useEffect(() => setMore(20), [pilih, q, f]);
+  useEffect(() => {
+    setTerbuka(null);
+    setF("semua");
+  }, [pilih]);
 
   if (!pilih)
     return (
@@ -445,11 +463,21 @@ export default function CuttingTab({
     mode === "top" ? Math.min(n, baris.length) : baris.filter((c) => (c.total ?? 0) >= minS).length;
   const missing = baris.filter((c) => !c.proposal).length;
 
-  const daftar = baris.filter((c) => {
+  // Best score first, so the rank and the dashed cut line mean what they say (the server sends NIM order).
+  const urut = boardOrder(baris);
+  const tempat = new Map(urut.map((c, k) => [c.id, k + 1]));
+  const alasan = new Map<number, Reason[]>(
+    urut.map((c, k) => [
+      c.id,
+      reasonsOf(c, { stage: pilih, ivStage, rank: k + 1, passN: garis ? potongN : null }),
+    ]),
+  );
+  const daftar = urut.filter((c) => {
     if (q && !`${c.nama} ${c.nim}`.toLowerCase().includes(q.toLowerCase())) return false;
     if (f === "belum") return !c.proposal;
     if (f === "lolos" || f === "gagal") return c.proposal === f;
     if (f === "absen") return !c.tt || !c.fm;
+    if (f in CW[lang].filters) return matchesReason(f as ReasonFilter, alasan.get(c.id) ?? [], c);
     return true;
   });
 
@@ -483,7 +511,8 @@ export default function CuttingTab({
     }
     board.refresh();
   }
-  const set = (c: CutRowView, p: Proposal) => void usul([{ id: c.id, proposal: p, note: c.note }]);
+  const set = (c: CutRowView, p: Proposal) =>
+    void usul([{ id: c.id, proposal: c.proposal === p ? null : p, note: c.note }]);
   const note = (c: CutRowView, v: string) =>
     void usul([{ id: c.id, proposal: c.proposal, note: v.trim() || null }]);
 
@@ -706,6 +735,16 @@ export default function CuttingTab({
           { value: "lolos", label: t.proposedLolos },
           { value: "gagal", label: t.proposedGagal },
           ...(pilih === "tes_tulis" ? [{ value: "absen", label: t.missed }] : []),
+          { value: "catatan", label: CW[lang].filters.catatan },
+          { value: "potensi", label: CW[lang].filters.potensi },
+          ...(garis ? [{ value: "dekat", label: CW[lang].filters.dekat }] : []),
+          ...(ivStage
+            ? [
+                { value: "ragu", label: CW[lang].filters.ragu },
+                { value: "selisih", label: CW[lang].filters.selisih },
+                { value: "susulan", label: CW[lang].filters.susulan },
+              ]
+            : []),
         ]}
       />
       <span className="grow" />
@@ -915,9 +954,16 @@ export default function CuttingTab({
             </span>
           )}
           <span className="r2crow" data-p={c.proposal ?? "belum"}>
-            <span className="r2crow__rank num">{i + 1}</span>
+            <span className="r2crow__rank num">{tempat.get(c.id)}</span>
             <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-              <b>{c.nama}</b>
+              <button
+                type="button"
+                className="cwd-open"
+                aria-label={CW[lang].openRow(c.nama)}
+                onClick={() => setTerbuka(c.id)}
+              >
+                {c.nama}
+              </button>
               <span className="hint">
                 {lolosBerkas
                   ? c.berkas?.status === "approved"
@@ -928,6 +974,12 @@ export default function CuttingTab({
                     : t.scoreCut}
               </span>
               {!lolosBerkas && <Att c={c} lang={lang} />}
+              {c.note && (
+                <span className="cwd-note" title={c.note}>
+                  {c.note}
+                </span>
+              )}
+              <ReasonTags reasons={alasan.get(c.id) ?? []} lang={lang} />
             </span>
             <span className="r2crow__act">
               {hasilCell(c)}
@@ -999,11 +1051,25 @@ export default function CuttingTab({
                     </td>
                   </tr>
                 )}
-                <tr className="n7-crow" data-p={c.proposal ?? "belum"}>
-                  <td className="num hint">{i + 1}</td>
+                <tr
+                  className="n7-crow n7-crow--open"
+                  data-p={c.proposal ?? "belum"}
+                  onClick={() => setTerbuka(c.id)}
+                >
+                  <td className="num hint">{tempat.get(c.id)}</td>
                   <td>
                     <span className="stack" style={{ gap: 0 }}>
-                      <b>{c.nama}</b>
+                      <button
+                        type="button"
+                        className="cwd-open"
+                        aria-label={CW[lang].openRow(c.nama)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTerbuka(c.id);
+                        }}
+                      >
+                        {c.nama}
+                      </button>
                       <span className="hint mono">{c.nim}</span>
                       {c.tubes && (
                         <span className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 2 }}>
@@ -1034,6 +1100,12 @@ export default function CuttingTab({
                           )}
                         </span>
                       )}
+                      {c.note && (
+                        <span className="cwd-note" title={c.note}>
+                          {c.note}
+                        </span>
+                      )}
+                      <ReasonTags reasons={alasan.get(c.id) ?? []} lang={lang} />
                     </span>
                   </td>
                   {lolosBerkas ? (
@@ -1123,9 +1195,9 @@ export default function CuttingTab({
                       </td>
                     </>
                   )}
-                  <td>{hasilCell(c)}</td>
+                  <td onClick={(e) => e.stopPropagation()}>{hasilCell(c)}</td>
                   <td>{siapa(c)}</td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <NoteBtn c={c} lang={lang} can={bisaUsul} onNote={note} />
                   </td>
                   {dibuka && (
@@ -1195,6 +1267,25 @@ export default function CuttingTab({
             <span className="btn__label">{CS[lang].more}</span>
           </button>
         </div>
+      )}
+      {terbuka !== null && (
+        <CuttingDrawer
+          lang={lang}
+          stage={pilih}
+          id={terbuka}
+          list={daftar.some((r) => r.id === terbuka) ? daftar : urut}
+          total={baris.length}
+          rankOf={(id) => tempat.get(id) ?? 0}
+          passN={garis ? potongN : null}
+          ivStage={ivStage}
+          skala={skala}
+          can={bisaUsul}
+          locked={dikunci}
+          onId={setTerbuka}
+          onClose={() => setTerbuka(null)}
+          onPropose={set}
+          onNote={note}
+        />
       )}
       <Confirm
         open={buka}

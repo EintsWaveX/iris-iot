@@ -584,7 +584,6 @@ function EveningDialog({
       title={t.eveningTitle}
       description={`${t.eveningLede} ${t.eveningCutoff}`}
       lang={lang}
-      size="xl"
       actions={
         <>
           <button type="button" className="btn btn--ghost" onClick={onClose}>

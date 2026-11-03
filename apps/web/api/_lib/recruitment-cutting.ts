@@ -10,7 +10,7 @@
  * Praktikan session.
  */
 import { aturanDokumen, bacaSetting } from "./recruitment-settings.js";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
@@ -22,6 +22,8 @@ import {
   recAttendance,
   recCandidate,
   recDocument,
+  recSheetShared,
+  recStageProposalLog,
   recStageResult,
 } from "../../src/lib/schema.js";
 import {
@@ -31,11 +33,12 @@ import {
   revealAtFor,
   tally,
 } from "../../src/lib/recruitment/cutting.js";
-import { nextPublicEvent } from "../../src/lib/recruitment/gates.js";
+import { nextPublicEvent, tanggalWib } from "../../src/lib/recruitment/gates.js";
 import { cuttingPool, standing } from "../../src/lib/recruitment/standing.js";
 import {
   CUT_STAGES,
   PROPOSALS,
+  type CutDetailResponse,
   type CutRowView,
   type CutStage,
   type EventLite,
@@ -48,6 +51,7 @@ import {
   muatEventSendiri,
   muatEvents,
   muatHasilBanyak,
+  muatBerkas,
   muatKandidat,
   tolak,
   wajibEdisi,
@@ -109,6 +113,10 @@ interface PoolRow {
   } | null;
   fm: boolean;
   tt: boolean;
+  ipk: number | null;
+  potensiCut: boolean;
+  revisions: number;
+  panitiaNote: string | null;
 }
 
 /** Everyone on a stage's board, with their result row if any. */
@@ -128,6 +136,10 @@ export async function muatPool(
       status: recCandidate.status,
       stage: recCandidate.currentStage,
       score: recCandidate.berkasScore,
+      ipkX100: recCandidate.ipkX100,
+      potensiCut: recCandidate.potensiCut,
+      revisions: recCandidate.revisionRound,
+      panitiaNote: recCandidate.panitiaNote,
     })
     .from(recCandidate)
     .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
@@ -198,6 +210,10 @@ export async function muatPool(
         : null,
       fm: fm.has(k.id),
       tt: tt.has(k.id),
+      ipk: k.ipkX100 === null ? null : k.ipkX100 / 100,
+      potensiCut: k.potensiCut,
+      revisions: k.revisions,
+      panitiaNote: k.panitiaNote,
     });
   }
   return out.sort((a, b) => (a.nim < b.nim ? -1 : 1));
@@ -262,6 +278,12 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
         : null
       : (nilai?.byCandidate.get(r.id)?.total ?? null),
     berkas: stage === "berkas" ? { status: r.status as never, score: r.score, docs: r.docs } : null,
+    ipk: r.ipk,
+    potensiCut: r.potensiCut,
+    revisions: r.revisions,
+    // The Catatan Panitia, cut short: enough for a row; the drawer loads the whole text.
+    panitiaNote: r.panitiaNote ? r.panitiaNote.slice(0, 140) : null,
+    hasPanitiaNote: !!r.panitiaNote,
     proposal: r.result?.proposal ?? null,
     proposedBy: r.result?.proposedBy ? (kode.get(r.result.proposedBy) ?? null) : null,
     note: r.result?.note ?? null,
@@ -294,6 +316,192 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
     scoreFinal: nilai ? nilai.final : null,
     now: now.toISOString(),
   });
+}
+
+/** What each stage's score is out of, for the drawer's trail. */
+const SKOR_MAKS: Record<CutStage, number> = {
+  berkas: 100,
+  tes_tulis: 4000,
+  wawancara: 100,
+  tubes: 100,
+  mengajar: 100,
+  penerimaan: 100,
+};
+
+/**
+ * GET cutting-detail?id=&stage=: the whole picture of one candidate for the Cutting drawer. Read only. The
+ * Berkas files need the documents right; everything else needs only cuttingPropose, which every seat that
+ * proposes also holds together with the candidates right.
+ */
+export async function handleCuttingRinci(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const stage = tahapDari(req.query.stage);
+  if (!stage) return void tolak(res, "data_salah", 400, { field: "stage" });
+  const id = Number(req.query.id);
+  if (!Number.isInteger(id) || id <= 0) return void tolak(res, "data_salah", 400, { field: "id" });
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (!wajibHak(res, p, "cuttingPropose")) return;
+  const [r] = await db
+    .select({ k: recCandidate, nama: namaKandidat })
+    .from(recCandidate)
+    .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
+    .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
+    .where(and(eq(recCandidate.id, id), eq(recCandidate.editionId, edisi.id)))
+    .limit(1);
+  if (!r) return void tolak(res, "tidak_ditemukan", 404);
+  const k = r.k;
+  const events = await muatEvents(db, edisi.id);
+
+  // Berkas files, with the verdicts Admin gave (only for those who may open documents).
+  const aturan = await aturanDokumen(db);
+  const berkas = p?.hak.documents ? await muatBerkas(db, k.id) : null;
+  const files = berkas
+    ? berkas
+        .filter((d) => aturan.required.includes(d.kind))
+        .map((d) => ({ kind: d.kind, verdict: d.verdict, note: d.note, replaced: d.hasPrev }))
+    : null;
+
+  // Attendance: First Meet and the test evenings; an evening already over with no row is a miss.
+  const hariIni = tanggalWib(new Date()).tanggal;
+  const relevan = events.filter((e) => hadirFm(e) || hadirTt(e));
+  const hadirRows = relevan.length
+    ? await db
+        .select()
+        .from(recAttendance)
+        .where(
+          and(
+            eq(recAttendance.candidateId, k.id),
+            inArray(
+              recAttendance.eventId,
+              relevan.map((e) => e.id),
+            ),
+          ),
+        )
+    : [];
+  const hadirPer = new Map(hadirRows.map((h) => [h.eventId, h]));
+  const kodeNim = await kodePerNim(db, [...hadirRows.map((h) => h.by ?? ""), k.reviewedBy ?? ""]);
+  const attendance: CutDetailResponse["attendance"] = relevan
+    .filter((e) => hadirPer.has(e.id) || e.startsOn < hariIni)
+    .sort((a, b) => (a.startsOn < b.startsOn ? -1 : a.startsOn > b.startsOn ? 1 : 0))
+    .map((e) => {
+      const h = hadirPer.get(e.id);
+      return {
+        title: e.title,
+        stage: e.stage,
+        at: h ? h.at.toISOString() : null,
+        via: h ? h.via : null,
+        by: h?.by ? (kodeNim.get(h.by) ?? null) : null,
+        reason: h?.reason ?? null,
+      };
+    });
+
+  // The trail: each earlier stage's score and result.
+  const awal = CUT_STAGES.slice(0, CUT_STAGES.indexOf(stage));
+  const hasilTahap = await db
+    .select()
+    .from(recStageResult)
+    .where(eq(recStageResult.candidateId, k.id));
+  const hasilPer = new Map(hasilTahap.map((h) => [h.stage as string, h]));
+  const nilaiTes = awal.includes("tes_tulis") ? await muatNilaiCutting(db, edisi.id) : null;
+  const trail: CutDetailResponse["trail"] = [];
+  for (const t of awal) {
+    const h = hasilPer.get(t);
+    let score: number | null = null;
+    let verdict: "lolos" | "ragu" | "cut" | null = null;
+    if (t === "berkas") score = p?.hak.documents ? k.berkasScore : null;
+    else if (t === "tes_tulis") score = nilaiTes?.byCandidate.get(k.id)?.total ?? null;
+    else if (isIvStage(t)) {
+      const rows = await muatNilaiTahap(db, edisi.id, t, { anggota: t === "tubes" });
+      const x = rows.find((y) => y.id === k.id);
+      score = x?.mean != null ? Math.round(x.mean) : null;
+      verdict = x?.verdict ?? null;
+    }
+    trail.push({
+      stage: t,
+      score,
+      max: SKOR_MAKS[t],
+      verdict,
+      proposal: h?.proposal ?? null,
+      locked: !!h?.locked,
+    });
+  }
+
+  // Interview and teaching: this stage's sheets and the examiners' shared conclusions.
+  let iv: CutDetailResponse["iv"] = null;
+  if (isIvStage(stage)) {
+    const rows = await muatNilaiTahap(db, edisi.id, stage, { anggota: stage === "tubes" });
+    const x = rows.find((y) => y.id === k.id);
+    if (x) {
+      const t = await bacaSetting(db, stage);
+      const [bersama] = await db
+        .select({ concl: recSheetShared.concl })
+        .from(recSheetShared)
+        .where(and(eq(recSheetShared.candidateId, k.id), eq(recSheetShared.stage, stage)))
+        .limit(1);
+      iv = {
+        mean: x.mean,
+        spread: x.spread,
+        wide: x.wide,
+        verdict: x.verdict,
+        suggested: x.suggested,
+        sheets: x.sheets,
+        expected: x.expected,
+        case: x.case,
+        conclusions: t.params.map((q) => ({
+          label: { id: q.label.id, en: q.label.en },
+          text: bersama?.concl?.[q.key]?.trim() ?? "",
+        })),
+      };
+    }
+  }
+
+  // History of this stage, newest first.
+  const log = await db
+    .select()
+    .from(recStageProposalLog)
+    .where(and(eq(recStageProposalLog.candidateId, k.id), eq(recStageProposalLog.stage, stage)))
+    .orderBy(desc(recStageProposalLog.at), desc(recStageProposalLog.id))
+    .limit(30);
+  const kodeLog = await kodePerNim(
+    db,
+    log.map((l) => l.byNim),
+  );
+
+  const body: CutDetailResponse = {
+    ok: true,
+    stage,
+    candidate: {
+      id: k.id,
+      nim: k.nim,
+      nama: r.nama ?? "",
+      kelas: k.biodata?.kelas ?? null,
+      angkatan: k.biodata?.angkatan ?? null,
+      prodi: k.biodata?.prodi ?? null,
+      status: k.status,
+      ipk: k.ipkX100 === null ? null : k.ipkX100 / 100,
+      potensiCut: k.potensiCut,
+      revisions: k.revisionRound,
+      reviewNote: k.reviewNote,
+      reviewedBy: k.reviewedBy ? (kodeNim.get(k.reviewedBy) ?? null) : null,
+      reviewedAt: k.reviewedAt ? k.reviewedAt.toISOString() : null,
+      berkasScore: p?.hak.documents ? k.berkasScore : null,
+      panitiaNote: k.panitiaNote,
+      canEditNote: !!p?.hak.candidates,
+    },
+    files,
+    attendance,
+    trail,
+    iv,
+    history: log.map((l) => ({
+      proposal: l.proposal,
+      by: kodeLog.get(l.byNim) ?? l.byNim,
+      at: l.at.toISOString(),
+      note: l.note,
+    })),
+  };
+  res.status(200).json(body);
 }
 
 /** POST propose { stage, items: [{ id, proposal, note? }] } */
@@ -354,6 +562,12 @@ export async function handleUsul(req: ApiRequest, res: ApiResponse, s: SessionPa
           target: [recStageResult.candidateId, recStageResult.stage],
           set: nilai,
         });
+      // History: only a real change is written (the sheet's "Terapkan" resends untouched rows).
+      const lama = peta.get(i.id)!.result;
+      if ((lama?.proposal ?? null) !== i.proposal || (lama?.note ?? null) !== i.note)
+        await tx
+          .insert(recStageProposalLog)
+          .values({ candidateId: i.id, stage, proposal: i.proposal, byNim: s.nim, note: i.note });
     }
   });
   const kode = await kodePerNim(

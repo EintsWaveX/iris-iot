@@ -38,6 +38,10 @@ export const PR = dict({
     fSamples: "Contoh untuk peserta",
     fTests: "Test tersembunyi",
     fReference: "Reference Solution",
+    tabSoal: "Soal",
+    tabTests: "Contoh & Test",
+    tabKey: "Kunci & Cek",
+    limitsHead: "Batas",
     fReferenceHint:
       "Program C yang benar. Judge menjalankannya di semua test tersembunyi, dan soal baru boleh Siap kalau hasilnya cocok dengan output yang kamu tulis. Tidak pernah terlihat peserta.",
     sampleN: (i: number) => `Contoh ${i}`,
@@ -123,6 +127,10 @@ export const PR = dict({
     fSamples: "Samples for candidates",
     fTests: "Hidden tests",
     fReference: "Reference Solution",
+    tabSoal: "Problem",
+    tabTests: "Samples & Tests",
+    tabKey: "Key & Check",
+    limitsHead: "Limits",
     fReferenceHint:
       "A correct C program. The judge runs it on every hidden test, and a new problem can only be Ready once its output matches what you wrote. Candidates never see it.",
     sampleN: (i: number) => `Sample ${i}`,
@@ -207,6 +215,10 @@ export const PR = dict({
     fSamples: "给考生的样例",
     fTests: "隐藏测试",
     fReference: "参考解答",
+    tabSoal: "题目",
+    tabTests: "样例与测试",
+    tabKey: "解答与检查",
+    limitsHead: "限制",
     fReferenceHint:
       "一份正确的 C 程序。评测机会在所有隐藏测试上运行它，输出与你填写的一致后，题目才能设为就绪。考生永远看不到。",
     sampleN: (i: number) => `样例 ${i}`,

@@ -213,6 +213,8 @@ function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: bool
     if (!open) return;
     function onPointerDown(ev: PointerEvent) {
       const target = ev.target as Node;
+      // A toast floats over everything; pressing it is not an outside click.
+      if ((target as Element).closest?.(".toast-host")) return;
       if (triggerRef.current?.contains(target)) return;
       if (popupRef.current?.contains(target)) return;
       setOpen(false);

@@ -2341,6 +2341,27 @@ export const recStageResult = pgTable(
   (t) => [unique("rec_stage_result_unik").on(t.candidateId, t.stage)],
 );
 
+/**
+ * Cutting history: one row each time a candidate's proposal or note really changed (3 Nov 2026).
+ * `proposal` is null when the proposal was cleared. rec_stage_result keeps only the last writer;
+ * this keeps who proposed what, when, and with which note. History starts the day it ships.
+ */
+export const recStageProposalLog = pgTable(
+  "rec_stage_proposal_log",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    proposal: text("proposal", { enum: PROPOSALS }),
+    byNim: text("by_nim").notNull(),
+    note: text("note"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_stage_proposal_log_idx").on(t.candidateId, t.stage, t.at)],
+);
+
 /** Attendance at an event, by QR or by hand (S2 fills it). */
 export const recAttendance = pgTable(
   "rec_attendance",

@@ -504,7 +504,6 @@ function Picker({
       onOpenChange={(o) => !o && onClose()}
       title={title}
       lang={lang}
-      size="lg"
       actions={
         <button type="button" className="btn btn--primary" onClick={onClose}>
           {t.save}

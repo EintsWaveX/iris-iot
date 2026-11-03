@@ -20,6 +20,7 @@ import type {
   CandidatesResponse,
   CommitteeResponse,
   CutBoardResponse,
+  CutDetailResponse,
   CutStage,
   EditionResponse,
   MeResponse,
@@ -194,6 +195,21 @@ export function useRecCut(stage: CutStage, enabled: boolean) {
     ["reccutting", "reccandidates", "reccalendar"],
     1_000,
     stage,
+  );
+}
+
+/**
+ * One candidate's whole picture for the Cutting drawer (null id = closed, nothing is fetched). It refetches when the
+ * proposal, a Catatan, attendance or the Berkas review changes, so the drawer never shows a stale reason.
+ */
+export function useRecCutDetail(stage: CutStage, id: number | null) {
+  return usePoll(
+    () => leaf(recGet<CutDetailResponse>("cutting-detail", { stage, id: String(id) })),
+    300_000,
+    id !== null,
+    ["reccutting", "reccandidates"],
+    500,
+    `${stage}:${id}`,
   );
 }
 

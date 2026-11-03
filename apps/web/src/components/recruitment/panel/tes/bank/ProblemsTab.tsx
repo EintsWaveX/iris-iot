@@ -10,6 +10,7 @@ import { ArrowLeftIcon, LockSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-ic
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Stepper } from "../../../../ui/Controls";
 import SegmentedControl from "../../../../ui/SegmentedControl";
+import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
 import { usePoll } from "../../../../../lib/hooks";
 import {
@@ -30,6 +31,8 @@ import CodeBox from "./CodeBox";
 import { PR } from "./problemStrings";
 
 import "../../../recruitment-s3-lcc.css";
+
+type EdTab = "soal" | "tests" | "key";
 
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 
@@ -180,6 +183,7 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
   const [busy, setBusy] = useState(false);
   const [problems, setProblems] = useState<string[]>([]);
   const [ask, setAsk] = useState(false);
+  const [tab, setTab] = useState<EdTab>("soal");
   const loaded = useRef(false);
 
   const apply = useCallback((r: ProblemResponse) => {
@@ -287,200 +291,81 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
       [key]: draft[key].map((x, j) => (j === i ? { ...x, ...patch } : x)),
     } as Partial<CProblemDraft>);
 
+  const ioBlock = (key: "samples" | "tests") => (
+    <section className="panel stack" style={{ gap: 12 }}>
+      <div className="panel__head">
+        <h4 className="panel__title">{key === "samples" ? t.fSamples : t.fTests}</h4>
+        <button
+          type="button"
+          className="btn btn--inverse btn--sm"
+          disabled={lock || draft[key].length >= C_LIMITS[key].max}
+          onClick={() =>
+            set({ [key]: [...draft[key], { input: "", output: "" }] } as Partial<CProblemDraft>)
+          }
+        >
+          <PlusIcon size={16} aria-hidden="true" />
+          {key === "samples" ? t.addSample : t.addTest}
+        </button>
+      </div>
+      {draft[key].map((x, i) => (
+        <div key={i} className="stack stack--sm">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <b>{key === "samples" ? t.sampleN(i + 1) : t.testN(i + 1)}</b>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              disabled={lock || draft[key].length <= C_LIMITS[key].min}
+              onClick={() =>
+                set({ [key]: draft[key].filter((_, j) => j !== i) } as Partial<CProblemDraft>)
+              }
+            >
+              <TrashIcon size={16} aria-hidden="true" />
+              {t.remove}
+            </button>
+          </div>
+          <div className="row" style={{ gap: 12, alignItems: "stretch" }}>
+            <label className="stack stack--sm" style={{ flex: 1, minWidth: 0 }}>
+              <span className="hint">{t.inLabel}</span>
+              <textarea
+                className="textarea mono bkio"
+                rows={2}
+                spellCheck={false}
+                disabled={lock}
+                value={x.input}
+                onChange={(e) => ioEdit(key, i, { input: e.target.value })}
+              />
+            </label>
+            <label className="stack stack--sm" style={{ flex: 1, minWidth: 0 }}>
+              <span className="hint">{t.outLabel}</span>
+              <textarea
+                className="textarea mono bkio"
+                rows={2}
+                spellCheck={false}
+                disabled={lock}
+                value={x.output}
+                onChange={(e) => ioEdit(key, i, { output: e.target.value })}
+              />
+            </label>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+
   return (
     <section className="stack" style={{ gap: 16 }}>
       <div className="row r3ed__head">
         <button type="button" className="btn btn--ghost btn--sm" onClick={onBack}>
           <ArrowLeftIcon size={16} aria-hidden="true" /> {t.back}
         </button>
-      </div>
-      <div className="stack" style={{ gap: 2 }}>
-        <h3 className="panel__title">{draft.title.trim() || t.newTitle}</h3>
-        <span className="hint">
-          {t.status[meta.status]} · v{meta.version || 1}
-        </span>
-      </div>
-
-      {lock && (
-        <div className="rec-note">
-          <b>{t.lockedTitle}</b>
-          <span>{t.lockedBody}</span>
-        </div>
-      )}
-      {problems.length > 0 && (
-        <div className="rec-note rec-note--warn" role="alert">
-          <b>{t.problemsHead}</b>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {problems.map((p) => (
-              <li key={p}>{p}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <section className="panel stack" style={{ gap: 12 }}>
-        <label className="stack stack--sm">
-          <span className="label-caps">{t.fTitle}</span>
-          <input
-            className="input"
-            value={draft.title}
-            maxLength={C_LIMITS.title}
-            onChange={(e) => set({ title: e.target.value })}
-          />
-        </label>
-        <div className="stack stack--sm">
-          <span className="label-caps">{t.fTier}</span>
-          <SegmentedControl
-            aria-label={t.fTier}
-            value={draft.tier}
-            onValueChange={(v) => !lock && v && set({ tier: v as "easy" | "medium" })}
-            options={[
-              { value: "easy", label: t.tier.easy },
-              { value: "medium", label: t.tier.medium },
-            ]}
-          />
-        </div>
-        {(["statement", "input", "output"] as const).map((k) => (
-          <label key={k} className="stack stack--sm">
-            <span className="label-caps">
-              {k === "statement" ? t.fStatement : k === "input" ? t.fInput : t.fOutput}
-            </span>
-            <textarea
-              className="textarea"
-              rows={k === "statement" ? 4 : 2}
-              value={draft.body[k]}
-              onChange={(e) => set({ body: { ...draft.body, [k]: e.target.value } })}
-            />
-          </label>
-        ))}
-        <div className="stack stack--sm">
-          <span className="label-caps">{t.fStarter}</span>
-          <CodeBox
-            lang="c"
-            ariaLabel={t.fStarter}
-            rows={8}
-            readOnly={false}
-            value={draft.body.starter}
-            onChange={(v) => set({ body: { ...draft.body, starter: v } })}
-          />
-        </div>
-      </section>
-
-      <section className="panel stack" style={{ gap: 12 }}>
-        <div className="row" style={{ gap: 24, flexWrap: "wrap" }}>
-          <label className="stack stack--sm">
-            <span className="label-caps">{t.fTime}</span>
-            <Stepper
-              value={draft.limits.timeMs}
-              min={C_LIMITS.timeMs.min}
-              max={C_LIMITS.timeMs.max}
-              step={100}
-              label={t.fTime}
-              fmt={t.ms}
-              disabled={lock}
-              lessLabel="-"
-              moreLabel="+"
-              onChange={(v) => set({ limits: { ...draft.limits, timeMs: v } })}
-            />
-          </label>
-          <label className="stack stack--sm">
-            <span className="label-caps">{t.fMem}</span>
-            <Stepper
-              value={draft.limits.memKb}
-              min={C_LIMITS.memKb.min}
-              max={C_LIMITS.memKb.max}
-              step={16_384}
-              label={t.fMem}
-              fmt={t.mb}
-              disabled={lock}
-              lessLabel="-"
-              moreLabel="+"
-              onChange={(v) => set({ limits: { ...draft.limits, memKb: v } })}
-            />
-          </label>
-        </div>
-      </section>
-
-      {(["samples", "tests"] as const).map((key) => (
-        <section key={key} className="panel stack" style={{ gap: 12 }}>
-          <div className="panel__head">
-            <h4 className="panel__title">{key === "samples" ? t.fSamples : t.fTests}</h4>
-            <button
-              type="button"
-              className="btn btn--inverse btn--sm"
-              disabled={lock || draft[key].length >= C_LIMITS[key].max}
-              onClick={() =>
-                set({ [key]: [...draft[key], { input: "", output: "" }] } as Partial<CProblemDraft>)
-              }
-            >
-              <PlusIcon size={16} aria-hidden="true" />
-              {key === "samples" ? t.addSample : t.addTest}
-            </button>
-          </div>
-          {draft[key].map((x, i) => (
-            <div key={i} className="stack stack--sm">
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <b>{key === "samples" ? t.sampleN(i + 1) : t.testN(i + 1)}</b>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  disabled={lock || draft[key].length <= C_LIMITS[key].min}
-                  onClick={() =>
-                    set({ [key]: draft[key].filter((_, j) => j !== i) } as Partial<CProblemDraft>)
-                  }
-                >
-                  <TrashIcon size={16} aria-hidden="true" />
-                  {t.remove}
-                </button>
-              </div>
-              <div className="row" style={{ gap: 12, alignItems: "stretch" }}>
-                <label className="stack stack--sm" style={{ flex: 1, minWidth: 0 }}>
-                  <span className="hint">{t.inLabel}</span>
-                  <textarea
-                    className="textarea mono bkio"
-                    rows={2}
-                    spellCheck={false}
-                    disabled={lock}
-                    value={x.input}
-                    onChange={(e) => ioEdit(key, i, { input: e.target.value })}
-                  />
-                </label>
-                <label className="stack stack--sm" style={{ flex: 1, minWidth: 0 }}>
-                  <span className="hint">{t.outLabel}</span>
-                  <textarea
-                    className="textarea mono bkio"
-                    rows={2}
-                    spellCheck={false}
-                    disabled={lock}
-                    value={x.output}
-                    onChange={(e) => ioEdit(key, i, { output: e.target.value })}
-                  />
-                </label>
-              </div>
-            </div>
-          ))}
-        </section>
-      ))}
-
-      <section className="panel stack" style={{ gap: 12 }}>
-        <div className="stack" style={{ gap: 2 }}>
-          <h4 className="panel__title">{t.fReference}</h4>
-          <span className="hint">{t.fReferenceHint}</span>
-        </div>
-        <CodeBox
-          lang="c"
-          ariaLabel={t.fReference}
-          rows={12}
-          maxRows={32}
-          readOnly={lock}
-          value={draft.reference}
-          onChange={(v) => set({ reference: v })}
-        />
-        <CheckResult lang={lang} check={check} ok={meta.checkOk} />
-      </section>
-
-      <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "space-between" }}>
+        <span className="grow" />
         <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+          {meta.id !== null && !lock && (
+            <button type="button" className="btn btn--ghost" onClick={() => setAsk(true)}>
+              <TrashIcon size={18} aria-hidden="true" />
+              {t.delete}
+            </button>
+          )}
           <button
             type="button"
             className="btn btn--inverse"
@@ -507,13 +392,30 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
             {t.saveReady}
           </button>
         </div>
-        {meta.id !== null && !lock && (
-          <button type="button" className="btn btn--ghost" onClick={() => setAsk(true)}>
-            <TrashIcon size={18} aria-hidden="true" />
-            {t.delete}
-          </button>
-        )}
       </div>
+      <div className="stack" style={{ gap: 2 }}>
+        <h3 className="panel__title">{draft.title.trim() || t.newTitle}</h3>
+        <span className="hint">
+          {t.status[meta.status]} · v{meta.version || 1}
+        </span>
+      </div>
+
+      {lock && (
+        <div className="rec-note">
+          <b>{t.lockedTitle}</b>
+          <span>{t.lockedBody}</span>
+        </div>
+      )}
+      {problems.length > 0 && (
+        <div className="rec-note rec-note--warn" role="alert">
+          <b>{t.problemsHead}</b>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {problems.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {ask && (
         <div className="rec-note rec-note--warn" role="alertdialog" aria-label={t.delete}>
           <b>{t.deleteAsk}</b>
@@ -530,6 +432,132 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
             </button>
           </span>
         </div>
+      )}
+
+      <TabLine
+        label={t.title}
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { v: "soal" as EdTab, label: t.tabSoal },
+          { v: "tests" as EdTab, label: t.tabTests },
+          { v: "key" as EdTab, label: t.tabKey },
+        ]}
+      />
+
+      {tab === "soal" && (
+        <div className="lced lced--2">
+          <section className="panel stack" style={{ gap: 12 }}>
+            <label className="stack stack--sm">
+              <span className="label-caps">{t.fTitle}</span>
+              <input
+                className="input"
+                value={draft.title}
+                maxLength={C_LIMITS.title}
+                onChange={(e) => set({ title: e.target.value })}
+              />
+            </label>
+            <div className="stack stack--sm">
+              <span className="label-caps">{t.fTier}</span>
+              <SegmentedControl
+                aria-label={t.fTier}
+                value={draft.tier}
+                onValueChange={(v) => !lock && v && set({ tier: v as "easy" | "medium" })}
+                options={[
+                  { value: "easy", label: t.tier.easy },
+                  { value: "medium", label: t.tier.medium },
+                ]}
+              />
+            </div>
+            {(["statement", "input", "output"] as const).map((k) => (
+              <label key={k} className="stack stack--sm">
+                <span className="label-caps">
+                  {k === "statement" ? t.fStatement : k === "input" ? t.fInput : t.fOutput}
+                </span>
+                <textarea
+                  className="textarea"
+                  rows={k === "statement" ? 7 : 3}
+                  value={draft.body[k]}
+                  onChange={(e) => set({ body: { ...draft.body, [k]: e.target.value } })}
+                />
+              </label>
+            ))}
+          </section>
+          <div className="stack" style={{ gap: 16 }}>
+            <section className="panel stack" style={{ gap: 12 }}>
+              <span className="label-caps">{t.fStarter}</span>
+              <CodeBox
+                lang="c"
+                ariaLabel={t.fStarter}
+                rows={12}
+                readOnly={false}
+                value={draft.body.starter}
+                onChange={(v) => set({ body: { ...draft.body, starter: v } })}
+              />
+            </section>
+            <section className="panel stack" style={{ gap: 12 }}>
+              <span className="label-caps">{t.limitsHead}</span>
+              <div className="row" style={{ gap: 24, flexWrap: "wrap" }}>
+                <label className="stack stack--sm">
+                  <span className="hint">{t.fTime}</span>
+                  <Stepper
+                    value={draft.limits.timeMs}
+                    min={C_LIMITS.timeMs.min}
+                    max={C_LIMITS.timeMs.max}
+                    step={100}
+                    label={t.fTime}
+                    fmt={t.ms}
+                    disabled={lock}
+                    lessLabel="-"
+                    moreLabel="+"
+                    onChange={(v) => set({ limits: { ...draft.limits, timeMs: v } })}
+                  />
+                </label>
+                <label className="stack stack--sm">
+                  <span className="hint">{t.fMem}</span>
+                  <Stepper
+                    value={draft.limits.memKb}
+                    min={C_LIMITS.memKb.min}
+                    max={C_LIMITS.memKb.max}
+                    step={16_384}
+                    label={t.fMem}
+                    fmt={t.mb}
+                    disabled={lock}
+                    lessLabel="-"
+                    moreLabel="+"
+                    onChange={(v) => set({ limits: { ...draft.limits, memKb: v } })}
+                  />
+                </label>
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {tab === "tests" && (
+        <div className="lced lced--2">
+          {ioBlock("samples")}
+          {ioBlock("tests")}
+        </div>
+      )}
+
+      {tab === "key" && (
+        <section className="panel stack" style={{ gap: 12 }}>
+          <div className="stack" style={{ gap: 2 }}>
+            <h4 className="panel__title">{t.fReference}</h4>
+            <span className="hint">{t.fReferenceHint}</span>
+          </div>
+          <CodeBox
+            lang="c"
+            ariaLabel={t.fReference}
+            rows={14}
+            maxRows={32}
+            readOnly={lock}
+            value={draft.reference}
+            onChange={(v) => set({ reference: v })}
+          />
+          <CheckResult lang={lang} check={check} ok={meta.checkOk} />
+        </section>
       )}
     </section>
   );

@@ -395,3 +395,18 @@
     transition: none !important;
   }
 }
+
+/* The Live Coding problem editor: three tabs, and two columns on a laptop so no tab runs long */
+.lced {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+}
+.lced > * {
+  min-width: 0;
+}
+@media (min-width: 1100px) {
+  .lced--2 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
