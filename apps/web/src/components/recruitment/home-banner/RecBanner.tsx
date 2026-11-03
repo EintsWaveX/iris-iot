@@ -58,15 +58,33 @@ function Langkah({ cur, lang }: { cur: StageKey; lang: Lang }) {
   return (
     <ol className="rec-bn__steps" aria-label={BN[lang].candidate.stages}>
       {JOURNEY.map((s, i) => (
-        <li
-          key={s}
-          data-st={i < ci ? "done" : i === ci ? "cur" : "next"}
-          data-tip={REC[lang].stage[s]}
-        >
+        <li key={s} data-st={i < ci ? "done" : i === ci ? "cur" : "next"}>
           <i />
         </li>
       ))}
     </ol>
+  );
+}
+
+/** Decoration only: signal arcs rippling in from the card's right edge, the lab's radio. */
+function Seni() {
+  return (
+    <svg
+      className="rec-bn__art"
+      viewBox="0 0 260 180"
+      preserveAspectRatio="xMaxYMid meet"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g className="rec-bn__arcs" fill="none" strokeLinecap="round" strokeWidth="3">
+        <path d="M211.8 61.0 A 58 58 0 0 0 211.8 119.0" stroke="var(--rec)" />
+        <path d="M175.4 40.0 A 100 100 0 0 0 175.4 140.0" stroke="#a78bfa" />
+        <path d="M139.0 19.0 A 142 142 0 0 0 139.0 161.0" stroke="#fb7185" />
+      </g>
+      <circle className="rec-bn__spark" cx="140" cy="22" r="4" fill="#f5b544" />
+      <circle className="rec-bn__spark rec-bn__spark--b" cx="96" cy="150" r="3" fill="#5eead4" />
+      <circle className="rec-bn__spark rec-bn__spark--c" cx="186" cy="160" r="2.5" fill="#7dd3fc" />
+    </svg>
   );
 }
 
@@ -117,8 +135,9 @@ export default function RecBanner({
   const link = (path: string) => href(lang, path);
 
   const box = (body: ReactNode, cta: ReactNode, extra?: ReactNode) => (
-    <section className="rec-bn rec-bn--home" aria-label={t.label}>
+    <section className="rec-bn rec-bn--home rec-bn--rich" aria-label={t.label}>
       <div className="rec-bn__in">
+        <Seni />
         <div className="rec-bn__body">{body}</div>
         {extra && <div className="rec-bn__extra">{extra}</div>}
         <div className="rec-bn__cta">{cta}</div>
@@ -132,8 +151,11 @@ export default function RecBanner({
     const b = d.closes ? tgl(d.closes, lang) : "";
     return box(
       <>
-        {eyebrow}
-        <b className="rec-bn__title">{t.visitor.title}</b>
+        <span className="rec-bn__top">
+          {eyebrow}
+          {d.daftarOpen && <span className="rec-bn__sticker">{t.openNow}</span>}
+        </span>
+        <b className="rec-bn__title rec-bn__title--hot">{t.visitor.title}</b>
         <span className="hint">{d.daftarOpen ? t.visitor.hint(a, b) : t.visitor.soon(a)}</span>
       </>,
       <>
@@ -166,8 +188,11 @@ export default function RecBanner({
     const akhir = tutup ? tanggalWib(new Date(tutup - 60_000)) : null;
     return box(
       <>
-        {eyebrow}
-        <b className="rec-bn__title">{t.praktikan.title}</b>
+        <span className="rec-bn__top">
+          {eyebrow}
+          <span className="rec-bn__sticker">{t.openNow}</span>
+        </span>
+        <b className="rec-bn__title rec-bn__title--hot">{t.praktikan.title}</b>
         {akhir && (
           <span className="hint">{t.praktikan.hint(tgl(akhir.tanggal, lang), "23:59")}</span>
         )}

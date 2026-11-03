@@ -2149,3 +2149,62 @@ li.r2cutline {
 .r2hub .rec-tools .segmented__item {
   flex: 0 0 auto;
 }
+
+/* The Google Form QR (2026-11-03): the last four who scanned, newest on top. */
+.r2proj__recent {
+  display: grid;
+  gap: 10px;
+  max-width: 560px;
+}
+.r2proj__recent ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.r2proj__recent li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+}
+.r2proj__recent li b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.r2proj__recent li span {
+  color: var(--text-muted);
+  flex: none;
+}
+.r2proj__recent li[data-first] {
+  border-color: var(--rec);
+  animation: rec-s2-pop 600ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.r2proj[data-still="yes"] .r2proj__recent li[data-first] {
+  animation: none;
+}
+.r2proj__prev {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.r2proj__prev > div {
+  width: 112px;
+  flex: none;
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+.r2proj__prev svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}

@@ -4,6 +4,7 @@ import { dict } from "../../../lib/app";
 export const BN = dict({
   id: {
     label: "Open Recruitment Asisten IRIS 2026",
+    openNow: "Lagi Dibuka!",
     visitor: {
       title: "Mau jadi Asisten IRIS berikutnya?",
       hint: (a: string, b: string) =>
@@ -61,6 +62,7 @@ export const BN = dict({
   },
   en: {
     label: "IRIS Asisten Open Recruitment 2026",
+    openNow: "Open Now!",
     visitor: {
       title: "Want to be the next IRIS Asisten?",
       hint: (a: string, b: string) =>
@@ -118,6 +120,7 @@ export const BN = dict({
   },
   zh: {
     label: "IRIS 助教招募 2026",
+    openNow: "报名中！",
     visitor: {
       title: "想成为下一位 IRIS 助教吗？",
       hint: (a: string, b: string) =>

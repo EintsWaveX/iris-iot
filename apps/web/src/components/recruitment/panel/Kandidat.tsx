@@ -414,14 +414,15 @@ function antreOf(c: CandidateRow): Antre {
   return c.stage === "berkas" ? "disetujui" : "aktif";
 }
 
-/** The stages that have a Cutting tab; Penerimaan has a tab of its own. */
-const ADA_CUTTING: ReadonlySet<CandidateRow["stage"]> = new Set([
+/** The stages that have a Cutting tab, in order; Penerimaan has a tab of its own. */
+const TAHAP_AKSI = [
   "berkas",
   "first_meet",
   "tes_tulis",
   "wawancara",
   "mengajar",
-]);
+  "penerimaan",
+] as const satisfies readonly CandidateRow["stage"][];
 
 export default function Kandidat({
   lang,
@@ -469,7 +470,10 @@ export default function Kandidat({
     .filter((g) => g[1].length);
   const desk = rights.documents && rights.approve;
   const berikut = rows.find((c) => c.status === "applied");
-  const bisaCut = rights.cuttingPropose;
+  // One shortcut per stage that has candidates, in the toolbar (not one button on every row).
+  const tahapAksi = rights.cuttingPropose
+    ? TAHAP_AKSI.filter((s) => rows.some((c) => c.stage === s))
+    : [];
 
   function unduh() {
     void unduhXlsx(
@@ -507,7 +511,6 @@ export default function Kandidat({
     const Tg = IK_TAHAP[c.stage];
     const dokumen = rules.required.length;
     const late = !daftarDulu;
-    const penerimaan = c.stage === "penerimaan";
     return (
       <li className="rec9-line">
         <button
@@ -545,39 +548,25 @@ export default function Kandidat({
               </span>
             )}
             <span className="rec9-row__at hint">{pendek(c.appliedAt, lang)}</span>
-            {c.potensiCut && (
-              <Pill tone="warn">
-                <FlagIcon size={14} aria-hidden="true" /> {k.cutChip}
-              </Pill>
-            )}
-            {c.revisions > 0 && (c.status === "applied" || c.status === "revision") && (
-              <Pill tone={c.status === "applied" ? "accent" : "warn"}>
-                {c.status === "applied"
-                  ? S2[lang].berkas.resent
-                  : S2[lang].berkas.round(c.revisions)}
-              </Pill>
-            )}
-            <StatusPill status={c.status} lang={lang} />
+            {/* One cell for every pill: a row with extra pills (Potensi Cut, revision) must not push the status pill into the caret column. */}
+            <span className="rec9-row__pills">
+              {c.potensiCut && (
+                <Pill tone="warn">
+                  <FlagIcon size={14} aria-hidden="true" /> {k.cutChip}
+                </Pill>
+              )}
+              {c.revisions > 0 && (c.status === "applied" || c.status === "revision") && (
+                <Pill tone={c.status === "applied" ? "accent" : "warn"}>
+                  {c.status === "applied"
+                    ? S2[lang].berkas.resent
+                    : S2[lang].berkas.round(c.revisions)}
+                </Pill>
+              )}
+              <StatusPill status={c.status} lang={lang} />
+            </span>
           </span>
           <CaretRightIcon size={16} aria-hidden="true" />
         </button>
-        {bisaCut && (ADA_CUTTING.has(c.stage) || penerimaan) && (
-          <button
-            type="button"
-            className="btn btn--ghost btn--sm"
-            title={penerimaan ? k.acceptOpen : k.cuttingOpen(ns.stages[c.stage])}
-            onClick={() => bukaBagian(penerimaan ? "penerimaan" : "cutting")}
-          >
-            {penerimaan ? (
-              <SealCheckIcon size={18} aria-hidden="true" />
-            ) : (
-              <ScissorsIcon size={18} aria-hidden="true" />
-            )}
-            <span className="btn__label rec9-line__lbl">
-              {penerimaan ? k.accept : k.cutting(ns.stages[c.stage])}
-            </span>
-          </button>
-        )}
       </li>
     );
   };
@@ -641,6 +630,24 @@ export default function Kandidat({
           </div>
           <span className="grow" />
           <span className="hint num">{t.count(tampil.length, rows.length)}</span>
+          {tahapAksi.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="btn btn--ghost btn--sm"
+              title={s === "penerimaan" ? k.acceptOpen : k.cuttingOpen(ns.stages[s])}
+              onClick={() => bukaBagian(s === "penerimaan" ? "penerimaan" : "cutting")}
+            >
+              {s === "penerimaan" ? (
+                <SealCheckIcon size={18} aria-hidden="true" />
+              ) : (
+                <ScissorsIcon size={18} aria-hidden="true" />
+              )}
+              <span className="btn__label">
+                {s === "penerimaan" ? k.accept : k.cutting(ns.stages[s])}
+              </span>
+            </button>
+          ))}
           {rights.candidates && (
             <button
               type="button"

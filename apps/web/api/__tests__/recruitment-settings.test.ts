@@ -246,8 +246,11 @@ describe("settings", () => {
       "tubes",
       "tim",
       "penerimaan",
+      "qr",
     ]);
-    expect(list.every((x) => !x.custom && !x.canEdit)).toBe(true);
+    expect(list.every((x) => !x.custom)).toBe(true);
+    // Acara keeps the attendance, so the QR setting is theirs and nothing else is
+    expect(list.filter((x) => x.canEdit).map((x) => x.key)).toEqual(["qr"]);
   });
   it("is closed to an Asisten with no seat", async () => {
     antrean.asisten = [[orang("asisten")]];

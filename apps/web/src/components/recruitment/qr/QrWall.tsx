@@ -10,13 +10,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import qrcode from "qrcode-generator";
 import gsap from "gsap";
-import { XIcon } from "@phosphor-icons/react";
+import { GearSixIcon, XIcon } from "@phosphor-icons/react";
 import Dropdown from "../../ui/Dropdown";
 import IconButton from "../../ui/IconButton";
 import { href, useTick } from "../../../lib/app";
 import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import type { Lang } from "../../../lib/kelas";
-import { isFail, recGet, useRecEdition, useRecQrEvents } from "../../../lib/recruitment/client";
+import {
+  isFail,
+  recGet,
+  useRecEdition,
+  useRecQrEvents,
+  useRecQrRecent,
+} from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import { PERIOD_MS } from "../../../lib/recruitment/qr";
 import type { QrTokenResponse } from "../../../lib/recruitment/types";
@@ -26,6 +32,7 @@ import { kapanAcara } from "../shared";
 import { useRevealMotion } from "../reveal/fx";
 import { Roll } from "../candidate/PilihJadwal";
 import { REC } from "../recruitmentStrings";
+import QrAtur from "./QrAtur";
 
 function qrSvg(text: string): string {
   const q = qrcode(0, "M");
@@ -65,14 +72,20 @@ export default function QrWall({ lang }: { lang: Lang }) {
   /** server clock minus this device's, measured at the last token */
   const selisih = useRef(0);
   const [baru, setBaru] = useState<number | null>(null);
+  const [atur, setAtur] = useState(false);
 
   const daftar = events.data?.events ?? [];
   const aktif = daftar.find((e) => e.id === pilih) ?? daftar[0] ?? null;
   const eventId = aktif?.id ?? null;
+  // A Google Form QR: made from the pasted link, no IRIS token, the last scans read from its sheet
+  const luar = aktif?.qr.mode === "luar";
+  const linkLuar = luar ? aktif.qr.link : "";
+  const adaSheet = luar && aktif.qr.sheet !== "";
+  const terbaru = useRecQrRecent(eventId, izin && adaSheet);
 
   // The token for the current period: fetched now, and again as the period ends.
   useEffect(() => {
-    if (!izin || eventId === null) return;
+    if (!izin || eventId === null || luar) return;
     let alive = true;
     let timer = 0;
     const ambil = async () => {
@@ -96,11 +109,16 @@ export default function QrWall({ lang }: { lang: Lang }) {
       alive = false;
       window.clearTimeout(timer);
     };
-  }, [izin, eventId]);
+  }, [izin, eventId, luar]);
 
   const svg = useMemo(
-    () => (tok ? qrSvg(`${location.origin}/recruitment/hadir?t=${tok.token}`) : ""),
-    [tok?.token],
+    () =>
+      linkLuar
+        ? qrSvg(linkLuar)
+        : tok
+          ? qrSvg(`${location.origin}/recruitment/hadir?t=${tok.token}`)
+          : "",
+    [tok?.token, linkLuar],
   );
 
   // A new code fades in; the ring drains over what is left of its 20 seconds.
@@ -173,6 +191,14 @@ export default function QrWall({ lang }: { lang: Lang }) {
           </div>
         )}
         <WallClock />
+        {edisi.data?.rights?.attendance === true && aktif && (
+          <IconButton
+            icon={GearSixIcon}
+            label={t.luar.settings}
+            tipSide="bottom"
+            onClick={() => setAtur(true)}
+          />
+        )}
         <IconButton
           icon={XIcon}
           label={t.close}
@@ -188,12 +214,14 @@ export default function QrWall({ lang }: { lang: Lang }) {
       ) : (
         <div className="r2proj__main">
           <div className="r2proj__qrbox">
-            {tok && (
+            {(tok || luar) && (
               <div className="r2proj__qr" ref={box} dangerouslySetInnerHTML={{ __html: svg }} />
             )}
-            <svg className="r2proj__ring" viewBox="0 0 100 100" aria-hidden="true">
-              <rect x="1.5" y="1.5" width="97" height="97" rx="7" pathLength={100} ref={ring} />
-            </svg>
+            {!luar && (
+              <svg className="r2proj__ring" viewBox="0 0 100 100" aria-hidden="true">
+                <rect x="1.5" y="1.5" width="97" height="97" rx="7" pathLength={100} ref={ring} />
+              </svg>
+            )}
           </div>
           <div className="r2proj__info">
             <span className="r2proj__eyebrow">
@@ -204,32 +232,80 @@ export default function QrWall({ lang }: { lang: Lang }) {
               {kapanAcara(aktif, lang)}
               {aktif.place ? ` · ${tempatAcara(aktif.place, lang)}` : ""}
             </span>
+            {luar ? (
+              <>
+                <div className="r2proj__recent" aria-live="polite">
+                  <span className="r2proj__eyebrow">{t.luar.recent}</span>
+                  {!adaSheet ? (
+                    <span className="hint">{t.luar.recentNoSheet}</span>
+                  ) : terbaru.data && terbaru.data.scans.length > 0 ? (
+                    <ol>
+                      {terbaru.data.scans.map((x, i) => (
+                        <li key={`${x.nama}-${x.jam}-${i}`} data-first={i === 0 ? "yes" : undefined}>
+                          <b>{x.nama}</b>
+                          <span className="num">{x.jam}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : terbaru.data ? (
+                    <span className="hint">{t.luar.recentNone}</span>
+                  ) : terbaru.errors > 0 ? (
+                    <span className="hint">{t.luar.recentFail}</span>
+                  ) : (
+                    <span className="skeleton" style={{ height: 120 }} />
+                  )}
+                </div>
+                <div className="r2proj__how">
+                  <span>{t.luar.scanForm}</span>
+                  <span className="hint">{t.luar.formNote}</span>
+                </div>
+              </>
+            ) : (
+              <>
             <div className="r2proj__count">
-              <b className="num">
-                <Roll n={hadir} />
-              </b>
-              <span>{t.outOf(diharap)}</span>
-            </div>
-            <div className="r2proj__dots" aria-hidden="true">
-              {Array.from({ length: titik }, (_, i) => (
-                <i
-                  key={i}
-                  data-on={i < hadir ? "yes" : undefined}
-                  data-new={i === baru ? "yes" : undefined}
-                />
-              ))}
-            </div>
-            <div className="r2proj__how">
-              <span>
-                {t.scanHow} <b>{`${location.host}/recruitment/hadir`}</b> {t.andType}
-              </span>
-              <b className="r2proj__code mono">
-                {kode ? `${kode.slice(0, 3)} ${kode.slice(3)}` : "..."}
-              </b>
-              <span className="hint">{gagal ? t.scan.gagal : t.codeChanges}</span>
-            </div>
+                <b className="num">
+                  <Roll n={hadir} />
+                </b>
+                <span>{t.outOf(diharap)}</span>
+              </div>
+              <div className="r2proj__dots" aria-hidden="true">
+                {Array.from({ length: titik }, (_, i) => (
+                  <i
+                    key={i}
+                    data-on={i < hadir ? "yes" : undefined}
+                    data-new={i === baru ? "yes" : undefined}
+                  />
+                ))}
+              </div>
+              <div className="r2proj__how">
+                <span>
+                  {t.scanHow} <b>{`${location.host}/recruitment/hadir`}</b> {t.andType}
+                </span>
+                <b className="r2proj__code mono">
+                  {kode ? `${kode.slice(0, 3)} ${kode.slice(3)}` : "..."}
+                </b>
+                <span className="hint">{gagal ? t.scan.gagal : t.codeChanges}</span>
+              </div>
+              </>
+            )}
           </div>
         </div>
+      )}
+      {aktif && (
+        <QrAtur
+          lang={lang}
+          open={atur}
+          onOpenChange={setAtur}
+          eventId={aktif.id}
+          judul={judulAcara(aktif, lang)}
+          mode={aktif.qr.mode}
+          link={aktif.qr.link}
+          sheet={aktif.qr.sheet}
+          onSaved={() => {
+            setTok(null);
+            events.refresh();
+          }}
+        />
       )}
     </div>
   );
