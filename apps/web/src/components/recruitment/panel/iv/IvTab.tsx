@@ -130,7 +130,7 @@ function SlotCard({
     <section className="panel r4slot" data-live={live ? "yes" : undefined}>
       <div className="panel__head">
         <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-          <h3 className="panel__title">{judul}</h3>
+          <h2 className="panel__title">{judul}</h2>
           <span className="hint num">
             {w.when(hari(s.startsAt, lang), jam(s.startsAt), jam(s.endsAt))}
           </span>
@@ -267,7 +267,7 @@ function PjCard({
     <section className="panel r4slot r4slot--pj">
       <div className="panel__head">
         <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-          <h3 className="panel__title">{luar ? k.pjOutTitle : k.pjInTitle}</h3>
+          <h2 className="panel__title">{luar ? k.pjOutTitle : k.pjInTitle}</h2>
           <span className="hint num">
             {k.shift(hari(s.startsAt, lang), jam(s.startsAt), jam(s.endsAt))}
           </span>

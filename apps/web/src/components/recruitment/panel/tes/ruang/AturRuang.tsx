@@ -267,7 +267,7 @@ export default function AturRuang({
             <section className="panel lc-judge" data-st={juri.data?.judgeReady ? "ok" : "off"}>
               <div className="panel__head">
                 <div className="stack" style={{ gap: 2 }}>
-                  <h3 className="panel__title">C Judge</h3>
+                  <h2 className="panel__title">C Judge</h2>
                   {juri.data && (
                     <span className="hint">
                       {t.judgeSub(juri.data.info.host, juri.data.info.gcc, juri.data.info.sandbox)}

@@ -7,7 +7,7 @@
  * A visitor or a Praktikan gets the error view, the same as every other
  * Asisten page.
  */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import ErrorView from "../../ui/ErrorView";
 import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import { useMinWidth } from "../../../lib/hooks";
@@ -115,6 +115,13 @@ export default function PanelPage({ lang }: { lang: Lang }) {
     [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting, rights?.bank, adaRuang],
   );
   const tab: PanelTab = bagian && tabs.includes(bagian) ? bagian : tabs[0];
+
+  // The browser tab and the history name the part that is open ("Kandidat · Panel Panitia · IRIS IoT").
+  const judulDasar = useRef<string | null>(null);
+  useEffect(() => {
+    if (judulDasar.current === null) judulDasar.current = document.title;
+    document.title = `${REC[lang].nav[tab]} · ${judulDasar.current}`;
+  }, [tab, lang]);
 
   if (me === undefined || (asisten && (edisi.updatedAt === null || cal.updatedAt === null)))
     return <span className="skeleton" style={{ height: 520 }} />;

@@ -125,7 +125,12 @@ function Kartu({
         </button>
       )}
       {kunci && o.dari === "ketua" && (
-        <span className="rec-pp__lock" title={t.board.lockedKetua} aria-label={t.board.lockedKetua}>
+        <span
+          className="rec-pp__lock"
+          role="img"
+          title={t.board.lockedKetua}
+          aria-label={t.board.lockedKetua}
+        >
           <LockSimpleIcon size={16} aria-hidden="true" />
         </span>
       )}
@@ -271,7 +276,7 @@ export default function PanitiaBoard({ lang, rights }: { lang: Lang; rights: Rec
         {bisaAtur && (
           <Lajur id="pool" disabled={!bisaAtur} className="panel rec-pool rec9-pool">
             <div className="panel__head">
-              <h3 className="panel__title">{t.board.pool}</h3>
+              <h2 className="panel__title">{t.board.pool}</h2>
               <span className="hint num">{kolam.length}</span>
             </div>
             <div className="rec-search">

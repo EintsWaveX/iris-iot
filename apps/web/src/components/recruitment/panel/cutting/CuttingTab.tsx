@@ -779,7 +779,7 @@ export default function CuttingTab({
   const garisCard = (
     <section className="panel n7-cutline">
       <div className="panel__head">
-        <h3 className="panel__title">{CS[lang].cutLine}</h3>
+        <h2 className="panel__title">{CS[lang].cutLine}</h2>
         {garis && (
           <span className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
             {bisaAtur && (

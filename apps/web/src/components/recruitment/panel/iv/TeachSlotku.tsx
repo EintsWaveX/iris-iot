@@ -286,9 +286,9 @@ export function TeachCard({
     <section className="panel r4slot r6slot" data-live={running ? "yes" : undefined}>
       <div className="panel__head">
         <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-          <h3 className="panel__title">
+          <h2 className="panel__title">
             {s.room} · {weekday}
-          </h3>
+          </h2>
           <span className="hint num">
             {day(s.startsAt, lang, {
               weekday: "long",
@@ -444,7 +444,7 @@ export function TeachPj({
     <section className="panel r4slot r4slot--pj">
       <div className="panel__head">
         <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-          <h3 className="panel__title">{t.pjTitle}</h3>
+          <h2 className="panel__title">{t.pjTitle}</h2>
           <span className="hint num">
             {when} · {hm(Date.parse(s.startsAt))}{" "}
             {lang === "id" ? "sampai" : lang === "zh" ? "至" : "to"} {hm(Date.parse(s.endsAt))}

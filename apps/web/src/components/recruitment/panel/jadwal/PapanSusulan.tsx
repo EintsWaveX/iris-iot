@@ -321,7 +321,7 @@ export default function PapanSusulan({
     <section className="panel stack msus">
       <div className="row row--between" style={{ gap: 12, flexWrap: "wrap" }}>
         <div className="stack stack--sm" style={{ minWidth: 0 }}>
-          <h3 className="panel__title">{w.title(m.stage[stage])}</h3>
+          <h2 className="panel__title">{w.title(m.stage[stage])}</h2>
           {d.day ? (
             <>
               <span className="hint">{w.lede(tgl(d.day, lang), d.from ?? "", d.to ?? "")}</span>

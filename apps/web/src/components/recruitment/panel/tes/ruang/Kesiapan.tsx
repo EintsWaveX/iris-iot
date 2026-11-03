@@ -146,7 +146,7 @@ export default function Kesiapan({
     <div className="n7-prep">
       <section className="panel n7-check">
         <div className="panel__head">
-          <h3 className="panel__title">{t.title}</h3>
+          <h2 className="panel__title">{t.title}</h2>
           <span className="n7-ringw">
             <ProgressRing
               value={nSiap}
@@ -204,7 +204,7 @@ export default function Kesiapan({
           </li>
         </ul>
       </section>
-      <aside className="panel n7-go" data-ready={semua ? "yes" : "no"}>
+      <aside className="panel n7-go" data-ready={semua ? "yes" : "no"} aria-label={`${t.go}: ${v.room.title}`}>
         <span className="eyebrow">{t.go}</span>
         <b className="n7-go__big">{semua ? t.allSet : t.notReady(baris.length - nSiap)}</b>
         <span className="hint">{t.goHint}</span>
@@ -302,7 +302,7 @@ export default function Kesiapan({
           <span className="hint">{t.juriBody}</span>
           <section className="panel">
             <div className="panel__head">
-              <h3 className="panel__title">{t.juri}</h3>
+              <h2 className="panel__title">{t.juri}</h2>
               <span className="n7-task__tag">{juriOk ? t.ready : t.todo}</span>
             </div>
             <div className="rec-sum">

@@ -455,9 +455,9 @@ function TeamCard({
     <section className="panel tp-team">
       <div className="row row--between" style={{ gap: 8, alignItems: "flex-start" }}>
         <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-          <h3 className="h4" style={{ margin: 0, overflowWrap: "anywhere" }}>
+          <h2 className="h4" style={{ margin: 0, overflowWrap: "anywhere" }}>
             {t.name}
-          </h3>
+          </h2>
           <span className="row" style={{ gap: 6, flexWrap: "wrap" }}>
             <span className="tp-chip" data-t={t.problem ? "warn" : "ok"}>
               {w.size(t.size)}
@@ -686,9 +686,9 @@ export default function TimSection({ c }: { c: PanelCtx }) {
 
       <section className="stack">
         <div className="tp-bar">
-          <h3 className="h4" style={{ margin: 0 }}>
+          <h2 className="h4" style={{ margin: 0 }}>
             {w.evenings}
-          </h3>
+          </h2>
           <span className="row" style={{ gap: 8 }}>
             {b.workEventId && (
               <a className="btn btn--ghost btn--sm" href={`/recruitment/qr`}>

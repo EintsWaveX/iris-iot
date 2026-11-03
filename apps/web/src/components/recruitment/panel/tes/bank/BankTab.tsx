@@ -236,7 +236,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
           <ProblemsTab lang={lang} />
         ) : rows.length === 0 ? (
           <section className="panel bkempty">
-            <h3 className="panel__title">{t.emptyBankTitle}</h3>
+            <h2 className="panel__title">{t.emptyBankTitle}</h2>
             <p className="hint" style={{ maxWidth: 560 }}>
               {t.emptyBankBody}
             </p>

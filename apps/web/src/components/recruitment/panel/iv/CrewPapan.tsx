@@ -240,7 +240,7 @@ export function CrewTop({
         aria-live="polite"
       >
         <div className="panel__head">
-          <h3 className="panel__title">{tt.check}</h3>
+          <h2 className="panel__title">{tt.check}</h2>
           <span className="row" style={{ gap: 6 }}>
             {nD > 0 && <Pill tone="danger">{tt.clashes(nD)}</Pill>}
             {nW > 0 && <Pill tone="warn">{tt.toFill(nW)}</Pill>}
@@ -269,7 +269,7 @@ export function CrewTop({
       <section className="panel r4pool">
         <div className="panel__head">
           <div className="stack" style={{ gap: 2 }}>
-            <h3 className="panel__title">{t.poolTitle}</h3>
+            <h2 className="panel__title">{t.poolTitle}</h2>
             <span className="hint">
               {roomy ? t.poolHint(d.template.per, panel) : t.poolHintPhone}
             </span>
