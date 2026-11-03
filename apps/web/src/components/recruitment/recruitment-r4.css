@@ -345,7 +345,8 @@
 /* ---------------------------------------------------------- the sheet */
 .drawer:has(.r4sheet) {
   height: calc(100% - 24px);
-  width: min(1240px, calc(100% - 24px));
+  /* 1240px, or two thirds of a wider screen (user 2026-11-03), never past the edges */
+  width: min(max(1240px, 66.7vw), calc(100% - 24px));
 }
 .r4sheet {
   display: grid;
