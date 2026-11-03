@@ -59,6 +59,7 @@ import { bukaBagian } from "../../../lib/recruitment/panel-tab";
 import { PN } from "./panelStrings";
 import AkunCek from "./kandidat/AkunCek";
 import { KS, type Antre } from "./kandidat/kandidatStrings";
+import Pager, { NOUN, usePager } from "../../ui/Pager";
 import { unduhXlsx } from "../../../lib/xlsx";
 import "../recruitment-kandidat.css";
 import TambahCaAs, { BerkasPanitia } from "./kandidat/TambahCaAs";
@@ -468,6 +469,14 @@ export default function Kandidat({
   const grup = kunci
     .map((a) => [a, tampil.filter((x) => x.st === a)] as const)
     .filter((g) => g[1].length);
+  // Pages run over the whole list in group order; each page is then grouped again for display.
+  const pg = usePager(
+    grup.flatMap((g) => g[1]),
+    { id: "kandidat", size: 20, reset: [cari, f, cutSaja] },
+  );
+  const halaman = kunci
+    .map((a) => [a, pg.rows.filter((x) => x.st === a)] as const)
+    .filter((g) => g[1].length);
   const desk = rights.documents && rights.approve;
   const berikut = rows.find((c) => c.status === "applied");
   // One shortcut per stage that has candidates, in the toolbar (not one button on every row).
@@ -682,7 +691,7 @@ export default function Kandidat({
           )}
         </div>
         {grup.length ? (
-          grup.map(([a, baris]) => {
+          halaman.map(([a, baris]) => {
             const Ik = IK_ANTRE[a];
             return (
               <section className="rec9-group" data-st={a} key={a}>
@@ -693,7 +702,9 @@ export default function Kandidat({
                   <b>{k.q[a].t}</b>
                   <span className="hint">{k.q[a].h}</span>
                   <span className="grow" />
-                  <span className="hint num">{baris.length}</span>
+                  <span className="hint num">
+                    {grup.find((g) => g[0] === a)?.[1].length ?? baris.length}
+                  </span>
                 </div>
                 <ul className="rec9-rows">
                   {baris.map((x) => (
@@ -708,6 +719,7 @@ export default function Kandidat({
             <span className="hint">{rows.length ? t.emptyFilter : t.empty}</span>
           </section>
         )}
+        <Pager pg={pg} noun={NOUN[lang].caas} lang={lang} />
       </div>
       {sel !== null && rights.documents && rights.approve && (
         <BerkasReview

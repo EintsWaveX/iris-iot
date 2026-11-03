@@ -4,6 +4,7 @@
  * Ketua's override for a late team (a note is required), and the parts
  * themselves (file types and limits) for the Akademik and the Ketua to edit.
  */
+import { NOUN, Paged } from "../../ui/Pager";
 import { useState } from "react";
 import type { Lang } from "../../../lib/kelas";
 import {
@@ -698,70 +699,81 @@ export default function KumpulSection({ c }: { c: PanelCtx }) {
             <UsersThreeIcon size={16} aria-hidden="true" />
             <span>{k.teamNote(b.setting.teamMax)}</span>
           </div>
-          <div className="tp-wrap panel panel--flush">
-            <table className="tp-table tp-subtab">
-              <thead>
-                <tr>
-                  <th>{w.teams}</th>
-                  {b.setting.parts.map((p) => (
-                    <th key={p.key}>{p.label[lang === "en" ? "en" : "id"].split(" (")[0]}</th>
-                  ))}
-                  <th>{k.statusHead}</th>
-                  <th>
-                    <span className="sr">{k.actionsHead}</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((t) => (
-                  <tr key={t.id} data-st={t.status}>
-                    <td>
-                      <span className="stack" style={{ gap: 0 }}>
-                        <b>{t.name}</b>
-                        <span className="hint">
-                          {b.topics.find((x) => x.id === t.topicId)?.title ?? w.topicNone}
-                        </span>
-                      </span>
-                    </td>
-                    {b.setting.parts.map((p) => (
-                      <td key={p.key}>
-                        <PartChip p={p} f={t.files.find((x) => x.part === p.key)} k={k} />
-                      </td>
-                    ))}
-                    <td>
-                      <StatusPill s={t.status} w={w} />
-                    </td>
-                    <td>
-                      <div className="tp-act">
-                        <button
-                          type="button"
-                          className="btn btn--ghost btn--sm"
-                          onClick={() => setView({ t, ov: false })}
-                        >
-                          <span className="btn__label">{k.open}</span>
-                        </button>
-                        {closed &&
-                          t.status !== "complete" &&
-                          t.status !== "over" &&
-                          !t.override && (
+          <Paged
+            items={shown}
+            id="tubes-kumpul"
+            size={20}
+            reset={[shown.length]}
+            noun={NOUN[c.lang].tim}
+            lang={c.lang}
+          >
+            {(rowsP) => (
+              <div className="tp-wrap panel panel--flush">
+                <table className="tp-table tp-subtab">
+                  <thead>
+                    <tr>
+                      <th>{w.teams}</th>
+                      {b.setting.parts.map((p) => (
+                        <th key={p.key}>{p.label[lang === "en" ? "en" : "id"].split(" (")[0]}</th>
+                      ))}
+                      <th>{k.statusHead}</th>
+                      <th>
+                        <span className="sr">{k.actionsHead}</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rowsP.map((t) => (
+                      <tr key={t.id} data-st={t.status}>
+                        <td>
+                          <span className="stack" style={{ gap: 0 }}>
+                            <b>{t.name}</b>
+                            <span className="hint">
+                              {b.topics.find((x) => x.id === t.topicId)?.title ?? w.topicNone}
+                            </span>
+                          </span>
+                        </td>
+                        {b.setting.parts.map((p) => (
+                          <td key={p.key}>
+                            <PartChip p={p} f={t.files.find((x) => x.part === p.key)} k={k} />
+                          </td>
+                        ))}
+                        <td>
+                          <StatusPill s={t.status} w={w} />
+                        </td>
+                        <td>
+                          <div className="tp-act">
                             <button
                               type="button"
-                              className="btn btn--inverse btn--sm"
-                              disabled={!b.rights.override}
-                              title={b.rights.override ? undefined : k.onlyKetua}
-                              onClick={() => setView({ t, ov: true })}
+                              className="btn btn--ghost btn--sm"
+                              onClick={() => setView({ t, ov: false })}
                             >
-                              <LockSimpleOpenIcon size={16} aria-hidden="true" />
-                              <span className="btn__label">{k.allow}</span>
+                              <span className="btn__label">{k.open}</span>
                             </button>
-                          )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                            {closed &&
+                              t.status !== "complete" &&
+                              t.status !== "over" &&
+                              !t.override && (
+                                <button
+                                  type="button"
+                                  className="btn btn--inverse btn--sm"
+                                  disabled={!b.rights.override}
+                                  title={b.rights.override ? undefined : k.onlyKetua}
+                                  onClick={() => setView({ t, ov: true })}
+                                >
+                                  <LockSimpleOpenIcon size={16} aria-hidden="true" />
+                                  <span className="btn__label">{k.allow}</span>
+                                </button>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Paged>{" "}
         </>
       )}
       {live && view && (

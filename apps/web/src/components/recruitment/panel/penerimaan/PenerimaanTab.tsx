@@ -7,6 +7,7 @@
  * of the Panitia read. Under it: the result, and closing the edition.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { NOUN, Paged } from "../../../ui/Pager";
 import {
   ArrowDownIcon,
   ArrowLeftIcon,
@@ -438,160 +439,171 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             />
           </div>
 
-          <section className="panel rec-tablecard r8-tablecard">
-            <div className="scrollx">
-              <table className="table rec-table r8-table">
-                <thead>
-                  <tr>
-                    <th>{l.colNo}</th>
-                    <th>{w.review.cols.name}</th>
-                    <th>{w.review.cols.berkas}</th>
-                    <th>{w.review.cols.tes}</th>
-                    <th>{w.review.cols.wawancara}</th>
-                    <th>{w.review.cols.mengajar}</th>
-                    <th>{l.colNote}</th>
-                    <th>{l.colDecision}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tampil.map((r, i) => (
-                    <tr
-                      key={r.id}
-                      className="r8-row"
-                      data-in={r.decision === "tolak" ? "no" : "yes"}
-                      data-need={ragu(r) && !ack.includes(r.id) ? "yes" : undefined}
-                    >
-                      <td className="num r8-rank">{i + 1}</td>
-                      <td>
-                        <span className="stack" style={{ gap: 0 }}>
-                          <b>{r.nama}</b>
-                          <span className="hint mono">
-                            {r.nim}
-                            {r.kelas ? ` · ${r.kelas}` : ""}
-                          </span>
-                        </span>
-                      </td>
-                      <td>
-                        <Nilai v={r.scores.berkas} max={100} tone="info" />
-                      </td>
-                      <td>
-                        <Nilai v={r.scores.tes} max={4000} tone="info" />
-                      </td>
-                      <td>
-                        <Nilai
-                          v={r.scores.wawancara}
-                          max={100}
-                          tone="info"
-                          verdict={r.scores.wawancaraVerdict}
-                          verdictLabel={
-                            r.scores.wawancaraVerdict
-                              ? w.review.verdict[r.scores.wawancaraVerdict]
-                              : undefined
-                          }
-                        />
-                      </td>
-                      <td>
-                        <Nilai
-                          v={r.scores.mengajar}
-                          max={100}
-                          tone="gold"
-                          verdict={r.scores.mengajarVerdict}
-                          verdictLabel={
-                            r.scores.mengajarVerdict
-                              ? w.review.verdict[r.scores.mengajarVerdict]
-                              : undefined
-                          }
-                        />
-                      </td>
-                      <td>
-                        {ragu(r) ? (
-                          <div className="r8-notes">
-                            <span className="r8-flag" data-t="warn">
-                              <WarningIcon size={14} aria-hidden="true" />
-                              {l.noteRagu}
+          <Paged
+            items={tampil}
+            id="penerimaan-tinjau"
+            size={20}
+            reset={[kata, saring, urut]}
+            noun={NOUN[lang].caas}
+            lang={lang}
+          >
+            {(rowsP, off) => (
+              <section className="panel rec-tablecard r8-tablecard">
+                <div className="scrollx">
+                  <table className="table rec-table r8-table">
+                    <thead>
+                      <tr>
+                        <th>{l.colNo}</th>
+                        <th>{w.review.cols.name}</th>
+                        <th>{w.review.cols.berkas}</th>
+                        <th>{w.review.cols.tes}</th>
+                        <th>{w.review.cols.wawancara}</th>
+                        <th>{w.review.cols.mengajar}</th>
+                        <th>{l.colNote}</th>
+                        <th>{l.colDecision}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rowsP.map((r, i) => (
+                        <tr
+                          key={r.id}
+                          className="r8-row"
+                          data-in={r.decision === "tolak" ? "no" : "yes"}
+                          data-need={ragu(r) && !ack.includes(r.id) ? "yes" : undefined}
+                        >
+                          <td className="num r8-rank">{off + i + 1}</td>
+                          <td>
+                            <span className="stack" style={{ gap: 0 }}>
+                              <b>{r.nama}</b>
+                              <span className="hint mono">
+                                {r.nim}
+                                {r.kelas ? ` · ${r.kelas}` : ""}
+                              </span>
                             </span>
-                            <button
-                              type="button"
-                              className="r8-ack"
-                              aria-pressed={ack.includes(r.id)}
-                              onClick={() => tandai(r.id)}
-                            >
-                              {ack.includes(r.id) ? (
-                                <CheckCircleIcon size={14} aria-hidden="true" />
-                              ) : (
-                                <ClockIcon size={14} aria-hidden="true" />
-                              )}
-                              {ack.includes(r.id) ? l.checked : l.markChecked}
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="hint">-</span>
-                        )}
-                      </td>
-                      <td>
-                        {r.promotedNim ? (
-                          <Pill tone="ok">{w.review.promoted}</Pill>
-                        ) : (
-                          <div className="r8-dec">
-                            <span className="n7-seg r8-seg" role="group" aria-label={r.nama}>
-                              {(["terima", "tolak"] as const).map((x) => (
+                          </td>
+                          <td>
+                            <Nilai v={r.scores.berkas} max={100} tone="info" />
+                          </td>
+                          <td>
+                            <Nilai v={r.scores.tes} max={4000} tone="info" />
+                          </td>
+                          <td>
+                            <Nilai
+                              v={r.scores.wawancara}
+                              max={100}
+                              tone="info"
+                              verdict={r.scores.wawancaraVerdict}
+                              verdictLabel={
+                                r.scores.wawancaraVerdict
+                                  ? w.review.verdict[r.scores.wawancaraVerdict]
+                                  : undefined
+                              }
+                            />
+                          </td>
+                          <td>
+                            <Nilai
+                              v={r.scores.mengajar}
+                              max={100}
+                              tone="gold"
+                              verdict={r.scores.mengajarVerdict}
+                              verdictLabel={
+                                r.scores.mengajarVerdict
+                                  ? w.review.verdict[r.scores.mengajarVerdict]
+                                  : undefined
+                              }
+                            />
+                          </td>
+                          <td>
+                            {ragu(r) ? (
+                              <div className="r8-notes">
+                                <span className="r8-flag" data-t="warn">
+                                  <WarningIcon size={14} aria-hidden="true" />
+                                  {l.noteRagu}
+                                </span>
                                 <button
-                                  key={x}
                                   type="button"
-                                  data-v={x === "terima" ? "lolos" : "gagal"}
-                                  aria-pressed={r.decision === x}
-                                  disabled={!can}
-                                  onClick={() => {
-                                    if ((x === "terima") === (r.decision === "terima")) return;
-                                    set(r.id, {
-                                      decision: x,
-                                      reason: x === "tolak" ? "Kuota" : null,
-                                    });
-                                    toast(
-                                      (x === "terima" ? l.toastYes : l.toastNo)(
-                                        r.nama.split(" ")[0],
-                                      ),
-                                    );
-                                  }}
+                                  className="r8-ack"
+                                  aria-pressed={ack.includes(r.id)}
+                                  onClick={() => tandai(r.id)}
                                 >
-                                  {x === "terima" ? w.review.accept : l.rejectShort}
+                                  {ack.includes(r.id) ? (
+                                    <CheckCircleIcon size={14} aria-hidden="true" />
+                                  ) : (
+                                    <ClockIcon size={14} aria-hidden="true" />
+                                  )}
+                                  {ack.includes(r.id) ? l.checked : l.markChecked}
                                 </button>
-                              ))}
-                            </span>
-                            {r.decision === "tolak" && (
-                              <Dropdown
-                                id={`pn-alasan-${r.id}`}
-                                label={l.reasonLabel}
-                                hideLabel
-                                value={r.reason ?? "Kuota"}
-                                disabled={!can}
-                                onChange={(v) =>
-                                  set(r.id, { reason: v as NonNullable<PnRow["reason"]> })
-                                }
-                                options={(["Kuota", "Mundur", "Pleno", "Lain"] as const).map(
-                                  (k) => ({
-                                    value: k,
-                                    label: l.reasons[k],
-                                  }),
-                                )}
-                              />
+                              </div>
+                            ) : (
+                              <span className="hint">-</span>
                             )}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {tampil.length === 0 && (
-                    <tr>
-                      <td colSpan={8}>
-                        <span className="hint">{l.none}</span>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                          </td>
+                          <td>
+                            {r.promotedNim ? (
+                              <Pill tone="ok">{w.review.promoted}</Pill>
+                            ) : (
+                              <div className="r8-dec">
+                                <span className="n7-seg r8-seg" role="group" aria-label={r.nama}>
+                                  {(["terima", "tolak"] as const).map((x) => (
+                                    <button
+                                      key={x}
+                                      type="button"
+                                      data-v={x === "terima" ? "lolos" : "gagal"}
+                                      aria-pressed={r.decision === x}
+                                      disabled={!can}
+                                      onClick={() => {
+                                        if ((x === "terima") === (r.decision === "terima")) return;
+                                        set(r.id, {
+                                          decision: x,
+                                          reason: x === "tolak" ? "Kuota" : null,
+                                        });
+                                        toast(
+                                          (x === "terima" ? l.toastYes : l.toastNo)(
+                                            r.nama.split(" ")[0],
+                                          ),
+                                        );
+                                      }}
+                                    >
+                                      {x === "terima" ? w.review.accept : l.rejectShort}
+                                    </button>
+                                  ))}
+                                </span>
+                                {r.decision === "tolak" && (
+                                  <Dropdown
+                                    id={`pn-alasan-${r.id}`}
+                                    label={l.reasonLabel}
+                                    hideLabel
+                                    value={r.reason ?? "Kuota"}
+                                    disabled={!can}
+                                    onChange={(v) =>
+                                      set(r.id, { reason: v as NonNullable<PnRow["reason"]> })
+                                    }
+                                    options={(["Kuota", "Mundur", "Pleno", "Lain"] as const).map(
+                                      (k) => ({
+                                        value: k,
+                                        label: l.reasons[k],
+                                      }),
+                                    )}
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {tampil.length === 0 && (
+                        <tr>
+                          <td colSpan={8}>
+                            <span className="hint">{l.none}</span>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+          </Paged>
           <span className="hint r8-legend">{l.legend(rows.length - terima.length)}</span>
           <div className="r8-foot">
             <span className="r8-foot__info">
@@ -679,89 +691,97 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
               </div>
             </div>
           )}
-          <section className="panel rec-tablecard r8-tablecard">
-            <div className="scrollx">
-              <table className="table rec-table r8-table r8-ctable">
-                <thead>
-                  <tr>
-                    <th>{l.colNo}</th>
-                    <th>{w.review.cols.name}</th>
-                    <th>{l.colCode}</th>
-                    <th>{l.colCheck}</th>
-                    <th>{l.colWhy}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {terima.map((r, i) => {
-                    const c = cek.find((x) => x.id === r.id);
-                    return (
-                      <tr key={r.id} className="r8-row" data-bad={c?.problem ? "yes" : undefined}>
-                        <td className="num r8-rank">{i + 1}</td>
-                        <td>
-                          <div className="r8-who">
-                            <b>{r.nama}</b>
-                            <span className="hint mono">{r.nim}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <input
-                            className="input mono r8-code"
-                            data-code={r.id}
-                            data-bad={c?.problem ? "yes" : undefined}
-                            spellCheck={false}
-                            autoCapitalize="characters"
-                            maxLength={3}
-                            value={r.code ?? ""}
-                            placeholder={w.code.placeholder}
-                            disabled={!can || !!r.promotedNim}
-                            aria-invalid={c?.problem ? true : undefined}
-                            aria-label={`${w.code.col} ${r.nama}`}
-                            onChange={(e) =>
-                              set(r.id, {
-                                code: e.target.value.toUpperCase().replace(/[^A-Z]/g, ""),
-                              })
-                            }
-                          />
-                        </td>
-                        <td>
-                          {c?.problem ? (
-                            <Pill tone="danger">{w.code.problem[c.problem]}</Pill>
-                          ) : r.promotedNim ? (
-                            <Pill tone="ok">{w.review.promoted}</Pill>
-                          ) : (
-                            <Pill tone="ok">
-                              <CheckIcon size={12} aria-hidden="true" /> {l.unique}
-                            </Pill>
-                          )}
-                        </td>
-                        <td>
-                          <span className="hint">
-                            {r.proposedCode && r.proposedCode === r.code
-                              ? l.whyProposed
-                              : l.whyEdited}
-                          </span>
-                        </td>
-                        <td>
-                          {can && !r.promotedNim && (
-                            <button
-                              type="button"
-                              className="iconbtn"
-                              aria-label={l.another}
-                              title={l.another}
-                              onClick={() => lainKode(r)}
-                            >
-                              <ArrowsClockwiseIcon size={16} aria-hidden="true" />
-                            </button>
-                          )}
-                        </td>
+          <Paged items={terima} id="penerimaan-kode" size={20} noun={NOUN[lang].caas} lang={lang}>
+            {(rowsP, off) => (
+              <section className="panel rec-tablecard r8-tablecard">
+                <div className="scrollx">
+                  <table className="table rec-table r8-table r8-ctable">
+                    <thead>
+                      <tr>
+                        <th>{l.colNo}</th>
+                        <th>{w.review.cols.name}</th>
+                        <th>{l.colCode}</th>
+                        <th>{l.colCheck}</th>
+                        <th>{l.colWhy}</th>
+                        <th />
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                    </thead>
+                    <tbody>
+                      {rowsP.map((r, i) => {
+                        const c = cek.find((x) => x.id === r.id);
+                        return (
+                          <tr
+                            key={r.id}
+                            className="r8-row"
+                            data-bad={c?.problem ? "yes" : undefined}
+                          >
+                            <td className="num r8-rank">{off + i + 1}</td>
+                            <td>
+                              <div className="r8-who">
+                                <b>{r.nama}</b>
+                                <span className="hint mono">{r.nim}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <input
+                                className="input mono r8-code"
+                                data-code={r.id}
+                                data-bad={c?.problem ? "yes" : undefined}
+                                spellCheck={false}
+                                autoCapitalize="characters"
+                                maxLength={3}
+                                value={r.code ?? ""}
+                                placeholder={w.code.placeholder}
+                                disabled={!can || !!r.promotedNim}
+                                aria-invalid={c?.problem ? true : undefined}
+                                aria-label={`${w.code.col} ${r.nama}`}
+                                onChange={(e) =>
+                                  set(r.id, {
+                                    code: e.target.value.toUpperCase().replace(/[^A-Z]/g, ""),
+                                  })
+                                }
+                              />
+                            </td>
+                            <td>
+                              {c?.problem ? (
+                                <Pill tone="danger">{w.code.problem[c.problem]}</Pill>
+                              ) : r.promotedNim ? (
+                                <Pill tone="ok">{w.review.promoted}</Pill>
+                              ) : (
+                                <Pill tone="ok">
+                                  <CheckIcon size={12} aria-hidden="true" /> {l.unique}
+                                </Pill>
+                              )}
+                            </td>
+                            <td>
+                              <span className="hint">
+                                {r.proposedCode && r.proposedCode === r.code
+                                  ? l.whyProposed
+                                  : l.whyEdited}
+                              </span>
+                            </td>
+                            <td>
+                              {can && !r.promotedNim && (
+                                <button
+                                  type="button"
+                                  className="iconbtn"
+                                  aria-label={l.another}
+                                  title={l.another}
+                                  onClick={() => lainKode(r)}
+                                >
+                                  <ArrowsClockwiseIcon size={16} aria-hidden="true" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+          </Paged>
           <div className="r8-foot" role="status">
             <span className="r8-foot__info">
               {masalah.length

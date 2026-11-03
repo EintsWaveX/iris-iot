@@ -4,6 +4,7 @@
  * then Impor N Soal, which saves only the clean ones. Nothing is saved before
  * the person presses it.
  */
+import { NOUN, Paged } from "../../../../ui/Pager";
 import { useEffect, useState } from "react";
 import { DownloadSimpleIcon, FileArrowUpIcon } from "@phosphor-icons/react";
 import { FileDrop } from "../../../../ui/Controls";
@@ -171,46 +172,50 @@ export default function BankImport({
           </span>
         )}
         {dry && dry.items.length > 0 && (
-          <div className="scrollx">
-            <table className="rec-table">
-              <thead>
-                <tr>
-                  <th>{t.importCols.n}</th>
-                  <th>{t.importCols.title}</th>
-                  <th>{t.importCols.action}</th>
-                  <th>{t.importCols.problems}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dry.items.map((it) => (
-                  <tr key={it.index}>
-                    <td className="num hint">{it.index}</td>
-                    <td>
-                      <b>{it.title || "-"}</b>
-                    </td>
-                    <td>
-                      <Aksi lang={lang} it={it} />
-                    </td>
-                    <td>
-                      {it.errors.length ? (
-                        <span className="stack" style={{ gap: 2 }}>
-                          {it.errors.map((e, i) => (
-                            <span className="r3err" key={i}>
-                              {t.importLine(e.line)}: {t.importErr(e.kode)}
-                              {e.detail ? ` (${e.detail})` : ""}
-                              {e.field ? ` [${e.field}]` : ""}
+          <Paged items={dry.items} id="bank-import" size={10} noun={NOUN[lang].soal} lang={lang}>
+            {(rowsP) => (
+              <div className="scrollx">
+                <table className="rec-table">
+                  <thead>
+                    <tr>
+                      <th>{t.importCols.n}</th>
+                      <th>{t.importCols.title}</th>
+                      <th>{t.importCols.action}</th>
+                      <th>{t.importCols.problems}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rowsP.map((it) => (
+                      <tr key={it.index}>
+                        <td className="num hint">{it.index}</td>
+                        <td>
+                          <b>{it.title || "-"}</b>
+                        </td>
+                        <td>
+                          <Aksi lang={lang} it={it} />
+                        </td>
+                        <td>
+                          {it.errors.length ? (
+                            <span className="stack" style={{ gap: 2 }}>
+                              {it.errors.map((e, i) => (
+                                <span className="r3err" key={i}>
+                                  {t.importLine(e.line)}: {t.importErr(e.kode)}
+                                  {e.detail ? ` (${e.detail})` : ""}
+                                  {e.field ? ` [${e.field}]` : ""}
+                                </span>
+                              ))}
                             </span>
-                          ))}
-                        </span>
-                      ) : (
-                        <span className="hint">{t.importNoProblems}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          ) : (
+                            <span className="hint">{t.importNoProblems}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Paged>
         )}
         {dry && n > 0 && (
           <label className="stack stack--sm">

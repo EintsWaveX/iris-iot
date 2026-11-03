@@ -1,0 +1,105 @@
+/* Pager.tsx: the bar under a long list. The count on the left, page buttons beside it, jump and size on the right. */
+.pager {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-1) 0;
+}
+
+.pager__count {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  margin: 0;
+}
+
+.pager__nums {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+@media (min-width: 760px) {
+  .pager__nums {
+    margin-left: auto;
+  }
+}
+
+.pager__btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  justify-content: center;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0 8px;
+}
+
+.pager__btn[aria-current="page"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.pager__btn:disabled {
+  border-color: transparent;
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pager__btn:not(:disabled):not([aria-current="page"]):hover {
+    background: var(--hairline-faint);
+  }
+}
+
+.pager__btn:focus-visible,
+.pager__jump:focus-visible,
+.pager__size:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pager__gap {
+  color: var(--text-faint);
+  padding: 0 4px;
+  user-select: none;
+}
+
+.pager__field {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: var(--fs-small);
+  gap: 8px;
+}
+
+.pager__jump,
+.pager__size {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 8px;
+}
+
+.pager__jump {
+  text-align: center;
+  width: 64px;
+}
+
+.pager__size {
+  cursor: pointer;
+}

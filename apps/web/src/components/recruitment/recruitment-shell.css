@@ -306,29 +306,3 @@
     display: none;
   }
 }
-
-/* Lainnya wears the open tab's name and colour while that tab is folded into it, and always shows its caret */
-.rec-nav .appnav__link.rec-more svg {
-  display: inline-block;
-  opacity: 0.7;
-}
-.rec-nav .appnav__link.rec-more[data-act] {
-  --tx: var(--tc);
-}
-.rec-nav .appnav__link.rec-more[data-act="js"],
-.rec-nav .appnav__link.rec-more[data-act="mid"],
-.rec-nav .appnav__link.rec-more[data-act="wide"],
-.rec-nav .appnav__link.rec-more[data-act="narrow"] {
-  color: var(--tx);
-}
-.rec-nav .appnav__link.rec-more[data-act]::after {
-  background: var(--tc);
-  border-radius: 2px;
-  bottom: -2px;
-  box-shadow: 0 0 14px color-mix(in srgb, var(--tc) 60%, transparent);
-  content: "";
-  height: 2px;
-  left: var(--space-3);
-  position: absolute;
-  right: var(--space-3);
-}

@@ -7,6 +7,7 @@
 import { useMemo, useState } from "react";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import Dropdown from "../../../../ui/Dropdown";
+import Pager, { NOUN, usePager } from "../../../../ui/Pager";
 import Pill from "../../../../ui/Pill";
 import { useMinWidth } from "../../../../../lib/hooks";
 import type { Lang } from "../../../../../lib/kelas";
@@ -86,6 +87,7 @@ export default function BankList({
       ),
     [mine, f, q],
   );
+  const pg = usePager(list, { id: `bank-${part}`, size: 20, reset: [part, f, q] });
   return (
     <div className="stack">
       <div className="r3pools">
@@ -140,7 +142,7 @@ export default function BankList({
                 </tr>
               </thead>
               <tbody>
-                {list.map((r) => (
+                {pg.rows.map((r) => (
                   <tr
                     key={r.id}
                     tabIndex={0}
@@ -174,7 +176,7 @@ export default function BankList({
         </section>
       ) : (
         <ul className="rec-clist">
-          {list.map((r) => (
+          {pg.rows.map((r) => (
             <li key={r.id}>
               <button type="button" className="rec-crow" onClick={() => onOpen(r.id)}>
                 <span className="stack" style={{ gap: 2, minWidth: 0 }}>
@@ -190,6 +192,7 @@ export default function BankList({
           ))}
         </ul>
       )}
+      <Pager pg={pg} noun={NOUN[lang].soal} lang={lang} />
     </div>
   );
 }

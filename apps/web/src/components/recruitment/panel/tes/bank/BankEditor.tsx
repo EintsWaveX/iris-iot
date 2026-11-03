@@ -261,24 +261,25 @@ export default function BankEditor({
   }
 
   const FormatPick = (
-    <div className="r3fmts" role="radiogroup" aria-label={t.fieldFormat}>
-      {FORMATS.map((f: Format) => (
-        <button
-          key={f}
-          type="button"
-          role="radio"
-          className="r3fmt"
-          aria-checked={d.format === f}
-          disabled={lock && d.format !== f}
-          onClick={() => {
-            set(changeFormat(d, f));
-            setValue(null);
-          }}
-        >
-          <b>{t.formats[f]}</b>
-          <span className="hint">{t.formatHint[f]}</span>
-        </button>
-      ))}
+    <div className="stack stack--sm">
+      <div className="r3fmts" role="radiogroup" aria-label={t.fieldFormat}>
+        {FORMATS.map((f: Format) => (
+          <label key={f} className="r3fmt" data-off={lock && d.format !== f ? "yes" : undefined}>
+            <input
+              type="radio"
+              name="r3-format"
+              checked={d.format === f}
+              disabled={lock && d.format !== f}
+              onChange={() => {
+                set(changeFormat(d, f));
+                setValue(null);
+              }}
+            />
+            <span>{t.formats[f]}</span>
+          </label>
+        ))}
+      </div>
+      <span className="hint">{t.formatHint[d.format]}</span>
     </div>
   );
 

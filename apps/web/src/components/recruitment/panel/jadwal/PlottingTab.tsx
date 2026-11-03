@@ -35,6 +35,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
+import { NOUN, Paged } from "../../../ui/Pager";
 import TabLine from "../../../ui/TabLine";
 import Dropdown from "../../../ui/Dropdown";
 import gsap from "gsap";
@@ -541,58 +542,62 @@ function Requests({
   return (
     <div className="stack">
       {buka.length ? (
-        <ul className="r2reqs">
-          {buka.map((r) => {
-            const ke = slot(r.toSlot);
-            const penuh = !!ke && seatsLeft(ke, ke.taken) === 0;
-            return (
-              <li className="panel r2req" key={r.id}>
-                <div className="r2req__who">
-                  <b>{r.nama}</b>
-                  <span className="hint mono">{r.nim}</span>
-                </div>
-                <div className="r2req__move">
-                  <Garis id={r.fromSlot} />
-                  <span aria-hidden="true">→</span>
-                  <Garis id={r.toSlot} />
-                  {penuh ? (
-                    <Pill tone="warn">{t.targetFull}</Pill>
-                  ) : (
-                    ke && <span className="hint num">{t.left(seatsLeft(ke, ke.taken))}</span>
-                  )}
-                </div>
-                <p className="r2req__why">{r.reason}</p>
-                <div className="r2req__foot">
-                  <span className="hint">{`${t.asked} ${tgl(wib(r.createdAt).tanggal, lang)}, ${wib(r.createdAt).jam}`}</span>
-                  <span className="grow" style={{ flex: 1 }} />
-                  {can && (
-                    <>
-                      <button
-                        type="button"
-                        className="btn btn--ghost btn--sm"
-                        disabled={busy}
-                        onClick={() => {
-                          setCatatan("");
-                          setTolak(r);
-                        }}
-                      >
-                        {t.decline}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--primary btn--sm"
-                        disabled={busy}
-                        onClick={() => void putuskan(r, true, penuh)}
-                      >
-                        {penuh ? t.approveOver : t.approve}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <Paged items={buka} id="plotting-permintaan" size={10} noun={NOUN[lang].baris} lang={lang}>
+          {(rowsP) => (
+            <ul className="r2reqs">
+              {rowsP.map((r) => {
+                const ke = slot(r.toSlot);
+                const penuh = !!ke && seatsLeft(ke, ke.taken) === 0;
+                return (
+                  <li className="panel r2req" key={r.id}>
+                    <div className="r2req__who">
+                      <b>{r.nama}</b>
+                      <span className="hint mono">{r.nim}</span>
+                    </div>
+                    <div className="r2req__move">
+                      <Garis id={r.fromSlot} />
+                      <span aria-hidden="true">→</span>
+                      <Garis id={r.toSlot} />
+                      {penuh ? (
+                        <Pill tone="warn">{t.targetFull}</Pill>
+                      ) : (
+                        ke && <span className="hint num">{t.left(seatsLeft(ke, ke.taken))}</span>
+                      )}
+                    </div>
+                    <p className="r2req__why">{r.reason}</p>
+                    <div className="r2req__foot">
+                      <span className="hint">{`${t.asked} ${tgl(wib(r.createdAt).tanggal, lang)}, ${wib(r.createdAt).jam}`}</span>
+                      <span className="grow" style={{ flex: 1 }} />
+                      {can && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn--ghost btn--sm"
+                            disabled={busy}
+                            onClick={() => {
+                              setCatatan("");
+                              setTolak(r);
+                            }}
+                          >
+                            {t.decline}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn--primary btn--sm"
+                            disabled={busy}
+                            onClick={() => void putuskan(r, true, penuh)}
+                          >
+                            {penuh ? t.approveOver : t.approve}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Paged>
       ) : (
         <section className="panel r2empty">
           <b>{t.noReq}</b>

@@ -3,6 +3,7 @@
  * (a hero, the people who were created, the audit log and what comes next), then closing the edition (the retention
  * clock, how it closes, what turns read-only and what happens to the data).
  */
+import { NOUN, Paged } from "../../../ui/Pager";
 import {
   ArrowsClockwiseIcon,
   CheckIcon,
@@ -543,51 +544,55 @@ export function Hasil({
             <h3 className="panel__title">{t.table.title}</h3>
             <span className="hint">{t.table.hint(baru.length)}</span>
           </div>
-          <div className="scrollx">
-            <table className="table rec-table r8-table r8-htable">
-              <thead>
-                <tr>
-                  {t.table.cols.map((c) => (
-                    <th key={c}>{c}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {baru.map((r) => (
-                  <tr key={r.id} className="r8-row">
-                    <td>
-                      <span className="r8-pcode mono">{r.code}</span>
-                    </td>
-                    <td>
-                      <div className="r8-who">
-                        <b>{r.nama}</b>
-                        <span className="mono hint">{r.nim}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <Pill>{t.table.none}</Pill>
-                    </td>
-                    <td>
-                      <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                        <Pill tone="ok">{t.table.asisten}</Pill>
-                        {r.alsoPraktikan && <Pill>{t.table.alsoPrak}</Pill>}
-                      </div>
-                    </td>
-                    <td>
-                      {r.alsoPraktikan ? (
-                        <span className="r8-keep">
-                          <CheckIcon size={16} aria-hidden="true" />
-                          {t.table.kept}
-                        </span>
-                      ) : (
-                        <span className="hint">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Paged items={baru} id="penerimaan-hasil" size={20} noun={NOUN[lang].caas} lang={lang}>
+            {(rowsP) => (
+              <div className="scrollx">
+                <table className="table rec-table r8-table r8-htable">
+                  <thead>
+                    <tr>
+                      {t.table.cols.map((c) => (
+                        <th key={c}>{c}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rowsP.map((r) => (
+                      <tr key={r.id} className="r8-row">
+                        <td>
+                          <span className="r8-pcode mono">{r.code}</span>
+                        </td>
+                        <td>
+                          <div className="r8-who">
+                            <b>{r.nama}</b>
+                            <span className="mono hint">{r.nim}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <Pill>{t.table.none}</Pill>
+                        </td>
+                        <td>
+                          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                            <Pill tone="ok">{t.table.asisten}</Pill>
+                            {r.alsoPraktikan && <Pill>{t.table.alsoPrak}</Pill>}
+                          </div>
+                        </td>
+                        <td>
+                          {r.alsoPraktikan ? (
+                            <span className="r8-keep">
+                              <CheckIcon size={16} aria-hidden="true" />
+                              {t.table.kept}
+                            </span>
+                          ) : (
+                            <span className="hint">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Paged>
         </section>
         <aside className="stack">
           <section className="panel r8-audit">
