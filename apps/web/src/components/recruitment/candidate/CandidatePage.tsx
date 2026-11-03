@@ -357,18 +357,13 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       };
     return null;
   })();
-  const nextCard = showsNextCard(cand?.status) && (
+  // An empty "Berikutnya" box says nothing, so it only shows when there is something to say.
+  const nextCard = showsNextCard(cand?.status) && next && (
     <section className="panel rec-next">
       <span className="eyebrow">{t.next.eyebrow}</span>
-      {next ? (
-        <>
-          <b className="rec-next__t">{next.title}</b>
-          <span className="hint">{next.when}</span>
-          {next.ke > tick && <Countdown ke={next.ke} label={next.title} lang={lang} />}
-        </>
-      ) : (
-        <span className="hint">{t.next.nothing}</span>
-      )}
+      <b className="rec-next__t">{next.title}</b>
+      <span className="hint">{next.when}</span>
+      {next.ke > tick && <Countdown ke={next.ke} label={next.title} lang={lang} />}
     </section>
   );
 

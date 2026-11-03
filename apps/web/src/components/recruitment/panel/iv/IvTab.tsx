@@ -337,10 +337,13 @@ function Slotku({
   onOpen,
   qr,
   qrPj,
+  onNilai,
 }: {
   lang: Lang;
   stage: IvStage;
   onOpen: (id: number) => void;
+  /** Who may read everyone's scores gets a way there from an empty Slotku. */
+  onNilai?: () => void;
   /** The outside PJ's own shift may show its QR screen even without the attendance right */
   qrPj: boolean;
   qr: boolean;
@@ -354,6 +357,13 @@ function Slotku({
       <div className="rec-note">
         <b>{w.none}</b>
         <span>{w.noneHint}</span>
+        {onNilai && (
+          <span>
+            <button type="button" className="btn btn--inverse btn--sm" onClick={onNilai}>
+              <span className="btn__label">{IV(lang).seg.nilai}</span>
+            </button>
+          </span>
+        )}
       </div>
     );
   const slots = mine.data.slots;
@@ -482,6 +492,7 @@ export default function IvTab({
           onOpen={setBuka}
           qr={rights?.attendance === true}
           qrPj={qrShift === true}
+          onNilai={bisaNilai ? () => setBag("nilai") : undefined}
         />
       ) : aktif === "nilai" ? (
         <Penilaian lang={lang} stage={stage} />
