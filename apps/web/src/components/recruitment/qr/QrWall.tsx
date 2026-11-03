@@ -241,7 +241,10 @@ export default function QrWall({ lang }: { lang: Lang }) {
                   ) : terbaru.data && terbaru.data.scans.length > 0 ? (
                     <ol>
                       {terbaru.data.scans.map((x, i) => (
-                        <li key={`${x.nama}-${x.jam}-${i}`} data-first={i === 0 ? "yes" : undefined}>
+                        <li
+                          key={`${x.nama}-${x.jam}-${i}`}
+                          data-first={i === 0 ? "yes" : undefined}
+                        >
                           <b>{x.nama}</b>
                           <span className="num">{x.jam}</span>
                         </li>
@@ -262,30 +265,30 @@ export default function QrWall({ lang }: { lang: Lang }) {
               </>
             ) : (
               <>
-            <div className="r2proj__count">
-                <b className="num">
-                  <Roll n={hadir} />
-                </b>
-                <span>{t.outOf(diharap)}</span>
-              </div>
-              <div className="r2proj__dots" aria-hidden="true">
-                {Array.from({ length: titik }, (_, i) => (
-                  <i
-                    key={i}
-                    data-on={i < hadir ? "yes" : undefined}
-                    data-new={i === baru ? "yes" : undefined}
-                  />
-                ))}
-              </div>
-              <div className="r2proj__how">
-                <span>
-                  {t.scanHow} <b>{`${location.host}/recruitment/hadir`}</b> {t.andType}
-                </span>
-                <b className="r2proj__code mono">
-                  {kode ? `${kode.slice(0, 3)} ${kode.slice(3)}` : "..."}
-                </b>
-                <span className="hint">{gagal ? t.scan.gagal : t.codeChanges}</span>
-              </div>
+                <div className="r2proj__count">
+                  <b className="num">
+                    <Roll n={hadir} />
+                  </b>
+                  <span>{t.outOf(diharap)}</span>
+                </div>
+                <div className="r2proj__dots" aria-hidden="true">
+                  {Array.from({ length: titik }, (_, i) => (
+                    <i
+                      key={i}
+                      data-on={i < hadir ? "yes" : undefined}
+                      data-new={i === baru ? "yes" : undefined}
+                    />
+                  ))}
+                </div>
+                <div className="r2proj__how">
+                  <span>
+                    {t.scanHow} <b>{`${location.host}/recruitment/hadir`}</b> {t.andType}
+                  </span>
+                  <b className="r2proj__code mono">
+                    {kode ? `${kode.slice(0, 3)} ${kode.slice(3)}` : "..."}
+                  </b>
+                  <span className="hint">{gagal ? t.scan.gagal : t.codeChanges}</span>
+                </div>
               </>
             )}
           </div>

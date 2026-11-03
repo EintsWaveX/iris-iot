@@ -2073,9 +2073,18 @@ html[data-detail="ldm"] .n7-mist i:nth-child(1) {
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(60% 140% at 0% 0%, color-mix(in srgb, var(--rec) 20%, transparent), transparent 62%),
+    radial-gradient(
+      60% 140% at 0% 0%,
+      color-mix(in srgb, var(--rec) 20%, transparent),
+      transparent 62%
+    ),
     radial-gradient(50% 120% at 100% 100%, rgba(167, 139, 250, 0.2), transparent 64%),
-    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    radial-gradient(
+        circle at 1px 1px,
+        color-mix(in srgb, var(--text) 9%, transparent) 1px,
+        transparent 1.4px
+      )
+      0 0 / 16px 16px,
     var(--surface-1);
 }
 .rec-bn--rich .rec-bn__body,
@@ -2140,7 +2149,11 @@ html[data-detail="ldm"] .n7-mist i:nth-child(1) {
 }
 /* The candidate's own tile and steps get the same lift. */
 .rec-bn--rich .rec9-bn__ic {
-  background: linear-gradient(140deg, color-mix(in srgb, var(--rec) 30%, transparent), rgba(167, 139, 250, 0.22));
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--rec) 30%, transparent),
+    rgba(167, 139, 250, 0.22)
+  );
   box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--rec) 80%, transparent);
 }
 .rec-bn--rich .rec-bn__stat b {

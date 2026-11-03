@@ -472,11 +472,13 @@ export const S2 = dict({
         title: "QR Absensi",
         iris: "QR IRIS",
         luar: "Google Form",
-        irisHint: "QR bawaan IRIS: berganti tiap 20 detik, CaAs masuk dengan akun oprec, dan hadirnya tercatat di IRIS.",
+        irisHint:
+          "QR bawaan IRIS: berganti tiap 20 detik, CaAs masuk dengan akun oprec, dan hadirnya tercatat di IRIS.",
         formLink: "Link Google Form",
         formHint: "QR-nya dibuat otomatis dari link ini.",
         sheetLink: "Link Spreadsheet jawaban",
-        sheetHint: "Dipakai buat nampilin 4 orang yang terakhir scan. Sharing-nya harus \"Siapa pun yang memiliki link\" (Viewer).",
+        sheetHint:
+          'Dipakai buat nampilin 4 orang yang terakhir scan. Sharing-nya harus "Siapa pun yang memiliki link" (Viewer).',
         preview: "Begini QR yang tampil di layar.",
         errLink: "Linknya belum benar. Tempel link lengkap yang diawali https://",
         errSheet: "Link Spreadsheet-nya belum benar. Pakai link dari docs.google.com/spreadsheets.",
@@ -486,8 +488,10 @@ export const S2 = dict({
         save: "Simpan",
         recent: "Terakhir Scan",
         recentNone: "Belum ada yang mengisi.",
-        recentNoSheet: "Spreadsheet jawaban belum dihubungkan, jadi daftar terakhir scan tidak tampil.",
-        recentFail: "Spreadsheet belum bisa dibaca. Cek sharing-nya: harus \"Siapa pun yang memiliki link\".",
+        recentNoSheet:
+          "Spreadsheet jawaban belum dihubungkan, jadi daftar terakhir scan tidak tampil.",
+        recentFail:
+          'Spreadsheet belum bisa dibaca. Cek sharing-nya: harus "Siapa pun yang memiliki link".',
         scanForm: "Scan pakai kamera HP, lalu isi form-nya.",
         formNote: "Absensi lewat Google Form dan tercatat di spreadsheet-nya, bukan di IRIS.",
       },
@@ -1025,14 +1029,17 @@ export const S2 = dict({
         title: "Attendance QR",
         iris: "IRIS QR",
         luar: "Google Form",
-        irisHint: "The built-in IRIS QR: it changes every 20 seconds, CaAs sign in with their oprec account, and attendance is recorded in IRIS.",
+        irisHint:
+          "The built-in IRIS QR: it changes every 20 seconds, CaAs sign in with their oprec account, and attendance is recorded in IRIS.",
         formLink: "Google Form link",
         formHint: "The QR is made from this link automatically.",
         sheetLink: "Responses spreadsheet link",
-        sheetHint: "Used to show the last 4 people who scanned. Sharing must be \"Anyone with the link\" (Viewer).",
+        sheetHint:
+          'Used to show the last 4 people who scanned. Sharing must be "Anyone with the link" (Viewer).',
         preview: "This is the QR the screen will show.",
         errLink: "That link isn't right. Paste the full link, starting with https://",
-        errSheet: "That spreadsheet link isn't right. Use a link from docs.google.com/spreadsheets.",
+        errSheet:
+          "That spreadsheet link isn't right. Use a link from docs.google.com/spreadsheets.",
         errHak: "You don't have the right to change this.",
         errSave: "It couldn't be saved. Try again.",
         cancel: "Cancel",
@@ -1040,9 +1047,11 @@ export const S2 = dict({
         recent: "Latest Scans",
         recentNone: "Nobody has filled it in yet.",
         recentNoSheet: "No responses spreadsheet is linked, so the latest scans can't be shown.",
-        recentFail: "The spreadsheet can't be read yet. Check its sharing: it must be \"Anyone with the link\".",
+        recentFail:
+          'The spreadsheet can\'t be read yet. Check its sharing: it must be "Anyone with the link".',
         scanForm: "Scan with your phone camera, then fill in the form.",
-        formNote: "Attendance goes through a Google Form and is recorded in its spreadsheet, not in IRIS.",
+        formNote:
+          "Attendance goes through a Google Form and is recorded in its spreadsheet, not in IRIS.",
       },
       scan: {
         hadir: "You're marked present",

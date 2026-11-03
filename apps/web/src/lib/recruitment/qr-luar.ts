@@ -43,9 +43,10 @@ export function cekLinkQr(v: unknown): string | null {
 /** The spreadsheet's id and tab from a Google Sheets link, or null for anything else. */
 export function bacaSheet(v: unknown): { id: string; gid: string | null } | null {
   if (typeof v !== "string") return null;
-  const m = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]{20,100})(?:[/?#]|$)/.exec(
-    v.trim(),
-  );
+  const m =
+    /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]{20,100})(?:[/?#]|$)/.exec(
+      v.trim(),
+    );
   if (!m) return null;
   const g = /[#?&]gid=(\d{1,12})/.exec(v);
   return { id: m[1], gid: g ? g[1] : null };

@@ -9,7 +9,7 @@ import {
   sheetCsvUrl,
 } from "../recruitment/qr-luar";
 
-const ID = "1BF1XJhtLKDLst0G225aRZMQ64hjfjQkllS6FVLIXfSs";
+const ID = "x".repeat(44);
 
 describe("qr-luar links", () => {
   it("accepts web links and rejects the rest", () => {
@@ -19,7 +19,9 @@ describe("qr-luar links", () => {
     expect(cekLinkQr("https://a.b/with space")).toBeNull();
   });
   it("reads only Google Sheets links and builds the CSV address itself", () => {
-    const s = bacaSheet(`https://docs.google.com/spreadsheets/d/${ID}/edit?gid=472834596#gid=472834596`);
+    const s = bacaSheet(
+      `https://docs.google.com/spreadsheets/d/${ID}/edit?gid=472834596#gid=472834596`,
+    );
     expect(s).toEqual({ id: ID, gid: "472834596" });
     expect(sheetCsvUrl(s!)).toBe(
       `https://docs.google.com/spreadsheets/d/${ID}/gviz/tq?tqx=out:csv&gid=472834596`,
