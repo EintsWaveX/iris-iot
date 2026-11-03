@@ -139,17 +139,24 @@
   width: min(1720px, calc(100vw - 24px));
 }
 
-/* On a desktop screen every dialog that is not a plain confirmation (sm) uses nearly the whole width
-   (user, 2026-11-03). The height still follows the content, up to the edges. */
+/* On a desktop screen the big dialogs (the ones that set up lots of things at once: form, lembar, xl,
+   wide) use nearly the whole width (user, 2026-11-03). Confirmations and small forms (sm, md, lg) keep
+   their own regular width (user, 2026-11-03 evening). The height still follows the content. */
 @media (min-width: 1024px) {
-  .dialog__panel:not(.dialog__panel--sm):not(.dialog__panel--sheet) {
+  .dialog__panel--form,
+  .dialog__panel--lembar,
+  .dialog__panel--xl,
+  .dialog__panel--wide {
     max-height: calc(100dvh - 32px);
     width: min(calc(100vw - 80px), 1760px);
   }
 }
 
 @media (min-width: 1024px) and (max-height: 700px) {
-  .dialog__panel:not(.dialog__panel--sm):not(.dialog__panel--sheet) {
+  .dialog__panel--form,
+  .dialog__panel--lembar,
+  .dialog__panel--xl,
+  .dialog__panel--wide {
     max-height: calc(100dvh - 16px);
   }
 }

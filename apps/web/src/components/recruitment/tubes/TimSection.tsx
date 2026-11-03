@@ -142,7 +142,6 @@ function AddMember({
       onOpenChange={(o) => !o && onClose()}
       title={`${c.w.addMember} · ${team.name}`}
       lang={c.lang}
-      size="lg"
       actions={
         <button type="button" className="btn btn--ghost" onClick={onClose}>
           <span className="btn__label">{c.w.close}</span>
@@ -210,7 +209,6 @@ function MoveDialog({
       onOpenChange={(o) => !o && onClose()}
       title={`${w.move} · ${team.name}`}
       lang={lang}
-      size="lg"
       actions={
         <>
           <button type="button" className="btn btn--ghost" onClick={() => void go(null)}>

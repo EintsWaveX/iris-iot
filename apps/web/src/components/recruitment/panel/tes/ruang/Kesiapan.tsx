@@ -291,7 +291,6 @@ export default function Kesiapan({
         onOpenChange={(o) => !o && setOpen(null)}
         title={t.juri}
         description={v.room.title}
-        size="lg"
         lang={lang}
         actions={
           <button type="button" className="btn btn--ghost" onClick={() => setOpen(null)}>

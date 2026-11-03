@@ -110,12 +110,18 @@ export default function Toast() {
             className="toast"
             data-tone={t.tone}
             data-shown={t.shown ? "yes" : undefined}
+            // A toast floats over whatever dialog, drawer or popover is open.
+            // Radix closes those on any pointer-down or focus that lands
+            // outside them, so stop both here: pressing a toast (or its X)
+            // must never reach the layer underneath and dismiss it.
+            onPointerDown={(e) => e.nativeEvent.stopPropagation()}
             onMouseEnter={() => {
               const x = timers.current.get(t.id);
               if (x) clearTimeout(x);
             }}
             onMouseLeave={() => arm(t.id, 2500)}
-            onFocus={() => {
+            onFocus={(e) => {
+              e.nativeEvent.stopPropagation();
               const x = timers.current.get(t.id);
               if (x) clearTimeout(x);
             }}

@@ -251,6 +251,7 @@ export function RecCalendar({
                       style={{ "--d": `${col * 25 + wi * 20}ms` } as CSSProperties}
                       data-sun={col === 6 ? "yes" : undefined}
                       aria-pressed={pick === day.date}
+                      data-tip=""
                       aria-label={[
                         tgl(day.date, lang),
                         ...here.map((e) => judulAcara(e, lang)),

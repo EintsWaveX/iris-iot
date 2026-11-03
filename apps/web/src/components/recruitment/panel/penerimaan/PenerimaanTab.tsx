@@ -638,7 +638,6 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             onOpenChange={setPakai}
             title={l.usedTitle}
             description={l.usedHint(d.taken.length)}
-            size="lg"
             lang={lang}
             actions={
               <button type="button" className="btn btn--primary" onClick={() => setPakai(false)}>
@@ -969,7 +968,6 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             onOpenChange={setRingkas}
             title={l.sumTitle}
             description={l.sumDesc}
-            size="form"
             lang={lang}
             actions={
               <>

@@ -82,7 +82,6 @@ export default function QrAtur({
       open={open}
       onOpenChange={onOpenChange}
       lang={lang}
-      size="lg"
       title={t.title}
       description={judul}
       actions={

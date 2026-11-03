@@ -740,7 +740,6 @@ export default function Kandidat({
         onOpenChange={setProdiBuka}
         title={k.prodiTitle}
         description={k.prodiSub}
-        size="lg"
         lang={lang}
       >
         <ProdiHitung lang={lang} tiap={tiap} />

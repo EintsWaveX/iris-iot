@@ -176,6 +176,8 @@ export function tipUntuk(label: string, lang: BahasaTip, jenis: JenisTip = {}): 
   // A radio carries aria-checked too: a choice, not an on/off switch.
   if (jenis.role === "radio" || jenis.role === "menuitemradio") return UMUM[lang].radio(k);
   if (jenis.role === "combobox") return UMUM[lang].combo(k);
-  if (jenis.role === "switch" || jenis.pilih) return UMUM[lang].pilih(k);
+  // Only a real switch says "turns this on or off". A filter chip or a date
+  // cell that is merely pressed has a label that already says enough.
+  if (jenis.role === "switch") return UMUM[lang].pilih(k);
   return null;
 }
