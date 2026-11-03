@@ -104,7 +104,8 @@ export const KS = dict({
       `${room} · ${a} sampai ${b} · ${n} kursi`,
     slotPractice: (room: string) => `${room} · ruang latihan, tanpa slot`,
     soal: "Soal Siap",
-    soalOk: (list: string) => `Soal tertulis siap: ${list}`,
+    soalOk: (n: number, c: number | null, kursi: number) =>
+      `${n} soal tertulis${c === null ? "" : ` dan ${c} soal C`} siap, cukup untuk ${kursi} kursi`,
     soalNo: (part: string) => `Soal ${part} belum cukup. Buka Bank Soal.`,
     pengawas: "Pengawas Malam Ini",
     pengawasNone: "Belum ada Pengawas. Plot dua Asisten.",
@@ -158,7 +159,8 @@ export const KS = dict({
       `${room} · ${a} to ${b} · ${n} seats`,
     slotPractice: (room: string) => `${room} · practice room, no slot`,
     soal: "Questions Ready",
-    soalOk: (list: string) => `Written questions ready: ${list}`,
+    soalOk: (n: number, c: number | null, kursi: number) =>
+      `${n} written questions${c === null ? "" : ` and ${c} C problems`} ready, enough for ${kursi} seats`,
     soalNo: (part: string) => `Not enough ${part} questions. Open Question Bank.`,
     pengawas: "Tonight's Pengawas",
     pengawasNone: "No Pengawas yet. Plot two Asisten.",
@@ -212,7 +214,8 @@ export const KS = dict({
       `${room} · ${a} 到 ${b} · ${n} 个座位`,
     slotPractice: (room: string) => `${room} · 练习教室，没有时段`,
     soal: "题目就绪",
-    soalOk: (list: string) => `笔试题目已就绪：${list}`,
+    soalOk: (n: number, c: number | null, kursi: number) =>
+      `已备 ${n} 道笔试题${c === null ? "" : `和 ${c} 道 C 题`}，够 ${kursi} 个座位用`,
     soalNo: (part: string) => `${part} 的题目不够。请打开题库。`,
     pengawas: "今晚的监考",
     pengawasNone: "还没有监考。请安排两位助教。",

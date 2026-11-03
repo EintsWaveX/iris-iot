@@ -5,7 +5,6 @@
  * reads what the room already knows; nothing here is a second source of truth.
  */
 import {
-  ArrowRightIcon,
   CalendarBlankIcon,
   CaretRightIcon,
   CheckCircleIcon,
@@ -84,7 +83,7 @@ export default function Kesiapan({
   const tertulis = v.config.order.filter((p) => p !== "livecode");
   const soalOk = tertulis.every((p) => v.pool[p]?.ok ?? false);
   const kurang = tertulis.find((p) => !(v.pool[p]?.ok ?? false));
-  const siap = (p: (typeof tertulis)[number]) =>
+  const siap = (p: (typeof v.config.order)[number]) =>
     (v.pool[p]?.counts ?? []).reduce((n, c) => n + c.ready, 0);
   const slot = v.room.slot;
   const kursi = v.seats.length;
@@ -108,7 +107,11 @@ export default function Kesiapan({
       Ik: FileTextIcon,
       judul: t.soal,
       sub: soalOk
-        ? t.soalOk(tertulis.map((p) => `${part[p].l} ${siap(p)}`).join(", "))
+        ? t.soalOk(
+            tertulis.reduce((n, p) => n + siap(p), 0),
+            v.config.order.includes("livecode") ? siap("livecode") : null,
+            kursi,
+          )
         : t.soalNo(part[kurang ?? tertulis[0]].l),
       siap: soalOk,
       aksi: () => setOpen("soal"),
@@ -212,7 +215,6 @@ export default function Kesiapan({
         >
           <RocketLaunchIcon size={20} aria-hidden={true} />
           <span className="btn__label">{t.go}</span>
-          <ArrowRightIcon size={18} aria-hidden={true} />
         </button>
         <div className="n7-budget" role="img" aria-label={t.budget}>
           <div className="n7-budget__bar">
