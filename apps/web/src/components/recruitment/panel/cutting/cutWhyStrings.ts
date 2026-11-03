@@ -55,8 +55,9 @@ export const CW = dict({
         : `Peringkat ${rank}, di luar garis potong (${pass} yang lolos).`,
     whyText: {
       nearAbove: (n = 1) =>
-        `Tipis lolos: ke-${n} dari garis, hanya ${n - 1} tempat di atas yang terakhir lolos.`,
-      nearBelow: (n = 1) => `Tipis gagal: ke-${n} dari garis, ${n} tempat di luar garis potong.`,
+        `Tipis lolos: ke-${n} dari garis${n > 1 ? `, ${n - 1} tempat di atas yang terakhir lolos` : ", yang terakhir lolos"}.`,
+      nearBelow: (n = 1) =>
+        `Tipis gagal: ke-${n} dari garis${n > 1 ? `, ${n} tempat di bawah garis potong` : ", tepat di bawah garis potong"}.`,
       potensiCut: () => "Ditandai Potensi Cut waktu pemeriksaan Berkas.",
       revisions: (n = 1) => `Berkasnya sudah direvisi ${n} kali.`,
       noFm: () => "Tidak hadir di First Meet.",
@@ -85,10 +86,10 @@ export const CW = dict({
     revisions: "Jumlah revisi",
     reviewNote: "Catatan pemeriksa",
     reviewedBy: (kode: string, kapan: string) => `Diperiksa ${kode} · ${kapan}`,
-    files: "Berkas yang diunggah",
+    files: "Berkas yang diupload",
     verdict: { ok: "Sesuai", fix: "Perbaiki", none: "Belum dicek" },
     replaced: "diganti",
-    noRight: "Berkas dan nilainya hanya terlihat oleh yang punya hak Berkas.",
+    noRight: "Berkas dan nilainya hanya terlihat oleh yang punya akses Berkas.",
     // Attendance
     hadir: "Kehadiran",
     hadirNone: "Belum ada acara yang dihitung.",
@@ -126,7 +127,7 @@ export const CW = dict({
     save: "Simpan",
     saved: "Catatan tersimpan.",
     saveFail: "Catatannya belum tersimpan. Coba lagi.",
-    noEdit: "Kamu bisa membaca, tapi tidak punya hak mengubah catatan ini.",
+    noEdit: "Kamu bisa membaca catatan ini, tapi belum bisa mengubahnya.",
     // The decision
     proposeLolos: "Usul Lolos",
     proposeGagal: "Usul Gagal",
@@ -170,7 +171,7 @@ export const CW = dict({
     close: "Close",
     resize: "Drag to resize",
     loading: "Loading details...",
-    loadFail: "Could not load the details.",
+    loadFail: "Couldn't load the details.",
     why: "Why they are here",
     whyNone: "Nothing special. The position comes purely from the score.",
     whyScore: (s: number, max: number) => `Score ${s} out of ${max}.`,
@@ -181,8 +182,9 @@ export const CW = dict({
         : `Rank ${rank}, outside the cut line (${pass} pass).`,
     whyText: {
       nearAbove: (n = 1) =>
-        `Barely in: #${n} from the line, only ${n - 1} places above the last one in.`,
-      nearBelow: (n = 1) => `Barely out: #${n} from the line, ${n} places outside the cut.`,
+        `Barely in: #${n} from the line${n > 1 ? `, ${n - 1} places above the last one in` : ", the last one in"}.`,
+      nearBelow: (n = 1) =>
+        `Barely out: #${n} from the line${n > 1 ? `, ${n} places below the cut line` : ", just below the cut line"}.`,
       potensiCut: () => "Flagged Cut risk during the document check.",
       revisions: (n = 1) => `Their documents were revised ${n} time${n > 1 ? "s" : ""}.`,
       noFm: () => "Did not come to First Meet.",
@@ -213,7 +215,7 @@ export const CW = dict({
     files: "Uploaded files",
     verdict: { ok: "Matches", fix: "Needs fixing", none: "Not checked" },
     replaced: "replaced",
-    noRight: "The files and the score are only visible to those with the documents right.",
+    noRight: "The files and the score are only visible to people with Documents access.",
     hadir: "Attendance",
     hadirNone: "No counted events yet.",
     came: (jam: string) => `Came ${jam}`,
@@ -246,7 +248,7 @@ export const CW = dict({
     save: "Save",
     saved: "Note saved.",
     saveFail: "The note was not saved. Try again.",
-    noEdit: "You can read this, but you do not have the right to change it.",
+    noEdit: "You can read this but not change it.",
     proposeLolos: "Propose Pass",
     proposeGagal: "Propose Fail",
     proposedNow: (p: string, by: string | null) =>

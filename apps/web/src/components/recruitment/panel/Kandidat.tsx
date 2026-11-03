@@ -28,7 +28,6 @@ import {
   MagnifyingGlassIcon,
   MapPinIcon,
   PathIcon,
-  ScissorsIcon,
   SealCheckIcon,
   SlidersHorizontalIcon,
   TableIcon,
@@ -55,10 +54,10 @@ import { S2 } from "../s2Strings";
 import { REC } from "../recruitmentStrings";
 import { StatusPill } from "../shared";
 import { NS } from "./nextStrings";
-import { bukaBagian } from "../../../lib/recruitment/panel-tab";
 import { PN } from "./panelStrings";
 import AkunCek from "./kandidat/AkunCek";
 import { KS, type Antre } from "./kandidat/kandidatStrings";
+import Pager, { NOUN, usePager } from "../../ui/Pager";
 import { unduhXlsx } from "../../../lib/xlsx";
 import "../recruitment-kandidat.css";
 import TambahCaAs, { BerkasPanitia } from "./kandidat/TambahCaAs";
@@ -414,16 +413,6 @@ function antreOf(c: CandidateRow): Antre {
   return c.stage === "berkas" ? "disetujui" : "aktif";
 }
 
-/** The stages that have a Cutting tab, in order; Penerimaan has a tab of its own. */
-const TAHAP_AKSI = [
-  "berkas",
-  "first_meet",
-  "tes_tulis",
-  "wawancara",
-  "mengajar",
-  "penerimaan",
-] as const satisfies readonly CandidateRow["stage"][];
-
 export default function Kandidat({
   lang,
   rights,
@@ -468,13 +457,16 @@ export default function Kandidat({
   const grup = kunci
     .map((a) => [a, tampil.filter((x) => x.st === a)] as const)
     .filter((g) => g[1].length);
+  // Pages run over the whole list in group order; each page is then grouped again for display.
+  const pg = usePager(
+    grup.flatMap((g) => g[1]),
+    { id: "kandidat", size: 20, reset: [cari, f, cutSaja] },
+  );
+  const halaman = kunci
+    .map((a) => [a, pg.rows.filter((x) => x.st === a)] as const)
+    .filter((g) => g[1].length);
   const desk = rights.documents && rights.approve;
   const berikut = rows.find((c) => c.status === "applied");
-  // One shortcut per stage that has candidates, in the toolbar (not one button on every row).
-  const tahapAksi = rights.cuttingPropose
-    ? TAHAP_AKSI.filter((s) => rows.some((c) => c.stage === s))
-    : [];
-
   function unduh() {
     void unduhXlsx(
       "pendaftar-oprec",
@@ -498,7 +490,7 @@ export default function Kandidat({
     // The mockup says so when the file starts (the browser shows its own download bar too).
     window.Toast?.show(
       lang === "id"
-        ? "Mengunduh pendaftar-oprec-2026.xlsx."
+        ? "Mendownload pendaftar-oprec-2026.xlsx."
         : lang === "zh"
           ? "正在下载 pendaftar-oprec-2026.xlsx。"
           : "Downloading pendaftar-oprec-2026.xlsx.",
@@ -506,13 +498,13 @@ export default function Kandidat({
     );
   }
 
-  const Baris = ({ c, st }: { c: CandidateRow; st: Antre }) => {
+  const barisItem = ({ c, st }: { c: CandidateRow; st: Antre }) => {
     const Ik = IK_ANTRE[st];
     const Tg = IK_TAHAP[c.stage];
     const dokumen = rules.required.length;
     const late = !daftarDulu;
     return (
-      <li className="rec9-line">
+      <li key={c.id} className="rec9-line">
         <button
           type="button"
           className="rec9-row"
@@ -609,13 +601,6 @@ export default function Kandidat({
               </button>
             )}
           </div>
-          <span className="grow" />
-          {desk && berikut && (
-            <button type="button" className="btn btn--primary" onClick={() => setSel(berikut.id)}>
-              <span className="btn__label">{k.checkNext}</span>
-              <ArrowRightIcon size={18} aria-hidden="true" />
-            </button>
-          )}
         </div>
         <div className="row rec-tools">
           <div className="rec9-search">
@@ -630,24 +615,12 @@ export default function Kandidat({
           </div>
           <span className="grow" />
           <span className="hint num">{t.count(tampil.length, rows.length)}</span>
-          {tahapAksi.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="btn btn--ghost btn--sm"
-              title={s === "penerimaan" ? k.acceptOpen : k.cuttingOpen(ns.stages[s])}
-              onClick={() => bukaBagian(s === "penerimaan" ? "penerimaan" : "cutting")}
-            >
-              {s === "penerimaan" ? (
-                <SealCheckIcon size={18} aria-hidden="true" />
-              ) : (
-                <ScissorsIcon size={18} aria-hidden="true" />
-              )}
-              <span className="btn__label">
-                {s === "penerimaan" ? k.accept : k.cutting(ns.stages[s])}
-              </span>
+          {desk && berikut && (
+            <button type="button" className="btn btn--primary" onClick={() => setSel(berikut.id)}>
+              <span className="btn__label">{k.checkNext}</span>
+              <ArrowRightIcon size={18} aria-hidden="true" />
             </button>
-          ))}
+          )}
           {rights.candidates && (
             <button
               type="button"
@@ -682,7 +655,7 @@ export default function Kandidat({
           )}
         </div>
         {grup.length ? (
-          grup.map(([a, baris]) => {
+          halaman.map(([a, baris]) => {
             const Ik = IK_ANTRE[a];
             return (
               <section className="rec9-group" data-st={a} key={a}>
@@ -693,13 +666,11 @@ export default function Kandidat({
                   <b>{k.q[a].t}</b>
                   <span className="hint">{k.q[a].h}</span>
                   <span className="grow" />
-                  <span className="hint num">{baris.length}</span>
+                  <span className="hint num">
+                    {grup.find((g) => g[0] === a)?.[1].length ?? baris.length}
+                  </span>
                 </div>
-                <ul className="rec9-rows">
-                  {baris.map((x) => (
-                    <Baris key={x.c.id} c={x.c} st={x.st} />
-                  ))}
-                </ul>
+                <ul className="rec9-rows">{baris.map((x) => barisItem({ c: x.c, st: x.st }))}</ul>
               </section>
             );
           })
@@ -708,6 +679,7 @@ export default function Kandidat({
             <span className="hint">{rows.length ? t.emptyFilter : t.empty}</span>
           </section>
         )}
+        <Pager pg={pg} noun={NOUN[lang].caas} lang={lang} />
       </div>
       {sel !== null && rights.documents && rights.approve && (
         <BerkasReview

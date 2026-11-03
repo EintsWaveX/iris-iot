@@ -4,10 +4,10 @@
  * came), Pengumpulan (what each team handed in) and Presentasi (the order,
  * the tables' examiners and the sheets). Live on `rectubes`.
  */
-import { useState } from "react";
 import type { Lang } from "../../../lib/kelas";
 import type { RecRights } from "../../../lib/recruitment/types";
 import { useTubesBoard } from "../../../lib/recruitment/tubes-client";
+import { useUrlState } from "../../../lib/recruitment/url-state";
 import TabLine from "../../ui/TabLine";
 import KumpulSection from "./KumpulSection";
 import PresentasiSection from "./PresentasiSection";
@@ -22,7 +22,7 @@ const SECS: Sec[] = ["topik", "tim", "kumpul", "presentasi"];
 
 export default function TubesTab({ lang, rights }: { lang: Lang; rights: RecRights | null }) {
   const q = useTubesBoard(true);
-  const [sec, setSec] = useState<Sec>("topik");
+  const [sec, setSec] = useUrlState<Sec>("tb", "topik", SECS);
   const w = TUBES[lang].panel;
   const b = q.data;
   const c = useCtx(lang, b ?? ({} as never), q.refresh);

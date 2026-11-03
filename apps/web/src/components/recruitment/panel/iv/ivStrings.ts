@@ -261,7 +261,7 @@ const ID: IvWords = {
     start: "Mulai",
     clock: "Lama sesi",
     recOn: "Merekam",
-    recOff: "Rekam mati",
+    recOff: "Rekaman mati",
     recTip: "Merekam suara wajib. Bila rekaman hilang, catatan jawaban harus lengkap.",
     special: "Kasus Khusus",
     files: "Berkas",
@@ -397,7 +397,7 @@ const ID: IvWords = {
     pjOut: "PJ luar ruangan",
     pjIn: "PJ dalam ruangan",
     minutes: "Menit per sesi",
-    maxMinutes: "Batas keras (menit)",
+    maxMinutes: "Batas maksimal (menit)",
     gap: "Jeda antar giliran (menit)",
     late: "Toleransi terlambat (menit)",
     excuse: "Izin paling lambat (menit sebelum sesi)",
@@ -432,7 +432,7 @@ const ID: IvWords = {
     title: "Penguji dan PJ",
     lede: {
       booth:
-        "Satu CaAs diwawancarai beberapa penguji selama satu shift. Dua chip pertama dengan CaAs pertama, dan seterusnya. Penguji dipilih dari Asisten aktif; mereka hanya melihat slot dan CaAs-nya sendiri.",
+        "Satu CaAs diwawancarai beberapa penguji selama satu shift. Dua nama pertama menguji CaAs pertama, dan seterusnya. Penguji dipilih dari Asisten aktif; mereka hanya melihat slot dan CaAs-nya sendiri.",
       panel:
         "Satu panel duduk sepanjang malam di satu ruang. Penguji dipilih dari Asisten aktif; mereka hanya melihat slot dan CaAs-nya sendiri.",
     },
@@ -464,7 +464,7 @@ const ID: IvWords = {
     saveFail: "Susunan belum tersimpan.",
   },
   err: {
-    tanpa_hak: "Kamu tidak punya hak untuk ini.",
+    tanpa_hak: "Kamu belum bisa melakukan ini.",
     terkunci: "Cutting tahap ini sudah dikunci.",
     belum_lengkap: "Lembar belum lengkap.",
     data_salah: "Isiannya belum benar.",
@@ -520,7 +520,7 @@ const EN: IvWords = {
     start: "Start",
     clock: "Session time",
     recOn: "Recording",
-    recOff: "Rec off",
+    recOff: "Not recording",
     recTip:
       "Voice recording is required. If the recording is lost, the written answers must be complete.",
     special: "Special Case",
@@ -590,11 +590,11 @@ const EN: IvWords = {
       tanpa: "No word, or no proof",
     },
     out: {
-      grace: "Within the grace. No extra time. Carry on; it goes in the berita acara.",
+      grace: "Within the grace period. No extra time. Carry on; it goes in the berita acara.",
       late_gugur:
-        "Past the grace with no misfortune or class reason: GUGUR. The outside PJ confirms with PJ {s} first.",
+        "Past the grace period with no misfortune or class reason: GUGUR. The outside PJ confirms with PJ {s} first.",
       late_susulan:
-        "Past the grace for misfortune or class: can sit the {l} makeup{d}. The outside PJ confirms with PJ {s}.",
+        "Past the grace period for misfortune or class: can sit the {l} makeup{d}. The outside PJ confirms with PJ {s}.",
       absen_gugur: "No valid reason: GUGUR. Confirmed with PJ {s} first.",
       absen_susulan:
         "Excused with proof: offered the {l} makeup{d}. Excuses must come in before the {l} starts.",
@@ -688,7 +688,7 @@ const EN: IvWords = {
     title: "Examiners and PJ",
     lede: {
       booth:
-        "One CaAs sits with several examiners for a whole shift. The first two chips take the first CaAs, and so on. Examiners come from the active Asisten; they see only their own slots and CaAs.",
+        "One CaAs sits with several examiners for a whole shift. The first two names take the first CaAs, and so on. Examiners come from the active Asisten; they see only their own slots and CaAs.",
       panel:
         "One panel sits all evening in a room. Examiners come from the active Asisten; they see only their own slots and CaAs.",
     },
@@ -720,7 +720,7 @@ const EN: IvWords = {
     saveFail: "The crew was not saved.",
   },
   err: {
-    tanpa_hak: "You don't have the right for this.",
+    tanpa_hak: "You can't do this.",
     terkunci: "Cutting for this stage is locked.",
     belum_lengkap: "The sheet is not complete.",
     data_salah: "Something in it is not right.",

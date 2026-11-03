@@ -28,6 +28,7 @@ import {
   type IconProps,
 } from "@phosphor-icons/react";
 import type { ComponentType } from "react";
+import Pager, { NOUN, usePager } from "../../../ui/Pager";
 import TabLine from "../../../ui/TabLine";
 import Confirm from "../../../ui/Confirm";
 import Dropdown from "../../../ui/Dropdown";
@@ -65,6 +66,7 @@ import {
   type SettingMap,
 } from "../../../../lib/recruitment/settings";
 import { S2 } from "../../s2Strings";
+import { useUrlState } from "../../../../lib/recruitment/url-state";
 import "../../recruitment-b1.css";
 import "../../recruitment-kandidat.css";
 import "../../recruitment-cutting.css";
@@ -348,7 +350,8 @@ export default function CuttingTab({
 }) {
   const t = S2[lang].cut;
   const aktif = useMemo(() => tahapAktif(events, hariIni), [events, hariIni]);
-  const [stage, setStage] = useState<CutStage | null>(null);
+  const [stageQ, setStage] = useUrlState<CutStage | "">("cut", "", ["", ...CUT_STAGES]);
+  const stage: CutStage | null = stageQ || null;
   const pilih: CutStage | null = stage && aktif.includes(stage) ? stage : (aktif[0] ?? null);
   const board = useRecCut(pilih ?? "berkas", pilih !== null);
   // Only the stages whose Cutting is on the Kalender but has not started yet (Penerimaan has no Cutting).
@@ -383,7 +386,6 @@ export default function CuttingTab({
   const lebar = useMinWidth(1100);
   const [q, setQ] = useState("");
   const [f, setF] = useState("semua");
-  const [more, setMore] = useState(20);
   const [opsi, setOpsi] = useState(false);
   const [mode, setMode] = useState<"top" | "min">("top");
   const [n, setN] = useState(60);
@@ -415,7 +417,6 @@ export default function CuttingTab({
   // The candidate whose drawer is open (3 Nov 2026): the reasons, Berkas, attendance and notes in one place.
   const [terbuka, setTerbuka] = useState<number | null>(null);
   useEffect(() => setLokal({}), [board.data?.now, pilih]);
-  useEffect(() => setMore(20), [pilih, q, f]);
   useEffect(() => {
     setTerbuka(null);
     setF("semua");
@@ -565,10 +566,13 @@ export default function CuttingTab({
   }
 
   const lolosBerkas = pilih === "berkas";
-  const tampak = daftar.slice(0, more);
-  // The dashed line sits after the last row that is inside the cut (only on the whole list).
+  const pg = usePager(daftar, { id: "cutting", size: 20, reset: [pilih, q, f] });
+  const tampak = pg.rows;
+  // The dashed line sits before the first row that is outside the cut: its place in the WHOLE list, so a
+  // page that starts or ends there shows it right (only while nothing is filtered).
   const cutAt =
-    garis && f === "semua" && !q && potongN > 0 && potongN < tampak.length ? potongN : -1;
+    garis && f === "semua" && !q && potongN > 0 && potongN < daftar.length ? potongN : -1;
+  const garisDi = (i: number) => pg.from - 1 + i === cutAt;
   const rail = CS[lang].rail;
   const railAt = dibuka ? 2 : dikunci ? 1 : 0;
   const IK_RAIL: ComponentType<IconProps>[] = [
@@ -606,6 +610,9 @@ export default function CuttingTab({
       />
       {laterText && <span className="hint r2cut__later">{laterText}</span>}
       <span className="grow" />
+      <span className="hint n7-railhead" aria-hidden="true">
+        {CS[lang].railHead}
+      </span>
       <ol className="n7-miniRail" aria-label={CS[lang].railLabel}>
         {rail.map((r, i) => {
           const Ik = i < railAt ? CheckIcon : IK_RAIL[i];
@@ -948,7 +955,7 @@ export default function CuttingTab({
     <ul className="r2clist">
       {tampak.map((c, i) => (
         <li key={c.id} style={{ display: "contents" }}>
-          {i === cutAt && (
+          {garisDi(i) && (
             <span className="r2cutline">
               <span>{t.cutLine}</span>
             </span>
@@ -1041,7 +1048,7 @@ export default function CuttingTab({
           <tbody>
             {tampak.map((c, i) => (
               <Fragment key={c.id}>
-                {i === cutAt && (
+                {garisDi(i) && (
                   <tr className="n7-cutmark" key={`cut-${c.id}`}>
                     <td colSpan={12}>
                       <span>
@@ -1261,13 +1268,7 @@ export default function CuttingTab({
       </div>
       {tools}
       {baris.length === 0 ? <p className="empty-note">{t.empty}</p> : tabel}
-      {more < daftar.length && (
-        <div className="row" style={{ justifyContent: "center" }}>
-          <button type="button" className="btn btn--ghost" onClick={() => setMore(more + 20)}>
-            <span className="btn__label">{CS[lang].more}</span>
-          </button>
-        </div>
-      )}
+      <Pager pg={pg} noun={NOUN[lang].caas} lang={lang} />
       {terbuka !== null && (
         <CuttingDrawer
           lang={lang}

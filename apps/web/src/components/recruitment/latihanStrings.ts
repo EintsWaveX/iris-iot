@@ -62,7 +62,7 @@ export const LAT = dict({
     prepare: "Prepare From the Asisten List",
     prepared: (n: number) => `${n} Asisten from the database were prepared as sample CaAs.`,
     noEdition: "There is no live edition yet, so there is nothing to practice on.",
-    failed: "Could not open Practice Mode. Try again.",
+    failed: "Couldn't open Practice Mode. Try again.",
     hidden: "This switch does not apply in Practice Mode.",
   },
   zh: {

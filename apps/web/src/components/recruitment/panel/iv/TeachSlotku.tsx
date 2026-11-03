@@ -147,7 +147,7 @@ const TS = dict<TsWords>({
     standGo: "Stand In",
     cancel: "Cancel",
     standDone: (w) => `You stand in for ${w}. Their panel is told.`,
-    standFail: "Could not stand in. Try again.",
+    standFail: "Couldn't stand in. Try again.",
   },
   zh: {
     top: (n, pj) =>

@@ -5,6 +5,7 @@
  * parameters, and Rata-Rata per Penguji. A narrow screen gets cards. An
  * examiner without the right sees only their own sheets (Lembarku).
  */
+import Pager, { NOUN, Paged, usePager } from "../../../ui/Pager";
 import { Fragment, useEffect, useState } from "react";
 import { CaretDownIcon, CaretUpIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import Dropdown from "../../../ui/Dropdown";
@@ -284,6 +285,7 @@ function PerExaminer({ d, me, lang }: { d: IvNilaiResponse; me: string | null; l
 function Lembarku({ d, lang }: { d: IvLembarkuResponse; lang: Lang }) {
   const p = PN[lang].mine;
   const w = IV(lang).nilai;
+  const pg = usePager(d.rows, { id: "lembarku", size: 20 });
   return (
     <div className="stack">
       <div className="rec-note">
@@ -306,7 +308,7 @@ function Lembarku({ d, lang }: { d: IvLembarkuResponse; lang: Lang }) {
                 </tr>
               </thead>
               <tbody>
-                {d.rows.map((r) => (
+                {pg.rows.map((r) => (
                   <tr key={r.id}>
                     <td>
                       <b>{r.nama}</b>
@@ -335,6 +337,7 @@ function Lembarku({ d, lang }: { d: IvLembarkuResponse; lang: Lang }) {
           </div>
         </div>
       )}
+      <Pager pg={pg} noun={NOUN[lang].baris} lang={lang} />
     </div>
   );
 }
@@ -497,118 +500,145 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
     </div>
   );
 
-  const table = narrow ? (
-    <ul className="r4clist">
-      {list.map((r) => (
-        <li key={r.id} className="panel r4crow" data-open={openK === r.id ? "yes" : undefined}>
-          <button
-            type="button"
-            className="r4crow__b"
-            aria-expanded={openK === r.id}
-            onClick={() => toggle(r.id)}
-          >
-            <span className="num hint r4crow__r">{absent(r) ? "" : rank.indexOf(r.id) + 1}</span>
-            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-              <b>{r.nama}</b>
-              <span className="hint">{where(r)}</span>
-            </span>
-            <span className="r4crow__m">
-              <b className="num">{f1(r.mean, lang)}</b>
-              <Spread r={r} lang={lang} />
-            </span>
-          </button>
-          <Dots r={r} wide lang={lang} />
-          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-            <Chips r={r} me={me} lang={lang} />
-            <Verd r={r} lang={lang} />
-          </div>
-          {openK === r.id && r.detail.length > 0 && <Rincian r={r} d={d} me={me} lang={lang} />}
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <div className="panel rec-tablecard">
-      <div className="scrollx">
-        <table className="rec-table r4tab">
-          <thead>
-            <tr>
-              <th className="num">#</th>
-              <th>{p.cols.cand}</th>
-              <th>{p.cols.sheets}</th>
-              <th className="num">{p.cols.mean}</th>
-              <th>{p.cols.spread}</th>
-              <th className="num">{p.cols.gap}</th>
-              <th>{p.cols.verdict}</th>
-              {showTes && <th className="num">{p.cols.tes}</th>}
-              {showCtx && <th className="num">{sx?.ctx}</th>}
-              <th>
-                <span className="sr">{p.cols.details}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((r) => (
-              <Fragment key={r.id}>
-                <tr
-                  data-open={openK === r.id ? "yes" : undefined}
-                  data-wide={r.wide ? "yes" : undefined}
+  const table = (
+    <Paged
+      items={list}
+      id={`wawancara-${stage}`}
+      size={20}
+      reset={[ql, f, sort, stage]}
+      noun={NOUN[lang].caas}
+      lang={lang}
+    >
+      {(rowsP) =>
+        narrow ? (
+          <ul className="r4clist">
+            {rowsP.map((r) => (
+              <li
+                key={r.id}
+                className="panel r4crow"
+                data-open={openK === r.id ? "yes" : undefined}
+              >
+                <button
+                  type="button"
+                  className="r4crow__b"
+                  aria-expanded={openK === r.id}
+                  onClick={() => toggle(r.id)}
                 >
-                  <td className="num hint">{absent(r) ? "" : rank.indexOf(r.id) + 1}</td>
-                  <td>
-                    <span className="stack" style={{ gap: 0 }}>
-                      <b>{r.nama}</b>
-                      <span className="hint">{where(r)}</span>
-                    </span>
-                  </td>
-                  <td>
-                    {absent(r) ? <Pill>{p.absentBadge}</Pill> : <Chips r={r} me={me} lang={lang} />}
-                  </td>
-                  <td className="num">
-                    <b className="r4avg">{f1(r.mean, lang)}</b>
-                  </td>
-                  <td>
-                    <Dots r={r} lang={lang} />
-                  </td>
-                  <td className="num">
+                  <span className="num hint r4crow__r">
+                    {absent(r) ? "" : rank.indexOf(r.id) + 1}
+                  </span>
+                  <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+                    <b>{r.nama}</b>
+                    <span className="hint">{where(r)}</span>
+                  </span>
+                  <span className="r4crow__m">
+                    <b className="num">{f1(r.mean, lang)}</b>
                     <Spread r={r} lang={lang} />
-                  </td>
-                  <td>
-                    <Verd r={r} lang={lang} />
-                  </td>
-                  {showTes && <td className="num hint">{r.total ?? "-"}</td>}
-                  {showCtx && (
-                    <td className="num">
-                      <span className="hint num" title={sx?.ctxTip}>
-                        {f1(r.ctx?.[0] ?? null, lang)} ·{" "}
-                        {r.ctx?.[1] == null ? "-" : Math.round(r.ctx[1])}
-                      </span>
-                    </td>
-                  )}
-                  <td>
-                    {r.detail.length > 0 && (
-                      <IconButton
-                        sm
-                        icon={openK === r.id ? CaretUpIcon : CaretDownIcon}
-                        label={openK === r.id ? p.hideDetails : p.detailsOf(r.nama.split(" ")[0])}
-                        pressed={openK === r.id}
-                        onClick={() => toggle(r.id)}
-                      />
-                    )}
-                  </td>
-                </tr>
-                {openK === r.id && (
-                  <tr className="r4tab__bd">
-                    <td colSpan={showTes || showCtx ? 9 : 8}>
-                      <Rincian r={r} d={d} me={me} lang={lang} />
-                    </td>
-                  </tr>
+                  </span>
+                </button>
+                <Dots r={r} wide lang={lang} />
+                <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                  <Chips r={r} me={me} lang={lang} />
+                  <Verd r={r} lang={lang} />
+                </div>
+                {openK === r.id && r.detail.length > 0 && (
+                  <Rincian r={r} d={d} me={me} lang={lang} />
                 )}
-              </Fragment>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </ul>
+        ) : (
+          <div className="panel rec-tablecard">
+            <div className="scrollx">
+              <table className="rec-table r4tab">
+                <thead>
+                  <tr>
+                    <th className="num">#</th>
+                    <th>{p.cols.cand}</th>
+                    <th>{p.cols.sheets}</th>
+                    <th className="num">{p.cols.mean}</th>
+                    <th>{p.cols.spread}</th>
+                    <th className="num">{p.cols.gap}</th>
+                    <th>{p.cols.verdict}</th>
+                    {showTes && <th className="num">{p.cols.tes}</th>}
+                    {showCtx && <th className="num">{sx?.ctx}</th>}
+                    <th>
+                      <span className="sr">{p.cols.details}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rowsP.map((r) => (
+                    <Fragment key={r.id}>
+                      <tr
+                        data-open={openK === r.id ? "yes" : undefined}
+                        data-wide={r.wide ? "yes" : undefined}
+                      >
+                        <td className="num hint">{absent(r) ? "" : rank.indexOf(r.id) + 1}</td>
+                        <td>
+                          <span className="stack" style={{ gap: 0 }}>
+                            <b>{r.nama}</b>
+                            <span className="hint">{where(r)}</span>
+                          </span>
+                        </td>
+                        <td>
+                          {absent(r) ? (
+                            <Pill>{p.absentBadge}</Pill>
+                          ) : (
+                            <Chips r={r} me={me} lang={lang} />
+                          )}
+                        </td>
+                        <td className="num">
+                          <b className="r4avg">{f1(r.mean, lang)}</b>
+                        </td>
+                        <td>
+                          <Dots r={r} lang={lang} />
+                        </td>
+                        <td className="num">
+                          <Spread r={r} lang={lang} />
+                        </td>
+                        <td>
+                          <Verd r={r} lang={lang} />
+                        </td>
+                        {showTes && <td className="num hint">{r.total ?? "-"}</td>}
+                        {showCtx && (
+                          <td className="num">
+                            <span className="hint num" title={sx?.ctxTip}>
+                              {f1(r.ctx?.[0] ?? null, lang)} ·{" "}
+                              {r.ctx?.[1] == null ? "-" : Math.round(r.ctx[1])}
+                            </span>
+                          </td>
+                        )}
+                        <td>
+                          {r.detail.length > 0 && (
+                            <IconButton
+                              sm
+                              icon={openK === r.id ? CaretUpIcon : CaretDownIcon}
+                              label={
+                                openK === r.id ? p.hideDetails : p.detailsOf(r.nama.split(" ")[0])
+                              }
+                              pressed={openK === r.id}
+                              onClick={() => toggle(r.id)}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                      {openK === r.id && (
+                        <tr className="r4tab__bd">
+                          <td colSpan={showTes || showCtx ? 9 : 8}>
+                            <Rincian r={r} d={d} me={me} lang={lang} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      }
+    </Paged>
   );
 
   return (

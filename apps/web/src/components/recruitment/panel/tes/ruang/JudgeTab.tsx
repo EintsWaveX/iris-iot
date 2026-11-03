@@ -4,6 +4,7 @@
  * a seat's points come from the tests its best Submit passed. Staff of the room see it
  * while the Live Coding timer runs and afterwards.
  */
+import { NOUN, Paged } from "../../../../ui/Pager";
 import { ArrowsClockwiseIcon, PlugsIcon, ProhibitIcon } from "@phosphor-icons/react";
 import type { Lang } from "../../../../../lib/kelas";
 import { dict } from "../../../../../lib/app";
@@ -158,54 +159,60 @@ export default function JudgeTab({ lang, roomId }: { lang: Lang; roomId: number 
           </p>
         </section>
       ) : (
-        <section className="panel rec-tablecard">
-          <div className="scrollx">
-            <table className="rec-table">
-              <thead>
-                <tr>
-                  <th className="num">{t.seat}</th>
-                  <th>{t.name}</th>
-                  <th>{t.problems}</th>
-                  <th className="num">
-                    {t.score} ({t.outOf(d.cap)})
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.seats.map((s) => (
-                  <tr key={s.seatId} style={{ cursor: "default" }}>
-                    <td className="num">{s.no ?? "-"}</td>
-                    <td>{s.nama}</td>
-                    <td>
-                      {!s.dealt ? (
-                        <span className="hint">{t.noHand}</span>
-                      ) : s.problems.every((p) => p.passed === null) && s.waiting === 0 ? (
-                        <span className="hint">{t.none}</span>
-                      ) : (
-                        <span className="judgeprobs">
-                          {s.problems.map((p) => (
-                            <span
-                              key={p.problemId}
-                              className="judgeprob"
-                              data-full={p.passed !== null && p.passed === p.total ? "yes" : "no"}
-                              title={`${p.title}: ${p.got} / ${p.points}`}
-                            >
-                              {t.pass(p.passed, p.total)}
+        <Paged items={d.seats} id="judge-seats" size={20} noun={NOUN[lang].peserta} lang={lang}>
+          {(rowsP) => (
+            <section className="panel rec-tablecard">
+              <div className="scrollx">
+                <table className="rec-table">
+                  <thead>
+                    <tr>
+                      <th className="num">{t.seat}</th>
+                      <th>{t.name}</th>
+                      <th>{t.problems}</th>
+                      <th className="num">
+                        {t.score} ({t.outOf(d.cap)})
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rowsP.map((s) => (
+                      <tr key={s.seatId} style={{ cursor: "default" }}>
+                        <td className="num">{s.no ?? "-"}</td>
+                        <td>{s.nama}</td>
+                        <td>
+                          {!s.dealt ? (
+                            <span className="hint">{t.noHand}</span>
+                          ) : s.problems.every((p) => p.passed === null) && s.waiting === 0 ? (
+                            <span className="hint">{t.none}</span>
+                          ) : (
+                            <span className="judgeprobs">
+                              {s.problems.map((p) => (
+                                <span
+                                  key={p.problemId}
+                                  className="judgeprob"
+                                  data-full={
+                                    p.passed !== null && p.passed === p.total ? "yes" : "no"
+                                  }
+                                  title={`${p.title}: ${p.got} / ${p.points}`}
+                                >
+                                  {t.pass(p.passed, p.total)}
+                                </span>
+                              ))}
+                              {s.waiting > 0 && <span className="pill">{t.pending}</span>}
                             </span>
-                          ))}
-                          {s.waiting > 0 && <span className="pill">{t.pending}</span>}
-                        </span>
-                      )}
-                    </td>
-                    <td className="num">
-                      <b>{s.got}</b>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                          )}
+                        </td>
+                        <td className="num">
+                          <b>{s.got}</b>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </Paged>
       )}
     </section>
   );

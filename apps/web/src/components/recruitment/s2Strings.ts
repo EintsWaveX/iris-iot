@@ -28,7 +28,7 @@ export const S2 = dict({
         penerimaan: "Pengumuman Penerimaan Asisten",
       } as Record<StageKey, string>,
       lolosTitle: "Hooray!",
-      gagalTitle: "Ouhhh.",
+      gagalTitle: "Belum kali ini.",
       lolosLine: ((n: string) => `Kamu lolos, ${n}. Sampai ketemu di tahap berikutnya.`) as Nama,
       gagalLine: ((n: string) =>
         `${n}, kali ini kamu belum lolos ke tahap berikutnya. Makasih banyak sudah ikut sejauh ini.`) as Nama,
@@ -165,7 +165,7 @@ export const S2 = dict({
       wouldFail: "akan gagal",
       none: "belum diusulkan",
       target: (a: number, b: number, tahap: string) =>
-        `Sasaran deck: ${a} sampai ${b} kandidat lolos ${tahap}.`,
+        `Target: ${a} sampai ${b} kandidat lolos ${tahap}.`,
       search: "Cari nama atau NIM",
       searchLabel: "Cari kandidat",
       filter: "Saring",
@@ -229,9 +229,9 @@ export const S2 = dict({
       minHint: "Total Fase 1 (3000) ditambah Live Coding (1000).",
       readPass: "lolos",
       readFail: "gagal",
-      below: (n: number) => `Di bawah sasaran ${n}.`,
-      above: (n: number) => `Di atas sasaran ${n}.`,
-      inside: (a: number, b: number) => `Masuk sasaran ${a} sampai ${b}.`,
+      below: (n: number) => `Di bawah target ${n}.`,
+      above: (n: number) => `Di atas target ${n}.`,
+      inside: (a: number, b: number) => `Masuk target ${a} sampai ${b}.`,
       noShows: "Yang tidak hadir Tes Tulis langsung Gagal",
       replace: (n: number) => `Timpa usulan yang sudah ada (${n})`,
       cancel: "Batal",
@@ -296,7 +296,7 @@ export const S2 = dict({
       slot: "Slot",
       requests: "Permintaan",
       board: "Papan",
-      reuse: "Slot dan papan tiap tahap memakai mesin yang sama; penguji diatur di bagian Penguji.",
+      reuse: "Slot dan papan tiap tahap cara kerjanya sama. Penguji diatur di bagian Penguji.",
       window: "Jadwal Tes Tulis",
       openBadge: "Dibuka",
       closedBadge: "Ditutup",
@@ -350,7 +350,7 @@ export const S2 = dict({
       search: "Cari nama",
       searchLabel: "Cari kandidat",
       noMark: "Tanpa tanda: pilih sendiri",
-      xlsx: "Unduh XLSX",
+      xlsx: "Download XLSX",
       autoFill: (n: number) => `Auto Isi (${n})`,
       everyoneHas: "Semua Sudah Dapat Slot",
       notPicked: "Belum memilih",
@@ -391,7 +391,7 @@ export const S2 = dict({
       praktikumIot: "Praktikum IoT",
       ya: "Ya",
       tidak: "Tidak",
-      upload: "Unggah Berkas",
+      upload: "Upload Berkas",
       edit: "Ubah Data",
       prev: "Kandidat sebelumnya",
       next: "Kandidat berikutnya",
@@ -446,7 +446,7 @@ export const S2 = dict({
       send: "Kirim",
       cancel: "Batal",
       sent: "Permintaan perbaikan terkirim.",
-      noFile: "Berkas ini belum diunggah.",
+      noFile: "Berkas ini belum diupload.",
       fail: "Belum bisa disimpan. Coba lagi.",
       waiting: "Menunggu verifikasi",
       empty: "Tidak ada kandidat yang menunggu.",
@@ -593,7 +593,7 @@ export const S2 = dict({
         penerimaan: "Asisten Acceptance",
       } as Record<StageKey, string>,
       lolosTitle: "Hooray!",
-      gagalTitle: "Ouhhh.",
+      gagalTitle: "Not this time.",
       lolosLine: ((n: string) => `You passed, ${n}. See you at the next stage.`) as Nama,
       gagalLine: ((n: string) =>
         `${n}, this time you didn't make it to the next stage. Thank you so much for coming this far.`) as Nama,
@@ -728,7 +728,7 @@ export const S2 = dict({
       wouldFail: "would fail",
       none: "not proposed yet",
       target: (a: number, b: number, tahap: string) =>
-        `The deck aims for ${a} to ${b} candidates through ${tahap}.`,
+        `Target: ${a} to ${b} candidates through ${tahap}.`,
       search: "Search name or NIM",
       searchLabel: "Search candidates",
       filter: "Filter",
@@ -805,7 +805,7 @@ export const S2 = dict({
       fromBerkasDone: "Verified ones proposed Pass, unapproved ones proposed Fail.",
       fromVerdict: (stage: string) =>
         stage === "tubes"
-          ? "Propose from the Presentasi Verdicts"
+          ? "Propose from the Presentation Verdicts"
           : stage === "mengajar"
             ? "Propose from the Panel Verdicts"
             : "Propose from the Interview Verdicts",
@@ -857,7 +857,8 @@ export const S2 = dict({
       slot: "Slots",
       requests: "Requests",
       board: "Board",
-      reuse: "Every stage uses the same slots and board; examiners are set in the Examiners part.",
+      reuse:
+        "Every stage works the same way for slots and the board. Set examiners in the Examiners part.",
       window: "Written Test Slots",
       openBadge: "Open",
       closedBadge: "Closed",
@@ -904,7 +905,7 @@ export const S2 = dict({
       declineTitle: "Decline the Request?",
       declineDesc: (nama: string, ruang: string) =>
         `${nama} stays in ${ruang}, and reads this note.`,
-      declineReasons: ["Target is full", "Reason isn't clear", "Add your timetable"],
+      declineReasons: ["Target is full", "Reason isn't clear", "Include proof of your schedule"],
       declineNote: "A note for the candidate (optional)",
       moved: (nama: string, ruang: string) => `${nama} moved to ${ruang}. They're told.`,
       declinedToast: "Request declined. The candidate sees it with your note.",
@@ -931,7 +932,7 @@ export const S2 = dict({
       released: (nama: string) => `${nama} left their slot.`,
       cancel: "Cancel",
       fail: "It couldn't be saved. Try again.",
-      winClosed: "The window hasn't opened or has already passed.",
+      winClosed: "Slot picking hasn't opened yet, or it already closed.",
       stageLabel: "Stage",
     },
     berkas: {
@@ -975,7 +976,7 @@ export const S2 = dict({
       metaSaved: "Saved.",
       metaFail: "Not saved. Try again.",
       round: (n: number) => `Revision ${n}`,
-      resent: "Sent again, check it again",
+      resent: "Resent, check it again",
       scoreLabel: "Document score",
       less: "Less",
       more: "More",
@@ -1050,7 +1051,7 @@ export const S2 = dict({
         errLink: "That link isn't right. Paste the full link, starting with https://",
         errSheet:
           "That spreadsheet link isn't right. Use a link from docs.google.com/spreadsheets.",
-        errHak: "You don't have the right to change this.",
+        errHak: "You can't change this.",
         errSave: "It couldn't be saved. Try again.",
         cancel: "Cancel",
         save: "Save",

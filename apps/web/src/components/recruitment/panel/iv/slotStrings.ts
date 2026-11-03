@@ -106,7 +106,7 @@ export const SK = dict({
     standGo: "Stand In",
     cancel: "Cancel",
     standDone: (who: string) => `You stand in for ${who}. Their booth partner is told.`,
-    standFail: "Could not stand in. Try again.",
+    standFail: "Couldn't stand in. Try again.",
   },
   zh: {
     top: (n: number, pj: number, verb: string) =>

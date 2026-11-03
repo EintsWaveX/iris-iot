@@ -306,6 +306,23 @@
 .rec-next .rec-count {
   margin-top: 8px;
 }
+/* Alone on the page (no envelope beside it) the card reads as one line: what, when, and the countdown on the right. */
+@media (min-width: 900px) {
+  .b3-page > .rec-next {
+    display: grid;
+    align-items: center;
+    column-gap: 24px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .b3-page > .rec-next > * {
+    grid-column: 1;
+  }
+  .b3-page > .rec-next > .rec-count {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    margin-top: 0;
+  }
+}
 .rec-docs__list {
   list-style: none;
   margin: 0;
@@ -435,6 +452,12 @@
 .rec-journey {
   position: relative;
   height: 200px;
+}
+/* The map is the background, not the news: a shorter strip on a wide screen. */
+@media (min-width: 900px) {
+  .rec-jcard .rec-journey {
+    height: 150px;
+  }
 }
 .rec-journey__svg {
   position: absolute;
@@ -1714,135 +1737,35 @@ html[data-detail="ldm"] .rec-funnel__bar i {
   }
 }
 
-/* RecNav fold (06, agreed with 08c). From 1100 px every tab shows. Below it
-   the top bar keeps 5 (4 under 820) and Lainnya holds the rest; the phone's
-   bar keeps up to 5 and from 6 on shows 4 plus Lainnya. Lainnya wears the
-   active tab's name when that tab is folded. No script reads the width. */
-.rec-more__act {
-  display: none;
-}
-.appnav__link.rec-more {
+/* RecNav groups: related parts share one menu (Tahapan, Kelola) so the bar stays at five entries.
+   The trigger wears the open part's name colour and underline through data-k and aria-current. */
+.appnav__link.rec-grup {
   background: transparent;
   border: 0;
   cursor: pointer;
-  display: none;
   font-family: inherit;
 }
-.rec-more__menu {
-  min-width: 200px;
+.rec-nav .appnav__link.rec-grup svg {
+  display: inline-block;
+  opacity: 0.7;
 }
-.rec-more__menu .acct__row[aria-current="page"] {
+.rec-grup__menu {
+  min-width: 220px;
+}
+.rec-grup__menu .acct__row[aria-current="page"] {
   color: var(--accent);
   font-weight: 650;
 }
-.appbar__item.rec-more[data-act="bar"] .rec-more__def,
-.appbar__item.rec-more[data-act="bar"] .rec-more__act {
-  display: none;
-}
-.appbar__item.rec-more[data-act="bar"] .rec-more__act {
-  display: inline;
-}
-.appbar__item.rec-more[data-act="bar"] {
-  color: var(--accent);
-}
-/* The measured fold (RecNav): the bar hides what does not fit and Lainnya shows. */
-.rec-nav .appnav__link[data-hide="yes"] {
-  display: none;
-}
-.appnav__link.rec-more[data-more="js"] {
-  display: inline-flex;
-}
-.rec-more[data-act="js"] .rec-more__def {
-  display: none;
-}
-.rec-more[data-act="js"] .rec-more__act {
-  display: inline;
-}
-.appnav__link.rec-more[data-act="js"] {
-  color: var(--text);
-  font-weight: 650;
-}
-.rec-nav__ghost {
+.rec-grup__row {
+  align-items: center;
   display: flex;
-  gap: 2px;
-  left: -9999px;
-  pointer-events: none;
-  position: absolute;
-  top: 0;
-  visibility: hidden;
-  white-space: nowrap;
+  gap: 10px;
 }
-.rec-nav__ghost .appnav__link.rec-more {
-  display: inline-flex;
-}
-@media (max-width: 1599px) {
-  .rec-nav .appnav__link[data-fold="mid"] {
-    display: none;
-  }
-  .appnav__link.rec-more[data-more="mid"] {
-    display: inline-flex;
-  }
-  .rec-more[data-act="mid"] .rec-more__def {
-    display: none;
-  }
-  .rec-more[data-act="mid"] .rec-more__act {
-    display: inline;
-  }
-  .appnav__link.rec-more[data-act="mid"] {
-    color: var(--text);
-    font-weight: 650;
-  }
-}
-@media (min-width: 1100px) {
-  .rec-more__menu .acct__row[data-fold="wide"] {
-    display: none;
-  }
-}
-@media (min-width: 1600px) {
-  .rec-more__menu .acct__row[data-fold="mid"] {
-    display: none;
-  }
-}
-@media (max-width: 1099px) {
-  .rec-nav .appnav__link[data-fold="wide"] {
-    display: none;
-  }
-  .appnav__link.rec-more[data-more="wide"] {
-    display: inline-flex;
-  }
-  .rec-more[data-act="wide"] .rec-more__def {
-    display: none;
-  }
-  .rec-more[data-act="wide"] .rec-more__act {
-    display: inline;
-  }
-  .appnav__link.rec-more[data-act="wide"] {
-    color: var(--text);
-    font-weight: 650;
-  }
-}
-@media (max-width: 819px) {
-  .rec-nav .appnav__link[data-fold="narrow"] {
-    display: none;
-  }
-  .appnav__link.rec-more[data-more] {
-    display: inline-flex;
-  }
-  .rec-more[data-act="narrow"] .rec-more__def {
-    display: none;
-  }
-  .rec-more[data-act="narrow"] .rec-more__act {
-    display: inline;
-  }
-  .appnav__link.rec-more[data-act="narrow"] {
-    color: var(--text);
-    font-weight: 650;
-  }
-}
-@media (min-width: 820px) {
-  .rec-more__menu .acct__row[data-fold="narrow"] {
-    display: none;
-  }
+.appbar__item.rec-grup {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 /* The candidate banner's "what you need to do now": an icon tile beside a question, a title and a hint (mockup rec9-bn). */

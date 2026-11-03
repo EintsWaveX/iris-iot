@@ -821,6 +821,7 @@ function SendDialog({
             <input
               ref={fileRef}
               type="file"
+              aria-label={part.label[lang === "en" ? "en" : "id"]}
               className="tb-file"
               accept={part.ext.join(",")}
               disabled={pct !== null}

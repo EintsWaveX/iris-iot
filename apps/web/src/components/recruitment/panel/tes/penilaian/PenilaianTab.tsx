@@ -9,6 +9,7 @@
 import { useMemo, useState } from "react";
 import Dialog from "../../../../ui/Dialog";
 import Dropdown from "../../../../ui/Dropdown";
+import Pager, { NOUN, usePager } from "../../../../ui/Pager";
 import Pill from "../../../../ui/Pill";
 import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
@@ -103,6 +104,7 @@ function TabelNilai({
       return (x < y ? -1 : x > y ? 1 : a.nim < b.nim ? -1 : 1) * dir;
     });
   }, [rows, q, room, sort]);
+  const pg = usePager(tampil, { id: "nilai", size: 20, reset: [q, room, sort.k, sort.desc] });
 
   const th = (k: SortKey, label: string, num = true) => (
     <th
@@ -164,7 +166,7 @@ function TabelNilai({
               </tr>
             </thead>
             <tbody>
-              {tampil.map((r) => {
+              {pg.rows.map((r) => {
                 const flags = flagText(lang, r);
                 return (
                   <tr key={r.seatId}>
@@ -200,6 +202,7 @@ function TabelNilai({
           </table>
         </div>
       )}
+      <Pager pg={pg} noun={NOUN[lang].peserta} lang={lang} />
     </div>
   );
 }
@@ -244,6 +247,7 @@ function TabelSoal({
         .sort((a, b) => a.pv - b.pv || a.id - b.id),
     [stats, part],
   );
+  const pg = usePager(baris, { id: "nilai-soal", size: 20, reset: [part] });
   return (
     <div className="stack">
       <p className="hint">{t.statsLede}</p>
@@ -273,7 +277,7 @@ function TabelSoal({
               </tr>
             </thead>
             <tbody>
-              {baris.map((s) => (
+              {pg.rows.map((s) => (
                 <tr key={s.id} data-voided={s.voided ? "yes" : "no"}>
                   <td>
                     <span className="stack" style={{ gap: 0 }}>
@@ -324,6 +328,7 @@ function TabelSoal({
           </table>
         </div>
       )}
+      <Pager pg={pg} noun={NOUN[lang].soal} lang={lang} />
     </div>
   );
 }

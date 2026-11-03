@@ -44,7 +44,7 @@ export const PN = dict({
     finalize: "Finalkan Nilai",
     finalizeTitle: "Finalkan Semua Nilai?",
     finalizeBody:
-      "Nilai semua peserta dan statistik soal dibekukan. Papan Cutting memakai angka beku ini. Mengubah kunci dan membatalkan soal baru bisa lagi setelah beku dibuka, dengan catatan.",
+      "Nilai semua peserta dan statistik soal dibekukan. Papan Cutting memakai angka beku ini. Untuk mengubah kunci atau membatalkan soal, buka bekunya dulu dan tulis catatan.",
     finalizeNote: "Catatan (boleh kosong)",
     finalizeGo: "Finalkan",
     unfreeze: "Buka Beku",
@@ -79,7 +79,7 @@ export const PN = dict({
     } as Record<string, string>,
     // stats
     statsLede:
-      "N peserta yang membuka bagian dan mendapat soal ini, M yang benar penuh. p = (M + 1) / (N + 2), bobot w = 2 - p. Soal yang p-nya rendah sekali atau pilihan salahnya jauh lebih ramai dari kunci patut dicek.",
+      "N = peserta yang membuka bagian dan mendapat soal ini, M = yang benar penuh. p = (M + 1) / (N + 2), bobot w = 2 - p. Cek soal yang p-nya rendah sekali, atau yang pilihan salahnya jauh lebih banyak dipilih daripada kunci.",
     part: {
       logika: "Logika",
       fitb: "FITB",
@@ -108,7 +108,7 @@ export const PN = dict({
     unvoid: "Pulihkan",
     voidTitle: "Batalkan Soal Ini?",
     voidBody:
-      "Soal keluar dari penyebut semua peserta: nilai dihitung ulang seolah soal ini tidak pernah dibagikan. Peserta yang menerimanya melihat 'Soal ini dibatalkan'.",
+      "Soal ini tidak dihitung lagi: nilai dihitung ulang seolah soal ini tidak pernah dibagikan. Peserta yang menerimanya melihat 'Soal ini dibatalkan'.",
     unvoidTitle: "Pulihkan Soal Ini?",
     unvoidBody: "Soal masuk lagi ke nilai semua peserta.",
     voidNote: "Catatan audit",
@@ -158,7 +158,7 @@ export const PN = dict({
     sortBy: (c: string) => `Sort by ${c}`,
     flags: {
       absent: "never opened this part",
-      empty: "every question was voided",
+      empty: "every question was withdrawn",
       belum: "waiting for two sheets",
       tanpa: "never reached Live Coding",
       rubrik: "a sheet no longer fits the rubric",
@@ -167,13 +167,13 @@ export const PN = dict({
     finalize: "Finalise Scores",
     finalizeTitle: "Finalise All Scores?",
     finalizeBody:
-      "Every candidate's scores and the question statistics are frozen. The Cutting board reads the frozen numbers. Key fixes and new voids need an unfreeze first, with a note.",
+      "Every candidate's scores and the question statistics are frozen. The Cutting board reads the frozen numbers. To fix a key or withdraw a question, unfreeze first and add a note.",
     finalizeNote: "Note (optional)",
     finalizeGo: "Finalise",
     unfreeze: "Unfreeze",
-    unfreezeTitle: "Unfreeze The Scores?",
+    unfreezeTitle: "Unfreeze the Scores?",
     unfreezeBody:
-      "Scores are computed again from the answers, the keys and the voids as they stand now. Write why it has to be opened.",
+      "Scores are computed again from the answers, the keys and the withdrawn questions as they stand now. Write why it has to be opened.",
     unfreezeNote: "Reason",
     unfreezeGo: "Unfreeze",
     cancel: "Cancel",
@@ -201,7 +201,7 @@ export const PN = dict({
       generic: "That did not work. Try again in a moment.",
     },
     statsLede:
-      "N candidates opened the part and were dealt the question, M answered it fully right. p = (M + 1) / (N + 2), weight w = 2 - p. A very low p, or a wrong option far more popular than the key, deserves a look.",
+      "N = candidates who opened the part and got this question, M = those who got it fully right. p = (M + 1) / (N + 2), weight w = 2 - p. Take a look at a question with a very low p, or a wrong option picked far more often than the key.",
     part: { logika: "Logic", fitb: "FITB", kodingan: "Coding", mikro: "Microcontroller" },
     allParts: "All Parts",
     statsEmpty: "No question has been dealt yet.",
@@ -220,17 +220,17 @@ export const PN = dict({
     wrongCount: (n: number) => `${n} candidates`,
     check: "Check key",
     checkTip: "Many candidates answered and almost all got it wrong.",
-    voided: "Voided",
-    voidIt: "Void Question",
+    voided: "Withdrawn",
+    voidIt: "Withdraw Question",
     unvoid: "Restore",
-    voidTitle: "Void This Question?",
+    voidTitle: "Withdraw This Question?",
     voidBody:
-      "The question leaves every candidate's denominator: scores are recomputed as if it was never dealt. Candidates who got it see 'This question was voided'.",
+      "The question stops counting: scores are recomputed as if it was never dealt. Candidates who got it see 'This question was withdrawn'.",
     unvoidTitle: "Restore This Question?",
     unvoidBody: "The question counts in every candidate's score again.",
     voidNote: "Audit note",
     voidNotePh: "For example: the key for blank 2 is wrong, 'z' is also right.",
-    voidDone: "Question voided",
+    voidDone: "Question withdrawn",
     unvoidDone: "Question restored",
     spreadLede:
       "How many candidates fall in each score range. One bar per range; the table below holds the same numbers.",

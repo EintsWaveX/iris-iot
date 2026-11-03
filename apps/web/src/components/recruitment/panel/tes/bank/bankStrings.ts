@@ -191,8 +191,8 @@ export const BK = dict({
     stepMore: "Tambah",
     /* pictures */
     images: "Gambar",
-    imageAdd: "Unggah Gambar",
-    imageBusy: "Mengunggah",
+    imageAdd: "Upload Gambar",
+    imageBusy: "Mengupload",
     imageAlt: "Teks pengganti (alt)",
     imageRemove: "Hapus gambar",
     imageInsert: "Sisipkan ke Soal",
@@ -200,7 +200,7 @@ export const BK = dict({
     imageMissing: (id: string) => `Soal memakai gambar ${id} yang tidak ada di daftar.`,
     imageKinds: "PNG, JPG, WebP atau SVG",
     imageNotReady: "Penyimpanan gambar belum diatur di server ini.",
-    imageFail: "Gambar belum bisa diunggah.",
+    imageFail: "Gambar belum bisa diupload.",
     imageBig: "Gambarnya terlalu besar. Batasnya 2 MB.",
     imageType: "Jenis berkas ini tidak diterima.",
     /* preview */
@@ -238,7 +238,7 @@ export const BK = dict({
     voidOpen: "Batalkan Soal",
     voidTitle: "Batalkan Soal Ini?",
     voidDesc:
-      "Soal keluar dari nilai semua kursi yang mendapatkannya, di semua malam. Kandidat yang masih mengerjakan melihat Soal ini dibatalkan. Bisa dikembalikan dengan catatan selama nilai belum Final.",
+      "Soal ini tidak dihitung lagi di nilai semua kursi yang mendapatkannya, di semua malam. Kandidat yang masih mengerjakan melihat 'Soal ini dibatalkan'. Bisa dikembalikan dengan catatan selama nilai belum Final.",
     voidHold: "Tahan untuk Membatalkan",
     voidDone: "Soal dibatalkan.",
     voidMissing: "Pembatalan belum aktif di server ini.",
@@ -271,10 +271,10 @@ export const BK = dict({
       perlu_catatan: "Mengubah kunci soal yang sudah tampil butuh catatan.",
       bahasa_salah: "Bagian ini tidak memakai bahasa itu. Cek Pengaturan.",
       sudah_tampil: "Soal yang sudah tampil tidak bisa dihapus. Batalkan saja.",
-      gambar_hilang: "Ada gambar yang belum terunggah.",
+      gambar_hilang: "Ada gambar yang belum terupload.",
       format_salah: "Soalnya belum benar. Cek masalah di sebelah kiri.",
       tidak_ada: "Soal tidak ditemukan.",
-      tanpa_hak: "Kamu tidak punya hak untuk ini.",
+      tanpa_hak: "Kamu belum bisa melakukan ini.",
       terkunci:
         "Pengaturan terkunci sejak ruang asli pertama mulai. Hanya anggaran yang bisa diubah.",
       sudah_ada: "Sudah ada.",
@@ -294,7 +294,7 @@ export const BK = dict({
     importRun: (n: number) => `Impor ${n} Soal`,
     importRunning: "Mengimpor",
     importNone: "Tidak ada soal yang bisa diimpor",
-    importSample: "Unduh Contoh",
+    importSample: "Download Contoh",
     importNote: "Catatan untuk riwayat (boleh kosong)",
     importNoteHelp: "Dipakai bila ada soal yang sudah tampil dan kuncinya berubah.",
     importCols: { n: "#", title: "Judul", action: "Aksi", problems: "Masalah" },
@@ -315,7 +315,7 @@ export const BK = dict({
     /* settings */
     cfgLockTitle: "Terkunci saat ruang asli pertama mulai",
     cfgLockBody:
-      "Semua malam harus punya bentuk tes yang sama. Setelah itu hanya anggaran yang bisa diubah; perubahan per ruang lewat waktu Master.",
+      "Semua malam harus punya bentuk tes yang sama. Setelah itu hanya anggaran yang bisa diubah; perubahan waktu per ruang dilakukan di Master.",
     cfgOpenTitle: "Bentuk tes",
     cfgOpenBody: "Bisa diubah sampai ruang asli pertama mulai. Setelah itu hanya anggaran.",
     cfgPart: "Bagian",
@@ -331,7 +331,7 @@ export const BK = dict({
     cfgLiveBody: "5 soal C dari pool, dinilai otomatis oleh judge",
     cfgBudget: "Anggaran ruang",
     cfgBudgetBody: (n: number) =>
-      `${n} menit kerja. Sisanya untuk masuk, ruang tunggu dan undian. Bukan batas keras; Master melihat peringatannya.`,
+      `${n} menit kerja. Sisanya untuk masuk, ruang tunggu dan undian. Bukan batas ketat; Master melihat peringatannya.`,
     cfgBudgetAria: "Anggaran",
     minutes: (n: number) => `${n} menit`,
     cfgScoreTitle: "Skor dan Live Coding",
@@ -440,7 +440,7 @@ export const BK = dict({
     emptyPart: "This part has no questions yet.",
     emptyBankTitle: "The question bank is empty",
     emptyBankBody:
-      "Install the default questions to start: 45 questions, each one run or compiled before it went in, enough for one room on the standard settings. Every one can be edited or deleted.",
+      "Install the default questions to start: 45 questions, each one tested before it went in, enough for one room on the standard settings. Every one can be edited or deleted.",
     seed: "Install Default Questions",
     seedBusy: "Installing",
     seeded: (n: number, skipped: number) =>
@@ -580,7 +580,7 @@ export const BK = dict({
     voidOpen: "Withdraw Question",
     voidTitle: "Withdraw This Question?",
     voidDesc:
-      "It leaves the score of every seat that drew it, on every evening. Candidates still working see This question was withdrawn. It can be restored with a note while scores aren't final.",
+      "It stops counting toward the score of every seat that drew it, on every evening. Candidates still working see 'This question was withdrawn'. You can restore it with a note while scores aren't final.",
     voidHold: "Hold to Withdraw",
     voidDone: "Question withdrawn.",
     voidMissing: "Withdrawing is not active on this server yet.",
@@ -614,7 +614,7 @@ export const BK = dict({
       gambar_hilang: "A picture has not been uploaded yet.",
       format_salah: "The question is not right yet. Check the problems on the left.",
       tidak_ada: "The question was not found.",
-      tanpa_hak: "You do not have the right for this.",
+      tanpa_hak: "You can't do this.",
       terkunci:
         "Settings are locked since the first real room started. Only the budget can change.",
       sudah_ada: "It is already there.",
@@ -653,7 +653,7 @@ export const BK = dict({
     sampleName: "sample-question-bank.md",
     cfgLockTitle: "Locks when the first real room starts",
     cfgLockBody:
-      "Every evening must have the same test shape. After that only the budget can change; per-room changes go through the Master's time.",
+      "Every evening must have the same test shape. After that only the budget can change; per-room time changes are made in the Master.",
     cfgOpenTitle: "The Shape of the Test",
     cfgOpenBody: "Can change until the first real room starts. After that only the budget.",
     cfgPart: "Part",
@@ -669,7 +669,7 @@ export const BK = dict({
     cfgLiveBody: "5 C problems from the pool, marked by the judge",
     cfgBudget: "Room budget",
     cfgBudgetBody: (n: number) =>
-      `${n} minutes of work. The rest is for check-in, lobbies and the draw. Not a hard cap; the Master sees the warning.`,
+      `${n} minutes of work. The rest is for check-in, lobbies and the draw. Not a strict limit; the Master sees the warning.`,
     cfgBudgetAria: "Budget",
     minutes: (n: number) => `${n} minutes`,
     cfgScoreTitle: "Scores and Live Coding",
@@ -684,7 +684,7 @@ export const BK = dict({
     cfgDrawMedium: "Medium problems per seat",
     cfgRunLimit: "Sends allowed per problem",
     cfgRunLimitNone: "No limit",
-    cfgWorkers: "Judge runs at once",
+    cfgWorkers: "Judge runs in parallel",
     cfgScoreSum: (live: number, hand: number) =>
       `Live Coding share is ${live} points, the dealt problems add up to ${hand}.`,
     cfgScoreOk: "It matches.",

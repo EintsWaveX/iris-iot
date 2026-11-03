@@ -11,20 +11,23 @@
  * panel and the account chip's avatar, but none of its polling: no Konsol,
  * session or TP calls, no session mini bar.
  *
- * Sections follow who is looking. A Panitia member gets the panel's parts
- * (Ringkasan, Kalender, Kandidat with the right to see candidates, Panitia);
- * another Asisten gets the calendar; a candidate, a Praktikan and a visitor
- * get the recruitment page with its calendar.
+ * Sections follow who is looking. A Panitia member gets five entries:
+ * Ringkasan, Kalender, Kandidat, and two menus that group the rest, Tahapan
+ * (Cutting, Plotting, Tes Tulis, Wawancara, Tubes, Mengajar, Penerimaan) and
+ * Kelola (Bank Soal, Panitia). Another Asisten gets the calendar and Tahapan;
+ * a candidate, a Praktikan and a visitor get the recruitment page with its
+ * calendar. Signing out lands on the real Home.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   CalendarBlankIcon,
   CaretDownIcon,
   ClipboardTextIcon,
   DoorOpenIcon,
-  DotsThreeIcon,
   FileTextIcon,
+  FlagBannerIcon,
+  GearSixIcon,
   CpuIcon,
   GraduationCapIcon,
   ListChecksIcon,
@@ -70,7 +73,6 @@ import { REC } from "./recruitmentStrings";
 import "../shell/AppNav.css";
 import "./recruitment.css";
 import "./recruitment-shell.css";
-import { AREA } from "./panel/areas";
 
 type Ikon = ComponentType<IconProps>;
 
@@ -83,105 +85,63 @@ interface Bagian {
   n?: number;
   /** Opens a panel part in place when the panel is already on screen */
   tab?: PanelTab;
-  /** Where the fold puts it: "wide" below 1100, "narrow" below 820 (set from its place in the list) */
-  fold?: "mid" | "wide" | "narrow";
 }
 
 /**
- * The fold (06, agreed with 08c): from 1100 px every tab shows. Below that the
- * top bar keeps 5 (4 under 820) and the rest go into Lainnya; the phone's
- * bottom bar keeps all of them up to 5 and from 6 on shows 4 plus Lainnya.
- * The first paint is CSS on data attributes. Once mounted, the top bar is
- * measured instead: it shows as many tabs as fit beside the display button and
- * the account (label widths differ per language and per who is looking), and
- * Lainnya holds the rest, least used first (FOLD_ORDER). When the active tab is
- * folded, Lainnya wears its name.
- * Later prompts only append to `links`.
+ * Related parts share one menu so the bar stays short: Tahapan holds the
+ * selection stages, Kelola holds what the committee sets up. A group with a
+ * single part is shown as that part, never as a one-item menu.
  */
-const KEEP_WIDE = 5;
-const KEEP_NARROW = 4;
-/** A long bar (more than eight parts) folds the rest into Lainnya below 1400 too */
-const KEEP_MID = 8;
+interface Grup {
+  key: string;
+  label: string;
+  icon: Ikon;
+  children: Bagian[];
+}
 
-/**
- * When the bar is too narrow the least used tabs fold into Lainnya first
- * (the mockup's FOLD): Bank Soal, Panitia, Kalender, then the latest stages,
- * so Wawancara, Mengajar and Penerimaan stay one click away.
- */
-const FOLD_ORDER = [
-  "bank",
-  "panitia",
-  "kalender",
-  "penerimaan",
-  "mengajar",
-  "tubes",
-  "wawancara",
-  "tes",
-  "plotting",
-  "cutting",
-  "kandidat",
-  "ringkasan",
-];
+type Butir = Bagian | Grup;
 
-/** Folded first on a long bar below 1680 px, in the mockup's order (its FOLD list); Lainnya lists them in this order. */
-const RAPI = ["bank", "panitia", "kalender", "penerimaan", "mengajar"];
+const isGrup = (b: Butir): b is Grup => "children" in b;
 
-const useLayoutAman = typeof window === "undefined" ? useEffect : useLayoutEffect;
-
-function Lainnya({
-  rest,
-  label,
-  active,
+function GrupMenu({
+  grup,
+  aktif,
   side,
   variant,
-  more,
-  act,
   onGo,
-  aktif,
-  tc,
 }: {
-  rest: Bagian[];
-  label: string;
-  active: Bagian | undefined;
+  grup: Grup;
+  aktif: string;
   side: "top" | "bottom";
   variant: "top" | "bar";
-  /** Top bar: when the button shows ("wide": below 1100, "narrow": below 820) */
-  more?: "mid" | "wide" | "narrow" | "js";
-  /** When the active tab is inside, and so the label is its name */
-  act?: "mid" | "wide" | "narrow" | "bar" | "js";
   onGo: (e: React.MouseEvent, l: Bagian) => void;
-  aktif: string;
-  /** The open tab's area colour, worn by the button while the tab is folded into it */
-  tc?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const dalam = grup.children.find((c) => c.key === aktif);
+  const n = grup.children.reduce((a, c) => a + (c.n ?? 0), 0);
+  const badge = n ? <span className="rec-nav__n">{n}</span> : null;
   return (
     <RadixPopover.Root open={open} onOpenChange={setOpen}>
       <RadixPopover.Trigger asChild>
         <button
           type="button"
-          className={variant === "bar" ? "appbar__item rec-more" : "appnav__link rec-more"}
-          data-more={more}
-          data-act={act}
+          className={variant === "bar" ? "appbar__item rec-grup" : "appnav__link rec-grup"}
+          data-k={dalam?.key}
+          aria-current={dalam ? "page" : undefined}
           aria-haspopup="menu"
-          style={act && tc ? ({ "--tc": tc } as React.CSSProperties) : undefined}
         >
           {variant === "bar" ? (
             <>
               <span className="appbar__icon">
-                <DotsThreeIcon size={21} weight="bold" aria-hidden="true" />
+                <grup.icon size={21} aria-hidden="true" />
+                {badge}
               </span>
-              <span className="appbar__label">
-                <span className="rec-more__def">{label}</span>
-                <span className="rec-more__act">{active?.label}</span>
-              </span>
+              <span className="appbar__label">{grup.label}</span>
             </>
           ) : (
             <>
-              <span>
-                <span className="rec-more__def">{label}</span>
-                <span className="rec-more__act">{active?.label}</span>
-              </span>
+              <span>{grup.label}</span>
+              {badge}
               <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
             </>
           )}
@@ -189,26 +149,29 @@ function Lainnya({
       </RadixPopover.Trigger>
       <RadixPopover.Portal>
         <RadixPopover.Content
-          className="appnav__menu rec-more__menu sweep-edge"
+          className="appnav__menu rec-grup__menu sweep-edge"
           side={side}
-          align="end"
+          align={variant === "bar" ? "center" : "start"}
           sideOffset={10}
           collisionPadding={12}
         >
           <div className="acct">
-            {rest.map((l) => (
+            {grup.children.map((l) => (
               <a
                 key={l.key}
                 className="acct__row"
                 href={l.href}
                 aria-current={l.key === aktif ? "page" : undefined}
-                data-fold={l.fold}
                 onClick={(e) => {
                   onGo(e, l);
                   setOpen(false);
                 }}
               >
-                <span>{l.label}</span>
+                <span className="rec-grup__row">
+                  <l.icon size={20} aria-hidden="true" />
+                  <span>{l.label}</span>
+                  {l.n ? <span className="rec-nav__n">{l.n}</span> : null}
+                </span>
               </a>
             ))}
           </div>
@@ -254,74 +217,48 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
   const bagian = useBagian();
   const aktif = onPanel ? (bagian ?? (panitia ? "ringkasan" : "kalender")) : "rekrutmen";
 
-  const links = useMemo<Bagian[]>(() => {
+  const items = useMemo<Butir[]>(() => {
+    const tab = (k: PanelTab, label: string, icon: Ikon, n?: number): Bagian => ({
+      key: k,
+      label,
+      icon,
+      n,
+      tab: k,
+      href: alamatBagian(prefix, k),
+    });
+    const grup = (key: string, label: string, icon: Ikon, children: Bagian[]): Butir[] =>
+      children.length > 1 ? [{ key, label, icon, children }] : children;
     if (panitia) {
-      const tab = (k: PanelTab, label: string, icon: Ikon, n?: number): Bagian => ({
-        key: k,
-        label,
-        icon,
-        n,
-        tab: k,
-        href: alamatBagian(prefix, k),
-      });
       return [
         tab("ringkasan", t.ringkasan, ClipboardTextIcon),
         tab("kalender", t.kalender, CalendarBlankIcon),
         ...(rights?.candidates ? [tab("kandidat", t.kandidat, ListChecksIcon, nKandidat)] : []),
-        ...(rights?.cuttingPropose ? [tab("cutting", t.cutting, ScissorsIcon)] : []),
-        ...(rights?.plotting
-          ? [tab("plotting", t.plotting, MapPinIcon, edisi.data?.plotRequests || undefined)]
-          : []),
-        ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
-        ...(rights?.bank ? [tab("bank", t.bank, FileTextIcon)] : []),
-        tab("wawancara", t.wawancara, ChatsCircleIcon),
-        tab("tubes", t.tubes, CpuIcon),
-        tab("mengajar", t.mengajar, GraduationCapIcon),
-        tab("penerimaan", t.penerimaan, SealCheckIcon),
-        tab("panitia", t.panitia, UsersThreeIcon),
+        ...grup("tahapan", t.tahapan, FlagBannerIcon, [
+          ...(rights?.cuttingPropose ? [tab("cutting", t.cutting, ScissorsIcon)] : []),
+          ...(rights?.plotting
+            ? [tab("plotting", t.plotting, MapPinIcon, edisi.data?.plotRequests || undefined)]
+            : []),
+          ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
+          tab("wawancara", t.wawancara, ChatsCircleIcon),
+          tab("tubes", t.tubes, CpuIcon),
+          tab("mengajar", t.mengajar, GraduationCapIcon),
+          tab("penerimaan", t.penerimaan, SealCheckIcon),
+        ]),
+        ...grup("kelola", t.kelola, GearSixIcon, [
+          ...(rights?.bank ? [tab("bank", t.bank, FileTextIcon)] : []),
+          tab("panitia", t.panitia, UsersThreeIcon),
+        ]),
       ];
     }
     if (asisten) {
       return [
-        {
-          key: "kalender",
-          label: t.kalender,
-          icon: CalendarBlankIcon,
-          tab: "kalender",
-          href: alamatBagian(prefix, "kalender"),
-        },
-        {
-          key: "wawancara",
-          label: t.wawancara,
-          icon: ChatsCircleIcon,
-          tab: "wawancara" as const,
-          href: alamatBagian(prefix, "wawancara"),
-        },
-        {
-          key: "tubes",
-          label: t.tubes,
-          icon: CpuIcon,
-          tab: "tubes" as const,
-          href: alamatBagian(prefix, "tubes"),
-        },
-        {
-          key: "mengajar",
-          label: t.mengajar,
-          icon: GraduationCapIcon,
-          tab: "mengajar" as const,
-          href: alamatBagian(prefix, "mengajar"),
-        },
-        ...(adaRuang
-          ? [
-              {
-                key: "tes",
-                label: t.tes,
-                icon: TimerIcon,
-                tab: "tes" as const,
-                href: alamatBagian(prefix, "tes"),
-              },
-            ]
-          : []),
+        tab("kalender", t.kalender, CalendarBlankIcon),
+        ...grup("tahapan", t.tahapan, FlagBannerIcon, [
+          ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
+          tab("wawancara", t.wawancara, ChatsCircleIcon),
+          tab("tubes", t.tubes, CpuIcon),
+          tab("mengajar", t.mengajar, GraduationCapIcon),
+        ]),
       ];
     }
     return [
@@ -347,87 +284,6 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
     t,
   ]);
 
-  const n = links.length;
-  const lipat = useMemo<Bagian[]>(
-    () =>
-      links.map((l, i) => ({
-        ...l,
-        fold:
-          i >= KEEP_MID
-            ? "mid"
-            : i >= KEEP_WIDE
-              ? "wide"
-              : i === KEEP_NARROW
-                ? "narrow"
-                : undefined,
-      })),
-    [links],
-  );
-  const iAktif = lipat.findIndex((l) => l.key === aktif);
-  const moreTop =
-    n > KEEP_MID ? "mid" : n > KEEP_WIDE ? "wide" : n > KEEP_NARROW ? "narrow" : undefined;
-  const actTop =
-    iAktif >= KEEP_MID
-      ? "mid"
-      : iAktif >= KEEP_WIDE
-        ? "wide"
-        : iAktif === KEEP_NARROW
-          ? "narrow"
-          : undefined;
-  // The phone's bar: everything up to 5, from 6 on four and Lainnya.
-  const barKeep = n > KEEP_WIDE ? KEEP_NARROW : n;
-  // Which top-bar tabs are folded into Lainnya (null until measured: the CSS fold stands in).
-  const navRef = useRef<HTMLElement>(null);
-  const ghostRef = useRef<HTMLDivElement>(null);
-  const [hide, setHide] = useState<string[] | null>(null);
-  useLayoutAman(() => {
-    const nav = navRef.current;
-    const ghost = ghostRef.current;
-    if (!nav || !ghost) return;
-    const GAP = 2;
-    const calc = () => {
-      const avail = nav.clientWidth;
-      // Hidden (the phone shows the bottom bar instead): nothing to measure.
-      if (!avail) return;
-      const ws = new Map(
-        Array.from(ghost.querySelectorAll<HTMLElement>('[data-g="l"]')).map(
-          (e) => [e.dataset.k ?? "", e.offsetWidth] as const,
-        ),
-      );
-      const more = ghost.querySelector<HTMLElement>('[data-g="m"]')?.offsetWidth ?? 96;
-      const width = (gone: string[]) =>
-        [...ws].reduce((a, [k, w]) => (gone.includes(k) ? a : a + w + GAP), 0) - GAP;
-      // The mockup's bar keeps 9 tabs from 1440 to 1679 px and 7 from 1100 to 1439, folding the least used first
-      // (Bank Soal, Panitia, Kalender, then Penerimaan and Mengajar) even when everything would fit.
-      const cap = window.innerWidth < 1440 ? 7 : 9;
-      const rapi =
-        ws.size >= 10 && window.innerWidth < 1680
-          ? RAPI.filter((k) => ws.has(k)).slice(0, Math.max(0, ws.size - cap))
-          : [];
-      if (!rapi.length && width([]) <= avail) return void setHide((h) => (h && !h.length ? h : []));
-      // Fold in the order of FOLD_ORDER until the rest and Lainnya fit.
-      const gone: string[] = [...rapi];
-      if (gone.length && width(gone) + GAP + more <= avail)
-        return void setHide((h) => (h && h.join() === gone.join() ? h : gone));
-      for (const k of [...FOLD_ORDER, ...ws.keys()]) {
-        if (!ws.has(k) || gone.includes(k)) continue;
-        gone.push(k);
-        if (width(gone) + GAP + more <= avail) break;
-      }
-      setHide((h) => (h && h.join() === gone.join() ? h : gone));
-    };
-    calc();
-    const ro = new ResizeObserver(calc);
-    ro.observe(nav);
-    void document.fonts?.ready.then(calc);
-    return () => ro.disconnect();
-  }, [lipat, lang]);
-  const folded = hide ?? null;
-  // What Lainnya holds: the folded tabs in the order they fold (the mockup's), or the CSS fold's tail.
-  const rest = folded
-    ? folded.map((k) => lipat.find((l) => l.key === k)).filter((l): l is Bagian => !!l)
-    : lipat.slice(KEEP_NARROW);
-  const aktifDalam = folded ? folded.includes(aktif) : false;
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 4);
@@ -466,7 +322,8 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
       else await recPost("account-signout");
     } finally {
       meChanged();
-      location.assign(href(lang, "/recruitment"));
+      // Signed out of oprec mode: back to the real Home, not the recruitment page.
+      location.assign(href(lang, "/"));
     }
   }
 
@@ -525,58 +382,32 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           <img src="/brand/iris-logo-mark.png" alt="" width="198" height="90" />
         </a>
 
-        <nav className="appnav__links" aria-label={t.main} ref={navRef}>
-          {lipat.map((l) => (
-            <a
-              key={l.key}
-              className="appnav__link"
-              href={l.href}
-              data-k={l.key}
-              data-fold={folded === null ? l.fold : undefined}
-              data-hide={folded?.includes(l.key) ? "yes" : undefined}
-              aria-current={aktifLink(l)}
-              onClick={(e) => go(e, l)}
-            >
-              <span>{l.label}</span>
-              {l.n ? <span className="rec-nav__n">{l.n}</span> : null}
-            </a>
-          ))}
-          {(folded === null ? moreTop : folded.length ? "js" : undefined) && (
-            <Lainnya
-              rest={rest}
-              label={t.more}
-              active={
-                (folded === null ? actTop : aktifDalam ? "js" : undefined)
-                  ? lipat[iAktif]
-                  : undefined
-              }
-              side="bottom"
-              variant="top"
-              more={folded === null ? moreTop : "js"}
-              act={folded === null ? actTop : aktifDalam ? "js" : undefined}
-              onGo={go}
-              aktif={aktif}
-              tc={AREA[aktif as PanelTab]?.c}
-            />
+        <nav className="appnav__links" aria-label={t.main}>
+          {items.map((it) =>
+            isGrup(it) ? (
+              <GrupMenu
+                key={it.key}
+                grup={it}
+                aktif={aktif}
+                side="bottom"
+                variant="top"
+                onGo={go}
+              />
+            ) : (
+              <a
+                key={it.key}
+                className="appnav__link"
+                href={it.href}
+                data-k={it.key}
+                aria-current={aktifLink(it)}
+                onClick={(e) => go(e, it)}
+              >
+                <span>{it.label}</span>
+                {it.n ? <span className="rec-nav__n">{it.n}</span> : null}
+              </a>
+            ),
           )}
         </nav>
-
-        {/* Off screen: the width of every tab and of Lainnya, so the bar can tell how many fit. */}
-        <div className="rec-nav__ghost" aria-hidden="true" ref={ghostRef}>
-          {lipat.map((l) => (
-            <span key={l.key} className="appnav__link" data-g="l" data-k={l.key}>
-              <span>{l.label}</span>
-              {l.n ? <span className="rec-nav__n">{l.n}</span> : null}
-            </span>
-          ))}
-          <span className="appnav__link rec-more" data-g="m">
-            <span>
-              {[t.more, ...lipat.map((l) => l.label)].reduce((a, b) =>
-                b.length > a.length ? b : a,
-              )}
-            </span>
-          </span>
-        </div>
 
         {tamu && (
           <div className="appnav__center">
@@ -669,32 +500,24 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
       </AlertRail>
 
       <nav className="appbar" aria-label={t.main}>
-        {links.slice(0, barKeep).map((l) => (
-          <a
-            key={l.key}
-            className="appbar__item"
-            href={l.href}
-            aria-current={aktifLink(l)}
-            onClick={(e) => go(e, l)}
-          >
-            <span className="appbar__icon">
-              <l.icon size={21} aria-hidden="true" />
-              {l.n ? <span className="rec-nav__n">{l.n}</span> : null}
-            </span>
-            <span className="appbar__label">{l.label}</span>
-          </a>
-        ))}
-        {n > barKeep && (
-          <Lainnya
-            rest={lipat.slice(barKeep)}
-            label={t.more}
-            active={iAktif >= barKeep ? lipat[iAktif] : undefined}
-            side="top"
-            variant="bar"
-            act={iAktif >= barKeep ? "bar" : undefined}
-            onGo={go}
-            aktif={aktif}
-          />
+        {items.map((it) =>
+          isGrup(it) ? (
+            <GrupMenu key={it.key} grup={it} aktif={aktif} side="top" variant="bar" onGo={go} />
+          ) : (
+            <a
+              key={it.key}
+              className="appbar__item"
+              href={it.href}
+              aria-current={aktifLink(it)}
+              onClick={(e) => go(e, it)}
+            >
+              <span className="appbar__icon">
+                <it.icon size={21} aria-hidden="true" />
+                {it.n ? <span className="rec-nav__n">{it.n}</span> : null}
+              </span>
+              <span className="appbar__label">{it.label}</span>
+            </a>
+          ),
         )}
       </nav>
 

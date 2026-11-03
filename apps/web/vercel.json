@@ -41,6 +41,16 @@
       "source": "/dashboard/server",
       "destination": "/servers",
       "permanent": true
+    },
+    {
+      "source": "/zh",
+      "destination": "/en",
+      "permanent": false
+    },
+    {
+      "source": "/zh/:path*",
+      "destination": "/en/:path*",
+      "permanent": false
     }
   ],
   "rewrites": [

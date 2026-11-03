@@ -16,6 +16,10 @@ export type Kelas = (typeof KELAS)[number];
 export type Lang = "id" | "en" | "zh";
 export const LANGS: readonly Lang[] = ["id", "en", "zh"];
 
+/** Mandarin is not offered yet (not supported for readers abroad): the picker hides it, a saved "zh"
+ *  choice falls back to English and /zh/ redirects to /en/ (vercel.json). Flip to true to bring it back. */
+export const ZH_ENABLED = false;
+
 /** The language content exists in (modules, handbook, sketches, journals). */
 export type BahasaKonten = "id" | "en";
 
@@ -50,6 +54,7 @@ export function langForKelas(kelas: Kelas | null | undefined): Lang {
  * from the cookie or localStorage, so anything malformed is ignored.
  */
 export function resolveLang(pref: unknown, kelas: Kelas | null | undefined): Lang {
+  if (pref === "zh" && !ZH_ENABLED) return "en";
   if (isLang(pref)) return pref;
   return langForKelas(kelas);
 }

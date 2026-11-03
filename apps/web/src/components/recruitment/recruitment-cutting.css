@@ -74,7 +74,7 @@
   color: var(--n7-ok);
 }
 .n7-cutrow {
-  align-items: stretch;
+  align-items: start;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
@@ -408,6 +408,13 @@
   box-shadow: var(--glow-ring);
   outline: none;
 }
+@media (pointer: coarse) {
+  .cwd-open {
+    align-items: center;
+    display: inline-flex;
+    min-height: 32px;
+  }
+}
 .n7-crow--open {
   cursor: pointer;
 }
@@ -615,4 +622,11 @@
 }
 .cwd__why li::marker {
   color: var(--accent);
+}
+/* The rail label sits on the left above the rail on a phone, not alone on the right. */
+@media (max-width: 700px) {
+  .n7-railhead {
+    flex: 1 1 100%;
+    margin-bottom: -4px;
+  }
 }

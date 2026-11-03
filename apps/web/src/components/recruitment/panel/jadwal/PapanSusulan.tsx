@@ -6,6 +6,7 @@
  * Tempatkan (a seat on the Susulan day, a move like any other in Plotting).
  * The standing of every row comes from the server (src/lib/recruitment/makeup.ts).
  */
+import { NOUN, Paged } from "../../../ui/Pager";
 import { useState } from "react";
 import Confirm from "../../../ui/Confirm";
 import Dialog from "../../../ui/Dialog";
@@ -341,37 +342,41 @@ export default function PapanSusulan({
           <span className="hint">{w.emptyHint}</span>
         </div>
       ) : (
-        <ul className="msus__l">
-          {d.rows.map((r) => {
-            const why = r.why ? (w.why[r.why] ?? r.why) : "";
-            const t = trail(r, d, lang);
-            return (
-              <li key={r.id} className="msus__r" data-st={r.state}>
-                <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <b>{r.nama}</b>
-                  <span className="hint">
-                    {[
-                      r.state !== "ditempatkan" && r.room && r.startsAt
-                        ? w.absentIn(r.room, tgl(wib(r.startsAt).tanggal, lang).split(",")[0])
-                        : "",
-                      why,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                  {t && <span className="hint">{t}</span>}
-                  {r.state === "ditempatkan" && r.room && r.startsAt && (
-                    <span className="hint">{`${r.room} · ${whenOf(r.startsAt, lang)}`}</span>
-                  )}
-                </span>
-                <Pill tone={TONE[r.state]}>{m.state[r.state]}</Pill>
-                <span className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                  {actions(r)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <Paged items={d.rows} id="susulan" size={10} noun={NOUN[lang].baris} lang={lang}>
+          {(rowsP) => (
+            <ul className="msus__l">
+              {rowsP.map((r) => {
+                const why = r.why ? (w.why[r.why] ?? r.why) : "";
+                const t = trail(r, d, lang);
+                return (
+                  <li key={r.id} className="msus__r" data-st={r.state}>
+                    <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+                      <b>{r.nama}</b>
+                      <span className="hint">
+                        {[
+                          r.state !== "ditempatkan" && r.room && r.startsAt
+                            ? w.absentIn(r.room, tgl(wib(r.startsAt).tanggal, lang).split(",")[0])
+                            : "",
+                          why,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                      {t && <span className="hint">{t}</span>}
+                      {r.state === "ditempatkan" && r.room && r.startsAt && (
+                        <span className="hint">{`${r.room} · ${whenOf(r.startsAt, lang)}`}</span>
+                      )}
+                    </span>
+                    <Pill tone={TONE[r.state]}>{m.state[r.state]}</Pill>
+                    <span className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                      {actions(r)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Paged>
       )}
       {dlg && (
         <AnswerDialog

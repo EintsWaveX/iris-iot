@@ -76,14 +76,14 @@ export const PN = dict<PnWords>({
     tabMine: "Lembarku",
     stage: {
       mengajar: {
-        hint: "Satu kandidat, satu panel, satu dokumen. Skor tiap lembar dari 100, dari tingkat 1 sampai 5 di tiap baris rubrik. Nilai Mengajar kandidat adalah rata-rata lembarnya; Cutting membacanya bersama Wawancara dan Tubes.",
+        hint: "Satu lembar untuk satu kandidat, diisi satu panel. Tiap lembar bernilai 100, dihitung dari tingkat 1 sampai 5 di tiap baris rubrik. Nilai Mengajar adalah rata-rata semua lembarnya. Cutting memakainya bersama nilai Wawancara dan Tubes.",
         absent: "tidak hadir, Susulan",
         sortLast: "Giliran",
         ctx: "Wawancara · Tubes",
         ctxTip: "Rata-rata Wawancara dan nilai Tubes, hanya konteks",
       },
       tubes: {
-        hint: "Satu kandidat, satu pasang penguji, satu dokumen. Skor tiap lembar dari 100, dari tingkat 1 sampai 5 di tiap baris rubrik (usulan). Nilai Presentasi kandidat adalah rata-rata lembarnya; Cutting membacanya bersama kelengkapan pengumpulan dan kehadiran.",
+        hint: "Satu lembar untuk satu kandidat, diisi sepasang penguji. Tiap lembar bernilai 100, dihitung dari tingkat 1 sampai 5 di tiap baris rubrik. Nilai Presentasi adalah rata-rata semua lembarnya. Cutting memakainya bersama kelengkapan pengumpulan dan kehadiran.",
         absent: "tidak hadir, ditawari Susulan",
         sortLast: "Nama",
         ctx: null,
@@ -101,7 +101,7 @@ export const PN = dict<PnWords>({
       ragu: "Ragu-ragu",
       waiting: "menunggu lembar",
       absent: "tidak hadir, ditawari Susulan",
-      hint: "Satu CaAs, satu pasangan pewawancara, satu dokumen. Skor tiap lembar dari 100, dari tingkat 1 sampai 5 di kelima parameter (usulan). Nilai Wawancara kandidat adalah rata-rata lembarnya; Cutting membacanya bersama total Tes Tulis.",
+      hint: "Satu lembar untuk satu CaAs, diisi sepasang pewawancara. Tiap lembar bernilai 100, dihitung dari tingkat 1 sampai 5 di lima parameter. Nilai Wawancara adalah rata-rata semua lembarnya. Cutting memakainya bersama total Tes Tulis.",
     },
     search: "Cari nama",
     searchAria: "Cari kandidat",
@@ -121,7 +121,7 @@ export const PN = dict<PnWords>({
     cols: {
       cand: "Kandidat",
       sheets: "Lembar per penguji",
-      mean: "Rata rata",
+      mean: "Rata-rata",
       spread: "Sebaran, 0 sampai 100",
       gap: "Selisih",
       verdict: "Keputusan",
@@ -152,7 +152,7 @@ export const PN = dict<PnWords>({
     },
     mine: {
       title: "Kamu melihat lembarmu sendiri",
-      body: "Rata rata, sebaran, dan tingkat pewawancara lain terbuka untuk Ketua, Akademik dan Admin. Panitia lain melihat rata-ratanya di Cutting.",
+      body: "Rata-rata, sebaran, dan tingkat pewawancara lain terbuka untuk Ketua, Akademik dan Admin. Panitia lain melihat rata-ratanya di Cutting.",
       cols: {
         cand: "Kandidat",
         slot: "Slot",
@@ -169,14 +169,14 @@ export const PN = dict<PnWords>({
     tabMine: "My Sheets",
     stage: {
       mengajar: {
-        hint: "One candidate, one panel, one document. Each sheet scores out of 100 from the 1 to 5 levels on each rubric row. A candidate's Teaching score is the average of their sheets; Cutting reads it beside the Interview and Tubes.",
+        hint: "One sheet per candidate, filled in by one panel. Each sheet is scored out of 100 from the 1 to 5 levels on each rubric row. The Teaching score is the average of all their sheets. Cutting uses it together with the Interview and Tubes scores.",
         absent: "absent, makeup",
         sortLast: "Turn",
         ctx: "Interview · Tubes",
-        ctxTip: "Interview average and Project score, for context only",
+        ctxTip: "Interview average and Tubes score, for context only",
       },
       tubes: {
-        hint: "One candidate, one pair of examiners, one document. Each sheet scores out of 100 from the 1 to 5 levels on each rubric row (a proposal). A candidate's Presentation score is the average of their sheets; Cutting reads it beside completeness of submission and attendance.",
+        hint: "One sheet per candidate, filled in by a pair of examiners. Each sheet is scored out of 100 from the 1 to 5 levels on each rubric row. The Presentation score is the average of all their sheets. Cutting uses it together with submission completeness and attendance.",
         absent: "absent, offered the makeup",
         sortLast: "Name",
         ctx: null,
@@ -194,7 +194,7 @@ export const PN = dict<PnWords>({
       ragu: "Undecided",
       waiting: "waiting for a sheet",
       absent: "absent, offered the makeup",
-      hint: "One CaAs, one pair of interviewers, one document. Each sheet scores out of 100 from the 1 to 5 levels on the five parameters (a proposal). A candidate's Interview score is the average of their sheets; Cutting reads it beside the Written Test total.",
+      hint: "One sheet per CaAs, filled in by a pair of interviewers. Each sheet is scored out of 100 from the 1 to 5 levels on the five parameters. The Interview score is the average of all their sheets. Cutting uses it together with the Written Test total.",
     },
     search: "Search name",
     searchAria: "Search candidates",

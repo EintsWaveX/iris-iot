@@ -5,6 +5,7 @@
  * tick a member present by hand (the QR is the normal way, on the evening
  * the team picked). Everything is live on the `rectubes` topic.
  */
+import { NOUN, Paged } from "../../ui/Pager";
 import { useState } from "react";
 import {
   ClockCountdownIcon,
@@ -631,20 +632,24 @@ export default function TimSection({ c }: { c: PanelCtx }) {
       {b.teams.length === 0 ? (
         <p className="hint">{w.noTeamYet}</p>
       ) : (
-        <div className="tp-grid">
-          {b.teams.map((t) => (
-            <TeamCard
-              key={t.id}
-              c={c}
-              t={t}
-              onName={() => setName(t)}
-              onAdd={() => setAdd(t)}
-              onMove={() => setMove(t)}
-              onDisband={() => setOff(t)}
-              onTick={setTick}
-            />
-          ))}
-        </div>
+        <Paged items={b.teams} id="tubes-tim" size={10} noun={NOUN[c.lang].tim} lang={c.lang}>
+          {(rowsP) => (
+            <div className="tp-grid">
+              {rowsP.map((t) => (
+                <TeamCard
+                  key={t.id}
+                  c={c}
+                  t={t}
+                  onName={() => setName(t)}
+                  onAdd={() => setAdd(t)}
+                  onMove={() => setMove(t)}
+                  onDisband={() => setOff(t)}
+                  onTick={setTick}
+                />
+              ))}
+            </div>
+          )}
+        </Paged>
       )}
 
       {free.length > 0 && (

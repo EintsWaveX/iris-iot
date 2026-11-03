@@ -147,7 +147,7 @@ export const M6 = dict<M6Words>({
     quick: [
       "Clear explanation",
       "A fitting example",
-      "Asked back",
+      "Asked a follow-up",
       "Too fast",
       "Nervous",
       "Ran out of time",
@@ -167,7 +167,7 @@ export const M6 = dict<M6Words>({
     verdictHint: (m) => `Decided together with ${m}. Undecided goes to the Pleno before Cutting.`,
     baChips: [
       "No name tag",
-      "Late within the grace",
+      "Late, within the grace period",
       "Projector failed, clock stopped",
       "Time ran out, stopped",
     ],

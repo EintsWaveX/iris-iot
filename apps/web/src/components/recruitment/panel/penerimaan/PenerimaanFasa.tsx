@@ -3,6 +3,7 @@
  * (a hero, the people who were created, the audit log and what comes next), then closing the edition (the retention
  * clock, how it closes, what turns read-only and what happens to the data).
  */
+import { NOUN, Paged } from "../../../ui/Pager";
 import {
   ArrowsClockwiseIcon,
   CheckIcon,
@@ -49,6 +50,7 @@ type Words = {
   audit: {
     title: string;
     entries: (n: number) => string;
+    run: string;
     skipOnly: (n: number) => string;
     made: (n: number, m: number) => string;
     again: string;
@@ -122,7 +124,7 @@ const W: Record<Lang, Words> = {
       again: "Sudah dilakukan",
       created: (n) => `${n} Asisten baru dibuat`,
       byAgain: (by, at, n) =>
-        `Dijalankan ${by} pada ${at}. Percobaan berikutnya melewati ${n} orang yang sudah ada dan tidak membuat siapa pun dua kali.`,
+        `Dijalankan oleh ${by} pada ${at}. Kalau dijalankan lagi, ${n} orang yang sudah ada dilewati.`,
       by: (by, at, reveal) => `Oleh ${by} pada ${at}. Amplop mereka terbuka ${reveal}.`,
       celebrate: "Putar Perayaan",
       toClose: "Lanjut Tutup Edisi",
@@ -138,6 +140,7 @@ const W: Record<Lang, Words> = {
     },
     audit: {
       title: "Catatan Audit",
+      run: "Jadikan Asisten dijalankan",
       entries: (n) => `${n} entri`,
       skipOnly: (n) => `0 dibuat, ${n} dilewati karena sudah ada`,
       made: (n, m) => `${n} dibuat, ${m} dilewati`,
@@ -241,7 +244,7 @@ const W: Record<Lang, Words> = {
       again: "Already done",
       created: (n) => `${n} new Asisten created`,
       byAgain: (by, at, n) =>
-        `Run by ${by} on ${at}. The later attempt skipped the ${n} who already exist and created nobody twice.`,
+        `Run by ${by} on ${at}. If it runs again, the ${n} who already exist are skipped.`,
       by: (by, at, reveal) => `By ${by} on ${at}. Their envelopes open ${reveal}.`,
       celebrate: "Play the Celebration",
       toClose: "Continue to Close",
@@ -257,6 +260,7 @@ const W: Record<Lang, Words> = {
     },
     audit: {
       title: "Audit Log",
+      run: "Make Them Asisten run",
       entries: (n) => `${n} ${n === 1 ? "entry" : "entries"}`,
       skipOnly: (n) => `0 created, ${n} skipped because they exist`,
       made: (n, m) => `${n} created, ${m} skipped`,
@@ -381,6 +385,7 @@ const W: Record<Lang, Words> = {
     },
     audit: {
       title: "审计记录",
+      run: "转为助教已运行",
       entries: (n) => `${n} 条`,
       skipOnly: (n) => `创建 0 人，${n} 人已存在而跳过`,
       made: (n, m) => `创建 ${n} 人，跳过 ${m} 人`,
@@ -543,51 +548,55 @@ export function Hasil({
             <h3 className="panel__title">{t.table.title}</h3>
             <span className="hint">{t.table.hint(baru.length)}</span>
           </div>
-          <div className="scrollx">
-            <table className="table rec-table r8-table r8-htable">
-              <thead>
-                <tr>
-                  {t.table.cols.map((c) => (
-                    <th key={c}>{c}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {baru.map((r) => (
-                  <tr key={r.id} className="r8-row">
-                    <td>
-                      <span className="r8-pcode mono">{r.code}</span>
-                    </td>
-                    <td>
-                      <div className="r8-who">
-                        <b>{r.nama}</b>
-                        <span className="mono hint">{r.nim}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <Pill>{t.table.none}</Pill>
-                    </td>
-                    <td>
-                      <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                        <Pill tone="ok">{t.table.asisten}</Pill>
-                        {r.alsoPraktikan && <Pill>{t.table.alsoPrak}</Pill>}
-                      </div>
-                    </td>
-                    <td>
-                      {r.alsoPraktikan ? (
-                        <span className="r8-keep">
-                          <CheckIcon size={16} aria-hidden="true" />
-                          {t.table.kept}
-                        </span>
-                      ) : (
-                        <span className="hint">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Paged items={baru} id="penerimaan-hasil" size={20} noun={NOUN[lang].caas} lang={lang}>
+            {(rowsP) => (
+              <div className="scrollx">
+                <table className="table rec-table r8-table r8-htable">
+                  <thead>
+                    <tr>
+                      {t.table.cols.map((c) => (
+                        <th key={c}>{c}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rowsP.map((r) => (
+                      <tr key={r.id} className="r8-row">
+                        <td>
+                          <span className="r8-pcode mono">{r.code}</span>
+                        </td>
+                        <td>
+                          <div className="r8-who">
+                            <b>{r.nama}</b>
+                            <span className="mono hint">{r.nim}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <Pill>{t.table.none}</Pill>
+                        </td>
+                        <td>
+                          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                            <Pill tone="ok">{t.table.asisten}</Pill>
+                            {r.alsoPraktikan && <Pill>{t.table.alsoPrak}</Pill>}
+                          </div>
+                        </td>
+                        <td>
+                          {r.alsoPraktikan ? (
+                            <span className="r8-keep">
+                              <CheckIcon size={16} aria-hidden="true" />
+                              {t.table.kept}
+                            </span>
+                          ) : (
+                            <span className="hint">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Paged>
         </section>
         <aside className="stack">
           <section className="panel r8-audit">
@@ -606,7 +615,7 @@ export function Hasil({
                     )}
                   </span>
                   <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-                    <b className="mono">rec_pn_konfirmasi</b>
+                    <b>{t.audit.run}</b>
                     <span className="hint">
                       {e.created === 0
                         ? t.audit.skipOnly(e.skipped)

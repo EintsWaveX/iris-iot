@@ -50,7 +50,7 @@ import Toast from "../components/ui/Toast";
 import SegFit from "../components/shell/SegFit";
 import TipLayer from "../components/shell/TipLayer";
 import SiteFooter from "../components/SiteFooter.astro";
-import { langTag, type Lang } from "../lib/kelas";
+import { langTag, ZH_ENABLED, type Lang } from "../lib/kelas";
 import { SITE_URL } from "../lib/lab";
 // The two faces the first screen paints (body text and the display title),
 // fetched with the HTML instead of after the CSS that names them: on a slow
@@ -145,7 +145,7 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
         <link rel="canonical" href={SITE_URL + path} />
         <link rel="alternate" hreflang="id" href={SITE_URL + alt.id} />
         <link rel="alternate" hreflang="en" href={SITE_URL + alt.en} />
-        <link rel="alternate" hreflang="zh-Hans" href={SITE_URL + alt.zh} />
+        {ZH_ENABLED && <link rel="alternate" hreflang="zh-Hans" href={SITE_URL + alt.zh} />}
         <link rel="alternate" hreflang="x-default" href={SITE_URL + alt.id} />
       </>
     )}

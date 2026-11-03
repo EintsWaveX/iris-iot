@@ -69,7 +69,9 @@ export function Baris({
           {kini && <span className="rkal__kini"> · {t.running}</span>}
         </b>
         <span className="hint">
-          {rentangAcara(e, lang)}
+          {kini && e.startsOn !== e.endsOn
+            ? t.time.until(tgl(e.endsOn, lang))
+            : rentangAcara(e, lang)}
           {e.dayStart ? ` · ${jamAcara(e, lang)}` : ""}
           {e.place ? ` · ${tempatAcara(e.place, lang)}` : ""}
         </span>
