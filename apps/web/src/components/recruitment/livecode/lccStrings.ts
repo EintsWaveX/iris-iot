@@ -31,7 +31,7 @@ export const LCC = dict({
     drawTime: "Waktu Live Coding",
     scoreTitle: "Cara menilai",
     scoreBody:
-      "Programmu dijalankan pada hidden test di PC Lab. Satu soal bernilai poin penuh kalau semua tesnya lolos, dan sebagian kalau sebagian lolos. Salah tidak mengurangi nilai, dan kamu boleh mengirim sebanyak yang kamu mau; yang dihitung submission terbaik tiap soal.",
+      "Programmu dijalankan ke hidden test di PC Lab. Soal dapat poin penuh kalau semua test lolos, dan poin sebagian kalau sebagian lolos. Salah tidak mengurangi nilai. Kamu boleh submit sebanyak apa pun, dan yang dihitung submission terbaik tiap soal.",
     drawWaitEditor: "Editor terbuka saat pengawas memulai waktu Live Coding",
     partOf: (i: number, n: number) => `Bagian ${i} dari ${n}`,
     testsN: (n: number) => `${n} test`,
@@ -133,7 +133,7 @@ export const LCC = dict({
     drawTime: "Live Coding time",
     scoreTitle: "How it is scored",
     scoreBody:
-      "Your program runs against hidden tests on the lab PC. A problem earns its full points when every test passes, and part of them when some pass. A wrong try costs nothing, you can submit as often as you like, and your best submission for each problem counts.",
+      "Your program runs against hidden tests on the lab PC. A problem earns full points when every test passes, and partial points when some pass. A wrong try costs nothing. You can submit as often as you like, and your best submission for each problem counts.",
     drawWaitEditor: "The editor opens when the pengawas starts the Live Coding time",
     partOf: (i: number, n: number) => `Part ${i} of ${n}`,
     testsN: (n: number) => `${n} tests`,
