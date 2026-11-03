@@ -44,6 +44,7 @@ import Ringkasan from "./Ringkasan";
 import { LatihanCard } from "../Latihan";
 import TampilOprec from "./TampilOprec";
 import { PN } from "./panelStrings";
+import { TitleCaseContext } from "../../ui/Dropdown";
 import "../recruitment-b1.css";
 import "../recruitment-shell.css";
 
@@ -141,91 +142,93 @@ export default function PanelPage({ lang }: { lang: Lang }) {
   const seat = edisi.data?.seat ?? null;
 
   return (
-    <div className="rec-page" data-area={tab}>
-      <PanelHead
-        tab={tab}
-        title={
-          panitia
-            ? t.title
-            : tab === "wawancara" || tab === "mengajar"
-              ? IV(lang).title[tab]
-              : tab === "tubes"
-                ? TUBES[lang].panel.title
-                : CAL[lang].title
-        }
-        badge={seat ? t.division[seat.division] : undefined}
-        area={REC[lang].nav[tab]}
-        stc={tab === "mengajar" || tab === "penerimaan" ? STC[lang] : undefined}
-        sub={hariKe ? t.day(hariKe, tgl(hariIni, lang)) : t.dayPlain(tgl(hariIni, lang))}
-      >
-        {panitia && edisi.data && (
-          <TampilOprec
-            lang={lang}
-            hidden={!!edisi.data.hidden}
-            canHide={!!edisi.data.canHide}
-            onChanged={edisi.refresh}
-          />
+    <TitleCaseContext.Provider value>
+      <div className="rec-page" data-area={tab}>
+        <PanelHead
+          tab={tab}
+          title={
+            panitia
+              ? t.title
+              : tab === "wawancara" || tab === "mengajar"
+                ? IV(lang).title[tab]
+                : tab === "tubes"
+                  ? TUBES[lang].panel.title
+                  : CAL[lang].title
+          }
+          badge={seat ? t.division[seat.division] : undefined}
+          area={REC[lang].nav[tab]}
+          stc={tab === "mengajar" || tab === "penerimaan" ? STC[lang] : undefined}
+          sub={hariKe ? t.day(hariKe, tgl(hariIni, lang)) : t.dayPlain(tgl(hariIni, lang))}
+        >
+          {panitia && edisi.data && (
+            <TampilOprec
+              lang={lang}
+              hidden={!!edisi.data.hidden}
+              canHide={!!edisi.data.canHide}
+              onChanged={edisi.refresh}
+            />
+          )}
+        </PanelHead>
+        {panitia && pnState.data?.close.closed && (
+          <div className="rec-note rec-note--warn" role="status">
+            <b>{PNW(lang).close.banner}</b>
+          </div>
         )}
-      </PanelHead>
-      {panitia && pnState.data?.close.closed && (
-        <div className="rec-note rec-note--warn" role="status">
-          <b>{PNW(lang).close.banner}</b>
-        </div>
-      )}
-      <Swap k={tab}>
-        {tab === "ringkasan" ? (
-          <div className="lat-stack">
-            <Ringkasan
+        <Swap k={tab}>
+          {tab === "ringkasan" ? (
+            <div className="lat-stack">
+              <Ringkasan
+                lang={lang}
+                events={events}
+                hariIni={hariIni}
+                rights={rights}
+                candidates={cand.data?.candidates ?? null}
+                seats={kom.data ? kom.data.seats.length : null}
+                division={seat ? seat.division : null}
+                tabs={tabs}
+                hariKe={hariKe}
+              />
+              <LatihanCard lang={lang} />
+            </div>
+          ) : tab === "kalender" ? (
+            <KalenderTab
               lang={lang}
               events={events}
               hariIni={hariIni}
-              rights={rights}
-              candidates={cand.data?.candidates ?? null}
-              seats={kom.data ? kom.data.seats.length : null}
-              division={seat ? seat.division : null}
-              tabs={tabs}
-              hariKe={hariKe}
+              canEdit={rights?.calendar === true}
+              refresh={cal.refresh}
             />
-            <LatihanCard lang={lang} />
-          </div>
-        ) : tab === "kalender" ? (
-          <KalenderTab
-            lang={lang}
-            events={events}
-            hariIni={hariIni}
-            canEdit={rights?.calendar === true}
-            refresh={cal.refresh}
-          />
-        ) : tab === "kandidat" && rights ? (
-          cand.data ? (
-            <Kandidat
-              lang={lang}
-              rights={rights}
-              rows={cand.data.candidates}
-              refresh={cand.refresh}
-              wide={lebar}
-            />
+          ) : tab === "kandidat" && rights ? (
+            cand.data ? (
+              <Kandidat
+                lang={lang}
+                rights={rights}
+                rows={cand.data.candidates}
+                refresh={cand.refresh}
+                wide={lebar}
+              />
+            ) : (
+              <span className="skeleton" style={{ height: 320 }} />
+            )
+          ) : tab === "cutting" && rights ? (
+            <CuttingTab lang={lang} events={events} hariIni={hariIni} rights={rights} />
+          ) : tab === "plotting" && rights ? (
+            <PlottingTab lang={lang} events={events} rights={rights} />
+          ) : tab === "wawancara" || tab === "mengajar" ? (
+            <IvTab lang={lang} stage={tab} rights={rights} qrShift={edisi.data?.qrShift === true} />
+          ) : tab === "tubes" ? (
+            <TubesTab lang={lang} rights={rights} />
+          ) : tab === "penerimaan" ? (
+            <PenerimaanTab lang={lang} />
+          ) : tab === "tes" ? (
+            <TesTab lang={lang} />
+          ) : tab === "bank" && rights?.bank ? (
+            <BankTab lang={lang} />
           ) : (
-            <span className="skeleton" style={{ height: 320 }} />
-          )
-        ) : tab === "cutting" && rights ? (
-          <CuttingTab lang={lang} events={events} hariIni={hariIni} rights={rights} />
-        ) : tab === "plotting" && rights ? (
-          <PlottingTab lang={lang} events={events} rights={rights} />
-        ) : tab === "wawancara" || tab === "mengajar" ? (
-          <IvTab lang={lang} stage={tab} rights={rights} qrShift={edisi.data?.qrShift === true} />
-        ) : tab === "tubes" ? (
-          <TubesTab lang={lang} rights={rights} />
-        ) : tab === "penerimaan" ? (
-          <PenerimaanTab lang={lang} />
-        ) : tab === "tes" ? (
-          <TesTab lang={lang} />
-        ) : tab === "bank" && rights?.bank ? (
-          <BankTab lang={lang} />
-        ) : (
-          <PanitiaBoard lang={lang} rights={rights} />
-        )}
-      </Swap>
-    </div>
+            <PanitiaBoard lang={lang} rights={rights} />
+          )}
+        </Swap>
+      </div>
+    </TitleCaseContext.Provider>
   );
 }

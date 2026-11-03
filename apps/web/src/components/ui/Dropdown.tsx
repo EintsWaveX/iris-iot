@@ -48,7 +48,9 @@
  *   Escape             closes without committing, refocuses the trigger
  */
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
@@ -59,7 +61,11 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { titleCase } from "../../lib/title-case";
 import "./Dropdown.css";
+
+/** On inside the Oprec pages: single-pick dropdown text reads in Title Case, like the mockup. */
+export const TitleCaseContext = createContext(false);
 
 export interface DropdownOption {
   value: string;
@@ -378,7 +384,9 @@ export default function Dropdown({
     });
   }
 
-  const selectedLabel = options[selectedIndex]?.label ?? "";
+  const titled = useContext(TitleCaseContext);
+  const tc = (s: string) => (titled ? titleCase(s) : s);
+  const selectedLabel = tc(options[selectedIndex]?.label ?? "");
   const selectedChip = options[selectedIndex]?.chip;
 
   return (
@@ -456,7 +464,7 @@ export default function Dropdown({
                     onClick={() => commit(i)}
                   >
                     <span className="dropdown__txt">
-                      {opt.node ?? opt.label}
+                      {opt.node ?? tc(opt.label)}
                       {opt.note && <small className="dropdown__note">{opt.note}</small>}
                     </span>
                     {opt.chip && <span className="acode dropdown__chip">{opt.chip}</span>}
