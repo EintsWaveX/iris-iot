@@ -240,6 +240,14 @@ export const S2 = dict({
       applied: (n: number) =>
         `${n} usulan dibuat dari ambang. Yang lain bisa melihat kodemu di kolom Oleh.`,
       fromBerkasDone: "Yang terverifikasi diusulkan Lolos, yang belum disetujui diusulkan Gagal.",
+      fromVerdict: (stage: string) =>
+        stage === "tubes"
+          ? "Usulkan dari Keputusan Presentasi"
+          : stage === "mengajar"
+            ? "Usulkan dari Keputusan Penguji"
+            : "Usulkan dari Keputusan Wawancara",
+      fromVerdictDone:
+        "Diusulkan dari keputusan pewawancara. Yang Ragu-ragu dan yang belum hadir dibiarkan untuk dibahas di Pleno.",
       lockTitle: (tahap: string) => `Kunci hasil ${tahap}`,
       lockOnly: "Ketua yang mengunci hasilnya",
       lockOpens: (kapan: string) => `Amplop terbuka ${kapan}, dari acara Pengumuman di Kalender.`,
@@ -762,6 +770,14 @@ export const S2 = dict({
       applied: (n: number) =>
         `${n} proposals made from the threshold. Others see your code under By.`,
       fromBerkasDone: "Verified ones proposed Pass, unapproved ones proposed Fail.",
+      fromVerdict: (stage: string) =>
+        stage === "tubes"
+          ? "Propose from the Presentasi Verdicts"
+          : stage === "mengajar"
+            ? "Propose from the Panel Verdicts"
+            : "Propose from the Interview Verdicts",
+      fromVerdictDone:
+        "Proposed from the interviewers' verdicts. Undecided and absent ones are left for the Pleno.",
       lockTitle: (tahap: string) => `Lock the ${tahap} results`,
       lockOnly: "The Ketua locks the results",
       lockOpens: (kapan: string) =>
@@ -1272,6 +1288,13 @@ export const S2 = dict({
       proposeRest: (n: number) => `为其余 ${n} 人提出建议`,
       applied: (n: number) => `按分数线提出了 ${n} 条建议。其他人可在「提出者」一栏看到你的代码。`,
       fromBerkasDone: "已核实的建议通过，未批准的建议淘汰。",
+      fromVerdict: (stage: string) =>
+        stage === "tubes"
+          ? "按展示结论建议"
+          : stage === "mengajar"
+            ? "按评审结论建议"
+            : "按面试结论建议",
+      fromVerdictDone: "已按面试官的结论建议。犹豫的和缺席的留给全体会议讨论。",
       lockTitle: (tahap: string) => `锁定${tahap}结果`,
       lockOnly: "由组长锁定结果",
       lockOpens: (kapan: string) => `信封在${kapan}开启，时间来自日历里的公布活动。`,

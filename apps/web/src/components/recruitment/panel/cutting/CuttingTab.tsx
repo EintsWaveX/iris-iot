@@ -507,6 +507,23 @@ export default function CuttingTab({
       }));
     if (items.length) await usul(items, t.fromBerkasDone);
   }
+  /** Wawancara, Tubes and Mengajar: propose from what the examiners' sheets decided. Ragu-ragu and the absent are left for the Pleno. */
+  async function dariKeputusan() {
+    const items = baris
+      .filter(
+        (c) =>
+          !c.proposal &&
+          c.iv &&
+          c.iv.case?.status !== "susulan" &&
+          (c.iv.verdict === "lolos" || c.iv.verdict === "cut"),
+      )
+      .map((c) => ({
+        id: c.id,
+        proposal: (c.iv?.verdict === "lolos" ? "lolos" : "gagal") as Proposal,
+        note: c.note,
+      }));
+    if (items.length) await usul(items, t.fromVerdictDone);
+  }
   async function kunci() {
     if (!pilih) return;
     const r = await recPost<LockResponse>("lock", { stage: pilih });
@@ -776,6 +793,17 @@ export default function CuttingTab({
             )}
           </span>
           <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
+            {bisaUsul && ivStage && (
+              <button
+                type="button"
+                className="btn btn--inverse"
+                disabled={busy || !baris.some((c) => !c.proposal && c.iv?.verdict)}
+                onClick={() => void dariKeputusan()}
+              >
+                <ListChecksIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{t.fromVerdict(pilih)}</span>
+              </button>
+            )}
             {bisaUsul && (
               <button
                 type="button"
