@@ -40,6 +40,7 @@ import {
   type Step,
   type StepKey,
 } from "../../../lib/recruitment/next-step";
+import { useRecEdition } from "../../../lib/recruitment/client";
 import { bukaBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import {
   STAGES,
@@ -146,6 +147,21 @@ export default function Ringkasan({
   const [hadirDi, setHadirDi] = useState<number | null>(null);
 
   const hitung = candidates ? berkasCounts(candidates) : null;
+  const edisi = useRecEdition(tabs.includes("plotting"));
+  /** What waits on this person right now, only the parts they have and only above zero */
+  const perhatian: { key: string; tab: PanelTab; n: number; label: string }[] = [];
+  if (hitung && hitung.waiting > 0 && tabs.includes("kandidat")) {
+    perhatian.push({
+      key: "waiting",
+      tab: "kandidat",
+      n: hitung.waiting,
+      label: t.waiting,
+    });
+  }
+  const plotN = edisi.data?.plotRequests ?? 0;
+  if (plotN > 0 && tabs.includes("plotting")) {
+    perhatian.push({ key: "plot", tab: "plotting", n: plotN, label: t.plotTask });
+  }
   const where = whereNow(events, now);
   const role = roleOf(division, rights?.seatKetua === true);
   const { now: langkah, others } = nextSteps(where, role, tabs);
@@ -220,42 +236,60 @@ export default function Ringkasan({
 
   return (
     <div className="b1-sum">
-      <section className="panel b1-next" data-stage={stageNow} aria-labelledby="b1-next-t">
-        <div className="b1-next__top">
-          <span className="b1-next__ic">
-            <Ik size={24} aria-hidden="true" />
-          </span>
-          <div className="stack" style={{ gap: 4, minWidth: 0 }}>
-            <span className="eyebrow">
-              {n.title} · {n.stages[where.stage]}
+      <div className="stack" style={{ gap: 16 }}>
+        <section className="panel b1-next" data-stage={stageNow} aria-labelledby="b1-next-t">
+          <div className="b1-next__top">
+            <span className="b1-next__ic">
+              <Ik size={24} aria-hidden="true" />
             </span>
-            <h2 id="b1-next-t" className="b1-next__t">
-              {stepText(lang, langkah.key, vars(langkah.key))}
-            </h2>
+            <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+              <span className="eyebrow">
+                {n.title} · {n.stages[where.stage]}
+              </span>
+              <h2 id="b1-next-t" className="b1-next__t">
+                {stepText(lang, langkah.key, vars(langkah.key))}
+              </h2>
+            </div>
           </div>
-        </div>
-        {others.length > 0 && (
-          <ol className="b1-steps" aria-label={n.others}>
-            {others.map((s, i) => (
-              <Baris2 key={s.key} s={s} i={i + 1} />
-            ))}
-          </ol>
-        )}
-        <div className="b1-next__foot">
-          {langkah.tab ? (
-            <button
-              type="button"
-              className="btn btn--primary btn--lg"
-              onClick={() => bukaBagian(langkah.tab as PanelTab)}
-            >
-              <span className="btn__label">{n.open(n.tabs[langkah.tab])}</span>
-              <ArrowRightIcon size={18} aria-hidden="true" />
-            </button>
-          ) : (
-            <span className="hint">{n.noScreen}</span>
+          {others.length > 0 && (
+            <ol className="b1-steps" aria-label={n.others}>
+              {others.map((s, i) => (
+                <Baris2 key={s.key} s={s} i={i + 1} />
+              ))}
+            </ol>
           )}
-        </div>
-      </section>
+          <div className="b1-next__foot">
+            {langkah.tab ? (
+              <button
+                type="button"
+                className="btn btn--primary btn--lg"
+                onClick={() => bukaBagian(langkah.tab as PanelTab)}
+              >
+                <span className="btn__label">{n.open(n.tabs[langkah.tab])}</span>
+                <ArrowRightIcon size={18} aria-hidden="true" />
+              </button>
+            ) : (
+              <span className="hint">{n.noScreen}</span>
+            )}
+          </div>
+        </section>
+
+        {perhatian.length > 0 && (
+          <Kartu title={t.attention} className="b1-att">
+            <ul className="b1-att__l">
+              {perhatian.map((x) => (
+                <li key={x.key}>
+                  <button type="button" className="b1-att__b" onClick={() => bukaBagian(x.tab)}>
+                    <b className="num">{x.n}</b>
+                    <span>{x.label}</span>
+                    <CaretRightIcon size={16} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Kartu>
+        )}
+      </div>
 
       <Kartu
         title={t.today}

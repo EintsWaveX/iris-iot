@@ -74,7 +74,7 @@
   color: var(--n7-ok);
 }
 .n7-cutrow {
-  align-items: stretch;
+  align-items: start;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);

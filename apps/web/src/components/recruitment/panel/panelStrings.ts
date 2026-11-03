@@ -37,6 +37,8 @@ export const PN = dict({
       none: "Tidak ada tugas rekrutmen untukmu minggu ini.",
       closes: "Pendaftaran tutup",
       closesAria: "Pendaftaran tutup dalam",
+      attention: "Perlu dicek",
+      plotTask: "Permintaan ganti jadwal plotting",
     },
     cand: {
       search: "Cari nama atau NIM",
@@ -241,6 +243,8 @@ export const PN = dict({
       none: "No recruitment tasks for you this week.",
       closes: "Registration closes",
       closesAria: "Registration closes in",
+      attention: "Needs a look",
+      plotTask: "Plotting reschedule requests",
     },
     cand: {
       search: "Search name or NIM",
@@ -449,6 +453,8 @@ export const PN = dict({
       none: "这周没有分给你的招募任务。",
       closes: "报名截止",
       closesAria: "距报名截止还有",
+      attention: "需要查看",
+      plotTask: "排期调整请求",
     },
     cand: {
       search: "搜索姓名或 NIM",

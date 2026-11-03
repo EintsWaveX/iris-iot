@@ -436,6 +436,12 @@
   position: relative;
   height: 200px;
 }
+/* The map is the background, not the news: a shorter strip on a wide screen. */
+@media (min-width: 900px) {
+  .rec-jcard .rec-journey {
+    height: 150px;
+  }
+}
 .rec-journey__svg {
   position: absolute;
   inset: 8px 0 34px;
