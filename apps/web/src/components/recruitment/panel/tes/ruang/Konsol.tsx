@@ -344,32 +344,6 @@ function Transport({
     const r = k.can(a as never);
     return r.ok ? undefined : (t.con.guard[r.kode] ?? t.con.fail);
   };
-  const Ctl = ({
-    a,
-    label,
-    kind = "inverse",
-    onClick,
-  }: {
-    a: Record<string, unknown>;
-    label: string;
-    kind?: string;
-    onClick: () => void;
-  }) => {
-    const why = guard(a);
-    return (
-      <button
-        type="button"
-        className={`btn btn--${kind}`}
-        disabled={!!why}
-        title={why}
-        aria-label={why ? `${label}. ${why}` : undefined}
-        onClick={onClick}
-      >
-        {label}
-      </button>
-    );
-  };
-
   const nextL = k.next ? t.part[k.next].l : "";
   const left = run && rv.view !== "lobby" ? roomLeft(run, now) : 0;
   const showClock =
@@ -433,6 +407,7 @@ function Transport({
         <div className="r3tp__grp">
           {rv.view === "setup" ? (
             <Ctl
+              guard={guard}
               a={{ act: "open" }}
               kind="primary"
               label={c.open}
@@ -440,6 +415,7 @@ function Transport({
             />
           ) : k.next ? (
             <Ctl
+              guard={guard}
               a={{ act: "start" }}
               kind="primary"
               label={k.next === "livecode" ? c.startLc : c.start(nextL)}
@@ -448,6 +424,7 @@ function Transport({
           ) : null}
           {rv.view === "part-paused" ? (
             <Ctl
+              guard={guard}
               a={{ act: "resume" }}
               kind="primary"
               label={c.resume}
@@ -455,21 +432,29 @@ function Transport({
             />
           ) : (
             <Ctl
+              guard={guard}
               a={{ act: "pause" }}
               label={c.pause}
               onClick={() => void kirim({ act: "pause" })}
             />
           )}
           <Ctl
+            guard={guard}
             a={{ act: "skip" }}
             label={c.skip}
             onClick={() => void kirim({ act: "skip" }, t.con.skipDone)}
           />
-          <Ctl a={{ act: "reopen", addMs: MIN }} label={c.reopen} onClick={() => setReopen(true)} />
+          <Ctl
+            guard={guard}
+            a={{ act: "reopen", addMs: MIN }}
+            label={c.reopen}
+            onClick={() => setReopen(true)}
+          />
         </div>
         <div className="r3tp__grp r3tp__time" role="group" aria-label={c.timeAria}>
           {[-1, 1, 5].map((d) => (
             <Ctl
+              guard={guard}
               key={d}
               a={{ act: "time", deltaMs: d * MIN }}
               label={`${d > 0 ? "+" : "−"}${Math.abs(d)} ${c.min}`}
@@ -1274,6 +1259,35 @@ function Selesai({
 }
 
 /* --------------------------------------------------------------- Console */
+
+/** One room control. A module-level component, so it keeps its DOM node (and focus) while the console re-renders every second. */
+function Ctl({
+  guard,
+  a,
+  label,
+  kind = "inverse",
+  onClick,
+}: {
+  guard: (a: Record<string, unknown>) => string | undefined;
+  a: Record<string, unknown>;
+  label: string;
+  kind?: string;
+  onClick: () => void;
+}) {
+  const why = guard(a);
+  return (
+    <button
+      type="button"
+      className={`btn btn--${kind}`}
+      disabled={!!why}
+      title={why}
+      aria-label={why ? `${label}. ${why}` : undefined}
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
+}
 
 export default function Konsol({
   lang,

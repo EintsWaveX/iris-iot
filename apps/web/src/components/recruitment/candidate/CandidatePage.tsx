@@ -172,6 +172,20 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const praktikan = !!caas;
   const tamu = !asisten && !caas;
   const [reveal, setReveal] = useState<EnvelopeView | null>(null);
+  /** What had focus when the envelope opened, so closing it puts focus back there. */
+  const revealFrom = useRef<HTMLElement | null>(null);
+  const openReveal = (e: EnvelopeView) => {
+    revealFrom.current = document.activeElement as HTMLElement | null;
+    setReveal(e);
+  };
+  const closeReveal = () => {
+    setReveal(null);
+    const el = revealFrom.current;
+    requestAnimationFrame(() => {
+      if (el?.isConnected) el.focus({ preventScroll: true });
+      else document.querySelector<HTMLElement>(".rec-tools button, .b3-page button")?.focus();
+    });
+  };
   const dibuka = useRef<{ stage: CutStage; result: Proposal } | null>(null);
   // While the envelope opens, the page behind it does not refetch: opening it
   // sets off the candidates topic, and a re-render under the reveal stutters
@@ -412,7 +426,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       onOpen={(e) => {
         // The reveal has its own full screen: the dialog the inbox sits in steps aside first.
         setAmplopOpen(false);
-        setReveal(e);
+        openReveal(e);
       }}
     />
   );
@@ -595,7 +609,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
               lang={lang}
               stage={sealedEnv.stage}
               motion={motion}
-              onOpen={() => setReveal(sealedEnv)}
+              onOpen={() => openReveal(sealedEnv)}
             />
             {nextCard}
           </div>
@@ -698,7 +712,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
                       }
                     : m,
                 );
-              setReveal(null);
+              closeReveal();
             }}
           />
         </Suspense>

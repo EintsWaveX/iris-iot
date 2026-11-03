@@ -211,7 +211,7 @@ export default function Ringkasan({
   const Ik = STAGE_IC[where.stage];
   const daftarSaja = where.stage === "daftar";
 
-  const Baris2 = ({ s, i }: { s: Step; i: number }) => {
+  const langkahItem = ({ s, i }: { s: Step; i: number }) => {
     const isi = (
       <>
         <span className="b1-steps__n">
@@ -222,7 +222,7 @@ export default function Ringkasan({
       </>
     );
     return (
-      <li data-st={s.state}>
+      <li key={s.key} data-st={s.state}>
         {s.tab ? (
           <button type="button" onClick={() => bukaBagian(s.tab as PanelTab)}>
             {isi}
@@ -253,9 +253,7 @@ export default function Ringkasan({
           </div>
           {others.length > 0 && (
             <ol className="b1-steps" aria-label={n.others}>
-              {others.map((s, i) => (
-                <Baris2 key={s.key} s={s} i={i + 1} />
-              ))}
+              {others.map((s, i) => langkahItem({ s, i: i + 1 }))}
             </ol>
           )}
           <div className="b1-next__foot">

@@ -490,7 +490,7 @@ export default function Kandidat({
     // The mockup says so when the file starts (the browser shows its own download bar too).
     window.Toast?.show(
       lang === "id"
-        ? "Mengunduh pendaftar-oprec-2026.xlsx."
+        ? "Mendownload pendaftar-oprec-2026.xlsx."
         : lang === "zh"
           ? "正在下载 pendaftar-oprec-2026.xlsx。"
           : "Downloading pendaftar-oprec-2026.xlsx.",
@@ -498,13 +498,13 @@ export default function Kandidat({
     );
   }
 
-  const Baris = ({ c, st }: { c: CandidateRow; st: Antre }) => {
+  const barisItem = ({ c, st }: { c: CandidateRow; st: Antre }) => {
     const Ik = IK_ANTRE[st];
     const Tg = IK_TAHAP[c.stage];
     const dokumen = rules.required.length;
     const late = !daftarDulu;
     return (
-      <li className="rec9-line">
+      <li key={c.id} className="rec9-line">
         <button
           type="button"
           className="rec9-row"
@@ -670,11 +670,7 @@ export default function Kandidat({
                     {grup.find((g) => g[0] === a)?.[1].length ?? baris.length}
                   </span>
                 </div>
-                <ul className="rec9-rows">
-                  {baris.map((x) => (
-                    <Baris key={x.c.id} c={x.c} st={x.st} />
-                  ))}
-                </ul>
+                <ul className="rec9-rows">{baris.map((x) => barisItem({ c: x.c, st: x.st }))}</ul>
               </section>
             );
           })

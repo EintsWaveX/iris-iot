@@ -66,6 +66,7 @@ import {
   type SettingMap,
 } from "../../../../lib/recruitment/settings";
 import { S2 } from "../../s2Strings";
+import { useUrlState } from "../../../../lib/recruitment/url-state";
 import "../../recruitment-b1.css";
 import "../../recruitment-kandidat.css";
 import "../../recruitment-cutting.css";
@@ -349,7 +350,8 @@ export default function CuttingTab({
 }) {
   const t = S2[lang].cut;
   const aktif = useMemo(() => tahapAktif(events, hariIni), [events, hariIni]);
-  const [stage, setStage] = useState<CutStage | null>(null);
+  const [stageQ, setStage] = useUrlState<CutStage | "">("cut", "", ["", ...CUT_STAGES]);
+  const stage: CutStage | null = stageQ || null;
   const pilih: CutStage | null = stage && aktif.includes(stage) ? stage : (aktif[0] ?? null);
   const board = useRecCut(pilih ?? "berkas", pilih !== null);
   // Only the stages whose Cutting is on the Kalender but has not started yet (Penerimaan has no Cutting).

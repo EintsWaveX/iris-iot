@@ -154,7 +154,7 @@ export const RG = dict({
         extra: (n: number) => `${n} kursi masih punya waktu tambahan.`,
       },
       guard: {
-        tahap_salah: "Tidak bisa dilakukan di tahap ini.",
+        tahap_salah: "Belum bisa di tahap ini.",
         bukan_master: "Hanya Master yang memegang tombol ruang.",
         versi_lama: "Ruang baru saja berubah. Coba lagi.",
         bank_kurang: "Bank soal belum cukup untuk bagian ini.",
@@ -162,7 +162,7 @@ export const RG = dict({
         bukan_hari_ini: "Ruang ini baru bisa dibuka pada hari ujiannya.",
         perlu_waktu: "Bagian yang habis waktunya butuh tambahan di atas 0.",
         waktu_ruang_habis: "Waktu ruang sudah habis. Pakai Buka Ulang atau waktu per kursi.",
-        perlu_alasan: "Alasan wajib diisi.",
+        perlu_alasan: "Alasannya harus diisi.",
         nilai_salah: "Nilai itu tidak valid.",
         kursi_tak_dikenal: "Kursi itu belum check-in.",
         tidak_boleh_master: "Kamu tidak bisa jadi Master di ruang ini.",

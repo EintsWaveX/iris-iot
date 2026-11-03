@@ -11,6 +11,7 @@
  * server, live on the recplotting topic.
  */
 import { useMemo, useRef, useState } from "react";
+import { useUrlState } from "../../../../lib/recruitment/url-state";
 import {
   DndContext,
   KeyboardSensor,
@@ -530,7 +531,7 @@ function Requests({
     refresh();
     return true;
   }
-  const Garis = ({ id }: { id: number | null }) => {
+  const garis = ({ id }: { id: number | null }) => {
     const s = slot(id);
     return (
       <span className="r2req__slot">
@@ -555,9 +556,9 @@ function Requests({
                       <span className="hint mono">{r.nim}</span>
                     </div>
                     <div className="r2req__move">
-                      <Garis id={r.fromSlot} />
+                      {garis({ id: r.fromSlot })}
                       <span aria-hidden="true">→</span>
-                      <Garis id={r.toSlot} />
+                      {garis({ id: r.toSlot })}
                       {penuh ? (
                         <Pill tone="warn">{t.targetFull}</Pill>
                       ) : (
@@ -1120,9 +1121,17 @@ export default function PlottingTab({
   const stages = (["tes_tulis", "wawancara", "mengajar"] as StageKey[]).filter((s) =>
     pickEvent(events, s),
   );
-  const [stage, setStage] = useState<StageKey>("tes_tulis");
+  const [stage, setStage] = useUrlState<StageKey>("plt", "tes_tulis", [
+    "tes_tulis",
+    "wawancara",
+    "mengajar",
+  ]);
   const aktif = stages.includes(stage) ? stage : (stages[0] ?? "tes_tulis");
-  const [bag, setBag] = useState<"slot" | "minta" | "papan">("slot");
+  const [bag, setBag] = useUrlState<"slot" | "minta" | "papan">("pl", "slot", [
+    "slot",
+    "minta",
+    "papan",
+  ]);
   const board = useRecBoard(aktif, true);
   const can = rights.plotting;
   const d = board.data;

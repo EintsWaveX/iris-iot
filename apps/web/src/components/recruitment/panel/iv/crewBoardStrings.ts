@@ -57,7 +57,7 @@ const ID: CrewBoardWords = {
   twoAt: (w, at, st, a, b, r) => `${w} pukul ${at}, dan ${st} ${a} sampai ${b} di ${r}`,
   clashTip: (stage, from, to, room) => `Bentrok: ${stage}, ${from} sampai ${to}, ${room}`,
   xlsx: "Download XLSX",
-  xlsxDone: (n) => `${n}.xlsx sudah diunduh.`,
+  xlsxDone: (n) => `${n}.xlsx sudah didownload.`,
 };
 
 const EN: CrewBoardWords = {

@@ -86,7 +86,7 @@ export const CW = dict({
     revisions: "Jumlah revisi",
     reviewNote: "Catatan pemeriksa",
     reviewedBy: (kode: string, kapan: string) => `Diperiksa ${kode} · ${kapan}`,
-    files: "Berkas yang diunggah",
+    files: "Berkas yang diupload",
     verdict: { ok: "Sesuai", fix: "Perbaiki", none: "Belum dicek" },
     replaced: "diganti",
     noRight: "Berkas dan nilainya hanya terlihat oleh yang punya akses Berkas.",

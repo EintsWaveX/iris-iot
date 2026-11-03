@@ -5,6 +5,7 @@
  * Akademik and Admin seats; Template for the Ketua and Akademik.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useUrlState } from "../../../../lib/recruitment/url-state";
 import { UserSwitchIcon } from "@phosphor-icons/react";
 import Dialog from "../../../ui/Dialog";
 import Disclose from "../../../ui/Disclose";
@@ -463,7 +464,11 @@ export default function IvTab({
   const w = IV(lang);
   const bisaNilai = rights?.plotting === true;
   const bisaTemplate = rights?.bank === true;
-  const [bag, setBag] = useState<"lead" | "mine" | "nilai" | "template">(lead ? "lead" : "mine");
+  const [bag, setBag] = useUrlState<"lead" | "mine" | "nilai" | "template">(
+    "iv",
+    lead ? "lead" : "mine",
+    ["lead", "mine", "nilai", "template"],
+  );
   const [buka, setBuka] = useState<number | null>(null);
   const sudahLompat = useRef(false);
   const aktif =
