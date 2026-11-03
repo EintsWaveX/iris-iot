@@ -37,15 +37,10 @@
   }
 }
 
+/* On a desktop screen a drawer covers at least two thirds of the width (user, 2026-11-03); a dragged width may only make it wider. */
 @media (min-width: 1024px) {
   .drawer {
-    width: var(--drawer-w, 760px);
-  }
-}
-
-@media (min-width: 1440px) {
-  .drawer {
-    width: var(--drawer-w, 880px);
+    width: var(--drawer-w, max(66.7vw, 720px));
   }
 }
 

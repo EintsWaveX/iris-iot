@@ -3,7 +3,7 @@
  * Radix Dialog like Dialog.tsx (focus trap, Esc, focus return), but docked
  * to the right edge with a draggable left edge:
  *
- * - the width follows the mockup: 760px from 1024, 880px from 1440,
+ * - the width: at least two thirds of the screen from 1024 (user, 2026-11-03),
  *   min(720px, 92%) from 640, full screen below that
  * - drag the edge, or focus it and use Left/Right, to resize; double click
  *   resets; the width is remembered per `storeKey` (localStorage, guarded)
@@ -40,11 +40,16 @@ interface Props {
   resizeLabel: string;
 }
 
+/** The narrowest a drawer may be on a desktop screen: two thirds of it. */
+const floorWidth = (min: number): number =>
+  window.innerWidth >= 1024 ? Math.max(min, Math.round(window.innerWidth * 0.667)) : min;
+
 /** A width the person dragged to, or null for the CSS default. */
 function readWidth(key: string): number | null {
   try {
     const v = Number(localStorage.getItem(`iris-drawer-${key}`));
-    return Number.isFinite(v) && v > 0 ? v : null;
+    // A width saved before the two thirds rule would make the drawer narrower than it now may be.
+    return Number.isFinite(v) && v > 0 && v >= floorWidth(0) ? v : null;
   } catch {
     return null;
   }
@@ -73,8 +78,9 @@ export default function Drawer({
   useEffect(() => setWidth(readWidth(storeKey)), [storeKey]);
 
   const save = (w: number) => {
-    const max = Math.max(minWidth, window.innerWidth - 240);
-    const next = Math.round(Math.min(max, Math.max(minWidth, w)));
+    const low = floorWidth(minWidth);
+    const max = Math.max(low, window.innerWidth - 240);
+    const next = Math.round(Math.min(max, Math.max(low, w)));
     setWidth(next);
     try {
       localStorage.setItem(`iris-drawer-${storeKey}`, String(next));
