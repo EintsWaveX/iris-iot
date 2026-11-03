@@ -133,6 +133,17 @@
   display: grid;
   gap: 12px;
 }
+.r3bed__meta .dropdown,
+.r3bed__meta > .stack {
+  gap: var(--space-2, 8px);
+}
+.r3bed__meta .dropdown__label {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
 @media (min-width: 640px) {
   .r3bed__meta {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -275,10 +286,30 @@
   font-family: var(--font-mono);
 }
 .r3bkey__opts {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: flex-start;
+}
+/* Huruf, Spasi and Lebar: the three controls share one height, so their labels share one line */
+.r3bkey__opts .segmented,
+.r3bkey__opts .dropdown__trigger,
+.r3bkey__opts .ctl-stepper {
+  min-height: 54px;
+  box-sizing: border-box;
+}
+.r3bkey__opts > .stack {
+  flex: 0 0 auto;
+}
+.r3bkey__opts .segmented {
+  width: auto;
+}
+.r3bkey__opts .segmented__item {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.r3bkey__opts .dropdown {
+  min-width: 190px;
 }
 .r3acc {
   display: inline-flex;
@@ -504,8 +535,9 @@
   align-items: center;
   gap: 6px;
 }
-.r3cfg__foot {
+.panel.r3cfg__foot {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
   gap: 14px 20px;
@@ -513,6 +545,7 @@
 }
 .r3cfg__foot > .stack {
   flex: 1 1 280px;
+  min-width: 0;
 }
 .r3cfg .ctl-stepper button {
   width: 40px;
@@ -636,7 +669,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px 24px;
-  align-items: start;
+  align-items: stretch;
+}
+.r3cfg__grid > .stack {
+  justify-content: space-between;
 }
 .r3cfg__sum {
   margin: 0;
@@ -670,4 +706,83 @@
 }
 .r3qtab td {
   overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------- code boxes
+   Bank Soal's code and Markdown fields: a real editor (CodeField.tsx). The box grows from --bk-rows lines
+   to --bk-max lines, then scrolls. 13px at 1.55 is one 20.15px line, plus the 10px padding top and bottom. */
+.bkcode {
+  --syn-keyword: #c3a6ff;
+  --syn-type: #6fd6e3;
+  --syn-string: #8fe3b0;
+  --syn-number: #f5c77e;
+  --syn-func: #7cc4ff;
+  --syn-preproc: #ff9ecf;
+  --syn-const: #ffb38a;
+  --syn-comment: var(--text-faint);
+  --bk-line: 20.15px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  min-width: 0;
+  overflow: hidden;
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal);
+}
+:root[data-theme="light"] .bkcode {
+  --syn-keyword: #6a3fc8;
+  --syn-type: #0a6f7c;
+  --syn-string: #1d7a3e;
+  --syn-number: #8a5a00;
+  --syn-func: #0b5ea8;
+  --syn-preproc: #b0236e;
+  --syn-const: #a04a12;
+}
+.bkcode:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--glow-ring);
+}
+.bkcode[data-ro="yes"] {
+  opacity: 0.7;
+}
+.bkcode--wait {
+  min-height: calc(var(--bk-rows, 6) * var(--bk-line) + 22px);
+}
+.bkcode .cm-editor {
+  height: auto;
+}
+.bkcode .cm-scroller {
+  min-height: calc(var(--bk-rows, 6) * var(--bk-line) + 20px);
+  max-height: calc(var(--bk-max, 24) * var(--bk-line) + 20px);
+  overflow: auto;
+}
+.bkcode .cm-gutters {
+  padding: 0 4px 0 10px;
+  user-select: none;
+}
+.bkcode .cm-content {
+  padding: 10px 0;
+}
+.bkcode[data-prose="yes"] .cm-content {
+  padding: 10px 14px;
+}
+.bkcode .cm-placeholder {
+  color: var(--text-faint);
+}
+
+/* Live Coding list: the title, its pills and the lock sit on one line */
+.bkprob__t {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.bkprob__lock {
+  color: var(--text-muted);
+  flex: none;
+}
+/* The sample and hidden-test boxes: short by default, they still grow by hand */
+.textarea.bkio {
+  min-height: 64px;
 }

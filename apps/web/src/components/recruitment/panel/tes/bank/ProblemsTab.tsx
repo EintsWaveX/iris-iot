@@ -6,7 +6,7 @@
  * ("Cek dengan Reference Solution"). Once a real seat was dealt it, the judged parts
  * are locked and only the text can change.
  */
-import { LockSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, LockSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Stepper } from "../../../../ui/Controls";
 import SegmentedControl from "../../../../ui/SegmentedControl";
@@ -25,6 +25,8 @@ import type {
   ProblemSummary,
   ProblemsResponse,
 } from "../../../../../lib/recruitment/problem-api";
+import Pill from "../../../../ui/Pill";
+import CodeBox from "./CodeBox";
 import { PR } from "./problemStrings";
 
 import "../../../recruitment-s3-lcc.css";
@@ -117,13 +119,25 @@ function Row({ p, lang, onOpen }: { p: ProblemSummary; lang: Lang; onOpen: () =>
   const t = PR[lang];
   const key = p.checkOk === true ? t.keyOk : p.checkOk === false ? t.keyBad : t.keyNo;
   return (
-    <tr onClick={onOpen} style={{ cursor: "pointer" }}>
+    <tr
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => e.key === "Enter" && onOpen()}
+      style={{ cursor: "pointer" }}
+    >
       <td>
-        <button type="button" className="btn btn--ghost btn--sm" onClick={onOpen}>
+        <span className="bkprob__t">
           <b>{p.title}</b>
-        </button>{" "}
-        {p.sample && <span className="pill">{t.builtin}</span>}{" "}
-        {p.shown && <LockSimpleIcon size={14} aria-label={t.lockedTitle} />}
+          {p.sample && <Pill tone="violet">{t.builtin}</Pill>}
+          {p.shown && (
+            <LockSimpleIcon
+              size={16}
+              className="bkprob__lock"
+              aria-label={t.lockedTitle}
+              role="img"
+            />
+          )}
+        </span>
       </td>
       <td>{t.tier[p.tier]}</td>
       <td className="num">{p.tests}</td>
@@ -275,16 +289,16 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
 
   return (
     <section className="stack" style={{ gap: 16 }}>
-      <div className="panel__head">
-        <div className="stack" style={{ gap: 2 }}>
-          <h3 className="panel__title">{draft.title.trim() || t.newTitle}</h3>
-          <span className="hint">
-            {t.status[meta.status]} · v{meta.version || 1}
-          </span>
-        </div>
-        <button type="button" className="btn btn--ghost" onClick={onBack}>
-          {t.back}
+      <div className="row r3ed__head">
+        <button type="button" className="btn btn--ghost btn--sm" onClick={onBack}>
+          <ArrowLeftIcon size={16} aria-hidden="true" /> {t.back}
         </button>
+      </div>
+      <div className="stack" style={{ gap: 2 }}>
+        <h3 className="panel__title">{draft.title.trim() || t.newTitle}</h3>
+        <span className="hint">
+          {t.status[meta.status]} · v{meta.version || 1}
+        </span>
       </div>
 
       {lock && (
@@ -339,16 +353,17 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
             />
           </label>
         ))}
-        <label className="stack stack--sm">
+        <div className="stack stack--sm">
           <span className="label-caps">{t.fStarter}</span>
-          <textarea
-            className="textarea mono"
-            rows={6}
-            spellCheck={false}
+          <CodeBox
+            lang="c"
+            ariaLabel={t.fStarter}
+            rows={8}
+            readOnly={false}
             value={draft.body.starter}
-            onChange={(e) => set({ body: { ...draft.body, starter: e.target.value } })}
+            onChange={(v) => set({ body: { ...draft.body, starter: v } })}
           />
-        </label>
+        </div>
       </section>
 
       <section className="panel stack" style={{ gap: 12 }}>
@@ -422,8 +437,8 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
                 <label className="stack stack--sm" style={{ flex: 1, minWidth: 0 }}>
                   <span className="hint">{t.inLabel}</span>
                   <textarea
-                    className="textarea mono"
-                    rows={3}
+                    className="textarea mono bkio"
+                    rows={2}
                     spellCheck={false}
                     disabled={lock}
                     value={x.input}
@@ -433,8 +448,8 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
                 <label className="stack stack--sm" style={{ flex: 1, minWidth: 0 }}>
                   <span className="hint">{t.outLabel}</span>
                   <textarea
-                    className="textarea mono"
-                    rows={3}
+                    className="textarea mono bkio"
+                    rows={2}
                     spellCheck={false}
                     disabled={lock}
                     value={x.output}
@@ -452,14 +467,14 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
           <h4 className="panel__title">{t.fReference}</h4>
           <span className="hint">{t.fReferenceHint}</span>
         </div>
-        <textarea
-          className="textarea mono"
+        <CodeBox
+          lang="c"
+          ariaLabel={t.fReference}
           rows={12}
-          spellCheck={false}
-          disabled={lock}
-          aria-label={t.fReference}
+          maxRows={32}
+          readOnly={lock}
           value={draft.reference}
-          onChange={(e) => set({ reference: e.target.value })}
+          onChange={(v) => set({ reference: v })}
         />
         <CheckResult lang={lang} check={check} ok={meta.checkOk} />
       </section>
