@@ -11,14 +11,19 @@ import { useEffect } from "react";
 
 const SEL = ".seg, .segmented";
 
-/** An option's width with its label on one line. */
-function natural(item: HTMLElement): number {
+/**
+ * An option's width with its label on one line, in layout pixels. `scale` undoes a
+ * transform on the switch or above it: a dialog opens with a scale animation, and
+ * widths read mid-animation would tip a borderline switch into two rows that then
+ * "fixes itself" (2026-11-03).
+ */
+function natural(item: HTMLElement, scale: number): number {
   const cs = getComputedStyle(item);
   const r = document.createRange();
   r.selectNodeContents(item);
   const px = (v: string) => parseFloat(v) || 0;
   return (
-    r.getBoundingClientRect().width +
+    r.getBoundingClientRect().width / scale +
     px(cs.paddingLeft) +
     px(cs.paddingRight) +
     px(cs.borderLeftWidth) +
@@ -44,8 +49,10 @@ function fit(el: HTMLElement) {
   const par = el.parentElement;
   const pcs = par ? getComputedStyle(par) : null;
   const room = par && pcs ? par.clientWidth - px(pcs.paddingLeft) - px(pcs.paddingRight) : Infinity;
-  const inner = Math.min(el.getBoundingClientRect().width, room) - pad;
-  const nat = items.map(natural);
+  // offsetWidth is a layout width (no transforms); the ratio to the painted width is the scale in effect.
+  const scale = el.offsetWidth > 0 ? el.getBoundingClientRect().width / el.offsetWidth || 1 : 1;
+  const inner = Math.min(el.offsetWidth, room) - pad;
+  const nat = items.map((i) => natural(i, scale));
   const w = Math.max(...nat);
   // A grid switch (.seg) forces equal columns, so every column needs the
   // widest label. A flex one (.segmented) shares out spare room equally but
@@ -81,7 +88,12 @@ export default function SegFit() {
     mo.observe(document.body, { childList: true, subtree: true, characterData: true });
     scan();
     void document.fonts?.ready.then(later);
+    // A dialog's open animation ends without any size change the observers would see: measure again then.
+    document.addEventListener("animationend", later, true);
+    document.addEventListener("transitionend", later, true);
     return () => {
+      document.removeEventListener("animationend", later, true);
+      document.removeEventListener("transitionend", later, true);
       mo.disconnect();
       ro.disconnect();
       cancelAnimationFrame(raf);

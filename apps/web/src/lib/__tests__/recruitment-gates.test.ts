@@ -16,6 +16,7 @@ import {
   tahapSudahMulai,
   tanggalWib,
   visibleEvents,
+  eventSegera,
 } from "../recruitment/gates";
 import type { RecEvent } from "../recruitment/types";
 
@@ -236,5 +237,18 @@ describe("tahapSudahMulai", () => {
     const tanpa: RecEvent = { ...judul("Extend"), stage: null };
     expect(tahapSudahMulai([tanpa], tanpa, wib("2026-10-31T12:00:00"))).toBe(false);
     expect(tahapSudahMulai([tanpa], tanpa, wib("2026-11-01T12:00:00"))).toBe(true);
+  });
+});
+
+describe("eventSegera (the Asisten's lead days)", () => {
+  const ev = { startsOn: "2026-11-06", endsOn: "2026-11-06", dayStart: "18:30", dayEnd: "21:00" };
+  const at = (iso: string) => new Date(iso);
+  it("opens 3 days ahead, WIB", () => {
+    expect(eventSegera(ev, at("2026-11-02T16:59:00Z"))).toBe(false); // 2 Nov 23:59 WIB, 4 days out
+    expect(eventSegera(ev, at("2026-11-02T17:00:00Z"))).toBe(true); // 3 Nov 00:00 WIB
+  });
+  it("stays open while it runs and closes once it ends", () => {
+    expect(eventSegera(ev, at("2026-11-06T12:00:00Z"))).toBe(true); // 19:00 WIB, running
+    expect(eventSegera(ev, at("2026-11-06T14:00:00Z"))).toBe(false); // 21:00 WIB, over
   });
 });

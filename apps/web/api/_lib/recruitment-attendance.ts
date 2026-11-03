@@ -30,7 +30,7 @@ import {
   recTubesSession,
 } from "../../src/lib/schema.js";
 import { lite } from "../../src/lib/recruitment/banner.js";
-import { eventHadir, eventLive, tanggalWib } from "../../src/lib/recruitment/gates.js";
+import { eventHadir, eventLive, eventSegera, tanggalWib } from "../../src/lib/recruitment/gates.js";
 import {
   CODE_ALPHABET,
   CODE_LENGTH,
@@ -117,6 +117,9 @@ interface Peserta {
 
 /** Events a QR makes sense for: a gathering (see eventHadir) and running right now. */
 export const bisaDipindai = (e: RecEvent, now: Date): boolean => eventHadir(e) && eventLive(e, now);
+
+/** An event the wall may list for an Asisten: running, or starting within the lead days (to prepare the QR). */
+const bisaDisiapkan = (e: RecEvent, now: Date): boolean => eventHadir(e) && eventSegera(e, now);
 
 /** Whether the event is one a candidate only attends with a slot of their own. */
 const butuhSlot = (e: RecEvent) => e.audience === "own" || e.audience === "offered";
@@ -268,19 +271,24 @@ export async function handleQrAcara(_req: ApiRequest, res: ApiResponse, s: Sessi
   }
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
-  const hidup = events.filter((e) => bisaDipindai(e, now) && (!sendiri || sendiri.has(e.id)));
+  const hidup = events.filter((e) => bisaDisiapkan(e, now) && (!sendiri || sendiri.has(e.id)));
   const daftar = [];
   const qrMap = await bacaSetting(db, "qr");
   for (const e of hidup) {
     const q = qrUntuk(qrMap, e.id);
+    const live = bisaDipindai(e, now);
     daftar.push({
       ...lite(e),
       qr: { mode: q.mode, link: q.mode === "luar" ? q.link : "", sheet: q.sheet },
       stage: e.stage,
-      here: await hitungHadir(db, e.id),
-      expected: (await muatDiharapkan(db, edisi.id, e, events, now)).length,
+      live,
+      // Counts only mean something while it runs; an event still to come is just to prepare
+      here: live ? await hitungHadir(db, e.id) : 0,
+      expected: live ? (await muatDiharapkan(db, edisi.id, e, events, now)).length : 0,
     });
   }
+  // Running first, then the soonest to start
+  daftar.sort((a, b) => Number(b.live) - Number(a.live) || a.startsOn.localeCompare(b.startsOn));
   res.status(200).json({ ok: true, events: daftar, now: now.toISOString() });
 }
 
