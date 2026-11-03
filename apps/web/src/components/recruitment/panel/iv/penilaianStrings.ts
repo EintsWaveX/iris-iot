@@ -121,7 +121,7 @@ export const PN = dict<PnWords>({
     cols: {
       cand: "Kandidat",
       sheets: "Lembar per penguji",
-      mean: "Rata rata",
+      mean: "Rata-rata",
       spread: "Sebaran, 0 sampai 100",
       gap: "Selisih",
       verdict: "Keputusan",
@@ -152,7 +152,7 @@ export const PN = dict<PnWords>({
     },
     mine: {
       title: "Kamu melihat lembarmu sendiri",
-      body: "Rata rata, sebaran, dan tingkat pewawancara lain terbuka untuk Ketua, Akademik dan Admin. Panitia lain melihat rata-ratanya di Cutting.",
+      body: "Rata-rata, sebaran, dan tingkat pewawancara lain terbuka untuk Ketua, Akademik dan Admin. Panitia lain melihat rata-ratanya di Cutting.",
       cols: {
         cand: "Kandidat",
         slot: "Slot",
@@ -173,7 +173,7 @@ export const PN = dict<PnWords>({
         absent: "absent, makeup",
         sortLast: "Turn",
         ctx: "Interview · Tubes",
-        ctxTip: "Interview average and Project score, for context only",
+        ctxTip: "Interview average and Tubes score, for context only",
       },
       tubes: {
         hint: "One sheet per candidate, filled in by a pair of examiners. Each sheet is scored out of 100 from the 1 to 5 levels on each rubric row. The Presentation score is the average of all their sheets. Cutting uses it together with submission completeness and attendance.",

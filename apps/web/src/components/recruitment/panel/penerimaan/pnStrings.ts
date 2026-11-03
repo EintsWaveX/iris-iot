@@ -101,7 +101,7 @@ const ID: PnWords = {
   readOnly: "Hanya Ketua yang bisa mengubah dan mengonfirmasi daftar ini. Kamu melihatnya saja.",
   empty: "Belum ada CaAs di daftar akhir",
   emptyHint: "Daftar terisi begitu Cutting Mengajar dikunci dan ada yang lolos.",
-  quota: (n, q) => `${n} diterima, sasaran sekitar ${q}`,
+  quota: (n, q) => `${n} diterima, target sekitar ${q}`,
   review: {
     cols: {
       name: "CaAs",
@@ -144,7 +144,7 @@ const ID: PnWords = {
     list: "Yang menjadi Asisten",
     noDivision: "Mereka belum punya divisi; status aktif.",
     history: "Riwayat Praktikan tetap ada.",
-    twice: "Menjalankannya dua kali tidak membuat siapa pun dua kali.",
+    twice: "Dijalankan dua kali pun tidak ada yang dibuat ganda.",
     audit: "Tercatat di log audit.",
     envelope: (d) => `Amplop akhir terbuka ${d}.`,
     hold: "Jadikan Asisten",
@@ -247,7 +247,7 @@ const EN: PnWords = {
     list: "Becoming Asisten",
     noDivision: "They have no division yet; status active.",
     history: "Their Praktikan history stays.",
-    twice: "Running it twice creates nobody twice.",
+    twice: "Running it twice doesn't create anyone twice.",
     audit: "It is written to the audit log.",
     envelope: (d) => `The final envelopes open ${d}.`,
     hold: "Make Them Asisten",
@@ -283,7 +283,7 @@ const EN: PnWords = {
     button: "Close the Edition Now",
     confirmTitle: "Close this edition?",
     confirmBody:
-      "Every Panitia tab becomes read only and the data retention clock starts. This can't be undone from here.",
+      "Every Panitia tab becomes read only and the countdown to deleting the data starts. This can't be undone from here.",
     confirmLabel: "Close the Edition",
     done: "Edition closed.",
     byHand: (d) => `Closed by the Ketua, ${d}.`,
@@ -291,7 +291,7 @@ const EN: PnWords = {
   },
   err: {
     tanpa_hak: "Only the Ketua can do this.",
-    kode_bermasalah: "Some codes are not right.",
+    kode_bermasalah: "Some codes need fixing.",
     sudah_dijadikan: "Some are already Asisten and their codes are locked.",
     tanpa_kandidat: "No CaAs on the final list yet.",
     sudah_ditutup: "The edition is already closed.",

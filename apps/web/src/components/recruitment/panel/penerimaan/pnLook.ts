@@ -102,7 +102,7 @@ export const PL = dict({
     goEyebrow: "Jadikan Asisten",
     goUnit: "Asisten baru",
     goHint:
-      "Satu langkah yang tidak bisa diulang dari awal: ringkasan, lalu tahan tombol. Menjalankannya dua kali tidak membuat siapa pun dua kali.",
+      "Langkah ini tidak bisa ditarik lagi: cek ringkasan, lalu tahan tombolnya. Dijalankan dua kali pun tidak ada yang dibuat ganda.",
     goBar: "Tombolnya ada di bar bawah, selalu terlihat.",
     goButton: "Tinjau dan Jadikan Asisten",
     sumTitle: "Konfirmasi Penerimaan",
@@ -112,7 +112,7 @@ export const PL = dict({
     sumCodes: "Kode yang Dibuat",
     sumWhat: "Yang Terjadi",
     what: [
-      "Membuat catatan Asisten lewat logika Tim yang sudah ada",
+      "Membuat data Asisten lewat fitur Tim yang sudah ada",
       "Tanpa divisi, status Aktif",
       "Riwayat Praktikan tetap tersimpan",
       "Aman dijalankan dua kali: siapa pun yang sudah jadi dilewati",
@@ -121,8 +121,7 @@ export const PL = dict({
     back: "Kembali",
     doneEyebrow: "Jadikan Asisten selesai",
     doneAgain: "Sudah dilakukan",
-    doneHint:
-      "Amplop akhir terkunci. Percobaan berikutnya melewati yang sudah ada dan tidak membuat siapa pun dua kali.",
+    doneHint: "Amplop akhir terkunci. Kalau dijalankan lagi, yang sudah ada dilewati.",
     created: "Asisten yang Dibuat",
     colName: "Nama",
     colNim: "NIM",
@@ -223,7 +222,7 @@ export const PL = dict({
     goEyebrow: "Make Them Asisten",
     goUnit: "new Asisten",
     goHint:
-      "One step you cannot take back lightly: the summary, then press and hold. Running it twice creates nobody twice.",
+      "This step can't be taken back: check the summary, then press and hold. Running it twice doesn't create anyone twice.",
     goBar: "The button is in the bar below, always in view.",
     goButton: "Review and Make Them Asisten",
     sumTitle: "Confirm Acceptance",
@@ -233,7 +232,7 @@ export const PL = dict({
     sumCodes: "Codes to Create",
     sumWhat: "What Happens",
     what: [
-      "Creates the Asisten records through the existing Tim logic",
+      "Creates the Asisten records through the existing Tim feature",
       "No division, status Active",
       "Praktikan history is kept",
       "Safe to run twice: anyone already created is skipped",
@@ -242,8 +241,7 @@ export const PL = dict({
     back: "Back",
     doneEyebrow: "Make Them Asisten is done",
     doneAgain: "Already done",
-    doneHint:
-      "The final envelopes are locked. A later attempt skips the ones who exist and creates nobody twice.",
+    doneHint: "The final envelopes are locked. Running it again skips anyone who already exists.",
     created: "Asisten Created",
     colName: "Name",
     colNim: "NIM",

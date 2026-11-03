@@ -9,7 +9,7 @@ export const CS = dict({
     railLabel: "Tahap Cutting",
     railHead: "Alur cutting",
     cutLine: "Garis Potong",
-    setStart: "Atur titik awal dan sasaran",
+    setStart: "Atur titik awal dan target",
     minimal: "minimal",
     apply: "Terapkan ke yang Belum Diusulkan",
     options: "Pilihan lain",

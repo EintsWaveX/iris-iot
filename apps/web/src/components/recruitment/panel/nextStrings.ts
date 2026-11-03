@@ -16,7 +16,7 @@ type Words = Record<StepKey, (v: StepVars) => string>;
 
 const ID: Words = {
   seatPanitia: (v) => `Susun kursi Panitia: ${v.n} terisi`,
-  watchApplicants: (v) => `Pantau pendaftar yang masuk: ${v.n} dari sasaran sekitar ${v.aim}`,
+  watchApplicants: (v) => `Pantau pendaftar yang masuk: ${v.n} dari target sekitar ${v.aim}`,
   prepReview: (v) => `Siapkan Pengecekan Berkas${v.d ? `, ${v.d}` : ""}`,
   decideExtend: () => "Putuskan perlu tidaknya perpanjangan pendaftaran",
   backupFirstMeet: (v) => `Cari tempat cadangan First Meet${v.d ? `, ${v.d}` : ""}`,

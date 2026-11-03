@@ -229,9 +229,9 @@ export const S2 = dict({
       minHint: "Total Fase 1 (3000) ditambah Live Coding (1000).",
       readPass: "lolos",
       readFail: "gagal",
-      below: (n: number) => `Di bawah sasaran ${n}.`,
-      above: (n: number) => `Di atas sasaran ${n}.`,
-      inside: (a: number, b: number) => `Masuk sasaran ${a} sampai ${b}.`,
+      below: (n: number) => `Di bawah target ${n}.`,
+      above: (n: number) => `Di atas target ${n}.`,
+      inside: (a: number, b: number) => `Masuk target ${a} sampai ${b}.`,
       noShows: "Yang tidak hadir Tes Tulis langsung Gagal",
       replace: (n: number) => `Timpa usulan yang sudah ada (${n})`,
       cancel: "Batal",
@@ -805,7 +805,7 @@ export const S2 = dict({
       fromBerkasDone: "Verified ones proposed Pass, unapproved ones proposed Fail.",
       fromVerdict: (stage: string) =>
         stage === "tubes"
-          ? "Propose from the Presentasi Verdicts"
+          ? "Propose from the Presentation Verdicts"
           : stage === "mengajar"
             ? "Propose from the Panel Verdicts"
             : "Propose from the Interview Verdicts",
@@ -905,7 +905,7 @@ export const S2 = dict({
       declineTitle: "Decline the Request?",
       declineDesc: (nama: string, ruang: string) =>
         `${nama} stays in ${ruang}, and reads this note.`,
-      declineReasons: ["Target is full", "Reason isn't clear", "Add your timetable"],
+      declineReasons: ["Target is full", "Reason isn't clear", "Include proof of your schedule"],
       declineNote: "A note for the candidate (optional)",
       moved: (nama: string, ruang: string) => `${nama} moved to ${ruang}. They're told.`,
       declinedToast: "Request declined. The candidate sees it with your note.",
@@ -976,7 +976,7 @@ export const S2 = dict({
       metaSaved: "Saved.",
       metaFail: "Not saved. Try again.",
       round: (n: number) => `Revision ${n}`,
-      resent: "Sent again, check it again",
+      resent: "Resent, check it again",
       scoreLabel: "Document score",
       less: "Less",
       more: "More",

@@ -32,7 +32,7 @@ export const CAL = dict({
     deleted: (name: string) => `${name} dihapus.`,
     undone: "Perubahan dibatalkan.",
     fail: "Perubahannya belum bisa disimpan. Coba lagi.",
-    noRight: "Kamu tidak punya hak untuk mengubah kalender.",
+    noRight: "Kamu belum bisa mengubah kalender.",
     started: {
       title: "Tahap Ini Sudah Berjalan",
       body: (stage: string, name: string) =>

@@ -79,7 +79,7 @@ export const PN = dict({
     } as Record<string, string>,
     // stats
     statsLede:
-      "N peserta yang membuka bagian dan mendapat soal ini, M yang benar penuh. p = (M + 1) / (N + 2), bobot w = 2 - p. Soal yang p-nya rendah sekali atau pilihan salahnya jauh lebih ramai dari kunci patut dicek.",
+      "N = peserta yang membuka bagian dan mendapat soal ini, M = yang benar penuh. p = (M + 1) / (N + 2), bobot w = 2 - p. Cek soal yang p-nya rendah sekali, atau yang pilihan salahnya jauh lebih banyak dipilih daripada kunci.",
     part: {
       logika: "Logika",
       fitb: "FITB",
@@ -171,7 +171,7 @@ export const PN = dict({
     finalizeNote: "Note (optional)",
     finalizeGo: "Finalise",
     unfreeze: "Unfreeze",
-    unfreezeTitle: "Unfreeze The Scores?",
+    unfreezeTitle: "Unfreeze the Scores?",
     unfreezeBody:
       "Scores are computed again from the answers, the keys and the withdrawn questions as they stand now. Write why it has to be opened.",
     unfreezeNote: "Reason",
@@ -201,7 +201,7 @@ export const PN = dict({
       generic: "That did not work. Try again in a moment.",
     },
     statsLede:
-      "N candidates opened the part and were dealt the question, M answered it fully right. p = (M + 1) / (N + 2), weight w = 2 - p. A very low p, or a wrong option far more popular than the key, deserves a look.",
+      "N = candidates who opened the part and got this question, M = those who got it fully right. p = (M + 1) / (N + 2), weight w = 2 - p. Take a look at a question with a very low p, or a wrong option picked far more often than the key.",
     part: { logika: "Logic", fitb: "FITB", kodingan: "Coding", mikro: "Microcontroller" },
     allParts: "All Parts",
     statsEmpty: "No question has been dealt yet.",
@@ -220,17 +220,17 @@ export const PN = dict({
     wrongCount: (n: number) => `${n} candidates`,
     check: "Check key",
     checkTip: "Many candidates answered and almost all got it wrong.",
-    voided: "Voided",
-    voidIt: "Void Question",
+    voided: "Withdrawn",
+    voidIt: "Withdraw Question",
     unvoid: "Restore",
-    voidTitle: "Void This Question?",
+    voidTitle: "Withdraw This Question?",
     voidBody:
       "The question stops counting: scores are recomputed as if it was never dealt. Candidates who got it see 'This question was withdrawn'.",
     unvoidTitle: "Restore This Question?",
     unvoidBody: "The question counts in every candidate's score again.",
     voidNote: "Audit note",
     voidNotePh: "For example: the key for blank 2 is wrong, 'z' is also right.",
-    voidDone: "Question voided",
+    voidDone: "Question withdrawn",
     unvoidDone: "Question restored",
     spreadLede:
       "How many candidates fall in each score range. One bar per range; the table below holds the same numbers.",

@@ -37,7 +37,7 @@ const ID: CrewBoardWords = {
   poolHint: (per, panel) =>
     panel
       ? `Seret ke baris Panel sebuah ruang. ${per} orang menguji seluruh malam, jadi mereka melihat semua kandidat di ruang itu. Angkanya jumlah malam orang itu.`
-      : `Seret ke baris Penguji sebuah ruang. Beberapa orang untuk tiap bilik (bawaan dua), berurutan: dua chip pertama dengan kandidat pertama. Angkanya jumlah slot orang itu.`,
+      : `Seret ke baris Penguji sebuah ruang. Beberapa orang untuk tiap bilik (bawaan dua), berurutan: dua nama pertama untuk kandidat pertama. Angkanya jumlah slot orang itu.`,
   poolHintPhone: "Di HP, pakai tombol tambah di baris tiap ruang.",
   poolAll: (n) => `Semua Asisten aktif (${n})`,
   laneBooth: "Penguji",
@@ -65,7 +65,7 @@ const EN: CrewBoardWords = {
   poolHint: (per, panel) =>
     panel
       ? `Drag onto a room's Panel row. ${per} people sit the whole evening, so they see every candidate in that room. The number is how many evenings that person has.`
-      : `Drag onto a room's Examiners row. A few people for each booth (two by default), in order: the first two chips go with the first candidate. The number is how many slots that person has.`,
+      : `Drag onto a room's Examiners row. A few people for each booth (two by default), in order: the first two names go with the first candidate. The number is how many slots that person has.`,
   poolHintPhone: "On a phone, use the add button in each room's row.",
   poolAll: (n) => `Every active Asisten (${n})`,
   laneBooth: "Examiners",

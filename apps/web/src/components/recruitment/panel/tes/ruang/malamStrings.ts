@@ -186,11 +186,11 @@ export const KS = dict({
     openPlotting: "Open Plotting",
     openBank: "Open the Question Bank",
     juriBody:
-      "Live Coding is graded by a program on the PC Lab. Check that the PC Lab answers before the exam starts; if it goes down during the exam, candidates' submissions wait and are not lost.",
+      "Live Coding is graded by a program on the lab PC. Check that the lab PC answers before the exam starts; if it goes down during the exam, candidates' submissions wait and are not lost.",
     queueLabel: "Queue",
     queue: (w: number, r: number) => `${w} waiting · ${r} being graded`,
     checkJudge: "Check the Judge",
-    startAnyway: "Start Though Not Ready?",
+    startAnyway: "Start Before Everything Is Ready?",
     startMissing: (n: number, names: string[]) => `${n} not ready: ${names.join(", ")}.`,
     backToSetup: "Back to Setup",
     startAlso: "Start Anyway",
@@ -203,7 +203,7 @@ export const KS = dict({
     save: "Save",
     cancel: "Cancel",
     saved: "Room saved.",
-    fail: "Could not save. Try again.",
+    fail: "Couldn't save. Try again.",
   },
   zh: {
     title: "准备情况",
