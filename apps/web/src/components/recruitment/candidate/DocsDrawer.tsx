@@ -143,7 +143,12 @@ export default function DocsDrawer({
                 {doc?.verdict && (
                   <span
                     className={`pill pill--${doc.verdict === "fix" ? "danger" : "ok"}`}
-                    style={{ alignSelf: "flex-start" }}
+                    style={{
+                      alignSelf: "flex-start",
+                      maxWidth: "100%",
+                      whiteSpace: "normal",
+                      textAlign: "left",
+                    }}
                   >
                     {doc.verdict === "fix" ? t.markFix : t.markOk}
                   </span>
