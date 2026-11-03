@@ -35,6 +35,17 @@ export function eventLive(e: Jendela, now: Date): boolean {
   return !e.dayStart || !e.dayEnd || (jam >= e.dayStart && jam < e.dayEnd);
 }
 
+/**
+ * How many days ahead an Asisten may prepare an event (the QR wall, the form link),
+ * instead of only while it runs (user, 2026-11-03). Candidates never get this window.
+ */
+export const ASISTEN_LEAD_DAYS = 3;
+
+/** Not over yet and starting within `days` days (or already running): open for the Asisten to prepare. */
+export function eventSegera(e: Jendela, now: Date, days = ASISTEN_LEAD_DAYS): boolean {
+  return !eventEnded(e, now) && e.startsOn <= addDays(tanggalWib(now).tanggal, days);
+}
+
 /** The kinds that are an evening people come to; registration, announcements, picks, reviews, plenos and cuttings are not. */
 const KIND_HADIR: readonly string[] = [
   "meeting",

@@ -2208,3 +2208,14 @@ li.r2cutline {
   width: 100%;
   height: auto;
 }
+
+/* An event still to come: a quiet placeholder where the IRIS QR will be. */
+.r2proj__qr--wait {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 2px dashed var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  font-weight: 650;
+}

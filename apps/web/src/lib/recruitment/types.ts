@@ -869,6 +869,8 @@ export interface QrEventsResponse {
   events: (EventLite & {
     here: number;
     expected: number;
+    /** Running now; false is an event within the Asisten's lead days, shown to prepare its QR */
+    live: boolean;
     /** Which QR the event shows: IRIS's own, or one made from a pasted link (qr-luar.ts) */
     qr: { mode: "iris" | "luar"; link: string; sheet: string };
   })[];

@@ -467,6 +467,11 @@ export const S2 = dict({
       signIn: "Masuk sebagai Panitia untuk membuka layar ini.",
       logoAlt: "IRIS",
       close: "Tutup dinding absensi",
+      soon: "Belum Mulai",
+      soonHint:
+        "Acaranya belum mulai. QR IRIS baru muncul begitu acaranya jalan. Pilihan QR bisa kamu atur dari sekarang lewat ikon pengaturan di atas.",
+      soonHintLuar:
+        "Acaranya belum mulai. QR ini sudah bisa dibagikan, dan daftar yang terakhir scan terisi begitu ada yang mengisi form.",
       luar: {
         settings: "Atur QR",
         title: "QR Absensi",
@@ -1024,6 +1029,11 @@ export const S2 = dict({
       signIn: "Sign in as Panitia to open this screen.",
       logoAlt: "IRIS",
       close: "Close the attendance wall",
+      soon: "Not Started",
+      soonHint:
+        "The event hasn't started. The IRIS QR appears once it runs. You can set up the QR now with the settings icon above.",
+      soonHintLuar:
+        "The event hasn't started. This QR can already be shared, and the latest scans fill in once people submit the form.",
       luar: {
         settings: "Set QR",
         title: "Attendance QR",
@@ -1562,6 +1572,10 @@ export const S2 = dict({
       signIn: "请以招募组身份登录后打开这个屏幕。",
       logoAlt: "IRIS",
       close: "关闭签到屏",
+      soon: "未开始",
+      soonHint:
+        "活动还没开始。IRIS 二维码会在活动开始后出现。现在就可以用上方的设置图标准备二维码。",
+      soonHintLuar: "活动还没开始。这个二维码现在就可以分享，有人提交表单后最近扫码的名单会出现。",
       luar: {
         settings: "设置二维码",
         title: "签到二维码",

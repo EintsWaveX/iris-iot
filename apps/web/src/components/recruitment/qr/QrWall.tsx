@@ -79,13 +79,15 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const eventId = aktif?.id ?? null;
   // A Google Form QR: made from the pasted link, no IRIS token, the last scans read from its sheet
   const luar = aktif?.qr.mode === "luar";
+  // Not running yet: an Asisten may open the wall a few days ahead to prepare the QR (no token, no count)
+  const belum = aktif !== null && !aktif.live;
   const linkLuar = luar ? aktif.qr.link : "";
   const adaSheet = luar && aktif.qr.sheet !== "";
   const terbaru = useRecQrRecent(eventId, izin && adaSheet);
 
   // The token for the current period: fetched now, and again as the period ends.
   useEffect(() => {
-    if (!izin || eventId === null || luar) return;
+    if (!izin || eventId === null || luar || belum) return;
     let alive = true;
     let timer = 0;
     const ambil = async () => {
@@ -109,7 +111,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
       alive = false;
       window.clearTimeout(timer);
     };
-  }, [izin, eventId, luar]);
+  }, [izin, eventId, luar, belum]);
 
   const svg = useMemo(
     () =>
@@ -182,7 +184,10 @@ export default function QrWall({ lang }: { lang: Lang }) {
               label={t.pick}
               hideLabel
               value={String(aktif?.id ?? "")}
-              options={daftar.map((e) => ({ value: String(e.id), label: judulAcara(e, lang) }))}
+              options={daftar.map((e) => ({
+                value: String(e.id),
+                label: e.live ? judulAcara(e, lang) : `${judulAcara(e, lang)} · ${t.soon}`,
+              }))}
               onChange={(v) => {
                 setTok(null);
                 setPilih(Number(v));
@@ -217,7 +222,12 @@ export default function QrWall({ lang }: { lang: Lang }) {
             {(tok || luar) && (
               <div className="r2proj__qr" ref={box} dangerouslySetInnerHTML={{ __html: svg }} />
             )}
-            {!luar && (
+            {belum && !luar && (
+              <div className="r2proj__qr r2proj__qr--wait">
+                <span>{t.soon}</span>
+              </div>
+            )}
+            {!luar && !belum && (
               <svg className="r2proj__ring" viewBox="0 0 100 100" aria-hidden="true">
                 <rect x="1.5" y="1.5" width="97" height="97" rx="7" pathLength={100} ref={ring} />
               </svg>
@@ -226,6 +236,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
           <div className="r2proj__info">
             <span className="r2proj__eyebrow">
               {aktif.stage ? `${t.attendance} · ${REC[lang].stage[aktif.stage]}` : t.attendance}
+              {belum ? ` · ${t.soon}` : ""}
             </span>
             <h1 className="r2proj__t">{judulAcara(aktif, lang)}</h1>
             <span className="r2proj__when">
@@ -260,9 +271,13 @@ export default function QrWall({ lang }: { lang: Lang }) {
                 </div>
                 <div className="r2proj__how">
                   <span>{t.luar.scanForm}</span>
-                  <span className="hint">{t.luar.formNote}</span>
+                  <span className="hint">{belum ? t.soonHintLuar : t.luar.formNote}</span>
                 </div>
               </>
+            ) : belum ? (
+              <div className="r2proj__how">
+                <span>{t.soonHint}</span>
+              </div>
             ) : (
               <>
                 <div className="r2proj__count">
