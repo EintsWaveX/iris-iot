@@ -22,7 +22,7 @@ export const KS = dict({
         h: "Admin sudah meminta perbaikan; menunggu CaAs upload ulang.",
       },
       disetujui: { t: "Terverifikasi", h: "Berkas sesuai. Lanjut ke tahap berikutnya." },
-      aktif: { t: "Berjalan", h: "Masih di perjalanan, ikut tahap sekarang." },
+      aktif: { t: "Berjalan", h: "Masih ikut seleksi, di tahap sekarang." },
       berhenti: {
         t: "Tidak lolos",
         h: "Berhenti di tahap yang tertera. Halaman mereka dibekukan.",

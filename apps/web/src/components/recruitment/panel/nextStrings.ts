@@ -51,7 +51,7 @@ const ID: Words = {
   tubesTopics: () => "Siapkan topik dan brief Tubes, lalu bagikan atau undi di Techmeet",
   tubesFollow: () => "Pantau malam pengerjaan, kehadiran, dan pengumpulan tim",
   tubesOrder: () => "Atur meja, urutan, dan penguji presentasi Tubes",
-  watchCalendar: () => "Belum ada tugas untukmu. Cek Kalender buat acara berikutnya",
+  watchCalendar: () => "Belum ada tugas. Cek Kalender dulu",
   nothing: () => "Tidak ada langkah untukmu sekarang",
 };
 
@@ -93,7 +93,7 @@ const EN: Words = {
     "Prepare the Tubes topics and briefs, then share them out or draw at the Techmeet",
   tubesFollow: () => "Follow the work evenings, attendance and each team's submission",
   tubesOrder: () => "Set the tables, the order and the examiners of the Tubes presentation",
-  watchCalendar: () => "Nothing for you to do yet. Check the Calendar for the next event",
+  watchCalendar: () => "Nothing to do yet. Check the Calendar",
   nothing: () => "No step for you right now",
 };
 

@@ -261,7 +261,7 @@ const ID: IvWords = {
     start: "Mulai",
     clock: "Lama sesi",
     recOn: "Merekam",
-    recOff: "Rekam mati",
+    recOff: "Rekaman mati",
     recTip: "Merekam suara wajib. Bila rekaman hilang, catatan jawaban harus lengkap.",
     special: "Kasus Khusus",
     files: "Berkas",

@@ -104,7 +104,7 @@ export const TS = dict({
       lcBoard:
         "Live Coding memakai bahasa C: soal dibagikan acak, nilainya naik dengan tiap tes yang lolos. Boleh menjalankan sebanyak yang kamu mau.",
       rule: [
-        "Tetap di layar penuh. Pindah tab, pindah jendela dan menempel tercatat.",
+        "Tetap di layar penuh. Pindah tab, pindah jendela, dan paste akan tercatat.",
         "Jawaban tersimpan otomatis tiap kamu memilih atau mengetik.",
         "Tiap bagian punya waktunya sendiri. Saat habis, jawabanmu terkumpul sendiri.",
       ],
@@ -224,7 +224,7 @@ export const TS = dict({
       checksLabel: "Checks before you enter",
       help: "QR won't read or sign-in fails? An Asisten can sign you in from their own screen.",
       callAsisten: "Call an Asisten",
-      callToast: "Raise your hand, an Asisten will come to your seat.",
+      callToast: "Raise your hand and an Asisten will come to your seat.",
       fsNote:
         "The test runs in full screen until Live Coding ends. If you leave it, the test is covered until you come back, and the pengawas sees it.",
       checking: "Checking your connection",
@@ -251,7 +251,7 @@ export const TS = dict({
       clock: "Your laptop clock",
       clockOk: (s: string) => `${s} seconds off the server, already adjusted`,
       notMe: "That's Not Me",
-      notMeToast: "Raise your hand, a pengawas will come to your seat.",
+      notMeToast: "Raise your hand and a pengawas will come to your seat.",
       failed: "This step didn't save. Try again.",
     },
     lobby: {
