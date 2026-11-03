@@ -28,7 +28,7 @@ export const S2 = dict({
         penerimaan: "Pengumuman Penerimaan Asisten",
       } as Record<StageKey, string>,
       lolosTitle: "Hooray!",
-      gagalTitle: "Ouhhh.",
+      gagalTitle: "Belum kali ini.",
       lolosLine: ((n: string) => `Kamu lolos, ${n}. Sampai ketemu di tahap berikutnya.`) as Nama,
       gagalLine: ((n: string) =>
         `${n}, kali ini kamu belum lolos ke tahap berikutnya. Makasih banyak sudah ikut sejauh ini.`) as Nama,
@@ -165,7 +165,7 @@ export const S2 = dict({
       wouldFail: "akan gagal",
       none: "belum diusulkan",
       target: (a: number, b: number, tahap: string) =>
-        `Sasaran deck: ${a} sampai ${b} kandidat lolos ${tahap}.`,
+        `Target: ${a} sampai ${b} kandidat lolos ${tahap}.`,
       search: "Cari nama atau NIM",
       searchLabel: "Cari kandidat",
       filter: "Saring",
@@ -296,7 +296,7 @@ export const S2 = dict({
       slot: "Slot",
       requests: "Permintaan",
       board: "Papan",
-      reuse: "Slot dan papan tiap tahap memakai mesin yang sama; penguji diatur di bagian Penguji.",
+      reuse: "Slot dan papan tiap tahap cara kerjanya sama. Penguji diatur di bagian Penguji.",
       window: "Jadwal Tes Tulis",
       openBadge: "Dibuka",
       closedBadge: "Ditutup",
@@ -593,7 +593,7 @@ export const S2 = dict({
         penerimaan: "Asisten Acceptance",
       } as Record<StageKey, string>,
       lolosTitle: "Hooray!",
-      gagalTitle: "Ouhhh.",
+      gagalTitle: "Not this time.",
       lolosLine: ((n: string) => `You passed, ${n}. See you at the next stage.`) as Nama,
       gagalLine: ((n: string) =>
         `${n}, this time you didn't make it to the next stage. Thank you so much for coming this far.`) as Nama,
@@ -728,7 +728,7 @@ export const S2 = dict({
       wouldFail: "would fail",
       none: "not proposed yet",
       target: (a: number, b: number, tahap: string) =>
-        `The deck aims for ${a} to ${b} candidates through ${tahap}.`,
+        `Target: ${a} to ${b} candidates through ${tahap}.`,
       search: "Search name or NIM",
       searchLabel: "Search candidates",
       filter: "Filter",
@@ -857,7 +857,8 @@ export const S2 = dict({
       slot: "Slots",
       requests: "Requests",
       board: "Board",
-      reuse: "Every stage uses the same slots and board; examiners are set in the Examiners part.",
+      reuse:
+        "Every stage works the same way for slots and the board. Set examiners in the Examiners part.",
       window: "Written Test Slots",
       openBadge: "Open",
       closedBadge: "Closed",
@@ -931,7 +932,7 @@ export const S2 = dict({
       released: (nama: string) => `${nama} left their slot.`,
       cancel: "Cancel",
       fail: "It couldn't be saved. Try again.",
-      winClosed: "The window hasn't opened or has already passed.",
+      winClosed: "Slot picking hasn't opened yet, or it already closed.",
       stageLabel: "Stage",
     },
     berkas: {
@@ -1050,7 +1051,7 @@ export const S2 = dict({
         errLink: "That link isn't right. Paste the full link, starting with https://",
         errSheet:
           "That spreadsheet link isn't right. Use a link from docs.google.com/spreadsheets.",
-        errHak: "You don't have the right to change this.",
+        errHak: "You can't change this.",
         errSave: "It couldn't be saved. Try again.",
         cancel: "Cancel",
         save: "Save",

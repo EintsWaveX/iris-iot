@@ -51,7 +51,7 @@ const ID: Words = {
   tubesTopics: () => "Siapkan topik dan brief Tubes, lalu bagikan atau undi di Techmeet",
   tubesFollow: () => "Pantau malam pengerjaan, kehadiran, dan pengumpulan tim",
   tubesOrder: () => "Atur meja, urutan, dan penguji presentasi Tubes",
-  watchCalendar: () => "Pantau Kalender untuk acara berikutnya",
+  watchCalendar: () => "Belum ada tugas untukmu. Cek Kalender buat acara berikutnya",
   nothing: () => "Tidak ada langkah untukmu sekarang",
 };
 
@@ -93,7 +93,7 @@ const EN: Words = {
     "Prepare the Tubes topics and briefs, then share them out or draw at the Techmeet",
   tubesFollow: () => "Follow the work evenings, attendance and each team's submission",
   tubesOrder: () => "Set the tables, the order and the examiners of the Tubes presentation",
-  watchCalendar: () => "Watch the Calendar for the next event",
+  watchCalendar: () => "Nothing for you to do yet. Check the Calendar for the next event",
   nothing: () => "No step for you right now",
 };
 
@@ -105,7 +105,7 @@ export const NS = {
     title: "Langkah Berikutnya untukmu",
     others: "Langkah lain, sesuai urutan",
     open: (tab: string) => `Buka ${tab}`,
-    noScreen: "Langkah ini belum punya layar di sini. Lihat Kalender.",
+    noScreen: "Langkah ini dikerjakan di luar panel. Cek Kalender untuk waktunya.",
     funnel: "Perjalanan Kandidat",
     stageNow: "Tahap sekarang",
     reached: (n: number) => `${n} sampai di sini`,
@@ -147,7 +147,7 @@ export const NS = {
     title: "Your Next Step",
     others: "The other steps, in order",
     open: (tab: string) => `Open ${tab}`,
-    noScreen: "This step has no screen here yet. See the Calendar.",
+    noScreen: "You do this one outside the panel. Check the Calendar for when.",
     funnel: "Candidate Funnel",
     stageNow: "Stage now",
     reached: (n: number) => `${n} got here`,

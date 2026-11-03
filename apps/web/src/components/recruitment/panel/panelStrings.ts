@@ -412,7 +412,7 @@ export const PN = dict({
       joined: (n: string, d: string) => `${n} joined ${d}.`,
       left: (n: string) => `${n} left the Panitia.`,
       fail: "Couldn't move that. Try again.",
-      noRight: "You don't have the right to set that seat.",
+      noRight: "You can't set that seat.",
       ketuaExists: "The chair seat is already taken.",
       srHint: "Press Space to pick up, arrow keys to choose a column, Space again to drop.",
       koorSet: (n: string, d: string) => `${n} is now ${d}'s coordinator.`,

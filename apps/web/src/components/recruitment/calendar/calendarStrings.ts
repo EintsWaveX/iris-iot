@@ -72,7 +72,7 @@ export const CAL = dict({
       remove: "Hapus Acara",
       removeTitle: "Hapus Acara Ini?",
       removeBody: (name: string, gates: boolean) =>
-        `${name} hilang dari kalender semua orang.${gates ? " Tahap yang dibukanya ikut kehilangan jendela waktunya sampai ada acara pengganti." : ""}`,
+        `${name} hilang dari kalender semua orang.${gates ? " Tahap yang dibukanya jadi tidak punya jadwal sampai ada acara pengganti." : ""}`,
       errName: "Isi nama acaranya dulu.",
       errRange: "Tanggal selesai tidak boleh sebelum tanggal mulai.",
       errTime: "Jam selesai harus setelah jam mulai.",
@@ -107,11 +107,11 @@ export const CAL = dict({
     deleted: (name: string) => `${name} deleted.`,
     undone: "Change undone.",
     fail: "The change couldn't be saved. Try again.",
-    noRight: "You don't have the right to edit the calendar.",
+    noRight: "You can't edit the calendar.",
     started: {
       title: "This Stage Has Started",
       body: (stage: string, name: string) =>
-        `${stage} has already started. Changing ${name} changes at once when candidates can do it, and the change is logged with your name.`,
+        `${stage} has already started. Changing ${name} changes right away when candidates can do it, and the change is logged with your name.`,
       thisStage: "This stage",
       before: "Before",
       after: "After",
@@ -122,7 +122,7 @@ export const CAL = dict({
       add: "Add Event",
       edit: "Edit Event",
       addDesc:
-        "A new event shows at once on every Panitia calendar, and on candidate pages unless it's internal.",
+        "A new event shows up right away on every Panitia calendar, and on candidate pages unless it's internal.",
       name: "Event name",
       namePh: "For example Project Techmeet",
       kind: "Kind",
@@ -146,7 +146,7 @@ export const CAL = dict({
       remove: "Delete Event",
       removeTitle: "Delete This Event?",
       removeBody: (name: string, gates: boolean) =>
-        `${name} leaves everyone's calendar.${gates ? " The stage it opens loses its window until another event replaces it." : ""}`,
+        `${name} leaves everyone's calendar.${gates ? " The stage it opens has no open dates until another event replaces it." : ""}`,
       errName: "Give the event a name first.",
       errRange: "The end date can't be before the start date.",
       errTime: "The end time has to be after the start time.",

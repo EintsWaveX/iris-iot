@@ -81,7 +81,7 @@ const EN: CrewBoardWords = {
     `${c} now clashes: they're also in ${room} ${panel ? "this evening" : "at this time"}. Saved, and marked red.`,
   added: (c, room, when) => `${c} examines ${room}, ${when}. They're told.`,
   to: "to",
-  twoSlots: (n) => `${n} has two slots at once`,
+  twoSlots: (n) => `${n} has two slots at the same time`,
   twoAt: (w, at, st, a, b, r) => `${w} at ${at}, and ${st} ${a} to ${b} in ${r}`,
   clashTip: (stage, from, to, room) => `Clash: ${stage}, ${from} to ${to}, ${room}`,
   xlsx: "Download XLSX",

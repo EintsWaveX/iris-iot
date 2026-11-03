@@ -684,7 +684,7 @@ export const BK = dict({
     cfgDrawMedium: "Medium problems per seat",
     cfgRunLimit: "Sends allowed per problem",
     cfgRunLimitNone: "No limit",
-    cfgWorkers: "Judge runs at once",
+    cfgWorkers: "Judge runs in parallel",
     cfgScoreSum: (live: number, hand: number) =>
       `Live Coding share is ${live} points, the dealt problems add up to ${hand}.`,
     cfgScoreOk: "It matches.",

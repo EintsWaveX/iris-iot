@@ -246,7 +246,7 @@ export const CW = dict({
     save: "Save",
     saved: "Note saved.",
     saveFail: "The note was not saved. Try again.",
-    noEdit: "You can read this, but you do not have the right to change it.",
+    noEdit: "You can read this but not change it.",
     proposeLolos: "Propose Pass",
     proposeGagal: "Propose Fail",
     proposedNow: (p: string, by: string | null) =>

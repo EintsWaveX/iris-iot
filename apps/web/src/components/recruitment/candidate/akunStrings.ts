@@ -147,7 +147,7 @@ export const AK: Record<Lang, AkunStrings> = {
       perluKlaim: "Type the claim code from Admin first.",
       klaimSalah: "Wrong claim code. Check Admin's message again.",
       offline: "You're offline. Try again in a moment.",
-      lain: "Something went wrong. Please try again.",
+      lain: "Something went wrong. Try again.",
     },
     menu: {
       label: "Oprec Account",
@@ -174,7 +174,7 @@ export const AK: Record<Lang, AkunStrings> = {
       kodeBody:
         "This code shows only once. Send it to the NIM's owner, who picks Create Account and types it in.",
       tutup: "Done",
-      gagal: "The reset failed. Please try again.",
+      gagal: "The reset failed. Try again.",
     },
   },
   zh: {

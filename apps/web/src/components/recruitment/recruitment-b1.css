@@ -558,8 +558,10 @@
   text-align: left;
   width: 100%;
 }
-.b1-att__b:hover {
-  border-color: color-mix(in srgb, var(--a) 55%, transparent);
+@media (hover: hover) {
+  .b1-att__b:hover {
+    border-color: color-mix(in srgb, var(--a) 55%, transparent);
+  }
 }
 .b1-att__b .num {
   color: var(--ai);
