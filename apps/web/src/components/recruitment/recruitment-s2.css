@@ -2209,13 +2209,16 @@ li.r2cutline {
   height: auto;
 }
 
-/* An event still to come: a quiet placeholder where the IRIS QR will be. */
+/* An event still to come: a quiet placeholder where the IRIS QR will be (the box is white for a real QR, so it goes dark here). */
+.r2proj__qrbox:has(.r2proj__qr--wait) {
+  background: var(--surface-1);
+  border: 2px dashed var(--hairline-strong);
+}
 .r2proj__qr--wait {
   display: grid;
   place-items: center;
-  aspect-ratio: 1;
-  border: 2px dashed var(--hairline-strong);
-  border-radius: var(--radius-lg);
   color: var(--text-muted);
+  font-size: 1.25rem;
   font-weight: 650;
+  text-align: center;
 }
