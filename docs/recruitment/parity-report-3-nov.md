@@ -48,3 +48,14 @@ Ran on the rig rebuilt from main at PR #31: `pair.mjs` for 14 screens at 1440 (m
 - **Fixed from the pairs:** Oprec dropdowns now read in Title Case (trigger and options) like the mockup (`Semua Kandidat`, `Semua Format`); the Tes Tulis Soal Siap row reads "51 soal tertulis dan 8 soal C siap, cukup untuk 24 kursi" from real counts; the Mulai Ujian button has no trailing arrow.
 - **Checked and fine:** the Penerimaan audit log shows the raw action code in monospace, as the mockup does.
 - **Not run:** light theme pairs, phone-width pairs (only overflow was checked at 390), the 320 px width, and the seeded states for Gantikan Pewawancara and the CaAs journey. The `daftar` and `home` pairs compare different screens and are not valid.
+
+## Part 3 (3 Nov, light theme, phone, 320 px, PJ and journey states)
+
+- **Light theme, 1440 px** (`pair2.mjs THEME=light`): 14 pairs, same structure as dark. Differences are data only.
+- **Phone, 390 x 844, dark** (`pair2.mjs W=390`): 14 pairs. Live headers, chips, toolbars and the bottom nav match the mockup's phone layout. The mockup's own Plotting window card is cramped at 390 px (its title wraps one word per line); live is better there.
+- **Overflow at 320 px**: none in the 14 deep states (390 px was clean too).
+- **Outside PJ's QR screen (PR #28), end to end on the rig**: the rig's seeded PJ shifts had no calendar event attached, so `qrShift` was false. Real slots take the stage's Tes Wawancara or Tes Mengajar event on creation, so I attached event 12 to the two rig shifts. Result: `qrShift` true, "Layar QR Shift Ini" appears on both PJ shifts, `qr-token` for another event answers 403. `qr-events` is empty only because Tes Wawancara is not live at that moment.
+- **Gantikan Pewawancara / Gantikan Penguji** now reached with the PJ identities: 540 x 270 modal (mockup 540 x 278), same title.
+- **CaAs journey**, four seeded states (unopened envelope, opened pass, fail, reveal in the future): each renders its own card, journey line and counter as intended.
+- **Not redone**: Penerimaan Tinjau, Kode and Konfirmasi (the rig is on the Hasil screen after its test run; those screens were matched on 2 Nov and no PR since touched them). Tubes stays parked.
+- **Side effect to know**: the click enumerator clicks every Hapus on the rig, so the rig's Wawancara and Mengajar templates lost rows. Rig only.
