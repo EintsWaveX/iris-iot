@@ -155,6 +155,7 @@ import {
   handleAmplop,
   handleAmplopBuka,
   handleBukaKunci,
+  handleCuttingRinci,
   handleHasil,
   handleKunci,
   handleUsul,
@@ -1212,6 +1213,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "candidate") return handleKandidatRinci(req, res, s);
     if (aksi === "committee") return handlePanitia(req, res, s);
     if (aksi === "results") return handleHasil(req, res, s);
+    if (aksi === "cutting-detail") return handleCuttingRinci(req, res, s);
     if (aksi === "qr-events") return handleQrAcara(req, res, s);
     if (aksi === "qr-token") return handleQrToken(req, res, s);
     if (aksi === "qr-recent") return handleQrTerbaru(req, res, s);

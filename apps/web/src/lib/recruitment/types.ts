@@ -755,6 +755,13 @@ export interface CutRowView {
   total: number | null;
   /** Berkas only: the status and the optional score */
   berkas: { status: CandidateStatus; score: number | null; docs: number } | null;
+  /** From the Berkas review, shown as reasons in every stage (3 Nov 2026) */
+  ipk: number | null;
+  potensiCut: boolean;
+  revisions: number;
+  /** The Catatan Panitia, first 140 characters; hasPanitiaNote says whether there is any */
+  panitiaNote: string | null;
+  hasPanitiaNote: boolean;
   proposal: Proposal | null;
   /** The proposer's 3-letter code */
   proposedBy: string | null;
@@ -806,6 +813,72 @@ export interface CutBoardResponse {
   /** Tes Tulis only: the scores are frozen by Finalkan (true) or still provisional (false) */
   scoreFinal?: boolean | null;
   now: string;
+}
+
+/**
+ * GET cutting-detail?id=&stage= (cuttingPropose): everything the Cutting drawer shows for one candidate, so
+ * nobody has to open Kandidat, Berkas or Penilaian to see why a row sits where it does (3 Nov 2026).
+ */
+export interface CutDetailResponse {
+  ok: true;
+  stage: CutStage;
+  candidate: {
+    id: number;
+    nim: string;
+    nama: string;
+    kelas: string | null;
+    angkatan: string | number | null;
+    prodi: string | null;
+    /** The Berkas status as stored */
+    status: string;
+    ipk: number | null;
+    potensiCut: boolean;
+    revisions: number;
+    reviewNote: string | null;
+    reviewedBy: string | null;
+    reviewedAt: string | null;
+    berkasScore: number | null;
+    /** The whole Catatan Panitia */
+    panitiaNote: string | null;
+    /** The candidates right: may change the Catatan from here */
+    canEditNote: boolean;
+  };
+  /** Files with Admin's verdicts; null without the documents right */
+  files:
+    { kind: DocKind; verdict: DocVerdict | null; note: string | null; replaced: boolean }[] | null;
+  /** First Meet and test evenings so far: when and how they checked in, or that they did not */
+  attendance: {
+    title: string;
+    stage: StageKey | null;
+    at: string | null;
+    via: string | null;
+    by: string | null;
+    reason: string | null;
+  }[];
+  /** The stages before this one: the result and score each gave */
+  trail: {
+    stage: CutStage;
+    score: number | null;
+    max: number;
+    verdict: "lolos" | "ragu" | "cut" | null;
+    proposal: Proposal | null;
+    locked: boolean;
+  }[];
+  /** Wawancara, Tubes and Mengajar only */
+  iv: {
+    mean: number | null;
+    spread: number | null;
+    wide: boolean;
+    verdict: "lolos" | "ragu" | "cut" | null;
+    suggested: "lolos" | "ragu" | "cut" | null;
+    sheets: { by: string; score: number }[];
+    expected: number;
+    case: { kind: string; status: "susulan" | "gugur" | null } | null;
+    /** The examiners' shared conclusion per parameter, empty text when none was written */
+    conclusions: { label: { id: string; en: string }; text: string }[];
+  } | null;
+  /** Who proposed what and when in this stage, newest first */
+  history: { proposal: Proposal | null; by: string; at: string; note: string | null }[];
 }
 
 /** POST propose */

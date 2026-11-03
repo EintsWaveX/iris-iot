@@ -97,3 +97,132 @@ export function revealAtFor(
     .sort((a, b) => (a.startsOn < b.startsOn ? -1 : 1))[0];
   return e ? new Date(`${e.startsOn}T${e.dayStart ?? "12:00"}:00+07:00`) : null;
 }
+
+/* ---------------------------------------------------------------------------
+   Why a row sits where it does (3 Nov 2026): the order of the board, the
+   distance to the cut line, and the reason tags and filters built from them.
+   --------------------------------------------------------------------------- */
+
+/** How many places either side of the cut line count as "near the line". */
+export const NEAR_LINE = 5;
+
+/** The part of a board row these helpers read (CutRowView satisfies it). */
+export interface ReasonRow {
+  id: number;
+  nama: string;
+  total: number | null;
+  fm: boolean;
+  tt: boolean;
+  berkas: { status: string; score: number | null } | null;
+  iv?: {
+    wide: boolean;
+    verdict: "lolos" | "ragu" | "cut" | null;
+    sheets: number;
+    expected: number;
+    case: { status: "susulan" | "gugur" | null } | null;
+  } | null;
+  potensiCut: boolean;
+  revisions: number;
+  hasPanitiaNote: boolean;
+  note: string | null;
+}
+
+/**
+ * The board in the order the committee reads it: best score first. Berkas has no total, so
+ * its own score leads and a file with no score comes after those with one; ties and gaps
+ * fall back to the name so the order never jumps between refreshes.
+ */
+export function boardOrder<T extends ReasonRow>(rows: readonly T[]): T[] {
+  const key = (r: T) => r.total ?? r.berkas?.score ?? Number.NEGATIVE_INFINITY;
+  return [...rows].sort((a, b) => {
+    if (key(a) !== key(b)) return key(b) > key(a) ? 1 : -1;
+    return a.nama.localeCompare(b.nama, "id");
+  });
+}
+
+export type NearLine = { side: "above" | "below"; n: number } | null;
+
+/**
+ * Where a place (1-based, in boardOrder) sits against the cut line, when it is within
+ * NEAR_LINE places of it: "above" counts back from the last place inside (1 = the last one
+ * in), "below" counts forward from the first place out (1 = the first one out).
+ */
+export function nearLine(rank: number, passN: number | null): NearLine {
+  if (passN === null || passN <= 0) return null;
+  if (rank <= passN)
+    return passN - rank < NEAR_LINE ? { side: "above", n: passN - rank + 1 } : null;
+  return rank - passN <= NEAR_LINE ? { side: "below", n: rank - passN } : null;
+}
+
+export type ReasonKey =
+  | "nearAbove"
+  | "nearBelow"
+  | "potensiCut"
+  | "revisions"
+  | "noFm"
+  | "noTt"
+  | "noScore"
+  | "wide"
+  | "ragu"
+  | "susulan"
+  | "gugur"
+  | "sheetsMissing"
+  | "hasNote";
+
+export interface Reason {
+  key: ReasonKey;
+  /** A count the tag mentions (places from the line, revision rounds, missing sheets) */
+  n?: number;
+}
+
+/**
+ * The reasons worth a tag on a row, most telling first. `ivStage` is Wawancara, Tubes or Mengajar,
+ * where "tt" means "sat the session" and the examiners' sheets stand in for a score.
+ */
+export function reasonsOf(
+  r: ReasonRow,
+  o: { stage: StageKey; ivStage: boolean; rank: number; passN: number | null },
+): Reason[] {
+  const out: Reason[] = [];
+  const line = nearLine(o.rank, o.passN);
+  if (line) out.push({ key: line.side === "above" ? "nearAbove" : "nearBelow", n: line.n });
+  if (r.potensiCut) out.push({ key: "potensiCut" });
+  if (r.revisions > 0) out.push({ key: "revisions", n: r.revisions });
+  if (o.stage !== "berkas") {
+    if (o.ivStage) {
+      if (r.iv?.case?.status === "gugur") out.push({ key: "gugur" });
+      else if (r.iv?.case?.status === "susulan") out.push({ key: "susulan" });
+      if (r.iv?.wide) out.push({ key: "wide" });
+      if (r.iv?.verdict === "ragu") out.push({ key: "ragu" });
+      if (r.iv && !r.iv.case?.status && r.iv.sheets < r.iv.expected)
+        out.push({ key: "sheetsMissing", n: r.iv.expected - r.iv.sheets });
+    } else {
+      if (!r.fm) out.push({ key: "noFm" });
+      if (!r.tt) out.push({ key: "noTt" });
+      else if (r.total === null) out.push({ key: "noScore" });
+    }
+  }
+  if (r.hasPanitiaNote) out.push({ key: "hasNote" });
+  return out;
+}
+
+/** The extra filters of the Saring list; each reads the same reasons the tags show. */
+export type ReasonFilter = "catatan" | "potensi" | "dekat" | "ragu" | "selisih" | "susulan";
+
+export function matchesReason(f: ReasonFilter, reasons: readonly Reason[], r: ReasonRow): boolean {
+  const has = (k: ReasonKey) => reasons.some((x) => x.key === k);
+  switch (f) {
+    case "catatan":
+      return r.hasPanitiaNote || !!r.note;
+    case "potensi":
+      return r.potensiCut;
+    case "dekat":
+      return has("nearAbove") || has("nearBelow");
+    case "ragu":
+      return has("ragu");
+    case "selisih":
+      return has("wide");
+    case "susulan":
+      return has("susulan") || has("gugur") || has("sheetsMissing");
+  }
+}

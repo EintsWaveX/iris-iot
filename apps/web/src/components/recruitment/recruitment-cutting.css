@@ -383,3 +383,236 @@
   text-align: left;
   padding-block: 6px;
 }
+
+/* ------------------------------------------------- why a row is where it is (3 Nov 2026)
+   The reason tags and note preview on a row, the click-through name, and the candidate drawer. */
+.cwd-open {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+  text-align: left;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cwd-open:hover {
+    color: var(--accent-bright, var(--accent));
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+.cwd-open:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+.n7-crow--open {
+  cursor: pointer;
+}
+.cwd-note {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cwd-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 4px;
+}
+.cwd-tag {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 9px;
+  white-space: nowrap;
+}
+.cwd-tag[data-tone="warn"] {
+  background: color-mix(in srgb, var(--warn, #f5c77e) 18%, transparent);
+  border-color: color-mix(in srgb, var(--warn, #f5c77e) 50%, transparent);
+}
+.cwd-tag[data-tone="danger"] {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+.cwd-tag[data-tone="gold"] {
+  background: color-mix(in srgb, var(--gold, #e6b450) 18%, transparent);
+  border-color: color-mix(in srgb, var(--gold, #e6b450) 55%, transparent);
+}
+.cwd-tag[data-tone="violet"] {
+  background: color-mix(in srgb, #a78bfa 18%, transparent);
+  border-color: color-mix(in srgb, #a78bfa 50%, transparent);
+}
+.cwd-tag--more {
+  color: var(--text-muted);
+}
+
+/* The drawer */
+.n7-seg--lg {
+  padding: 4px;
+}
+.n7-seg--lg button {
+  font-size: 1rem;
+  min-height: 46px;
+  padding: 0 26px;
+}
+.cwd {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.cwd__pos {
+  align-self: center;
+  margin-right: 4px;
+}
+.cwd__keys {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .cwd__keys {
+    display: inline;
+  }
+}
+.cwd__why {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--hairline));
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+.cwd__why ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+.cwd__sec {
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+}
+.cwd__sechead {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  justify-content: space-between;
+}
+.cwd__sechead h4 {
+  margin: 0;
+}
+.cwd__facts {
+  display: grid;
+  gap: 12px 20px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  margin: 0;
+}
+.cwd__fact dt {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+.cwd__fact {
+  display: flex;
+  flex-direction: column;
+}
+.cwd__fact dd {
+  font-weight: 600;
+  margin: auto 0 0;
+  padding-top: 2px;
+}
+.cwd__quote {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 10px 12px;
+}
+.cwd__list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cwd__list li {
+  align-items: baseline;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 8px 0;
+}
+.cwd__list li:last-child {
+  border-bottom: 0;
+}
+.cwd__list li > span:first-child {
+  flex: 1 1 160px;
+  font-weight: 600;
+  min-width: 0;
+}
+.cwd__list-n {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.cwd__list-v {
+  font-weight: 600;
+}
+.cwd__list-v[data-v="ok"],
+.cwd__list-v[data-v="lolos"] {
+  color: var(--n7-ok);
+}
+.cwd__list-v[data-v="fix"],
+.cwd__list-v[data-v="gagal"] {
+  color: var(--n7-bad);
+}
+.cwd__list-v[data-v="none"] {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.cwd__sub {
+  font-size: 0.9rem;
+  margin: 6px 0 0;
+}
+.cwd__concl {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cwd__concl li {
+  display: grid;
+  gap: 2px;
+}
+.cwd__concl span {
+  overflow-wrap: anywhere;
+}
+
+/* The drawer is portaled out of .n7-cut, so it brings its own result colours (dark and light). */
+.cwd,
+.drawer .n7-seg {
+  --n7-ok: var(--ok);
+  --n7-bad: var(--danger);
+}
+:root[data-theme="light"] .cwd,
+:root[data-theme="light"] .drawer .n7-seg {
+  --n7-ok: #0b6b5f;
+  --n7-bad: #b42318;
+}
+.cwd__why li::marker {
+  color: var(--accent);
+}

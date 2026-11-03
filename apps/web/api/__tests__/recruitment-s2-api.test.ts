@@ -22,6 +22,7 @@ import {
   recSlotAssignment,
   recSlotChange,
   recSlotExaminer,
+  recStageProposalLog,
   recStageResult,
   recStrike,
 } from "../../src/lib/schema";
@@ -40,6 +41,7 @@ const tabelNama = new Map<unknown, string>([
   [recEvent, "event"],
   [recEventLog, "eventlog"],
   [recStageResult, "result"],
+  [recStageProposalLog, "proposalLog"],
   [recAttendance, "attendance"],
   [recSlot, "slot"],
   [recSlotAssignment, "assignment"],
@@ -330,6 +332,25 @@ describe("who may reach the Cutting board", () => {
     expect((await panggil("GET", "results", { query: { stage: "berkas" } })).code).toBe(200);
   });
 
+  it("gives a candidate's whole picture to the proposers only", async () => {
+    panitia("wakil");
+    const q = { query: { id: "7", stage: "berkas" } };
+    expect((await panggil("GET", "cutting-detail", q)).code).toBe(403);
+    panitia("pdd");
+    // The fake database answers every select of a table with the same rows; this one reads { k, nama }.
+    rows.candidate = [{ k: KANDIDAT(7), nama: "Ayu" }];
+    rows.result = [];
+    const ok = await panggil("GET", "cutting-detail", q);
+    expect(ok.code).toBe(200);
+    expect(ok.body).toMatchObject({ ok: true, stage: "berkas", history: [], iv: null });
+    expect(
+      (await panggil("GET", "cutting-detail", { query: { id: "x", stage: "berkas" } })).code,
+    ).toBe(400);
+    expect(
+      (await panggil("GET", "cutting-detail", { query: { id: "7", stage: "first_meet" } })).code,
+    ).toBe(400);
+  });
+
   it("lets only the Ketua lock or unlock", async () => {
     panitia("acara");
     for (const aksi of ["lock", "unlock"])
@@ -364,6 +385,53 @@ describe("proposing", () => {
       proposedBy: "101022300900",
       note: "CV rapi",
     });
+  });
+
+  it("keeps a history row for every change, with who and the note", async () => {
+    pasang();
+    await panggil("POST", "propose", {
+      body: { stage: "berkas", items: [{ id: 7, proposal: "lolos", note: "CV rapi" }] },
+    });
+    expect(tulis.filter((w) => w.tabel === "proposalLog").map((w) => w.nilai)).toEqual([
+      {
+        candidateId: 7,
+        stage: "berkas",
+        proposal: "lolos",
+        byNim: "101022300900",
+        note: "CV rapi",
+      },
+    ]);
+  });
+
+  it("writes no history row when nothing changed", async () => {
+    pasang();
+    rows.result = [HASIL({ locked: false, lockedBy: null, revealAt: null, note: "CV rapi" })];
+    await panggil("POST", "propose", {
+      body: {
+        stage: "berkas",
+        items: [
+          { id: 7, proposal: "lolos", note: "CV rapi" },
+          { id: 8, proposal: "gagal" },
+        ],
+      },
+    });
+    // 7 is the same as before; 8 is new.
+    expect(
+      tulis
+        .filter((w) => w.tabel === "proposalLog")
+        .map((w) => (w.nilai as { candidateId: number }).candidateId),
+    ).toEqual([8]);
+  });
+
+  it("records a cleared proposal as a change", async () => {
+    pasang();
+    rows.result = [HASIL({ locked: false, lockedBy: null, revealAt: null })];
+    await panggil("POST", "propose", {
+      body: { stage: "berkas", items: [{ id: 7, proposal: null }] },
+    });
+    expect(tulis.filter((w) => w.tabel === "proposalLog").map((w) => w.nilai)).toMatchObject([
+      { candidateId: 7, proposal: null },
+    ]);
   });
 
   it("says whose proposal it replaced", async () => {
