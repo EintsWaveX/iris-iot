@@ -4,6 +4,7 @@
  */
 import type { APIRoute } from "astro";
 import { SITE_URL } from "../lib/lab";
+import { ZH_ENABLED } from "../lib/kelas";
 
 const PAGES = [
   "/",
@@ -24,8 +25,8 @@ function twin(path: string, lang: "id" | "en" | "zh"): string {
 
 export const GET: APIRoute = () => {
   const urls = PAGES.flatMap((path) =>
-    (["id", "en", "zh"] as const).map((lang) => {
-      const links = (["id", "en", "zh"] as const)
+    (ZH_ENABLED ? (["id", "en", "zh"] as const) : (["id", "en"] as const)).map((lang) => {
+      const links = (ZH_ENABLED ? (["id", "en", "zh"] as const) : (["id", "en"] as const))
         .map(
           (l) =>
             `    <xhtml:link rel="alternate" hreflang="${l === "zh" ? "zh-Hans" : l}" href="${SITE_URL}${twin(path, l)}"/>`,

@@ -7,7 +7,7 @@
  */
 import { CheckIcon, DesktopIcon, MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { dict } from "../../lib/app";
-import type { Lang } from "../../lib/kelas";
+import { ZH_ENABLED, type Lang } from "../../lib/kelas";
 import {
   setClock,
   setDetail,
@@ -110,7 +110,7 @@ const T = dict({
 const LANGS: { v: Lang; l: string }[] = [
   { v: "id", l: "Bahasa Indonesia" },
   { v: "en", l: "English" },
-  { v: "zh", l: "中文" },
+  ...(ZH_ENABLED ? [{ v: "zh" as Lang, l: "中文" }] : []),
 ];
 
 export default function DisplayPanel({ lang, onLang }: { lang: Lang; onLang: (to: Lang) => void }) {
