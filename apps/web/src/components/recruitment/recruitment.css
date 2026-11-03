@@ -749,8 +749,22 @@
 .rkal__bar[data-k="announcement"],
 .rkal__bar[data-k="test"] {
   background: var(--c);
+  /* The fallback for a browser without relative colours: the dark theme's colours are light, the light theme's are dark. */
   color: #160b00;
   box-shadow: none;
+}
+:root[data-theme="light"] .rkal__bar[data-k="announcement"],
+:root[data-theme="light"] .rkal__bar[data-k="test"] {
+  color: #fff;
+}
+/* The text follows the bar's own colour, whatever the theme or a custom event colour: a dark bar gets
+   white text, a light one gets near-black (the lightness where black and white read equally well is
+   about 0.57). Fixed black text on the light theme's dark gold and violet bars was unreadable. */
+@supports (color: oklch(from red l c h)) {
+  .rkal__bar[data-k="announcement"],
+  .rkal__bar[data-k="test"] {
+    color: oklch(from var(--c) clamp(0.1, calc((0.57 - l) * 1000), 0.98) 0 0);
+  }
 }
 .rkal__bar[data-internal] {
   background: repeating-linear-gradient(
