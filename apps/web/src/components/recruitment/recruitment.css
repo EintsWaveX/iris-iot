@@ -2060,3 +2060,157 @@ html[data-detail="ldm"] .n7-mist i:nth-child(1) {
 .r9docs .field__input {
   min-height: 52px;
 }
+
+/* ======================================================= Banner, richer (2026-11-03)
+   The card keeps its one-card height and its rainbow edge, and gets a surface with a
+   mood: a teal glow and a violet glow over a faint dot grid, a radio drawing on the
+   right, a sticker and a gradient title. The stage names stay off the banner on purpose
+   (2026-11-03: newcomers must not see the full timeline). All of it is
+   decoration over the same words; the motion stops at Low Detail and with reduced
+   motion. */
+.rec-bn--rich .rec-bn__in {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      60% 140% at 0% 0%,
+      color-mix(in srgb, var(--rec) 20%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(50% 120% at 100% 100%, rgba(167, 139, 250, 0.2), transparent 64%),
+    radial-gradient(
+        circle at 1px 1px,
+        color-mix(in srgb, var(--text) 9%, transparent) 1px,
+        transparent 1.4px
+      )
+      0 0 / 16px 16px,
+    var(--surface-1);
+}
+.rec-bn--rich .rec-bn__body,
+.rec-bn--rich .rec-bn__extra,
+.rec-bn--rich .rec-bn__cta {
+  position: relative;
+  z-index: 1;
+}
+.rec-bn__art {
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: min(60%, 340px);
+  opacity: 0.4;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 60%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 60%);
+}
+@media (min-width: 900px) {
+  .rec-bn__art {
+    opacity: 0.75;
+    width: min(48%, 460px);
+  }
+}
+.rec-bn__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rec-bn__sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px 3px 9px;
+  border-radius: 999px;
+  background: var(--rec);
+  color: var(--rec-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  transform: rotate(-2.5deg);
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--rec) 70%, transparent);
+}
+.rec-bn__sticker::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.rec-bn__title--hot {
+  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  background: linear-gradient(95deg, var(--text) 30%, var(--rec) 70%, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* The candidate's own tile and steps get the same lift. */
+.rec-bn--rich .rec9-bn__ic {
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--rec) 30%, transparent),
+    rgba(167, 139, 250, 0.22)
+  );
+  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--rec) 80%, transparent);
+}
+.rec-bn--rich .rec-bn__stat b {
+  background: linear-gradient(95deg, var(--text), var(--rec));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion-tier="0"]) .rec-bn__arcs path {
+    stroke-dasharray: 90 400;
+    animation: rec-bn-ping 3.6s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  }
+  :root:not([data-motion-tier="0"]) .rec-bn__arcs path:nth-child(2) {
+    animation-delay: 0.35s;
+  }
+  :root:not([data-motion-tier="0"]) .rec-bn__arcs path:nth-child(3) {
+    animation-delay: 0.7s;
+  }
+  :root:not([data-motion-tier="0"]) .rec-bn__spark {
+    animation: rec-bn-twinkle 2.4s ease-in-out infinite;
+  }
+  :root:not([data-motion-tier="0"]) .rec-bn__spark--b {
+    animation-delay: 0.8s;
+  }
+  :root:not([data-motion-tier="0"]) .rec-bn__spark--c {
+    animation-delay: 1.5s;
+  }
+  :root:not([data-motion-tier="0"]) .rec-bn__sticker::before {
+    animation: appnav-live 2s ease-out infinite;
+  }
+}
+@keyframes rec-bn-ping {
+  0% {
+    stroke-dashoffset: 120;
+    opacity: 0.2;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -280;
+    opacity: 0.2;
+  }
+}
+@keyframes rec-bn-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+.rec-bn__spark {
+  transform-box: fill-box;
+  transform-origin: center;
+}

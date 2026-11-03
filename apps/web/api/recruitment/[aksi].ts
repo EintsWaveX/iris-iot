@@ -166,6 +166,7 @@ import {
   acaraPjLuar,
   handleQrAcara,
   handleQrToken,
+  handleQrTerbaru,
 } from "../_lib/recruitment-attendance.js";
 import {
   handleAtur,
@@ -1213,6 +1214,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "results") return handleHasil(req, res, s);
     if (aksi === "qr-events") return handleQrAcara(req, res, s);
     if (aksi === "qr-token") return handleQrToken(req, res, s);
+    if (aksi === "qr-recent") return handleQrTerbaru(req, res, s);
     if (aksi === "attendance") return handleKehadiran(req, res, s);
     if (aksi === "settings") {
       const e = await wajibEdisi(res, getDb());

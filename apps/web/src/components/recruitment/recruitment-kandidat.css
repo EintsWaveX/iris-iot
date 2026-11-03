@@ -152,16 +152,8 @@
   padding: 0;
 }
 .rec9-line {
-  align-items: center;
   display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-.rec9-line:not(:has(> .btn)) {
   grid-template-columns: minmax(0, 1fr);
-}
-.rec9-line > .btn {
-  white-space: nowrap;
 }
 .rec9-row {
   --k: var(--a);
@@ -175,7 +167,7 @@
   display: grid;
   font: inherit;
   gap: 14px;
-  grid-template-columns: 36px minmax(0, 1.5fr) 118px 96px 150px 170px 16px;
+  grid-template-columns: 36px minmax(0, 1.5fr) 118px 96px 150px 190px 16px;
   min-height: 58px;
   padding: 9px 14px 9px 10px;
   text-align: left;
@@ -185,7 +177,7 @@
   width: 100%;
 }
 .rec9-row[data-late="yes"] {
-  grid-template-columns: 36px minmax(0, 1.5fr) 118px 150px 170px 16px;
+  grid-template-columns: 36px minmax(0, 1.5fr) 118px 150px 190px 16px;
 }
 .rec9-row[data-st="menunggu"] {
   --k: var(--warn);
@@ -275,30 +267,24 @@
   font-size: 0.8rem;
   margin-left: 6px;
 }
-.rec9-row .pill {
+/* Every pill of a row sits in one cell, so extra pills stack in the status column instead of spilling into the caret one. */
+.rec9-row__pills {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   justify-self: start;
+  min-width: 0;
 }
 .rec9-row > svg:last-child {
   color: var(--text-faint);
 }
 /* The list changes shape with the room it has (the panel column), in four steps:
-   wide: every column and the labelled Cutting button; 990-1159: the button shrinks to its icon;
-   700-989: the document bar and the date go; under 700: a card, with the stage, date and status wrapped under the full name. */
+   wide: every column; 700-989: the document bar and the date go; under 700: a card, with the stage, date and status wrapped under the full name. */
 .rec9-kcon {
   container: kand / inline-size;
   display: grid;
   gap: 14px;
-}
-@container kand (max-width: 1159px) {
-  .rec9-line > .btn {
-    font-size: 0;
-    gap: 0;
-    padding-inline: 10px;
-  }
-  .rec9-line > .btn svg {
-    height: 1.2rem;
-    width: 1.2rem;
-  }
 }
 @container kand (max-width: 989px) {
   .rec9-row,
@@ -336,11 +322,11 @@
   .rec9-row__at {
     display: inline-flex;
   }
-  .rec9-row .pill {
+  .rec9-row__pills {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
     justify-self: auto;
-  }
-  .rec9-line > .btn {
-    align-self: stretch;
   }
   /* The one main action ("Periksa Berikutnya") takes the whole line, easy to hit with a thumb. */
   .rec9-kbar > .grow {

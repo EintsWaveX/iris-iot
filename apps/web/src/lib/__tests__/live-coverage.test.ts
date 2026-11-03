@@ -67,7 +67,10 @@ const TIMER_BOLEH: Record<string, string> = {
 };
 
 /** usePoll intervals under 60 s */
-const CEPAT_BOLEH: Record<string, string> = {};
+const CEPAT_BOLEH: Record<string, string> = {
+  "lib/recruitment/client.ts":
+    "useRecQrRecent: the responses sheet of a Google Form QR is Google's, so no topic can say it changed; 6 s while that QR is on the wall",
+};
 
 // ---------- Source Scan ----------
 // ---------- Source Scan ----------

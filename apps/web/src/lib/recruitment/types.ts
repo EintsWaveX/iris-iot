@@ -438,7 +438,7 @@ export interface AccountResetResponse {
 
 /** GET settings: every editable setting, for a Panitia member. */
 export interface SettingView {
-  key: "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "penerimaan";
+  key: "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "penerimaan" | "qr";
   label: { id: string; en: string };
   value: unknown;
   default: unknown;
@@ -866,7 +866,19 @@ export interface EnvelopeOpenResponse {
 /** GET qr-events (attendance): the events a QR can be shown for right now. */
 export interface QrEventsResponse {
   ok: true;
-  events: (EventLite & { here: number; expected: number })[];
+  events: (EventLite & {
+    here: number;
+    expected: number;
+    /** Which QR the event shows: IRIS's own, or one made from a pasted link (qr-luar.ts) */
+    qr: { mode: "iris" | "luar"; link: string; sheet: string };
+  })[];
+  now: string;
+}
+
+/** GET qr-recent?event= (attendance): the last scans read from the event's responses sheet */
+export interface QrRecentResponse {
+  ok: true;
+  scans: { nama: string; jam: string }[];
   now: string;
 }
 

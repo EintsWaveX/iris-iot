@@ -65,6 +65,7 @@ const BACA: Record<string, string[]> = {
     "envelopes",
     "qr-events",
     "qr-token",
+    "qr-recent",
     "results",
     "settings",
     "slots",

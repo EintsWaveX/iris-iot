@@ -12,12 +12,13 @@
  */
 import { IV_DEFAULT, checkTemplate, type IvTemplate } from "./interview.js";
 import { TUBES_DEFAULT, checkTubes, type TubesSetting } from "./tubes.js";
+import { QR_DEFAULT, cekQrMap, type QrMap } from "./qr-luar.js";
 import type { CommitteeDivision, DocKind } from "./types.js";
 
 export const SETTING_PREFIX = "rec_cfg_";
 
 export type SettingKey =
-  "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "tubes" | "tim" | "penerimaan";
+  "docs" | "words" | "cutting" | "wawancara" | "mengajar" | "tubes" | "tim" | "penerimaan" | "qr";
 
 export interface DocSetting {
   /** One of DOC_KINDS; the `kind` stored with an upload. The keys never change once stored. */
@@ -88,6 +89,8 @@ export interface SettingMap {
   /** Tubes teams, the topic mode and the submission's parts */
   tim: TubesSetting;
   penerimaan: AcceptSetting;
+  /** Which QR each event shows: the IRIS one or one made from a pasted link (qr-luar.ts) */
+  qr: QrMap;
 }
 
 /** Penerimaan: the target number of new Asisten, when the edition closes by itself, and how long the data is kept. */
@@ -330,6 +333,13 @@ export const SETTINGS: { [K in SettingKey]: SettingDef<K> } = {
     roles: ["ketua"],
     def: ACCEPT_DEFAULT,
     check: checkAccept,
+  },
+  qr: {
+    key: "qr",
+    label: { id: "QR absensi per acara", en: "Attendance QR per event" },
+    roles: ["ketua", "acara", "admin"],
+    def: QR_DEFAULT,
+    check: cekQrMap,
   },
 };
 

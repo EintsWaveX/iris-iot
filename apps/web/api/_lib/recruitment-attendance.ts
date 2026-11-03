@@ -50,6 +50,15 @@ import {
 } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
+import { bacaSetting } from "./recruitment-settings.js";
+import {
+  bacaSheet,
+  parseCsv,
+  qrUntuk,
+  scanTerbaru,
+  sheetCsvUrl,
+  type ScanBaru,
+} from "../../src/lib/recruitment/qr-luar.js";
 
 /* ------------------------------------------------------------ the token */
 
@@ -261,13 +270,17 @@ export async function handleQrAcara(_req: ApiRequest, res: ApiResponse, s: Sessi
   const events = await muatEvents(db, edisi.id);
   const hidup = events.filter((e) => bisaDipindai(e, now) && (!sendiri || sendiri.has(e.id)));
   const daftar = [];
-  for (const e of hidup)
+  const qrMap = await bacaSetting(db, "qr");
+  for (const e of hidup) {
+    const q = qrUntuk(qrMap, e.id);
     daftar.push({
       ...lite(e),
+      qr: { mode: q.mode, link: q.mode === "luar" ? q.link : "", sheet: q.sheet },
       stage: e.stage,
       here: await hitungHadir(db, e.id),
       expected: (await muatDiharapkan(db, edisi.id, e, events, now)).length,
     });
+  }
   res.status(200).json({ ok: true, events: daftar, now: now.toISOString() });
 }
 
@@ -290,6 +303,9 @@ export async function handleQrToken(req: ApiRequest, res: ApiResponse, s: Sessio
   const e = events.find((v) => v.id === id);
   if (!e) return void tolak(res, "tidak_ditemukan", 404);
   if (!bisaDipindai(e, now)) return void tolak(res, "jendela_tutup", 409);
+  // An event that shows a QR made from a pasted link has no IRIS token to hand out.
+  if (qrUntuk(await bacaSetting(db, "qr"), e.id).mode === "luar")
+    return void tolak(res, "qr_luar", 409);
   const period = periodAt(now.getTime());
   res.status(200).json({
     ok: true,
@@ -302,6 +318,52 @@ export async function handleQrToken(req: ApiRequest, res: ApiResponse, s: Sessio
     here: await hitungHadir(db, e.id),
     expected: (await muatDiharapkan(db, edisi.id, e, events, now)).length,
   });
+}
+
+/* -------------------------------------------- latest scans from a sheet */
+
+const SHEET_TTL_MS = 5_000;
+const sheetCache = new Map<string, { at: number; scans: ScanBaru[] }>();
+
+/** The newest rows of a responses sheet, read from Google's CSV export; cached for a few seconds. */
+async function bacaScanSheet(link: string): Promise<ScanBaru[] | null> {
+  const sh = bacaSheet(link);
+  if (!sh) return null;
+  const url = sheetCsvUrl(sh);
+  const hit = sheetCache.get(url);
+  if (hit && Date.now() - hit.at < SHEET_TTL_MS) return hit.scans;
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(6000), redirect: "follow" });
+    const ct = r.headers.get("content-type") ?? "";
+    // A sheet that is not shared by link answers with a sign-in page, not a CSV.
+    if (!r.ok || !ct.includes("csv")) return null;
+    const text = (await r.text()).slice(0, 2_000_000);
+    const scans = scanTerbaru(parseCsv(text));
+    sheetCache.set(url, { at: Date.now(), scans });
+    return scans;
+  } catch {
+    return null;
+  }
+}
+
+/** GET qr-recent?event=: the last four who scanned, read from the event's responses sheet. */
+export async function handleQrTerbaru(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const id = Number(req.query.event);
+  if (!Number.isInteger(id) || id <= 0)
+    return void tolak(res, "data_salah", 400, { field: "event" });
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (p && !p.hak.attendance) {
+    if (!(await acaraPjLuar(db, edisi.id, s.nim)).has(id))
+      return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "attendance" });
+  } else if (!wajibHak(res, p, "attendance")) return;
+  const q = qrUntuk(await bacaSetting(db, "qr"), id);
+  if (q.mode !== "luar" || !q.sheet) return void tolak(res, "tidak_ditemukan", 404);
+  const scans = await bacaScanSheet(q.sheet);
+  if (!scans) return void tolak(res, "sheet_tertutup", 502);
+  res.status(200).json({ ok: true, scans, now: new Date().toISOString() });
 }
 
 /** POST attend { token | code }: a candidate's scan. */

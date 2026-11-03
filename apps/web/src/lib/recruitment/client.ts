@@ -25,6 +25,7 @@ import type {
   MeResponse,
   PlotBoardResponse,
   QrEventsResponse,
+  QrRecentResponse,
   RecError,
   StageKey,
 } from "./types";
@@ -204,6 +205,18 @@ export function useRecQrEvents(enabled: boolean) {
     enabled,
     ["reccandidates", "reccalendar"],
     1_000,
+  );
+}
+
+/** The last four scans of an event that shows a Google Form QR, read from its responses sheet (not ours, so it polls). */
+export function useRecQrRecent(eventId: number | null, enabled: boolean) {
+  return usePoll(
+    () => leaf(recGet<QrRecentResponse>("qr-recent", { event: String(eventId) })),
+    6_000,
+    enabled && eventId !== null,
+    [],
+    1_000,
+    eventId,
   );
 }
 
