@@ -121,10 +121,10 @@ export default function Hadir({ lang }: { lang: Lang }) {
               )}
             </span>
           )}
-          <h2 className="h2" role="status">
-            {judul}
-          </h2>
-          <p className="hint">{sub}</p>
+          <div role="status" className="r2scan__say">
+            <h2 className="h2">{judul}</h2>
+            <p className="hint">{sub}</p>
+          </div>
           {me === null ? (
             <button
               type="button"

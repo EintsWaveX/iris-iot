@@ -2491,3 +2491,10 @@ li.r2cutline {
   align-items: center;
   gap: 12px;
 }
+
+/* The result and its line are one live region (a heading can't carry role="status", so the wrapper does). */
+.r2scan__say {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
