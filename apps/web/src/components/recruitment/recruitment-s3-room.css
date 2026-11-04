@@ -51,7 +51,7 @@
     color 200ms ease;
 }
 .r3timer small {
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -225,10 +225,10 @@
   place-items: center;
   background: var(--rec-soft);
   color: var(--rec);
-  font: 800 0.78rem var(--font-mono);
+  font: 800 max(11px, 0.78rem) var(--font-mono);
 }
 .r3mchip .hint {
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -316,7 +316,7 @@
   overflow: hidden;
 }
 .r3bud__seg b {
-  font-size: 0.74rem;
+  font-size: max(11px, 0.74rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
@@ -368,7 +368,7 @@
   position: absolute;
   top: 2px;
   left: 4px;
-  font: 700 0.68rem var(--font-mono);
+  font: 700 max(11px, 0.72rem) var(--font-mono);
   color: var(--rec);
 }
 .r3bud__ticks {
@@ -378,7 +378,7 @@
 .r3bud__ticks span {
   position: absolute;
   transform: translateX(-50%);
-  font: 600 0.7rem var(--font-mono);
+  font: 600 max(11px, 0.72rem) var(--font-mono);
   color: var(--text-faint);
 }
 .r3bud__ticks span:first-child {
@@ -446,7 +446,7 @@
 }
 .r3tile__no {
   flex: none;
-  font: 700 0.78rem var(--font-mono);
+  font: 700 max(11px, 0.78rem) var(--font-mono);
   padding: 2px 6px;
   border-radius: 6px;
   background: var(--surface-3);
@@ -479,7 +479,7 @@
   gap: 6px 8px;
   flex-wrap: wrap;
   min-height: 20px;
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
 }
 .r3tile__strike {
   color: var(--warn);

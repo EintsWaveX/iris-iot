@@ -121,7 +121,7 @@
 .lat-badge {
   background: var(--surface-3);
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   font-weight: 700;
   padding: 2px 10px;
 }

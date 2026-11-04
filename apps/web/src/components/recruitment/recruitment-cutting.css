@@ -183,7 +183,7 @@
 .n7-ctable th {
   border-bottom: 1px solid var(--hairline);
   color: var(--text-faint);
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   letter-spacing: 0.1em;
   padding: 10px 14px;
   text-align: left;
@@ -216,7 +216,7 @@
   align-items: center;
   border-radius: 7px;
   display: inline-flex;
-  font-size: 0.76rem;
+  font-size: max(11px, 0.76rem);
   font-style: normal;
   font-weight: 800;
   height: 24px;
@@ -300,7 +300,7 @@
   background: var(--surface-3);
   border-radius: 6px;
   display: inline-flex;
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   font-weight: 700;
   padding: 2px 9px;
 }
@@ -445,7 +445,7 @@
   border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
   border-radius: 999px;
   color: var(--text);
-  font-size: 0.76rem;
+  font-size: max(11px, 0.76rem);
   font-weight: 600;
   line-height: 1;
   padding: 4px 9px;
@@ -543,7 +543,7 @@
 }
 .cwd__fact dt {
   color: var(--text-faint);
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   font-weight: 600;
   letter-spacing: var(--tracking-eyebrow);
   text-transform: uppercase;
