@@ -24,6 +24,7 @@ import { useDocRules } from "../../../../lib/recruitment/doc-rules";
 import { DOCS_DEFAULT, type DocSetting } from "../../../../lib/recruitment/settings";
 import { DOC_SPARE } from "../../../../lib/recruitment/types";
 import { leaveRow } from "../../../ui/leaveRow";
+import { useRevealAdded } from "../../ui/useRevealAdded";
 
 const T = {
   id: {
@@ -120,6 +121,7 @@ export default function AturBerkas({
   const t = T[l];
   const rules = useDocRules();
   const [rows, setRows] = useState<Row[]>(() => fromSettings(rules.docs, l));
+  const added = useRevealAdded(rows.length);
   const [mb, setMb] = useState(() => rules.docs[0]?.maxMb ?? MB_DEFAULT);
   const [busy, setBusy] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
@@ -166,6 +168,7 @@ export default function AturBerkas({
   const tambah = () => {
     const kind = sisa[0];
     if (!kind) return;
+    added.ask();
     const def = DOCS_DEFAULT.find((d) => d.kind === kind);
     setRows((r) => [
       ...r,
@@ -276,9 +279,9 @@ export default function AturBerkas({
             <span className="btn__label">{t.add}</span>
           </button>
         </div>
-        <ul className="r9docs">
+        <ul className="r9docs" ref={added.ref}>
           {rows.map((r, i) => (
-            <li key={r.kind} className="r9docs__r">
+            <li key={r.kind} className="r9docs__r" data-item="">
               <label className="stack stack--sm">
                 <span className="hint">{t.name}</span>
                 <input
