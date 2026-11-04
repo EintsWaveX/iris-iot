@@ -121,7 +121,7 @@
 }
 .r4lane__l {
   grid-area: l;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -996,7 +996,7 @@
   border-radius: 999px;
   background: var(--surface-4);
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   letter-spacing: 0;
 }
 .r4lane[data-short] .r4lane__n {
@@ -1022,7 +1022,7 @@
   margin-right: 4px;
   border-radius: 5px;
   background: color-mix(in srgb, currentColor 16%, transparent);
-  font: 700 0.64rem var(--font-body, inherit);
+  font: 700 0.7rem var(--font-body, inherit);
 }
 .r4rule__g {
   display: grid;
@@ -1249,7 +1249,7 @@
 }
 .r4rail__g {
   padding: 8px 8px 2px;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1304,7 +1304,7 @@
   border-radius: 999px;
   background: var(--warn-soft);
   color: var(--warn);
-  font-size: 0.64rem;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 .r4own {
