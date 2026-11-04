@@ -16,6 +16,7 @@
   inset: 0;
   z-index: 90;
   overflow: hidden;
+  overflow: clip; /* the bloom is wider than a phone: nothing may scroll this layer sideways */
   outline: none;
   background: color-mix(in srgb, var(--void) 90%, transparent);
   -webkit-backdrop-filter: blur(8px);

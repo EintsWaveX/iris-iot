@@ -28,6 +28,7 @@ import { setSound, usePrefs } from "../../../lib/prefs";
 import type { EventLite, Proposal, StageKey } from "../../../lib/recruitment/types";
 import { isiNama, type WordSide } from "../../../lib/recruitment/settings";
 import { S2 } from "../s2Strings";
+import { focusBack } from "../../ui/focusBack";
 import { burst, chime, makeShooter, useRevealMotion, type MotionLevel } from "./fx";
 
 export type RevealResult = Proposal | "terima";
@@ -134,9 +135,11 @@ export default function RevealStage(p: RevealProps) {
     window.addEventListener("keydown", k);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const pembuka = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     seal.current?.focus();
     return () => {
       alive = false;
+      focusBack(pembuka);
       mounted.current = false;
       window.removeEventListener("keydown", k);
       document.body.style.overflow = prev;

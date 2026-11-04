@@ -415,11 +415,12 @@
   box-shadow: var(--glow-ring);
   outline: none;
 }
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 720px) {
   .cwd-open {
     align-items: center;
     display: inline-flex;
-    min-height: 32px;
+    min-height: 44px;
+    width: 100%;
   }
 }
 .n7-crow--open {

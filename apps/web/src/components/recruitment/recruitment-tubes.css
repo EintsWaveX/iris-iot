@@ -399,6 +399,34 @@
   display: grid;
   gap: 14px;
 }
+.tp-sum {
+  display: grid;
+  gap: 12px 20px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--hairline-faint);
+}
+.tp-sum__i {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tp-sum__i dd {
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .tp-sum__i:last-child {
+    grid-column: 1 / -1;
+  }
+}
+.tp-sum__v {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
 .tp-ctl__g {
   align-items: flex-start;
   display: flex;

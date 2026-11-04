@@ -141,6 +141,8 @@
   display: grid;
   place-items: center;
   overflow: hidden;
+  /* the glow is wider than a phone: clip it so nothing can scroll the layer sideways, not even focus */
+  overflow: clip;
 }
 
 /* Closing: the whole overlay fades out while the title settles back, then the page drops it. */
