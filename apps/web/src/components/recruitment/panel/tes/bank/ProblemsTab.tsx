@@ -51,6 +51,7 @@ import CodeBox from "./CodeBox";
 import LcPreview from "./LcPreview";
 import { BK } from "./bankStrings";
 import { PR } from "./problemStrings";
+import Skeleton from "../../../../ui/Skeleton";
 
 import "../../../recruitment-s3-lcc.css";
 
@@ -99,7 +100,7 @@ export default function ProblemsTab({ lang, config }: { lang: Lang; config: Exam
         }}
       />
     );
-  if (!d) return <span className="skeleton" style={{ height: 180 }} />;
+  if (!d) return <Skeleton height={180} />;
   return <ProblemList lang={lang} problems={d.problems} onOpen={setOpen} />;
 }
 
