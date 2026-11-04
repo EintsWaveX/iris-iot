@@ -2,7 +2,7 @@
 .b1-sum {
   --a: var(--tc, #40b0ff);
   --ai: color-mix(in srgb, var(--a) 62%, var(--text));
-  align-items: start;
+  align-items: stretch;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1fr);
@@ -16,6 +16,14 @@
   }
   .b1-sum > .b1-fun {
     grid-column: 1 / -1;
+  }
+  /* The left column's last card grows so both columns end on the same line */
+  .b1-sum > .stack {
+    display: flex;
+    flex-direction: column;
+  }
+  .b1-sum > .stack > :last-child {
+    flex: 1 1 auto;
   }
 }
 .b1-next {
@@ -242,6 +250,22 @@
 .b1-fun__rows {
   max-width: 560px;
 }
+/* a third column when the stage is Berkas: how much of it is done */
+.b1-fun__det:has(.b1-fun__pct) {
+  grid-template-columns: minmax(200px, 280px) minmax(0, 560px) minmax(140px, 1fr);
+}
+.b1-fun__pct {
+  align-self: stretch;
+  border-left: 1px solid var(--hairline-faint);
+  justify-content: center;
+  padding-left: 28px;
+}
+.b1-fun__pct .num {
+  color: var(--ok);
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
 .b1-spark {
   color: var(--warn);
   display: block;
@@ -252,9 +276,14 @@
   .b1-fun__rail {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .b1-fun__det {
+  .b1-fun__det,
+  .b1-fun__det:has(.b1-fun__pct) {
     gap: 14px;
     grid-template-columns: minmax(0, 1fr);
+  }
+  .b1-fun__pct {
+    border-left: 0;
+    padding-left: 0;
   }
 }
 @media (max-width: 519px) {

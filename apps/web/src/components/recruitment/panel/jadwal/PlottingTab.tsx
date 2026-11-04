@@ -215,7 +215,7 @@ function SlotTab({
             {di.reduce((a, s) => a + s.capacity, 0)} {seatUnit(lang, stage, t.seats)}
           </span>
         </div>
-        {!di.length && susulan && <span className="hint">{t.noSlotsYet}</span>}
+        {!di.length && susulan && <p className="empty-note empty-note--sm">{t.noSlotsYet}</p>}
         <div className="n7-eve__rooms">
           {di.map((s) => (
             <div className="n7-room" key={s.id}>

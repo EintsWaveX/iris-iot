@@ -267,7 +267,7 @@ export default function Ringkasan({
                 <ArrowRightIcon size={18} aria-hidden="true" />
               </button>
             ) : (
-              <span className="hint">{n.noScreen}</span>
+              <p className="empty-note empty-note--sm">{n.noScreen}</p>
             )}
           </div>
         </section>
@@ -301,7 +301,7 @@ export default function Ringkasan({
             ))}
           </ul>
         ) : (
-          <span className="hint">{t.noToday}</span>
+          <p className="empty-note empty-note--sm">{t.noToday}</p>
         )}
         {rights?.attendance && hidup && (
           <div className="row r2today">
@@ -421,10 +421,17 @@ export default function Ringkasan({
                   </span>
                 )
               )}
+              {stageNow === "berkas" && !daftarSaja && hitung.total > 0 && (
+                <div className="stack stack--sm b1-fun__pct">
+                  <span className="eyebrow">{n.doneLabel}</span>
+                  <b className="num">{Math.round((hitung.verified / hitung.total) * 100)}%</b>
+                  <span className="hint">{n.doneSub(hitung.verified, hitung.total)}</span>
+                </div>
+              )}
             </div>
           </>
         ) : (
-          <span className="hint">{t.noRight}</span>
+          <p className="empty-note empty-note--sm">{t.noRight}</p>
         )}
       </Kartu>
       {hadirDi !== null && hidup && hidup.id === hadirDi && (

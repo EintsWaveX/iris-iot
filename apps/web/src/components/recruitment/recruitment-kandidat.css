@@ -9,9 +9,11 @@
 }
 .rec9-kbar {
   align-items: center;
+  border-bottom: 1px solid var(--hairline-strong);
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  padding-bottom: 14px;
 }
 .rec9-chips {
   display: flex;

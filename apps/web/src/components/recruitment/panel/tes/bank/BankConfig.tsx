@@ -152,7 +152,7 @@ export default function BankConfig({
                     />
                   </td>
                   <td data-l={t.cfgShownTarget}>{pair(p)}</td>
-                  <td className="num hint" data-l={t.cfgMax}>
+                  <td className="num r3cfg__max" data-l={t.cfgMax}>
                     {caps.parts[p]}
                   </td>
                 </tr>
@@ -178,7 +178,7 @@ export default function BankConfig({
                 <td>
                   <span className="hint">{t.cfgLiveBody}</span>
                 </td>
-                <td className="num hint" data-l={t.cfgMax}>
+                <td className="num r3cfg__max" data-l={t.cfgMax}>
                   {caps.livecode}
                 </td>
               </tr>
@@ -212,7 +212,7 @@ export default function BankConfig({
           <div className="stack stack--sm">
             <span className="label-caps">{t.cfgWeightWritten}</span>
             <b className="num">
-              {cfg.weights.written}% · {caps.written}
+              {cfg.weights.written}% · {caps.written} {t.ptsUnit}
             </b>
           </div>
           {PHASE1_PARTS.map((p) => (
@@ -226,7 +226,7 @@ export default function BankConfig({
                 max={100}
                 step={5}
                 label={`${t.cfgShare} ${t.parts[p]}`}
-                fmt={(n) => `${n}% · ${Math.round((caps.written * n) / 100)}`}
+                fmt={(n) => `${n}% · ${Math.round((caps.written * n) / 100)} ${t.ptsUnit}`}
                 disabled={lock}
                 lessLabel={t.stepLess}
                 moreLabel={t.stepMore}

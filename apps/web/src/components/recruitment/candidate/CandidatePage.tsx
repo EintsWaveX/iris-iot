@@ -300,7 +300,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     return (
       <div className="rec-page">
         <KepalaHalaman lang={lang} title={t.titleOpen} />
-        <p className="hint">{r.noEdition}</p>
+        <p className="empty-note">{r.noEdition}</p>
       </div>
     );
 

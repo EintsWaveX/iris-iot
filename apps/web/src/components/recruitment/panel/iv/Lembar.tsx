@@ -784,7 +784,7 @@ export default function Lembar({
         <div className="stack stack--sm">
           <b>{L.filesOf(first)}</b>
           <span className="hint">{L.filesHint}</span>
-          {data.files.length === 0 && <span className="hint">{L.filesNone}</span>}
+          {data.files.length === 0 && <p className="empty-note empty-note--sm">{L.filesNone}</p>}
           {data.files.map((f) => (
             <a
               key={f.id}

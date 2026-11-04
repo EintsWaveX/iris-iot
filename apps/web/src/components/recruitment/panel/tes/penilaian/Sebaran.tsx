@@ -83,7 +83,7 @@ function Grafik({ lang, s }: { lang: Lang; s: Seri }) {
         )}
       </figcaption>
       {s.values.length === 0 ? (
-        <p className="hint">{t.spreadNone}</p>
+        <p className="empty-note empty-note--sm">{t.spreadNone}</p>
       ) : (
         <>
           <svg

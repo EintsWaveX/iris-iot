@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftIcon, ShuffleIcon } from "@phosphor-icons/react";
 import Confirm from "../../../../ui/Confirm";
+import { Stepper } from "../../../../ui/Controls";
 import Dialog from "../../../../ui/Dialog";
 import Dropdown from "../../../../ui/Dropdown";
 import HoldButton from "../../../../ui/HoldButton";
@@ -124,6 +125,7 @@ export default function BankEditor({
   config,
   onBack,
   onOpen,
+  order,
 }: {
   lang: Lang;
   id: number | null;
@@ -131,6 +133,8 @@ export default function BankEditor({
   config: ExamConfigResponse;
   onBack: () => void;
   onOpen: (id: number) => void;
+  /** The ids of this part's problems in list order: the arrows and the number step through them. */
+  order: number[];
 }) {
   const t = BK[lang];
   const q = useBankQuestion(id, id !== null);
@@ -172,6 +176,8 @@ export default function BankEditor({
   }, [stored?.version, stored?.updatedAt]);
 
   const dirty = !!d && !!orig && canon(d) !== canon(orig);
+  const goTo = useRef<number | null>(null);
+  const at = id === null ? -1 : order.indexOf(id);
   useBelumSimpan(dirty);
 
   if (!d || !orig) {
@@ -309,10 +315,35 @@ export default function BankEditor({
         <button
           type="button"
           className="btn btn--ghost btn--sm"
-          onClick={() => (dirty ? setLeaveDlg(true) : onBack())}
+          onClick={() => {
+            goTo.current = null;
+            if (dirty) setLeaveDlg(true);
+            else onBack();
+          }}
         >
           <ArrowLeftIcon size={16} aria-hidden="true" /> {t.back}
         </button>
+        {at >= 0 && order.length > 1 && (
+          <div className="r3ed__nav">
+            <Stepper
+              value={at + 1}
+              min={1}
+              max={order.length}
+              label={t.navLabel}
+              lessLabel={t.navPrev}
+              moreLabel={t.navNext}
+              fmt={(n) => `${n} / ${order.length}`}
+              onChange={(n) => {
+                const next = order[n - 1];
+                if (next === undefined || next === id) return;
+                if (dirty) {
+                  goTo.current = next;
+                  setLeaveDlg(true);
+                } else onOpen(next);
+              }}
+            />
+          </div>
+        )}
         <span className="grow" />
         {shown && !voided && id !== null && (
           <button type="button" className="btn btn--danger-soft" onClick={() => setVoidDlg(true)}>
@@ -669,7 +700,10 @@ export default function BankEditor({
         cancelLabel={t.cancel}
         lang={lang}
         onConfirm={() => {
-          onBack();
+          const next = goTo.current;
+          goTo.current = null;
+          if (next !== null) onOpen(next);
+          else onBack();
         }}
       />
     </div>

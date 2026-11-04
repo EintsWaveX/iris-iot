@@ -338,14 +338,11 @@ function Slotku({
   onOpen,
   qr,
   qrPj,
-  onNilai,
   onEmpty,
 }: {
   lang: Lang;
   stage: IvStage;
   onOpen: (id: number) => void;
-  /** Who may read everyone's scores gets a way there from an empty Slotku. */
-  onNilai?: () => void;
   /** Called once when the viewer has no slot at all, so the tab can open on Penilaian instead. */
   onEmpty?: () => void;
   /** The outside PJ's own shift may show its QR screen even without the attendance right */
@@ -362,16 +359,9 @@ function Slotku({
   if (!mine.data) return <span className="skeleton" style={{ height: 240 }} />;
   if (!mine.data.slots.length)
     return (
-      <div className="rec-note">
+      <div className="empty-note">
         <b>{w.none}</b>
         <span>{w.noneHint}</span>
-        {onNilai && (
-          <span>
-            <button type="button" className="btn btn--inverse btn--sm" onClick={onNilai}>
-              <span className="btn__label">{IV(lang).seg.nilai}</span>
-            </button>
-          </span>
-        )}
       </div>
     );
   const slots = mine.data.slots;
@@ -505,7 +495,6 @@ export default function IvTab({
           onOpen={setBuka}
           qr={rights?.attendance === true}
           qrPj={qrShift === true}
-          onNilai={bisaNilai ? () => setBag("nilai") : undefined}
           onEmpty={
             bisaNilai
               ? () => {

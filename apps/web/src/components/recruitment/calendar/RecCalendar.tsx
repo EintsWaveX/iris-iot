@@ -372,7 +372,7 @@ export function RecCalendar({
                   ))}
                 </ul>
               ) : (
-                <span className="hint">{c.noneOnDay}</span>
+                <p className="empty-note empty-note--sm">{c.noneOnDay}</p>
               )}
             </div>
           ) : (
@@ -394,7 +394,7 @@ export function RecCalendar({
                   ))}
                 </ul>
               ) : (
-                <span className="hint">{c.noEvents}</span>
+                <p className="empty-note empty-note--sm">{c.noEvents}</p>
               )}
             </div>
           )}
@@ -427,7 +427,7 @@ export function Agenda({
     ...STAGES.map((s) => [s, shown.filter((e) => e.stage === s)] as [StageKey, RecEvent[]]),
     [null, shown.filter((e) => !e.stage)] as [null, RecEvent[]],
   ].filter(([, l]) => l.length > 0);
-  if (!groups.length) return <span className="hint">{c.noEvents}</span>;
+  if (!groups.length) return <p className="empty-note empty-note--sm">{c.noEvents}</p>;
   return (
     <div className="rec-agenda">
       {groups.map(([s, list]) => (

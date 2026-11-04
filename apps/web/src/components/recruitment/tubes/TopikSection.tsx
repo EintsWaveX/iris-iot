@@ -147,7 +147,7 @@ function WhoDialog({
       }
     >
       {b.teams.length === 0 ? (
-        <p className="hint">{w.noTeamYet}</p>
+        <p className="empty-note">{w.noTeamYet}</p>
       ) : (
         <div className="tp-list" role="radiogroup" aria-label={topic.title}>
           {b.teams.map((t) => {
@@ -494,7 +494,7 @@ export default function TopikSection({ c }: { c: PanelCtx }) {
       </div>
 
       {b.topics.length === 0 ? (
-        <p className="hint">{w.noTopics}</p>
+        <p className="empty-note">{w.noTopics}</p>
       ) : (
         <div className="tp-grid">
           {b.topics.map((t) => (

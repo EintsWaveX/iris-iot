@@ -27,6 +27,7 @@ import type {
   ProblemsResponse,
 } from "../../../../../lib/recruitment/problem-api";
 import Pill from "../../../../ui/Pill";
+import { useRevealAdded } from "../../../ui/useRevealAdded";
 import CodeBox from "./CodeBox";
 import { PR } from "./problemStrings";
 
@@ -184,6 +185,8 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
   const [problems, setProblems] = useState<string[]>([]);
   const [ask, setAsk] = useState(false);
   const [tab, setTab] = useState<EdTab>("soal");
+  const sampleNew = useRevealAdded(draft.samples.length);
+  const testNew = useRevealAdded(draft.tests.length);
   const loaded = useRef(false);
 
   const apply = useCallback((r: ProblemResponse) => {
@@ -292,23 +295,28 @@ function Editor({ lang, id, onBack }: { lang: Lang; id: number | null; onBack: (
     } as Partial<CProblemDraft>);
 
   const ioBlock = (key: "samples" | "tests") => (
-    <section className="panel stack" style={{ gap: 12 }}>
+    <section
+      className="panel stack"
+      style={{ gap: 12 }}
+      ref={(key === "samples" ? sampleNew : testNew).ref}
+    >
       <div className="panel__head">
         <h4 className="panel__title">{key === "samples" ? t.fSamples : t.fTests}</h4>
         <button
           type="button"
           className="btn btn--inverse btn--sm"
           disabled={lock || draft[key].length >= C_LIMITS[key].max}
-          onClick={() =>
-            set({ [key]: [...draft[key], { input: "", output: "" }] } as Partial<CProblemDraft>)
-          }
+          onClick={() => {
+            (key === "samples" ? sampleNew : testNew).ask();
+            set({ [key]: [...draft[key], { input: "", output: "" }] } as Partial<CProblemDraft>);
+          }}
         >
           <PlusIcon size={16} aria-hidden="true" />
           {key === "samples" ? t.addSample : t.addTest}
         </button>
       </div>
       {draft[key].map((x, i) => (
-        <div key={i} className="stack stack--sm">
+        <div key={i} className="stack stack--sm" data-item="">
           <div className="row" style={{ justifyContent: "space-between" }}>
             <b>{key === "samples" ? t.sampleN(i + 1) : t.testN(i + 1)}</b>
             <button

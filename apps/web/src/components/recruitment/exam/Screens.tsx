@@ -85,7 +85,7 @@ export function NotOpen({ lang, tv }: { lang: Lang; tv: TestView }) {
                 <b>{i.title}</b>
               </div>
             ) : (
-              <p className="hint">{t.noRoom}</p>
+              <p className="empty-note empty-note--sm">{t.noRoom}</p>
             )}
             <p className="hint">{t.hint}</p>
           </div>

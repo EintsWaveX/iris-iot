@@ -23,6 +23,7 @@
 .r3bank__acts {
   gap: 8px;
   flex-wrap: nowrap;
+  margin-bottom: 8px;
   margin-left: auto;
 }
 /* The five tabs and the buttons beside them fit one row from 1100px, as in the mockup (rec3.css). */
@@ -533,6 +534,11 @@
 .r3cfg td {
   vertical-align: middle;
 }
+.r3cfg .r3cfg__max {
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
 .r3cfg__pair {
   display: inline-flex;
   align-items: center;
@@ -553,7 +559,7 @@
 .r3cfg .ctl-stepper button {
   width: 40px;
 }
-.r3cfg .ctl-stepper output {
+.r3cfg .ctl-stepper input {
   min-width: 44px;
 }
 @media (max-width: 819px) {
@@ -788,4 +794,17 @@
 /* The sample and hidden-test boxes: short by default, they still grow by hand */
 .textarea.bkio {
   min-height: 64px;
+}
+
+/* the problem-to-problem arrows in the editor header */
+.r3ed__nav .ctl-stepper {
+  min-height: 40px;
+}
+.r3ed__nav .ctl-stepper button {
+  min-height: 40px;
+  width: 40px;
+}
+.r3ed__nav .ctl-stepper input {
+  min-height: 40px;
+  min-width: 72px;
 }

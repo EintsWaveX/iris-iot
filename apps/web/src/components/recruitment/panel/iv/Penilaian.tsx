@@ -293,7 +293,7 @@ function Lembarku({ d, lang }: { d: IvLembarkuResponse; lang: Lang }) {
         <span>{p.body}</span>
       </div>
       {d.rows.length === 0 ? (
-        <p className="hint">{p.empty}</p>
+        <p className="empty-note">{p.empty}</p>
       ) : (
         <div className="panel rec-tablecard">
           <div className="scrollx">
@@ -355,7 +355,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
   const d = nilai.data;
   if (!d) return <span className="skeleton" style={{ height: 240 }} />;
   if ("mine" in d) return <Lembarku d={d} lang={lang} />;
-  if (!d.rows.length) return <p className="hint">{w.none}</p>;
+  if (!d.rows.length) return <p className="empty-note">{w.none}</p>;
 
   const me = d.me;
   const rows = d.rows;
@@ -661,7 +661,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
       <div className="r4nilai">
         <div className="stack" style={{ minWidth: 0 }}>
           {tools}
-          {list.length ? table : <p className="hint">{p.empty}</p>}
+          {list.length ? table : <p className="empty-note">{p.empty}</p>}
         </div>
         <PerExaminer d={d} me={me} lang={lang} />
       </div>

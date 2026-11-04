@@ -140,7 +140,15 @@ function GrupMenu({
             </>
           ) : (
             <>
-              <span>{grup.label}</span>
+              <span className="rec-grup__lbl">
+                <span className="rec-grup__grp">{grup.label}</span>
+                {dalam && (
+                  <>
+                    <span className="rec-grup__sep">: </span>
+                    <b className="rec-grup__cur">{dalam.label}</b>
+                  </>
+                )}
+              </span>
               {badge}
               <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
             </>

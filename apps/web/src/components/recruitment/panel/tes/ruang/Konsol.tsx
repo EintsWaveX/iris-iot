@@ -902,7 +902,7 @@ function SeatDrawer({
           <section className="stack stack--sm">
             <h3 className="label-caps">{g.title}</h3>
             {v.room.eventId === null ? (
-              <span className="hint">{g.noEvent}</span>
+              <p className="empty-note empty-note--sm">{g.noEvent}</p>
             ) : s.present ? (
               <div className="row" style={{ justifyContent: "space-between", gap: 12 }}>
                 <span className="stack" style={{ gap: 0 }}>
@@ -924,7 +924,7 @@ function SeatDrawer({
               </div>
             ) : (
               <>
-                <span className="hint">{g.none}</span>
+                <p className="empty-note empty-note--sm">{g.none}</p>
                 <div className="row" style={{ gap: 8 }}>
                   <input
                     className="field__input"
@@ -963,7 +963,7 @@ function SeatDrawer({
               ))}
             </ol>
           ) : (
-            <span className="hint">{d.noEvents}</span>
+            <p className="empty-note empty-note--sm">{d.noEvents}</p>
           )}
         </section>
         {bisaWaktu && (
@@ -1071,7 +1071,7 @@ function SeatGrid({
         </span>
       </div>
       {v.seats.length === 0 ? (
-        <p className="hint">{t.noSeats}</p>
+        <p className="empty-note">{t.noSeats}</p>
       ) : seats.length === 0 ? (
         <p className="hint">{t.empty}</p>
       ) : (
@@ -1146,7 +1146,7 @@ function Feed({ lang, v, log }: { lang: Lang; v: ConsoleView; log: RoomLogLine[]
           ))}
         </ol>
       ) : (
-        <p className="hint">{t.empty}</p>
+        <p className="empty-note">{t.empty}</p>
       )}
     </section>
   );

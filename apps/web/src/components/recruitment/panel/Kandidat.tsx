@@ -52,6 +52,8 @@ import {
 import { CP } from "../candidate/candidateStrings";
 import { S2 } from "../s2Strings";
 import { REC } from "../recruitmentStrings";
+import { clearHandoff, peekHandoff } from "../../../lib/recruitment/panel-handoff";
+import { bukaBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import { StatusPill } from "../shared";
 import { NS } from "./nextStrings";
 import { PN } from "./panelStrings";
@@ -433,7 +435,11 @@ export default function Kandidat({
   const [prodiBuka, setProdiBuka] = useState(false);
   const ns = NS[lang === "id" ? "id" : "en"];
   const rules = useDocRules();
-  const [sel, setSel] = useState<number | null>(null);
+  // Opened from Cutting's drawer: the candidate to show and the part the back button returns to.
+  const [bawa] = useState(() => peekHandoff());
+  const [sel, setSel] = useState<number | null>(bawa?.cand ?? null);
+  const [dari, setDari] = useState<PanelTab | null>(bawa?.from ?? null);
+  useEffect(() => clearHandoff(), []);
   const [tambah, setTambah] = useState(false);
   const [atur, setAtur] = useState(false);
   const edisi = useRecEdition();
@@ -687,7 +693,22 @@ export default function Kandidat({
           id={sel}
           queue={rows.filter((c) => c.status === "applied")}
           canAdd={canAdd}
-          onClose={() => setSel(null)}
+          back={
+            dari
+              ? {
+                  label: k.backTo(REC[lang].nav[dari]),
+                  go: () => {
+                    setSel(null);
+                    setDari(null);
+                    bukaBagian(dari);
+                  },
+                }
+              : undefined
+          }
+          onClose={() => {
+            setSel(null);
+            setDari(null);
+          }}
           onChanged={refresh}
         />
       )}

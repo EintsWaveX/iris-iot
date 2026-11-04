@@ -704,11 +704,28 @@ html[data-tarik-jam="yes"] * {
   opacity: 0.35;
 }
 
-.ctl-stepper output {
-  flex: 1;
+.ctl-stepper input {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  flex: 1 1 auto;
+  font: inherit;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+  min-height: 48px;
   min-width: 96px;
   padding: 0 6px;
   text-align: center;
+}
+
+.ctl-stepper input:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  outline: none;
+}
+
+.ctl-stepper input:disabled {
+  -webkit-text-fill-color: currentColor;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
