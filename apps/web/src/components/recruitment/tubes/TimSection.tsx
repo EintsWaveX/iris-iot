@@ -119,6 +119,7 @@ function NameDialog({
     >
       <input
         className="field__input"
+        aria-label={c.w.renameTeam}
         value={v}
         maxLength={40}
         onChange={(e) => setV(e.target.value)}

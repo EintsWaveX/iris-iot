@@ -1251,6 +1251,7 @@ export default function Lembar({
           rows={3}
           value={ba}
           disabled={locked}
+          aria-label={mg ? M.baPh : L.baPh}
           placeholder={mg ? M.baPh : L.baPh}
           onChange={(e) => setBa(e.target.value)}
         />

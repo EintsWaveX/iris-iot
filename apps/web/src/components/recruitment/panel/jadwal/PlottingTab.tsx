@@ -679,6 +679,7 @@ function Requests({
               maxLength={200}
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
+              aria-label={t.declineNote}
               placeholder={t.declineNote}
             />
           </div>
