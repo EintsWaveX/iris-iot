@@ -48,6 +48,7 @@ import Rayakan from "./Rayakan";
 import { Hasil, Tutup } from "./PenerimaanFasa";
 import { PNW } from "./pnStrings";
 import { PL } from "./pnLook";
+import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r8.css";
 import "../../recruitment-r8m.css";
 
@@ -140,7 +141,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
     if (d) setRows(structuredClone(d.rows));
   }, [sumber]);
 
-  if (!d || !rows) return <span className="skeleton" style={{ height: 360 }} />;
+  if (!d || !rows) return <Skeleton height={360} />;
   const can = d.canConfirm && !d.close.closed;
   const terima = rows.filter((r) => r.decision === "terima");
   const baru = terima.filter((r) => !r.promotedNim);

@@ -73,6 +73,7 @@ import {
   readNotes,
 } from "./MengajarParts";
 import { PN } from "./penilaianStrings";
+import Skeleton from "../../../ui/Skeleton";
 
 type Step = "tanya" | "simpul" | "putus";
 const VERDICTS: Verdict[] = ["lolos", "ragu", "cut"];
@@ -556,7 +557,7 @@ export default function Lembar({
         lang={lang}
         size="lembar"
       >
-        <span className="skeleton" style={{ height: 320 }} />
+        <Skeleton height={320} />
       </Dialog>
     );
 

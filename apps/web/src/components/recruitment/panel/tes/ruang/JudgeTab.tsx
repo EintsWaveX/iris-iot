@@ -11,6 +11,7 @@ import { dict } from "../../../../../lib/app";
 import { usePoll } from "../../../../../lib/hooks";
 import { isFail, recGet } from "../../../../../lib/recruitment/client";
 import type { LccRoom } from "../../../../../lib/recruitment/lcc-api";
+import Skeleton from "../../../../ui/Skeleton";
 
 const JT = dict({
   id: {
@@ -109,7 +110,7 @@ export default function JudgeTab({ lang, roomId }: { lang: Lang; roomId: number 
         </p>
       </section>
     ) : (
-      <span className="skeleton" style={{ height: 200 }} />
+      <Skeleton height={200} />
     );
 
   return (

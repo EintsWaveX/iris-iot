@@ -117,6 +117,7 @@ function Kartu404({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
 import { useDocRules } from "../../../lib/recruitment/doc-rules";
 import { useMakeupMine } from "../../../lib/recruitment/makeup-client";
 import MakeupCard from "./MakeupCard";
+import Skeleton from "../../ui/Skeleton";
 /** The candidate page's compact header (the mockup's n7-chead): the stage's icon tile, the title, the status and the edition. */
 function CaasHead({
   lang,
@@ -294,7 +295,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     cal.updatedAt === null ||
     (praktikan && rec.updatedAt === null)
   )
-    return <span className="skeleton" style={{ height: 520 }} />;
+    return <Skeleton height={520} />;
   if (cal.errors > 0 && !cal.data) return <Kartu404 lang={lang} onRetry={cal.refresh} />;
   if (!cal.data)
     return (

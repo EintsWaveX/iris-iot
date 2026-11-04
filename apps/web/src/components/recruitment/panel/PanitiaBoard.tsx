@@ -43,6 +43,7 @@ import type {
 import { REC } from "../recruitmentStrings";
 import { PN } from "./panelStrings";
 import { WARNA_DIVISI } from "./divisi";
+import Skeleton from "../../ui/Skeleton";
 
 type Kolom = "inti" | "acara" | "akademik" | "logistik" | "admin" | "pdd";
 const KOLOM: Kolom[] = ["inti", "acara", "akademik", "logistik", "admin", "pdd"];
@@ -261,7 +262,7 @@ export default function PanitiaBoard({ lang, rights }: { lang: Lang; rights: Rec
     void pindah(o, ke);
   }
 
-  if (kom.updatedAt === null) return <span className="skeleton" style={{ height: 360 }} />;
+  if (kom.updatedAt === null) return <Skeleton height={360} />;
 
   return (
     <DndContext

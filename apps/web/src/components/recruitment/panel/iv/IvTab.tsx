@@ -27,6 +27,7 @@ import { TeachCard, TeachPj, teachSample, teachTop } from "./TeachSlotku";
 import { PN } from "./penilaianStrings";
 import { IV } from "./ivStrings";
 import { SK } from "./slotStrings";
+import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
 const hari = (iso: string, lang: Lang) =>
@@ -356,7 +357,7 @@ function Slotku({
   useEffect(() => {
     if (kosong) onEmpty?.();
   }, [kosong]);
-  if (!mine.data) return <span className="skeleton" style={{ height: 240 }} />;
+  if (!mine.data) return <Skeleton height={240} />;
   if (!mine.data.slots.length)
     return (
       <div className="empty-note">

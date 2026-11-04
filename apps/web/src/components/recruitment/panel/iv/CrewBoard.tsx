@@ -27,6 +27,7 @@ import {
   type ExData,
   type LaneEnv,
 } from "./CrewPapan";
+import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
 type Role = "penguji" | "pj_luar" | "pj_dalam";
@@ -160,7 +161,7 @@ export default function CrewBoard({
     return out.sort((x, y) => (x.tone === y.tone ? 0 : x.tone === "danger" ? -1 : 1));
   }, [d, shifts, lang]);
 
-  if (!d) return <span className="skeleton" style={{ height: 320 }} />;
+  if (!d) return <Skeleton height={320} />;
   const simpan = async (slots: IvCrewSlot[], role: Role, nims: string[]) => {
     setBusy(true);
     const r = await recPost<{ ok: true }>("iv-crew-set", {

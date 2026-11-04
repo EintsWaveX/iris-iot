@@ -36,6 +36,7 @@ import { LatihanCard } from "../Latihan";
 import TampilOprec from "./TampilOprec";
 import { PN } from "./panelStrings";
 import { TitleCaseContext } from "../../ui/Dropdown";
+import Skeleton from "../../ui/Skeleton";
 import "../recruitment-b1.css";
 import "../recruitment-shell.css";
 
@@ -185,7 +186,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
   }, [tab, lang]);
 
   if (me === undefined || (asisten && (edisi.updatedAt === null || cal.updatedAt === null)))
-    return <span className="skeleton" style={{ height: 520 }} />;
+    return <Skeleton height={520} />;
   if (!asisten) return <ErrorView code={me ? 403 : 401} lang={lang} role={me?.role ?? null} />;
   if (!cal.data)
     return (
@@ -243,16 +244,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           </div>
         )}
         <Swap k={shownTab} leavingFor={leaving ? tab : null}>
-          <Suspense
-            fallback={
-              <span
-                className="skeleton"
-                style={{ height: 360 }}
-                role="status"
-                aria-label={REC[lang].loading}
-              />
-            }
-          >
+          <Suspense fallback={<Skeleton height={360} label={REC[lang].loading} />}>
             {shownTab === "ringkasan" ? (
               <div className="lat-stack">
                 <Ringkasan
@@ -286,7 +278,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
                   wide={lebar}
                 />
               ) : (
-                <span className="skeleton" style={{ height: 320 }} />
+                <Skeleton height={320} />
               )
             ) : shownTab === "cutting" && rights ? (
               <CuttingTab lang={lang} events={events} hariIni={hariIni} rights={rights} />

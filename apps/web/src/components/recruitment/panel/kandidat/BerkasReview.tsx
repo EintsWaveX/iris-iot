@@ -49,6 +49,7 @@ const waktu = (iso: string, lang: Lang) => {
 
 import TabLine from "../../../ui/TabLine";
 import { useDocRules } from "../../../../lib/recruitment/doc-rules";
+import Skeleton from "../../../ui/Skeleton";
 export default function BerkasReview({
   lang,
   id: id0,
@@ -254,7 +255,7 @@ export default function BerkasReview({
       }
     >
       {d === null ? (
-        <span className="skeleton" style={{ height: 360 }} />
+        <Skeleton height={360} />
       ) : d === "gagal" || !c ? (
         <p className="banner banner--warn">{p.loadFail}</p>
       ) : (
