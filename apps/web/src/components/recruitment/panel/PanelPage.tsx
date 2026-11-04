@@ -7,7 +7,7 @@
  * A visitor or a Praktikan gets the error view, the same as every other
  * Asisten page.
  */
-import { useEffect, useMemo, useRef } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef } from "react";
 import ErrorView from "../../ui/ErrorView";
 import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import { useMinWidth } from "../../../lib/hooks";
@@ -29,17 +29,7 @@ import { KepalaHalaman, tgl, useHariIni } from "../shared";
 import { REC } from "../recruitmentStrings";
 import { AREA, AREA_ORDER } from "./areas";
 import PanelHead from "./PanelHead";
-import Kandidat from "./Kandidat";
-import CuttingTab from "./cutting/CuttingTab";
-import PlottingTab from "./jadwal/PlottingTab";
-import IvTab from "./iv/IvTab";
-import TubesTab from "../tubes/TubesTab";
 import { TUBES } from "../tubes/tubesStrings";
-import PenerimaanTab from "./penerimaan/PenerimaanTab";
-import BankTab from "./tes/bank/BankTab";
-import TesTab from "./tes/ruang/TesTab";
-import KalenderTab from "./KalenderTab";
-import PanitiaBoard from "./PanitiaBoard";
 import Ringkasan from "./Ringkasan";
 import { LatihanCard } from "../Latihan";
 import TampilOprec from "./TampilOprec";
@@ -47,6 +37,23 @@ import { PN } from "./panelStrings";
 import { TitleCaseContext } from "../../ui/Dropdown";
 import "../recruitment-b1.css";
 import "../recruitment-shell.css";
+
+/**
+ * Each part loads when it is opened (the panel was one 820 KB script, most of it
+ * for parts the person never visits). Ringkasan stays in the main file because
+ * it is where the panel opens.
+ */
+const loadKandidat = () => import("./Kandidat");
+const Kandidat = lazy(loadKandidat);
+const CuttingTab = lazy(() => import("./cutting/CuttingTab"));
+const PlottingTab = lazy(() => import("./jadwal/PlottingTab"));
+const IvTab = lazy(() => import("./iv/IvTab"));
+const TubesTab = lazy(() => import("../tubes/TubesTab"));
+const PenerimaanTab = lazy(() => import("./penerimaan/PenerimaanTab"));
+const BankTab = lazy(() => import("./tes/bank/BankTab"));
+const TesTab = lazy(() => import("./tes/ruang/TesTab"));
+const KalenderTab = lazy(() => import("./KalenderTab"));
+const PanitiaBoard = lazy(() => import("./PanitiaBoard"));
 
 /** Which way a tab swap slides: toward the side the new tab sits on. */
 let lastTab: PanelTab | null = null;
@@ -78,6 +85,22 @@ const STC: Record<Lang, string> = {
 
 export default function PanelPage({ lang }: { lang: Lang }) {
   const t = PN[lang];
+  // Kandidat is where most people go next: fetch it while the browser is idle (not on Data Saver).
+  useEffect(() => {
+    const net = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (net?.saveData) return;
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (n: number) => void;
+    };
+    const go = () => void loadKandidat();
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(go, { timeout: 5000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(go, 3000);
+    return () => window.clearTimeout(id);
+  }, []);
   const me = useRecOrang();
   const asisten = me?.role === "asisten";
   const edisi = useRecEdition(asisten);
@@ -182,58 +205,65 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           </div>
         )}
         <Swap k={tab}>
-          {tab === "ringkasan" ? (
-            <div className="lat-stack">
-              <Ringkasan
+          <Suspense fallback={<span className="skeleton" style={{ height: 360 }} />}>
+            {tab === "ringkasan" ? (
+              <div className="lat-stack">
+                <Ringkasan
+                  lang={lang}
+                  events={events}
+                  hariIni={hariIni}
+                  rights={rights}
+                  candidates={cand.data?.candidates ?? null}
+                  seats={kom.data ? kom.data.seats.length : null}
+                  division={seat ? seat.division : null}
+                  tabs={tabs}
+                  hariKe={hariKe}
+                />
+                <LatihanCard lang={lang} />
+              </div>
+            ) : tab === "kalender" ? (
+              <KalenderTab
                 lang={lang}
                 events={events}
                 hariIni={hariIni}
-                rights={rights}
-                candidates={cand.data?.candidates ?? null}
-                seats={kom.data ? kom.data.seats.length : null}
-                division={seat ? seat.division : null}
-                tabs={tabs}
-                hariKe={hariKe}
+                canEdit={rights?.calendar === true}
+                refresh={cal.refresh}
               />
-              <LatihanCard lang={lang} />
-            </div>
-          ) : tab === "kalender" ? (
-            <KalenderTab
-              lang={lang}
-              events={events}
-              hariIni={hariIni}
-              canEdit={rights?.calendar === true}
-              refresh={cal.refresh}
-            />
-          ) : tab === "kandidat" && rights ? (
-            cand.data ? (
-              <Kandidat
+            ) : tab === "kandidat" && rights ? (
+              cand.data ? (
+                <Kandidat
+                  lang={lang}
+                  rights={rights}
+                  rows={cand.data.candidates}
+                  refresh={cand.refresh}
+                  wide={lebar}
+                />
+              ) : (
+                <span className="skeleton" style={{ height: 320 }} />
+              )
+            ) : tab === "cutting" && rights ? (
+              <CuttingTab lang={lang} events={events} hariIni={hariIni} rights={rights} />
+            ) : tab === "plotting" && rights ? (
+              <PlottingTab lang={lang} events={events} rights={rights} />
+            ) : tab === "wawancara" || tab === "mengajar" ? (
+              <IvTab
                 lang={lang}
+                stage={tab}
                 rights={rights}
-                rows={cand.data.candidates}
-                refresh={cand.refresh}
-                wide={lebar}
+                qrShift={edisi.data?.qrShift === true}
               />
+            ) : tab === "tubes" ? (
+              <TubesTab lang={lang} rights={rights} />
+            ) : tab === "penerimaan" ? (
+              <PenerimaanTab lang={lang} />
+            ) : tab === "tes" ? (
+              <TesTab lang={lang} />
+            ) : tab === "bank" && rights?.bank ? (
+              <BankTab lang={lang} />
             ) : (
-              <span className="skeleton" style={{ height: 320 }} />
-            )
-          ) : tab === "cutting" && rights ? (
-            <CuttingTab lang={lang} events={events} hariIni={hariIni} rights={rights} />
-          ) : tab === "plotting" && rights ? (
-            <PlottingTab lang={lang} events={events} rights={rights} />
-          ) : tab === "wawancara" || tab === "mengajar" ? (
-            <IvTab lang={lang} stage={tab} rights={rights} qrShift={edisi.data?.qrShift === true} />
-          ) : tab === "tubes" ? (
-            <TubesTab lang={lang} rights={rights} />
-          ) : tab === "penerimaan" ? (
-            <PenerimaanTab lang={lang} />
-          ) : tab === "tes" ? (
-            <TesTab lang={lang} />
-          ) : tab === "bank" && rights?.bank ? (
-            <BankTab lang={lang} />
-          ) : (
-            <PanitiaBoard lang={lang} rights={rights} />
-          )}
+              <PanitiaBoard lang={lang} rights={rights} />
+            )}
+          </Suspense>
         </Swap>
       </div>
     </TitleCaseContext.Provider>
