@@ -347,3 +347,11 @@
     padding: 0 7px;
   }
 }
+
+/* The clock in the navbar (back at the user's word, 4 Nov): from 1024 px up it has the room;
+   on shorter screens it would crowd the page links, so it steps aside. */
+@media (max-width: 1023px) {
+  .rec-nav .appnav__side .navclock {
+    display: none;
+  }
+}
