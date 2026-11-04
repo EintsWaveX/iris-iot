@@ -205,7 +205,16 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           </div>
         )}
         <Swap k={tab}>
-          <Suspense fallback={<span className="skeleton" style={{ height: 360 }} />}>
+          <Suspense
+            fallback={
+              <span
+                className="skeleton"
+                style={{ height: 360 }}
+                role="status"
+                aria-label={REC[lang].loading}
+              />
+            }
+          >
             {tab === "ringkasan" ? (
               <div className="lat-stack">
                 <Ringkasan

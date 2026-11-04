@@ -611,12 +611,7 @@ export default function TimSection({ c }: { c: PanelCtx }) {
               ))}
             </div>
           </div>
-        </div>
-        <div className="tp-ctl__p">
-          <span className="hint">
-            {lock === null ? w.lockAuto : w.lockForced(lock === "open" ? w.open : w.locked)}
-          </span>
-          <span className="row" style={{ gap: 8 }}>
+          <span className="tp-ctl__act">
             <button
               type="button"
               className="btn btn--primary btn--sm"
@@ -625,6 +620,11 @@ export default function TimSection({ c }: { c: PanelCtx }) {
             >
               <span className="btn__label">{w.makeTeams}</span>
             </button>
+          </span>
+        </div>
+        <div className="tp-ctl__p">
+          <span className="hint">
+            {lock === null ? w.lockAuto : w.lockForced(lock === "open" ? w.open : w.locked)}
           </span>
         </div>
       </section>
