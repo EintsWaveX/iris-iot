@@ -52,6 +52,8 @@ async function call<T>(aksi: string, init: RequestInit, query = ""): Promise<Rec
     const r = await fetch(`/api/recruitment/${aksi}${query}`, { ...init, signal: ctl.signal });
     const body = (await r.json().catch(() => ({}))) as Record<string, unknown>;
     if (r.ok && body.ok !== false) return body as T;
+    if (r.status === 401 && body.kode === "belum_masuk" && typeof window !== "undefined")
+      window.dispatchEvent(new Event(REC_SESI_HABIS));
     return { ...body, ok: false, kode: (body.kode as RecError) ?? "data_salah", status: r.status };
   } catch {
     return { ok: false, kode: "offline", status: 0 };
@@ -102,6 +104,8 @@ export function useRecAkun(enabled = true) {
 }
 
 export const REC_AKUN_EVENT = "iris:rec-akun";
+/** Fired when the server says the session is gone ("belum_masuk", 401); RecNav asks the person to sign in again. */
+export const REC_SESI_HABIS = "iris:rec-sesi-habis";
 export type AkunMode = "masuk" | "daftar";
 
 /** Opens the oprec account dialog (RecNav hosts it); after signing in the page goes to `next`. */

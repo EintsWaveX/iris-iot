@@ -18,7 +18,7 @@
  * a candidate, a Praktikan and a visitor get the recruitment page with its
  * calendar. Signing out lands on the real Home.
  */
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   CalendarBlankIcon,
@@ -55,6 +55,7 @@ import { LatihanBar, LatihanBaris } from "./Latihan";
 import { pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
 import {
+  REC_SESI_HABIS,
   bukaAkun,
   recPost,
   useRecAkun,
@@ -324,7 +325,27 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
     return () => window.removeEventListener(BUKA_TAMPILAN, open);
   }, []);
 
+  // The server says the session is gone while someone was signed in: say so once, refresh who we
+  // are, and open the sign-in dialog that brings them back to this very page.
+  const orangAda = useRef(false);
+  orangAda.current = orang !== null;
+  const keluarSendiri = useRef(false);
+  const sesiTanya = useRef(0);
+  useEffect(() => {
+    const on = () => {
+      if (!orangAda.current || keluarSendiri.current) return;
+      if (Date.now() - sesiTanya.current < 30_000) return;
+      sesiTanya.current = Date.now();
+      window.Toast?.show(t.sesiHabis, "warn");
+      meChanged();
+      bukaAkun("masuk", location.pathname + location.search);
+    };
+    window.addEventListener(REC_SESI_HABIS, on);
+    return () => window.removeEventListener(REC_SESI_HABIS, on);
+  }, [t]);
+
   async function signOut() {
+    keluarSendiri.current = true;
     try {
       // The oprec account signs out on its own; the practicum sign-in stays as it is.
       if (asisten) await postJson("/api/auth/logout");
