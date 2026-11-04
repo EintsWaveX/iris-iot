@@ -44,6 +44,9 @@ export interface MkWords {
     needSeat: (n: number) => string;
     empty: string;
     emptyHint: string;
+    /** Tes Tulis: who is listed is whoever never came to a finished room, not a sheet's case */
+    emptyHintTulis: string;
+    dueTulis: (when: string) => string;
     absentIn: (room: string, day: string) => string;
     why: Record<string, string>;
     offer: string;
@@ -98,7 +101,7 @@ export interface MkWords {
 }
 
 const ID: MkWords = {
-  stage: { wawancara: "Wawancara", mengajar: "Tes Mengajar" },
+  stage: { wawancara: "Wawancara", mengajar: "Tes Mengajar", tes_tulis: "Tes Tulis" },
   via: {
     web: "halamannya",
     line: "LINE",
@@ -155,6 +158,10 @@ const ID: MkWords = {
     empty: "Tidak ada yang perlu Susulan",
     emptyHint:
       "CaAs yang tidak hadir dan punya izin muncul di sini setelah lembarnya mencatat kasus khusus.",
+    emptyHintTulis:
+      "CaAs yang punya kursi di ruang Tes Tulis yang sudah selesai tapi tidak masuk muncul di sini.",
+    dueTulis: (when) =>
+      `Jawaban paling lambat ${when} WIB. Yang belum menjawab dianggap mundur, tapi kamu bisa mencatat jawaban dari chat atau memulihkannya.`,
     absentIn: (room, day) => `Absen di ${room}, ${day}`,
     why: {
       kuliah: "kuliah",
@@ -229,7 +236,7 @@ const ID: MkWords = {
 };
 
 const EN: MkWords = {
-  stage: { wawancara: "Interview", mengajar: "Teaching Test" },
+  stage: { wawancara: "Interview", mengajar: "Teaching Test", tes_tulis: "Written Test" },
   via: {
     web: "their page",
     line: "LINE",
@@ -285,6 +292,10 @@ const EN: MkWords = {
     empty: "Nobody needs the makeup",
     emptyHint:
       "Absentees with a valid reason show up here once their sheet records a special case.",
+    emptyHintTulis:
+      "Anyone with a seat in a finished Written Test room who never came shows up here.",
+    dueTulis: (when) =>
+      `Answer due by ${when} WIB. Anyone who has not answered counts as withdrawn, but you can record an answer from chat or reinstate them.`,
     absentIn: (room, day) => `Absent in ${room}, ${day}`,
     why: {
       kuliah: "class",
@@ -359,7 +370,7 @@ const EN: MkWords = {
 };
 
 const ZH: MkWords = {
-  stage: { wawancara: "面试", mengajar: "试讲" },
+  stage: { wawancara: "面试", mengajar: "试讲", tes_tulis: "笔试" },
   via: {
     web: "他们的页面",
     line: "LINE",
@@ -412,6 +423,9 @@ const ZH: MkWords = {
     needSeat: (n) => `${n} 人需要座位`,
     empty: "没有人需要补考",
     emptyHint: "有正当理由缺席的人，在他们的评分表记录特殊情况后会出现在这里。",
+    emptyHintTulis: "在已结束的笔试考场有座位却没有来的人会出现在这里。",
+    dueTulis: (when) =>
+      `最迟 ${when} WIB 回复。未回复的人视为退出，但你可以从聊天里记录他们的回复，或恢复他们。`,
     absentIn: (room, day) => `缺席于 ${room}，${day}`,
     why: {
       kuliah: "上课",

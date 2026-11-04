@@ -47,6 +47,7 @@ import {
   muatBarisMakeup,
   muatMakeupCtx,
   posisiMakeup,
+  muatTidakHadirTulis,
 } from "./recruitment-makeup.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
@@ -111,14 +112,21 @@ async function handleList(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
   const ctx = await muatMakeupCtx(db, edisi.id, stage);
   const now = new Date();
 
-  const kasus = await db
-    .select({ candidateId: recSheetShared.candidateId, info: recSheetShared.caseInfo })
-    .from(recSheetShared)
-    .innerJoin(recCandidate, eq(recCandidate.id, recSheetShared.candidateId))
-    .where(and(eq(recSheetShared.stage, stage), eq(recCandidate.editionId, edisi.id)));
-  const susulan = new Map(
-    kasus.filter((k) => k.info?.status === "susulan").map((k) => [k.candidateId, k.info!]),
-  );
+  // Who needs the Susulan: the interview sheets say so; Tes Tulis counts who never came.
+  const susulan = new Map<number, { kind: string | null; why: string | null }>();
+  if (stage === "tes_tulis") {
+    for (const id of await muatTidakHadirTulis(db, edisi.id))
+      susulan.set(id, { kind: null, why: null });
+  } else {
+    const kasus = await db
+      .select({ candidateId: recSheetShared.candidateId, info: recSheetShared.caseInfo })
+      .from(recSheetShared)
+      .innerJoin(recCandidate, eq(recCandidate.id, recSheetShared.candidateId))
+      .where(and(eq(recSheetShared.stage, stage), eq(recCandidate.editionId, edisi.id)));
+    for (const k of kasus)
+      if (k.info?.status === "susulan")
+        susulan.set(k.candidateId, { kind: k.info.kind, why: k.info.why ?? null });
+  }
   const barisSemua = await db
     .select()
     .from(recMakeup)
@@ -238,12 +246,17 @@ async function handleOffer(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const a = await bukaKasus(res, s, jsonBody(req));
   if (!a) return;
   const { db, stage, kandidatId } = a;
-  const [sd] = await db
-    .select({ info: recSheetShared.caseInfo })
-    .from(recSheetShared)
-    .where(and(eq(recSheetShared.candidateId, kandidatId), eq(recSheetShared.stage, stage)))
-    .limit(1);
-  if (sd?.info?.status !== "susulan") return void tolak(res, "bukan_susulan", 409);
+  if (stage === "tes_tulis") {
+    if (!(await muatTidakHadirTulis(db, a.edisiId)).has(kandidatId))
+      return void tolak(res, "bukan_susulan", 409);
+  } else {
+    const [sd] = await db
+      .select({ info: recSheetShared.caseInfo })
+      .from(recSheetShared)
+      .where(and(eq(recSheetShared.candidateId, kandidatId), eq(recSheetShared.stage, stage)))
+      .limit(1);
+    if (sd?.info?.status !== "susulan") return void tolak(res, "bukan_susulan", 409);
+  }
   const ctx = await muatMakeupCtx(db, a.edisiId, stage);
   if (!ctx.event) return void tolak(res, "tanpa_hari_susulan", 409);
   const [ada] = await db
@@ -348,7 +361,7 @@ async function handleRetract(req: ApiRequest, res: ApiResponse, s: SessionPayloa
 /* ------------------------------------------------------------------- CaAs */
 
 interface TawaranView {
-  stage: "wawancara" | "mengajar";
+  stage: MakeupStage;
   state: MakeupStanding["state"];
   unanswered: boolean;
   day: string | null;
@@ -368,7 +381,7 @@ async function handleMine(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
   if (!k) return void res.status(200).json({ ok: true, offers: [] });
   const now = new Date();
   const offers: TawaranView[] = [];
-  for (const stage of ["wawancara", "mengajar"] as const) {
+  for (const stage of ["wawancara", "mengajar", "tes_tulis"] as const) {
     const baris = (await muatBarisMakeup(db, stage, [k.id])).get(k.id);
     if (!baris) continue;
     const ctx = await muatMakeupCtx(db, edisi.id, stage);

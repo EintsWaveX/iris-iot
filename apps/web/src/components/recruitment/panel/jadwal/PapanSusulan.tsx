@@ -325,7 +325,11 @@ export default function PapanSusulan({
           {d.day ? (
             <>
               <span className="hint">{w.lede(tgl(d.day, lang), d.from ?? "", d.to ?? "")}</span>
-              {d.deadline && <span className="hint">{w.due(whenOf(d.deadline, lang))}</span>}
+              {d.deadline && (
+                <span className="hint">
+                  {(stage === "tes_tulis" ? w.dueTulis : w.due)(whenOf(d.deadline, lang))}
+                </span>
+              )}
             </>
           ) : (
             <p className="empty-note empty-note--sm">{w.noDay}</p>
@@ -339,7 +343,7 @@ export default function PapanSusulan({
       {d.rows.length === 0 ? (
         <div className="stack stack--sm">
           <b>{w.empty}</b>
-          <span className="hint">{w.emptyHint}</span>
+          <span className="hint">{stage === "tes_tulis" ? w.emptyHintTulis : w.emptyHint}</span>
         </div>
       ) : (
         <Paged items={d.rows} id="susulan" size={10} noun={NOUN[lang].baris} lang={lang}>

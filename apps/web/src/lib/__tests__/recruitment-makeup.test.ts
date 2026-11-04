@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { IV_DEFAULT, checkTemplate } from "../recruitment/interview";
-import { checkRecord, makeupDeadline, makeupState } from "../recruitment/makeup";
+import { checkRecord, makeupDeadline, makeupState, tulisTidakHadir } from "../recruitment/makeup";
 
 const day = "2026-12-26";
 const due = makeupDeadline(day, 1, 12);
@@ -89,5 +89,22 @@ describe("template deadline", () => {
   });
   it("refuses an hour of 24", () => {
     expect(checkTemplate({ ...IV_DEFAULT.wawancara, makeupHour: 24 })).toBeNull();
+  });
+});
+
+describe("tulisTidakHadir (Tes Tulis no-shows)", () => {
+  const room = (roomFinished: boolean, seat: Parameters<typeof tulisTidakHadir>[0]["seat"]) =>
+    tulisTidakHadir({ roomFinished, seat });
+  it("is false while the room has not finished", () => {
+    expect(room(false, null)).toBe(false);
+  });
+  it("is true with no seat, or a seat that never checked in nor was dealt a question", () => {
+    expect(room(true, null)).toBe(true);
+    expect(room(true, { checkin: {}, draw: {} })).toBe(true);
+    expect(room(true, { checkin: null, draw: null })).toBe(true);
+  });
+  it("is false once the CaAs checked in or was dealt anything", () => {
+    expect(room(true, { checkin: { name: 1 }, draw: {} })).toBe(false);
+    expect(room(true, { checkin: {}, draw: { logika: [1] } })).toBe(false);
   });
 });

@@ -1,12 +1,12 @@
 /**
- * Susulan of Wawancara and Mengajar (R4, R6): where a CaAs stands in the
+ * Susulan of Wawancara, Mengajar and Tes Tulis (R4, R6): where a CaAs stands in the
  * offer. Pure, so the Papan, the CaAs page and Penilaian all read the same
  * answer. The row (rec_makeup) only says what was last answered; whether the
  * deadline passed and whether the CaAs sits in the Susulan are worked out here
  * from the clock and the slot.
  */
 
-export const MAKEUP_STAGES = ["wawancara", "mengajar"] as const;
+export const MAKEUP_STAGES = ["wawancara", "mengajar", "tes_tulis"] as const;
 export type MakeupStage = (typeof MAKEUP_STAGES)[number];
 export const isMakeupStage = (v: unknown): v is MakeupStage =>
   (MAKEUP_STAGES as readonly unknown[]).includes(v);
@@ -95,4 +95,20 @@ export function checkRecord(i: RecordInput): RecordCheck {
   if (i.ans !== "ikut" && note.length < NOTE_MIN) return { ok: false, field: "note" };
   if (note.length > 500) return { ok: false, field: "note" };
   return { ok: true, status: i.ans === "tidak" ? "mundur" : "ya", via: i.via, note };
+}
+
+/**
+ * Tes Tulis: did a CaAs with a seat in a real room not come? Only once the
+ * room has finished, and only when they have no seat at all, or a seat that
+ * never checked in and was never dealt a question.
+ */
+export function tulisTidakHadir(i: {
+  roomFinished: boolean;
+  seat: { checkin: object | null; draw: object | null } | null;
+}): boolean {
+  if (!i.roomFinished) return false;
+  if (!i.seat) return true;
+  return (
+    Object.keys(i.seat.checkin ?? {}).length === 0 && Object.keys(i.seat.draw ?? {}).length === 0
+  );
 }
