@@ -5,14 +5,21 @@
  * latihan-client.ts); every switch reloads the page onto the right edition.
  */
 import { useState } from "react";
-import { ArrowsClockwiseIcon, SparkleIcon, UsersThreeIcon } from "@phosphor-icons/react";
+import {
+  ArrowsClockwiseIcon,
+  FastForwardIcon,
+  SparkleIcon,
+  UsersThreeIcon,
+} from "@phosphor-icons/react";
 import Confirm from "../ui/Confirm";
+import Dropdown from "../ui/Dropdown";
 import Pill from "../ui/Pill";
 import type { Lang } from "../../lib/kelas";
 import { isFail } from "../../lib/recruitment/client";
 import {
   latihanGanti,
   latihanKeluar,
+  latihanLompat,
   latihanMasuk,
   latihanReset,
   latihanSiapkan,
@@ -20,6 +27,8 @@ import {
   useLatihanRingkas,
 } from "../../lib/recruitment/latihan-client";
 import type { LatihanMode } from "../../lib/recruitment/latihan";
+import { STAGES, type StageKey } from "../../lib/recruitment/types";
+import { REC } from "./recruitmentStrings";
 import { LAT } from "./latihanStrings";
 import "./recruitment-latihan.css";
 
@@ -30,6 +39,8 @@ export function LatihanBar({ lang }: { lang: Lang }) {
   const t = LAT[lang];
   const mode = useLatihanMode();
   const [tanya, setTanya] = useState(false);
+  const [lompat, setLompat] = useState(false);
+  const [tahap, setTahap] = useState<StageKey>("tes_tulis");
   const [galat, setGalat] = useState(false);
   if (!mode) return null;
   const pindah = async (to: LatihanMode) => {
@@ -58,6 +69,10 @@ export function LatihanBar({ lang }: { lang: Lang }) {
           {t.asCaas}
         </button>
       </span>
+      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setLompat(true)}>
+        <FastForwardIcon size={16} aria-hidden="true" />
+        <span className="btn__label">{t.jump}</span>
+      </button>
       <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTanya(true)}>
         <ArrowsClockwiseIcon size={16} aria-hidden="true" />
         <span className="btn__label">{t.reset}</span>
@@ -69,6 +84,29 @@ export function LatihanBar({ lang }: { lang: Lang }) {
       >
         <span className="btn__label">{t.leave}</span>
       </button>
+      <Confirm
+        open={lompat}
+        onOpenChange={setLompat}
+        title={t.jumpTitle}
+        body={t.jumpBody}
+        confirmLabel={t.jumpYes}
+        cancelLabel={t.cancel}
+        tone="primary"
+        lang={lang}
+        onConfirm={async () => !(await latihanLompat(tahap, awalan(lang)))}
+      >
+        <Dropdown
+          id="lat-tahap"
+          label={t.jumpPick}
+          options={STAGES.map((s) => ({
+            value: s,
+            label: REC[lang].stage[s],
+          }))}
+          value={tahap}
+          onChange={(v) => setTahap(v as StageKey)}
+        />
+        <span className="hint">{t.jumpHint}</span>
+      </Confirm>
       <Confirm
         open={tanya}
         onOpenChange={setTanya}

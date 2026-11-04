@@ -12,6 +12,14 @@ export const LAT = dict({
     asAsisten: "Sebagai Asisten",
     asCaas: "Sebagai CaAs",
     reset: "Atur Ulang",
+    jump: "Lompat Tahap",
+    jumpTitle: "Lompat ke Tahap Mana?",
+    jumpBody:
+      "Latihan mengikuti jadwal sungguhan, jadi tahap yang belum waktunya masih tertutup. Lompat memajukan kalender latihan supaya tahap pilihanmu mulai hari ini, lalu memindahkan semua CaAs contoh ke tahap itu.",
+    jumpHint:
+      "Berlaku untuk semua Asisten yang sedang berlatih. Atur Ulang mengembalikan jadwal sungguhan.",
+    jumpPick: "Tahap",
+    jumpYes: "Lompat",
     leave: "Keluar",
     resetTitle: "Atur Ulang Latihan?",
     resetBody:
@@ -42,6 +50,13 @@ export const LAT = dict({
     asAsisten: "As Asisten",
     asCaas: "As CaAs",
     reset: "Reset",
+    jump: "Jump Stage",
+    jumpTitle: "Jump to Which Stage?",
+    jumpBody:
+      "Practice follows the real schedule, so a stage that is not due yet stays closed. Jumping moves the practice calendar so the stage you pick starts today, then puts every sample CaAs on that stage.",
+    jumpHint: "This applies to every Asisten who is practicing. Reset brings back the real dates.",
+    jumpPick: "Stage",
+    jumpYes: "Jump",
     leave: "Leave",
     resetTitle: "Reset Practice?",
     resetBody:
@@ -72,6 +87,13 @@ export const LAT = dict({
     asAsisten: "扮演助教",
     asCaas: "扮演候选人",
     reset: "重置",
+    jump: "跳到阶段",
+    jumpTitle: "跳到哪个阶段？",
+    jumpBody:
+      "练习按真实日程进行，还没到时间的阶段会保持关闭。跳转会移动练习日历，让你选的阶段从今天开始，并把所有示例 CaAs 放到该阶段。",
+    jumpHint: "对所有正在练习的助教都有效。重置会恢复真实日期。",
+    jumpPick: "阶段",
+    jumpYes: "跳转",
     leave: "退出",
     resetTitle: "重置练习？",
     resetBody: "示例考场、成绩、提议和信封会被清除，并按真实日历和题库重新生成。真实数据不受影响。",

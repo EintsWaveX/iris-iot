@@ -11,7 +11,7 @@
  * scrolls to the calendar (the banner and the navbar link to them).
  */
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, DoorOpenIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, DoorOpenIcon, HandTapIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
 import SegmentedControl from "../../ui/SegmentedControl";
@@ -305,6 +305,13 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       </div>
     );
 
+  // Tubes shows only from the first day of its own window on the calendar, in practice too (5 Nov 2026).
+  const tubesAwal = events
+    .filter((e) => e.stage === "tubes" && !e.internal)
+    .reduce<string | null>((m, e) => (m === null || e.startsOn < m ? e.startsOn : m), null);
+  const tubesOpen =
+    (cand?.stage === "tubes" || latihan === "caas") && tubesAwal !== null && hariIni >= tubesAwal;
+
   const first = events.length
     ? events.reduce((m, e) => (e.startsOn < m ? e.startsOn : m), events[0].startsOn)
     : null;
@@ -377,7 +384,14 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     <section className="panel rec-next">
       <span className="eyebrow">{t.next.eyebrow}</span>
       <b className="rec-next__t">{next.title}</b>
-      <span className="hint">{next.when}</span>
+      <span className="hint">
+        {next.when}
+        {/* Tells people the road does not end here: the whole calendar is one tap away. */}
+        <a className="rec-next__more" href="#kalender">
+          {t.next.calendar}
+          <ArrowRightIcon size={14} weight="bold" aria-hidden="true" />
+        </a>
+      </span>
       {next.ke > tick && <Countdown ke={next.ke} label={next.title} lang={lang} />}
     </section>
   );
@@ -568,7 +582,12 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     <Kartu
       title={t.journey.title}
       className="rec-jcard"
-      aside={<span className="hint">{t.journey.hint}</span>}
+      aside={
+        <span className="rec-jhint">
+          <HandTapIcon size={16} aria-hidden="true" />
+          {t.journey.hint}
+        </span>
+      }
     >
       <Journey
         cur={applied && cand ? cand.stage : "daftar"}
@@ -601,10 +620,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         {revisi}
         {cta}
         <TestDoor lang={lang} enabled={praktikan && applied} />
-        <TubesCard
-          lang={lang}
-          enabled={praktikan && applied && (cand?.stage === "tubes" || latihan === "caas")}
-        />
+        <TubesCard lang={lang} enabled={praktikan && applied && tubesOpen} />
         {sealedEnv ? (
           <div className="b3-hero">
             <SealedHero

@@ -6,6 +6,7 @@
 import type { ComponentType } from "react";
 import {
   CalendarCheckIcon,
+  CaretRightIcon,
   EnvelopeSimpleIcon,
   FolderOpenIcon,
   SignOutIcon,
@@ -16,6 +17,7 @@ import type { Lang } from "../../../lib/kelas";
 const T = {
   id: {
     list: "Alat untukmu",
+    tap: "Ketuk salah satu untuk membukanya",
     jadwal: "Jadwalku",
     berkas: "Berkasku",
     amplop: "Amplop",
@@ -32,6 +34,7 @@ const T = {
   },
   en: {
     list: "Your tools",
+    tap: "Tap one to open it",
     jadwal: "My Schedule",
     berkas: "My Documents",
     amplop: "Envelopes",
@@ -110,30 +113,41 @@ export default function CaasTools({
     { key: "mundur", icon: SignOutIcon, sub: t.munduSub, quiet: true, onOpen: onMundur },
   ];
   return (
-    <ul
-      className="b3-tools"
-      aria-label={t.list}
-      style={{ listStyle: "none", margin: 0, padding: 0 }}
-    >
-      {tools.map((x) => (
-        <li key={x.key} style={{ display: "contents" }}>
-          <button
-            type="button"
-            className="b3-tool"
-            data-tone={x.quiet ? "quiet" : undefined}
-            onClick={x.onOpen}
-          >
-            <span className="b3-tool__ic">
-              <x.icon size={22} weight="regular" aria-hidden />
-            </span>
-            <span className="b3-tool__t">{t[x.key]}</span>
-            <span className="b3-tool__s">{x.sub}</span>
-            {x.badge !== undefined && (
-              <span className="b3-tool__dot" role="img" aria-label={String(x.badge)} />
-            )}
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div className="b3-toolwrap">
+      <p className="b3-toolwrap__cap" aria-hidden="true">
+        <b>{t.list}</b>
+        <span>{t.tap}</span>
+      </p>
+      <ul
+        className="b3-tools"
+        aria-label={t.list}
+        style={{ listStyle: "none", margin: 0, padding: 0 }}
+      >
+        {tools.map((x) => (
+          <li key={x.key} style={{ display: "contents" }}>
+            <button
+              type="button"
+              className="b3-tool"
+              data-tone={x.quiet ? "quiet" : undefined}
+              data-attn={x.badge !== undefined ? "yes" : undefined}
+              onClick={x.onOpen}
+            >
+              <span className="b3-tool__ic">
+                <x.icon size={22} weight="regular" aria-hidden />
+              </span>
+              <span className="b3-tool__t">{t[x.key]}</span>
+              <span className="b3-tool__s">{x.sub}</span>
+              {/* The arrow says "this opens": the tile is a button, not a label. */}
+              <span className="b3-tool__go" aria-hidden="true">
+                <CaretRightIcon size={16} weight="bold" />
+              </span>
+              {x.badge !== undefined && (
+                <span className="b3-tool__dot" role="img" aria-label={String(x.badge)} />
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

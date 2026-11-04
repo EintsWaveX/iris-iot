@@ -33,16 +33,6 @@ export function geserTanggal(iso: string, hari: number): string {
   return new Date(Date.parse(`${iso}T00:00:00Z`) + hari * HARI).toISOString().slice(0, 10);
 }
 
-/**
- * How far to move the live calendar so the practice one starts today: the
- * first stage opens now and the rest follow on the same spacing.
- */
-export function geseranKalender(startsOn: readonly string[], hariIni: string): number {
-  if (startsOn.length === 0) return 0;
-  const awal = [...startsOn].sort()[0]!;
-  return selisihHari(awal, hariIni);
-}
-
 /** The cookie the server sets (readable by the page, which only uses it to draw the bar). */
 export function cookieLatihan(mode: LatihanMode | null): string {
   return mode

@@ -1,6 +1,5 @@
 /**
- * Mode Latihan, the pure parts: the cookie, the year, and moving the live
- * calendar so the practice one starts today. The request context is proved
+ * Mode Latihan, the pure parts: the cookie, the year and the date helpers. The request context is proved
  * here too, since every reader of the practice edition depends on it.
  */
 import { describe, expect, it } from "vitest";
@@ -8,7 +7,6 @@ import {
   LATIHAN_COOKIE,
   bacaModeLatihan,
   cookieLatihan,
-  geseranKalender,
   geserTanggal,
   latihanTahun,
   modeDariCookie,
@@ -60,14 +58,17 @@ describe("year and dates", () => {
     expect(geserTanggal("2026-05-05", 0)).toBe("2026-05-05");
   });
 
-  it("starts the practice calendar today, whatever order the events come in", () => {
-    const geser = geseranKalender(["2026-11-09", "2026-10-25", "2026-11-17"], "2026-12-01");
-    expect(geserTanggal("2026-10-25", geser)).toBe("2026-12-01");
-    // The spacing between events is kept.
-    expect(selisihHari(geserTanggal("2026-10-25", geser), geserTanggal("2026-11-17", geser))).toBe(
-      selisihHari("2026-10-25", "2026-11-17"),
-    );
-    expect(geseranKalender([], "2026-12-01")).toBe(0);
+  it("jumping a stage puts its first day on today and keeps the spacing between events", () => {
+    // lompatLatihan moves every event by today minus the stage's first public day.
+    const tubesAwal = "2026-12-12";
+    const hariIni = "2026-11-05";
+    const geser = selisihHari(tubesAwal, hariIni);
+    expect(geserTanggal(tubesAwal, geser)).toBe(hariIni);
+    const a = "2026-10-25";
+    const b = "2027-01-06";
+    expect(selisihHari(geserTanggal(a, geser), geserTanggal(b, geser))).toBe(selisihHari(a, b));
+    // Jumping back to a stage that already opened moves the calendar forward again.
+    expect(selisihHari("2026-11-02", hariIni)).toBe(3);
   });
 });
 

@@ -38,11 +38,78 @@
   align-content: center;
   align-items: center;
   column-gap: 12px;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   justify-items: start;
-  min-height: 62px;
-  padding: 10px 14px;
+  min-height: 68px;
+  padding: 10px 12px 10px 14px;
   row-gap: 0;
+  transition:
+    transform 0.15s ease-out,
+    border-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+}
+/* The arrow at the end tells people the tile opens something. */
+.rec-page .b3-tool__go {
+  align-self: center;
+  background: color-mix(in srgb, var(--rec, var(--accent)) 12%, transparent);
+  border-radius: 50%;
+  color: var(--rec, var(--accent));
+  display: grid;
+  grid-column: 3;
+  grid-row: 1 / 3;
+  height: 28px;
+  place-items: center;
+  transition:
+    transform 0.15s ease-out,
+    background-color 0.15s ease-out;
+  width: 28px;
+}
+/* Two tiles across on a phone leave no room for the arrow: the caption and the tint say the tiles open. */
+@media (max-width: 639px) {
+  .rec-page .b3-tools .b3-tool {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .rec-page .b3-tool__go {
+    display: none;
+  }
+}
+/* A tile with something waiting stands out with a tinted face and the accent edge. */
+.rec-page .b3-tool[data-attn="yes"] {
+  background: color-mix(in srgb, var(--rec, var(--accent)) 7%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--rec, var(--accent)) 55%, var(--hairline-strong));
+}
+@media (hover: hover) {
+  .rec-page .b3-tool:hover {
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--text) 10%, transparent);
+  }
+  .rec-page .b3-tool:hover .b3-tool__go {
+    background: color-mix(in srgb, var(--rec, var(--accent)) 22%, transparent);
+  }
+}
+/* The lift and the nudge only move for people who have not asked for less motion. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .rec-page .b3-tool:hover {
+    transform: translateY(-2px);
+  }
+  .rec-page .b3-tool:hover .b3-tool__go {
+    transform: translateX(2px);
+  }
+}
+.rec-page .b3-tool:active {
+  transform: translateY(0) scale(0.985);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-page .b3-tool,
+  .rec-page .b3-tool__go {
+    transition: none;
+  }
+  .rec-page .b3-tool:active {
+    transform: none;
+  }
+}
+.rec-page .b3-tool[data-tone="quiet"] .b3-tool__go {
+  background: transparent;
+  color: var(--text-muted);
 }
 .rec-page .b3-tool__ic {
   background: color-mix(in srgb, var(--rec, var(--accent)) 16%, transparent);
@@ -69,6 +136,84 @@
   right: 12px;
   top: 12px;
   width: 9px;
+}
+/* The caption over the four tiles: what they are and that they open. */
+.b3-toolwrap {
+  display: grid;
+  gap: 10px;
+}
+.b3-toolwrap__cap {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+}
+.b3-toolwrap__cap b {
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.b3-toolwrap__cap span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* Berikutnya: a link to the whole calendar sits next to the date. */
+.rec-next__more {
+  align-items: center;
+  color: var(--accent-bright, var(--accent));
+  display: inline-flex;
+  font-weight: 650;
+  gap: 4px;
+  margin-inline-start: 12px;
+  text-decoration: none;
+}
+@media (hover: hover) {
+  .rec-next__more:hover {
+    text-decoration: underline;
+  }
+}
+.rec-next__more:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Perjalanan: the hint is a chip people notice, the stars react to a finger or a pointer,
+   and the star they stand on says so. */
+.rec-jhint {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 0.82rem;
+  gap: 6px;
+  padding: 5px 12px 5px 10px;
+}
+.rec-jcard .rec-star__dot {
+  transition:
+    transform 0.16s ease-out,
+    box-shadow 0.16s ease-out,
+    border-color 0.16s ease-out;
+}
+@media (hover: hover) {
+  .rec-jcard .rec-star:not([data-st="fog"]) .rec-star__dot:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 24%, transparent);
+    transform: scale(1.14);
+  }
+}
+.rec-jcard .rec-star[data-st="cur"] .rec-star__label {
+  background: color-mix(in srgb, var(--rec) 22%, transparent);
+  border-radius: 999px;
+  color: var(--text);
+  padding: 2px 11px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-jcard .rec-star__dot {
+    transition: none;
+  }
 }
 .rec-calwrap .segmented {
   width: auto;
