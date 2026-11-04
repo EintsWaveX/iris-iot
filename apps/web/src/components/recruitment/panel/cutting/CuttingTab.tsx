@@ -79,6 +79,7 @@ import CuttingDrawer from "./CuttingDrawer";
 import ReasonTags from "./ReasonTags";
 import { AturTitikAwal, UbahTeksAmplop } from "./CutSettings";
 import { Countdown, tgl } from "../../shared";
+import Skeleton from "../../../ui/Skeleton";
 
 const waktu = (iso: string, lang: Lang) => {
   const w = tanggalWib(new Date(iso));
@@ -1257,7 +1258,7 @@ export default function CuttingTab({
     return (
       <div className="stack">
         {head}
-        <span className="skeleton" style={{ height: 320 }} />
+        <Skeleton height={320} />
         {dialogs}
       </div>
     );

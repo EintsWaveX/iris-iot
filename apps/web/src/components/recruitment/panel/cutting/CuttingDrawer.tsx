@@ -21,6 +21,7 @@ import type {
 import { S2 } from "../../s2Strings";
 import { tgl } from "../../shared";
 import { CW } from "./cutWhyStrings";
+import Skeleton from "../../../ui/Skeleton";
 
 const stamp = (iso: string, lang: Lang) => {
   const w = tanggalWib(new Date(iso));
@@ -237,7 +238,7 @@ export default function CuttingDrawer({
           </section>
 
           {!d ? (
-            <span className="skeleton" style={{ height: 220 }} aria-label={t.loading} />
+            <Skeleton height={220} label={t.loading} />
           ) : (
             <>
               <Sec title={t.berkas}>

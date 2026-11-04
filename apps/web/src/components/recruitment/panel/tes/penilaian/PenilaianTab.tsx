@@ -26,6 +26,7 @@ import type { Caps } from "../../../../../lib/recruitment/exam-config";
 import type { Phase1Part } from "../../../../../lib/recruitment/exam-types";
 import { PN } from "./penilaianStrings";
 import Sebaran from "./Sebaran";
+import Skeleton from "../../../../ui/Skeleton";
 
 import "../../../recruitment-s3-score.css";
 
@@ -350,7 +351,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
     return sc.updatedAt !== null ? (
       <p className="hint">{t.unavailable}</p>
     ) : (
-      <span className="skeleton" style={{ height: 320 }} />
+      <Skeleton height={320} />
     );
 
   const beku = d.final !== null;
@@ -447,7 +448,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
       ) : aktif === "spread" ? (
         <Sebaran lang={lang} rows={d.rows} caps={d.caps} />
       ) : (
-        <span className="skeleton" style={{ height: 240 }} />
+        <Skeleton height={240} />
       )}
 
       <Dialog

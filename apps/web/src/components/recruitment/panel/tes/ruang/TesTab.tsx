@@ -49,6 +49,7 @@ import { KS, MG } from "./malamStrings";
 import Kesiapan from "./Kesiapan";
 import AturRuang from "./AturRuang";
 import PenilaianTab from "../penilaian/PenilaianTab";
+import Skeleton from "../../../../ui/Skeleton";
 
 import "../../../recruitment-s3-room.css";
 import "../../../recruitment-malam.css";
@@ -760,7 +761,7 @@ function Ruang({
         <b>{t.list.empty}</b>
       </section>
     ) : (
-      <span className="skeleton" style={{ height: 420 }} />
+      <Skeleton height={420} />
     );
 
   const rv = roomView(v.state, now);
@@ -856,7 +857,7 @@ export default function TesTab({ lang }: { lang: Lang }) {
   const [id, pilih] = useRuangDipilih();
   // The scores of everyone who sat in the rooms: opened from a finished room (Buka Penilaian), as in the mockup
   const [nilai, setNilai] = useState(false);
-  if (!rooms.data) return <span className="skeleton" style={{ height: 320 }} />;
+  if (!rooms.data) return <Skeleton height={320} />;
   const jadwal = new Set<string>();
   for (const e of cal.data?.events ?? [])
     if (e.stage === "tes_tulis" && ["test", "makeup"].includes(e.kind))

@@ -15,6 +15,7 @@ import { usePoll } from "../../../../../lib/hooks";
 import { isFail, recGet, recPost } from "../../../../../lib/recruitment/client";
 import type { LccRoom } from "../../../../../lib/recruitment/lcc-api";
 import { useRecRoom } from "../../../../../lib/recruitment/room-client";
+import Skeleton from "../../../../ui/Skeleton";
 
 const W = dict({
   id: {
@@ -219,7 +220,7 @@ export default function AturRuang({
           ]}
         />
         {!v ? (
-          <span className="skeleton" style={{ height: 240 }} />
+          <Skeleton height={240} />
         ) : tab === "pengawas" ? (
           <>
             <span className="hint">{t.lede}</span>

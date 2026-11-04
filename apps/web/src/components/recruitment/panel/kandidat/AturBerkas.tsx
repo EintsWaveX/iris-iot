@@ -23,6 +23,7 @@ import { isFail, recPost } from "../../../../lib/recruitment/client";
 import { useDocRules } from "../../../../lib/recruitment/doc-rules";
 import { DOCS_DEFAULT, type DocSetting } from "../../../../lib/recruitment/settings";
 import { DOC_SPARE } from "../../../../lib/recruitment/types";
+import { leaveRow } from "../../../ui/leaveRow";
 
 const T = {
   id: {
@@ -324,7 +325,7 @@ export default function AturBerkas({
                   icon={TrashIcon}
                   label={rows.length < 2 ? t.oneLeft : t.del}
                   disabled={rows.length < 2}
-                  onClick={() => hapus(i)}
+                  onClick={(e) => void leaveRow(e.currentTarget, ".r9docs__r").then(() => hapus(i))}
                 />
               </span>
             </li>

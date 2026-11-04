@@ -39,6 +39,7 @@ import { SK } from "./slotStrings";
 import { TP } from "./templateStrings";
 import { useRevealAdded } from "../../ui/useRevealAdded";
 import { leaveRow } from "../../../ui/leaveRow";
+import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
 const toast = (m: string, tone: "ok" | "warn" | "danger" | "info" = "ok") =>
@@ -109,7 +110,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
   useEffect(() => {
     if (saved) setD(structuredClone(saved));
   }, [saved]);
-  if (!view || !d || !saved) return <span className="skeleton" style={{ height: 320 }} />;
+  if (!view || !d || !saved) return <Skeleton height={320} />;
   const can = view.canEdit;
   const dirty = JSON.stringify(d) !== JSON.stringify(saved);
   const valid = checkTemplate(d) !== null;

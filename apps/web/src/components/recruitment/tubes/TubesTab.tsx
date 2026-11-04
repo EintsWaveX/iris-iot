@@ -15,6 +15,7 @@ import TimSection from "./TimSection";
 import TopikSection from "./TopikSection";
 import { useCtx } from "./panelShared";
 import { TUBES } from "./tubesStrings";
+import Skeleton from "../../ui/Skeleton";
 import "../recruitment-tubes.css";
 
 type Sec = "topik" | "tim" | "kumpul" | "presentasi";
@@ -26,7 +27,7 @@ export default function TubesTab({ lang, rights }: { lang: Lang; rights: RecRigh
   const w = TUBES[lang].panel;
   const b = q.data;
   const c = useCtx(lang, b ?? ({} as never), q.refresh);
-  if (!b) return <span className="skeleton" style={{ height: 360 }} />;
+  if (!b) return <Skeleton height={360} />;
   const cc = { ...c, b };
   return (
     <div className="tp n7-plot" style={{ "--sc": "#a3e635" } as React.CSSProperties}>

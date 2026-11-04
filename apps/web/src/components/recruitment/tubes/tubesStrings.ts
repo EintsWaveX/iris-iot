@@ -778,7 +778,7 @@ const EN: TubesWords = {
       "Used at the Techmeet. Each team is drawn in turn; its topic only shows on its page once drawn.",
     drawNext: "Up next",
     drawNow: "Drawing now",
-    drawDone: "Every team has been drawn",
+    drawDone: "Every team is drawn",
     spin: "Spin",
     spinning: "Spinning",
     drawAll: "Draw Everyone at Once",

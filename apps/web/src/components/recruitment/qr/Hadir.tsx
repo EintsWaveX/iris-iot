@@ -15,6 +15,7 @@ import type { AttendResponse } from "../../../lib/recruitment/types";
 import { judulAcara } from "../judul";
 import { KepalaHalaman, kapanAcara, tgl } from "../shared";
 import { S2 } from "../s2Strings";
+import Skeleton from "../../ui/Skeleton";
 
 type Hasil =
   | { v: "hadir" | "sudah"; acara: string; kapan: string }
@@ -81,7 +82,7 @@ export default function Hadir({ lang }: { lang: Lang }) {
     void kirim({ token });
   }, [me]);
 
-  if (me === undefined) return <span className="skeleton" style={{ height: 320 }} />;
+  if (me === undefined) return <Skeleton height={320} />;
   const tone = hasil ? NADA[hasil.v] : "warn";
   const judul = hasil ? t.scan[hasil.v] : t.title;
   const sub = !hasil

@@ -26,6 +26,7 @@ import type { IvStage, Verdict } from "../../../../lib/recruitment/interview";
 import { IV, bi } from "./ivStrings";
 import { PN } from "./penilaianStrings";
 import { SK } from "./slotStrings";
+import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
 const TONE = { lolos: "ok", ragu: "warn", cut: "danger" } as const;
@@ -353,7 +354,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
   const [sort, setSort] = useState<Sort>("rata");
   const [openK, setOpenK] = useState<number | null>(null);
   const d = nilai.data;
-  if (!d) return <span className="skeleton" style={{ height: 240 }} />;
+  if (!d) return <Skeleton height={240} />;
   if ("mine" in d) return <Lembarku d={d} lang={lang} />;
   if (!d.rows.length) return <p className="empty-note">{w.none}</p>;
 

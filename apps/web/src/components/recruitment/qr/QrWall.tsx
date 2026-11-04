@@ -33,6 +33,7 @@ import { useRevealMotion } from "../reveal/fx";
 import { Roll } from "../candidate/PilihJadwal";
 import { REC } from "../recruitmentStrings";
 import QrAtur from "./QrAtur";
+import Skeleton from "../../ui/Skeleton";
 
 function qrSvg(text: string): string {
   const q = qrcode(0, "M");
@@ -149,7 +150,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
   }, [hadir]);
 
   if (me === undefined || (me?.role === "asisten" && edisi.updatedAt === null))
-    return <span className="skeleton" style={{ height: 520 }} />;
+    return <Skeleton height={520} />;
   if (!me || me.role !== "asisten")
     return (
       <div className="r2proj">
@@ -266,7 +267,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
                   ) : terbaru.errors > 0 ? (
                     <span className="hint">{t.luar.recentFail}</span>
                   ) : (
-                    <span className="skeleton" style={{ height: 120 }} />
+                    <Skeleton height={120} />
                   )}
                 </div>
                 <div className="r2proj__how">

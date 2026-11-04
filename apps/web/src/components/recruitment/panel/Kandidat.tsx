@@ -68,6 +68,7 @@ import AturBerkas from "./kandidat/AturBerkas";
 import BerkasReview from "./kandidat/BerkasReview";
 
 import { useDocRules } from "../../../lib/recruitment/doc-rules";
+import Skeleton from "../../ui/Skeleton";
 
 const waktu = (iso: string, lang: Lang) => {
   const w = tanggalWib(new Date(iso));
@@ -178,7 +179,7 @@ function Lembar({
       }
     >
       {d === null ? (
-        <span className="skeleton" style={{ height: 240 }} />
+        <Skeleton height={240} />
       ) : d === "gagal" || !c ? (
         <p className="banner banner--warn">{t.loadFail}</p>
       ) : (

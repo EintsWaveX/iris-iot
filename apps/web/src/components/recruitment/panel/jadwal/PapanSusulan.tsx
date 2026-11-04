@@ -30,6 +30,7 @@ import {
 } from "../../../../lib/recruitment/makeup";
 import { MK } from "../../makeupStrings";
 import { tgl } from "../../shared";
+import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
 const wib = (iso: string) => tanggalWib(new Date(iso));
@@ -238,7 +239,7 @@ export default function PapanSusulan({
   const [retracting, setRetracting] = useState<MakeupRow | null>(null);
   const [busy, setBusy] = useState(false);
   const d = list.data;
-  if (!d) return <span className="skeleton" style={{ height: 160 }} />;
+  if (!d) return <Skeleton height={160} />;
 
   const call = async (aksi: string, body: Record<string, unknown>, ok: string) => {
     setBusy(true);

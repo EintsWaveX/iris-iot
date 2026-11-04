@@ -19,6 +19,7 @@ import type { AttendanceRow, EventLite } from "../../../lib/recruitment/types";
 import { judulAcara } from "../judul";
 import { S2 } from "../s2Strings";
 import { kapanAcara } from "../shared";
+import Skeleton from "../../ui/Skeleton";
 
 const jam = (iso: string) => tanggalWib(new Date(iso)).jam;
 
@@ -171,7 +172,7 @@ export default function AttendanceDrawer({
           />
         </div>
         {att.data === null ? (
-          <span className="skeleton" style={{ height: 240 }} />
+          <Skeleton height={240} />
         ) : list.length === 0 ? (
           <ul className="r2att__list">
             <li className="r2att__none hint">{f === "belum" ? t.everyone : t.nobody}</li>

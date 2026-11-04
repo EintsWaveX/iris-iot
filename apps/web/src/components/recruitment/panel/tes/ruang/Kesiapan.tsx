@@ -30,6 +30,7 @@ import { useRecRoom } from "../../../../../lib/recruitment/room-client";
 import { bukaBagian } from "../../../../../lib/recruitment/panel-tab";
 import { RG } from "./ruangStrings";
 import { KS } from "./malamStrings";
+import Skeleton from "../../../../ui/Skeleton";
 
 /** WIB clock of an instant: "18.30" in Indonesian, "18:30" elsewhere. */
 function jam(iso: string, lang: Lang): string {
@@ -78,7 +79,7 @@ export default function Kesiapan({
     300,
   );
   const [open, setOpen] = useState<null | "slot" | "soal" | "juri" | "mulai">(null);
-  if (!v) return <span className="skeleton" style={{ height: 300 }} />;
+  if (!v) return <Skeleton height={300} />;
 
   const tertulis = v.config.order.filter((p) => p !== "livecode");
   const soalOk = tertulis.every((p) => v.pool[p]?.ok ?? false);

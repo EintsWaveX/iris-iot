@@ -32,6 +32,7 @@ import {
 import type { TubesBoardTeam, TubesFileView } from "../../../lib/recruitment/tubes-api";
 import { bacaFileTubes } from "../../../lib/recruitment/tubes-client";
 import { dariLokal, kapan, keLokal, StatusPill, toast, type PanelCtx } from "./panelShared";
+import { leaveRow } from "../../ui/leaveRow";
 
 /* ------------------------------------------------------------ viewing one team */
 
@@ -414,7 +415,11 @@ function PartsDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
                 <button
                   type="button"
                   className="btn btn--ghost btn--sm"
-                  onClick={() => setParts((x) => x.filter((_, j) => j !== i))}
+                  onClick={(e) =>
+                    void leaveRow(e.currentTarget, ".panel").then(() =>
+                      setParts((x) => x.filter((_, j) => j !== i)),
+                    )
+                  }
                 >
                   <span className="btn__label">{w.topicDelete}</span>
                 </button>

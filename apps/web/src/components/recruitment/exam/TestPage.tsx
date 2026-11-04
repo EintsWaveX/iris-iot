@@ -29,6 +29,7 @@ import Runner from "./Runner";
 import { Finished, Lobby, NotOpen, Notice } from "./Screens";
 import LccPage from "../livecode/LccPage";
 import { TS } from "./testStrings";
+import Skeleton from "../../ui/Skeleton";
 
 import "../recruitment-s3-runner.css";
 import "../recruitment-checkin.css";
@@ -157,7 +158,7 @@ export default function TestPage({ lang }: { lang: Lang }) {
         />
       ) : (
         <Gate motion={motion} title={t.loading}>
-          <span className="skeleton" style={{ height: 120 }} />
+          <Skeleton height={120} />
         </Gate>
       );
   } else if ("err" in data) {
@@ -223,7 +224,7 @@ export default function TestPage({ lang }: { lang: Lang }) {
   } else if (phase.k === "work") {
     screen = (
       <Gate motion={motion} title={t.loading}>
-        <span className="skeleton" style={{ height: 120 }} />
+        <Skeleton height={120} />
       </Gate>
     );
   } else {
