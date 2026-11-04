@@ -7,8 +7,9 @@
  * A visitor or a Praktikan gets the error view, the same as every other
  * Asisten page.
  */
-import { Suspense, lazy, useEffect, useMemo, useRef } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import ErrorView from "../../ui/ErrorView";
+import { calmMotion } from "../../../lib/calm-motion";
 import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import { useMinWidth } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
@@ -58,9 +59,24 @@ const PanitiaBoard = lazy(() => import("./PanitiaBoard"));
 /** Which way a tab swap slides: toward the side the new tab sits on. */
 let lastTab: PanelTab | null = null;
 
-function Swap({ k, children }: { k: PanelTab; children: React.ReactNode }) {
+function Swap({
+  k,
+  leavingFor,
+  children,
+}: {
+  k: PanelTab;
+  /** The part about to replace this one: the page slides out toward the side it came from */
+  leavingFor: PanelTab | null;
+  children: React.ReactNode;
+}) {
   const dir =
     AREA_ORDER.indexOf(k) >= (lastTab === null ? 0 : AREA_ORDER.indexOf(lastTab)) ? "f" : "b";
+  const out =
+    leavingFor === null
+      ? undefined
+      : AREA_ORDER.indexOf(leavingFor) >= AREA_ORDER.indexOf(k)
+        ? "f"
+        : "b";
   useEffect(() => {
     lastTab = k;
   }, [k]);
@@ -69,6 +85,8 @@ function Swap({ k, children }: { k: PanelTab; children: React.ReactNode }) {
       className="rec-swap"
       key={k}
       data-dir={dir}
+      data-out={out}
+      aria-hidden={out ? true : undefined}
       style={{ "--tc": AREA[k].c } as React.CSSProperties}
     >
       {children}
@@ -139,6 +157,26 @@ export default function PanelPage({ lang }: { lang: Lang }) {
   );
   const tab: PanelTab = bagian && tabs.includes(bagian) ? bagian : tabs[0];
 
+  // The page body trails the chosen part by the exit time: the old part fades and slides out,
+  // then the new one slides in. The title and the navbar change at once.
+  const [shownTab, setShownTab] = useState<PanelTab>(tab);
+  const shownSince = useRef(Date.now());
+  useEffect(() => {
+    if (tab === shownTab) return;
+    // Not for the first moments of the page (the address resolving to its part): only a deliberate switch.
+    if (calmMotion() || Date.now() - shownSince.current < 800) {
+      setShownTab(tab);
+      shownSince.current = Date.now();
+      return;
+    }
+    const id = window.setTimeout(() => {
+      setShownTab(tab);
+      shownSince.current = Date.now();
+    }, 150);
+    return () => window.clearTimeout(id);
+  }, [tab, shownTab]);
+  const leaving = shownTab !== tab;
+
   // The browser tab and the history name the part that is open ("Kandidat · Panel Panitia · IRIS IoT").
   const judulDasar = useRef<string | null>(null);
   useEffect(() => {
@@ -204,7 +242,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             <b>{PNW(lang).close.banner}</b>
           </div>
         )}
-        <Swap k={tab}>
+        <Swap k={shownTab} leavingFor={leaving ? tab : null}>
           <Suspense
             fallback={
               <span
@@ -215,7 +253,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
               />
             }
           >
-            {tab === "ringkasan" ? (
+            {shownTab === "ringkasan" ? (
               <div className="lat-stack">
                 <Ringkasan
                   lang={lang}
@@ -230,7 +268,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
                 />
                 <LatihanCard lang={lang} />
               </div>
-            ) : tab === "kalender" ? (
+            ) : shownTab === "kalender" ? (
               <KalenderTab
                 lang={lang}
                 events={events}
@@ -238,7 +276,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
                 canEdit={rights?.calendar === true}
                 refresh={cal.refresh}
               />
-            ) : tab === "kandidat" && rights ? (
+            ) : shownTab === "kandidat" && rights ? (
               cand.data ? (
                 <Kandidat
                   lang={lang}
@@ -250,24 +288,24 @@ export default function PanelPage({ lang }: { lang: Lang }) {
               ) : (
                 <span className="skeleton" style={{ height: 320 }} />
               )
-            ) : tab === "cutting" && rights ? (
+            ) : shownTab === "cutting" && rights ? (
               <CuttingTab lang={lang} events={events} hariIni={hariIni} rights={rights} />
-            ) : tab === "plotting" && rights ? (
+            ) : shownTab === "plotting" && rights ? (
               <PlottingTab lang={lang} events={events} rights={rights} />
-            ) : tab === "wawancara" || tab === "mengajar" ? (
+            ) : shownTab === "wawancara" || shownTab === "mengajar" ? (
               <IvTab
                 lang={lang}
-                stage={tab}
+                stage={shownTab}
                 rights={rights}
                 qrShift={edisi.data?.qrShift === true}
               />
-            ) : tab === "tubes" ? (
+            ) : shownTab === "tubes" ? (
               <TubesTab lang={lang} rights={rights} />
-            ) : tab === "penerimaan" ? (
+            ) : shownTab === "penerimaan" ? (
               <PenerimaanTab lang={lang} />
-            ) : tab === "tes" ? (
+            ) : shownTab === "tes" ? (
               <TesTab lang={lang} />
-            ) : tab === "bank" && rights?.bank ? (
+            ) : shownTab === "bank" && rights?.bank ? (
               <BankTab lang={lang} />
             ) : (
               <PanitiaBoard lang={lang} rights={rights} />

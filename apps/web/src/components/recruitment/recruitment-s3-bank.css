@@ -797,6 +797,11 @@
 }
 
 /* the problem-to-problem arrows in the editor header */
+.r3ed__nav {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
 .r3ed__nav .ctl-stepper {
   min-height: 40px;
 }
@@ -807,4 +812,54 @@
 .r3ed__nav .ctl-stepper input {
   min-height: 40px;
   min-width: 72px;
+}
+
+/* the question list drawer: one row per question, the open one marked */
+.r3pick {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.r3pick .r3pick__row {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 2px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 52px;
+  padding: 8px 12px;
+  text-align: left;
+  width: 100%;
+}
+.r3pick .r3pick__row .hint {
+  grid-column: 1;
+  grid-row: 2;
+}
+.r3pick .r3pick__row .pill {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.r3pick__t {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.r3pick__row[aria-current="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .r3pick__row:hover {
+    border-color: var(--hairline-strong);
+  }
+}
+.r3pick__row:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
 }

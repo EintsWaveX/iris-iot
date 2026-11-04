@@ -63,6 +63,7 @@ import {
 import { createPortal } from "react-dom";
 import { titleCase } from "../../lib/title-case";
 import "./Dropdown.css";
+import { calmMotion } from "../../lib/calm-motion";
 
 /** On inside the Oprec pages: single-pick dropdown text reads in Title Case, like the mockup. */
 export const TitleCaseContext = createContext(false);
@@ -113,10 +114,25 @@ function useIsMobile(): boolean {
 const POPUP_GAP = 6;
 const VIEW_MARGIN = 8;
 const POPUP_MAX = 360;
+/** How long a closed popup stays to play its exit (matches popover-out and dropdown-sheet-out). */
+const POPUP_EXIT_MS = 150;
 
 function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: boolean) {
   const [open, setOpen] = useState(false);
   const [host, setHost] = useState<HTMLElement | null>(null);
+  // The popup stays mounted for the length of its exit animation after it closes. `shown` is set in
+  // the render that opens it, so closing never leaves a frame with no popup before the exit begins.
+  const [shown, setShown] = useState(false);
+  if (open && !shown) setShown(true);
+  useEffect(() => {
+    if (open || !shown) return;
+    if (calmMotion()) {
+      setShown(false);
+      return;
+    }
+    const id = window.setTimeout(() => setShown(false), POPUP_EXIT_MS);
+    return () => window.clearTimeout(id);
+  }, [open, shown]);
   const popupRef = useRef<HTMLDivElement | null>(null);
   const scrimRef = useRef<HTMLDivElement | null>(null);
 
@@ -223,7 +239,13 @@ function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: bool
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [open, triggerRef]);
 
-  return { open, setOpen, host: open ? host : null, popupRef, scrimRef };
+  return {
+    open,
+    setOpen,
+    host: open || (shown && !calmMotion()) ? host : null,
+    popupRef,
+    scrimRef,
+  };
 }
 
 function typeaheadIndex(options: DropdownOption[], from: number, buffer: string): number | null {
@@ -434,19 +456,24 @@ export default function Dropdown({
           {hint}
         </p>
       )}
-      {open &&
-        host &&
+      {host &&
         createPortal(
           <>
             {isMobile && (
               <div
                 ref={scrimRef}
                 className="dropdown__scrim"
+                data-state={open ? "open" : "closed"}
                 onClick={() => setOpen(false)}
                 aria-hidden="true"
               />
             )}
-            <div ref={popupRef} className="dropdown__popup" data-sheet={isMobile ? "yes" : "no"}>
+            <div
+              ref={popupRef}
+              className="dropdown__popup"
+              data-sheet={isMobile ? "yes" : "no"}
+              data-state={open ? "open" : "closed"}
+            >
               <ul
                 className="dropdown__list"
                 role="listbox"
@@ -531,19 +558,24 @@ export function DropdownMulti({ id, label, options, values, onChange, summary }:
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      {open &&
-        host &&
+      {host &&
         createPortal(
           <>
             {isMobile && (
               <div
                 ref={scrimRef}
                 className="dropdown__scrim"
+                data-state={open ? "open" : "closed"}
                 onClick={() => setOpen(false)}
                 aria-hidden="true"
               />
             )}
-            <div ref={popupRef} className="dropdown__popup" data-sheet={isMobile ? "yes" : "no"}>
+            <div
+              ref={popupRef}
+              className="dropdown__popup"
+              data-sheet={isMobile ? "yes" : "no"}
+              data-state={open ? "open" : "closed"}
+            >
               <ul
                 className="dropdown__list"
                 role="listbox"

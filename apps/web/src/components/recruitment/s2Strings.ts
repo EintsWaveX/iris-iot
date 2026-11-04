@@ -346,7 +346,7 @@ export const S2 = dict({
       declineReasons: ["Tujuan sudah penuh", "Alasannya kurang jelas", "Sertakan bukti jadwal"],
       declineNote: "Catatan untuk kandidat (boleh kosong)",
       moved: (nama: string, ruang: string) => `${nama} dipindah ke ${ruang}. Dia diberi tahu.`,
-      declinedToast: "Permintaan ditolak. Kandidatnya diberi tahu beserta catatanmu.",
+      declinedToast: "Permintaan ditolak. Kandidatnya diberi tahu bersama catatanmu.",
       search: "Cari nama",
       searchLabel: "Cari kandidat",
       noMark: "Tanpa tanda: pilih sendiri",
@@ -884,7 +884,7 @@ export const S2 = dict({
       delete: "Delete slot",
       addRoom: "Add a Room",
       slotRule:
-        "Capacity cannot go below how many are filled. A slot that has people in it cannot be deleted: move them in Board first.",
+        "Capacity can't go below how many seats are filled. A slot with people in it can't be deleted, so move them in Board first.",
       slotAdded: "Slot added.",
       slotSaved: "Slot saved.",
       slotGone: "Slot deleted.",

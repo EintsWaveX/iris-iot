@@ -6,8 +6,9 @@
  * Usage:
  *   <Disclose head={t.history}>{rows}</Disclose>
  */
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { CaretDownIcon } from "@phosphor-icons/react";
+import { calmMotion } from "../../lib/calm-motion";
 import "./Disclose.css";
 
 interface Props {
@@ -20,6 +21,21 @@ interface Props {
 export default function Disclose({ head, children, defaultOpen = false, className }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
+  // The body stays mounted while it fades out after the head is pressed again.
+  const [mounted, setMounted] = useState(defaultOpen);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      return;
+    }
+    if (!mounted) return;
+    if (calmMotion()) {
+      setMounted(false);
+      return;
+    }
+    const id = window.setTimeout(() => setMounted(false), 120);
+    return () => window.clearTimeout(id);
+  }, [open, mounted]);
   return (
     <div className={className ? `disc ${className}` : "disc"} data-open={open ? "yes" : "no"}>
       <button
@@ -32,8 +48,8 @@ export default function Disclose({ head, children, defaultOpen = false, classNam
         <span className="grow">{head}</span>
         <CaretDownIcon size={18} aria-hidden="true" />
       </button>
-      {open && (
-        <div id={bodyId} className="disc__body fade">
+      {(open || mounted) && (
+        <div id={bodyId} className={open ? "disc__body fade" : "disc__body fade fade--out"}>
           {children}
         </div>
       )}

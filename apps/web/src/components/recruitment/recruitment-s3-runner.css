@@ -67,6 +67,65 @@
   font-style: italic;
 }
 
+/* The same colours on any screen that prints a question's code (the Bank editor's preview,
+   Penilaian, a review), not only inside the candidate's page. */
+.r3code,
+.r3hl {
+  --syn-keyword: #c3a6ff;
+  --syn-type: #6fd6e3;
+  --syn-string: #8fe3b0;
+  --syn-number: #f5c77e;
+  --syn-func: #7cc4ff;
+  --syn-preproc: #ff9ecf;
+  --syn-const: #ffb38a;
+  --syn-comment: var(--text-faint);
+}
+:root[data-theme="light"] .r3code,
+:root[data-theme="light"] .r3hl {
+  --syn-keyword: #6a3fc8;
+  --syn-type: #0a6f7c;
+  --syn-string: #1d7a3e;
+  --syn-number: #8a5a00;
+  --syn-func: #0b5ea8;
+  --syn-preproc: #b0236e;
+  --syn-const: #a04a12;
+}
+.r3code .tok--keyword,
+.r3hl .tok--keyword {
+  color: var(--syn-keyword);
+}
+.r3code .tok--type,
+.r3hl .tok--type {
+  color: var(--syn-type);
+}
+.r3code .tok--string,
+.r3hl .tok--string {
+  color: var(--syn-string);
+}
+.r3code .tok--number,
+.r3hl .tok--number {
+  color: var(--syn-number);
+}
+.r3code .tok--func,
+.r3hl .tok--func {
+  color: var(--syn-func);
+}
+.r3code .tok--preproc,
+.r3code .tok--deco,
+.r3hl .tok--preproc,
+.r3hl .tok--deco {
+  color: var(--syn-preproc);
+}
+.r3code .tok--const,
+.r3hl .tok--const {
+  color: var(--syn-const);
+}
+.r3code .tok--comment,
+.r3hl .tok--comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+
 @keyframes rec-s3-blink {
   50% {
     opacity: 0.35;

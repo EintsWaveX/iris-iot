@@ -607,7 +607,7 @@ const EN: TubesWords = {
     berkas_hilang: "The file did not reach the server. Send it again.",
     berkas_beda: "The file that arrived is not the same. Send it again.",
     belum_diatur: "File storage is not set up. Ask Panitia.",
-    topik_penuh: "The topics cannot be published yet.",
+    topik_penuh: "The topics can't be published yet.",
     tidak_ada: "Not found.",
     offline: "No connection. Try again.",
     lain: "Failed. Try again.",

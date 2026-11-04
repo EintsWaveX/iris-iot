@@ -7,9 +7,10 @@
  * read only (EXAM-ENGINE 1.4).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftIcon, ShuffleIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, ListBulletsIcon, ShuffleIcon } from "@phosphor-icons/react";
 import Confirm from "../../../../ui/Confirm";
 import { Stepper } from "../../../../ui/Controls";
+import IconButton from "../../../../ui/IconButton";
 import Dialog from "../../../../ui/Dialog";
 import Dropdown from "../../../../ui/Dropdown";
 import HoldButton from "../../../../ui/HoldButton";
@@ -36,6 +37,7 @@ import {
 import type {
   ExamConfigResponse,
   QuestionFull,
+  QuestionSummary,
   SaveResponse,
 } from "../../../../../lib/recruitment/bank-api";
 import { useBankQuestion } from "../../../../../lib/recruitment/bank-client";
@@ -50,6 +52,7 @@ import {
 import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
 import { ImagesEditor } from "./BankAttach";
+import BankPicker from "./BankPicker";
 import CodeBox from "./CodeBox";
 import {
   ChoiceKeys,
@@ -125,7 +128,7 @@ export default function BankEditor({
   config,
   onBack,
   onOpen,
-  order,
+  rows,
 }: {
   lang: Lang;
   id: number | null;
@@ -133,8 +136,8 @@ export default function BankEditor({
   config: ExamConfigResponse;
   onBack: () => void;
   onOpen: (id: number) => void;
-  /** The ids of this part's problems in list order: the arrows and the number step through them. */
-  order: number[];
+  /** This part's problems in list order: the arrows and the number step through them, the list drawer picks from them. */
+  rows: QuestionSummary[];
 }) {
   const t = BK[lang];
   const q = useBankQuestion(id, id !== null);
@@ -177,7 +180,17 @@ export default function BankEditor({
 
   const dirty = !!d && !!orig && canon(d) !== canon(orig);
   const goTo = useRef<number | null>(null);
+  const order = useMemo(() => rows.map((r) => r.id), [rows]);
   const at = id === null ? -1 : order.indexOf(id);
+  const [pickOpen, setPickOpen] = useState(false);
+  /** Walk to another question: with edits in this one, ask first. */
+  const visit = (next: number) => {
+    if (next === id) return;
+    if (dirty) {
+      goTo.current = next;
+      setLeaveDlg(true);
+    } else onOpen(next);
+  };
   useBelumSimpan(dirty);
 
   if (!d || !orig) {
@@ -335,12 +348,13 @@ export default function BankEditor({
               fmt={(n) => `${n} / ${order.length}`}
               onChange={(n) => {
                 const next = order[n - 1];
-                if (next === undefined || next === id) return;
-                if (dirty) {
-                  goTo.current = next;
-                  setLeaveDlg(true);
-                } else onOpen(next);
+                if (next !== undefined) visit(next);
               }}
+            />
+            <IconButton
+              icon={ListBulletsIcon}
+              label={t.navList}
+              onClick={() => setPickOpen(true)}
             />
           </div>
         )}
@@ -690,6 +704,17 @@ export default function BankEditor({
         cancelLabel={t.cancel}
         lang={lang}
         onConfirm={remove}
+      />
+      <BankPicker
+        lang={lang}
+        open={pickOpen}
+        onOpenChange={setPickOpen}
+        rows={rows}
+        current={id}
+        onPick={(next) => {
+          setPickOpen(false);
+          visit(next);
+        }}
       />
       <Confirm
         open={leaveDlg}

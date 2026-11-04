@@ -75,7 +75,7 @@ export const RG = dict({
         bodyReal: (n: number) =>
           `Ruang ini belum pernah dijalankan. ${n} kursi di dalamnya ikut terhapus dan kandidatnya bisa masuk ruang lain. Slot di Plotting tidak berubah.`,
         bodyPractice: (n: number) =>
-          `Ruang latihan beserta ${n} kursi, jawaban dan hasil percobaannya terhapus. Ini tidak bisa dibatalkan.`,
+          `Ruang latihan, ${n} kursi, jawaban dan hasil percobaannya ikut terhapus. Ini tidak bisa dibatalkan.`,
         confirm: "Hapus Ruang",
         done: "Ruang dihapus.",
         fail: "Ruang belum terhapus. Coba lagi.",
@@ -571,10 +571,10 @@ export const RG = dict({
         bukan_hari_ini: "This room can only be opened on its exam day.",
         perlu_waktu: "A part that ran out of time needs more than 0 added.",
         waktu_ruang_habis: "The room's time is over. Use Reopen or seat time.",
-        perlu_alasan: "A reason is required.",
-        nilai_salah: "That value is not allowed.",
+        perlu_alasan: "Add a reason first.",
+        nilai_salah: "That value does not work.",
         kursi_tak_dikenal: "That seat has not checked in.",
-        tidak_boleh_master: "You cannot be Master in this room.",
+        tidak_boleh_master: "You can't be Master in this room.",
         ada_master: "This room already has a Master.",
         bukan_pengawas: "That person is not a pengawas of this room.",
         ruang_berjalan: "The room is running.",
@@ -808,7 +808,7 @@ export const RG = dict({
       saved: "Room saved.",
       practiceNote:
         "A practice room has no evening of its own. Candidates are moved here from Plotting or Kit Loans.",
-      locked: "The room is finished and cannot be changed.",
+      locked: "The room is finished and can't be changed.",
       bad: {
         bukan_pengawas: "One pengawas is not an active Asisten.",
         slot_salah: "That slot does not exist.",

@@ -522,6 +522,12 @@
   animation: popover-in var(--dur-fast) var(--ease-out-expo);
 }
 
+/* Closing plays popover-out (ui/Popover.css) before Radix lets go of the menu. */
+.appnav__menu[data-state="closed"] {
+  animation: popover-out 140ms var(--ease-out-expo) both;
+  pointer-events: none;
+}
+
 .acct {
   display: flex;
   flex-direction: column;

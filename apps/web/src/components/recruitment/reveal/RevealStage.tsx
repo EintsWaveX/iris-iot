@@ -14,6 +14,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { calmMotion } from "../../../lib/calm-motion";
 import {
   ArrowCounterClockwiseIcon,
   SpeakerHighIcon,
@@ -108,6 +109,18 @@ export default function RevealStage(p: RevealProps) {
   const mounted = useRef(true);
   const resRef = useRef(res);
   resRef.current = res;
+  /* Closing (the X, Escape or the last button) fades the stage out first, then tells the page */
+  const [pergi, setPergi] = useState(false);
+  const pergiRef = useRef(false);
+  const leave = () => {
+    if (pergiRef.current) return;
+    pergiRef.current = true;
+    if (mRef.current === "reduce" || calmMotion()) return p.onClose();
+    setPergi(true);
+    window.setTimeout(p.onClose, 240);
+  };
+  const leaveRef = useRef(leave);
+  leaveRef.current = leave;
 
   /* The stage's canvas, Escape to close, and the page behind kept still */
   useEffect(() => {
@@ -117,7 +130,7 @@ export default function RevealStage(p: RevealProps) {
       void makeShooter(canvas.current).then((s) => {
         if (alive) shooter.current = s;
       });
-    const k = (e: KeyboardEvent) => e.key === "Escape" && p.onClose();
+    const k = (e: KeyboardEvent) => e.key === "Escape" && leaveRef.current();
     window.addEventListener("keydown", k);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -437,6 +450,7 @@ export default function RevealStage(p: RevealProps) {
       data-big={big ? "yes" : undefined}
       data-phase={phase}
       data-motion={m}
+      data-pergi={pergi ? "yes" : undefined}
       role="dialog"
       aria-modal="true"
       aria-label={eyebrow}
@@ -454,7 +468,7 @@ export default function RevealStage(p: RevealProps) {
           pressed={!sound}
           onClick={() => setSound(!sound)}
         />
-        <IconButton icon={XIcon} label={t.close} onClick={p.onClose} />
+        <IconButton icon={XIcon} label={t.close} onClick={leave} />
       </div>
       <div className="r2stage__mid" key={run}>
         <div className="r2stage__env">
@@ -530,7 +544,7 @@ export default function RevealStage(p: RevealProps) {
               words={p.words}
               next={next}
               through={p.through}
-              onClose={p.onClose}
+              onClose={leave}
               replay={replay}
             />
           )}
