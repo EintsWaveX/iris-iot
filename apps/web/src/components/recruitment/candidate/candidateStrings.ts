@@ -51,6 +51,7 @@ export const CP = dict({
     },
     next: {
       eyebrow: "Berikutnya",
+      calendar: "Lihat di Kalender",
       closes: "Pendaftaran tutup",
       opens: "Pendaftaran dibuka",
       nothing: "Belum ada acara berikutnya.",
@@ -167,6 +168,7 @@ export const CP = dict({
     },
     next: {
       eyebrow: "Coming up",
+      calendar: "See it in the Calendar",
       closes: "Registration closes",
       opens: "Registration opens",
       nothing: "Nothing is scheduled next yet.",
@@ -281,6 +283,7 @@ export const CP = dict({
     },
     next: {
       eyebrow: "接下来",
+      calendar: "在日历中查看",
       closes: "报名截止",
       opens: "开放报名",
       nothing: "接下来还没有安排。",

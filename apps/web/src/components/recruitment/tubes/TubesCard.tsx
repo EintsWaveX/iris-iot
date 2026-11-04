@@ -1101,11 +1101,16 @@ export default function TubesCard({ lang, enabled }: { lang: Lang; enabled: bool
           <Step n={5} label={t.step.turn} done={done.turn} />
         </ol>
       </section>
+      {/* Two columns of stacked cards, so a tall card never leaves a hole beside it. On a phone they read Tim, Malam, Topik, Presentasi. */}
       <div className="tb-grid">
-        <TeamCard lang={lang} d={d} say={say} refresh={q.refresh} />
-        <EveningCard lang={lang} d={d} say={say} refresh={q.refresh} />
-        <TopicCard lang={lang} d={d} />
-        <TurnCard lang={lang} d={d} />
+        <div className="tb-col" data-col="a">
+          <TeamCard lang={lang} d={d} say={say} refresh={q.refresh} />
+          <TopicCard lang={lang} d={d} />
+        </div>
+        <div className="tb-col" data-col="b">
+          <EveningCard lang={lang} d={d} say={say} refresh={q.refresh} />
+          <TurnCard lang={lang} d={d} />
+        </div>
         <div className="tb-wide">
           <SubmitCard lang={lang} d={d} say={say} refresh={q.refresh} />
         </div>

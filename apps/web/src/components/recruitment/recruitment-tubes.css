@@ -50,12 +50,36 @@
   gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.tb-col {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+}
 .tb-wide {
   grid-column: 1 / -1;
 }
 @media (max-width: 859px) {
   .tb-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  /* One column: the two stacks dissolve so the cards fall in step order (Tim, Malam, Topik, Presentasi). */
+  .tb-col {
+    display: contents;
+  }
+  .tb-col[data-col="a"] > :first-child {
+    order: 1;
+  }
+  .tb-col[data-col="b"] > :first-child {
+    order: 2;
+  }
+  .tb-col[data-col="a"] > :last-child {
+    order: 3;
+  }
+  .tb-col[data-col="b"] > :last-child {
+    order: 4;
+  }
+  .tb-wide {
+    order: 5;
   }
 }
 .tb-card {

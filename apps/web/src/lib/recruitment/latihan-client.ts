@@ -63,7 +63,7 @@ function tujuan(mode: LatihanMode | null, prefix: string): string {
 }
 
 async function aksi(
-  nama: "latihan-masuk" | "latihan-ganti" | "latihan-reset" | "latihan-keluar",
+  nama: "latihan-masuk" | "latihan-ganti" | "latihan-reset" | "latihan-lompat" | "latihan-keluar",
   body: unknown,
   mode: LatihanMode | null,
   prefix: string,
@@ -71,7 +71,8 @@ async function aksi(
   const r = await recPost<LatihanJawab>(nama, body);
   if (isFail(r)) return r;
   window.dispatchEvent(new Event(LATIHAN_BERUBAH));
-  location.assign(nama === "latihan-reset" ? location.href : tujuan(mode, prefix));
+  const tetap = nama === "latihan-reset" || nama === "latihan-lompat";
+  location.assign(tetap ? location.href : tujuan(mode, prefix));
   return null;
 }
 
@@ -80,6 +81,8 @@ export const latihanMasuk = (as: LatihanMode, prefix: string) =>
 export const latihanGanti = (as: LatihanMode, prefix: string) =>
   aksi("latihan-ganti", { as }, as, prefix);
 export const latihanReset = (prefix: string) => aksi("latihan-reset", {}, bacaLatihan(), prefix);
+export const latihanLompat = (stage: string, prefix: string) =>
+  aksi("latihan-lompat", { stage }, bacaLatihan(), prefix);
 export const latihanKeluar = (prefix: string) => aksi("latihan-keluar", {}, null, prefix);
 
 /** Prepares the sample CaAs from the Asisten list without entering practice or moving the page. */

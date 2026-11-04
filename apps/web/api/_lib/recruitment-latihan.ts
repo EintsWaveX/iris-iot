@@ -5,6 +5,7 @@
  *   POST /api/recruitment/latihan-masuk    { as } turn it on (makes the practice edition the first time)
  *   POST /api/recruitment/latihan-ganti    { as } swap between Asisten and CaAs
  *   POST /api/recruitment/latihan-reset    wipe the practice edition and make it again
+ *   POST /api/recruitment/latihan-lompat   { stage } move the practice calendar so that stage opens today
  *   POST /api/recruitment/latihan-keluar   turn it off
  *
  * The practice edition is a second `rec_edition` row (status "latihan"). While
@@ -34,13 +35,13 @@ import {
   LATIHAN_COOKIE,
   bacaModeLatihan,
   cookieLatihan,
-  geseranKalender,
   geserTanggal,
   latihanTahun,
+  selisihHari,
   type LatihanMode,
   type LatihanRingkas,
 } from "../../src/lib/recruitment/latihan.js";
-import type { EditionInfo } from "../../src/lib/recruitment/types.js";
+import { STAGES, type EditionInfo, type StageKey } from "../../src/lib/recruitment/types.js";
 import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { SETTING_PREFIX } from "../../src/lib/recruitment/settings.js";
 import { randomBytes } from "node:crypto";
@@ -80,11 +81,11 @@ const TOPIK_CONTOH: [string, string][] = [
 
 type Db = ReturnType<typeof getDb>;
 
-const tolak = (res: ApiResponse, kode: string, status: number) =>
-  void res.status(status).json({ ok: false, kode });
-
 /** Today in WIB, as YYYY-MM-DD. */
 const hariIniWib = (): string => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+
+const tolak = (res: ApiResponse, kode: string, status: number) =>
+  void res.status(status).json({ ok: false, kode });
 
 export async function muatEdisiLatihan(db: Db): Promise<EditionInfo | null> {
   const [r] = await db
@@ -130,7 +131,7 @@ const kolam = (db: Db) =>
 
 /**
  * Makes the practice edition from the live one, wiping the old one first: the
- * calendar (moved so it starts today), the exam settings (with a fresh salt),
+ * calendar (the same dates, so practice follows the real schedule), the exam settings (with a fresh salt),
  * the built-in sample question bank and Live Coding problems, and one sample
  * CaAs per Asisten, verified and waiting at the start of the road. No
  * candidates, scores, envelopes or live questions are copied.
@@ -144,7 +145,6 @@ export async function siapkanLatihan(db: Db, nim: string): Promise<{ caas: numbe
     .limit(1);
   if (!live) return null;
   const orang = await kolam(db);
-  const hariIni = hariIniWib();
   await db.transaction(async (tx) => {
     const lama = await tx
       .select({ id: recEdition.id })
@@ -169,17 +169,13 @@ export async function siapkanLatihan(db: Db, nim: string): Promise<{ caas: numbe
     await tx.delete(pengaturan).where(like(pengaturan.kunci, `${SETTING_PREFIX}%.latihan`));
 
     const acara = await tx.select().from(recEvent).where(eq(recEvent.editionId, live.id));
+    // The practice calendar is the live one on the same dates, so practice runs on the real schedule:
+    // a stage is open to try only when its real window comes (5 Nov 2026).
     if (acara.length > 0) {
-      const geser = geseranKalender(
-        acara.map((e) => e.startsOn),
-        hariIni,
-      );
       await tx.insert(recEvent).values(
         acara.map(({ id: _id, ...e }) => ({
           ...e,
           editionId: baru,
-          startsOn: geserTanggal(e.startsOn, geser),
-          endsOn: geserTanggal(e.endsOn, geser),
           updatedBy: nim,
           updatedAt: new Date(),
         })),
@@ -310,6 +306,56 @@ export async function handleLatihan(
     res.status(200).json({ ok: true, latihan: await ringkas(db, sekarang) });
     return true;
   }
+  if (aksi === "latihan-lompat") {
+    const tahap = String(jsonBody(req).stage ?? "");
+    if (!(STAGES as readonly string[]).includes(tahap))
+      return (tolak(res, "data_salah", 400), true);
+    const hasil = await lompatLatihan(db, s.nim, tahap as StageKey);
+    if (hasil === "tidak_ada_edisi") return (tolak(res, "tidak_ada_edisi", 404), true);
+    if (hasil === "tahap_kosong") return (tolak(res, "tahap_kosong", 409), true);
+    res.status(200).json({ ok: true, latihan: await ringkas(db, sekarang) });
+    return true;
+  }
   tolak(res, "aksi_tidak_dikenal", 404);
   return true;
+}
+
+/**
+ * Jump the practice edition to a stage (5 Nov 2026). Practice follows the real
+ * calendar, so a later stage is closed until its real day; this moves the
+ * practice calendar so the stage's first public day is today and puts every
+ * sample CaAs on that stage. Atur Ulang goes back to the real dates.
+ */
+export async function lompatLatihan(
+  db: Db,
+  nim: string,
+  tahap: StageKey,
+): Promise<"ok" | "tidak_ada_edisi" | "tahap_kosong"> {
+  const edisi = await muatEdisiLatihan(db);
+  if (!edisi) return "tidak_ada_edisi";
+  const acara = await db.select().from(recEvent).where(eq(recEvent.editionId, edisi.id));
+  const awal = acara
+    .filter((e) => e.stage === tahap && !e.internal)
+    .map((e) => e.startsOn)
+    .sort()[0];
+  if (!awal) return "tahap_kosong";
+  const geser = selisihHari(awal, hariIniWib());
+  await db.transaction(async (tx) => {
+    for (const e of acara)
+      await tx
+        .update(recEvent)
+        .set({
+          startsOn: geserTanggal(e.startsOn, geser),
+          endsOn: geserTanggal(e.endsOn, geser),
+          updatedBy: nim,
+          updatedAt: new Date(),
+        })
+        .where(eq(recEvent.id, e.id));
+    await tx
+      .update(recCandidate)
+      .set({ currentStage: tahap })
+      .where(eq(recCandidate.editionId, edisi.id));
+  });
+  await writeAudit(nim, "rec_latihan_lompat", { stage: tahap, geser });
+  return "ok";
 }
