@@ -513,7 +513,7 @@ export default function RevealStage(p: RevealProps) {
               <span className="r2env__half r2env__half--r" ref={halfR} />
               <span className="r2env__mark">
                 {big ? (
-                  <img src="/brand/iris-logo-mark.png" alt="" />
+                  <img src="/brand/iris-logo-mark.png" alt="" width="198" height="90" />
                 ) : (
                   <span className="r2env__star" aria-hidden="true" />
                 )}

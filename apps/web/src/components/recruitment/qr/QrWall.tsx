@@ -175,7 +175,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
   return (
     <div className="r2proj" data-still={motion === "full" ? "no" : "yes"}>
       <div className="r2proj__top">
-        <img src="/brand/iris-logo-mark.png" alt={t.logoAlt} />
+        <img src="/brand/iris-logo-mark.png" alt={t.logoAlt} width="198" height="90" />
         <span className="r2proj__ev">{REC[lang].eyebrow}</span>
         <span style={{ flex: 1 }} />
         {daftar.length > 1 && (
