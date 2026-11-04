@@ -65,6 +65,7 @@ import {
   type Tx,
 } from "./BankKeys";
 import { BK } from "./bankStrings";
+import Skeleton from "../../../../ui/Skeleton";
 
 import "../../../recruitment-s3-runner.css";
 import "../../../recruitment-s3-bank.css";
@@ -203,7 +204,7 @@ export default function BankEditor({
         <b>{t.err.tidak_ada}</b>
       </section>
     ) : (
-      <span className="skeleton" style={{ height: 420 }} />
+      <Skeleton height={420} />
     );
   }
 

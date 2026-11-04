@@ -32,6 +32,7 @@ import BankImport from "./BankImport";
 import BankList from "./BankList";
 import ProblemsTab from "./ProblemsTab";
 import { BK } from "./bankStrings";
+import Skeleton from "../../../../ui/Skeleton";
 
 import "../../../recruitment-s3-bank.css";
 import "../../../recruitment-cutting.css";
@@ -133,7 +134,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
     return config.updatedAt !== null && questions.updatedAt !== null ? (
       <p className="empty-note">{t.loadFail}</p>
     ) : (
-      <span className="skeleton" style={{ height: 420 }} aria-label={t.loading} />
+      <Skeleton height={420} label={t.loading} />
     );
   }
 

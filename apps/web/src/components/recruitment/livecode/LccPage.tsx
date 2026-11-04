@@ -43,6 +43,7 @@ import type { PlanPart } from "../../../lib/recruitment/seat-types";
 import { Md } from "../exam/render/text";
 import { Notice } from "../exam/Screens";
 import { LCC } from "./lccStrings";
+import Skeleton from "../../ui/Skeleton";
 
 import "../recruitment-s3-lc.css";
 import "../recruitment-s3-lcc.css";
@@ -142,7 +143,7 @@ export default function LccPage({
       />
     ) : (
       <Gate motion={motion} title={t.load}>
-        <span className="skeleton" style={{ height: 120 }} />
+        <Skeleton height={120} />
       </Gate>
     );
   }
@@ -696,7 +697,7 @@ function Workbench({
             </div>
           )}
           <div className="lcc-code__box">
-            <Suspense fallback={<span className="skeleton" style={{ height: 200 }} />}>
+            <Suspense fallback={<Skeleton height={200} />}>
               <CodeEditor
                 key={p.id}
                 value={code}
