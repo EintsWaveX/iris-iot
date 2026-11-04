@@ -17,6 +17,12 @@ const { lang } = Astro.props;
 <Base
   noindex
   title={`${tri(lang, "Panel Panitia", "Panitia Panel", "招募组面板")} · IRIS IoT`}
+  description={tri(
+    lang,
+    "Panel Panitia Open Recruitment Asisten IRIS: kandidat, jadwal, tes, dan hasil seleksi.",
+    "Panitia panel of the IRIS assistant recruitment: candidates, schedule, tests and results.",
+    "IRIS 助教招募的招募组面板：候选人、日程、测试与结果。",
+  )}
   lang={lang}
   cosmosScene="kerja"
   shell="rekrutmen"
