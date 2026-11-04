@@ -19,6 +19,7 @@
  * or fewer.
  */
 import { useState } from "react";
+import Dropdown from "./Dropdown";
 import {
   CaretDoubleLeftIcon,
   CaretDoubleRightIcon,
@@ -297,22 +298,22 @@ export default function Pager<T>({
           />
         </label>
       )}
-      <label className="pager__field">
-        <span>{t.perPage}</span>
-        <select
-          className="pager__size"
-          aria-label={t.perPageLabel}
-          value={String(pg.size)}
-          onChange={(e) => pg.setSize(e.target.value === "all" ? "all" : Number(e.target.value))}
-        >
-          {PAGE_SIZES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-          <option value="all">{t.all}</option>
-        </select>
-      </label>
+      <div className="pager__field">
+        <span aria-hidden="true">{t.perPage}</span>
+        <div className="pager__sizebox">
+          <Dropdown
+            id={`pager-size-${pg.id}`}
+            label={t.perPageLabel}
+            hideLabel
+            value={String(pg.size)}
+            options={[
+              ...PAGE_SIZES.map((s) => ({ value: String(s), label: String(s) })),
+              { value: "all", label: t.all },
+            ]}
+            onChange={(v) => pg.setSize(v === "all" ? "all" : Number(v))}
+          />
+        </div>
+      </div>
     </div>
   );
 }

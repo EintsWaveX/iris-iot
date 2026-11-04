@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import Dialog from "../ui/Dialog";
+import Dropdown from "../ui/Dropdown";
 import { DateField, TimeField } from "../ui/Controls";
 import { postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -100,20 +101,13 @@ export default function PerpanjangDialog({
     >
       <div className="tpwinform">
         {semua && (
-          <label className="field">
-            <span className="field__label">{t.semuaModul}</span>
-            <select
-              className="field__input"
-              value={pilihModul}
-              onChange={(e) => setPilihModul(Number(e.target.value))}
-            >
-              {[1, 2, 3, 4].map((x) => (
-                <option key={x} value={x}>
-                  {t.semuaModul} {x}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Dropdown
+            id="perpanjang-modul"
+            label={t.semuaModul}
+            value={String(pilihModul)}
+            options={[1, 2, 3, 4].map((x) => ({ value: String(x), label: `${t.semuaModul} ${x}` }))}
+            onChange={(v) => setPilihModul(Number(v))}
+          />
         )}
         <div className="field">
           <span className="field__label">{t.sampaiLabel}</span>

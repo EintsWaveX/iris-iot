@@ -22,7 +22,7 @@ import {
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
-import { Checkbox } from "../../ui/Controls";
+import { Checkbox, DateField, TimeField } from "../../ui/Controls";
 import { isFail } from "../../../lib/recruitment/client";
 import {
   TUBES_MAX_MB,
@@ -226,13 +226,20 @@ function OverrideDialog({
           </button>
         </div>
         {limit && (
-          <input
-            className="field__input"
-            type="datetime-local"
-            value={until}
-            onChange={(e) => setUntil(e.target.value)}
-            aria-label={w.overrideUntil}
-          />
+          <div className="row" style={{ gap: 12 }}>
+            <DateField
+              value={until.slice(0, 10)}
+              onChange={(v) => setUntil(`${v}T${until.slice(11, 16) || "23:59"}`)}
+              label={w.overrideUntil}
+              lang={c.lang}
+            />
+            <TimeField
+              value={until.slice(11, 16)}
+              onChange={(v) => setUntil(`${until.slice(0, 10)}T${v}`)}
+              label={w.overrideUntil}
+              lang={c.lang}
+            />
+          </div>
         )}
       </div>
     </Dialog>

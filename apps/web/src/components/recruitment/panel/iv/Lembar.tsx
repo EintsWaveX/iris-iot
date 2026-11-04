@@ -35,7 +35,7 @@ import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
 import Popover from "../../../ui/Popover";
 import Tooltip from "../../../ui/Tooltip";
-import { Checkbox, Stepper } from "../../../ui/Controls";
+import { Checkbox, Stepper, TimeField } from "../../../ui/Controls";
 import { localeOf } from "../../../../lib/app";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
@@ -1402,13 +1402,14 @@ export default function Lembar({
                   </>
                 ) : (
                   <>
-                    <input
-                      className="field__input input r4vid__t"
-                      type="time"
-                      value={vid.at}
-                      onChange={(e) => setVid({ ...vid, at: e.target.value, ok: false })}
-                      aria-label={L.vidDeadline}
-                    />
+                    <span className="r4vid__t">
+                      <TimeField
+                        value={vid.at}
+                        onChange={(v) => setVid({ ...vid, at: v, ok: false })}
+                        label={L.vidDeadline}
+                        lang={lang}
+                      />
+                    </span>
                     <span className="hint">{L.vidAdjust}</span>
                   </>
                 )}

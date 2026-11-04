@@ -1683,12 +1683,13 @@ li.r2cutline {
   gap: 14px;
 }
 .r2proj__top img {
-  height: 34px;
+  height: 43px;
   width: auto;
   filter: var(--logo-filter);
 }
 .r2proj__ev {
   color: var(--text-muted);
+  font-size: 1.25rem;
   font-weight: 600;
 }
 .r2proj__clock {
@@ -1715,7 +1716,7 @@ li.r2cutline {
 }
 .r2proj__qrbox {
   position: relative;
-  width: min(420px, 76vw);
+  width: min(483px, 76vw);
   aspect-ratio: 1;
   padding: 20px;
   border-radius: 20px;
@@ -1752,12 +1753,12 @@ li.r2cutline {
 }
 .r2proj__info {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
-  max-width: 640px;
+  max-width: 736px;
 }
 .r2proj__eyebrow {
-  font-size: 0.85rem;
+  font-size: 0.98rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1768,11 +1769,11 @@ li.r2cutline {
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.03em;
-  font-size: clamp(2.4rem, 6vw, 4.4rem);
+  font-size: clamp(2.76rem, 6.9vw, 5.06rem);
   line-height: 1;
 }
 .r2proj__when {
-  font-size: clamp(1rem, 1.8vw, 1.3rem);
+  font-size: clamp(1.15rem, 2.07vw, 1.5rem);
   color: var(--text-muted);
 }
 .r2proj__count {
@@ -1782,20 +1783,20 @@ li.r2cutline {
   flex-wrap: wrap;
 }
 .r2proj__count b {
-  font-size: clamp(3rem, 8vw, 5.6rem);
+  font-size: clamp(3.45rem, 9.2vw, 6.44rem);
   font-weight: 800;
   line-height: 1;
   color: var(--rec);
 }
 .r2proj__count > span {
-  font-size: 1.2rem;
+  font-size: 1.38rem;
   color: var(--text-muted);
 }
 .r2proj__dots {
   display: grid;
   grid-template-columns: repeat(26, minmax(0, 1fr));
-  gap: 6px;
-  max-width: 560px;
+  gap: 7px;
+  max-width: 644px;
 }
 .r2proj__dots i {
   aspect-ratio: 1;
@@ -1826,7 +1827,7 @@ li.r2cutline {
   border: 1px solid var(--hairline);
 }
 .r2proj__code {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-size: clamp(1.84rem, 3.45vw, 2.76rem);
   letter-spacing: 0.14em;
   color: var(--rec);
 }
@@ -1847,7 +1848,7 @@ li.r2cutline {
     font-size: clamp(3rem, 11dvh, 5.6rem);
   }
   .r2proj__qrbox {
-    width: min(420px, 76vw, calc(100dvh - 140px));
+    width: min(483px, 76vw, calc(100dvh - 340px));
   }
 }
 /* Layout review, 31 Oct 2026. The big count and its caption share a text baseline: the clipping box of the rolling digit was moving its
@@ -2171,7 +2172,7 @@ li.r2cutline {
 .r2proj__recent {
   display: grid;
   gap: 10px;
-  max-width: 560px;
+  max-width: 644px;
 }
 .r2proj__recent ol {
   display: grid;
@@ -2238,4 +2239,227 @@ li.r2cutline {
   font-size: 1.25rem;
   font-weight: 650;
   text-align: center;
+}
+
+/* ============================================================ QR wall extras (4 Nov 2026, the user's notes on the Belum Mulai screenshot)
+   These are cheap (opacity and transform only), so only reduced motion turns them off, not Low Detail (the site default).
+   The top bar and the QR with its text are bigger (above); under them a lobby of who is here, and at
+   the bottom a strip of lines moving right to left. Stars twinkle at the right; a rainbow ring pulses
+   around the QR on every new check-in. Reduced motion and Low Detail: no stars, no pulse, a still strip. */
+.r2proj > *:not(.r2proj__stars) {
+  position: relative;
+  z-index: 1;
+}
+@media (min-width: 1024px) {
+  .r2proj:has(> .r2proj__main) {
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: auto auto minmax(110px, 1fr) auto;
+  }
+  .r2proj:has(> .r2proj__main) > .r2proj__main {
+    align-self: start;
+  }
+  .r2proj__qrbox {
+    width: min(483px, 76vw, max(260px, calc(100dvh - 400px)));
+  }
+}
+.r2proj__stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.r2proj__stars i {
+  position: absolute;
+  background: var(--rec);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  opacity: 0;
+  animation: rec-s2-twinkle 3s ease-in-out infinite;
+}
+.r2proj__stars i[data-gold] {
+  background: #f5b301;
+}
+@keyframes rec-s2-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1) rotate(35deg);
+  }
+}
+.r2proj[data-calm="yes"] .r2proj__stars {
+  display: none;
+}
+.r2proj__pulse {
+  position: absolute;
+  inset: -16px;
+  padding: 6px;
+  border-radius: 30px;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    #ff5f6d,
+    #ffc371,
+    #f7ff6b,
+    #4ade80,
+    #40b0ff,
+    #a78bfa,
+    #ff5f6d
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: rec-s2-rainbow 750ms ease-out both;
+}
+@keyframes rec-s2-rainbow {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+    filter: hue-rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+    filter: hue-rotate(200deg);
+  }
+}
+.r2proj[data-calm="yes"] .r2proj__pulse {
+  display: none;
+}
+.r2proj__lobby {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  align-content: start;
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+}
+.r2proj__lobby header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.r2proj__lobby header b {
+  font-size: 1.4rem;
+  color: var(--rec);
+}
+.r2proj__lobby .empty-note {
+  margin: 0;
+}
+.r2proj__lobbylist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0 6px 4px 0;
+  list-style: none;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: flex-start;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.r2proj__lobbylist li {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 6px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  font-size: clamp(1rem, 1.6vw, 1.3rem);
+  font-weight: 600;
+}
+.r2proj__lobbylist li i {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: hsl(var(--h) 65% 40%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-style: normal;
+  font-weight: 800;
+}
+.r2proj__lobbylist li[data-new] {
+  border-color: var(--rec);
+  animation: rec-s2-chip 700ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@keyframes rec-s2-chip {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.7);
+  }
+}
+.r2proj[data-calm="yes"] .r2proj__lobbylist li[data-new] {
+  animation: none;
+}
+.r2proj__tick {
+  overflow: hidden;
+  margin-inline: calc(-1 * clamp(16px, 3vw, 44px));
+  padding-block: 12px;
+  border-top: 1px solid var(--hairline);
+  color: var(--text-muted);
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+}
+.r2proj__tickrun {
+  display: flex;
+  width: max-content;
+  animation: rec-s2-tick linear infinite;
+}
+.r2proj__tickgroup {
+  display: inline-flex;
+  flex: none;
+}
+.r2proj__tickitem {
+  position: relative;
+  padding-right: 3.2em;
+}
+.r2proj__tickitem::after {
+  content: "";
+  position: absolute;
+  right: 1.4em;
+  top: 50%;
+  width: 0.45em;
+  height: 0.45em;
+  border-radius: 50%;
+  background: var(--rec);
+  transform: translateY(-50%);
+}
+.r2proj__tickstill {
+  padding-inline: clamp(16px, 3vw, 44px);
+}
+@keyframes rec-s2-tick {
+  to {
+    transform: translateX(-50%);
+  }
+}
+/* On a wall the spacing follows the screen's height, so the QR, the lobby and the strip share one screen. */
+@media (min-width: 1024px) {
+  .r2proj:has(> .r2proj__main) {
+    gap: clamp(12px, 2.4dvh, 40px);
+    padding-block: clamp(12px, 2.6dvh, 44px) 0;
+    overflow: clip;
+  }
 }
