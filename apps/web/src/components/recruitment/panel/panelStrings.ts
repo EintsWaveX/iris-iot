@@ -238,7 +238,7 @@ export const PN = dict({
       nextDeadline: "Next deadline",
       tasks: "Your Division's Tasks",
       waitingTask: (n: number) => `${n} application${n === 1 ? "" : "s"} awaiting checks`,
-      allChecked: "Every application has been checked",
+      allChecked: "Every application is checked",
       seats: (n: number) => `Panitia: ${n} seat${n === 1 ? "" : "s"} filled`,
       nextEvent: (t: string, d: string) => `Next on the calendar: ${t}, ${d}`,
       none: "No recruitment tasks for you this week.",

@@ -204,7 +204,7 @@ export const PN = dict({
       "N = candidates who opened the part and got this question, M = those who got it fully right. p = (M + 1) / (N + 2), weight w = 2 - p. Take a look at a question with a very low p, or a wrong option picked far more often than the key.",
     part: { logika: "Logic", fitb: "FITB", kodingan: "Coding", mikro: "Microcontroller" },
     allParts: "All Parts",
-    statsEmpty: "No question has been dealt yet.",
+    statsEmpty: "No question is dealt yet.",
     scol: {
       q: "Question",
       n: "N",

@@ -489,7 +489,7 @@ export const RG = dict({
         done: "Room deleted.",
         fail: "The room wasn't deleted. Try again.",
         running: "The room is running. Finish it first.",
-        used: "This room has been run, so it can't be deleted.",
+        used: "This room already ran, so you can't delete it.",
       },
     },
     con: {
