@@ -23,6 +23,7 @@ import { HlLine, Tokens, useCodeLines } from "../../../exam/render/text";
 import type { BlankKey, CodeLang, Item } from "../../../../../lib/recruitment/exam-types";
 import { freshId, moved, type Draft } from "../../../../../lib/recruitment/bank-draft";
 import type { BK } from "./bankStrings";
+import { leaveRow } from "../../../../ui/leaveRow";
 
 export type Tx = (typeof BK)["id"];
 type Of<F extends Draft["format"]> = Extract<Draft, { format: F }>;
@@ -102,7 +103,7 @@ export function ChoiceKeys({ d, set, lock, keyLock, t }: P<"single" | "multi">) 
               icon={TrashIcon}
               label={t.deleteOption}
               disabled={opts.length <= 2}
-              onClick={() => remove(i)}
+              onClick={(e) => void leaveRow(e.currentTarget, ".r3orow").then(() => remove(i))}
             />
           )}
         </div>

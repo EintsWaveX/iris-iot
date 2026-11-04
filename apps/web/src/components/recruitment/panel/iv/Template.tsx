@@ -38,6 +38,7 @@ import { IV, STEP, bi } from "./ivStrings";
 import { SK } from "./slotStrings";
 import { TP } from "./templateStrings";
 import { useRevealAdded } from "../../ui/useRevealAdded";
+import { leaveRow } from "../../../ui/leaveRow";
 import "../../recruitment-r4.css";
 
 const toast = (m: string, tone: "ok" | "warn" | "danger" | "info" = "ok") =>
@@ -401,7 +402,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                       icon={TrashIcon}
                       label={d.params.length < 2 ? p.params.one : p.params.del}
                       disabled={d.params.length < 2}
-                      onClick={() => hapusParam(i)}
+                      onClick={(e) => void leaveRow(e.currentTarget).then(() => hapusParam(i))}
                     />
                   </span>
                 ) : (
@@ -411,7 +412,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                     icon={TrashIcon}
                     label={d.params.length < 2 ? p.params.one : p.params.del}
                     disabled={d.params.length < 2}
-                    onClick={() => hapusParam(i)}
+                    onClick={(e) => void leaveRow(e.currentTarget).then(() => hapusParam(i))}
                   />
                 ))}
             </li>
@@ -721,7 +722,9 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                               <button
                                 type="button"
                                 className="btn btn--danger-soft btn--sm"
-                                onClick={() => hapusQ(i)}
+                                onClick={(e) =>
+                                  void leaveRow(e.currentTarget).then(() => hapusQ(i))
+                                }
                               >
                                 <TrashIcon size={18} aria-hidden="true" />
                                 <span className="btn__label">{p.q.del}</span>
