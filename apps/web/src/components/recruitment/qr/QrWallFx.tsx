@@ -85,10 +85,11 @@ export function Ticker({ lines, still }: { lines: string[]; still: boolean }) {
 }
 
 const STARS = Array.from({ length: 22 }, (_, i) => {
-  // A fixed scatter over the right of the screen (no randomness, so the wall looks the same on every load).
+  // A fixed scatter over the left and right margins (no randomness, so the wall looks the same on every load).
   const r = (n: number) => Math.abs((Math.sin((i + 1) * n) * 10000) % 1);
   return {
-    x: 52 + r(12.9898) * 45,
+    // The QR and its text sit in the middle, so the stars twinkle in the two margins.
+    x: i % 2 === 0 ? 1 + r(12.9898) * 11 : 87 + r(12.9898) * 11,
     y: 5 + r(78.233) * 60,
     s: 9 + Math.round(r(39.346) * 14),
     d: Math.round(r(11.135) * 40) / 10,
@@ -97,7 +98,7 @@ const STARS = Array.from({ length: 22 }, (_, i) => {
   };
 });
 
-/** A few four-point stars twinkling at the right. Decorative only. */
+/** A few four-point stars twinkling in the side margins. Decorative only. */
 export function Stars() {
   return (
     <div className="r2proj__stars" aria-hidden="true">
