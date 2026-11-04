@@ -129,6 +129,8 @@ export default function QrAtur({
                 placeholder="https://forms.gle/..."
                 inputMode="url"
                 autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 onChange={(e) => {
                   setLink(e.target.value);
                   setSalah(null);
@@ -144,6 +146,8 @@ export default function QrAtur({
                 placeholder="https://docs.google.com/spreadsheets/d/..."
                 inputMode="url"
                 autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 onChange={(e) => {
                   setSheet(e.target.value);
                   setSalah(null);
