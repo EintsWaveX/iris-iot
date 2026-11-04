@@ -279,6 +279,7 @@
 .rec-nav .appnav__link[data-k="tes"],
 .rec-nav .appnav__link[data-k="bank"],
 .rec-nav .appnav__link[data-k="wawancara"],
+.rec-nav .appnav__link[data-k="tubes"],
 .rec-nav .appnav__link[data-k="mengajar"] {
   --tc: #8fb0ff;
 }
