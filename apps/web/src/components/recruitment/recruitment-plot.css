@@ -88,7 +88,14 @@
 }
 .n7-eve {
   border-top: 3px solid var(--sc);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+}
+/* Day cards sit side by side at one height: the add button always rests on the bottom edge,
+   so it lines up across cards whether or not a card carries a note above it. */
+.n7-eve > .n7-addroom {
+  margin-top: auto;
 }
 .n7-eve[data-s="yes"] {
   border-top-color: #ff9d3c;

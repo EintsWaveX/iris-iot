@@ -142,6 +142,27 @@
   place-items: center;
   overflow: hidden;
 }
+
+/* Closing: the whole overlay fades out while the title settles back, then the page drops it. */
+.r8cel[data-pergi="yes"] {
+  animation: r8cel-out 260ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+@keyframes r8cel-out {
+  to {
+    opacity: 0;
+  }
+}
+.r8cel[data-pergi="yes"] .r8cel__body {
+  transform: translateY(8px) scale(0.985);
+  transition: transform 260ms cubic-bezier(0.4, 0, 1, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .r8cel[data-pergi="yes"] {
+    animation-duration: 1ms;
+  }
+}
+
 .r8cel__veil {
   position: absolute;
   inset: 0;

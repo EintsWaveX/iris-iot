@@ -14,6 +14,9 @@ import { kunciPanel } from "../../../lib/kunci-panel";
 
 const sebelumnya = (step: string, mode: string) => `${step}-${mode}`;
 
+/** Fade holds the old view 120 ms while it fades out; wait for the swap. */
+const selesaiKeluar = () => act(async () => new Promise<void>((r) => setTimeout(r, 200)));
+
 async function jalankan(kunci: (step: string, mode: string) => string) {
   const kotak = document.createElement("div");
   document.body.append(kotak);
@@ -38,8 +41,10 @@ async function jalankan(kunci: (step: string, mode: string) => string) {
   const awal = dipilih();
   // Their session starts, then ends.
   await act(async () => gambar("now"));
+  await selesaiKeluar();
   const saatMulai = dipilih();
   await act(async () => gambar("done"));
+  await selesaiKeluar();
   const saatSelesai = dipilih();
   await act(async () => root.unmount());
   kotak.remove();

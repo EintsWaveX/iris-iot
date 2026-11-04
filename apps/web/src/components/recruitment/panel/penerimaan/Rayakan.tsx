@@ -5,7 +5,7 @@
  * the corners and the centre and the five-note chime. Lighter at Low Detail,
  * and no motion or confetti at all for reduced motion (the words stay).
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import type { Lang } from "../../../../lib/kelas";
 import { burst, chime, makeShooter, useRevealMotion } from "../../reveal/fx";
@@ -26,8 +26,18 @@ export default function Rayakan({
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const tutup = useRef<HTMLButtonElement | null>(null);
 
-  const keluar = useRef(onClose);
-  keluar.current = onClose;
+  // Closing plays a short fade-out first (none for reduced motion), then tells the page.
+  const [pergi, setPergi] = useState(false);
+  const sudahPergi = useRef(false);
+  const tutupPelan = () => {
+    if (sudahPergi.current) return;
+    sudahPergi.current = true;
+    if (motion === "reduce") return onClose();
+    setPergi(true);
+    window.setTimeout(onClose, 260);
+  };
+  const keluar = useRef(tutupPelan);
+  keluar.current = tutupPelan;
 
   // Focus moves to the close button once, and goes back to whatever opened the
   // celebration (the button the Panitia pressed) when it closes.
@@ -104,7 +114,14 @@ export default function Rayakan({
   }, [motion]);
 
   return (
-    <div className="r8cel" ref={root} role="dialog" aria-modal="true" aria-label={t.title}>
+    <div
+      className="r8cel"
+      ref={root}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t.title}
+      data-pergi={pergi ? "yes" : undefined}
+    >
       <div className="r8cel__veil" />
       <div className="r8cel__glow" aria-hidden="true" />
       <canvas ref={canvas} className="r8cel__canvas" aria-hidden="true" />
@@ -119,7 +136,7 @@ export default function Rayakan({
             </li>
           ))}
         </ul>
-        <button type="button" ref={tutup} className="btn btn--inverse" onClick={onClose}>
+        <button type="button" ref={tutup} className="btn btn--inverse" onClick={tutupPelan}>
           {t.close}
         </button>
       </div>

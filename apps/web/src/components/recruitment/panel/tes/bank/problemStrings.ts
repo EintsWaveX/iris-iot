@@ -156,7 +156,7 @@ export const PR = dict({
     lockedBody:
       "Tests, samples, limits and the Reference Solution are locked so existing scores do not change. The problem text can still be fixed.",
     delete: "Delete Problem",
-    deleteAsk: "Delete this problem? This cannot be undone.",
+    deleteAsk: "Delete this problem? This can't be undone.",
     deleteYes: "Delete",
     deleteNo: "Cancel",
     saved: "Problem saved.",
@@ -166,7 +166,7 @@ export const PR = dict({
     err: {
       versi_lama: "Someone else saved this problem first. Reload.",
       struktur_terkunci: "Tests, samples, limits and the Reference Solution are locked.",
-      sudah_tampil: "A problem that was dealt cannot be deleted.",
+      sudah_tampil: "A problem that was dealt can't be deleted.",
       belum_dicek: "The Reference Solution has not been checked and matched.",
       tidak_ada: "The problem was not found.",
       tanpa_hak: "You can't do this.",
@@ -174,7 +174,7 @@ export const PR = dict({
       other: "That did not work. Try again.",
     } as ErrMap,
     field: {
-      kosong: "cannot be empty",
+      kosong: "can't be empty",
       terlalu_panjang: "is too long",
       tingkat_salah: "has an unknown tier",
       batas_salah: "is out of range",

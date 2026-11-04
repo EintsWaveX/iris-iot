@@ -22,6 +22,22 @@
   backdrop-filter: blur(8px);
   animation: rec-s2-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
+
+/* Closing: the stage fades out (RevealStage holds it 240 ms before the page drops it). */
+.r2stage[data-pergi="yes"] {
+  animation: rec-s2-out 240ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+@keyframes rec-s2-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .r2stage[data-pergi="yes"] {
+    animation-duration: 1ms;
+  }
+}
 .r2stage__sky {
   position: absolute;
   inset: 0;

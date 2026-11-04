@@ -140,7 +140,7 @@ export const PN = dict({
     provisional: "Provisional",
     final: "Final",
     finalBy: (nama: string, tgl: string) => `Finalised by ${nama}, ${tgl}`,
-    unavailable: "Scoring cannot open yet.",
+    unavailable: "Scoring can't open yet.",
     empty: "No candidate has sat in a test room yet.",
     search: "Search name or NIM",
     room: "Room",

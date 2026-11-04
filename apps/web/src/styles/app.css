@@ -960,6 +960,19 @@ samp {
   }
 }
 
+/* ...and out: the view being left fades up and away, quicker than it came (Fade.tsx holds it 120 ms). */
+.fade--out {
+  animation: kit-fade-out 120ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes kit-fade-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
 /* ------------------------------------------------------ filter chips
 /* ------------------------------------------------------ filter chips
    (the board's filter row; also used by /servers and /reports) */

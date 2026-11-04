@@ -140,7 +140,7 @@ export const KS = dict({
     backToSetup: "Kembali Mengatur",
     startAlso: "Mulai Juga",
     startBody:
-      "Kamu masih bisa menyiapkan sisanya sambil ujian berjalan, tetapi Judge dan Pengawas sebaiknya sudah siap.",
+      "Kamu masih bisa menyiapkan sisanya sambil ujian berjalan, tapi Judge dan Pengawas sebaiknya sudah siap.",
     setup: "Atur Ruang",
     edit: "Ubah ruang",
     editTitle: "Ubah Ruang",

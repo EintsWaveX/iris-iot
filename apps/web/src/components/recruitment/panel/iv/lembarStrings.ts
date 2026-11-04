@@ -132,7 +132,7 @@ export const LM = dict<LmWords>({
     fileOpened: (n) => `${n} dibuka di tab baru.`,
     recOn: "Merekam",
     recOff: "Rekaman mati",
-    recTip: "Merekam suara wajib. Bila rekaman hilang, catatan jawaban harus lengkap.",
+    recTip: "Merekam suara wajib. Kalau rekamannya hilang, catatan jawaban harus lengkap.",
     clockOf: (m) => `dari ${m}`,
     clockTip: (a, b) => `Rencana ${a}. Maksimal ${b}.`,
     clock: "Lama wawancara",

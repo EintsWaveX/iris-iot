@@ -245,6 +245,54 @@
   }
 }
 
+/* The anchored popup (desktop) and the scrim behind a phone sheet: in and out, like every popover. */
+@media (prefers-reduced-motion: no-preference) {
+  .dropdown__popup[data-sheet="no"] {
+    animation: popover-in var(--dur-fast) var(--ease-out-expo);
+    transform-origin: top;
+  }
+  .dropdown__popup[data-sheet="no"][data-side="top"] {
+    transform-origin: bottom;
+  }
+  .dropdown__popup[data-sheet="no"][data-state="closed"] {
+    animation: popover-out 140ms var(--ease-out-expo) both;
+  }
+  .dropdown__scrim {
+    animation: dropdown-scrim-in var(--dur-mid) var(--ease-out-expo);
+  }
+  .dropdown__scrim[data-state="closed"] {
+    animation: dropdown-scrim-out var(--dur-mid) var(--ease-out-expo) both;
+  }
+}
+.dropdown__popup[data-state="closed"],
+.dropdown__scrim[data-state="closed"] {
+  pointer-events: none;
+}
+
+@keyframes dropdown-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dropdown-scrim-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dropdown__popup[data-sheet="yes"][data-state="closed"] {
+    animation: dropdown-sheet-out var(--dur-mid) var(--ease-out-expo) both;
+  }
+}
+
+@keyframes dropdown-sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
 @keyframes dropdown-sheet-in {
   from {
     transform: translateY(100%);
