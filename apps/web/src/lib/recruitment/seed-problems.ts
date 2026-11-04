@@ -1273,8 +1273,8 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
         "output": "z: 1\n"
       },
       {
-        "input": "abcdefghijklmnopqrstuvwxyz\n",
-        "output": "a: 1\nb: 1\nc: 1\nd: 1\ne: 1\nf: 1\ng: 1\nh: 1\ni: 1\nj: 1\nk: 1\nl: 1\nm: 1\nn: 1\no: 1\np: 1\nq: 1\nr: 1\ns: 1\nt: 1\nu: 1\nv: 1\nw: 1\nx: 1\ny: 1\nz: 1\n"
+        "input": "lalalababa\n",
+        "output": "a: 5\nb: 2\nl: 3\n"
       },
       {
         "input": "iris\n",

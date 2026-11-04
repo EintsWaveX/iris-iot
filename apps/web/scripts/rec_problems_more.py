@@ -120,7 +120,7 @@ def add(prob):
         "Satu kata dari huruf kecil, panjang 1 sampai 100.",
         "Satu baris per huruf yang muncul, bentuknya \"huruf: jumlah\".",
         "#include <stdio.h>\nint main(void) {\n  char s[128];\n  int n[26] = {0};\n  scanf(\"%100s\", s);\n  for (int i = 0; s[i]; i++) n[s[i] - 'a']++;\n  for (int k = 0; k < 26; k++)\n    if (n[k]) printf(\"%c: %d\\n\", 'a' + k, n[k]);\n  return 0;\n}\n",
-        ["banana\n", "aab\n", "z\n", "abcdefghijklmnopqrstuvwxyz\n", "iris\n", "mississippi\n", "aaaaaaaaaa\n", "telkom\n", "zzzyyyxxx\n", "pemrograman\n"],
+        ["banana\n", "aab\n", "z\n", "lalalababa\n", "iris\n", "mississippi\n", "aaaaaaaaaa\n", "telkom\n", "zzzyyyxxx\n", "pemrograman\n"],
     )
     prob(
         "Jumlah Terbesar Berurutan", "hard",

@@ -22,7 +22,7 @@ import { drawBonus, drawBonusProblems, drawSeed } from "../recruitment/draw";
 import { ONE, ZERO, frac } from "../recruitment/frac";
 import { scorePart, type SeatPart } from "../recruitment/scoring";
 
-const SALT = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
+const SALT = "ab".repeat(32);
 
 describe("the default config", () => {
   it("deals 5 of 24 Live Coding problems, 2 easy, 2 medium and 1 hard, worth the Live Coding share", () => {
