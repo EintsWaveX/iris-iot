@@ -554,6 +554,7 @@ export default function BerkasReview({
               className="textarea"
               rows={3}
               maxLength={500}
+              aria-label={t.askTitle}
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
             />
