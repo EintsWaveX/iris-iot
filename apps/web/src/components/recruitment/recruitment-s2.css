@@ -2463,3 +2463,23 @@ li.r2cutline {
     overflow: clip;
   }
 }
+
+/* The user's notes on the Belum Mulai screenshot (4 Nov, 21:04): the QR and its text sit in the middle of the
+   screen, and the lobby is not a white card, only the page's own background. */
+@media (min-width: 1024px) {
+  .r2proj__main {
+    grid-template-columns: auto minmax(0, 736px);
+    justify-content: center;
+  }
+}
+.r2proj__lobby {
+  background: transparent;
+  border: 0;
+  padding-inline: 0;
+}
+.r2proj__lobbylist li {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+.r2proj__qrbox:has(.r2proj__qr--wait) {
+  background: transparent;
+}
