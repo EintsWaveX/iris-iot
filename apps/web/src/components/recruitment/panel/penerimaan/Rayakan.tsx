@@ -10,6 +10,7 @@ import gsap from "gsap";
 import type { Lang } from "../../../../lib/kelas";
 import { burst, chime, makeShooter, useRevealMotion } from "../../reveal/fx";
 import { PNW } from "./pnStrings";
+import { focusBack } from "../../../ui/focusBack";
 
 export default function Rayakan({
   lang,
@@ -55,7 +56,7 @@ export default function Rayakan({
     window.addEventListener("keydown", key);
     return () => {
       window.removeEventListener("keydown", key);
-      if (pembuka?.isConnected) pembuka.focus();
+      focusBack(pembuka);
     };
   }, []);
 

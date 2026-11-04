@@ -26,7 +26,7 @@ import type {
   TubesBoardTeam,
 } from "../../../lib/recruitment/tubes-api";
 import { tgl } from "../shared";
-import { dariLokal, toast, wibDate, wibTime, type PanelCtx } from "./panelShared";
+import { dariLokal, kapan, toast, wibDate, wibTime, type PanelCtx } from "./panelShared";
 
 /* ------------------------------------------------------------ small dialogs */
 
@@ -568,17 +568,32 @@ export default function TimSection({ c }: { c: PanelCtx }) {
   const free: TubesBoardCandidate[] = b.candidates.filter((x) => x.status === "none");
   const lock = b.teamsLock;
   const lockNow = b.times.locked;
+  // The strip on top of the card: where the teams stand and when the next evening is.
+  const inTeam = b.teams.reduce((n, x) => n + x.members.length, 0);
+  const nextEve = b.sessions
+    .filter((s) => Date.parse(s.endsAt) > Date.now())
+    .sort((x, y) => Date.parse(x.startsAt) - Date.parse(y.startsAt))[0];
 
   return (
     <div className="stack">
       <section className="panel tp-ctl">
+        <dl className="tp-sum">
+          {(
+            [
+              [w.teams, String(b.teams.length)],
+              [w.sumIn, String(inTeam)],
+              [w.sumFree, String(free.length)],
+              [w.evenings, String(b.sessions.length)],
+              [w.sumNext, nextEve ? kapan(nextEve.startsAt, lang) : w.sumNone],
+            ] as const
+          ).map(([k, v]) => (
+            <div key={k} className="tp-sum__i">
+              <dt className="hint">{k}</dt>
+              <dd className="tp-sum__v">{v}</dd>
+            </div>
+          ))}
+        </dl>
         <div className="tp-ctl__g">
-          <div className="stack stack--sm">
-            <span className="hint">{w.teams}</span>
-            <b>
-              {w.teamsOf(b.teams.length)} · {w.unteamed(free.length)}
-            </b>
-          </div>
           <div className="stack stack--sm">
             <span className="hint">{lockNow ? w.locked : w.open}</span>
             <div className="tp-seg" role="radiogroup" aria-label={w.locked}>

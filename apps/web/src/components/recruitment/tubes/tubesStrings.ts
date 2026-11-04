@@ -179,6 +179,10 @@ export interface TubesWords {
     teams: string;
     teamsOf: (n: number) => string;
     unteamed: (n: number) => string;
+    sumIn: string;
+    sumFree: string;
+    sumNext: string;
+    sumNone: string;
     makeTeams: string;
     makeTeamsBody: (n: number, min: number, max: number) => string;
     lockTeams: string;
@@ -481,6 +485,10 @@ const ID: TubesWords = {
     teams: "Tim",
     teamsOf: (n) => `${n} tim`,
     unteamed: (n) => `${n} CaAs belum punya tim`,
+    sumIn: "CaAs di dalam tim",
+    sumFree: "Belum punya tim",
+    sumNext: "Malam berikutnya",
+    sumNone: "Belum ada",
     makeTeams: "Bagi Otomatis",
     makeTeamsBody: (n, min, max) =>
       `${n} CaAs yang belum punya tim dikelompokkan acak menjadi tim ${min} sampai ${max} orang.`,
@@ -789,6 +797,10 @@ const EN: TubesWords = {
     teams: "Teams",
     teamsOf: (n) => `${n} teams`,
     unteamed: (n) => `${n} CaAs have no team`,
+    sumIn: "CaAs in a team",
+    sumFree: "Without a team",
+    sumNext: "Next evening",
+    sumNone: "None yet",
     makeTeams: "Group Automatically",
     makeTeamsBody: (n, min, max) =>
       `The ${n} CaAs with no team are grouped at random into teams of ${min} to ${max}.`,
@@ -1082,6 +1094,10 @@ const ZH: TubesWords = {
     teams: "小组",
     teamsOf: (n) => `${n} 组`,
     unteamed: (n) => `${n} 位 CaAs 没有小组`,
+    sumIn: "已入组的 CaAs",
+    sumFree: "未分组",
+    sumNext: "下一个晚次",
+    sumNone: "暂无",
     makeTeams: "自动分组",
     makeTeamsBody: (n, min, max) =>
       `把 ${n} 位没有小组的 CaAs 随机分成 ${min} 到 ${max} 人的小组。`,
