@@ -316,7 +316,10 @@ function Daftar({
   const [dlg, setDlg] = useState<null | "latihan" | "ruang">(null);
   const [orang, setOrang] = useState<string[]>([]);
   const [slotPick, setSlotPick] = useState<number[]>([]);
-  const jamWib = (iso: string) => tanggalWib(new Date(iso)).jam.replace(":", ".");
+  const jamWib = (iso: string) => {
+    const jam = tanggalWib(new Date(iso)).jam;
+    return lang === "id" ? jam.replace(":", ".") : jam;
+  };
   async function siapkan(body: Record<string, unknown>) {
     setSibuk(true);
     const r = await recPost<{ ok: true; room: { id: number } }>("room-setup", {
