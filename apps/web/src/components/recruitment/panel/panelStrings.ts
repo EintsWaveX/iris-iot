@@ -39,6 +39,7 @@ export const PN = dict({
       closesAria: "Pendaftaran tutup dalam",
       attention: "Perlu dicek",
       plotTask: "Permintaan ganti jadwal plotting",
+      cutTask: (stage: string) => `Belum diusulkan di Cutting ${stage}`,
     },
     cand: {
       search: "Cari nama atau NIM",
@@ -245,6 +246,7 @@ export const PN = dict({
       closesAria: "Registration closes in",
       attention: "Needs a look",
       plotTask: "Plotting reschedule requests",
+      cutTask: (stage: string) => `Not yet proposed in Cutting ${stage}`,
     },
     cand: {
       search: "Search name or NIM",
@@ -455,6 +457,7 @@ export const PN = dict({
       closesAria: "距报名截止还有",
       attention: "需要查看",
       plotTask: "排期调整请求",
+      cutTask: (stage: string) => `${stage}筛选中尚未提议`,
     },
     cand: {
       search: "搜索姓名或 NIM",

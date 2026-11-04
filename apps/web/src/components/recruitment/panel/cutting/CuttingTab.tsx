@@ -262,6 +262,7 @@ function NoteBtn({
           disabled={!can}
           onChange={(e) => setV(e.target.value)}
           placeholder={t.notePh}
+          aria-label={t.noteOn(c.nama.split(" ")[0])}
         />
         {can && (
           <button
