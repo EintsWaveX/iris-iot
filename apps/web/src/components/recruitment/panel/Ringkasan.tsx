@@ -40,11 +40,13 @@ import {
   type Step,
   type StepKey,
 } from "../../../lib/recruitment/next-step";
-import { useRecEdition } from "../../../lib/recruitment/client";
+import { useRecCut, useRecEdition } from "../../../lib/recruitment/client";
 import { bukaBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import {
+  CUT_STAGES,
   STAGES,
   type CandidateRow,
+  type CutStage,
   type CommitteeDivision,
   type RecEvent,
   type RecRights,
@@ -163,6 +165,21 @@ export default function Ringkasan({
     perhatian.push({ key: "plot", tab: "plotting", n: plotN, label: t.plotTask });
   }
   const where = whereNow(events, now);
+  // The cut of the stage that is running: how many CaAs still have no proposal, for whoever may propose.
+  const cutStage = (CUT_STAGES as readonly string[]).includes(where.stage)
+    ? (where.stage as CutStage)
+    : null;
+  const bisaCut = tabs.includes("cutting") && rights?.cuttingPropose === true && cutStage !== null;
+  const cut = useRecCut(cutStage ?? "berkas", bisaCut);
+  const cutN = bisaCut && cut.data && !cut.data.lock.locked ? cut.data.tally.belum : 0;
+  if (cutN > 0 && cutStage) {
+    perhatian.push({
+      key: "cut",
+      tab: "cutting",
+      n: cutN,
+      label: t.cutTask(n.stages[cutStage]),
+    });
+  }
   const role = roleOf(division, rights?.seatKetua === true);
   const { now: langkah, others } = nextSteps(where, role, tabs);
 

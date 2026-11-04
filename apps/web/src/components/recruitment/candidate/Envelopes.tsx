@@ -68,6 +68,7 @@ export function Inbox({
   events,
   hariIni,
   motion,
+  bare = false,
   onOpen,
 }: {
   lang: Lang;
@@ -76,6 +77,8 @@ export function Inbox({
   events: RecEvent[];
   hariIni: string;
   motion: string;
+  /** Sits in a dialog that already says "Amplop": no second title above the list. */
+  bare?: boolean;
   onOpen: (env: EnvelopeView) => void;
 }) {
   const t = S2[lang].inbox;
@@ -83,7 +86,7 @@ export function Inbox({
   const sealed = list.filter((r) => r.st === "sealed").length;
   return (
     <Kartu
-      title={t.title}
+      title={bare ? undefined : t.title}
       className="r2inbox"
       aside={sealed > 0 ? <Pill tone="warn">{t.sealedBadge(sealed)}</Pill> : undefined}
     >

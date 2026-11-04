@@ -423,6 +423,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       events={events}
       hariIni={hariIni}
       motion={motion}
+      bare
       onOpen={(e) => {
         // The reveal has its own full screen: the dialog the inbox sits in steps aside first.
         setAmplopOpen(false);
