@@ -30,7 +30,8 @@ import {
   drawSeed,
 } from "../../src/lib/recruitment/draw.js";
 import { livecodeResult } from "../../src/lib/recruitment/c-problem.js";
-import { capsOf, problemWorth } from "../../src/lib/recruitment/exam-config.js";
+import { capsOf, dealtCount, problemWorth } from "../../src/lib/recruitment/exam-config.js";
+import { bonusQuota, bonusWorth, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
 import { normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
   stateOf,
@@ -70,7 +71,7 @@ export async function handleLcc(req: ApiRequest, res: ApiResponse, s: SessionPay
   if (fase === "usai") return void tolakLc(res, "ruang_selesai");
   if (aksi === "lcc") return bacaLcc(c, fase, res);
   if (aksi === "lcc-send") return kirim(c, fase, req, res);
-  if (aksi === "lcc-bonus") return mintaBonus(c, fase, res);
+  if (aksi === "lcc-bonus") return mintaBonus(c, fase, res, jsonBody(req).dry === true);
   if (aksi === "lcc-done") return selesai(c, fase, res);
   tolak(res, "aksi_tidak_dikenal", 404);
 }
@@ -222,7 +223,9 @@ async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
         title: p.title,
         tier: p.tier,
         ...(baseSet.has(id) ? {} : { bonus: true }),
-        points: problemWorth(c.config, p.tier, p.body.points),
+        points: baseSet.has(id)
+          ? problemWorth(c.config, p.tier, p.body.points)
+          : bonusWorth(problemWorth(c.config, p.tier, p.body.points)),
         text: { statement, input, output },
         ...(en ? { en } : {}),
         samples: p.samples,
@@ -283,8 +286,54 @@ function sisaMs(c: KonteksLc): number {
     : 0;
 }
 
+/**
+ * How many bonus problems this seat gets (bonus.ts): its time left in problem-lengths, plus the
+ * dealt problems whose best finished Submit passed every test, minus those with a finished
+ * Submit that did not. A problem never submitted is neither.
+ */
+async function kuotaBonus(c: KonteksLc, base: number[], rest: number): Promise<BonusQuote> {
+  const subs = base.length
+    ? await c.db
+        .select({
+          problemId: recCSubmission.problemId,
+          passed: recCSubmission.passed,
+          total: recCSubmission.total,
+        })
+        .from(recCSubmission)
+        .where(
+          and(
+            eq(recCSubmission.seatId, c.seat.id),
+            inArray(recCSubmission.problemId, base),
+            eq(recCSubmission.kind, "submit"),
+            eq(recCSubmission.status, "selesai"),
+          ),
+        )
+    : [];
+  const best = new Map<number, { passed: number; total: number }>();
+  for (const s of subs) {
+    if (!s.total) continue;
+    const cur = best.get(s.problemId);
+    const p = s.passed ?? 0;
+    if (!cur || p / s.total > cur.passed / cur.total)
+      best.set(s.problemId, { passed: p, total: s.total });
+  }
+  let correct = 0;
+  let wrong = 0;
+  for (const b of best.values()) {
+    if (b.passed === b.total) correct++;
+    else wrong++;
+  }
+  return bonusQuota({
+    leftMs: sisaMs(c),
+    perQuestionMs: (c.config.livecode.minutes * 60_000) / Math.max(1, dealtCount(c.config)),
+    correct,
+    wrong,
+    rest,
+  });
+}
+
 /** The bonus round of Live Coding: every other ready problem, once, with time left (4 Nov 2026). */
-async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
+async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse, dry = false) {
   if (fase !== "kerja") return void tolakLc(res, "belum_dibuka");
   if (c.seat.done.livecode != null) return void tolak(res, "sudah_kumpul", 409);
   const base = await tanganKursi(c);
@@ -294,12 +343,16 @@ async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse
   const min = c.config.livecode.bonusMin * 60_000;
   if (min <= 0) return void tolak(res, "bonus_mati", 409);
   if (sisaMs(c) < min) return void tolak(res, "bonus_telat", 409);
-  const ids = drawBonusProblems(
+  const all = drawBonusProblems(
     await drawSeed(await muatGaram(c.db, c.edisiId), c.seat.id, "livecode"),
     await soalSiap(c),
     new Set(base),
   );
-  if (!ids.length) return void tolak(res, "soal_kurang", 409);
+  if (!all.length) return void tolak(res, "soal_kurang", 409);
+  const quote = await kuotaBonus(c, base, all.length);
+  if (dry) return void res.status(200).json({ ok: true, quote });
+  if (quote.quota < 1) return void tolak(res, "bonus_kosong", 409, { quote });
+  const ids = all.slice(0, quote.quota);
   // Only the first writer wins: two tabs asking at once end with one bonus list
   await c.db
     .update(recExamSeat)
@@ -317,7 +370,7 @@ async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse
       .update(recCProblem)
       .set({ shownAt: new Date() })
       .where(and(inArray(recCProblem.id, ids), isNull(recCProblem.shownAt)));
-  res.status(200).json({ ok: true, count: ids.length });
+  res.status(200).json({ ok: true, count: ids.length, quote });
 }
 
 /** Selesai: the seat is done with Live Coding. What it submitted counts; nothing more is taken from it. */
@@ -423,6 +476,7 @@ async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const info = new Map(problems.map((x) => [x.id, x]));
   const out: LccRoomSeat[] = seats.map((seat) => {
     const lcDraw = (seat.draw as { livecode?: { problems?: number[]; bonus?: number[] } }).livecode;
+    const bonusIds = new Set(lcDraw?.bonus ?? []);
     const dealt = [...(lcDraw?.problems ?? []), ...(lcDraw?.bonus ?? [])];
     const mine = subs.filter((x) => x.seatId === seat.id);
     const hand = dealt.flatMap((id) => {
@@ -431,7 +485,9 @@ async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
         ? [
             {
               problemId: id,
-              points: problemWorth(config, pr.tier, pr.body.points),
+              points: bonusIds.has(id)
+                ? bonusWorth(problemWorth(config, pr.tier, pr.body.points))
+                : problemWorth(config, pr.tier, pr.body.points),
               title: pr.title,
             },
           ]

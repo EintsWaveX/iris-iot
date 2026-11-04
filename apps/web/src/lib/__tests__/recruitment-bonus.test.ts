@@ -20,6 +20,8 @@ import {
 } from "../recruitment/exam-config";
 import { drawBonus, drawBonusProblems, drawSeed } from "../recruitment/draw";
 import { ONE, ZERO, frac } from "../recruitment/frac";
+import { BONUS_SHARE, bonusQuota, bonusWorth } from "../recruitment/bonus";
+import { StrikeTracker, isScreenshotKey, STRIKE_KINDS } from "../recruitment/seat-lockdown";
 import { scorePart, type SeatPart } from "../recruitment/scoring";
 
 const SALT = "ab".repeat(32);
@@ -33,11 +35,12 @@ describe("the default config", () => {
     expect(capsOf(c).livecode).toBe(2400);
   });
 
-  it("a part's maximum with bonus is its cap over what is shown, times the pool", () => {
+  it("a part's maximum with bonus counts every bonus question at half", () => {
     const m = maxWithBonus(DEFAULT_EXAM_CONFIG);
-    expect(m.parts.logika).toBe(Math.round((640 * 20) / 15));
-    // 2400 base plus the 19 other problems of an even 8 / 8 / 8 pool at their tier's points
-    expect(m.livecode).toBe(2400 + 6 * 300 + 6 * 500 + 7 * 800);
+    // 640 for 15 questions, 5 more in the pool at half: 640 + 5 x 640 / 15 / 2
+    expect(m.parts.logika).toBe(Math.round(640 * (1 + (0.5 * 5) / 15)));
+    // 2400 base plus half of the 19 other problems of an even 8 / 8 / 8 pool at their tier's points
+    expect(m.livecode).toBe(2400 + Math.round((6 * 300 + 6 * 500 + 7 * 800) / 2));
   });
 
   it("a written question's default score is the cap over what is shown", () => {
@@ -191,5 +194,102 @@ describe("drawBonusProblems", () => {
     expect(ids.slice(0, 2).sort()).toEqual([2, 3]);
     expect(ids[2]).toBe(5);
     expect(ids[3]).toBe(7);
+  });
+});
+
+describe("bonusQuota (time left, right and wrong)", () => {
+  const MIN = 60_000;
+
+  it("the Akademik's example: 13 min 7 s left of a 1 minute a question part, 12 right, 8 wrong", () => {
+    const q = bonusQuota({
+      leftMs: 13 * MIN + 7000,
+      perQuestionMs: MIN,
+      correct: 12,
+      wrong: 8,
+      rest: 20,
+    });
+    expect(q).toEqual({ rest: 20, time: 13, correct: 12, wrong: 8, quota: 17 });
+  });
+
+  it("never passes what is left in the pool", () => {
+    expect(
+      bonusQuota({ leftMs: 15 * MIN, perQuestionMs: MIN, correct: 20, wrong: 0, rest: 20 }).quota,
+    ).toBe(20);
+  });
+
+  it("never goes below zero", () => {
+    expect(
+      bonusQuota({ leftMs: 2 * MIN, perQuestionMs: MIN, correct: 1, wrong: 15, rest: 20 }).quota,
+    ).toBe(0);
+  });
+
+  it("time counts in question-lengths, so a longer question gives fewer bonuses for the same time", () => {
+    // Live Coding: 60 minutes for 5 problems is 12 minutes a problem
+    expect(
+      bonusQuota({ leftMs: 30 * MIN, perQuestionMs: 12 * MIN, correct: 3, wrong: 0, rest: 19 })
+        .quota,
+    ).toBe(5);
+  });
+
+  it("a bonus question is worth half, and a half problem is never worth less than 1 point", () => {
+    expect(BONUS_SHARE).toBe(0.5);
+    expect(bonusWorth(800)).toBe(400);
+    expect(bonusWorth(1)).toBe(1);
+  });
+});
+
+describe("a bonus question counts half in scorePart", () => {
+  it("one right bonus question adds half of what a dealt question adds", () => {
+    const dealt = [
+      seat(1, [1, 2], { 1: ONE, 2: ONE }),
+      seat(2, [1, 2], { 1: ONE, 2: ONE }, undefined),
+    ];
+    const plain = scorePart(1000, dealt, new Set()).seats.get(1)!;
+    const withBonus = scorePart(
+      1000,
+      [seat(1, [1, 2], { 1: ONE, 2: ONE, 3: ONE }, [3]), dealt[1]],
+      new Set(),
+    ).seats.get(1)!;
+    // two dealt questions of weight 1.5 each: a right bonus of weight 1.5 / 2 adds 0.75 / 3 = 25%
+    expect(plain.score).toBe(1000);
+    expect(withBonus.score).toBeGreaterThan(1200);
+    expect(withBonus.score).toBeLessThan(1300);
+  });
+});
+
+describe("screenshot keys", () => {
+  it("knows PrintScreen and the Mac shortcuts, and nothing else", () => {
+    expect(isScreenshotKey({ key: "PrintScreen" })).toBe(true);
+    expect(isScreenshotKey({ key: "4", metaKey: true, shiftKey: true })).toBe(true);
+    expect(isScreenshotKey({ key: "s", metaKey: true, shiftKey: true })).toBe(false);
+    expect(isScreenshotKey({ key: "a" })).toBe(false);
+  });
+
+  it("is a kejadian kind the pengawas can see, and merges like the others", () => {
+    expect(STRIKE_KINDS).toContain("foto");
+    const t = new StrikeTracker(() => "k1");
+    const ev = t.signal("foto", 1000, { instant: true });
+    expect(ev?.strike.kinds).toEqual(["foto"]);
+  });
+});
+
+describe("handing in is never blocked by blanks", () => {
+  it("a question left blank is worth 0 and a seat that answered nothing scores 0, never below", () => {
+    const seats = [seat(1, [1, 2, 3], {}), seat(2, [1, 2, 3], { 1: ONE, 2: ZERO })];
+    const out = scorePart(1000, seats, new Set());
+    expect(out.seats.get(1)!.score).toBe(0);
+    expect(out.seats.get(2)!.score).toBeGreaterThan(0);
+    // blank and wrong are the same to the part score: no penalty for either
+    const blank = scorePart(
+      1000,
+      [seat(1, [1, 2], { 1: ONE }), seat(2, [1, 2], { 1: ONE })],
+      new Set(),
+    );
+    const wrong = scorePart(
+      1000,
+      [seat(1, [1, 2], { 1: ONE, 2: ZERO }), seat(2, [1, 2], { 1: ONE })],
+      new Set(),
+    );
+    expect(blank.seats.get(1)!.score).toBe(wrong.seats.get(1)!.score);
   });
 });

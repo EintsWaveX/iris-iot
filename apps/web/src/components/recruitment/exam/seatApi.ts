@@ -3,6 +3,7 @@
  * browser tab's id, check-in, saving an answer, Kumpulkan and the phone
  * hotspot. Reads come from usePoll in the page; these are the writes.
  */
+import type { BonusQuote } from "../../../lib/recruitment/bonus";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import type { SaveBody, SaveResult } from "../../../lib/recruitment/seat-answers";
 import type { CheckinBody, SeatSelf } from "../../../lib/recruitment/seat-types";
@@ -54,9 +55,14 @@ export async function submitPart(part: string): Promise<{ ok: boolean; kode?: st
 /** The bonus round: the part's other questions, dealt once (4 Nov 2026) */
 export async function askBonus(
   part: string,
-): Promise<{ ok: boolean; kode?: string; count?: number }> {
-  const r = await recPost<{ ok: true; count: number }>("test-bonus", { part });
-  return isFail(r) ? { ok: false, kode: r.kode } : { ok: true, count: r.count };
+  /** Only count what the seat would get, deal nothing */
+  dry = false,
+): Promise<{ ok: boolean; kode?: string; count?: number; quote?: BonusQuote }> {
+  const r = await recPost<{ ok: true; count?: number; quote?: BonusQuote }>("test-bonus", {
+    part,
+    ...(dry ? { dry: true } : {}),
+  });
+  return isFail(r) ? { ok: false, kode: r.kode } : { ok: true, count: r.count, quote: r.quote };
 }
 
 export async function saveHotspot(

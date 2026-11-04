@@ -6,6 +6,7 @@
  */
 import type { Phase1Part, Rubric, RubricSheet } from "./exam-types.js";
 import { ZERO, add, div, frac, isOne, mul, roundHalfUp, sub, sum, type Frac } from "./frac.js";
+import { BONUS_OVER } from "./bonus.js";
 
 /** One seat in one part: the questions it drew (null: never started) and their credits. */
 export interface SeatPart {
@@ -81,7 +82,8 @@ export function scorePart(
     const extra = (s.bonus ?? []).filter((q) => !voided.has(q));
     const got = sum([
       ...live.map((q, i) => mul(s.credits[q] ?? ZERO, ws[i])),
-      ...extra.map((q) => mul(s.credits[q] ?? ZERO, wOf(q))),
+      // a bonus question is worth half of a normal one (bonus.ts)
+      ...extra.map((q) => mul(mul(s.credits[q] ?? ZERO, wOf(q)), frac(1, BONUS_OVER))),
     ]);
     const ratio = div(got, sum(ws));
     out.set(s.seat, { score: roundHalfUp(cap, ratio), ratio });

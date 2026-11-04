@@ -1695,3 +1695,51 @@ html:has(.r3page:not(.r3page--shell)) {
     transform: translateY(-6px);
   }
 }
+
+/* The offer shows how the number was reached (4 Nov 2026, second pass) */
+.r3bonus__offer {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.r3bonus__calc {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  max-width: 340px;
+  padding: 0;
+  width: 100%;
+}
+.r3bonus__calc li {
+  align-items: baseline;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-bottom: 6px;
+}
+.r3bonus__calc li[data-total="yes"] {
+  border-bottom: 0;
+  border-top: 1px solid var(--accent);
+  font-weight: 700;
+  padding-top: 8px;
+}
+.r3bonus__calc .r3bonus__n {
+  font-size: 1.7rem;
+}
+
+/* The seat's watermark: over everything, never in the way (4 Nov 2026) */
+.r3wm {
+  background-repeat: repeat;
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  user-select: none;
+  z-index: 60;
+}
+@media print {
+  .r3wm {
+    opacity: 1;
+  }
+}

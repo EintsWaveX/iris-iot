@@ -28,6 +28,8 @@ import { Gate } from "./parts";
 import Runner from "./Runner";
 import { Finished, Lobby, NotOpen, Notice } from "./Screens";
 import LccPage from "../livecode/LccPage";
+import Watermark from "./Watermark";
+import { toast as seatToast } from "./seatApi";
 import { TS } from "./testStrings";
 import Skeleton from "../../ui/Skeleton";
 
@@ -100,6 +102,7 @@ export default function TestPage({ lang }: { lang: Lang }) {
     seatId: seat?.id ?? null,
     part: phase.k === "work" ? phase.part : phase.k === "spin" ? "livecode" : null,
     rootRef: root,
+    onScreenshot: () => seatToast(TS[lang].over.shot, "warn"),
   });
 
   // The part stays on screen under the time-up card even after the API stops handing it out.
@@ -234,6 +237,7 @@ export default function TestPage({ lang }: { lang: Lang }) {
   return (
     <div ref={root} className={"r3page" + (shell ? " r3page--shell" : "")} data-m={motion}>
       {screen}
+      {working && tv?.me && <Watermark text={`${tv.me.nim} · ${tv.me.nama.split(" ")[0]}`} />}
     </div>
   );
 }

@@ -21,6 +21,8 @@ import { AnswerSaver, isAnswered, type SaveState } from "../../../lib/recruitmen
 import type { PartView, TestView } from "../../../lib/recruitment/seat-types";
 import { QuestionCard } from "./render";
 import { BigIcon, LiveChip, PartsMini, SaveChip, Timer, type Motion } from "./parts";
+import type { BonusQuote } from "../../../lib/recruitment/bonus";
+import BonusOffer from "./BonusOffer";
 import { TAB, askBonus, sendAnswer, submitPart, toast } from "./seatApi";
 import { TS } from "./testStrings";
 
@@ -84,6 +86,7 @@ export default function Runner({
   const [busy, setBusy] = useState(false);
   // The bonus round: offered once at hand-in, when enough time is left (4 Nov 2026)
   const [declined, setDeclined] = useState(false);
+  const [quote, setQuote] = useState<BonusQuote | null>(null);
   const jumpToBonus = useRef(false);
   // The part's entrance plays once, when it starts; moving between questions has its own slide.
   const [entering, setEntering] = useState(true);
@@ -214,8 +217,27 @@ export default function Runner({
   const blur = paused || timeUp || cover;
   const unans = baseItems.map((x) => x.q).filter((q) => !answered.has(q) && !voided.has(q));
   const bi = part.bonus;
+  // The offer is made when the time left allows it; the server then counts what the seat earned
   const canOffer =
     !!bi && bi.minLeftMs > 0 && !bi.taken && bi.count > 0 && left >= bi.minLeftMs && !declined;
+  const asking = ask && canOffer;
+  useEffect(() => {
+    if (!ask) return setQuote(null);
+    if (!canOffer || quote) return;
+    let dead = false;
+    void (async () => {
+      // The last answers go first, so the count reads what the seat has really answered
+      await saver.flush();
+      const r = await askBonus(key, true);
+      if (dead) return;
+      if (r.ok && r.quote && r.quote.quota >= 1) setQuote(r.quote);
+      else setDeclined(true);
+    })();
+    return () => {
+      dead = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ask, canOffer, !!quote]);
 
   async function takeBonus() {
     setBusy(true);
@@ -492,42 +514,16 @@ export default function Runner({
         </div>
       )}
 
-      <Dialog
-        open={ask && !timeUp && canOffer}
-        onOpenChange={setAsk}
-        title={t.bonus.title}
-        description={t.bonus.desc(bi?.count ?? 0, Math.round((bi?.minLeftMs ?? 0) / 60_000))}
-        size="sm"
+      <BonusOffer
         lang={lang}
-        actions={
-          <>
-            <button
-              type="button"
-              className="btn btn--ghost"
-              disabled={busy}
-              onClick={() => setDeclined(true)}
-            >
-              {t.bonus.no}
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={busy}
-              onClick={() => void takeBonus()}
-            >
-              {busy ? t.bonus.taking : t.bonus.yes}
-            </button>
-          </>
-        }
-      >
-        <div className="r3bonus__offer" aria-hidden="true">
-          <span className="r3bonus__star">
-            <SparkleIcon size={28} weight="fill" />
-          </span>
-          <b className="r3bonus__badge">{t.bonus.badge}</b>
-          <span className="r3bonus__n num">+{bi?.count ?? 0}</span>
-        </div>
-      </Dialog>
+        open={asking && !timeUp}
+        onOpenChange={setAsk}
+        quote={quote}
+        busy={busy}
+        t={t.bonus}
+        onYes={() => void takeBonus()}
+        onNo={() => setDeclined(true)}
+      />
 
       <Dialog
         open={ask && !timeUp && !canOffer}
@@ -570,6 +566,7 @@ export default function Runner({
           </div>
           {unans.length > 0 && (
             <div className="stack stack--sm">
+              <span className="hint">{t.handIn.blankNote}</span>
               <span className="hint">{t.handIn.unansweredOpen}</span>
               <div className="rec-chips">
                 {unans.map((q) => {

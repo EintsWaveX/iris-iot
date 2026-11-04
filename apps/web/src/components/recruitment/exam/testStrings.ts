@@ -5,6 +5,7 @@
  * strike is a kejadian in the Master's console; to the candidate it is just
  * "tercatat" (logged), and the page never says a score.
  */
+import type { BonusQuote } from "../../../lib/recruitment/bonus";
 import { dict } from "../../../lib/app";
 import type { PartKey } from "../../../lib/recruitment/exam-types";
 
@@ -148,6 +149,8 @@ export const TS = dict({
       answered: "terjawab",
       not: "belum",
       flagged: "ditandai",
+      blankNote:
+        "Soal yang belum dijawab bernilai 0 dan tidak mengurangi apa-apa. Kamu boleh mengumpulkan kapan saja.",
       unansweredOpen: "Belum dijawab, ketuk untuk membuka:",
       flaggedOpen: "Ditandai untuk dicek lagi:",
       done: (p: string) => `${p} dikumpulkan. Jawabanmu sudah tersimpan.`,
@@ -158,8 +161,16 @@ export const TS = dict({
     bonus: {
       badge: "Bonus",
       title: "Masih ada waktu. Mau coba soal bonus?",
-      desc: (n: number, min: number) =>
-        `Ada ${n} soal lain di bank yang tidak kebagian di kamu, karena soal diacak per peserta. Kerjakan sebisanya: nilainya ditambah di atas nilai maksimal bagian ini, dan kosong atau salah tidak mengurangi apa-apa. Tawaran ini cuma muncul kalau sisa waktumu ${min} menit atau lebih.`,
+      counting: "Menghitung jatah bonusmu...",
+      desc: (q: BonusQuote) =>
+        `Kamu dapat ${q.quota} soal bonus dari ${q.rest} soal lain di bank (diacak). Jumlahnya dari sisa waktumu, ditambah jawaban benar, dikurangi jawaban salah. Tiap soal bonus bernilai setengah soal biasa, dan kosong atau salah tidak mengurangi nilaimu.`,
+      calc: {
+        time: "Sisa waktu",
+        right: "Jawaban benar",
+        wrong: "Jawaban salah",
+        total: "Soal bonus",
+      },
+      max: (n: number) => `paling banyak ${n}`,
       yes: "Ya, Ambil Soal Bonus",
       no: "Tidak, Lanjut Kumpulkan",
       taking: "Menyiapkan soal bonus",
@@ -167,11 +178,12 @@ export const TS = dict({
       fail: "Soal bonus belum bisa diambil. Coba lagi.",
       late: "Sisa waktumu sudah kurang dari batas untuk bonus.",
       cell: "Soal bonus",
-      bar: "Soal Bonus: nilainya tambahan. Kosong atau salah tidak mengurangi.",
+      bar: "Soal Bonus: bernilai setengah soal biasa. Kosong atau salah tidak mengurangi.",
       answered: (a: number, n: number) => `Bonus: ${a} dari ${n} terjawab`,
       tally: "bonus terjawab",
     },
     over: {
+      shot: "Tombol screenshot tercatat dan dilihat pengawas.",
       pausedTitle: "Dijeda",
       pausedBody: "Pengawas menjeda semua kursi. Waktumu berhenti dan lanjut dari sisa yang sama.",
       coverTitle: "Kembali ke Layar Penuh",
@@ -329,6 +341,8 @@ export const TS = dict({
       answered: "answered",
       not: "not yet",
       flagged: "flagged",
+      blankNote:
+        "A question left blank is worth 0 and takes nothing away. You may hand in at any time.",
       unansweredOpen: "Not answered yet, tap to open:",
       flaggedOpen: "Flagged to check again:",
       done: (p: string) => `${p} handed in. Your answers are saved.`,
@@ -339,8 +353,16 @@ export const TS = dict({
     bonus: {
       badge: "Bonus",
       title: "There is still time. Try the bonus questions?",
-      desc: (n: number, min: number) =>
-        `${n} other questions in the bank did not come to you, because questions are shuffled per candidate. Answer what you can: their score is added on top of this part's maximum, and a blank or wrong answer takes nothing away. This offer only shows when you have ${min} minutes or more left.`,
+      counting: "Counting your bonus...",
+      desc: (q: BonusQuote) =>
+        `You get ${q.quota} bonus questions out of the ${q.rest} other questions in the bank (shuffled). The number comes from your time left, plus right answers, minus wrong ones. Each bonus question is worth half a normal one, and blank or wrong takes nothing away.`,
+      calc: {
+        time: "Time left",
+        right: "Right answers",
+        wrong: "Wrong answers",
+        total: "Bonus questions",
+      },
+      max: (n: number) => `at most ${n}`,
       yes: "Yes, Take the Bonus",
       no: "No, Keep Handing In",
       taking: "Getting the bonus questions ready",
@@ -348,11 +370,12 @@ export const TS = dict({
       fail: "The bonus questions could not be taken. Try again.",
       late: "Your time left is now under the limit for the bonus.",
       cell: "Bonus question",
-      bar: "Bonus Question: its score is extra. Blank or wrong takes nothing away.",
+      bar: "Bonus Question: worth half a normal one. Blank or wrong takes nothing away.",
       answered: (a: number, n: number) => `Bonus: ${a} of ${n} answered`,
       tally: "bonus answered",
     },
     over: {
+      shot: "The screenshot key was recorded and the pengawas can see it.",
       pausedTitle: "Paused",
       pausedBody:
         "The pengawas paused every seat. Your time has stopped and carries on from where it was.",
@@ -503,6 +526,7 @@ export const TS = dict({
       answered: "已答",
       not: "未答",
       flagged: "已标记",
+      blankNote: "未作答的题得 0 分，不会扣分。你可以随时提交。",
       unansweredOpen: "尚未作答，点击打开：",
       flaggedOpen: "已标记，稍后再检查：",
       done: (p: string) => `${p}已提交，答案已保存。`,
@@ -512,8 +536,11 @@ export const TS = dict({
     bonus: {
       badge: "加分",
       title: "还有时间，要试试加分题吗？",
-      desc: (n: number, min: number) =>
-        `题库里还有 ${n} 道题没有分到你，因为题目是按考生随机分配的。尽力作答即可：分数会加在本部分满分之上，空白或答错不会扣分。只有剩余时间不少于 ${min} 分钟时才会出现这个提示。`,
+      counting: "正在计算你的加分题数量...",
+      desc: (q: BonusQuote) =>
+        `你可获得 ${q.quota} 道加分题，来自题库中另外 ${q.rest} 道题（随机）。数量由剩余时间、答对题数、答错题数决定。每道加分题的分值是普通题的一半，空白或答错不扣分。`,
+      calc: { time: "剩余时间", right: "答对", wrong: "答错", total: "加分题" },
+      max: (n: number) => `最多 ${n} 道`,
       yes: "是，领取加分题",
       no: "不用，继续提交",
       taking: "正在准备加分题",
@@ -521,11 +548,12 @@ export const TS = dict({
       fail: "暂时无法领取加分题，请重试。",
       late: "剩余时间已低于加分题的门槛。",
       cell: "加分题",
-      bar: "加分题：分数是额外的，空白或答错不扣分。",
+      bar: "加分题：分值是普通题的一半，空白或答错不扣分。",
       answered: (a: number, n: number) => `加分题：已答 ${a} / ${n}`,
       tally: "加分题已答",
     },
     over: {
+      shot: "截图键已被记录，监考老师可以看到。",
       pausedTitle: "已暂停",
       pausedBody: "监考已暂停所有座位，你的时间已停止，会从剩余时间继续。",
       coverTitle: "返回全屏",

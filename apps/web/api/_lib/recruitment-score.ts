@@ -44,6 +44,7 @@ import {
   defaultQuestionPoints,
   problemWorth,
 } from "../../src/lib/recruitment/exam-config.js";
+import { bonusWorth } from "../../src/lib/recruitment/bonus.js";
 import { assemble, type QuestionIn, type SeatIn } from "../../src/lib/recruitment/score-table.js";
 import type {
   FinalBlocker,
@@ -211,7 +212,9 @@ async function muatMasukan(db: Db, edisiId: number) {
         ? [
             {
               problemId: id,
-              points: problemWorth(config, t.tier, t.body.points),
+              points: bonus
+                ? bonusWorth(problemWorth(config, t.tier, t.body.points))
+                : problemWorth(config, t.tier, t.body.points),
               ...(bonus ? { bonus } : {}),
               ...(t.body.points !== undefined ? { own: true } : {}),
             },

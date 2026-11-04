@@ -46,7 +46,9 @@ import {
   type SeatDraw,
   type Value,
 } from "../../src/lib/recruitment/exam-types.js";
-import { checkValue, toView } from "../../src/lib/recruitment/formats.js";
+import { checkValue, credit, toView } from "../../src/lib/recruitment/formats.js";
+import { bonusQuota, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
+import { isOne } from "../../src/lib/recruitment/frac.js";
 import { DrawShort, drawBonus, drawPart, drawSeed } from "../../src/lib/recruitment/draw.js";
 import { answerOpen, normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
@@ -541,6 +543,56 @@ async function masuk(k: Konteks) {
 
 /* ---------------------------------------------------------------- answers */
 
+/**
+ * How many bonus questions this seat gets right now (bonus.ts): its time left in question-lengths,
+ * plus the dealt questions it got fully right, minus those it answered wrong. Read from its stored
+ * answers and the current keys; a blank question is neither.
+ */
+async function kuotaBonus(
+  db: Db,
+  seat: RecExamSeatRow,
+  part: Phase1Part,
+  run: {
+    durMs: number;
+    extra: Record<string, number>;
+    usedMs: number;
+    mark: number | null;
+    state: string;
+  },
+  config: ExamConfig,
+  rest: number,
+  now: number,
+): Promise<BonusQuote> {
+  const draw = seat.draw[part];
+  const ids = (draw?.items ?? []).map((i) => i.q);
+  const rows = ids.length
+    ? await db.select().from(recQuestion).where(inArray(recQuestion.id, ids))
+    : [];
+  const by = new Map(rows.map((r) => [r.id, r]));
+  const ans = await db
+    .select({ q: recAnswer.questionId, value: recAnswer.value })
+    .from(recAnswer)
+    .where(and(eq(recAnswer.seatId, seat.id), eq(recAnswer.part, part)));
+  let correct = 0;
+  let wrong = 0;
+  for (const a of ans) {
+    const r = by.get(a.q);
+    if (!r || r.voidedAt !== null || a.value == null) continue;
+    if (isOne(credit(asQuestion(r), a.value))) correct++;
+    else wrong++;
+  }
+  const plan = config.parts[part];
+  return bonusQuota({
+    leftMs: seatLeft(run as Parameters<typeof seatLeft>[0], seat.id, now),
+    perQuestionMs: (plan.minutes * 60_000) / Math.max(1, plan.shown),
+    correct,
+    wrong,
+    rest,
+  });
+}
+
+/* ---------------------------------------------------------------- answers */
+
 /** The seat's row of a draw, with the question, or the error to answer */
 async function soalKursi(
   k: Konteks,
@@ -738,7 +790,8 @@ async function kejadian(k: Konteks) {
  */
 async function mintaBonus(k: Konteks) {
   const { req, res, db, seat, room, edisiId } = k;
-  const part = jsonBody(req).part as Phase1Part;
+  const b = jsonBody(req);
+  const part = b.part as Phase1Part;
   if (!(PHASE1_PARTS as readonly string[]).includes(part))
     return void tolakKursi(res, "data_salah");
   if (!seat || !room || !sudahMasuk(seat.checkin)) return void tolakKursi(res, "belum_masuk");
@@ -773,12 +826,17 @@ async function mintaBonus(k: Konteks) {
         isNull(recQuestion.voidedAt),
       ),
     );
-  const items = drawBonus(
+  const all = drawBonus(
     await drawSeed(conf.salt, seat.id, part),
     pool.map(asQuestion),
     new Set(draw.items.map((i) => i.q)),
   );
-  if (!items.length) return void tolakKursi(res, "bank_kurang");
+  if (!all.length) return void tolakKursi(res, "bank_kurang");
+  // How many of the rest this seat earned; they are the first of a seeded shuffle, so random
+  const quote = await kuotaBonus(db, seat, part, run, config, all.length, now);
+  if (b.dry === true) return void res.status(200).json({ ok: true, quote });
+  if (quote.quota < 1) return void tolakKursi(res, "bonus_kosong", { quote });
+  const items = all.slice(0, quote.quota);
   // Only the first writer wins: two tabs asking at once end with one bonus list
   await db
     .update(recExamSeat)
@@ -805,7 +863,7 @@ async function mintaBonus(k: Konteks) {
           isNull(recQuestion.shownAt),
         ),
       );
-  res.status(200).json({ ok: true, count: items.length });
+  res.status(200).json({ ok: true, count: items.length, quote });
 }
 
 /* -------------------------------------------------------------- Kumpulkan */

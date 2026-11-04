@@ -8,6 +8,7 @@
  * written parts and Live Coding (default 40 / 60), and the split of the
  * written share between the three written parts (default 40 / 40 / 20).
  */
+import { BONUS_SHARE } from "./bonus.js";
 import {
   DEFAULT_EXAM_CONFIG,
   PART_KEYS,
@@ -72,7 +73,9 @@ export function maxWithBonus(c: ExamConfig): Caps {
   const base = capsOf(c);
   const parts = {} as Record<Phase1Part, number>;
   for (const p of PHASE1_PARTS)
-    parts[p] = Math.round((base.parts[p] * c.parts[p].pool) / c.parts[p].shown);
+    parts[p] = Math.round(
+      base.parts[p] * (1 + (BONUS_SHARE * (c.parts[p].pool - c.parts[p].shown)) / c.parts[p].shown),
+    );
   const written = PHASE1_PARTS.reduce((a, p) => a + parts[p], 0);
   const per = Math.floor(c.livecode.pool / TIERS.length);
   let extra = 0;
@@ -80,7 +83,7 @@ export function maxWithBonus(c: ExamConfig): Caps {
     const inPool = per + (i < c.livecode.pool - per * TIERS.length ? 1 : 0);
     extra += Math.max(0, inPool - c.livecode.draw[t]) * c.livecode.points[t];
   });
-  const livecode = base.livecode + extra;
+  const livecode = base.livecode + Math.round(extra * BONUS_SHARE);
   return { parts, written, livecode, total: written + livecode };
 }
 

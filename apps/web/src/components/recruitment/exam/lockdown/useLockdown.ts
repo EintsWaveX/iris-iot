@@ -20,6 +20,7 @@ import {
   StrikeTracker,
   devtoolsLikelyOpen,
   isDevtoolsKey,
+  isScreenshotKey,
   type Strike,
   type StrikeEvent,
 } from "../../../../lib/recruitment/seat-lockdown";
@@ -58,8 +59,12 @@ export function useLockdown(o: {
   seatId: number | null;
   part: PartKey | null;
   rootRef: RefObject<HTMLElement | null>;
+  /** A screenshot key was pressed: the page tells the seat it was recorded */
+  onScreenshot?: () => void;
 }): Lockdown {
   const { active, seatId, part, rootRef } = o;
+  const shotRef = useRef(o.onScreenshot);
+  shotRef.current = o.onScreenshot;
   const [fullscreen, setFullscreen] = useState(false);
   const [away, setAway] = useState(false);
   const tracker = useRef(new StrikeTracker(rid));
@@ -192,7 +197,21 @@ export function useLockdown(o: {
       if (sel) copied.current = sel;
     };
     const stop = (e: Event) => e.preventDefault();
+    // A screenshot key cannot be stopped, only recorded and made useless: PrintScreen copies the
+    // screen to the clipboard, so the clipboard is emptied again (best effort).
+    let lastShot = 0;
+    const onShotKey = (e: KeyboardEvent) => {
+      if (!isScreenshotKey(e)) return;
+      e.preventDefault();
+      // The key down and the key up of one press are one signal
+      if (Date.now() - lastShot < 800) return;
+      lastShot = Date.now();
+      signal("foto", true);
+      shotRef.current?.();
+      void navigator.clipboard?.writeText("").catch(() => undefined);
+    };
     const onKey = (e: KeyboardEvent) => {
+      onShotKey(e);
       if (isDevtoolsKey(e)) {
         e.preventDefault();
         signal("alat", true);
@@ -214,6 +233,8 @@ export function useLockdown(o: {
     document.addEventListener("cut", onCopy, true);
     document.addEventListener("contextmenu", stop, true);
     document.addEventListener("keydown", onKey, true);
+    // PrintScreen often fires only on key up
+    document.addEventListener("keyup", onShotKey, true);
     window.addEventListener("resize", onResize);
     const online = () => void flush();
     window.addEventListener("online", online);
@@ -227,6 +248,7 @@ export function useLockdown(o: {
       document.removeEventListener("cut", onCopy, true);
       document.removeEventListener("contextmenu", stop, true);
       document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("keyup", onShotKey, true);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("online", online);
       // The part is over: whatever was open ends now, so no kejadian runs on into the lobby.
