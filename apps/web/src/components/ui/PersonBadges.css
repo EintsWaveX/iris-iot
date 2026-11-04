@@ -4,7 +4,7 @@
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
-  font: 800 0.74rem/1 var(--font-body);
+  font: 800 max(11px, 0.74rem)/1 var(--font-body);
   gap: 5px;
   letter-spacing: 0.07em;
   min-height: 26px;

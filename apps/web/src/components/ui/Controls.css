@@ -615,7 +615,7 @@ html[data-tarik-jam="yes"] * {
   color: var(--text);
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   line-height: 1;
   min-width: 1.6em;
   padding: 4px 6px;
