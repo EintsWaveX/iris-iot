@@ -156,6 +156,7 @@ export default function TampilOprec({
         <RadixPopover.Portal>
           <RadixPopover.Content
             className="popover__panel rec-oprec__pop"
+            aria-label={hidden ? t.hiddenTitle : t.shownTitle}
             align="end"
             sideOffset={10}
             collisionPadding={12}

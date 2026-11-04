@@ -129,7 +129,6 @@ function GrupMenu({
           className={variant === "bar" ? "appbar__item rec-grup" : "appnav__link rec-grup"}
           data-k={dalam?.key}
           aria-current={dalam ? "page" : undefined}
-          aria-haspopup="menu"
         >
           {variant === "bar" ? (
             <>
@@ -159,6 +158,7 @@ function GrupMenu({
       <RadixPopover.Portal>
         <RadixPopover.Content
           className="appnav__menu rec-grup__menu sweep-edge"
+          aria-label={grup.label}
           side={side}
           align={variant === "bar" ? "center" : "start"}
           sideOffset={10}
@@ -436,6 +436,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
             <RadixPopover.Portal>
               <RadixPopover.Content
                 className="popover__panel appnav__disp"
+                aria-label={t.display}
                 tabIndex={-1}
                 onOpenAutoFocus={(e) => {
                   e.preventDefault();
@@ -463,6 +464,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
               <RadixPopover.Portal>
                 <RadixPopover.Content
                   className="appnav__menu sweep-edge"
+                  aria-label={t.account}
                   align="end"
                   sideOffset={10}
                   collisionPadding={12}

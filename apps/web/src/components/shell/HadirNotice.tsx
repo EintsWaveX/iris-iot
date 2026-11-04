@@ -150,6 +150,7 @@ function CaraHitung({
     <Popover
       align="end"
       className="hadir-rule__panel"
+      label={t.cara}
       trigger={
         <button type="button" className="btn btn--ghost btn--sm">
           {t.cara}

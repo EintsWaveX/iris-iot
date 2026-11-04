@@ -58,6 +58,7 @@ export default function DateRangePicker({ value, onChange }: Props) {
     <Popover
       open={open}
       onOpenChange={setOpen}
+      label={formatRange(value)}
       trigger={
         <button type="button" className="btn btn--ghost daterange__trigger">
           {formatRange(value)}

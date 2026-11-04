@@ -27,6 +27,8 @@ interface Props {
   align?: "start" | "center" | "end";
   /** Added to the panel's class (e.g. popover__panel--menu, a short list) */
   className?: string;
+  /** The panel is a dialog: it needs a name a screen reader can announce */
+  label?: string;
 }
 
 export default function Popover({
@@ -36,6 +38,7 @@ export default function Popover({
   onOpenChange,
   align = "start",
   className,
+  label,
 }: Props) {
   const dialogHost = useDialogHost();
   return (
@@ -47,6 +50,7 @@ export default function Popover({
           className={className ? `popover__panel ${className}` : "popover__panel"}
           // Enter presses the button marked data-enter (a small form's Save).
           onKeyDown={(e) => enterPressesMain(e, e.currentTarget, "[data-enter-foot]")}
+          aria-label={label}
           align={align}
           sideOffset={8}
           collisionPadding={16}

@@ -218,6 +218,7 @@ export function DateField({
     <Popover
       open={open}
       onOpenChange={setOpen}
+      label={label || t.pick}
       trigger={
         <button
           type="button"
