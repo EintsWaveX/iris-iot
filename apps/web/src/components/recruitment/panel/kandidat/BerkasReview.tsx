@@ -13,7 +13,7 @@
  * candidate's PDFs here and corrects their details (Tambah CaAs).
  */
 import { useEffect, useRef, useState } from "react";
-import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import gsap from "gsap";
 import Confirm from "../../../ui/Confirm";
 import Dialog from "../../../ui/Dialog";
@@ -54,6 +54,7 @@ export default function BerkasReview({
   id: id0,
   queue,
   canAdd = false,
+  back,
   onClose,
   onChanged,
 }: {
@@ -63,6 +64,8 @@ export default function BerkasReview({
   queue: CandidateRow[];
   /** hakPenuh: upload the candidate's PDFs and correct their details (Tambah CaAs) */
   canAdd?: boolean;
+  /** Opened from another part of the panel: a button in the header goes back there. */
+  back?: { label: string; go: () => void };
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -185,7 +188,19 @@ export default function BerkasReview({
       onOpenChange={(o) => !o && onClose()}
       title={c?.nama ?? "..."}
       description={c ? p.sheetSub(c.nim, c.kelas ?? "-", String(c.angkatan ?? "-")) : undefined}
-      headerActions={antrean}
+      headerActions={
+        back || antrean ? (
+          <span className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+            {back && (
+              <button type="button" className="btn btn--ghost btn--sm" onClick={back.go}>
+                <ArrowLeftIcon size={16} aria-hidden="true" />
+                <span className="btn__label">{back.label}</span>
+              </button>
+            )}
+            {antrean}
+          </span>
+        ) : undefined
+      }
       storeKey="rec-berkas"
       minWidth={520}
       closeLabel={p.sheetClose}

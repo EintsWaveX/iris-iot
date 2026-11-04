@@ -223,7 +223,7 @@ function MoveDialog({
       }
     >
       {b.sessions.length === 0 ? (
-        <p className="hint">{w.noEvenings}</p>
+        <p className="empty-note">{w.noEvenings}</p>
       ) : (
         <div className="tp-list">
           {b.sessions.map((s) => (
@@ -630,7 +630,7 @@ export default function TimSection({ c }: { c: PanelCtx }) {
       </section>
 
       {b.teams.length === 0 ? (
-        <p className="hint">{w.noTeamYet}</p>
+        <p className="empty-note">{w.noTeamYet}</p>
       ) : (
         <Paged items={b.teams} id="tubes-tim" size={10} noun={NOUN[c.lang].tim} lang={c.lang}>
           {(rowsP) => (
@@ -718,7 +718,7 @@ export default function TimSection({ c }: { c: PanelCtx }) {
         </div>
         <span className="hint">{w.qrNote}</span>
         {b.sessions.length === 0 ? (
-          <p className="hint">{w.noEvenings}</p>
+          <p className="empty-note">{w.noEvenings}</p>
         ) : (
           <div className="tp-wrap panel panel--flush">
             <table className="tp-table">

@@ -67,6 +67,8 @@ import {
 } from "../../../../lib/recruitment/settings";
 import { S2 } from "../../s2Strings";
 import { useUrlState } from "../../../../lib/recruitment/url-state";
+import { giveHandoff } from "../../../../lib/recruitment/panel-handoff";
+import { bukaBagian } from "../../../../lib/recruitment/panel-tab";
 import "../../recruitment-b1.css";
 import "../../recruitment-kandidat.css";
 import "../../recruitment-cutting.css";
@@ -1284,6 +1286,14 @@ export default function CuttingTab({
           locked={dikunci}
           onId={setTerbuka}
           onClose={() => setTerbuka(null)}
+          onKandidat={
+            rights.documents && rights.approve
+              ? () => {
+                  giveHandoff({ cand: terbuka, from: "cutting" });
+                  bukaBagian("kandidat");
+                }
+              : undefined
+          }
           onPropose={set}
           onNote={note}
         />

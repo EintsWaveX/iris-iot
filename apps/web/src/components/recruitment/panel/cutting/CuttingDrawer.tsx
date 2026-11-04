@@ -5,9 +5,9 @@
  * are right here, and Prev / Next (also J / K and the arrow keys) walk the list as it is filtered now.
  */
 import { useEffect, useRef, useState } from "react";
-import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react";
 import Drawer from "../../../ui/Drawer";
-import IconButton from "../../../ui/IconButton";
+import { Stepper } from "../../../ui/Controls";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost, useRecCutDetail } from "../../../../lib/recruitment/client";
 import { reasonsOf, type ReasonKey } from "../../../../lib/recruitment/cutting";
@@ -83,6 +83,7 @@ export default function CuttingDrawer({
   onClose,
   onPropose,
   onNote,
+  onKandidat,
 }: {
   lang: Lang;
   stage: CutStage;
@@ -103,6 +104,8 @@ export default function CuttingDrawer({
   onClose: () => void;
   onPropose: (c: CutRowView, p: Proposal) => void;
   onNote: (c: CutRowView, note: string) => void;
+  /** Set when the viewer may review documents: opens this CaAs in Kandidat, with a way back here. */
+  onKandidat?: () => void;
 }) {
   const t = CW[lang];
   const s2 = S2[lang];
@@ -166,24 +169,27 @@ export default function CuttingDrawer({
       title={c?.nama ?? d?.candidate.nama ?? "..."}
       description={c ? t.sub(c.nim, rank, total) : undefined}
       headerActions={
-        <span className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
-          <span className="hint num cwd__pos">{i >= 0 ? t.pos(i + 1, list.length) : ""}</span>
-          <IconButton
-            icon={CaretLeftIcon}
-            label={t.prev}
-            disabled={i <= 0}
-            onClick={() => go(-1)}
-          />
-          <IconButton
-            icon={CaretRightIcon}
-            label={t.next}
-            disabled={i < 0 || i >= list.length - 1}
-            onClick={() => go(1)}
-          />
-        </span>
+        i >= 0 && list.length > 1 ? (
+          <div className="cwd__nav">
+            <Stepper
+              value={i + 1}
+              min={1}
+              max={list.length}
+              label={t.jump}
+              lessLabel={t.prev}
+              moreLabel={t.next}
+              fmt={(n) => t.pos(n, list.length)}
+              onChange={(n) => {
+                const next = list[n - 1];
+                if (next) onId(next.id);
+              }}
+            />
+          </div>
+        ) : undefined
       }
-      storeKey="rec-cutting"
-      minWidth={520}
+      storeKey="rec-cutting-1-3"
+      compact
+      minWidth={440}
       closeLabel={t.close}
       resizeLabel={t.resize}
       foot={
@@ -266,6 +272,14 @@ export default function CuttingDrawer({
                     {t.reviewedBy(d.candidate.reviewedBy, stamp(d.candidate.reviewedAt, lang))}
                   </span>
                 )}
+                {onKandidat && (
+                  <div>
+                    <button type="button" className="btn btn--inverse btn--sm" onClick={onKandidat}>
+                      <ArrowSquareOutIcon size={16} aria-hidden="true" />
+                      <span className="btn__label">{t.openKand}</span>
+                    </button>
+                  </div>
+                )}
                 {d.files ? (
                   <ul className="cwd__list" aria-label={t.files}>
                     {d.files.map((f) => (
@@ -280,13 +294,13 @@ export default function CuttingDrawer({
                     ))}
                   </ul>
                 ) : (
-                  <span className="hint">{t.noRight}</span>
+                  <p className="empty-note empty-note--sm">{t.noRight}</p>
                 )}
               </Sec>
 
               <Sec title={t.hadir}>
                 {d.attendance.length === 0 ? (
-                  <span className="hint">{t.hadirNone}</span>
+                  <p className="empty-note empty-note--sm">{t.hadirNone}</p>
                 ) : (
                   <ul className="cwd__list">
                     {d.attendance.map((a) => (
@@ -311,7 +325,7 @@ export default function CuttingDrawer({
 
               <Sec title={t.trail}>
                 {d.trail.length === 0 ? (
-                  <span className="hint">{t.trailNone}</span>
+                  <p className="empty-note empty-note--sm">{t.trailNone}</p>
                 ) : (
                   <ul className="cwd__list">
                     {d.trail.map((r) => (
@@ -373,7 +387,7 @@ export default function CuttingDrawer({
 
               <Sec title={t.history}>
                 {d.history.length === 0 ? (
-                  <span className="hint">{t.historyNone}</span>
+                  <p className="empty-note empty-note--sm">{t.historyNone}</p>
                 ) : (
                   <ul className="cwd__list">
                     {d.history.map((h, k) => (
@@ -413,7 +427,7 @@ export default function CuttingDrawer({
                     </button>
                   </div>
                 ) : (
-                  <span className="hint">{t.noEdit}</span>
+                  <p className="empty-note empty-note--sm">{t.noEdit}</p>
                 )}
               </Sec>
 

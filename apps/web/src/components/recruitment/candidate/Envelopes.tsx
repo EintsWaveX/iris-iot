@@ -88,7 +88,7 @@ export function Inbox({
       aside={sealed > 0 ? <Pill tone="warn">{t.sealedBadge(sealed)}</Pill> : undefined}
     >
       {list.length === 0 ? (
-        <span className="hint">{t.empty}</span>
+        <p className="empty-note">{t.empty}</p>
       ) : (
         <ul className="r2inbox__list">
           {list.map((r) => (

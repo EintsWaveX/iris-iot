@@ -1027,8 +1027,12 @@
 .r4rule__g {
   display: grid;
   gap: 14px 24px;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 240px));
   align-items: start;
+}
+.r4rule__g .ctl-stepper {
+  display: flex;
+  width: 100%;
 }
 .r4rule__f {
   font-size: 1.5rem;
@@ -1658,10 +1662,6 @@
 @media (min-width: 1024px) {
 }
 
-.r4rule__g .stepper,
-.r4rule__g label > div {
-  max-width: 200px;
-}
 .r4lane__add {
   grid-area: add;
 }

@@ -38,18 +38,22 @@ interface Props {
   minWidth?: number;
   closeLabel: string;
   resizeLabel: string;
+  /** A third of the screen instead of two thirds: for a drawer that sits beside the page it came from. */
+  compact?: boolean;
 }
 
 /** The narrowest a drawer may be on a desktop screen: two thirds of it. */
-const floorWidth = (min: number): number =>
-  window.innerWidth >= 1024 ? Math.max(min, Math.round(window.innerWidth * 0.667)) : min;
+const floorWidth = (min: number, compact = false): number =>
+  window.innerWidth >= 1024
+    ? Math.max(min, Math.round(window.innerWidth * (compact ? 0.334 : 0.667)))
+    : min;
 
 /** A width the person dragged to, or null for the CSS default. */
-function readWidth(key: string): number | null {
+function readWidth(key: string, compact: boolean): number | null {
   try {
     const v = Number(localStorage.getItem(`iris-drawer-${key}`));
     // A width saved before the two thirds rule would make the drawer narrower than it now may be.
-    return Number.isFinite(v) && v > 0 && v >= floorWidth(0) ? v : null;
+    return Number.isFinite(v) && v > 0 && v >= floorWidth(0, compact) ? v : null;
   } catch {
     return null;
   }
@@ -67,6 +71,7 @@ export default function Drawer({
   minWidth = 360,
   closeLabel,
   resizeLabel,
+  compact = false,
 }: Props) {
   const [width, setWidth] = useState<number | null>(null);
   const panel = useRef<HTMLDivElement | null>(null);
@@ -75,10 +80,10 @@ export default function Drawer({
   if (open && !wasOpen.current) openedFrom.current = document.activeElement as HTMLElement | null;
   wasOpen.current = open;
 
-  useEffect(() => setWidth(readWidth(storeKey)), [storeKey]);
+  useEffect(() => setWidth(readWidth(storeKey, compact)), [storeKey, compact]);
 
   const save = (w: number) => {
-    const low = floorWidth(minWidth);
+    const low = floorWidth(minWidth, compact);
     const max = Math.max(low, window.innerWidth - 240);
     const next = Math.round(Math.min(max, Math.max(low, w)));
     setWidth(next);
@@ -126,6 +131,7 @@ export default function Drawer({
           className="drawer"
           ref={panel}
           tabIndex={-1}
+          data-compact={compact ? "yes" : undefined}
           style={width ? ({ "--drawer-w": `${width}px` } as CSSProperties) : undefined}
           onOpenAutoFocus={(e) => {
             // Land on the panel itself: not the resize grip (its focus ring

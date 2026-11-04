@@ -43,6 +43,12 @@
     width: var(--drawer-w, max(66.7vw, 720px));
   }
 }
+/* A compact drawer (the Cutting candidate) takes a third and leaves the page it was opened from readable beside it (user, 2026-11-04). */
+@media (min-width: 1024px) {
+  .drawer[data-compact="yes"] {
+    width: var(--drawer-w, max(33.4vw, 460px));
+  }
+}
 
 .drawer__grip {
   background: none;

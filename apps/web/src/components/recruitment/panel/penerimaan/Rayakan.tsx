@@ -26,12 +26,28 @@ export default function Rayakan({
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const tutup = useRef<HTMLButtonElement | null>(null);
 
+  const keluar = useRef(onClose);
+  keluar.current = onClose;
+
+  // Focus moves to the close button once, and goes back to whatever opened the
+  // celebration (the button the Panitia pressed) when it closes.
   useEffect(() => {
+    const pembuka = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     tutup.current?.focus();
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", esc);
-    return () => window.removeEventListener("keydown", esc);
-  }, [onClose]);
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") keluar.current();
+      // The close button is the only control, so Tab stays on it.
+      if (e.key === "Tab") {
+        e.preventDefault();
+        tutup.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", key);
+    return () => {
+      window.removeEventListener("keydown", key);
+      if (pembuka?.isConnected) pembuka.focus();
+    };
+  }, []);
 
   useEffect(() => {
     const el = root.current;

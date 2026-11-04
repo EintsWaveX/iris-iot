@@ -158,7 +158,7 @@ export function LinesKeys({ d, set, keyLock, t }: P<"lines">) {
     <div className="stack stack--sm">
       <span className="label-caps">{t.linesKey}</span>
       {code.src.trim() === "" ? (
-        <span className="hint">{t.linesNone}</span>
+        <p className="empty-note empty-note--sm">{t.linesNone}</p>
       ) : (
         <div className="r3kcode" data-lang={code.lang}>
           {toks.map((line, i) => {
@@ -710,7 +710,7 @@ export function FitbKeys({ d, set, keyLock, t }: P<"fitb">) {
   return (
     <div className="stack stack--sm">
       <span className="label-caps">{t.fitbKey}</span>
-      {d.body.blanks.length === 0 && <span className="hint">{t.fitbNone}</span>}
+      {d.body.blanks.length === 0 && <p className="empty-note empty-note--sm">{t.fitbNone}</p>}
       {d.body.blanks.map((b) => {
         const k = keys[b.n] ?? { accept: [] };
         const empty = k.accept.length === 0;

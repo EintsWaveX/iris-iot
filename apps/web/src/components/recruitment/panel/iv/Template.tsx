@@ -37,6 +37,7 @@ import {
 import { IV, STEP, bi } from "./ivStrings";
 import { SK } from "./slotStrings";
 import { TP } from "./templateStrings";
+import { useRevealAdded } from "../../ui/useRevealAdded";
 import "../../recruitment-r4.css";
 
 const toast = (m: string, tone: "ok" | "warn" | "danger" | "info" = "ok") =>
@@ -102,6 +103,8 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
   const [d, setD] = useState<IvTemplate | null>(null);
   const [busy, setBusy] = useState(false);
   const [ed, setEd] = useState<number | null>(null);
+  const qNew = useRevealAdded(d?.questions.length ?? 0);
+  const pNew = useRevealAdded(d?.params.length ?? 0);
   useEffect(() => {
     if (saved) setD(structuredClone(saved));
   }, [saved]);
@@ -138,6 +141,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
     set.refresh();
   };
   const tambahParam = () => {
+    pNew.ask();
     let n = d.params.length + 1;
     while (d.params.some((x) => x.key === `param${n}`)) n++;
     patch({
@@ -179,6 +183,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
   };
   const tambahQ = () => {
     if (!d.groups.length || !d.params.length) return;
+    qNew.ask();
     let n = d.questions.length + 1;
     while (d.questions.some((q) => q.id === `q${n}`)) n++;
     const last = d.groups[d.groups.length - 1];
@@ -322,9 +327,9 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
             </span>
           )}
         </div>
-        <ul className={mg ? "r4ptl r6ptl" : "r4ptl"}>
+        <ul className={mg ? "r4ptl r6ptl" : "r4ptl"} ref={pNew.ref}>
           {d.params.map((x, i) => (
-            <li key={x.key} className={mg ? "r6ptl__r" : undefined}>
+            <li key={x.key} className={mg ? "r6ptl__r" : undefined} data-item="">
               <label className="stack stack--sm">
                 <span className="hint">
                   {p.params.name} {mg && x.example && <Pill tone="warn">{rb.sample}</Pill>}
@@ -569,7 +574,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
           </section>
 
           <div className="panel" style={{ padding: 0 }}>
-            <ol className="r4tpl">
+            <ol className="r4tpl" ref={qNew.ref}>
               {d.questions.map((x, i) => {
                 const g = x.g !== lastG;
                 lastG = x.g;
@@ -578,7 +583,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                 return (
                   <li key={x.id} style={{ display: "contents" }}>
                     {g && <div className="r4tpl__g">{grp ? bi(grp.label, lang) : p.other}</div>}
-                    <div className="r4tpl__r" data-open={ed === i ? "yes" : undefined}>
+                    <div className="r4tpl__r" data-open={ed === i ? "yes" : undefined} data-item="">
                       <div className="r4tpl__row">
                         <span className="num hint">{i + 1}</span>
                         <span className="r4tpl__t">{bi(x.t, lang)}</span>

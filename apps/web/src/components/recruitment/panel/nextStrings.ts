@@ -118,6 +118,8 @@ export const NS = {
     openCutting: "Buka Cutting",
     setDocs: "Atur Berkas",
     inDays: (n: number) => `dalam ${n} hari`,
+    doneLabel: "Sudah beres",
+    doneSub: (v: number, t: number) => `${v} dari ${t} berkas terverifikasi`,
     stages: {
       daftar: "Daftar",
       berkas: "Berkas",
@@ -160,6 +162,8 @@ export const NS = {
     openCutting: "Open Cutting",
     setDocs: "Set Documents",
     inDays: (n: number) => `in ${n} ${n === 1 ? "day" : "days"}`,
+    doneLabel: "Done",
+    doneSub: (v: number, t: number) => `${v} of ${t} files verified`,
     stages: {
       daftar: "Sign-up",
       berkas: "Documents",

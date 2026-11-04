@@ -651,7 +651,7 @@ export default function KumpulSection({ c }: { c: PanelCtx }) {
         </button>
       </section>
       {b.teams.length === 0 ? (
-        <p className="hint">{w.noTeamYet}</p>
+        <p className="empty-note">{w.noTeamYet}</p>
       ) : (
         <>
           <div className="row rec-tools">

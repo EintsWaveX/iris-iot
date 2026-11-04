@@ -239,7 +239,7 @@ export function Amati({
               })}
             </ul>
           ) : (
-            <span className="hint">{m.none}</span>
+            <p className="empty-note empty-note--sm">{m.none}</p>
           )}
         </section>
         {mates.length > 0 && (

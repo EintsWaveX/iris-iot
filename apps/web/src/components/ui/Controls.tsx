@@ -990,7 +990,10 @@ export function Kbd({ children }: { children: ReactNode }) {
 
 /** A number picked with minus and plus (Phase 9 kit, mockup Stepper): a
  *  session's length, a group count, a start window. The ends disable their
- *  button; `fmt` writes the value ("90 menit"). */
+ *  button; `fmt` writes the value ("90 menit"). The number in the middle is a
+ *  field too: click it, type the number you want and press Enter (or leave the
+ *  field), so nobody has to hold the arrows down to get there. Up and Down
+ *  step it, Esc drops what was typed. */
 export function Stepper({
   value,
   onChange,
@@ -1012,10 +1015,27 @@ export function Stepper({
   fmt?: (v: number) => string;
   lessLabel: string;
   moreLabel: string;
-  /** Locked: the value shows but neither button moves it. */
+  /** Locked: the value shows but neither button nor the field moves it. */
   disabled?: boolean;
 }) {
-  const set = (v: number) => onChange(Math.min(max, Math.max(min, v)));
+  const grain = step < 1 ? step : 1;
+  const set = (v: number) => onChange(Math.min(max, Math.max(min, Math.round(v / grain) * grain)));
+  const [draft, setDraft] = useState<string | null>(null);
+  const field = useRef<HTMLInputElement | null>(null);
+  const pickAll = useRef(false);
+  const dropped = useRef(false);
+  useEffect(() => {
+    if (draft !== null && pickAll.current) {
+      pickAll.current = false;
+      field.current?.select();
+    }
+  }, [draft]);
+  const commit = () => {
+    if (draft === null) return;
+    const n = Number.parseFloat(draft.replace(",", "."));
+    setDraft(null);
+    if (Number.isFinite(n)) set(n);
+  };
   return (
     <div className="ctl-stepper" role="group" aria-label={label}>
       <button
@@ -1026,7 +1046,45 @@ export function Stepper({
       >
         <CaretLeftIcon size={18} aria-hidden="true" />
       </button>
-      <output aria-live="polite">{fmt(value)}</output>
+      <input
+        ref={field}
+        type="text"
+        inputMode={grain < 1 ? "decimal" : "numeric"}
+        autoComplete="off"
+        spellCheck={false}
+        aria-label={label}
+        disabled={disabled}
+        value={draft ?? fmt(value)}
+        style={{ width: `${Math.max(5, (draft ?? fmt(value)).length + 1)}ch` }}
+        onFocus={() => {
+          pickAll.current = true;
+          setDraft(String(value));
+        }}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          if (dropped.current) dropped.current = false;
+          else commit();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+            field.current?.select();
+          } else if (e.key === "Escape" && draft !== null) {
+            e.stopPropagation();
+            dropped.current = true;
+            setDraft(null);
+            field.current?.blur();
+          } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            const base = draft === null ? value : Number.parseFloat(draft.replace(",", "."));
+            const next =
+              (Number.isFinite(base) ? base : value) + (e.key === "ArrowUp" ? step : -step);
+            set(next);
+            setDraft(String(Math.min(max, Math.max(min, next))));
+          }
+        }}
+      />
       <button
         type="button"
         aria-label={moreLabel}

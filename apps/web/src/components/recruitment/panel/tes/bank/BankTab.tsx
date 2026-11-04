@@ -223,6 +223,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
             config={config.data}
             onBack={() => go({ soal: null })}
             onOpen={(id) => go({ soal: id }, false)}
+            order={rows.filter((r) => r.part === part).map((r) => r.id)}
           />
         ) : view === "config" ? (
           <BankConfig

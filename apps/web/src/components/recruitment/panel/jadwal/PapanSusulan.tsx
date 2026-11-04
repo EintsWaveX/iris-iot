@@ -189,7 +189,7 @@ function PlaceDialog({
       }
     >
       {slots.length === 0 ? (
-        <span className="hint">{w.noSlots}</span>
+        <p className="empty-note">{w.noSlots}</p>
       ) : (
         <div className="stack stack--sm">
           {slots.map((s) => (
@@ -328,7 +328,7 @@ export default function PapanSusulan({
               {d.deadline && <span className="hint">{w.due(whenOf(d.deadline, lang))}</span>}
             </>
           ) : (
-            <span className="hint">{w.noDay}</span>
+            <p className="empty-note empty-note--sm">{w.noDay}</p>
           )}
         </div>
         <span className="row" style={{ gap: 6, flexWrap: "wrap" }}>

@@ -666,6 +666,14 @@ samp {
   text-align: center;
 }
 
+/* The same box, smaller: for a list inside a card, a drawer section or a table cell. */
+.empty-note--sm {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
 /* ------------------------------------------------------ entrance motion */
 
 :root:not([data-motion-tier="0"]) .rise {

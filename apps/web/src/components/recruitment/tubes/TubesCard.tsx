@@ -601,7 +601,7 @@ function EveningDialog({
       }
     >
       {d.sessions.length === 0 ? (
-        <p className="hint">{t.noEvenings}</p>
+        <p className="empty-note">{t.noEvenings}</p>
       ) : (
         <div className="tb-eves" role="radiogroup" aria-label={t.eveningTitle}>
           {d.sessions.map((s) => (
@@ -1047,7 +1047,7 @@ function TurnCard({ lang, d }: { lang: Lang; d: TubesMine }) {
           </span>
         </div>
       ) : (
-        <p className="hint">{t.turnNone}</p>
+        <p className="empty-note">{t.turnNone}</p>
       )}
     </Section>
   );

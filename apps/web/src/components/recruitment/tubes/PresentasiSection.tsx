@@ -255,7 +255,7 @@ function TableCard({
         </span>
       </div>
       {t.teamIds.length === 0 ? (
-        <p className="hint">{w.emptyTable}</p>
+        <p className="empty-note">{w.emptyTable}</p>
       ) : (
         <ul className="tp-turns">
           {t.teamIds.map((id, i) => {
@@ -415,7 +415,7 @@ function Urutan({ c, rights }: { c: PanelCtx; rights: RecRights | null }) {
         </section>
       </div>
       {b.tables.length === 0 ? (
-        <p className="hint">{w.noTables}</p>
+        <p className="empty-note">{w.noTables}</p>
       ) : (
         <div className="tp-order">
           {b.tables.map((t) => (

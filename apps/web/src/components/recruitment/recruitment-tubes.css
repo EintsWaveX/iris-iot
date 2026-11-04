@@ -642,7 +642,9 @@
   gap: 12px 22px;
 }
 .tp-fmt .ctl-stepper {
-  max-width: 200px;
+  display: flex;
+  max-width: 100%;
+  width: 280px;
 }
 .tp-fmt__p {
   align-items: center;
@@ -741,30 +743,37 @@
 .panel.tp-close {
   align-items: center;
   display: flex;
-  gap: 14px;
+  flex-direction: column;
+  gap: 10px;
+  padding-block: 22px;
+  text-align: center;
 }
 .tp-close > .stack {
-  flex: 1 1 0;
+  align-items: center;
+  flex: none;
+  max-width: 62ch;
   min-width: 0;
+}
+.tp-close > .stack > b {
+  font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem);
+  line-height: 1.2;
+}
+.tp-close > .stack > .hint {
+  font-size: 0.95rem;
 }
 .tp-close > .btn {
   flex: none;
 }
-@media (max-width: 900px) {
-  .panel.tp-close {
-    flex-wrap: wrap;
-  }
-}
 .tp-close__ic {
   align-items: center;
   background: var(--accent-soft);
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--accent-bright);
   display: grid;
   flex: none;
-  height: 42px;
+  height: 52px;
   place-items: center;
-  width: 42px;
+  width: 52px;
 }
 .tp-close[data-closed="yes"] .tp-close__ic {
   background: var(--danger-soft);

@@ -74,7 +74,7 @@
   color: var(--n7-ok);
 }
 .n7-cutrow {
-  align-items: start;
+  align-items: stretch;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
@@ -86,7 +86,13 @@
 }
 .n7-cutline {
   border-top: 3px solid var(--tc);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+}
+/* the card is as tall as its neighbour: the action row sits at the bottom, not floating mid-card */
+.n7-cutline > :last-child {
+  margin-top: auto;
 }
 .n7-cutline .panel__title {
   font-size: 1.2rem;
@@ -477,9 +483,16 @@
   gap: 20px;
   min-width: 0;
 }
-.cwd__pos {
-  align-self: center;
-  margin-right: 4px;
+.cwd__nav .ctl-stepper {
+  min-height: 40px;
+}
+.cwd__nav .ctl-stepper button {
+  min-height: 40px;
+  width: 40px;
+}
+.cwd__nav .ctl-stepper input {
+  min-height: 40px;
+  min-width: 84px;
 }
 .cwd__keys {
   display: none;

@@ -248,7 +248,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
                 <div className="r2proj__recent" aria-live="polite">
                   <span className="r2proj__eyebrow">{t.luar.recent}</span>
                   {!adaSheet ? (
-                    <span className="hint">{t.luar.recentNoSheet}</span>
+                    <p className="empty-note empty-note--sm">{t.luar.recentNoSheet}</p>
                   ) : terbaru.data && terbaru.data.scans.length > 0 ? (
                     <ol>
                       {terbaru.data.scans.map((x, i) => (
@@ -262,7 +262,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
                       ))}
                     </ol>
                   ) : terbaru.data ? (
-                    <span className="hint">{t.luar.recentNone}</span>
+                    <p className="empty-note empty-note--sm">{t.luar.recentNone}</p>
                   ) : terbaru.errors > 0 ? (
                     <span className="hint">{t.luar.recentFail}</span>
                   ) : (

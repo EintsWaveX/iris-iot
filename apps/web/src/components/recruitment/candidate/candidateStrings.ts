@@ -101,7 +101,8 @@ export const CP = dict({
       pick: "Pilih Jadwal",
       jadwalTitle: "Jadwalku",
       jadwalDesc: "Pilih slot, lihat pilihanmu, atau minta ganti.",
-      jadwalNone: "Belum ada jadwal yang bisa kamu pilih sekarang.",
+      jadwalNone:
+        "Belum ada jadwal yang bisa dipilih. Slot muncul di sini setelah kamu lolos satu tahap dan membuka amplopnya.",
       amplopTitle: "Amplop",
     },
     withdraw: {
@@ -215,7 +216,8 @@ export const CP = dict({
       pick: "Pick a Slot",
       jadwalTitle: "My Schedule",
       jadwalDesc: "Pick a slot, see your choice, or ask to change it.",
-      jadwalNone: "No slot is open for you to pick right now.",
+      jadwalNone:
+        "No slot to pick yet. Slots show up here once you pass a stage and open its envelope.",
       amplopTitle: "Envelopes",
     },
     withdraw: {

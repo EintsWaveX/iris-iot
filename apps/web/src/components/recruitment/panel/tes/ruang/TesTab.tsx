@@ -701,7 +701,7 @@ function Daftar({
                 })}
             </div>
           ) : (
-            <span className="hint">{m.noSlotTonight}</span>
+            <p className="empty-note empty-note--sm">{m.noSlotTonight}</p>
           )}
         </Dialog>
       )}
