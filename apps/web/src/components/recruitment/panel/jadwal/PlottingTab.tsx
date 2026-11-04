@@ -200,7 +200,7 @@ function SlotTab({
   // Past its close time: the window only offers to open again, not to extend or close.
   const tutup = !!w && !w.open && !!sudahBuka;
 
-  const tiny = (jam: string) => jam.replace(":", ".");
+  const tiny = (jam: string) => (lang === "id" ? jam.replace(":", ".") : jam);
   const sampai = lang === "id" ? "sampai" : lang === "zh" ? "至" : "to";
   const kartuHari = (d: string, judul: string, eventId?: number, susulan?: boolean) => {
     const di = data.slots.filter((s) => wib(s.startsAt).tanggal === d);
