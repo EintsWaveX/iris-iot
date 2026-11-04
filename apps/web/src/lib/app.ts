@@ -311,16 +311,22 @@ export function useSessionNow(enabled = true) {
  *  shape, and since Stage 8 every table must carry its Mandarin half (a
  *  missing one fails the type check). Each table is also kept in a list so
  *  the zh check test can read them all. */
-const TABLES: { id: unknown; en: unknown; zh: unknown }[] = [];
+type Table = { id: unknown; en: unknown; zh: unknown };
+/** Held on globalThis, not in a module variable: a string file that calls dict() while the
+ *  bundler is still evaluating this module (code splitting can order it that way) must not
+ *  find the list missing. */
+function tables(): Table[] {
+  return ((globalThis as { __irisDictTables?: Table[] }).__irisDictTables ??= []);
+}
 
 export function dict<T>(d: { id: T; en: T; zh: T }): Record<Lang, T> {
-  TABLES.push(d);
+  tables().push(d);
   return { id: d.id, en: d.en, zh: d.zh };
 }
 
 /** Every table dict() has built so far in this process (for tests). */
 export function dictTables(): readonly { id: unknown; en: unknown; zh: unknown }[] {
-  return TABLES;
+  return tables();
 }
 
 export function pageLang(): Lang {
