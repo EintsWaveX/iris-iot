@@ -472,6 +472,27 @@ export const S2 = dict({
         "Acaranya belum mulai. QR IRIS baru muncul begitu acaranya jalan. Pilihan QR bisa kamu atur dari sekarang lewat ikon pengaturan di atas.",
       soonHintLuar:
         "Acaranya belum mulai. QR ini sudah bisa dibagikan, dan daftar yang terakhir scan terisi begitu ada yang mengisi form.",
+      lobby: "Yang Sudah Hadir",
+      lobbyEmpty: "Belum ada yang scan. Namamu muncul di sini begitu kamu hadir.",
+      lobbySoon: "Yang sudah scan muncul di sini begitu acaranya mulai.",
+      tickIris: (acara: string, host: string) => [
+        `Selamat datang di ${acara}!`,
+        "Scan QR di layar pakai kamera HP, lalu masuk dengan akun oprec.",
+        `Kamera tidak mau? Buka ${host}/recruitment/hadir dan ketik kodenya.`,
+        "Kodenya berganti tiap 20 detik, jadi pakai yang sedang tampil.",
+        "Sudah hadir? Namamu muncul di layar ini.",
+        "Ada kendala? Tanya Panitia yang ada di dekatmu.",
+      ],
+      tickLuar: (acara: string) => [
+        `Selamat datang di ${acara}!`,
+        "Scan QR di layar pakai kamera HP, lalu isi form-nya.",
+        "Ada kendala? Tanya Panitia yang ada di dekatmu.",
+      ],
+      tickSoon: (acara: string) => [
+        `${acara} sebentar lagi mulai.`,
+        "QR muncul di layar ini begitu acaranya jalan.",
+        "Siapkan HP dan akun oprec kamu.",
+      ],
       luar: {
         settings: "Atur QR",
         title: "QR Absensi",
@@ -1038,6 +1059,27 @@ export const S2 = dict({
         "The event hasn't started. The IRIS QR appears once it runs. You can set up the QR now with the settings icon above.",
       soonHintLuar:
         "The event hasn't started. This QR can already be shared, and the latest scans fill in once people submit the form.",
+      lobby: "Here Already",
+      lobbyEmpty: "Nobody has scanned yet. Your name shows up here as soon as you're in.",
+      lobbySoon: "Whoever scans shows up here once the event starts.",
+      tickIris: (acara: string, host: string) => [
+        `Welcome to ${acara}!`,
+        "Scan the QR on the screen with your phone camera, then sign in with your oprec account.",
+        `Camera won't scan? Open ${host}/recruitment/hadir and type the code.`,
+        "The code changes every 20 seconds, so use the one on screen.",
+        "Already in? Your name shows up on this screen.",
+        "Stuck? Ask a committee member near you.",
+      ],
+      tickLuar: (acara: string) => [
+        `Welcome to ${acara}!`,
+        "Scan the QR on the screen with your phone camera, then fill in the form.",
+        "Stuck? Ask a committee member near you.",
+      ],
+      tickSoon: (acara: string) => [
+        `${acara} starts soon.`,
+        "The QR shows up on this screen once the event is running.",
+        "Get your phone and oprec account ready.",
+      ],
       luar: {
         settings: "Set QR",
         title: "Attendance QR",
@@ -1583,6 +1625,27 @@ export const S2 = dict({
       soonHint:
         "活动还没开始。IRIS 二维码会在活动开始后出现。现在就可以用上方的设置图标准备二维码。",
       soonHintLuar: "活动还没开始。这个二维码现在就可以分享，有人提交表单后最近扫码的名单会出现。",
+      lobby: "已到场",
+      lobbyEmpty: "还没有人扫码。你到场后名字会出现在这里。",
+      lobbySoon: "活动开始后，扫码的人会出现在这里。",
+      tickIris: (acara: string, host: string) => [
+        `欢迎来到${acara}！`,
+        "用手机相机扫描屏幕上的二维码，然后用 oprec 账号登录。",
+        `相机扫不了？打开 ${host}/recruitment/hadir 并输入代码。`,
+        "代码每 20 秒更换一次，请使用屏幕上当前的代码。",
+        "已到场？你的名字会显示在这个屏幕上。",
+        "遇到问题？请询问身边的委员会成员。",
+      ],
+      tickLuar: (acara: string) => [
+        `欢迎来到${acara}！`,
+        "用手机相机扫描屏幕上的二维码，然后填写表单。",
+        "遇到问题？请询问身边的委员会成员。",
+      ],
+      tickSoon: (acara: string) => [
+        `${acara}即将开始。`,
+        "活动开始后，二维码会出现在这个屏幕上。",
+        "请准备好手机和 oprec 账号。",
+      ],
       luar: {
         settings: "设置二维码",
         title: "签到二维码",

@@ -2,8 +2,9 @@
  * /recruitment/qr, the projector view (06, PRD 6 Attendance QR, mockup
  * r2-qr): no navbar, made for a wall. A QR that changes every 20 seconds, the
  * event, a count that rolls and one dot per candidate expected, lit as they
- * arrive. Nobody's name is on the wall; six characters under the QR serve a
- * phone whose camera will not scan. The token comes from the server for the
+ * arrive, and a lobby with the full name of each CaAs who has checked in (the
+ * attendance keepers' screen only; the user chose full names, 4 Nov). Six
+ * characters under the QR serve a phone whose camera will not scan. The token comes from the server for the
  * current period (qr-token, the attendance right); the count follows the
  * reccandidates topic, so nothing here polls for it.
  */
@@ -19,6 +20,7 @@ import type { Lang } from "../../../lib/kelas";
 import {
   isFail,
   recGet,
+  useRecAttendance,
   useRecEdition,
   useRecQrEvents,
   useRecQrRecent,
@@ -33,6 +35,7 @@ import { useRevealMotion } from "../reveal/fx";
 import { Roll } from "../candidate/PilihJadwal";
 import { REC } from "../recruitmentStrings";
 import QrAtur from "./QrAtur";
+import { Lobby, Stars, Ticker } from "./QrWallFx";
 import Skeleton from "../../ui/Skeleton";
 
 function qrSvg(text: string): string {
@@ -74,6 +77,8 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const selisih = useRef(0);
   const [baru, setBaru] = useState<number | null>(null);
   const [atur, setAtur] = useState(false);
+  /** counts up on every new check-in; each step plays one rainbow pulse around the QR */
+  const [pulse, setPulse] = useState(0);
 
   const daftar = events.data?.events ?? [];
   const aktif = daftar.find((e) => e.id === pilih) ?? daftar[0] ?? null;
@@ -85,6 +90,9 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const linkLuar = luar ? aktif.qr.link : "";
   const adaSheet = luar && aktif.qr.sheet !== "";
   const terbaru = useRecQrRecent(eventId, izin && adaSheet);
+  // The lobby lists who has checked in (the attendance keepers only; an outside PJ sees the count)
+  const bisaDaftar = edisi.data?.rights?.attendance === true;
+  const kehadiran = useRecAttendance(eventId, izin && bisaDaftar && !luar && !belum);
 
   // The token for the current period: fetched now, and again as the period ends.
   useEffect(() => {
@@ -145,7 +153,10 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const hadir = aktif?.here ?? tok?.here ?? 0;
   const diharap = aktif?.expected ?? tok?.expected ?? 0;
   useEffect(() => {
-    if (hadir > prevHere.current && prevHere.current > 0) setBaru(hadir - 1);
+    if (hadir > prevHere.current && prevHere.current > 0) {
+      setBaru(hadir - 1);
+      setPulse((p) => p + 1);
+    }
     prevHere.current = hadir;
   }, [hadir]);
 
@@ -173,7 +184,12 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const kode = tok?.code ?? "";
   const titik = Math.min(Math.max(diharap, 0), 160);
   return (
-    <div className="r2proj" data-still={motion === "full" ? "no" : "yes"}>
+    <div
+      className="r2proj"
+      data-still={motion === "full" ? "no" : "yes"}
+      data-calm={motion === "reduce" ? "yes" : "no"}
+    >
+      {motion !== "reduce" && <Stars />}
       <div className="r2proj__top">
         <img src="/brand/iris-logo-mark.png" alt={t.logoAlt} width="198" height="90" />
         <span className="r2proj__ev">{REC[lang].eyebrow}</span>
@@ -227,6 +243,9 @@ export default function QrWall({ lang }: { lang: Lang }) {
               <div className="r2proj__qr r2proj__qr--wait">
                 <span>{t.soon}</span>
               </div>
+            )}
+            {pulse > 0 && motion !== "reduce" && !luar && !belum && (
+              <span key={pulse} className="r2proj__pulse" aria-hidden="true" />
             )}
             {!luar && !belum && (
               <svg className="r2proj__ring" viewBox="0 0 100 100" aria-hidden="true">
@@ -309,6 +328,26 @@ export default function QrWall({ lang }: { lang: Lang }) {
             )}
           </div>
         </div>
+      )}
+      {aktif && !luar && (belum || bisaDaftar) && (
+        <Lobby
+          title={t.lobby}
+          empty={belum ? t.lobbySoon : t.lobbyEmpty}
+          rows={belum ? null : (kehadiran.data?.rows ?? null)}
+          waiting={belum}
+        />
+      )}
+      {aktif && (
+        <Ticker
+          still={motion === "reduce"}
+          lines={
+            luar
+              ? t.tickLuar(judulAcara(aktif, lang))
+              : belum
+                ? t.tickSoon(judulAcara(aktif, lang))
+                : t.tickIris(judulAcara(aktif, lang), location.host)
+          }
+        />
       )}
       {aktif && (
         <QrAtur
