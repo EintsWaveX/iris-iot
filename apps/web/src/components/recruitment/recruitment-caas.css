@@ -150,7 +150,7 @@
   margin: 0;
 }
 .b3-toolwrap__cap b {
-  font-size: 0.74rem;
+  font-size: max(11px, 0.74rem);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }

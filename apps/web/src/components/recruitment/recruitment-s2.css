@@ -98,7 +98,7 @@
   padding: 12px 14px 12px 20px;
 }
 .r2stage__eyebrow {
-  font-size: 0.76rem;
+  font-size: max(11px, 0.76rem);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -226,7 +226,7 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 .r2env__peek {
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -394,7 +394,7 @@
   padding: 26px 24px 22px;
 }
 .r2res__eyebrow {
-  font-size: 0.76rem;
+  font-size: max(11px, 0.76rem);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -986,7 +986,7 @@
   color: #111;
 }
 .r2paper__s {
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   color: #6a6a6a;
 }
 .r2paper__rule {
@@ -994,14 +994,14 @@
   margin: 4px 0;
 }
 .r2paper__k {
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: #8a6d2b;
   margin-top: 6px;
 }
 .r2paper__p {
-  font-size: 0.76rem;
+  font-size: max(11px, 0.76rem);
   line-height: 1.45;
 }
 .r2paper__l {
@@ -1116,7 +1116,7 @@
   height: 20px;
   padding: 0 5px;
   border-radius: 5px;
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   background: var(--ok-soft);
@@ -1657,7 +1657,7 @@ li.r2cutline {
 }
 .r2chip__via {
   flex: none;
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   font-weight: 700;
   padding: 2px 7px;
   border-radius: var(--radius-pill);

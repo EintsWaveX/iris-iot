@@ -52,7 +52,7 @@
   vertical-align: middle;
 }
 .sc-table th {
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -87,7 +87,7 @@
   content: " \2191";
 }
 .sc-flag {
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   color: var(--text-muted);
   max-width: 34ch;
 }

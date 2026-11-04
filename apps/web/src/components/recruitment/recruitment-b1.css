@@ -223,7 +223,7 @@
   color: var(--text-muted);
 }
 .b1-fun__s {
-  font-size: 0.74rem;
+  font-size: max(11px, 0.74rem);
   line-height: 1.2;
 }
 .b1-fun__det {
@@ -532,7 +532,7 @@
 }
 .rec9-board .rec-pp__code {
   background: color-mix(in srgb, var(--a) 14%, var(--surface-4));
-  font-size: 0.74rem;
+  font-size: max(11px, 0.74rem);
   padding: 2px 6px;
 }
 .rec9-board .rec-pp > .stack {
@@ -549,7 +549,7 @@
   white-space: normal;
 }
 .rec9-board .rec-pp .hint {
-  font-size: 0.74rem;
+  font-size: max(11px, 0.74rem);
   line-height: 1.2;
 }
 .rec9-board .rec-pp[data-koor] {

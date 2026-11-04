@@ -34,7 +34,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   font-weight: 800;
   background: var(--surface-4, var(--surface-3, var(--surface-2)));
 }
@@ -424,7 +424,7 @@
 }
 .r8vd {
   color: var(--n7-ok);
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   font-weight: 700;
 }
 .r8vd[data-v="ragu"] {
@@ -444,7 +444,7 @@
   border: 1px solid transparent;
   border-radius: 999px;
   display: inline-flex;
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   font-weight: 650;
   gap: 5px;
   min-height: 24px;

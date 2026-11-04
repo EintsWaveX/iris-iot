@@ -364,7 +364,7 @@
     color 200ms ease;
 }
 .r3timer small {
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -864,7 +864,7 @@
   border-radius: var(--radius-pill);
   background: var(--surface-3);
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   font-weight: 700;
   white-space: nowrap;
 }

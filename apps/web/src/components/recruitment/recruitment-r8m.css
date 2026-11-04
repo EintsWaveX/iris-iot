@@ -257,7 +257,7 @@
   gap: 2px;
 }
 .r8-vd {
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   font-weight: 700;
   color: var(--n7-ok);
 }
@@ -277,7 +277,7 @@
   min-height: 24px;
   padding: 0 9px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   font-weight: 650;
   border: 1px solid transparent;
 }
@@ -710,7 +710,7 @@
   background: var(--accent-soft);
 }
 .r8-log .hint.mono {
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   word-break: break-word;
 }
 .r8-next {
@@ -808,7 +808,7 @@
 .r8-tl span {
   position: absolute;
   top: 14px;
-  font-size: 0.78rem;
+  font-size: max(11px, 0.78rem);
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -1025,7 +1025,7 @@
   padding: 12px 14px 12px 20px;
 }
 .r8fx__tag {
-  font-size: 0.76rem;
+  font-size: max(11px, 0.76rem);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;

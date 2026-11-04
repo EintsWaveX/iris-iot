@@ -738,7 +738,7 @@
   background: var(--surface-3);
   border-radius: 50%;
   display: grid;
-  font-size: 0.72rem;
+  font-size: max(11px, 0.72rem);
   height: 22px;
   place-items: center;
   width: 22px;
