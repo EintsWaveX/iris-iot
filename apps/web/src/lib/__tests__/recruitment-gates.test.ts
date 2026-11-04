@@ -17,6 +17,9 @@ import {
   tanggalWib,
   visibleEvents,
   eventSegera,
+  absensiAkhir,
+  absensiBuka,
+  absensiBukaJam,
 } from "../recruitment/gates";
 import type { RecEvent } from "../recruitment/types";
 
@@ -250,5 +253,53 @@ describe("eventSegera (the Asisten's lead days)", () => {
   it("stays open while it runs and closes once it ends", () => {
     expect(eventSegera(ev, at("2026-11-06T12:00:00Z"))).toBe(true); // 19:00 WIB, running
     expect(eventSegera(ev, at("2026-11-06T14:00:00Z"))).toBe(false); // 21:00 WIB, over
+  });
+});
+
+describe("attendance at the end of a gathering (the user, 4 Nov 2026)", () => {
+  const meet = {
+    kind: "meeting",
+    gates: ["qr"],
+    internal: false,
+    startsOn: "2026-11-06",
+    endsOn: "2026-11-06",
+    dayStart: "18:30",
+    dayEnd: "21:00",
+  } as RecEvent;
+  const exam = { ...meet, kind: "test", gates: ["exam"] } as RecEvent;
+  const at = (hhmm: string) => wib(`2026-11-06T${hhmm}:00`);
+
+  it("applies to gatherings only: meeting and presentation, not exams, interviews or teaching", () => {
+    expect(absensiAkhir(meet)).toBe(true);
+    expect(absensiAkhir({ ...meet, kind: "presentation" } as RecEvent)).toBe(true);
+    for (const kind of ["test", "interview", "teaching", "makeup", "work"])
+      expect(absensiAkhir({ ...meet, kind } as RecEvent)).toBe(false);
+    expect(absensiAkhir({ ...meet, internal: true } as RecEvent)).toBe(false);
+  });
+  it("opens 30 minutes before the window ends", () => {
+    expect(absensiBukaJam(meet)).toBe("20:30");
+    expect(absensiBukaJam({ dayEnd: "00:10" })).toBe("00:00");
+    expect(absensiBukaJam({ dayEnd: null })).toBeNull();
+  });
+  it("does not count at the start, counts in the last 30 minutes, not after the end", () => {
+    expect(absensiBuka(meet, at("18:30"), false)).toBe(false);
+    expect(absensiBuka(meet, at("20:29"), false)).toBe(false);
+    expect(absensiBuka(meet, at("20:30"), false)).toBe(true);
+    expect(absensiBuka(meet, at("20:59"), false)).toBe(true);
+    expect(absensiBuka(meet, at("21:00"), false)).toBe(false);
+    expect(absensiBuka(meet, wib("2026-11-06T17:00:00"), false)).toBe(false);
+  });
+  it("counts at once when Panitia open it by hand, but only while the event runs", () => {
+    expect(absensiBuka(meet, at("18:31"), true)).toBe(true);
+    expect(absensiBuka(meet, at("17:59"), true)).toBe(false);
+    expect(absensiBuka(meet, at("21:00"), true)).toBe(false);
+  });
+  it("leaves other events as they were: they count the whole time they run", () => {
+    expect(absensiBuka(exam, at("18:31"), false)).toBe(true);
+    expect(absensiBuka(exam, at("21:00"), false)).toBe(false);
+  });
+  it("a gathering without a daily window counts all day", () => {
+    const allDay = { ...meet, dayStart: null, dayEnd: null } as RecEvent;
+    expect(absensiBuka(allDay, at("08:00"), false)).toBe(true);
   });
 });

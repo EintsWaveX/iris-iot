@@ -66,8 +66,11 @@ export default function QrAtur({
     if (mode === "luar" && !sheetOk) return setSalah(t.errSheet);
     const lama = settings.data?.settings.find((s) => s.key === "qr")?.value as QrMap | undefined;
     const peta: QrMap = { ...(lama ?? QR_DEFAULT) };
-    if (mode === "iris") delete peta[String(eventId)];
-    else peta[String(eventId)] = { mode, link: linkOk ?? "", sheet: sheet.trim() };
+    // A hand-opened attendance (buka) survives a change of QR
+    const buka = peta[String(eventId)]?.buka === true ? { buka: true } : {};
+    if (mode === "iris" && !buka.buka) delete peta[String(eventId)];
+    else if (mode === "iris") peta[String(eventId)] = { mode, link: "", sheet: "", ...buka };
+    else peta[String(eventId)] = { mode, link: linkOk ?? "", sheet: sheet.trim(), ...buka };
     setSibuk(true);
     const r = await recPost<{ ok: true }>("setting-save", { key: "qr", value: peta });
     setSibuk(false);

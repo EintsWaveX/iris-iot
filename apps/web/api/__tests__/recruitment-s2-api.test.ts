@@ -666,7 +666,8 @@ describe("the envelope never shows early", () => {
 });
 
 describe("QR attendance", () => {
-  const malam = () => pada("2026-11-12T19:00:00");
+  // First Meet takes its attendance in the closing 30 minutes (20:30 to 21:00), so the evening is 20:40
+  const malam = () => pada("2026-11-12T20:40:00");
   const lolosBerkas = () => {
     sebagaiPraktikan();
     rows.candidate = [KANDIDAT()];
@@ -701,6 +702,27 @@ describe("QR attendance", () => {
     });
   });
 
+  it("turns a scan away at the start of a gathering and says when attendance opens", async () => {
+    pada("2026-11-12T19:00:00");
+    lolosBerkas();
+    const r = await panggil("POST", "attend", { body: { token: tokenKini() } });
+    expect(r.code).toBe(409);
+    expect(r.body).toMatchObject({ ok: false, kode: "absensi_belum", opensAt: "20:30" });
+    expect(tulis.find((w) => w.tabel === "attendance")).toBeUndefined();
+  });
+
+  it("gives the wall no token before the closing window, and one once it opens", async () => {
+    panitia("acara");
+    rows.candidate = [];
+    pada("2026-11-12T19:00:00");
+    const awal = await panggil("GET", "qr-token", { query: { event: String(FIRST_MEET) } });
+    expect(awal.code).toBe(409);
+    expect(awal.body).toMatchObject({ kode: "absensi_belum", opensAt: "20:30" });
+    pada("2026-11-12T20:30:00");
+    const buka = await panggil("GET", "qr-token", { query: { event: String(FIRST_MEET) } });
+    expect(buka.body).toMatchObject({ ok: true });
+  });
+
   it("answers sudah for a second scan and writes nothing more", async () => {
     malam();
     lolosBerkas();
@@ -723,8 +745,8 @@ describe("QR attendance", () => {
   });
 
   it("refuses the code just replaced once the first 5 seconds of the next period are gone", async () => {
-    // 19:00:05 is 5 s into a period: the wall moved on 5 s ago.
-    pada("2026-11-12T19:00:05");
+    // 20:40:05 is 5 s into a period: the wall moved on 5 s ago.
+    pada("2026-11-12T20:40:05");
     lolosBerkas();
     const p = periodAt(Date.now());
     const lama = await panggil("POST", "attend", { body: { token: buatToken(FIRST_MEET, p - 1) } });
@@ -735,14 +757,14 @@ describe("QR attendance", () => {
       "qr_berganti",
     );
     expect(tulis.some((w) => w.tabel === "attendance")).toBe(false);
-    pada("2026-11-12T19:00:04.900");
+    pada("2026-11-12T20:40:04.900");
     expect(
       (await panggil("POST", "attend", { body: { token: buatToken(FIRST_MEET, p - 1) } })).body.ok,
     ).toBe(true);
   });
 
   it("tells the wall the server's time, so a wrong clock on the projector cannot shift the swap", async () => {
-    pada("2026-11-12T19:00:07");
+    pada("2026-11-12T20:40:07");
     panitia("acara");
     rows.candidate = [];
     const r = await panggil("GET", "qr-token", { query: { event: String(FIRST_MEET) } });

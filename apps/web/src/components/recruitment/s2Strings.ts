@@ -472,6 +472,34 @@ export const S2 = dict({
         "Acaranya belum mulai. QR IRIS baru muncul begitu acaranya jalan. Pilihan QR bisa kamu atur dari sekarang lewat ikon pengaturan di atas.",
       soonHintLuar:
         "Acaranya belum mulai. QR ini sudah bisa dibagikan, dan daftar yang terakhir scan terisi begitu ada yang mengisi form.",
+      waitBox: (jam: string) => `Dibuka ${jam}`,
+      waitTag: "Absensi belum dibuka",
+      waitHint: (jam: string | null) =>
+        jam
+          ? `Acaranya sedang berlangsung. Absensi dibuka jam ${jam}, 30 menit sebelum acara selesai. QR dan kodenya baru muncul di layar ini saat itu.`
+          : "Acaranya sedang berlangsung. Absensi dibuka menjelang acara selesai.",
+      soonHintAkhir: (jam: string | null) =>
+        jam
+          ? `Acaranya belum mulai. Absensi dibuka jam ${jam}, 30 menit sebelum acara selesai. Pilihan QR bisa kamu atur dari sekarang lewat ikon pengaturan di atas.`
+          : "Acaranya belum mulai. Absensi dibuka menjelang acara selesai. Pilihan QR bisa kamu atur dari sekarang lewat ikon pengaturan di atas.",
+      openNow: "Buka Absensi Sekarang",
+      backToSchedule: "Kembalikan ke jadwal",
+      manualOn: "Absensi dibuka manual oleh Panitia.",
+      openFail: "Belum bisa mengubahnya. Coba lagi.",
+      tickWait: (acara: string, jam: string | null) => [
+        `${acara} sedang berlangsung.`,
+        jam
+          ? `Absensi dibuka jam ${jam}, 30 menit sebelum acara selesai.`
+          : "Absensi dibuka menjelang acara selesai.",
+        "QR-nya muncul di layar ini saat itu. Siapkan HP dan akun oprec kamu.",
+      ],
+      tickSoonAkhir: (acara: string, jam: string | null) => [
+        `${acara} sebentar lagi mulai.`,
+        jam
+          ? `Absensi dibuka jam ${jam}, 30 menit sebelum acara selesai.`
+          : "Absensi dibuka menjelang acara selesai.",
+        "Siapkan HP dan akun oprec kamu.",
+      ],
       lobby: "Yang Sudah Hadir",
       lobbyEmpty: "Belum ada yang scan. Namamu muncul di sini begitu kamu hadir.",
       lobbySoon: "Yang sudah scan muncul di sini begitu acaranya mulai.",
@@ -528,6 +556,7 @@ export const S2 = dict({
         berganti: "QR-nya sudah berganti",
         tahap: "Kamu belum sampai di tahap ini",
         tutup: "Acaranya sedang tidak berlangsung",
+        akhir: "Absensi belum dibuka",
         belum: "Kamu belum terdaftar sebagai kandidat",
         gagal: "Belum bisa mencatat. Coba lagi.",
       },
@@ -542,6 +571,10 @@ export const S2 = dict({
           "Kode di layar berganti tiap 20 detik. Pindai lagi yang sedang tampil, atau ketik kodenya di bawah.",
         tahap: "Absensi ini untuk kandidat yang sudah sampai di tahapnya.",
         tutup: "Absensi hanya dicatat selama acaranya berlangsung.",
+        akhir: (jam: string | null) =>
+          jam
+            ? `Absensi dibuka jam ${jam}, 30 menit sebelum acara selesai. Pindai lagi saat itu.`
+            : "Absensi dibuka menjelang acara selesai. Pindai lagi saat itu.",
         belum: "Daftar dulu lewat halaman Rekrutmen selama pendaftaran dibuka.",
         gagal: "Ada masalah di jaringan. Coba pindai lagi.",
       },
@@ -1059,6 +1092,34 @@ export const S2 = dict({
         "The event hasn't started. The IRIS QR appears once it runs. You can set up the QR now with the settings icon above.",
       soonHintLuar:
         "The event hasn't started. This QR can already be shared, and the latest scans fill in once people submit the form.",
+      waitBox: (jam: string) => `Opens ${jam}`,
+      waitTag: "Attendance not open yet",
+      waitHint: (jam: string | null) =>
+        jam
+          ? `The event is on. Attendance opens at ${jam}, 30 minutes before it ends. The QR and its code show up on this screen then.`
+          : "The event is on. Attendance opens near the end.",
+      soonHintAkhir: (jam: string | null) =>
+        jam
+          ? `The event hasn't started. Attendance opens at ${jam}, 30 minutes before it ends. You can set the QR up from now with the settings icon above.`
+          : "The event hasn't started. Attendance opens near the end. You can set the QR up from now with the settings icon above.",
+      openNow: "Open Attendance Now",
+      backToSchedule: "Back to the schedule",
+      manualOn: "Attendance was opened by hand by Panitia.",
+      openFail: "Couldn't change it. Try again.",
+      tickWait: (acara: string, jam: string | null) => [
+        `${acara} is on.`,
+        jam
+          ? `Attendance opens at ${jam}, 30 minutes before it ends.`
+          : "Attendance opens near the end.",
+        "The QR shows up on this screen then. Get your phone and oprec account ready.",
+      ],
+      tickSoonAkhir: (acara: string, jam: string | null) => [
+        `${acara} starts soon.`,
+        jam
+          ? `Attendance opens at ${jam}, 30 minutes before it ends.`
+          : "Attendance opens near the end.",
+        "Get your phone and oprec account ready.",
+      ],
       lobby: "Here Already",
       lobbyEmpty: "Nobody has scanned yet. Your name shows up here as soon as you're in.",
       lobbySoon: "Whoever scans shows up here once the event starts.",
@@ -1116,6 +1177,7 @@ export const S2 = dict({
         berganti: "That QR has changed",
         tahap: "You haven't reached this stage",
         tutup: "The event isn't running",
+        akhir: "Attendance isn't open yet",
         belum: "You aren't registered as a candidate",
         gagal: "It couldn't be recorded. Try again.",
       },
@@ -1130,6 +1192,10 @@ export const S2 = dict({
           "The code on screen changes every 20 seconds. Scan the one showing now, or type its code below.",
         tahap: "Attendance is for candidates who have reached the stage.",
         tutup: "Attendance only counts while the event runs.",
+        akhir: (jam: string | null) =>
+          jam
+            ? `Attendance opens at ${jam}, 30 minutes before the event ends. Scan again then.`
+            : "Attendance opens near the end of the event. Scan again then.",
         belum: "Register first from the Recruitment page while registration is open.",
         gagal: "There's a network problem. Scan again.",
       },
@@ -1625,6 +1691,30 @@ export const S2 = dict({
       soonHint:
         "活动还没开始。IRIS 二维码会在活动开始后出现。现在就可以用上方的设置图标准备二维码。",
       soonHintLuar: "活动还没开始。这个二维码现在就可以分享，有人提交表单后最近扫码的名单会出现。",
+      waitBox: (jam: string) => `${jam} 开放`,
+      waitTag: "签到尚未开放",
+      waitHint: (jam: string | null) =>
+        jam
+          ? `活动进行中。签到在 ${jam} 开放，即活动结束前 30 分钟。届时二维码和代码会出现在这个屏幕上。`
+          : "活动进行中。签到在活动快结束时开放。",
+      soonHintAkhir: (jam: string | null) =>
+        jam
+          ? `活动还没开始。签到在 ${jam} 开放，即活动结束前 30 分钟。现在就可以用上方的设置图标设置二维码。`
+          : "活动还没开始。签到在活动快结束时开放。现在就可以用上方的设置图标设置二维码。",
+      openNow: "立即开放签到",
+      backToSchedule: "恢复按时间表",
+      manualOn: "签到已由委员会手动开放。",
+      openFail: "暂时无法更改，请再试一次。",
+      tickWait: (acara: string, jam: string | null) => [
+        `${acara}进行中。`,
+        jam ? `签到在 ${jam} 开放，即活动结束前 30 分钟。` : "签到在活动快结束时开放。",
+        "届时二维码会出现在这个屏幕上。请准备好手机和 oprec 账号。",
+      ],
+      tickSoonAkhir: (acara: string, jam: string | null) => [
+        `${acara}即将开始。`,
+        jam ? `签到在 ${jam} 开放，即活动结束前 30 分钟。` : "签到在活动快结束时开放。",
+        "请准备好手机和 oprec 账号。",
+      ],
       lobby: "已到场",
       lobbyEmpty: "还没有人扫码。你到场后名字会出现在这里。",
       lobbySoon: "活动开始后，扫码的人会出现在这里。",
@@ -1677,6 +1767,7 @@ export const S2 = dict({
         berganti: "二维码已经更换",
         tahap: "你还没有进入这个阶段",
         tutup: "活动目前没有进行",
+        akhir: "签到尚未开放",
         belum: "你还没有报名成为候选人",
         gagal: "没能记录，请再试一次。",
       },
@@ -1690,6 +1781,10 @@ export const S2 = dict({
         berganti: "屏幕上的代码每 20 秒更换一次。请扫描现在显示的，或者在下面输入代码。",
         tahap: "签到只对已经进入该阶段的候选人有效。",
         tutup: "只有活动进行时才记录签到。",
+        akhir: (jam: string | null) =>
+          jam
+            ? `签到在 ${jam} 开放，即活动结束前 30 分钟。届时再扫一次。`
+            : "签到在活动快结束时开放。届时再扫一次。",
         belum: "请在报名开放期间先到招募页面报名。",
         gagal: "网络有点问题，请再扫一次。",
       },

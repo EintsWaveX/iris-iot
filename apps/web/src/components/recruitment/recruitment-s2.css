@@ -2483,3 +2483,11 @@ li.r2cutline {
 .r2proj__qrbox:has(.r2proj__qr--wait) {
   background: transparent;
 }
+
+/* A gathering's attendance opened by hand: the note and the way back to the schedule. */
+.r2proj__manual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
