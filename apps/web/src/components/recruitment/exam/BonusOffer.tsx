@@ -32,7 +32,8 @@ export default function BonusOffer({
 }: {
   lang: Lang;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  /** Left out for the written parts: the offer must be answered, it has no way out but its buttons */
+  onOpenChange?: (open: boolean) => void;
   /** Null while the server is still counting */
   quote: BonusQuote | null;
   busy: boolean;
@@ -43,7 +44,8 @@ export default function BonusOffer({
   return (
     <Dialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={onOpenChange ?? (() => undefined)}
+      required={!onOpenChange}
       title={t.title}
       description={quote ? t.desc(quote) : t.counting}
       size="sm"

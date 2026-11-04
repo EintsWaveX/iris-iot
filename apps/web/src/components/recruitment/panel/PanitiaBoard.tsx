@@ -122,7 +122,7 @@ function Kartu({
           title={o.isKoor ? t.board.isKoor : t.board.makeKoor}
           onClick={onStar}
         >
-          <StarIcon size={18} aria-hidden="true" />
+          <StarIcon size={18} weight={o.isKoor ? "fill" : "regular"} aria-hidden="true" />
         </button>
       )}
       {kunci && o.dari === "ketua" && (

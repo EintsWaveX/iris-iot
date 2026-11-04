@@ -487,7 +487,6 @@ function Workbench({
     return () => {
       dead = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fin, canOffer, !!quote]);
 
   // Right after the bonus round was taken, open its first problem

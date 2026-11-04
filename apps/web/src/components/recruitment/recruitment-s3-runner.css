@@ -1743,3 +1743,12 @@ html:has(.r3page:not(.r3page--shell)) {
     opacity: 1;
   }
 }
+
+.r3bonus__bar--locked {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong, var(--hairline));
+}
+.r3bonus__bar--locked svg {
+  animation: none;
+  color: var(--text-muted);
+}

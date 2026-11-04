@@ -56,6 +56,8 @@ export interface BonusInfo {
   count: number;
   /** The seat already took the round */
   taken: boolean;
+  /** The seat asked how many it gets: the dealt questions are locked from then on */
+  quoted: boolean;
   /** The seat needs at least this much time left, ms; 0 means the round is off */
   minLeftMs: number;
 }

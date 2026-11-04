@@ -180,6 +180,10 @@ export const TS = dict({
       cell: "Soal bonus",
       bar: "Soal Bonus: bernilai setengah soal biasa. Kosong atau salah tidak mengurangi.",
       answered: (a: number, n: number) => `Bonus: ${a} dari ${n} terjawab`,
+      locked:
+        "Jawaban soal biasa sudah dikunci. Kamu masih bisa mengerjakan soal bonus atau mengumpulkan.",
+      lockWarn:
+        "Kalau ada soal bonus untukmu, jawaban bagian ini dikunci begitu kamu menekan Kumpulkan, lalu kamu dikasih lihat jatah bonusmu.",
       tally: "bonus terjawab",
     },
     over: {
@@ -372,6 +376,10 @@ export const TS = dict({
       cell: "Bonus question",
       bar: "Bonus Question: worth half a normal one. Blank or wrong takes nothing away.",
       answered: (a: number, n: number) => `Bonus: ${a} of ${n} answered`,
+      locked:
+        "The answers to the normal questions are locked. You can still do the bonus questions or hand in.",
+      lockWarn:
+        "If there are bonus questions for you, this part's answers lock as soon as you press Hand In, and you are shown your bonus count.",
       tally: "bonus answered",
     },
     over: {
@@ -550,6 +558,8 @@ export const TS = dict({
       cell: "加分题",
       bar: "加分题：分值是普通题的一半，空白或答错不扣分。",
       answered: (a: number, n: number) => `加分题：已答 ${a} / ${n}`,
+      locked: "普通题的答案已锁定。你仍可作答加分题或提交。",
+      lockWarn: "如果有适合你的加分题，按下提交后本部分的答案会被锁定，并显示你的加分题数量。",
       tally: "加分题已答",
     },
     over: {

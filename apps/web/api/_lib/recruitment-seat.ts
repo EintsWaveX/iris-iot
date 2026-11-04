@@ -347,7 +347,7 @@ async function bagianKerja(
       );
     count = rest.filter((x) => !baseIds.has(x.id)).length;
   }
-  return { key, items, bonus: { count, taken, minLeftMs }, answers };
+  return { key, items, bonus: { count, taken, quoted: !!entry.lockedAt, minLeftMs }, answers };
 }
 
 type QuestionRow = typeof recQuestion.$inferSelect;
@@ -628,6 +628,10 @@ async function jawab(k: Konteks) {
   if (seat.done[part] != null) return void tolakKursi(res, "sudah_kumpul");
   if (!answerOpen(room.state, seat.id, part, now)) return void tolakKursi(res, "waktu_habis");
   if (sd.voided) return void tolakKursi(res, "soal_batal");
+  // The bonus quote was issued: the dealt questions are final, only bonus questions take answers
+  const dr = seat.draw[part];
+  if (dr?.lockedAt && dr.items.some((i) => i.q === q))
+    return void tolakKursi(res, "jawaban_dikunci");
   if (!checkValue(sd.question, b.value)) return void tolakKursi(res, "nilai_salah");
 
   const value = b.value as Value;
@@ -832,11 +836,49 @@ async function mintaBonus(k: Konteks) {
     new Set(draw.items.map((i) => i.q)),
   );
   if (!all.length) return void tolakKursi(res, "bank_kurang");
-  // How many of the rest this seat earned; they are the first of a seeded shuffle, so random
-  const quote = await kuotaBonus(db, seat, part, run, config, all.length, now);
+  // The first request fixes the quote and locks the dealt answers. Showing how many were right and
+  // wrong while they could still change would let a seat probe the key: ask, change one answer,
+  // ask again. So there is one quote per seat and part, stored, and the answers stop first.
+  let quote = draw.quote;
+  if (!quote) {
+    await db
+      .update(recExamSeat)
+      .set({
+        draw: sql`jsonb_set(${recExamSeat.draw}, ARRAY[${part}, 'lockedAt']::text[], ${String(now)}::jsonb, true)`,
+      })
+      .where(
+        and(
+          eq(recExamSeat.id, seat.id),
+          sql`not jsonb_exists(${recExamSeat.draw} -> ${part}, 'lockedAt')`,
+        ),
+      );
+    const fresh = await kuotaBonus(db, seat, part, run, config, all.length, now);
+    const [saved] = await db
+      .update(recExamSeat)
+      .set({
+        draw: sql`jsonb_set(${recExamSeat.draw}, ARRAY[${part}, 'quote']::text[], ${JSON.stringify(fresh)}::jsonb, true)`,
+      })
+      .where(
+        and(
+          eq(recExamSeat.id, seat.id),
+          sql`not jsonb_exists(${recExamSeat.draw} -> ${part}, 'quote')`,
+        ),
+      )
+      .returning({ id: recExamSeat.id });
+    if (saved) quote = fresh;
+    else {
+      // Another tab fixed it first: that one stands
+      const [again] = await db
+        .select({ draw: recExamSeat.draw })
+        .from(recExamSeat)
+        .where(eq(recExamSeat.id, seat.id))
+        .limit(1);
+      quote = again?.draw[part]?.quote ?? fresh;
+    }
+  }
   if (b.dry === true) return void res.status(200).json({ ok: true, quote });
   if (quote.quota < 1) return void tolakKursi(res, "bonus_kosong", { quote });
-  const items = all.slice(0, quote.quota);
+  const items = all.slice(0, Math.min(quote.quota, all.length));
   // Only the first writer wins: two tabs asking at once end with one bonus list
   await db
     .update(recExamSeat)
