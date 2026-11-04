@@ -443,3 +443,83 @@ int main(void) {
 - [ ] `        a[j] = t;`
 - [x] `        a[j] = a[j + 1];`
 - [ ] `        a[j] = a[j + 1] + 1;`
+
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Kuadrat Tiap Elemen
+sample: true
+status: ready
+bugs: [3]
+---
+Fungsi ini harus mengganti tiap isi array dengan kuadratnya. Klik baris yang salah.
+
+```c
+void kuadrat(int a[], int n) {
+  for (int i = 0; i < n; i++) {
+    a[i] = a[i] + a[i];
+  }
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Angka Terkecil di Array
+sample: true
+status: ready
+bugs: [2]
+---
+Fungsi ini harus mengembalikan angka terkecil di array, termasuk kalau semua angkanya positif. Klik baris yang salah.
+
+```c
+int terkecil(int a[], int n) {
+  int min = 0;
+  for (int i = 0; i < n; i++) {
+    if (a[i] < min) min = a[i];
+  }
+  return min;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Faktorial Rekursif
+sample: true
+status: ready
+bugs: [2]
+---
+Fungsi ini harus mengembalikan n faktorial (`fakt(4)` hasilnya `24`). Klik baris yang salah.
+
+```c
+int fakt(int n) {
+  if (n == 0) return 0;
+  return n * fakt(n - 1);
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Hitung Huruf Besar
+sample: true
+status: ready
+bugs: [4]
+---
+Fungsi ini harus menghitung ada berapa huruf besar (A sampai Z) di sebuah string. Klik baris yang salah.
+
+```c
+int hitungBesar(char s[]) {
+  int n = 0;
+  for (int i = 0; s[i] != '\0'; i++) {
+    if (s[i] >= 'A' || s[i] <= 'Z') n++;
+  }
+  return n;
+}
+```

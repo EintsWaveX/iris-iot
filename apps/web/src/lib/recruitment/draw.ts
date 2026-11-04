@@ -124,6 +124,40 @@ export function drawPart(
     }));
 }
 
+/**
+ * The bonus round of a written part (4 Nov 2026): every ready question the seat was not dealt, in
+ * a seeded shuffle of its own (so it never moves the first draw), each with its own perm.
+ */
+export function drawBonus(
+  seedHex: string,
+  pool: readonly Question[],
+  dealt: ReadonlySet<number>,
+): DrawnItem[] {
+  const rest = pool.filter((q) => !dealt.has(q.id)).sort((a, b) => a.id - b.id);
+  return shuffle(rest, rngFrom(seedHex, "bonus", "c")).map((question) => ({
+    q: question.id,
+    v: question.version,
+    lang: "c" as const,
+    perm: makePerm(question, rngFrom(seedHex, "q", question.id)),
+  }));
+}
+
+/** The bonus round of Live Coding: every ready problem not dealt, easy tier first, shuffled inside each tier. */
+export function drawBonusProblems(
+  seedHex: string,
+  pool: readonly ProblemRef[],
+  dealt: ReadonlySet<number>,
+): number[] {
+  const out: number[] = [];
+  for (const tier of TIERS) {
+    const mine = pool
+      .filter((p) => p.tier === tier && !dealt.has(p.id))
+      .sort((a, b) => a.id - b.id);
+    for (const p of shuffle(mine, rngFrom(seedHex, "bonus-problems", tier))) out.push(p.id);
+  }
+  return out;
+}
+
 /* ----------------------------------------------------- Live Coding problems */
 
 /** What the draw needs to know of a ready C problem. */

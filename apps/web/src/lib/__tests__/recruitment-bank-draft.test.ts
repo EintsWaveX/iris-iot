@@ -70,7 +70,7 @@ describe("a new draft", () => {
 
 describe("the default bank in the editor", () => {
   const parsed = parseBank(SEED_MD).filter((i) => i.draft);
-  it("has the 51 questions", () => expect(parsed.length).toBe(51));
+  it("has the 60 questions", () => expect(parsed.length).toBe(60));
   it.each(parsed.map((p, i) => [p.draft!.title, p.draft!, i] as const))(
     "%s opens with no problems and a preview",
     (_t, d, i) => {

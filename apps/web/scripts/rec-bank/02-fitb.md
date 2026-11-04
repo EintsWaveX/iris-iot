@@ -484,3 +484,93 @@ int main(void) {
   return 0;
 }
 ```
+
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Jumlah Angka Genap
+sample: true
+status: ready
+blanks:
+  1: { accept: ["6"] }
+  2: { accept: ["%"], space: none }
+  3: { accept: ["i"] }
+---
+Lengkapi program yang menjumlahkan semua angka genap di array. Baris terakhir mencetak `12`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a[6] = {2, 7, 4, 9, 6, 1};
+  int jumlah = 0;
+  for (int i = 0; i < __(1)__; i++) {
+    if (a[i] __(2)__ 2 == 0) {
+      jumlah += a[__(3)__];
+    }
+  }
+  printf("%d\n", jumlah);
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Pangkat dengan Loop
+sample: true
+status: ready
+blanks:
+  1: { accept: ["1"] }
+  2: { accept: ["n"] }
+  3: { accept: ["*="], space: none }
+---
+Lengkapi fungsi yang menghitung `x` pangkat `n` dengan perulangan. Baris terakhir mencetak `32`.
+
+```c
+#include <stdio.h>
+
+int pangkat(int x, int n) {
+  int hasil = __(1)__;
+  for (int i = 0; i < __(2)__; i++) {
+    hasil __(3)__ x;
+  }
+  return hasil;
+}
+
+int main(void) {
+  printf("%d\n", pangkat(2, 5));
+  return 0;
+}
+```
+
+---
+part: fitb
+lang: c
+format: fitb
+title: Pilih yang Lebih Besar
+sample: true
+status: ready
+blanks:
+  1: { accept: [">"], space: none }
+  2: { accept: ["b"] }
+  3: { accept: ["15"] }
+---
+Lengkapi fungsi yang mengembalikan angka yang lebih besar dari dua angka. Baris terakhir mencetak `9 15`.
+
+```c
+#include <stdio.h>
+
+int maks(int a, int b) {
+  if (a __(1)__ b) return a;
+  return __(2)__;
+}
+
+int main(void) {
+  printf("%d %d\n", maks(4, 9), maks(__(3)__, 3));
+  return 0;
+}
+```

@@ -39,7 +39,11 @@ import {
 } from "../../src/lib/schema.js";
 import type { Question, Value } from "../../src/lib/recruitment/exam-types.js";
 import type { Run } from "../../src/lib/recruitment/c-problem.js";
-import { capsOf } from "../../src/lib/recruitment/exam-config.js";
+import {
+  capsOf,
+  defaultQuestionPoints,
+  problemWorth,
+} from "../../src/lib/recruitment/exam-config.js";
 import { assemble, type QuestionIn, type SeatIn } from "../../src/lib/recruitment/score-table.js";
 import type {
   FinalBlocker,
@@ -151,6 +155,7 @@ async function muatMasukan(db: Db, edisiId: number) {
     title: r.title,
     lang: r.lang,
     voided: r.voidedAt !== null,
+    points: (r.body as { points?: number }).points,
     question: {
       id: r.id,
       part: r.part,
@@ -187,22 +192,36 @@ async function muatMasukan(db: Db, edisiId: number) {
   const tier = new Map(
     (
       await db
-        .select({ id: recCProblem.id, tier: recCProblem.tier })
+        .select({ id: recCProblem.id, tier: recCProblem.tier, body: recCProblem.body })
         .from(recCProblem)
         .where(eq(recCProblem.editionId, edisiId))
-    ).map((r) => [r.id, r.tier]),
+    ).map((r) => [r.id, r]),
   );
-  const hand = new Map<number, { problemId: number; points: number }[]>();
+  const hand = new Map<
+    number,
+    { problemId: number; points: number; bonus?: boolean; own?: boolean }[]
+  >();
   for (const r of seatRows) {
-    const dealt = (r.draw as { livecode?: { problems?: number[] } }).livecode?.problems;
+    const lc = (r.draw as { livecode?: { problems?: number[]; bonus?: number[] } }).livecode;
+    const dealt = lc?.problems;
     if (!dealt?.length) continue;
-    hand.set(
-      r.id,
-      dealt.flatMap((id) => {
-        const t = tier.get(id);
-        return t ? [{ problemId: id, points: config.livecode.points[t] }] : [];
-      }),
-    );
+    const entry = (id: number, bonus: boolean) => {
+      const t = tier.get(id);
+      return t
+        ? [
+            {
+              problemId: id,
+              points: problemWorth(config, t.tier, t.body.points),
+              ...(bonus ? { bonus } : {}),
+              ...(t.body.points !== undefined ? { own: true } : {}),
+            },
+          ]
+        : [];
+    };
+    hand.set(r.id, [
+      ...dealt.flatMap((id) => entry(id, false)),
+      ...(lc?.bonus ?? []).flatMap((id) => entry(id, true)),
+    ]);
   }
   const runs = new Map<number, (Run & { problemId: number })[]>();
   const waiting = new Set<number>();
@@ -234,8 +253,12 @@ async function muatMasukan(db: Db, edisiId: number) {
 /** The scores right now, from the answers and the keys as they stand. */
 export async function hitungSekarang(db: Db, edisiId: number) {
   const m = await muatMasukan(db, edisiId);
-  const caps = capsOf(await bacaConfig(db, edisiId));
-  return { ...assemble(m.kursi, m.bank, m.live, caps), kursi: m.kursi };
+  const config = await bacaConfig(db, edisiId);
+  const caps = capsOf(config);
+  return {
+    ...assemble(m.kursi, m.bank, m.live, caps, defaultQuestionPoints(config)),
+    kursi: m.kursi,
+  };
 }
 
 const infoBeku = async (db: Db, f: RecScoreFreezeRow): Promise<FreezeInfo> => {

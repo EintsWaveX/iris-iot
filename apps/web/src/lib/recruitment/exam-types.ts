@@ -33,8 +33,8 @@ export type Protocol = (typeof PROTOCOLS)[number];
 /** The test is always out of 4000 (Cutting's `tes_tulis` cut is set on this scale). */
 export const TOTAL_SCORE = 4000;
 
-/** The two Live Coding tiers a problem can have. */
-export const TIERS = ["easy", "medium"] as const;
+/** The three Live Coding tiers a problem can have: Mudah, Sedang, Susah. */
+export const TIERS = ["easy", "medium", "hard"] as const;
 export type Tier = (typeof TIERS)[number];
 
 /* ------------------------------------------------------------- questions */
@@ -57,6 +57,11 @@ export interface Image {
 interface BodyBase {
   prompt: string;
   images?: Image[];
+  /**
+   * What the question is worth, as a weight inside its part. Left out, it is the part's
+   * default (Jatah divided by Tampil). Only the proportions matter to the score.
+   */
+  points?: number;
 }
 
 export interface SingleBody extends BodyBase {
@@ -192,13 +197,22 @@ export interface PartPlan {
   minutes: number;
   shown: number;
   pool: number;
+  /**
+   * The bonus round (4 Nov 2026): a seat that hands in with at least this many minutes left
+   * is offered the part's other questions as bonus. 0 turns the bonus round off.
+   */
+  bonusMin: number;
 }
 export interface LivecodePlan {
   minutes: number;
-  /** How many problems of each tier one seat is dealt (3 easy and 2 medium by default). */
+  /** How many problems of each tier one seat is dealt (2 easy, 2 medium and 1 hard by default). */
   draw: Record<Tier, number>;
+  /** The problem bank to aim for (Target); Tampil is the sum of `draw`. */
+  pool: number;
   /** What one problem of each tier is worth. The dealt problems must add up to the Live Coding share. */
   points: Record<Tier, number>;
+  /** The bonus round, as PartPlan.bonusMin. */
+  bonusMin: number;
   /** Submissions per problem; 0 means no limit (a wrong submission costs nothing). */
   runLimit: number;
   /** Tests the judge runs at once on the lab PC. */
@@ -223,14 +237,16 @@ export const DEFAULT_EXAM_CONFIG: ExamConfig = {
   budgetMin: 120,
   order: ["logika", "fitb", "kodingan", "livecode"],
   parts: {
-    logika: { minutes: 15, shown: 15, pool: 20 },
-    fitb: { minutes: 15, shown: 15, pool: 20 },
-    kodingan: { minutes: 15, shown: 15, pool: 20 },
+    logika: { minutes: 15, shown: 15, pool: 20, bonusMin: 5 },
+    fitb: { minutes: 15, shown: 15, pool: 20, bonusMin: 5 },
+    kodingan: { minutes: 15, shown: 15, pool: 20, bonusMin: 5 },
   },
   livecode: {
     minutes: 60,
-    draw: { easy: 3, medium: 2 },
-    points: { easy: 400, medium: 600 },
+    draw: { easy: 2, medium: 2, hard: 1 },
+    pool: 24,
+    points: { easy: 300, medium: 500, hard: 800 },
+    bonusMin: 15,
     runLimit: 0,
     workers: 4,
   },
@@ -249,7 +265,17 @@ export interface DrawnItem {
 }
 /** `room`: where the part was started; answers to it are taken only there (EXAM-ENGINE 3.3). */
 export type SeatDraw = Partial<
-  Record<Phase1Part, { at: number; room: number; items: DrawnItem[] }>
+  Record<
+    Phase1Part,
+    {
+      at: number;
+      room: number;
+      items: DrawnItem[];
+      /** The bonus round: the part's other questions, dealt when the seat asked for them (`bonusAt`). */
+      bonus?: DrawnItem[];
+      bonusAt?: number;
+    }
+  >
 >;
 
 /* ------------------------------------------------------------- the room */

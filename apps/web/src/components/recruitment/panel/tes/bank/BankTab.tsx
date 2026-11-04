@@ -234,7 +234,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
             onSeed={() => void pasang()}
           />
         ) : view === "livecode" ? (
-          <ProblemsTab lang={lang} />
+          <ProblemsTab lang={lang} config={config.data} />
         ) : rows.length === 0 ? (
           <section className="panel bkempty">
             <h2 className="panel__title">{t.emptyBankTitle}</h2>

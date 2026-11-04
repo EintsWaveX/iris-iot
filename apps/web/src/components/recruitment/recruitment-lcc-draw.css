@@ -89,6 +89,9 @@
 .lc-card[data-tier="medium"][data-up="yes"] .lc-card__front {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--hairline));
 }
+.lc-card[data-tier="hard"][data-up="yes"] .lc-card__front {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--hairline));
+}
 .lc-card__front b {
   font-size: 1.12rem;
   letter-spacing: -0.01em;

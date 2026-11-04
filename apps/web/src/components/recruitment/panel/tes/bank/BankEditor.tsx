@@ -20,6 +20,7 @@ import { QuestionCard } from "../../../exam/render";
 import type { Lang } from "../../../../../lib/kelas";
 import { useBelumSimpan } from "../../../../../lib/belum-simpan";
 import { canon } from "../../../../../lib/recruitment/bank-rules";
+import { defaultQuestionPoints } from "../../../../../lib/recruitment/exam-config";
 import {
   blankDraft,
   changeFormat,
@@ -220,7 +221,13 @@ export default function BankEditor({
   const langs = allowedLangs(config.config, d.part);
 
   const set = (next: Draft) => setD(syncBlanks(next));
-  const body = d.body as { prompt: string; code?: { lang: CodeLang; src: string } };
+  const body = d.body as {
+    prompt: string;
+    points?: number;
+    code?: { lang: CodeLang; src: string };
+  };
+  const defPts = defaultQuestionPoints(config.config)[d.part];
+  const pts = body.points ?? defPts;
 
   async function save(withNote?: string) {
     if (!d || !orig) return;
@@ -488,6 +495,37 @@ export default function BankEditor({
             />
           </label>
           <div className="stack stack--sm">
+            <span className="label-caps">{t.fieldPoints}</span>
+            <div className="row" style={{ gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <Stepper
+                value={pts}
+                min={1}
+                max={4000}
+                step={5}
+                label={t.fieldPoints}
+                fmt={(n) => `${n} ${t.ptsUnit}`}
+                lessLabel={t.stepLess}
+                moreLabel={t.stepMore}
+                onChange={(v) =>
+                  set({
+                    ...d,
+                    body: { ...d.body, points: v === defPts ? undefined : v },
+                  } as Draft)
+                }
+              />
+              {body.points !== undefined && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => set({ ...d, body: { ...d.body, points: undefined } } as Draft)}
+                >
+                  {t.pointsReset}
+                </button>
+              )}
+            </div>
+            <span className="hint">{t.pointsHint(defPts)}</span>
+          </div>
+          <div className="stack stack--sm">
             <span className="label-caps">{t.fieldPrompt}</span>
             <CodeBox
               id="r3-q-prompt"
@@ -709,7 +747,12 @@ export default function BankEditor({
         lang={lang}
         open={pickOpen}
         onOpenChange={setPickOpen}
-        rows={rows}
+        rows={rows.map((r) => ({
+          id: r.id,
+          title: r.title,
+          meta: t.formats[r.format],
+          state: r.voided ? ("void" as const) : r.status,
+        }))}
         current={id}
         onPick={(next) => {
           setPickOpen(false);

@@ -10,6 +10,7 @@
  * POST test-checkin  { step: fullscreen | connection | name, tab, info? }
  * POST test-answer   { part, q, value, rev, tab }
  * POST test-strike   { id, kinds, at, back?, part? }
+ * POST test-bonus    { part }   ask for the bonus round: the part's other questions, on top of the cap
  * POST test-submit   { part }   Kumpulkan
  * POST test-hotspot  { ssid, pass } | { clear: true }   the candidate's own phone (9.6a)
  *
@@ -46,7 +47,7 @@ import {
   type Value,
 } from "../../src/lib/recruitment/exam-types.js";
 import { checkValue, toView } from "../../src/lib/recruitment/formats.js";
-import { DrawShort, drawPart, drawSeed } from "../../src/lib/recruitment/draw.js";
+import { DrawShort, drawBonus, drawPart, drawSeed } from "../../src/lib/recruitment/draw.js";
 import { answerOpen, normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
   UJIAN_TIKET_DETIK,
@@ -138,6 +139,8 @@ export async function handleSeat(req: ApiRequest, res: ApiResponse, s: SessionPa
       return jawab(k);
     case "test-strike":
       return kejadian(k);
+    case "test-bonus":
+      return mintaBonus(k);
     case "test-submit":
       return kumpulkan(k);
     case "test-hotspot":
@@ -301,18 +304,21 @@ async function bagianKerja(
   if (seatLeft(run, seat.id, now) <= 0) return null;
   const entry = draw ?? (await tulisDraw(db, edisiId, seat, room, key, config, now));
   if (!entry) return null;
-  const ids = entry.items.map((i) => i.q);
+  const all = [...entry.items, ...(entry.bonus ?? [])];
+  const ids = all.map((i) => i.q);
   const rows = ids.length
     ? await db.select().from(recQuestion).where(inArray(recQuestion.id, ids))
     : [];
   const byId = new Map(rows.map((r) => [r.id, r]));
-  const items: QuestionView[] = entry.items.map((it) => {
+  const baseIds = new Set(entry.items.map((i) => i.q));
+  const items: QuestionView[] = all.map((it) => {
     const r = byId.get(it.q);
     const voided = !r || r.voidedAt !== null;
     return {
       q: it.q,
       lang: it.lang,
       voided,
+      ...(baseIds.has(it.q) ? {} : { bonus: true }),
       view: voided ? null : toView(asQuestion(r), it.perm),
     };
   });
@@ -322,7 +328,24 @@ async function bagianKerja(
     .where(and(eq(recAnswer.seatId, seat.id), eq(recAnswer.part, key)));
   const answers: PartView["answers"] = {};
   for (const a of ans) answers[a.q] = { value: a.value, rev: a.rev };
-  return { key, items, answers };
+  const minLeftMs = config.parts[key].bonusMin * 60_000;
+  const taken = !!entry.bonus;
+  let count = 0;
+  if (minLeftMs > 0 && !taken) {
+    const rest = await db
+      .select({ id: recQuestion.id })
+      .from(recQuestion)
+      .where(
+        and(
+          eq(recQuestion.editionId, edisiId),
+          eq(recQuestion.part, key),
+          eq(recQuestion.status, "ready"),
+          isNull(recQuestion.voidedAt),
+        ),
+      );
+    count = rest.filter((x) => !baseIds.has(x.id)).length;
+  }
+  return { key, items, bonus: { count, taken, minLeftMs }, answers };
 }
 
 type QuestionRow = typeof recQuestion.$inferSelect;
@@ -527,7 +550,8 @@ async function soalKursi(
   const { db, seat, room } = k;
   if (!seat || !room || !sudahMasuk(seat.checkin)) return { kode: "belum_masuk" };
   const draw = seat.draw[part];
-  if (!draw || !draw.items.some((i) => i.q === q)) return { kode: "soal_tak_dikenal" };
+  if (!draw || ![...draw.items, ...(draw.bonus ?? [])].some((i) => i.q === q))
+    return { kode: "soal_tak_dikenal" };
   if (draw.room !== seat.roomId) return { kode: "bagian_ruang_lain" };
   const [row] = await db.select().from(recQuestion).where(eq(recQuestion.id, q)).limit(1);
   if (!row) return { kode: "soal_tak_dikenal" };
@@ -702,6 +726,86 @@ async function kejadian(k: Konteks) {
     },
   ]);
   res.status(200).json({ ok: true });
+}
+
+/* ------------------------------------------------------------ bonus round */
+
+/**
+ * The bonus round: when a seat is about to hand in and still has `bonusMin` minutes, it may ask
+ * for every other question of the part. They are dealt once, kept on the seat, answered like the
+ * rest and scored on top of the cap (score-table.ts). Refused when the round is off, taken,
+ * the part is handed in or over, or too little time is left.
+ */
+async function mintaBonus(k: Konteks) {
+  const { req, res, db, seat, room, edisiId } = k;
+  const part = jsonBody(req).part as Phase1Part;
+  if (!(PHASE1_PARTS as readonly string[]).includes(part))
+    return void tolakKursi(res, "data_salah");
+  if (!seat || !room || !sudahMasuk(seat.checkin)) return void tolakKursi(res, "belum_masuk");
+  const draw = seat.draw[part];
+  if (!draw) return void tolakKursi(res, "soal_tak_dikenal");
+  if (draw.room !== seat.roomId) return void tolakKursi(res, "bagian_ruang_lain");
+  const now = Date.now();
+  if (seat.done[part] != null) return void tolakKursi(res, "sudah_kumpul");
+  const state = normalize(room.state, now);
+  const run = state.runs[part];
+  if (!run || state.cur !== part || run.state !== "running")
+    return void tolakKursi(res, "waktu_habis");
+  if (draw.bonus) return void res.status(200).json({ ok: true, count: draw.bonus.length });
+  const config = await muatConfig(db, edisiId);
+  const minLeft = config.parts[part].bonusMin * 60_000;
+  if (minLeft <= 0) return void tolakKursi(res, "bonus_mati");
+  if (seatLeft(run, seat.id, now) < minLeft) return void tolakKursi(res, "bonus_telat");
+  const [conf] = await db
+    .select({ salt: recExamConfig.salt })
+    .from(recExamConfig)
+    .where(eq(recExamConfig.editionId, edisiId))
+    .limit(1);
+  if (!conf) return void tolakKursi(res, "bank_kurang");
+  const pool = await db
+    .select()
+    .from(recQuestion)
+    .where(
+      and(
+        eq(recQuestion.editionId, edisiId),
+        eq(recQuestion.part, part),
+        eq(recQuestion.status, "ready"),
+        isNull(recQuestion.voidedAt),
+      ),
+    );
+  const items = drawBonus(
+    await drawSeed(conf.salt, seat.id, part),
+    pool.map(asQuestion),
+    new Set(draw.items.map((i) => i.q)),
+  );
+  if (!items.length) return void tolakKursi(res, "bank_kurang");
+  // Only the first writer wins: two tabs asking at once end with one bonus list
+  await db
+    .update(recExamSeat)
+    .set({
+      draw: sql`jsonb_set(jsonb_set(${recExamSeat.draw}, ARRAY[${part}, 'bonus']::text[], ${JSON.stringify(items)}::jsonb, true), ARRAY[${part}, 'bonusAt']::text[], ${String(now)}::jsonb, true)`,
+      lastSeenAt: new Date(now),
+    })
+    .where(
+      and(
+        eq(recExamSeat.id, seat.id),
+        sql`not jsonb_exists(${recExamSeat.draw} -> ${part}, 'bonus')`,
+      ),
+    );
+  if (!room.rehearsal)
+    await db
+      .update(recQuestion)
+      .set({ shownAt: new Date(now) })
+      .where(
+        and(
+          inArray(
+            recQuestion.id,
+            items.map((i) => i.q),
+          ),
+          isNull(recQuestion.shownAt),
+        ),
+      );
+  res.status(200).json({ ok: true, count: items.length });
 }
 
 /* -------------------------------------------------------------- Kumpulkan */

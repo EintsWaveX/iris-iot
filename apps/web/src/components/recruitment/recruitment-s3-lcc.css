@@ -170,6 +170,11 @@
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+.lcc-chip[data-tier="hard"] {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
 .lcc-chip--pts {
   color: var(--text-muted);
 }
@@ -409,4 +414,28 @@
   .lced--2 {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
+}
+
+/* The bonus round of Live Coding (4 Nov 2026): a marked tab, a chip and a note on the statement */
+.lcc-chip--bonus {
+  align-items: center;
+  border-color: var(--accent);
+  color: var(--accent);
+  display: inline-flex;
+  gap: 4px;
+}
+.lcc-bonusbar {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  margin: 0;
+  padding: 8px 12px;
+}
+.lcc-tab[data-b="yes"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.lcc-score .btn {
+  margin-left: 8px;
 }

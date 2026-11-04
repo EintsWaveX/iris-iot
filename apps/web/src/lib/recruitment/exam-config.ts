@@ -51,6 +51,61 @@ export function capsOf(c: ExamConfig): Caps {
 export const dealtPoints = (c: ExamConfig) =>
   TIERS.reduce((sum, t) => sum + c.livecode.draw[t] * c.livecode.points[t], 0);
 
+/** What a written question is worth when it has no score of its own: the part's cap over what a seat is shown. */
+export function defaultQuestionPoints(c: ExamConfig): Record<Phase1Part, number> {
+  const caps = capsOf(c);
+  const out = {} as Record<Phase1Part, number>;
+  for (const p of PHASE1_PARTS) out[p] = Math.max(1, Math.round(caps.parts[p] / c.parts[p].shown));
+  return out;
+}
+
+/** What one Live Coding problem is worth: its own score, or its tier's. */
+export const problemWorth = (c: ExamConfig, tier: (typeof TIERS)[number], own?: number | null) =>
+  own ?? c.livecode.points[tier];
+
+/**
+ * What a seat could reach by finishing everything, bonus included (4 Nov 2026): a part's cap times
+ * the whole pool over what it is shown, so equal scores give an exact number. Live Coding adds
+ * the pool's other problems at their tier's points, the pool counted as split evenly by tier.
+ */
+export function maxWithBonus(c: ExamConfig): Caps {
+  const base = capsOf(c);
+  const parts = {} as Record<Phase1Part, number>;
+  for (const p of PHASE1_PARTS)
+    parts[p] = Math.round((base.parts[p] * c.parts[p].pool) / c.parts[p].shown);
+  const written = PHASE1_PARTS.reduce((a, p) => a + parts[p], 0);
+  const per = Math.floor(c.livecode.pool / TIERS.length);
+  let extra = 0;
+  TIERS.forEach((t, i) => {
+    const inPool = per + (i < c.livecode.pool - per * TIERS.length ? 1 : 0);
+    extra += Math.max(0, inPool - c.livecode.draw[t]) * c.livecode.points[t];
+  });
+  const livecode = base.livecode + extra;
+  return { parts, written, livecode, total: written + livecode };
+}
+
+/**
+ * `total` problems spread over the tiers in the default 2 : 2 : 1 mix (easy, medium, hard), so
+ * a single "Tampil" number in Pengaturan can drive the three draw counts. Largest remainder,
+ * ties to the easier tier.
+ */
+export function spreadDraw(total: number): Record<(typeof TIERS)[number], number> {
+  const mix = [2, 2, 1];
+  const sum = mix.reduce((a, n) => a + n, 0);
+  const exact = mix.map((w) => (total * w) / sum);
+  const out = exact.map((x) => Math.floor(x));
+  let left = total - out.reduce((a, n) => a + n, 0);
+  const order = exact
+    .map((x, i) => ({ i, f: x - Math.floor(x) }))
+    .sort((a, b) => b.f - a.f || a.i - b.i);
+  for (const o of order) {
+    if (left <= 0) break;
+    out[o.i]++;
+    left--;
+  }
+  return { easy: out[0], medium: out[1], hard: out[2] };
+}
+
 /** How many problems one seat is dealt. */
 export const dealtCount = (c: ExamConfig) => TIERS.reduce((sum, t) => sum + c.livecode.draw[t], 0);
 
@@ -85,6 +140,8 @@ export function upgradeConfig(raw: unknown): ExamConfig {
     if (!isObj(p)) continue;
     const minutes = whole(p.minutes, 1, 60);
     if (minutes !== null) out.parts[part].minutes = minutes;
+    const bonus = whole(p.bonusMin, 0, 60);
+    if (bonus !== null) out.parts[part].bonusMin = bonus;
     // v2 has the counts on the part itself; v1 hid them under counts.<lang>
     const counts = isObj(p.counts) ? p.counts : null;
     const c = counts ? (counts.c ?? counts.cpp ?? counts.any ?? Object.values(counts)[0]) : p;
@@ -105,12 +162,19 @@ export function upgradeConfig(raw: unknown): ExamConfig {
     if (rl !== null) out.livecode.runLimit = rl;
     const w = whole(lc.workers, 1, 16);
     if (w !== null) out.livecode.workers = w;
+    // A config saved before the Susah tier has no `hard`: it keeps dealing what it dealt, none of it.
+    if (isObj(lc.draw) && lc.draw.hard === undefined) out.livecode.draw.hard = 0;
     for (const t of TIERS) {
       const dr = isObj(lc.draw) ? whole(lc.draw[t], 0, 10) : null;
       if (dr !== null) out.livecode.draw[t] = dr;
       const pt = isObj(lc.points) ? whole(lc.points[t], 0, TOTAL_SCORE) : null;
       if (pt !== null) out.livecode.points[t] = pt;
     }
+    const lb = whole(lc.bonusMin, 0, 120);
+    if (lb !== null) out.livecode.bonusMin = lb;
+    const lp = whole(lc.pool, 1, 100);
+    if (lp !== null) out.livecode.pool = lp;
+    if (out.livecode.pool < dealtCount(out)) out.livecode.pool = dealtCount(out);
     if (isObj(raw.weights)) {
       const wr = whole(raw.weights.written, 0, 100);
       const wl = whole(raw.weights.livecode, 0, 100);
@@ -156,12 +220,18 @@ export function validateConfig(c: ExamConfig): FieldError[] {
       errs.push({ field: `${field}.minutes`, kode: "menit_salah" });
     if (!Number.isInteger(p.shown) || p.shown < 1 || !Number.isInteger(p.pool) || p.pool < p.shown)
       errs.push({ field: `${field}.counts`, kode: "jumlah_salah" });
+    if (!Number.isInteger(p.bonusMin) || p.bonusMin < 0 || p.bonusMin > 60)
+      errs.push({ field: `${field}.bonusMin`, kode: "menit_salah" });
   }
   const lc = c.livecode;
   if (!Number.isInteger(lc?.minutes) || lc.minutes < 10 || lc.minutes > 120)
     errs.push({ field: "livecode.minutes", kode: "menit_salah" });
   if (!Number.isInteger(c.budgetMin) || c.budgetMin < 1)
     errs.push({ field: "budgetMin", kode: "menit_salah" });
+  if (!Number.isInteger(lc?.bonusMin) || lc.bonusMin < 0 || lc.bonusMin > 120)
+    errs.push({ field: "livecode.bonusMin", kode: "menit_salah" });
+  if (!Number.isInteger(lc?.pool) || lc.pool < dealtCount(c))
+    errs.push({ field: "livecode.pool", kode: "jumlah_salah" });
   if (!Number.isInteger(lc?.runLimit) || lc.runLimit < 0)
     errs.push({ field: "livecode.runLimit", kode: "batas_salah" });
   if (!Number.isInteger(lc?.workers) || lc.workers < 1 || lc.workers > 16)

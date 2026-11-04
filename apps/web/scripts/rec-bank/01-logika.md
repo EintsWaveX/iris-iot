@@ -335,3 +335,50 @@ Pasangkan tiap istilah dengan artinya.
 | function | Potongan kode yang bisa dipanggil berkali-kali |
 | compile | Mengubah kode C jadi program yang bisa dijalankan |
 |  | Nilai yang dikembalikan `main` saat program selesai |
+
+
+---
+part: logika
+lang: c
+format: single
+title: Operator Ternary
+sample: true
+status: ready
+---
+Berapa output program ini?
+
+```c
+int a = 7;
+int b = 12;
+int m = (a > b) ? a : b;
+printf("%d\n", m + 1);
+```
+
+- [ ] 8
+- [ ] 12
+- [x] 13
+- [ ] 7
+
+---
+part: logika
+lang: c
+format: single
+title: Loop dengan Break
+sample: true
+status: ready
+---
+Berapa output program ini?
+
+```c
+int s = 0;
+for (int i = 1; i <= 10; i++) {
+  if (i % 4 == 0) break;
+  s += i;
+}
+printf("%d\n", s);
+```
+
+- [ ] 3
+- [x] 6
+- [ ] 10
+- [ ] 15

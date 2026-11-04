@@ -863,3 +863,145 @@
   box-shadow: var(--glow-ring);
   outline: none;
 }
+
+/* ------------------------------------------------ Live Coding editor (4 Nov 2026) */
+.lcstate {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  padding: 10px 14px;
+}
+.lcstate > svg {
+  flex: none;
+}
+.lcstate > .btn {
+  flex: none;
+  margin-left: auto;
+}
+.lcstate__line {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.lcstate[data-tone="ok"] {
+  border-left-color: var(--ok);
+}
+.lcstate[data-tone="ok"] > svg {
+  color: var(--ok);
+}
+.lcstate[data-tone="warn"] {
+  border-left-color: var(--warn);
+}
+.lcstate[data-tone="warn"] > svg {
+  color: var(--warn);
+}
+.lcstate[data-tone="danger"] {
+  border-left-color: var(--danger);
+}
+.lcstate[data-tone="danger"] > svg {
+  color: var(--danger);
+}
+.lcsteps {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lcsteps li {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 26px minmax(0, 1fr);
+}
+.lcsteps__n {
+  align-items: center;
+  border: 1.5px solid var(--hairline-strong, var(--hairline));
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+.lcsteps li[data-st="done"] .lcsteps__n {
+  border-color: transparent;
+  color: var(--ok);
+}
+.lcsteps li[data-st="now"] .lcsteps__n {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent, #fff);
+}
+.lcsteps li[data-st="now"] > span:last-child {
+  font-weight: 600;
+}
+.lcsteps li[data-st="next"] {
+  color: var(--text-muted);
+}
+.lcverdicts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lcverdicts__c {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  padding: 2px 10px;
+}
+.lcverdicts__c[data-v="ac"] {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.lcverdicts__c:not([data-v="ac"]) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Rows that open something must look like they do (4 Nov 2026): a clear tint, a bar on the
+   left edge and a firmer press, in both themes */
+@media (hover: hover) and (pointer: fine) {
+  .r3bank .rec-table tbody tr[tabindex]:hover {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+  }
+  .r3bank .rec-table tbody tr[tabindex]:hover td:first-child {
+    box-shadow: inset 4px 0 0 var(--accent);
+  }
+  .r3bank .rec-crow:hover {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+    border-color: var(--accent);
+  }
+  .r3bank .r3pick__row:hover {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+    border-color: var(--accent);
+  }
+}
+.r3bank .rec-table tbody tr[tabindex]:active,
+.r3bank .rec-crow:active,
+.r3bank .r3pick__row:active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-1));
+}
+
+/* Pengaturan: the max with bonus, and what the base is under it (4 Nov 2026) */
+.r3cfg__max b {
+  display: block;
+}
+.r3cfg__base {
+  display: block;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.r3cfg__note {
+  border-top: 1px solid var(--hairline-faint);
+  margin: 0;
+  padding: 10px 14px;
+}

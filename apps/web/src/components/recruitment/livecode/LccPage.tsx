@@ -17,6 +17,7 @@ import {
   PlayIcon,
   PlugsIcon,
   QuestionIcon,
+  SparkleIcon,
 } from "@phosphor-icons/react";
 import {
   lazy,
@@ -35,6 +36,7 @@ import { isFail, recGet, recPost } from "../../../lib/recruitment/client";
 import type { LccProblem, LccSelf, LccSendReply, LccSub } from "../../../lib/recruitment/lcc-api";
 import type { SeatPhase } from "../../../lib/recruitment/seat-state";
 import type { TestView } from "../../../lib/recruitment/seat-types";
+import Dialog from "../../ui/Dialog";
 import { Gate, Timer, type Motion } from "../exam/parts";
 import { TS } from "../exam/testStrings";
 import type { PlanPart } from "../../../lib/recruitment/seat-types";
@@ -406,6 +408,7 @@ function Workbench({
   lang,
   nim,
   lcc,
+  left,
   refresh,
 }: {
   lang: Lang;
@@ -425,6 +428,11 @@ function Workbench({
   const [sending, setSending] = useState<"run" | "submit" | null>(null);
   const [note, setNote] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
   const [asking, setAsking] = useState(false);
+  // Selesai, and the bonus round offered once before it (4 Nov 2026)
+  const [fin, setFin] = useState(false);
+  const [declined, setDeclined] = useState(false);
+  const [finBusy, setFinBusy] = useState(false);
+  const jumpToBonus = useRef(false);
   const st = lcc.state[p.id];
   const code = codes[p.id] ?? p.starter;
   const showLang = lang === "en" && p.en ? p.en : p.text;
@@ -451,6 +459,49 @@ function Workbench({
       tone: "ok",
       text: r.replaced ? t.replaced : kindOf === "run" ? t.sentRun : t.sentSubmit,
     });
+    refresh();
+  }
+
+  const canOffer =
+    lcc.bonus.minLeftMs > 0 &&
+    !lcc.bonus.taken &&
+    lcc.bonus.count > 0 &&
+    left >= lcc.bonus.minLeftMs &&
+    !declined;
+
+  // Right after the bonus round was taken, open its first problem
+  useEffect(() => {
+    if (!jumpToBonus.current) return;
+    const i = lcc.hand.findIndex((h) => h.bonus);
+    if (i < 0) return;
+    jumpToBonus.current = false;
+    setAt(i);
+  }, [lcc.hand]);
+
+  async function takeBonus() {
+    setFinBusy(true);
+    const r = await recPost<{ ok: true; count: number }>("lcc-bonus", {});
+    setFinBusy(false);
+    if (isFail(r)) {
+      setNote({
+        tone: "warn",
+        text: (r.kode as string) === "bonus_telat" ? t.bonus.late : t.bonus.fail,
+      });
+      setDeclined(true);
+      return;
+    }
+    jumpToBonus.current = true;
+    setFin(false);
+    setNote({ tone: "ok", text: t.bonus.added(r.count) });
+    refresh();
+  }
+
+  async function finish() {
+    setFinBusy(true);
+    const r = await recPost<{ ok: true }>("lcc-done", {});
+    setFinBusy(false);
+    if (isFail(r)) return setNote({ tone: "warn", text: t.finishFail });
+    setFin(false);
     refresh();
   }
 
@@ -490,6 +541,7 @@ function Workbench({
               role="tab"
               aria-selected={i === at}
               className="lcc-tab"
+              data-b={h.bonus ? "yes" : undefined}
               data-st={full ? "full" : s.best ? "part" : "none"}
               onClick={() => setAt(i)}
             >
@@ -507,8 +559,71 @@ function Workbench({
           <span className="hint">{t.scoreSoFar}</span>
           <b className="num">{lcc.total}</b>
           <span className="hint num">{t.outOf(lcc.cap)}</span>
+          <button type="button" className="btn btn--inverse btn--sm" onClick={() => setFin(true)}>
+            {t.finish}
+          </button>
         </div>
       </div>
+
+      <Dialog
+        open={fin && canOffer}
+        onOpenChange={setFin}
+        title={t.bonus.title}
+        description={t.bonus.desc(lcc.bonus.count, Math.round(lcc.bonus.minLeftMs / 60_000))}
+        size="sm"
+        lang={lang}
+        actions={
+          <>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              disabled={finBusy}
+              onClick={() => setDeclined(true)}
+            >
+              {t.bonus.no}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={finBusy}
+              onClick={() => void takeBonus()}
+            >
+              {finBusy ? t.bonus.taking : t.bonus.yes}
+            </button>
+          </>
+        }
+      >
+        <div className="r3bonus__offer" aria-hidden="true">
+          <span className="r3bonus__star">
+            <SparkleIcon size={28} weight="fill" />
+          </span>
+          <b className="r3bonus__badge">{t.bonus.badge}</b>
+          <span className="r3bonus__n num">+{lcc.bonus.count}</span>
+        </div>
+      </Dialog>
+      <Dialog
+        open={fin && !canOffer}
+        onOpenChange={setFin}
+        title={t.finishTitle}
+        description={t.finishDesc}
+        size="sm"
+        lang={lang}
+        actions={
+          <>
+            <button type="button" className="btn btn--ghost" onClick={() => setFin(false)}>
+              {t.finishKeep}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={finBusy}
+              onClick={() => void finish()}
+            >
+              {t.finishGo}
+            </button>
+          </>
+        }
+      />
 
       <div className="lcc-grid">
         <section className="lcc-card lcc-statement" aria-label={t.statement}>
@@ -518,7 +633,13 @@ function Workbench({
               {t.tier[p.tier]}
             </span>
             <span className="lcc-chip lcc-chip--pts">{t.points(p.points)}</span>
+            {p.bonus && (
+              <span className="lcc-chip lcc-chip--bonus">
+                <SparkleIcon size={14} weight="fill" aria-hidden="true" /> {t.bonus.badge}
+              </span>
+            )}
           </header>
+          {p.bonus && <p className="lcc-bonusbar">{t.bonus.bar}</p>}
           <Md src={showLang.statement} />
           <h3 className="lcc-h">{t.input}</h3>
           <Md src={showLang.input} />
@@ -614,7 +735,7 @@ function Workbench({
   );
 }
 
-function Block({
+export function Block({
   label,
   text,
   copy,

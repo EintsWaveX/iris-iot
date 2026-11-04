@@ -138,7 +138,7 @@ describe("drawProblems (Live Coding)", () => {
     ...[1, 2, 3, 4].map((id) => ({ id, tier: "easy" as const })),
     ...[5, 6, 7, 8].map((id) => ({ id, tier: "medium" as const })),
   ];
-  const DRAW = { easy: 3, medium: 2 };
+  const DRAW = { easy: 3, medium: 2, hard: 0 };
 
   it("deals 3 easy then 2 medium, no repeats", async () => {
     const hand = drawProblems(await drawSeed(SALT, 5, "livecode"), DRAW, POOLP);

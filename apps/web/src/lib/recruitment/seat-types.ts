@@ -45,12 +45,25 @@ export interface QuestionView {
   lang: Lang;
   /** Voided after the draw: the page says so and the question does not count */
   voided: boolean;
+  /** A bonus question (4 Nov 2026): dealt when the seat asked for the bonus round, scored on top of the cap */
+  bonus?: boolean;
   view: View | null;
+}
+
+/** The bonus round of the part running (4 Nov 2026) */
+export interface BonusInfo {
+  /** Questions still left to offer; 0 when the pool has nothing else or the round was taken */
+  count: number;
+  /** The seat already took the round */
+  taken: boolean;
+  /** The seat needs at least this much time left, ms; 0 means the round is off */
+  minLeftMs: number;
 }
 
 export interface PartView {
   key: Phase1Part;
   items: QuestionView[];
+  bonus: BonusInfo;
   answers: Record<number, { value: Value; rev: number }>;
 }
 

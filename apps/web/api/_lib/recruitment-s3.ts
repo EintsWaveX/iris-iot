@@ -45,7 +45,10 @@ const OPREC_POST: Record<string, S3Handler> = {
   "test-strike": handleSeat,
   "test-submit": handleSeat,
   "test-hotspot": handleSeat,
+  "test-bonus": handleSeat,
   "lcc-send": handleLcc,
+  "lcc-bonus": handleLcc,
+  "lcc-done": handleLcc,
   ...S6_OPREC_POST,
   ...S7_OPREC_POST,
 };

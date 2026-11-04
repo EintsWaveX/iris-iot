@@ -102,7 +102,13 @@ export function cleanQuestion(format: Format, body: unknown, answer: unknown): P
   const prompt = str(body.prompt, MAX_PROMPT);
   const imgs = images(body.images);
   if (prompt === null || imgs === null) return null;
-  const common = { prompt, ...(imgs ? { images: imgs } : {}) };
+  // What the question is worth, a weight inside its part (4 Nov 2026); left out, the part's default
+  const pts = int(body.points);
+  const common = {
+    prompt,
+    ...(imgs ? { images: imgs } : {}),
+    ...(pts !== null && pts >= 1 && pts <= 4000 ? { points: pts } : {}),
+  };
   switch (format) {
     case "single":
     case "multi": {

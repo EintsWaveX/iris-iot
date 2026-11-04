@@ -15,7 +15,7 @@
  * After the first real deal its tests, samples, limits and reference are locked,
  * like a question's structure: its text can still be fixed.
  */
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -88,7 +88,10 @@ export async function daftarMasalah(k: KonteksMasalah) {
     .select()
     .from(recCProblem)
     .where(eq(recCProblem.editionId, k.edisiId))
-    .orderBy(recCProblem.tier, recCProblem.id);
+    .orderBy(
+      sql`case ${recCProblem.tier} when 'easy' then 0 when 'medium' then 1 else 2 end`,
+      recCProblem.id,
+    );
   k.res.status(200).json({ ok: true, problems: rows.map(summary) });
 }
 
