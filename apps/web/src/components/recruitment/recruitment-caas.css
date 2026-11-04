@@ -81,10 +81,17 @@
 @media (hover: hover) {
   .rec-page .b3-tool:hover {
     box-shadow: 0 4px 14px color-mix(in srgb, var(--text) 10%, transparent);
-    transform: translateY(-2px);
   }
   .rec-page .b3-tool:hover .b3-tool__go {
     background: color-mix(in srgb, var(--rec, var(--accent)) 22%, transparent);
+  }
+}
+/* The lift and the nudge only move for people who have not asked for less motion. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .rec-page .b3-tool:hover {
+    transform: translateY(-2px);
+  }
+  .rec-page .b3-tool:hover .b3-tool__go {
     transform: translateX(2px);
   }
 }
@@ -96,8 +103,7 @@
   .rec-page .b3-tool__go {
     transition: none;
   }
-  .rec-page .b3-tool:hover,
-  .rec-page .b3-tool:hover .b3-tool__go {
+  .rec-page .b3-tool:active {
     transform: none;
   }
 }
@@ -163,8 +169,10 @@
   margin-inline-start: 12px;
   text-decoration: none;
 }
-.rec-next__more:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .rec-next__more:hover {
+    text-decoration: underline;
+  }
 }
 .rec-next__more:focus-visible {
   outline: 2px solid var(--accent);
