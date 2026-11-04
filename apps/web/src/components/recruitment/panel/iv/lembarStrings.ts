@@ -305,7 +305,7 @@ export const LM = dict<LmWords>({
       "E.g. recommended to pass because the interview looks promising across the five parameters.",
     verdictTitle: "Interview Verdict",
     verdictHint: (m) => `Decided together with ${m}. Undecided goes to the Pleno before Cutting.`,
-    ba: "Berita Acara",
+    ba: "Incident report (Berita Acara)",
     baChips: [
       "No name tag",
       "Late, within the grace period",
