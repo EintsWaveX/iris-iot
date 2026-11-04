@@ -5,11 +5,20 @@
  * Kept apart from both so neither imports the other.
  */
 import { and, eq, inArray } from "drizzle-orm";
-import { recMakeup, type RecMakeupRow } from "../../src/lib/schema.js";
+import {
+  recCandidate,
+  recExamRoom,
+  recExamSeat,
+  recMakeup,
+  recSlot,
+  recSlotAssignment,
+  type RecMakeupRow,
+} from "../../src/lib/schema.js";
 import { tanggalWib } from "../../src/lib/recruitment/gates.js";
 import {
   makeupDeadline,
   makeupState,
+  tulisTidakHadir,
   type MakeupStage,
   type MakeupStanding,
 } from "../../src/lib/recruitment/makeup.js";
@@ -34,7 +43,9 @@ export async function muatMakeupCtx(
   const events = semua.filter((e) => e.stage === stage && e.kind === "makeup");
   const event = events[0] ?? null;
   if (!event) return { event, events, deadline: null };
-  const t = await bacaSetting(db, stage);
+  // Tes Tulis has no interview settings: its answer is due the day before, at noon (the same default).
+  const t =
+    stage === "tes_tulis" ? { makeupDays: 1, makeupHour: 12 } : await bacaSetting(db, stage);
   return { event, events, deadline: makeupDeadline(event.startsOn, t.makeupDays, t.makeupHour) };
 }
 
@@ -69,3 +80,43 @@ export const posisiMakeup = (
     deadline: ctx.deadline,
     now,
   });
+
+/**
+ * Tes Tulis has no sheet that says "offer the Susulan", so the ones who need it
+ * are the CaAs who held a seat in a real room that has finished, and never
+ * checked in or were never dealt a question: they did not come. A practice room
+ * counts for nothing. Whoever the Panitia then offers sits in rec_makeup like
+ * the interview stages.
+ */
+export async function muatTidakHadirTulis(db: Db, edisiId: number): Promise<Set<number>> {
+  const rows = await db
+    .select({
+      candidateId: recSlotAssignment.candidateId,
+      state: recExamRoom.state,
+      seatId: recExamSeat.id,
+      checkin: recExamSeat.checkin,
+      draw: recExamSeat.draw,
+    })
+    .from(recSlotAssignment)
+    .innerJoin(recSlot, eq(recSlot.id, recSlotAssignment.slotId))
+    .innerJoin(recCandidate, eq(recCandidate.id, recSlotAssignment.candidateId))
+    .innerJoin(
+      recExamRoom,
+      and(eq(recExamRoom.slotId, recSlot.id), eq(recExamRoom.rehearsal, false)),
+    )
+    .leftJoin(
+      recExamSeat,
+      and(
+        eq(recExamSeat.roomId, recExamRoom.id),
+        eq(recExamSeat.candidateId, recSlotAssignment.candidateId),
+      ),
+    )
+    .where(and(eq(recSlotAssignment.stage, "tes_tulis"), eq(recCandidate.editionId, edisiId)));
+  const out = new Set<number>();
+  for (const r of rows) {
+    const seat = r.seatId === null ? null : { checkin: r.checkin, draw: r.draw };
+    if (tulisTidakHadir({ roomFinished: r.state.stage === "finished", seat }))
+      out.add(r.candidateId);
+  }
+  return out;
+}
