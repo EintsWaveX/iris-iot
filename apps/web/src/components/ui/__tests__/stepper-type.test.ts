@@ -55,7 +55,8 @@ afterEach(async () => {
   root = box = null;
 });
 
-describe("Stepper typing", () => {
+// The first render pays for importing the date picker kit; give a loaded CI machine room.
+describe("Stepper typing", { timeout: 20_000 }, () => {
   it("shows the formatted value, and the bare number while you edit", async () => {
     const { input } = await pasang();
     expect(input.value).toBe("90 menit");

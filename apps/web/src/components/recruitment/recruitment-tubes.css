@@ -405,6 +405,11 @@
   flex-wrap: wrap;
   gap: 14px 28px;
 }
+/* the "make teams" action sits on the first row, at the right, where the card used to be blank */
+.tp-ctl__act {
+  align-self: flex-end;
+  margin-left: auto;
+}
 .tp-ctl__p {
   align-items: center;
   border-top: 1px solid var(--hairline-faint);
