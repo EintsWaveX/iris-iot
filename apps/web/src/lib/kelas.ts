@@ -17,7 +17,8 @@ export type Lang = "id" | "en" | "zh";
 export const LANGS: readonly Lang[] = ["id", "en", "zh"];
 
 /** Mandarin is not offered yet (not supported for readers abroad): the picker hides it, a saved "zh"
- *  choice falls back to English and /zh/ redirects to /en/ (vercel.json). Flip to true to bring it back. */
+ *  choice falls back to English and /zh/ redirects to /en/ (vercel.json). Flip to true to bring it back,
+ *  and import styles/fonts-zh.css in layouts/Base.astro (the Mandarin font rules are kept out of every page while it is off). */
 export const ZH_ENABLED = false;
 
 /** The language content exists in (modules, handbook, sketches, journals). */
