@@ -361,10 +361,10 @@ export const BK = dict({
     cfgBonusOff: "Mati",
     cfgBonusFmt: (n: number) => `sisa ${n} menit atau lebih`,
     cfgBonusTip:
-      "Kalau peserta mau Kumpulkan dan waktunya masih sisa segini, dia ditawari soal lain dari pool sebagai bonus. 0 berarti tanpa bonus.",
+      "Bonus ditawarkan kalau peserta mau Kumpulkan dan sisa waktunya segini atau lebih. Jumlahnya: sisa waktu (dalam panjang satu soal) ditambah jawaban benar dikurangi jawaban salah, paling banyak sisa soal di pool. 0 berarti tanpa bonus.",
     cfgMaxBase: (n: number) => `dasar ${n}`,
     cfgMaxNote:
-      "Nilai maks adalah nilai kalau semua soal di pool dikerjakan, bonus ikut dihitung. Nilai dasar (tanpa bonus) tetap sama dengan jatahnya.",
+      "Nilai maks adalah nilai kalau semua soal di pool dikerjakan. Soal bonus bernilai setengah soal biasa. Nilai dasar (tanpa bonus) tetap sama dengan jatahnya.",
     cfgLivePair: "Soal Live Coding per peserta dan target pool",
     cfgRunLimit: "Batas kiriman per soal",
     cfgRunLimitNone: "Tanpa batas",
@@ -721,10 +721,10 @@ export const BK = dict({
     cfgBonusOff: "Off",
     cfgBonusFmt: (n: number) => `${n} minutes or more left`,
     cfgBonusTip:
-      "When a candidate wants to hand in with this much time left, they are offered the rest of the pool as bonus. 0 means no bonus.",
+      "Bonus is offered when a candidate wants to hand in with this much time left or more. The count is time left (in question-lengths) plus right answers minus wrong answers, at most the rest of the pool. 0 means no bonus.",
     cfgMaxBase: (n: number) => `base ${n}`,
     cfgMaxNote:
-      "Max score is what a candidate gets by finishing every question in the pool, bonus included. The base score (no bonus) still equals the share.",
+      "Max score is what a candidate gets by finishing every question in the pool. A bonus question is worth half a normal one. The base score (no bonus) still equals the share.",
     cfgLivePair: "Live Coding problems per seat and pool target",
     cfgRunLimit: "Sends allowed per problem",
     cfgRunLimitNone: "No limit",
@@ -1074,9 +1074,10 @@ export const BK = dict({
     cfgBonusOff: "关闭",
     cfgBonusFmt: (n: number) => `剩余 ${n} 分钟或更多`,
     cfgBonusTip:
-      "考生想提交时，如果剩余时间不少于此值，会获得题库中其余题目作为加分题。0 表示不开启。",
+      "考生想提交时，若剩余时间不少于此值，即可获得加分题。数量为剩余时间（以单题时长计）加答对题数减答错题数，最多为题库中其余题数。0 表示不开启。",
     cfgMaxBase: (n: number) => `基础 ${n}`,
-    cfgMaxNote: "最高分是完成题库中所有题目（含加分题）的得分。基础分（不含加分题）仍等于占比。",
+    cfgMaxNote:
+      "最高分是完成题库中所有题目的得分，加分题的分值是普通题的一半。基础分（不含加分题）仍等于占比。",
     cfgLivePair: "每位考生的实时编程题数与题库目标",
     cfgRunLimit: "每题提交次数上限",
     cfgRunLimitNone: "不限",

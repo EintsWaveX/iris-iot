@@ -46,7 +46,9 @@ import {
   type SeatDraw,
   type Value,
 } from "../../src/lib/recruitment/exam-types.js";
-import { checkValue, toView } from "../../src/lib/recruitment/formats.js";
+import { checkValue, credit, toView } from "../../src/lib/recruitment/formats.js";
+import { bonusQuota, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
+import { isOne } from "../../src/lib/recruitment/frac.js";
 import { DrawShort, drawBonus, drawPart, drawSeed } from "../../src/lib/recruitment/draw.js";
 import { answerOpen, normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
@@ -345,7 +347,7 @@ async function bagianKerja(
       );
     count = rest.filter((x) => !baseIds.has(x.id)).length;
   }
-  return { key, items, bonus: { count, taken, minLeftMs }, answers };
+  return { key, items, bonus: { count, taken, quoted: !!entry.lockedAt, minLeftMs }, answers };
 }
 
 type QuestionRow = typeof recQuestion.$inferSelect;
@@ -541,6 +543,56 @@ async function masuk(k: Konteks) {
 
 /* ---------------------------------------------------------------- answers */
 
+/**
+ * How many bonus questions this seat gets right now (bonus.ts): its time left in question-lengths,
+ * plus the dealt questions it got fully right, minus those it answered wrong. Read from its stored
+ * answers and the current keys; a blank question is neither.
+ */
+async function kuotaBonus(
+  db: Db,
+  seat: RecExamSeatRow,
+  part: Phase1Part,
+  run: {
+    durMs: number;
+    extra: Record<string, number>;
+    usedMs: number;
+    mark: number | null;
+    state: string;
+  },
+  config: ExamConfig,
+  rest: number,
+  now: number,
+): Promise<BonusQuote> {
+  const draw = seat.draw[part];
+  const ids = (draw?.items ?? []).map((i) => i.q);
+  const rows = ids.length
+    ? await db.select().from(recQuestion).where(inArray(recQuestion.id, ids))
+    : [];
+  const by = new Map(rows.map((r) => [r.id, r]));
+  const ans = await db
+    .select({ q: recAnswer.questionId, value: recAnswer.value })
+    .from(recAnswer)
+    .where(and(eq(recAnswer.seatId, seat.id), eq(recAnswer.part, part)));
+  let correct = 0;
+  let wrong = 0;
+  for (const a of ans) {
+    const r = by.get(a.q);
+    if (!r || r.voidedAt !== null || a.value == null) continue;
+    if (isOne(credit(asQuestion(r), a.value))) correct++;
+    else wrong++;
+  }
+  const plan = config.parts[part];
+  return bonusQuota({
+    leftMs: seatLeft(run as Parameters<typeof seatLeft>[0], seat.id, now),
+    perQuestionMs: (plan.minutes * 60_000) / Math.max(1, plan.shown),
+    correct,
+    wrong,
+    rest,
+  });
+}
+
+/* ---------------------------------------------------------------- answers */
+
 /** The seat's row of a draw, with the question, or the error to answer */
 async function soalKursi(
   k: Konteks,
@@ -576,6 +628,10 @@ async function jawab(k: Konteks) {
   if (seat.done[part] != null) return void tolakKursi(res, "sudah_kumpul");
   if (!answerOpen(room.state, seat.id, part, now)) return void tolakKursi(res, "waktu_habis");
   if (sd.voided) return void tolakKursi(res, "soal_batal");
+  // The bonus quote was issued: the dealt questions are final, only bonus questions take answers
+  const dr = seat.draw[part];
+  if (dr?.lockedAt && dr.items.some((i) => i.q === q))
+    return void tolakKursi(res, "jawaban_dikunci");
   if (!checkValue(sd.question, b.value)) return void tolakKursi(res, "nilai_salah");
 
   const value = b.value as Value;
@@ -738,7 +794,8 @@ async function kejadian(k: Konteks) {
  */
 async function mintaBonus(k: Konteks) {
   const { req, res, db, seat, room, edisiId } = k;
-  const part = jsonBody(req).part as Phase1Part;
+  const b = jsonBody(req);
+  const part = b.part as Phase1Part;
   if (!(PHASE1_PARTS as readonly string[]).includes(part))
     return void tolakKursi(res, "data_salah");
   if (!seat || !room || !sudahMasuk(seat.checkin)) return void tolakKursi(res, "belum_masuk");
@@ -773,12 +830,55 @@ async function mintaBonus(k: Konteks) {
         isNull(recQuestion.voidedAt),
       ),
     );
-  const items = drawBonus(
+  const all = drawBonus(
     await drawSeed(conf.salt, seat.id, part),
     pool.map(asQuestion),
     new Set(draw.items.map((i) => i.q)),
   );
-  if (!items.length) return void tolakKursi(res, "bank_kurang");
+  if (!all.length) return void tolakKursi(res, "bank_kurang");
+  // The first request fixes the quote and locks the dealt answers. Showing how many were right and
+  // wrong while they could still change would let a seat probe the key: ask, change one answer,
+  // ask again. So there is one quote per seat and part, stored, and the answers stop first.
+  let quote = draw.quote;
+  if (!quote) {
+    await db
+      .update(recExamSeat)
+      .set({
+        draw: sql`jsonb_set(${recExamSeat.draw}, ARRAY[${part}, 'lockedAt']::text[], ${String(now)}::jsonb, true)`,
+      })
+      .where(
+        and(
+          eq(recExamSeat.id, seat.id),
+          sql`not jsonb_exists(${recExamSeat.draw} -> ${part}, 'lockedAt')`,
+        ),
+      );
+    const fresh = await kuotaBonus(db, seat, part, run, config, all.length, now);
+    const [saved] = await db
+      .update(recExamSeat)
+      .set({
+        draw: sql`jsonb_set(${recExamSeat.draw}, ARRAY[${part}, 'quote']::text[], ${JSON.stringify(fresh)}::jsonb, true)`,
+      })
+      .where(
+        and(
+          eq(recExamSeat.id, seat.id),
+          sql`not jsonb_exists(${recExamSeat.draw} -> ${part}, 'quote')`,
+        ),
+      )
+      .returning({ id: recExamSeat.id });
+    if (saved) quote = fresh;
+    else {
+      // Another tab fixed it first: that one stands
+      const [again] = await db
+        .select({ draw: recExamSeat.draw })
+        .from(recExamSeat)
+        .where(eq(recExamSeat.id, seat.id))
+        .limit(1);
+      quote = again?.draw[part]?.quote ?? fresh;
+    }
+  }
+  if (b.dry === true) return void res.status(200).json({ ok: true, quote });
+  if (quote.quota < 1) return void tolakKursi(res, "bonus_kosong", { quote });
+  const items = all.slice(0, Math.min(quote.quota, all.length));
   // Only the first writer wins: two tabs asking at once end with one bonus list
   await db
     .update(recExamSeat)
@@ -805,7 +905,7 @@ async function mintaBonus(k: Konteks) {
           isNull(recQuestion.shownAt),
         ),
       );
-  res.status(200).json({ ok: true, count: items.length });
+  res.status(200).json({ ok: true, count: items.length, quote });
 }
 
 /* -------------------------------------------------------------- Kumpulkan */

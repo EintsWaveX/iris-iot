@@ -37,6 +37,8 @@ import type { LccProblem, LccSelf, LccSendReply, LccSub } from "../../../lib/rec
 import type { SeatPhase } from "../../../lib/recruitment/seat-state";
 import type { TestView } from "../../../lib/recruitment/seat-types";
 import Dialog from "../../ui/Dialog";
+import type { BonusQuote } from "../../../lib/recruitment/bonus";
+import BonusOffer from "../exam/BonusOffer";
 import { Gate, Timer, type Motion } from "../exam/parts";
 import { TS } from "../exam/testStrings";
 import type { PlanPart } from "../../../lib/recruitment/seat-types";
@@ -432,6 +434,7 @@ function Workbench({
   // Selesai, and the bonus round offered once before it (4 Nov 2026)
   const [fin, setFin] = useState(false);
   const [declined, setDeclined] = useState(false);
+  const [quote, setQuote] = useState<BonusQuote | null>(null);
   const [finBusy, setFinBusy] = useState(false);
   const jumpToBonus = useRef(false);
   const st = lcc.state[p.id];
@@ -469,6 +472,22 @@ function Workbench({
     lcc.bonus.count > 0 &&
     left >= lcc.bonus.minLeftMs &&
     !declined;
+
+  // The server counts what the seat earned (time left, passed problems, failed Submits) before offering
+  useEffect(() => {
+    if (!fin) return setQuote(null);
+    if (!canOffer || quote) return;
+    let dead = false;
+    void (async () => {
+      const r = await recPost<{ ok: true; quote: BonusQuote }>("lcc-bonus", { dry: true });
+      if (dead) return;
+      if (!isFail(r) && r.quote.quota >= 1) setQuote(r.quote);
+      else setDeclined(true);
+    })();
+    return () => {
+      dead = true;
+    };
+  }, [fin, canOffer, !!quote]);
 
   // Right after the bonus round was taken, open its first problem
   useEffect(() => {
@@ -566,42 +585,16 @@ function Workbench({
         </div>
       </div>
 
-      <Dialog
+      <BonusOffer
+        lang={lang}
         open={fin && canOffer}
         onOpenChange={setFin}
-        title={t.bonus.title}
-        description={t.bonus.desc(lcc.bonus.count, Math.round(lcc.bonus.minLeftMs / 60_000))}
-        size="sm"
-        lang={lang}
-        actions={
-          <>
-            <button
-              type="button"
-              className="btn btn--ghost"
-              disabled={finBusy}
-              onClick={() => setDeclined(true)}
-            >
-              {t.bonus.no}
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={finBusy}
-              onClick={() => void takeBonus()}
-            >
-              {finBusy ? t.bonus.taking : t.bonus.yes}
-            </button>
-          </>
-        }
-      >
-        <div className="r3bonus__offer" aria-hidden="true">
-          <span className="r3bonus__star">
-            <SparkleIcon size={28} weight="fill" />
-          </span>
-          <b className="r3bonus__badge">{t.bonus.badge}</b>
-          <span className="r3bonus__n num">+{lcc.bonus.count}</span>
-        </div>
-      </Dialog>
+        quote={quote}
+        busy={finBusy}
+        t={t.bonus}
+        onYes={() => void takeBonus()}
+        onNo={() => setDeclined(true)}
+      />
       <Dialog
         open={fin && !canOffer}
         onOpenChange={setFin}

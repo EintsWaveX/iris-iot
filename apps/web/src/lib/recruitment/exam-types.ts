@@ -274,6 +274,13 @@ export type SeatDraw = Partial<
       /** The bonus round: the part's other questions, dealt when the seat asked for them (`bonusAt`). */
       bonus?: DrawnItem[];
       bonusAt?: number;
+      /**
+       * Set when the seat asked how many bonus questions it gets. From then on the dealt questions
+       * of the part take no new answers: the number it was shown (`quote`) reads its answers, so
+       * changing one after seeing it would turn the offer into a way to find the right answers.
+       */
+      lockedAt?: number;
+      quote?: { rest: number; time: number; correct: number; wrong: number; quota: number };
     }
   >
 >;

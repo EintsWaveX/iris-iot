@@ -281,6 +281,7 @@ export const RG = dict({
           tempel: "Mencoba paste",
           alat: "Alat pengembang terdeteksi",
           ganda: "Tes terbuka di tab atau perangkat lain",
+          foto: "Menekan tombol screenshot",
         } as Record<string, string>,
         reasons: {
           kit_rusak: "Kit rusak",
@@ -688,6 +689,7 @@ export const RG = dict({
           tab: "Switched tabs",
           fokus: "Window lost focus",
           tempel: "Tried to paste",
+          foto: "Pressed a screenshot key",
           alat: "Developer tools detected",
           ganda: "Test open in another tab or device",
         } as Record<string, string>,
@@ -1091,6 +1093,7 @@ export const RG = dict({
           tab: "切换标签页",
           fokus: "窗口失去焦点",
           tempel: "尝试粘贴",
+          foto: "按下截图键",
           alat: "检测到开发者工具",
           ganda: "在其他标签页或设备上打开了考试",
         } as Record<string, string>,

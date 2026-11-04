@@ -602,3 +602,14 @@
   flex: 1;
   min-width: 0;
 }
+
+/* The Koordinator's star is filled with its division colour, brighter on the dark theme and
+   deeper on the light one so it holds contrast on either surface (4 Nov 2026) */
+.rec9-board .rec-pp__star[aria-pressed="true"] {
+  color: color-mix(in srgb, var(--c, var(--a)) 88%, #ffffff);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c, var(--a)) 40%, transparent));
+}
+:root[data-theme="light"] .rec9-board .rec-pp__star[aria-pressed="true"] {
+  color: color-mix(in srgb, var(--c, var(--a)) 74%, #0a0f1c);
+  filter: none;
+}

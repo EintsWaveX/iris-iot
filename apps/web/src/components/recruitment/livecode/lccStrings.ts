@@ -4,6 +4,7 @@
  * Submit, test, judge, queue, input, output), Title Case on headers and buttons,
  * no em or en dashes.
  */
+import type { BonusQuote } from "../../../lib/recruitment/bonus";
 import { dict } from "../../../lib/app";
 
 type Tier = Record<"easy" | "medium" | "hard", string>;
@@ -51,15 +52,23 @@ export const LCC = dict({
       badge: "Bonus",
       tab: "Bonus",
       title: "Masih ada waktu. Mau coba soal bonus?",
-      desc: (n: number, min: number) =>
-        `Ada ${n} soal Live Coding lain di bank yang tidak kebagian di kamu, karena soal diacak per peserta. Kerjakan sebisanya: nilainya ditambah di atas nilai maksimal, dan kosong atau gagal tidak mengurangi apa-apa. Tawaran ini cuma muncul kalau sisa waktumu ${min} menit atau lebih.`,
+      counting: "Menghitung jatah bonusmu...",
+      desc: (q: BonusQuote) =>
+        `Kamu dapat ${q.quota} soal bonus dari ${q.rest} soal Live Coding lain di bank (diacak). Jumlahnya dari sisa waktumu, ditambah soal yang lolos semua test, dikurangi soal yang sudah di-Submit tapi belum lolos semua. Tiap soal bonus bernilai setengah soal biasa, dan kosong atau gagal tidak mengurangi nilaimu.`,
+      calc: {
+        time: "Sisa waktu",
+        right: "Lolos semua test",
+        wrong: "Submit belum lolos",
+        total: "Soal bonus",
+      },
+      max: (n: number) => `paling banyak ${n}`,
       yes: "Ya, Ambil Soal Bonus",
       no: "Tidak, Lanjut Selesai",
       taking: "Menyiapkan soal bonus",
       added: (n: number) => `${n} soal bonus ditambahkan di daftar soal.`,
       fail: "Soal bonus belum bisa diambil. Coba lagi.",
       late: "Sisa waktumu sudah kurang dari batas untuk bonus.",
-      bar: "Soal Bonus: nilainya tambahan. Kosong atau gagal tidak mengurangi.",
+      bar: "Soal Bonus: bernilai setengah soal biasa. Kosong atau gagal tidak mengurangi.",
     },
     finish: "Selesai",
     finishTitle: "Selesai Live Coding?",
@@ -174,15 +183,23 @@ export const LCC = dict({
       badge: "Bonus",
       tab: "Bonus",
       title: "There is still time. Try the bonus problems?",
-      desc: (n: number, min: number) =>
-        `${n} other Live Coding problems in the bank did not come to you, because problems are shuffled per candidate. Do what you can: their score is added on top of the maximum, and blank or failing takes nothing away. This offer only shows when you have ${min} minutes or more left.`,
+      counting: "Counting your bonus...",
+      desc: (q: BonusQuote) =>
+        `You get ${q.quota} bonus problems out of the ${q.rest} other Live Coding problems in the bank (shuffled). The number comes from your time left, plus problems that passed every test, minus problems you Submitted that did not. Each bonus problem is worth half a normal one, and blank or failing takes nothing away.`,
+      calc: {
+        time: "Time left",
+        right: "Passed every test",
+        wrong: "Submitted, not passing",
+        total: "Bonus problems",
+      },
+      max: (n: number) => `at most ${n}`,
       yes: "Yes, Take the Bonus",
       no: "No, Just Finish",
       taking: "Getting the bonus problems ready",
       added: (n: number) => `${n} bonus problems were added to the problem list.`,
       fail: "The bonus problems could not be taken. Try again.",
       late: "Your time left is now under the limit for the bonus.",
-      bar: "Bonus Problem: its score is extra. Blank or failing takes nothing away.",
+      bar: "Bonus Problem: worth half a normal one. Blank or failing takes nothing away.",
     },
     finish: "Finish",
     finishTitle: "Finish Live Coding?",
@@ -296,15 +313,18 @@ export const LCC = dict({
       badge: "加分",
       tab: "加分",
       title: "还有时间，要试试加分题吗？",
-      desc: (n: number, min: number) =>
-        `题库里还有 ${n} 道实时编程题没有分到你，因为题目是按考生随机分配的。尽力而为即可：分数会加在满分之上，空白或未通过不扣分。只有剩余时间不少于 ${min} 分钟时才会出现这个提示。`,
+      counting: "正在计算你的加分题数量...",
+      desc: (q: BonusQuote) =>
+        `你可获得 ${q.quota} 道加分题，来自题库中另外 ${q.rest} 道实时编程题（随机）。数量由剩余时间、通过全部测试的题数、已提交但未通过的题数决定。每道加分题的分值是普通题的一半，空白或未通过不扣分。`,
+      calc: { time: "剩余时间", right: "通过全部测试", wrong: "已提交未通过", total: "加分题" },
+      max: (n: number) => `最多 ${n} 道`,
       yes: "是，领取加分题",
       no: "不用，直接结束",
       taking: "正在准备加分题",
       added: (n: number) => `已在题目列表中加入 ${n} 道加分题。`,
       fail: "暂时无法领取加分题，请重试。",
       late: "剩余时间已低于加分题的门槛。",
-      bar: "加分题：分数是额外的，空白或未通过不扣分。",
+      bar: "加分题：分值是普通题的一半，空白或未通过不扣分。",
     },
     finish: "结束",
     finishTitle: "结束实时编程？",

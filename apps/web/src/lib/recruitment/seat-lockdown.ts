@@ -5,7 +5,21 @@
  * Nothing fails a candidate automatically: the Master decides.
  */
 
-export const STRIKE_KINDS = ["layar", "tab", "fokus", "tempel", "alat", "ganda"] as const;
+export const STRIKE_KINDS = ["layar", "tab", "fokus", "tempel", "alat", "ganda", "foto"] as const;
+
+/**
+ * A screenshot key (4 Nov 2026). A page cannot stop a screenshot, only notice the keys that ask for
+ * one: PrintScreen, and the Mac shortcuts Cmd+Shift+3, 4 and 5. Windows' Win+Shift+S never reaches
+ * the page; the snipping bar taking focus shows as `fokus` instead.
+ */
+export function isScreenshotKey(e: {
+  key: string;
+  metaKey?: boolean;
+  shiftKey?: boolean;
+}): boolean {
+  if (e.key === "PrintScreen") return true;
+  return !!e.metaKey && !!e.shiftKey && ["3", "4", "5", "#", "$", "%"].includes(e.key);
+}
 export type StrikeKind = (typeof STRIKE_KINDS)[number];
 
 /** A signal within this long of a strike joins it (7: Debounce) */

@@ -12,7 +12,7 @@
  * blurred, inert test; blur applies instantly.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeftIcon, SparkleIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, LockSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import type { PartKey, Phase1Part, Value } from "../../../lib/recruitment/exam-types";
 import type { Lang } from "../../../lib/kelas";
@@ -21,6 +21,8 @@ import { AnswerSaver, isAnswered, type SaveState } from "../../../lib/recruitmen
 import type { PartView, TestView } from "../../../lib/recruitment/seat-types";
 import { QuestionCard } from "./render";
 import { BigIcon, LiveChip, PartsMini, SaveChip, Timer, type Motion } from "./parts";
+import type { BonusQuote } from "../../../lib/recruitment/bonus";
+import BonusOffer from "./BonusOffer";
 import { TAB, askBonus, sendAnswer, submitPart, toast } from "./seatApi";
 import { TS } from "./testStrings";
 
@@ -84,6 +86,7 @@ export default function Runner({
   const [busy, setBusy] = useState(false);
   // The bonus round: offered once at hand-in, when enough time is left (4 Nov 2026)
   const [declined, setDeclined] = useState(false);
+  const [quote, setQuote] = useState<BonusQuote | null>(null);
   const jumpToBonus = useRef(false);
   // The part's entrance plays once, when it starts; moving between questions has its own slide.
   const [entering, setEntering] = useState(true);
@@ -214,8 +217,50 @@ export default function Runner({
   const blur = paused || timeUp || cover;
   const unans = baseItems.map((x) => x.q).filter((q) => !answered.has(q) && !voided.has(q));
   const bi = part.bonus;
+  // The offer: when the part has bonus on, the seat is sure about handing in (it pressed Kumpulkan in
+  // the confirm) and enough time is left, the server counts what it earned. That count is final and
+  // locks the dealt answers, so the numbers cannot be probed by changing an answer and asking again.
   const canOffer =
-    !!bi && bi.minLeftMs > 0 && !bi.taken && bi.count > 0 && left >= bi.minLeftMs && !declined;
+    !!bi &&
+    bi.minLeftMs > 0 &&
+    !bi.taken &&
+    bi.count > 0 &&
+    (left >= bi.minLeftMs || bi.quoted) &&
+    !declined;
+  const locked = !!bi && (bi.quoted || bi.taken);
+  const [offer, setOffer] = useState(false);
+  const reopened = useRef(false);
+
+  /** Kumpulkan pressed in the confirm: offer the bonus when there is one, else hand in */
+  async function goHandIn() {
+    if (!canOffer) return void handIn();
+    setBusy(true);
+    // The last answers go first: the count reads what the seat has really answered
+    await saver.flush();
+    const r = await askBonus(key, true);
+    setBusy(false);
+    if (r.ok && r.quote && r.quote.quota >= 1) {
+      setQuote(r.quote);
+      setAsk(false);
+      setOffer(true);
+      onRefresh();
+      return;
+    }
+    void handIn();
+  }
+
+  // The page was reloaded after the count was made but before the seat chose: put the offer back
+  useEffect(() => {
+    if (reopened.current || !bi?.quoted || bi.taken || bi.count < 1 || timeUp) return;
+    reopened.current = true;
+    void (async () => {
+      const r = await askBonus(key, true);
+      if (r.ok && r.quote && r.quote.quota >= 1) {
+        setQuote(r.quote);
+        setOffer(true);
+      }
+    })();
+  }, [bi?.quoted, bi?.taken, bi?.count, key, timeUp]);
 
   async function takeBonus() {
     setBusy(true);
@@ -229,6 +274,7 @@ export default function Runner({
       return;
     }
     jumpToBonus.current = true;
+    setOffer(false);
     setAsk(false);
     toast(t.bonus.added(r.count ?? 0));
     onRefresh();
@@ -399,6 +445,12 @@ export default function Runner({
         </aside>
         <main className="r3main">
           <div className="r3strip">{cells(true)}</div>
+          {locked && !it.bonus && (
+            <div className="r3bonus__bar r3bonus__bar--locked" role="note">
+              <LockSimpleIcon size={18} weight="fill" aria-hidden="true" />
+              <span>{t.bonus.locked}</span>
+            </div>
+          )}
           {it.bonus && (
             <div className="r3bonus__bar" role="note">
               <SparkleIcon size={18} weight="fill" aria-hidden="true" />
@@ -422,7 +474,7 @@ export default function Runner({
               flagged={flags.has(it.q)}
               onFlag={() => flip(it.q)}
               voided={it.voided}
-              disabled={blur}
+              disabled={blur || (locked && !it.bonus)}
             />
           </div>
           <nav className="r3nav" aria-label={t.run.moveNav}>
@@ -492,45 +544,22 @@ export default function Runner({
         </div>
       )}
 
-      <Dialog
-        open={ask && !timeUp && canOffer}
-        onOpenChange={setAsk}
-        title={t.bonus.title}
-        description={t.bonus.desc(bi?.count ?? 0, Math.round((bi?.minLeftMs ?? 0) / 60_000))}
-        size="sm"
+      <BonusOffer
         lang={lang}
-        actions={
-          <>
-            <button
-              type="button"
-              className="btn btn--ghost"
-              disabled={busy}
-              onClick={() => setDeclined(true)}
-            >
-              {t.bonus.no}
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={busy}
-              onClick={() => void takeBonus()}
-            >
-              {busy ? t.bonus.taking : t.bonus.yes}
-            </button>
-          </>
-        }
-      >
-        <div className="r3bonus__offer" aria-hidden="true">
-          <span className="r3bonus__star">
-            <SparkleIcon size={28} weight="fill" />
-          </span>
-          <b className="r3bonus__badge">{t.bonus.badge}</b>
-          <span className="r3bonus__n num">+{bi?.count ?? 0}</span>
-        </div>
-      </Dialog>
+        open={offer && !timeUp}
+        quote={quote}
+        busy={busy}
+        t={t.bonus}
+        onYes={() => void takeBonus()}
+        onNo={() => {
+          setOffer(false);
+          setDeclined(true);
+          void handIn();
+        }}
+      />
 
       <Dialog
-        open={ask && !timeUp && !canOffer}
+        open={ask && !timeUp}
         onOpenChange={setAsk}
         title={t.handIn.title(t.part[key].l)}
         description={t.handIn.desc}
@@ -541,13 +570,19 @@ export default function Runner({
             <button type="button" className="btn btn--ghost" onClick={() => setAsk(false)}>
               {t.handIn.keep}
             </button>
-            <button type="button" className="btn btn--primary" disabled={busy} onClick={handIn}>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={busy}
+              onClick={() => void goHandIn()}
+            >
               {t.handIn.go}
             </button>
           </>
         }
       >
         <div className="stack">
+          {canOffer && <p className="hint">{t.bonus.lockWarn}</p>}
           <div className="r3tally">
             <span>
               <b className="num">{answered.size}</b>
@@ -570,6 +605,7 @@ export default function Runner({
           </div>
           {unans.length > 0 && (
             <div className="stack stack--sm">
+              <span className="hint">{t.handIn.blankNote}</span>
               <span className="hint">{t.handIn.unansweredOpen}</span>
               <div className="rec-chips">
                 {unans.map((q) => {
