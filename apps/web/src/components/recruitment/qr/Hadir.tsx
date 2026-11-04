@@ -20,6 +20,7 @@ import Skeleton from "../../ui/Skeleton";
 type Hasil =
   | { v: "hadir" | "sudah"; acara: string; kapan: string }
   | { v: "bukan"; mine: string | null }
+  | { v: "akhir"; jam: string | null }
   | { v: "berganti" | "tahap" | "tutup" | "belum" | "gagal" };
 
 const NADA: Record<Hasil["v"], "ok" | "warn"> = {
@@ -29,6 +30,7 @@ const NADA: Record<Hasil["v"], "ok" | "warn"> = {
   berganti: "warn",
   tahap: "warn",
   tutup: "warn",
+  akhir: "warn",
   belum: "warn",
   gagal: "warn",
 };
@@ -60,6 +62,7 @@ export default function Hadir({ lang }: { lang: Lang }) {
       qr_berganti: { v: "berganti" },
       bukan_tahapmu: { v: "tahap" },
       jendela_tutup: { v: "tutup" },
+      absensi_belum: { v: "akhir", jam: typeof r.opensAt === "string" ? r.opensAt : null },
       tidak_ditemukan: { v: "belum" },
       bukan_jadwalmu: {
         v: "bukan",
@@ -93,7 +96,9 @@ export default function Hadir({ lang }: { lang: Lang }) {
         ? t.scanSub.sudah(hasil.acara)
         : hasil.v === "bukan"
           ? t.scanSub.bukan(hasil.mine)
-          : t.scanSub[hasil.v];
+          : hasil.v === "akhir"
+            ? t.scanSub.akhir(hasil.jam)
+            : t.scanSub[hasil.v];
   const bisaKetik = !hasil || hasil.v === "berganti" || hasil.v === "gagal";
 
   return (

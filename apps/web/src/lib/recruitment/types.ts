@@ -308,6 +308,7 @@ export type RecError =
   | "qr_berganti"
   | "bukan_tahapmu"
   | "bukan_jadwalmu"
+  | "absensi_belum"
   | "tidak_bisa_batal"
   // S2: Pilih Jadwal
   | "sudah_pilih"
@@ -946,6 +947,12 @@ export interface QrEventsResponse {
     live: boolean;
     /** Which QR the event shows: IRIS's own, or one made from a pasted link (qr-luar.ts) */
     qr: { mode: "iris" | "luar"; link: string; sheet: string };
+    /** Attendance counts right now (a gathering: only in its closing 30 minutes, or once Panitia open it) */
+    open: boolean;
+    /** When a gathering's closing window opens (HH:MM WIB); null for events that take it all along */
+    opensAt: string | null;
+    /** Panitia opened the attendance early by hand */
+    manual: boolean;
   })[];
   now: string;
 }

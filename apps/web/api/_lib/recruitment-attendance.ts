@@ -30,7 +30,15 @@ import {
   recTubesSession,
 } from "../../src/lib/schema.js";
 import { lite } from "../../src/lib/recruitment/banner.js";
-import { eventHadir, eventLive, eventSegera, tanggalWib } from "../../src/lib/recruitment/gates.js";
+import {
+  absensiAkhir,
+  absensiBuka,
+  absensiBukaJam,
+  eventHadir,
+  eventLive,
+  eventSegera,
+  tanggalWib,
+} from "../../src/lib/recruitment/gates.js";
 import {
   CODE_ALPHABET,
   CODE_LENGTH,
@@ -55,6 +63,7 @@ import {
   bacaSheet,
   parseCsv,
   qrUntuk,
+  type QrMap,
   scanTerbaru,
   sheetCsvUrl,
   type ScanBaru,
@@ -117,6 +126,10 @@ interface Peserta {
 
 /** Events a QR makes sense for: a gathering (see eventHadir) and running right now. */
 export const bisaDipindai = (e: RecEvent, now: Date): boolean => eventHadir(e) && eventLive(e, now);
+
+/** Whether a scan counts now: running, and for a gathering in its closing window or opened by hand. */
+export const absenBuka = (e: RecEvent, now: Date, map: QrMap | undefined): boolean =>
+  eventHadir(e) && absensiBuka(e, now, qrUntuk(map, e.id).buka === true);
 
 /** An event the wall may list for an Asisten: running, or starting within the lead days (to prepare the QR). */
 const bisaDisiapkan = (e: RecEvent, now: Date): boolean => eventHadir(e) && eventSegera(e, now);
@@ -280,6 +293,10 @@ export async function handleQrAcara(_req: ApiRequest, res: ApiResponse, s: Sessi
     daftar.push({
       ...lite(e),
       qr: { mode: q.mode, link: q.mode === "luar" ? q.link : "", sheet: q.sheet },
+      // Attendance counts only inside its window: for a gathering the closing 30 minutes (or opened by hand)
+      open: absenBuka(e, now, qrMap),
+      opensAt: absensiAkhir(e) ? absensiBukaJam(e) : null,
+      manual: q.buka === true,
       stage: e.stage,
       live,
       // Counts only mean something while it runs; an event still to come is just to prepare
@@ -311,9 +328,12 @@ export async function handleQrToken(req: ApiRequest, res: ApiResponse, s: Sessio
   const e = events.find((v) => v.id === id);
   if (!e) return void tolak(res, "tidak_ditemukan", 404);
   if (!bisaDipindai(e, now)) return void tolak(res, "jendela_tutup", 409);
+  const qrMap = await bacaSetting(db, "qr");
+  // A gathering takes attendance at its end: no code before then (the wall shows when it opens).
+  if (!absenBuka(e, now, qrMap))
+    return void tolak(res, "absensi_belum", 409, { opensAt: absensiBukaJam(e) });
   // An event that shows a QR made from a pasted link has no IRIS token to hand out.
-  if (qrUntuk(await bacaSetting(db, "qr"), e.id).mode === "luar")
-    return void tolak(res, "qr_luar", 409);
+  if (qrUntuk(qrMap, e.id).mode === "luar") return void tolak(res, "qr_luar", 409);
   const period = periodAt(now.getTime());
   res.status(200).json({
     ok: true,
@@ -402,6 +422,9 @@ export async function handleHadir(req: ApiRequest, res: ApiResponse, s: SessionP
   }
   if (!e || e.internal) return void tolak(res, "tidak_ditemukan", 404);
   if (!bisaDipindai(e, now)) return void tolak(res, "jendela_tutup", 409);
+  // A gathering takes attendance at its end, so a scan before then is turned away.
+  if (!absenBuka(e, now, await bacaSetting(db, "qr")))
+    return void tolak(res, "absensi_belum", 409, { opensAt: absensiBukaJam(e) });
 
   const hasil = await muatHasilBanyak(db, [k.id]);
   const st = standing(k, hasil.get(k.id) ?? [], events, now);

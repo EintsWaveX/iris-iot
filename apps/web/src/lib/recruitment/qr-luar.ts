@@ -18,6 +18,8 @@ export interface QrSetting {
   link: string;
   /** The responses spreadsheet to read the latest scans from; empty for none */
   sheet: string;
+  /** Panitia opened the attendance early (a gathering takes it in its last 30 minutes otherwise) */
+  buka?: boolean;
 }
 
 /** Per event id (as text). An event with no entry shows the IRIS QR. */
@@ -67,7 +69,7 @@ export function cekQrSetting(v: unknown): QrSetting | null {
   const sheetRaw = typeof o.sheet === "string" ? o.sheet.trim() : "";
   if (sheetRaw !== "" && !bacaSheet(sheetRaw)) return null;
   if (o.mode === "luar" && link === "") return null;
-  return { mode: o.mode, link, sheet: sheetRaw };
+  return { mode: o.mode, link, sheet: sheetRaw, ...(o.buka === true ? { buka: true } : {}) };
 }
 
 export function cekQrMap(v: unknown): QrMap | null {

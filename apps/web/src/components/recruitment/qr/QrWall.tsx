@@ -20,6 +20,7 @@ import type { Lang } from "../../../lib/kelas";
 import {
   isFail,
   recGet,
+  recPost,
   useRecAttendance,
   useRecEdition,
   useRecQrEvents,
@@ -27,7 +28,8 @@ import {
 } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import { PERIOD_MS } from "../../../lib/recruitment/qr";
-import type { QrTokenResponse } from "../../../lib/recruitment/types";
+import type { QrTokenResponse, SettingsResponse } from "../../../lib/recruitment/types";
+import { QR_DEFAULT, qrUntuk, type QrMap, type QrSetting } from "../../../lib/recruitment/qr-luar";
 import { judulAcara, tempatAcara } from "../judul";
 import { S2 } from "../s2Strings";
 import { kapanAcara } from "../shared";
@@ -79,6 +81,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const [atur, setAtur] = useState(false);
   /** counts up on every new check-in; each step plays one rainbow pulse around the QR */
   const [pulse, setPulse] = useState(0);
+  const [sibukBuka, setSibukBuka] = useState(false);
 
   const daftar = events.data?.events ?? [];
   const aktif = daftar.find((e) => e.id === pilih) ?? daftar[0] ?? null;
@@ -87,6 +90,9 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const luar = aktif?.qr.mode === "luar";
   // Not running yet: an Asisten may open the wall a few days ahead to prepare the QR (no token, no count)
   const belum = aktif !== null && !aktif.live;
+  // A gathering takes attendance at its end: until its closing window (or Panitia opening it) there is no QR
+  const jamBuka = aktif?.opensAt ?? null;
+  const tutupAkhir = aktif !== null && aktif.opensAt !== null && !aktif.open;
   const linkLuar = luar ? aktif.qr.link : "";
   const adaSheet = luar && aktif.qr.sheet !== "";
   const terbaru = useRecQrRecent(eventId, izin && adaSheet);
@@ -96,7 +102,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
 
   // The token for the current period: fetched now, and again as the period ends.
   useEffect(() => {
-    if (!izin || eventId === null || luar || belum) return;
+    if (!izin || eventId === null || luar || belum || tutupAkhir) return;
     let alive = true;
     let timer = 0;
     const ambil = async () => {
@@ -120,7 +126,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
       alive = false;
       window.clearTimeout(timer);
     };
-  }, [izin, eventId, luar, belum]);
+  }, [izin, eventId, luar, belum, tutupAkhir]);
 
   const svg = useMemo(
     () =>
@@ -181,6 +187,56 @@ export default function QrWall({ lang }: { lang: Lang }) {
       </div>
     );
 
+  /** Panitia open the attendance early, or hand it back to the schedule (the `buka` flag of the event's QR setting) */
+  const ubahBuka = async (v: boolean) => {
+    if (!aktif) return;
+    setSibukBuka(true);
+    const s = await recGet<SettingsResponse>("settings");
+    if (isFail(s)) {
+      setSibukBuka(false);
+      return void window.Toast?.show(t.openFail, "danger");
+    }
+    const peta: QrMap = {
+      ...((s.settings.find((x) => x.key === "qr")?.value as QrMap | undefined) ?? QR_DEFAULT),
+    };
+    const baru: QrSetting = { ...qrUntuk(peta, aktif.id) };
+    if (v) baru.buka = true;
+    else delete baru.buka;
+    if (baru.mode === "iris" && !baru.buka) delete peta[String(aktif.id)];
+    else peta[String(aktif.id)] = baru;
+    const r = await recPost<{ ok: true }>("setting-save", { key: "qr", value: peta });
+    setSibukBuka(false);
+    if (isFail(r)) return void window.Toast?.show(t.openFail, "danger");
+    setTok(null);
+    events.refresh();
+  };
+  const tombolManual =
+    bisaDaftar && aktif && aktif.opensAt !== null && aktif.live ? (
+      aktif.open ? (
+        aktif.manual && (
+          <div className="r2proj__manual">
+            <span className="hint">{t.manualOn}</span>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              disabled={sibukBuka}
+              onClick={() => void ubahBuka(false)}
+            >
+              <span className="btn__label">{t.backToSchedule}</span>
+            </button>
+          </div>
+        )
+      ) : (
+        <button
+          type="button"
+          className="btn btn--primary"
+          disabled={sibukBuka}
+          onClick={() => void ubahBuka(true)}
+        >
+          <span className="btn__label">{t.openNow}</span>
+        </button>
+      )
+    ) : null;
   const kode = tok?.code ?? "";
   const titik = Math.min(Math.max(diharap, 0), 160);
   return (
@@ -236,18 +292,18 @@ export default function QrWall({ lang }: { lang: Lang }) {
       ) : (
         <div className="r2proj__main">
           <div className="r2proj__qrbox">
-            {(tok || luar) && (
+            {(tok || luar) && !tutupAkhir && (
               <div className="r2proj__qr" ref={box} dangerouslySetInnerHTML={{ __html: svg }} />
             )}
-            {belum && !luar && (
+            {((belum && !luar) || tutupAkhir) && (
               <div className="r2proj__qr r2proj__qr--wait">
-                <span>{t.soon}</span>
+                <span>{belum ? t.soon : t.waitBox(jamBuka ?? "")}</span>
               </div>
             )}
-            {pulse > 0 && motion !== "reduce" && !luar && !belum && (
+            {pulse > 0 && motion !== "reduce" && !luar && !belum && !tutupAkhir && (
               <span key={pulse} className="r2proj__pulse" aria-hidden="true" />
             )}
-            {!luar && !belum && (
+            {!luar && !belum && !tutupAkhir && (
               <svg className="r2proj__ring" viewBox="0 0 100 100" aria-hidden="true">
                 <rect x="1.5" y="1.5" width="97" height="97" rx="7" pathLength={100} ref={ring} />
               </svg>
@@ -256,14 +312,19 @@ export default function QrWall({ lang }: { lang: Lang }) {
           <div className="r2proj__info">
             <span className="r2proj__eyebrow">
               {aktif.stage ? `${t.attendance} · ${REC[lang].stage[aktif.stage]}` : t.attendance}
-              {belum ? ` · ${t.soon}` : ""}
+              {belum ? ` · ${t.soon}` : tutupAkhir ? ` · ${t.waitTag}` : ""}
             </span>
             <h1 className="r2proj__t">{judulAcara(aktif, lang)}</h1>
             <span className="r2proj__when">
               {kapanAcara(aktif, lang)}
               {aktif.place ? ` · ${tempatAcara(aktif.place, lang)}` : ""}
             </span>
-            {luar ? (
+            {tutupAkhir ? (
+              <div className="r2proj__how">
+                <span>{belum ? t.soonHintAkhir(jamBuka) : t.waitHint(jamBuka)}</span>
+                {tombolManual}
+              </div>
+            ) : luar ? (
               <>
                 <div className="r2proj__recent" aria-live="polite">
                   <span className="r2proj__eyebrow">{t.luar.recent}</span>
@@ -293,6 +354,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
                   <span>{t.luar.scanForm}</span>
                   <span className="hint">{belum ? t.soonHintLuar : t.luar.formNote}</span>
                 </div>
+                {tombolManual}
               </>
             ) : belum ? (
               <div className="r2proj__how">
@@ -324,6 +386,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
                   </b>
                   <span className="hint">{gagal ? t.scan.gagal : t.codeChanges}</span>
                 </div>
+                {tombolManual}
               </>
             )}
           </div>
@@ -341,11 +404,15 @@ export default function QrWall({ lang }: { lang: Lang }) {
         <Ticker
           still={motion === "reduce"}
           lines={
-            luar
-              ? t.tickLuar(judulAcara(aktif, lang))
-              : belum
-                ? t.tickSoon(judulAcara(aktif, lang))
-                : t.tickIris(judulAcara(aktif, lang), location.host)
+            tutupAkhir
+              ? belum
+                ? t.tickSoonAkhir(judulAcara(aktif, lang), jamBuka)
+                : t.tickWait(judulAcara(aktif, lang), jamBuka)
+              : luar
+                ? t.tickLuar(judulAcara(aktif, lang))
+                : belum
+                  ? t.tickSoon(judulAcara(aktif, lang))
+                  : t.tickIris(judulAcara(aktif, lang), location.host)
           }
         />
       )}

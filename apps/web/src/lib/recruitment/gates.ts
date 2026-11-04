@@ -61,6 +61,40 @@ const KIND_HADIR: readonly string[] = [
 export const eventHadir = (e: Pick<RecEvent, "kind" | "gates" | "internal">): boolean =>
   !e.internal && (KIND_HADIR.includes(e.kind) || e.gates.includes("qr"));
 
+/**
+ * Attendance at the END of a gathering (the user, 4 Nov 2026: "absensi di akhir acara, bukan di awal").
+ * First Meet and the other open gatherings take their QR in the last AKHIR_MENIT minutes of each
+ * day's window, or sooner when Panitia open it by hand. Exams, interviews, teaching and Tubes
+ * evenings are unchanged: there the check-in is also how a person gets in.
+ */
+export const AKHIR_MENIT = 30;
+const KIND_AKHIR: readonly string[] = ["meeting", "presentation"];
+export const absensiAkhir = (e: Pick<RecEvent, "kind" | "gates" | "internal">): boolean =>
+  eventHadir(e) && KIND_AKHIR.includes(e.kind);
+
+/** The time of day (HH:MM, WIB) the closing window opens, or null for an event with no window. */
+export function absensiBukaJam(e: Pick<RecEvent, "dayEnd">, menit = AKHIR_MENIT): string | null {
+  if (!e.dayEnd) return null;
+  const [h, m] = e.dayEnd.split(":").map(Number);
+  const t = Math.max(0, h * 60 + m - menit);
+  return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+}
+
+/**
+ * Whether the QR and the typed code count right now: the event is running and, for a gathering,
+ * it is inside its closing window or Panitia opened it early (`manual`).
+ */
+export function absensiBuka(
+  e: Jendela & Pick<RecEvent, "kind" | "gates" | "internal">,
+  now: Date,
+  manual: boolean,
+): boolean {
+  if (!eventLive(e, now)) return false;
+  if (!absensiAkhir(e) || manual) return true;
+  const dari = absensiBukaJam(e);
+  return dari === null || tanggalWib(now).jam >= dari;
+}
+
 /** Over: past its last day, or past its window's end on that day. */
 export function eventEnded(e: Jendela, now: Date): boolean {
   const { tanggal, jam } = tanggalWib(now);
