@@ -242,6 +242,7 @@ function NoteBtn({
       open={open}
       onOpenChange={setOpen}
       align="end"
+      label={t.noteOn(c.nama.split(" ")[0])}
       trigger={
         <button
           type="button"

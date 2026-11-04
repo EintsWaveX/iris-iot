@@ -133,6 +133,7 @@ export default function Journey({
                 open={open === i}
                 onOpenChange={(v) => setOpen(v ? i : null)}
                 align="center"
+                label={r.stage[s]}
                 trigger={
                   <button
                     type="button"

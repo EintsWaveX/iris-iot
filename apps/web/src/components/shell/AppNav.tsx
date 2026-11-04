@@ -616,6 +616,7 @@ export default function AppNav({
               <RadixPopover.Portal>
                 <RadixPopover.Content
                   className="appnav__menu appnav__menu--lab sweep-edge"
+                  aria-label={asistenNav ? t.lab : t.more}
                   align="start"
                   sideOffset={10}
                   collisionPadding={12}
@@ -690,6 +691,7 @@ export default function AppNav({
             <RadixPopover.Portal>
               <RadixPopover.Content
                 className="popover__panel appnav__disp"
+                aria-label={t.display}
                 tabIndex={-1}
                 onOpenAutoFocus={(e) => {
                   // Focus the panel, not its first radio: a ring on "Gelap"
@@ -723,6 +725,7 @@ export default function AppNav({
               <RadixPopover.Portal>
                 <RadixPopover.Content
                   className="appnav__menu sweep-edge"
+                  aria-label={t.account}
                   align="end"
                   sideOffset={10}
                   collisionPadding={12}

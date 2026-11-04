@@ -775,6 +775,7 @@ export default function Lembar({
       <Popover
         open={fopen}
         onOpenChange={setFopen}
+        label={L.filesOf(first)}
         trigger={
           <button type="button" className="btn btn--ghost btn--sm">
             <FileTextIcon size={18} aria-hidden="true" />
