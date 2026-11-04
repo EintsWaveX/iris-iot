@@ -16,6 +16,12 @@ const { lang } = Astro.props;
 <Base
   noindex
   title={`${tri(lang, "Catat Kehadiran", "Mark Attendance", "记录出席")} · IRIS IoT`}
+  description={tri(
+    lang,
+    "Catat kehadiranmu di acara Open Recruitment Asisten IRIS dengan kode atau QR.",
+    "Mark your attendance at an IRIS assistant recruitment event with a code or QR.",
+    "用代码或二维码记录你在 IRIS 助教招募活动的出席。",
+  )}
   lang={lang}
   cosmosScene="kerja"
   shell="rekrutmen"

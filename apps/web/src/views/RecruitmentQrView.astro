@@ -16,6 +16,12 @@ const { lang } = Astro.props;
 <Base
   noindex
   title={`${tri(lang, "Absensi QR", "Attendance QR", "签到二维码")} · IRIS IoT`}
+  description={tri(
+    lang,
+    "Layar QR absensi untuk acara Open Recruitment Asisten IRIS.",
+    "The attendance QR screen for an IRIS assistant recruitment event.",
+    "IRIS 助教招募活动的签到二维码屏幕。",
+  )}
   lang={lang}
   cosmosScene="kerja"
   nav={false}
