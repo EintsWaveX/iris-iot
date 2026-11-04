@@ -33,6 +33,7 @@ import type { TubesBoardTeam, TubesFileView } from "../../../lib/recruitment/tub
 import { bacaFileTubes } from "../../../lib/recruitment/tubes-client";
 import { dariLokal, kapan, keLokal, StatusPill, toast, type PanelCtx } from "./panelShared";
 import { leaveRow } from "../../ui/leaveRow";
+import { useRevealAdded } from "../ui/useRevealAdded";
 
 /* ------------------------------------------------------------ viewing one team */
 
@@ -312,6 +313,7 @@ function PartsDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
   const [parts, setParts] = useState(
     c.b.setting.parts.map((p) => ({ ...p, extText: p.ext.join(", "), mbText: String(p.mb) })),
   );
+  const added = useRevealAdded(parts.length);
   const set = (i: number, patch: Partial<(typeof parts)[number]>) =>
     setParts((x) => x.map((p, j) => (j === i ? { ...p, ...patch } : p)));
   const go = async () => {
@@ -362,9 +364,9 @@ function PartsDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
         </>
       }
     >
-      <div className="stack">
+      <div className="stack" ref={added.ref}>
         {parts.map((p, i) => (
-          <div className="panel stack" key={p.key}>
+          <div className="panel stack" key={p.key} data-item="">
             <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
               <label className="field" style={{ flex: "1 1 160px" }}>
                 <span className="field__label">{w.partLabel} (ID)</span>
@@ -432,7 +434,8 @@ function PartsDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
             <button
               type="button"
               className="btn btn--ghost btn--sm"
-              onClick={() =>
+              onClick={() => {
+                added.ask();
                 setParts((x) => [
                   ...x,
                   {
@@ -445,8 +448,8 @@ function PartsDialog({ c, onClose }: { c: PanelCtx; onClose: () => void }) {
                     required: false,
                     link: false,
                   },
-                ])
-              }
+                ]);
+              }}
             >
               <span className="btn__label">{w.partAdd}</span>
             </button>
