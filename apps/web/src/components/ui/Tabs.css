@@ -168,7 +168,7 @@
   border-radius: 999px;
   color: var(--text);
   display: inline-flex;
-  font-size: 0.76rem;
+  font-size: max(11px, 0.76rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   justify-content: center;

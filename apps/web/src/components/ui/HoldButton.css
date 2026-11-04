@@ -70,7 +70,7 @@
   width: 100%;
 }
 .hold__t small {
-  font-size: 0.76rem;
+  font-size: max(11px, 0.76rem);
   font-weight: 600;
   letter-spacing: 0.08em;
   margin-left: auto;
