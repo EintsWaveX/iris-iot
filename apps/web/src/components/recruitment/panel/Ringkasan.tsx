@@ -23,10 +23,12 @@ import {
 } from "@phosphor-icons/react";
 import type { ComponentType } from "react";
 import type { Lang } from "../../../lib/kelas";
+import { href } from "../../../lib/app";
 import { lite } from "../../../lib/recruitment/banner";
 import {
   eventHadir,
   eventLive,
+  eventSegera,
   gateClosesAt,
   gateOpen,
   nextPublicEvent,
@@ -220,6 +222,15 @@ export default function Ringkasan({
         }
       : null;
   const hidup = hariIniList.find((e) => eventHadir(e) && eventLive(e, now)) ?? null;
+  // Not running yet, but inside the Asisten's lead days: the QR can be set up now (the QR wall lists it).
+  const siap =
+    hidup || !rights?.attendance
+      ? null
+      : (events
+          .filter((e) => eventHadir(e) && eventSegera(e, now) && !eventLive(e, now))
+          .sort((a, b) =>
+            `${a.startsOn} ${a.dayStart ?? ""}`.localeCompare(`${b.startsOn} ${b.dayStart ?? ""}`),
+          )[0] ?? null);
 
   const funnel = candidates ? funnelOf(candidates) : null;
   const stageNow: StageKey = where.stage === "daftar" ? "berkas" : where.stage;
@@ -331,6 +342,17 @@ export default function Ringkasan({
               <span className="btn__label">{S2[lang].attend.todayAbsen}</span>
             </button>
             <span className="hint">{S2[lang].attend.todayHint}</span>
+          </div>
+        )}
+        {siap && (
+          <div className="row r2today">
+            <a className="btn btn--primary btn--sm" href={href(lang, "/recruitment/qr")}>
+              <QrCodeIcon size={16} aria-hidden="true" />
+              <span className="btn__label">{S2[lang].attend.prepare}</span>
+            </a>
+            <span className="hint">
+              {S2[lang].attend.prepareHint(judulAcara(siap, lang), kapanAcara(siap, lang))}
+            </span>
           </div>
         )}
         {deadline && (

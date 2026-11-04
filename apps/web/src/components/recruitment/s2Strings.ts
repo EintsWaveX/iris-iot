@@ -559,6 +559,9 @@ export const S2 = dict({
       todayAttend: "Kehadiran",
       todayAbsen: "Absensi",
       todayHint: "QR di layar dan tanda manual, satu tempat",
+      prepare: "Siapkan QR",
+      prepareHint: (acara: string, kapan: string) =>
+        `${acara} mulai ${kapan}. Kodenya sudah bisa disiapkan dari sekarang.`,
       absen: (acara: string) => `Absensi ${acara}`,
       wallTitle: "Tampilkan QR di Layar",
       wallHint:
@@ -1123,6 +1126,9 @@ export const S2 = dict({
       todayAttend: "Attendance",
       todayAbsen: "Attendance",
       todayHint: "The QR screen and manual marks, in one place",
+      prepare: "Set Up QR",
+      prepareHint: (acara: string, kapan: string) =>
+        `${acara} starts ${kapan}. You can set its QR up from now.`,
       absen: (acara: string) => `${acara} Attendance`,
       wallTitle: "Show the QR on the Screen",
       wallHint: "One screen per room. The code changes every 20 seconds and carries nobody's name.",
@@ -1659,6 +1665,9 @@ export const S2 = dict({
       todayAttend: "出席",
       todayAbsen: "出席",
       todayHint: "屏幕二维码和手动标记，集中在一处",
+      prepare: "设置二维码",
+      prepareHint: (acara: string, kapan: string) =>
+        `${acara}将于${kapan}开始。现在就可以设置二维码。`,
       absen: (acara: string) => `${acara} 出席`,
       wallTitle: "在屏幕上显示二维码",
       wallHint: "每个房间一块屏幕。二维码每 20 秒更换，不含任何人的姓名。",
