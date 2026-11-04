@@ -1,0 +1,8 @@
+/* Noto Sans SC for Mandarin: about 300 KB of @font-face rules (100 KB gzipped) that every page
+   would otherwise download before first paint. Mandarin is off (ZH_ENABLED=false in lib/kelas.ts),
+   so Base.astro does not import this file. When ZH_ENABLED goes back to true, add
+   `import "../styles/fonts-zh.css";` next to the fonts.css import in layouts/Base.astro
+   (lib/__tests__/zh-fonts.test.ts fails until you do). */
+@import "@fontsource/noto-sans-sc/400.css";
+@import "@fontsource/noto-sans-sc/500.css";
+@import "@fontsource/noto-sans-sc/700.css";
