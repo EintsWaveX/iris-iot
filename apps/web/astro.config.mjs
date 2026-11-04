@@ -2,11 +2,14 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
+import { phosphorWeights } from "./vite/phosphor-weights.ts";
 
 // https://astro.build/config
 export default defineConfig({
   integrations: [react()],
   vite: {
+    // Cuts the thin and light drawings out of every Phosphor icon (see the file).
+    plugins: [phosphorWeights()],
     // Dependencies only some islands import. Without this, the dev server
     // discovers them on first visit and answers "504 Outdated Optimize Dep",
     // leaving that page's island unhydrated until a restart.
