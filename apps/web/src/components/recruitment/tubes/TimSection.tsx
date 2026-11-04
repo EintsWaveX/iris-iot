@@ -17,6 +17,7 @@ import {
   UserPlusIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
+import { DateField, TimeField } from "../../ui/Controls";
 import IconButton from "../../ui/IconButton";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import type {
@@ -372,34 +373,19 @@ function EveningDialog({
       }
     >
       <div className="stack">
-        <label className="field">
+        <div className="field">
           <span className="field__label">{w.eveningDate}</span>
-          <input
-            className="field__input"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </label>
+          <DateField value={date} onChange={setDate} label={w.eveningDate} lang={c.lang} />
+        </div>
         <div className="row" style={{ gap: 12 }}>
-          <label className="field" style={{ flex: 1 }}>
+          <div className="field" style={{ flex: 1 }}>
             <span className="field__label">{w.eveningFrom}</span>
-            <input
-              className="field__input"
-              type="time"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </label>
-          <label className="field" style={{ flex: 1 }}>
+            <TimeField value={from} onChange={setFrom} label={w.eveningFrom} lang={c.lang} />
+          </div>
+          <div className="field" style={{ flex: 1 }}>
             <span className="field__label">{w.eveningTo}</span>
-            <input
-              className="field__input"
-              type="time"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </label>
+            <TimeField value={to} onChange={setTo} label={w.eveningTo} lang={c.lang} />
+          </div>
         </div>
         <label className="field">
           <span className="field__label">{w.eveningCap}</span>
