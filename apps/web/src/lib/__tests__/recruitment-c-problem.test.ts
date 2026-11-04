@@ -34,7 +34,7 @@ const draft = (): CProblemDraft => ({
   limits: { timeMs: 1000, memKb: 65_536 },
   samples: [{ input: "1 2\n", output: "3\n" }],
   tests: [
-    { input: "1 2\n", output: "3\n" },
+    { input: "7 8\n", output: "15\n" },
     { input: "5 5\n", output: "10\n" },
     { input: "-4 4\n", output: "0\n" },
   ],
@@ -87,7 +87,7 @@ describe("validateProblem", () => {
 
   it("keeps the limits, the counts and the tier in range", () => {
     const d = draft();
-    d.tier = "hard" as never;
+    d.tier = "extreme" as never;
     d.limits = { timeMs: 50, memKb: 1_000_000 };
     d.samples = [];
     d.tests = d.tests.slice(0, 2);
@@ -109,7 +109,7 @@ describe("validateProblem", () => {
 
   it("refuses two hidden tests with the same input", () => {
     const d = draft();
-    d.tests[2] = { input: "1 2\r\n", output: "3\n" };
+    d.tests[2] = { input: "5 5\r\n", output: "10\n" };
     expect(fields(d)).toEqual(["tests.2:tes_kembar"]);
   });
 
@@ -177,15 +177,28 @@ describe("points from runs", () => {
 });
 
 describe("the default problems", () => {
-  it("are all sound, with the samples being the first tests", () => {
-    expect(SEED_PROBLEMS).toHaveLength(8);
+  it("are 24 sound problems, and no sample is also a hidden test", () => {
+    expect(SEED_PROBLEMS).toHaveLength(24);
     for (const p of SEED_PROBLEMS) {
       expect(validateProblem(p), p.title).toEqual([]);
-      expect(p.tests.slice(0, p.samples.length)).toEqual(p.samples);
+      const shown = new Set(p.samples.map((s) => s.input));
+      expect(
+        p.tests.filter((x) => shown.has(x.input)),
+        p.title,
+      ).toEqual([]);
     }
   });
+  it("hold eight of each tier", () => {
+    for (const tier of ["easy", "medium", "hard"] as const)
+      expect(SEED_PROBLEMS.filter((p) => p.tier === tier)).toHaveLength(8);
+  });
+  it("a problem whose hidden test repeats a sample cannot be saved", () => {
+    const p = structuredClone(SEED_PROBLEMS[0]);
+    p.tests[0] = { ...p.samples[0] };
+    expect(validateProblem(p).map((e) => e.kode)).toContain("tes_sama_contoh");
+  });
   it("hold enough of each tier for every seat's hand", () => {
-    for (const tier of ["easy", "medium"] as const) {
+    for (const tier of ["easy", "medium", "hard"] as const) {
       expect(SEED_PROBLEMS.filter((p) => p.tier === tier).length).toBeGreaterThanOrEqual(
         DEFAULT_EXAM_CONFIG.livecode.draw[tier],
       );
@@ -258,7 +271,7 @@ describe("parseProblemDraft", () => {
       null,
       "x",
       [],
-      { ...d, tier: "hard" },
+      { ...d, tier: "extreme" },
       { ...d, title: 5 },
       { ...d, tests: "none" },
       { ...d, tests: [{ input: "1" }] },

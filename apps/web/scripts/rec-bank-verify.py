@@ -170,6 +170,26 @@ LINES = {
         "harness": 'int main(void) { int a[5] = {3, -1, 4, -5, 2}; printf("%d\\n", jumlahPositif(a, 5)); return 0; }',
         "expect": "9",
     },
+    "Kuadrat Tiap Elemen": {
+        "fix": {3: "    a[i] = a[i] * a[i];"},
+        "harness": 'int main(void) { int a[4] = {2, 3, 4, 5}; kuadrat(a, 3); printf("%d %d %d %d\\n", a[0], a[1], a[2], a[3]); return 0; }',
+        "expect": "4 9 16 5",
+    },
+    "Angka Terkecil di Array": {
+        "fix": {2: "  int min = a[0];"},
+        "harness": 'int main(void) { int a[3] = {5, 9, 7}; printf("%d\\n", terkecil(a, 3)); return 0; }',
+        "expect": "5",
+    },
+    "Faktorial Rekursif": {
+        "fix": {2: "  if (n == 0) return 1;"},
+        "harness": 'int main(void) { printf("%d\\n", fakt(4)); return 0; }',
+        "expect": "24",
+    },
+    "Hitung Huruf Besar": {
+        "fix": {4: "    if (s[i] >= 'A' && s[i] <= 'Z') n++;"},
+        "harness": 'int main(void) { char s[] = "aBcDe1F"; printf("%d\\n", hitungBesar(s)); return 0; }',
+        "expect": "3",
+    },
     "Cetak Segitiga Angka": {
         "fix": {5: "    for (int j = 1; j <= i; j++) {"},
         "harness": "",

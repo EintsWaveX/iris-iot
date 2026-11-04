@@ -36,12 +36,17 @@ export interface QuestionIn {
   lang: string;
   question: Question;
   voided: boolean;
+  /** What the question is worth as a weight; left out, the part's default (Jatah / Tampil) */
+  points?: number;
 }
 
 /** What Live Coding in C needs to score a seat (B7.5): the hand it was dealt and what it Submitted. */
 export interface LiveIn {
   /** Seats that were dealt a hand, with what each problem is worth */
-  hand: ReadonlyMap<number, readonly { problemId: number; points: number }[]>;
+  hand: ReadonlyMap<
+    number,
+    readonly { problemId: number; points: number; bonus?: boolean; own?: boolean }[]
+  >;
   /** Finished Submits per seat; a Run Sample never counts */
   runs: ReadonlyMap<number, readonly (Run & { problemId: number })[]>;
   /** Seats with a Submit still waiting at the judge */
@@ -65,9 +70,13 @@ export function assemble(
   questions: readonly QuestionIn[],
   live: LiveIn,
   caps: Caps,
+  /** What a question is worth when it has no score of its own, per part; 1 when left out */
+  defaultPts: Partial<Record<Phase1Part, number>> = {},
 ): Assembled {
   const byId = new Map(questions.map((q) => [q.id, q]));
   const voided = new Set(questions.filter((q) => q.voided).map((q) => q.id));
+  const ownPts = new Map<number, number>();
+  for (const q of questions) if (q.points !== undefined) ownPts.set(q.id, q.points);
 
   const scored = {} as Record<
     Phase1Part,
@@ -82,6 +91,7 @@ export function assemble(
       const run = s.draw[part];
       if (!run) return { seat: s.seatId, drawn: null, credits: {} };
       const drawn: number[] = [];
+      const bonus: number[] = [];
       const credits: Record<number, Frac> = {};
       for (const it of run.items) {
         const q = byId.get(it.q);
@@ -90,12 +100,20 @@ export function assemble(
         drawn.push(it.q);
         credits[it.q] = credit(q.question, s.values.get(it.q) ?? null);
       }
-      return { seat: s.seatId, drawn, credits };
+      // Bonus round: only what the seat answered counts, a blank one is as if never dealt
+      for (const it of run.bonus ?? []) {
+        const q = byId.get(it.q);
+        const v = s.values.get(it.q);
+        if (!q || v == null) continue;
+        bonus.push(it.q);
+        credits[it.q] = credit(q.question, v);
+      }
+      return { seat: s.seatId, drawn, bonus, credits };
     });
     started[part] = parts.filter((p) => p.drawn !== null).length;
     scored[part] = {
-      now: scorePart(caps.parts[part], parts, voided),
-      raw: scorePart(caps.parts[part], parts, new Set()),
+      now: scorePart(caps.parts[part], parts, voided, ownPts, defaultPts[part] ?? 1),
+      raw: scorePart(caps.parts[part], parts, new Set(), ownPts, defaultPts[part] ?? 1),
     };
   }
 
@@ -115,13 +133,22 @@ export function assemble(
       liveFlag = "tanpa";
     } else {
       const runs = live.runs.get(s.seatId) ?? [];
-      lc = livecodeResult(
+      const all = livecodeResult(
         hand.map((h) => ({
           problemId: h.problemId,
           points: h.points,
           runs: runs.filter((r) => r.problemId === h.problemId),
         })),
-      ).total;
+      );
+      // The dealt problems make the cap; bonus problems add on top of it (4 Nov 2026). With
+      // the settings' own points the dealt problems add up to the cap already; with a
+      // problem score changed by hand they are scaled to it, so every seat's base max is the cap.
+      const base = hand.filter((h) => !h.bonus);
+      const baseSum = base.reduce((a, h) => a + h.points, 0);
+      lc =
+        baseSum === 0 || baseSum === caps.livecode || !base.some((h) => h.own)
+          ? all.total
+          : Math.round((all.total * caps.livecode) / baseSum);
       if (live.waiting.has(s.seatId)) {
         liveFlag = "belum";
         liveWaiting.push(s.seatId);
@@ -150,11 +177,14 @@ export function assemble(
   // Statistics: every question some seat was dealt, a voided one with the numbers it had.
   const dealt = new Set<number>();
   for (const s of seats)
-    for (const part of PHASE1_PARTS) for (const it of s.draw[part]?.items ?? []) dealt.add(it.q);
+    for (const part of PHASE1_PARTS) {
+      for (const it of s.draw[part]?.items ?? []) dealt.add(it.q);
+      for (const it of s.draw[part]?.bonus ?? []) if (s.values.get(it.q) != null) dealt.add(it.q);
+    }
   const valuesOf = new Map<number, Value[]>();
   for (const s of seats)
     for (const part of PHASE1_PARTS)
-      for (const it of s.draw[part]?.items ?? []) {
+      for (const it of [...(s.draw[part]?.items ?? []), ...(s.draw[part]?.bonus ?? [])]) {
         const v = s.values.get(it.q);
         if (v == null) continue;
         const l = valuesOf.get(it.q) ?? [];

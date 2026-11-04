@@ -12,7 +12,7 @@
  * blurred, inert test; blur applies instantly.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeftIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, SparkleIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import type { PartKey, Phase1Part, Value } from "../../../lib/recruitment/exam-types";
 import type { Lang } from "../../../lib/kelas";
@@ -21,7 +21,7 @@ import { AnswerSaver, isAnswered, type SaveState } from "../../../lib/recruitmen
 import type { PartView, TestView } from "../../../lib/recruitment/seat-types";
 import { QuestionCard } from "./render";
 import { BigIcon, LiveChip, PartsMini, SaveChip, Timer, type Motion } from "./parts";
-import { TAB, sendAnswer, submitPart, toast } from "./seatApi";
+import { TAB, askBonus, sendAnswer, submitPart, toast } from "./seatApi";
 import { TS } from "./testStrings";
 
 const flagKey = (seat: number, part: string) => `iris-rec-flag:${seat}:${part}`;
@@ -82,6 +82,9 @@ export default function Runner({
   const [save, setSave] = useState<SaveState>("ok");
   const [ask, setAsk] = useState(false);
   const [busy, setBusy] = useState(false);
+  // The bonus round: offered once at hand-in, when enough time is left (4 Nov 2026)
+  const [declined, setDeclined] = useState(false);
+  const jumpToBonus = useRef(false);
   // The part's entrance plays once, when it starts; moving between questions has its own slide.
   const [entering, setEntering] = useState(true);
   useEffect(() => {
@@ -127,15 +130,31 @@ export default function Runner({
   }, [paused, timeUp, left, saver]);
 
   const voided = useMemo(() => new Set(items.filter((i) => i.voided).map((i) => i.q)), [items]);
+  // Bonus questions are scored on top of the cap, so they stay out of "answered of N" and out of the unanswered list
+  const baseItems = useMemo(() => items.filter((i) => !i.bonus), [items]);
+  const bonusItems = useMemo(() => items.filter((i) => i.bonus && !i.voided), [items]);
   const answered = useMemo(
-    () => new Set(items.filter((i) => !i.voided && isAnswered(vals[i.q])).map((i) => i.q)),
-    [items, vals],
+    () => new Set(baseItems.filter((i) => !i.voided && isAnswered(vals[i.q])).map((i) => i.q)),
+    [baseItems, vals],
   );
-  const counted = items.length - voided.size;
+  const bonusAnswered = useMemo(
+    () => bonusItems.filter((i) => isAnswered(vals[i.q])).length,
+    [bonusItems, vals],
+  );
+  const counted = baseItems.length - baseItems.filter((i) => i.voided).length;
 
   useEffect(() => {
     reportProgress({ part: key, answered: answered.size, total: counted });
   }, [answered.size, counted, key, reportProgress]);
+
+  // Right after the bonus round was taken, open the first bonus question
+  useEffect(() => {
+    if (!jumpToBonus.current) return;
+    const i = items.findIndex((x) => x.bonus);
+    if (i < 0) return;
+    jumpToBonus.current = false;
+    setCur(i);
+  }, [items]);
 
   const setV = useCallback(
     (q: number, v: Value) => {
@@ -193,7 +212,27 @@ export default function Runner({
 
   const it = items[cur];
   const blur = paused || timeUp || cover;
-  const unans = items.map((x) => x.q).filter((q) => !answered.has(q) && !voided.has(q));
+  const unans = baseItems.map((x) => x.q).filter((q) => !answered.has(q) && !voided.has(q));
+  const bi = part.bonus;
+  const canOffer =
+    !!bi && bi.minLeftMs > 0 && !bi.taken && bi.count > 0 && left >= bi.minLeftMs && !declined;
+
+  async function takeBonus() {
+    setBusy(true);
+    // The last answers go first, so the new questions never race an unsent one
+    await saver.flush();
+    const r = await askBonus(key);
+    setBusy(false);
+    if (!r.ok) {
+      toast(r.kode === "bonus_telat" ? t.bonus.late : t.bonus.fail, "warn");
+      setDeclined(true);
+      return;
+    }
+    jumpToBonus.current = true;
+    setAsk(false);
+    toast(t.bonus.added(r.count ?? 0));
+    onRefresh();
+  }
   const flaggedList = items
     .map((x, i) => (flags.has(x.q) && !voided.has(x.q) ? i : -1))
     .filter((i) => i >= 0);
@@ -213,11 +252,20 @@ export default function Runner({
           role="listitem"
           className="r3cell num"
           aria-current={i === cur ? "true" : undefined}
-          data-a={answered.has(x.q) ? "yes" : "no"}
+          data-a={(x.bonus ? isAnswered(vals[x.q]) : answered.has(x.q)) ? "yes" : "no"}
           data-f={flags.has(x.q) ? "yes" : "no"}
           data-v={voided.has(x.q) ? "yes" : "no"}
+          data-b={x.bonus ? "yes" : undefined}
           style={{ "--i": Math.min(i, 14) } as CSSProperties}
-          aria-label={t.run.cellLabel(i + 1, voided.has(x.q), answered.has(x.q), flags.has(x.q))}
+          aria-label={
+            (x.bonus ? `${t.bonus.cell}. ` : "") +
+            t.run.cellLabel(
+              i + 1,
+              voided.has(x.q),
+              x.bonus ? isAnswered(vals[x.q]) : answered.has(x.q),
+              flags.has(x.q),
+            )
+          }
           onClick={() => go(i)}
         >
           {i + 1}
@@ -296,6 +344,12 @@ export default function Runner({
               <h2 className="r3h3">{t.run.questions}</h2>
               <span className="hint num">{t.run.answeredOf(answered.size, counted)}</span>
             </div>
+            {bonusItems.length > 0 && (
+              <span className="hint num r3bonus__count">
+                <SparkleIcon size={14} weight="fill" aria-hidden="true" />{" "}
+                {t.bonus.answered(bonusAnswered, bonusItems.length)}
+              </span>
+            )}
             <div
               className="n7t-meter"
               style={{ "--p": answered.size / Math.max(1, counted) } as CSSProperties}
@@ -345,7 +399,17 @@ export default function Runner({
         </aside>
         <main className="r3main">
           <div className="r3strip">{cells(true)}</div>
-          <div ref={card}>
+          {it.bonus && (
+            <div className="r3bonus__bar" role="note">
+              <SparkleIcon size={18} weight="fill" aria-hidden="true" />
+              <span>{t.bonus.bar}</span>
+            </div>
+          )}
+          <div
+            ref={card}
+            data-b={it.bonus ? "yes" : undefined}
+            className={it.bonus ? "r3bonus__card" : undefined}
+          >
             <QuestionCard
               key={it.q}
               view={it.view}
@@ -429,7 +493,44 @@ export default function Runner({
       )}
 
       <Dialog
-        open={ask && !timeUp}
+        open={ask && !timeUp && canOffer}
+        onOpenChange={setAsk}
+        title={t.bonus.title}
+        description={t.bonus.desc(bi?.count ?? 0, Math.round((bi?.minLeftMs ?? 0) / 60_000))}
+        size="sm"
+        lang={lang}
+        actions={
+          <>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              disabled={busy}
+              onClick={() => setDeclined(true)}
+            >
+              {t.bonus.no}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={busy}
+              onClick={() => void takeBonus()}
+            >
+              {busy ? t.bonus.taking : t.bonus.yes}
+            </button>
+          </>
+        }
+      >
+        <div className="r3bonus__offer" aria-hidden="true">
+          <span className="r3bonus__star">
+            <SparkleIcon size={28} weight="fill" />
+          </span>
+          <b className="r3bonus__badge">{t.bonus.badge}</b>
+          <span className="r3bonus__n num">+{bi?.count ?? 0}</span>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={ask && !timeUp && !canOffer}
         onOpenChange={setAsk}
         title={t.handIn.title(t.part[key].l)}
         description={t.handIn.desc}
@@ -460,6 +561,12 @@ export default function Runner({
               <b className="num">{flaggedList.length}</b>
               {t.handIn.flagged}
             </span>
+            {bonusItems.length > 0 && (
+              <span>
+                <b className="num">{bonusAnswered}</b>
+                {t.bonus.tally}
+              </span>
+            )}
           </div>
           {unans.length > 0 && (
             <div className="stack stack--sm">

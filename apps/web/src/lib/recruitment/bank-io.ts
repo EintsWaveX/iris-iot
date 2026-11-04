@@ -562,6 +562,13 @@ function one(doc: Doc, index: number, opt: ParseOptions): ParsedItem {
   const p = PARSERS[format as Format](c);
   if (!p) return item;
   images(c, p.body);
+  if (
+    typeof fm.points === "number" &&
+    Number.isInteger(fm.points) &&
+    fm.points >= 1 &&
+    fm.points <= 4000
+  )
+    (p.body as { points?: number }).points = fm.points;
   const draft = {
     ...(id !== undefined ? { id } : {}),
     part: part as Phase1Part,
@@ -709,6 +716,8 @@ function writeFront(q: ExportItem): string[] {
   y.push(`part: ${q.part}`, `lang: ${q.lang}`, `format: ${q.format}`, `status: ${q.status}`);
   y.push(`title: ${scalar(q.title)}`);
   if (q.sample) y.push("sample: true");
+  if ((q.body as { points?: number }).points)
+    y.push(`points: ${(q.body as { points: number }).points}`);
   if (
     (q.format === "single" || q.format === "multi") &&
     (q.body as { shuffle: boolean }).shuffle === false

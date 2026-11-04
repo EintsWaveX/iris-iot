@@ -13,6 +13,8 @@ export interface LccProblem {
   id: number;
   title: string;
   tier: Tier;
+  /** A bonus problem (4 Nov 2026): dealt when the seat asked for the bonus round, scored on top of the cap */
+  bonus?: boolean;
   /** What a full pass of this problem is worth */
   points: number;
   text: CProblemText;
@@ -50,10 +52,21 @@ export interface LccProblemState {
   position: number | null;
 }
 
+export interface LccBonus {
+  /** Problems still left to offer; 0 when there are none or the round was taken */
+  count: number;
+  taken: boolean;
+  /** Time the seat needs left, ms; 0 means the round is off */
+  minLeftMs: number;
+}
+
 export interface LccSelf {
   /** spin: the hand is shown, work: the editor is open */
   fase: "spin" | "kerja";
   hand: LccProblem[];
+  bonus: LccBonus;
+  /** The seat pressed Selesai */
+  done: boolean;
   state: Record<number, LccProblemState>;
   /** Points so far out of `cap`, from the best Submit of each problem */
   total: number;

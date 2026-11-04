@@ -293,7 +293,7 @@ beforeEach(() => {
     room: [
       { id: 1, title: "Malam 1", editionId: 1, rehearsal: false, state: { stage: "finished" } },
     ],
-    cproblem: [{ id: 7, editionId: 1, tier: "easy" }],
+    cproblem: [{ id: 7, editionId: 1, tier: "easy", body: {} }],
     csub: [],
     freeze: [],
     log: [],
@@ -696,8 +696,8 @@ describe("the Cutting board's Tes Tulis columns", () => {
       },
     ];
     const { byCandidate } = await muatNilaiCutting(db(), 1);
-    // an easy problem is worth 400 by default: 5 of 10 tests is 200
-    expect(byCandidate.get(13)).toEqual({ parts: [501, 0, 0, 200], total: 701 });
+    // an easy problem is worth 300 by default: 5 of 10 tests is 150
+    expect(byCandidate.get(13)).toEqual({ parts: [501, 0, 0, 150], total: 651 });
   });
 
   it("follows the freeze after Finalkan", async () => {

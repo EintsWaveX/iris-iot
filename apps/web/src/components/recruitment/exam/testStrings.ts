@@ -155,6 +155,22 @@ export const TS = dict({
       unsent:
         "Ada jawaban yang belum terkirim, jadi belum bisa dikumpulkan. Cek koneksimu, tunggu tanda Tersimpan, lalu coba lagi.",
     },
+    bonus: {
+      badge: "Bonus",
+      title: "Masih ada waktu. Mau coba soal bonus?",
+      desc: (n: number, min: number) =>
+        `Ada ${n} soal lain di bank yang tidak kebagian di kamu, karena soal diacak per peserta. Kerjakan sebisanya: nilainya ditambah di atas nilai maksimal bagian ini, dan kosong atau salah tidak mengurangi apa-apa. Tawaran ini cuma muncul kalau sisa waktumu ${min} menit atau lebih.`,
+      yes: "Ya, Ambil Soal Bonus",
+      no: "Tidak, Lanjut Kumpulkan",
+      taking: "Menyiapkan soal bonus",
+      added: (n: number) => `${n} soal bonus ditambahkan di daftar soal.`,
+      fail: "Soal bonus belum bisa diambil. Coba lagi.",
+      late: "Sisa waktumu sudah kurang dari batas untuk bonus.",
+      cell: "Soal bonus",
+      bar: "Soal Bonus: nilainya tambahan. Kosong atau salah tidak mengurangi.",
+      answered: (a: number, n: number) => `Bonus: ${a} dari ${n} terjawab`,
+      tally: "bonus terjawab",
+    },
     over: {
       pausedTitle: "Dijeda",
       pausedBody: "Pengawas menjeda semua kursi. Waktumu berhenti dan lanjut dari sisa yang sama.",
@@ -320,6 +336,22 @@ export const TS = dict({
       unsent:
         "Some answers haven't been sent yet, so you can't hand in. Check your connection, wait for the Saved sign, then try again.",
     },
+    bonus: {
+      badge: "Bonus",
+      title: "There is still time. Try the bonus questions?",
+      desc: (n: number, min: number) =>
+        `${n} other questions in the bank did not come to you, because questions are shuffled per candidate. Answer what you can: their score is added on top of this part's maximum, and a blank or wrong answer takes nothing away. This offer only shows when you have ${min} minutes or more left.`,
+      yes: "Yes, Take the Bonus",
+      no: "No, Keep Handing In",
+      taking: "Getting the bonus questions ready",
+      added: (n: number) => `${n} bonus questions were added to the question list.`,
+      fail: "The bonus questions could not be taken. Try again.",
+      late: "Your time left is now under the limit for the bonus.",
+      cell: "Bonus question",
+      bar: "Bonus Question: its score is extra. Blank or wrong takes nothing away.",
+      answered: (a: number, n: number) => `Bonus: ${a} of ${n} answered`,
+      tally: "bonus answered",
+    },
     over: {
       pausedTitle: "Paused",
       pausedBody:
@@ -476,6 +508,22 @@ export const TS = dict({
       done: (p: string) => `${p}已提交，答案已保存。`,
       fail: "暂时无法提交，请重试。",
       unsent: "还有答案没有发送出去，暂时不能提交。请检查网络，等到显示已保存后再试。",
+    },
+    bonus: {
+      badge: "加分",
+      title: "还有时间，要试试加分题吗？",
+      desc: (n: number, min: number) =>
+        `题库里还有 ${n} 道题没有分到你，因为题目是按考生随机分配的。尽力作答即可：分数会加在本部分满分之上，空白或答错不会扣分。只有剩余时间不少于 ${min} 分钟时才会出现这个提示。`,
+      yes: "是，领取加分题",
+      no: "不用，继续提交",
+      taking: "正在准备加分题",
+      added: (n: number) => `已在题目列表中加入 ${n} 道加分题。`,
+      fail: "暂时无法领取加分题，请重试。",
+      late: "剩余时间已低于加分题的门槛。",
+      cell: "加分题",
+      bar: "加分题：分数是额外的，空白或答错不扣分。",
+      answered: (a: number, n: number) => `加分题：已答 ${a} / ${n}`,
+      tally: "加分题已答",
     },
     over: {
       pausedTitle: "已暂停",

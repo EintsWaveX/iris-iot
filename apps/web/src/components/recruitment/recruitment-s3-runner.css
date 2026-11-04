@@ -1573,3 +1573,125 @@ html:has(.r3page:not(.r3page--shell)) {
 .r3fitb .r3hl {
   white-space: pre;
 }
+
+/* ------------------------------------------------------- the bonus round (4 Nov 2026) */
+.r3bonus__bar {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  display: flex;
+  font-weight: 600;
+  gap: 10px;
+  padding: 10px 14px;
+}
+.r3bonus__bar svg {
+  color: var(--accent);
+  flex: none;
+}
+.r3bonus__card {
+  border-radius: var(--radius-lg, 16px);
+  position: relative;
+}
+.r3bonus__card::before {
+  background: conic-gradient(
+    from var(--bonus-a, 0deg),
+    var(--accent),
+    color-mix(in srgb, var(--accent) 20%, transparent),
+    var(--accent)
+  );
+  border-radius: inherit;
+  content: "";
+  inset: -2px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  pointer-events: none;
+  position: absolute;
+}
+@property --bonus-a {
+  inherits: false;
+  initial-value: 0deg;
+  syntax: "<angle>";
+}
+.r3bonus__count {
+  align-items: center;
+  color: var(--accent);
+  display: inline-flex;
+  gap: 4px;
+}
+.r3cell[data-b="yes"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.r3bonus__offer {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+.r3bonus__star {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-1));
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  height: 56px;
+  justify-content: center;
+  width: 56px;
+}
+.r3bonus__badge {
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.r3bonus__n {
+  color: var(--accent);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion-tier="0"]) .r3bonus__card::before {
+    animation: r3bonus-spin 5s linear infinite;
+  }
+  html:not([data-motion-tier="0"]) .r3bonus__bar svg,
+  html:not([data-motion-tier="0"]) .r3bonus__star svg {
+    animation: r3bonus-pulse 1.8s ease-in-out infinite;
+  }
+  html:not([data-motion-tier="0"]) .r3bonus__star {
+    animation: r3bonus-pop 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  html:not([data-motion-tier="0"]) .r3bonus__bar {
+    animation: r3bonus-in 360ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+}
+@keyframes r3bonus-spin {
+  to {
+    --bonus-a: 360deg;
+  }
+}
+@keyframes r3bonus-pulse {
+  50% {
+    transform: scale(1.18) rotate(12deg);
+  }
+}
+@keyframes r3bonus-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-40deg);
+  }
+}
+@keyframes r3bonus-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}

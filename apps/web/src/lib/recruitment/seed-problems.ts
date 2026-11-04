@@ -30,14 +30,6 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
     ],
     "tests": [
       {
-        "input": "3 5\n",
-        "output": "8\n"
-      },
-      {
-        "input": "-4 10\n",
-        "output": "6\n"
-      },
-      {
         "input": "0 0\n",
         "output": "0\n"
       },
@@ -60,6 +52,14 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
       {
         "input": "-7 -3\n",
         "output": "-10\n"
+      },
+      {
+        "input": "500 -250\n",
+        "output": "250\n"
+      },
+      {
+        "input": "-1 1\n",
+        "output": "0\n"
       }
     ],
     "reference": "#include <stdio.h>\nint main(void) {\n  int a, b;\n  scanf(\"%d %d\", &a, &b);\n  printf(\"%d\\n\", a + b);\n  return 0;\n}\n"
@@ -89,14 +89,6 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
     ],
     "tests": [
       {
-        "input": "7\n",
-        "output": "GANJIL\n"
-      },
-      {
-        "input": "10\n",
-        "output": "GENAP\n"
-      },
-      {
         "input": "0\n",
         "output": "GENAP\n"
       },
@@ -119,6 +111,14 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
       {
         "input": "54321\n",
         "output": "GANJIL\n"
+      },
+      {
+        "input": "3\n",
+        "output": "GANJIL\n"
+      },
+      {
+        "input": "88888\n",
+        "output": "GENAP\n"
       }
     ],
     "reference": "#include <stdio.h>\nint main(void) {\n  int n;\n  scanf(\"%d\", &n);\n  puts(n % 2 == 0 ? \"GENAP\" : \"GANJIL\");\n  return 0;\n}\n"
@@ -148,14 +148,6 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
     ],
     "tests": [
       {
-        "input": "3 9 4\n",
-        "output": "9\n"
-      },
-      {
-        "input": "-5 -2 -8\n",
-        "output": "-2\n"
-      },
-      {
         "input": "1 1 1\n",
         "output": "1\n"
       },
@@ -178,6 +170,14 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
       {
         "input": "5 12 12\n",
         "output": "12\n"
+      },
+      {
+        "input": "-1 -1 5\n",
+        "output": "5\n"
+      },
+      {
+        "input": "999 998 997\n",
+        "output": "999\n"
       }
     ],
     "reference": "#include <stdio.h>\nint main(void) {\n  int a, b, c;\n  scanf(\"%d %d %d\", &a, &b, &c);\n  int m = a;\n  if (b > m) m = b;\n  if (c > m) m = c;\n  printf(\"%d\\n\", m);\n  return 0;\n}\n"
@@ -207,14 +207,6 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
     ],
     "tests": [
       {
-        "input": "5\n",
-        "output": "5 4 3 2 1\n"
-      },
-      {
-        "input": "1\n",
-        "output": "1\n"
-      },
-      {
         "input": "2\n",
         "output": "2 1\n"
       },
@@ -237,6 +229,14 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
       {
         "input": "7\n",
         "output": "7 6 5 4 3 2 1\n"
+      },
+      {
+        "input": "12\n",
+        "output": "12 11 10 9 8 7 6 5 4 3 2 1\n"
+      },
+      {
+        "input": "4\n",
+        "output": "4 3 2 1\n"
       }
     ],
     "reference": "#include <stdio.h>\nint main(void) {\n  int n;\n  scanf(\"%d\", &n);\n  for (int i = n; i >= 1; i--) printf(i == 1 ? \"%d\\n\" : \"%d \", i);\n  return 0;\n}\n"
@@ -265,14 +265,6 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
       }
     ],
     "tests": [
-      {
-        "input": "5\n3 9 -2 7 4\n",
-        "output": "9 -2\n"
-      },
-      {
-        "input": "3\n-5 -2 -8\n",
-        "output": "-2 -8\n"
-      },
       {
         "input": "1\n42\n",
         "output": "42 42\n"
@@ -333,14 +325,6 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
     ],
     "tests": [
       {
-        "input": "4\n5 8 2 9\n",
-        "output": "9 2 8 5\n"
-      },
-      {
-        "input": "1\n7\n",
-        "output": "7\n"
-      },
-      {
         "input": "2\n1 2\n",
         "output": "2 1\n"
       },
@@ -399,14 +383,6 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
       }
     ],
     "tests": [
-      {
-        "input": "7\n",
-        "output": "YA\n"
-      },
-      {
-        "input": "9\n",
-        "output": "TIDAK\n"
-      },
       {
         "input": "1\n",
         "output": "TIDAK\n"
@@ -467,14 +443,6 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
     ],
     "tests": [
       {
-        "input": "katak\n",
-        "output": "YA\n"
-      },
-      {
-        "input": "iris\n",
-        "output": "TIDAK\n"
-      },
-      {
         "input": "a\n",
         "output": "YA\n"
       },
@@ -508,5 +476,949 @@ export const SEED_PROBLEMS: CProblemDraft[] = [
       }
     ],
     "reference": "#include <stdio.h>\n#include <string.h>\nint main(void) {\n  char s[128];\n  scanf(\"%100s\", s);\n  int n = (int)strlen(s), ok = 1;\n  for (int i = 0; i < n / 2; i++) if (s[i] != s[n - 1 - i]) ok = 0;\n  puts(ok ? \"YA\" : \"TIDAK\");\n  return 0;\n}\n"
+  },
+  {
+    "title": "Luas dan Keliling",
+    "tier": "easy",
+    "body": {
+      "statement": "Baca panjang dan lebar sebuah persegi panjang, lalu cetak luas dan kelilingnya.",
+      "input": "Satu baris berisi dua bilangan bulat p dan l, masing-masing antara 1 dan 1000.",
+      "output": "Satu baris: luas, spasi, keliling.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "4 3\n",
+        "output": "12 14\n"
+      },
+      {
+        "input": "10 10\n",
+        "output": "100 40\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1 1\n",
+        "output": "1 4\n"
+      },
+      {
+        "input": "1000 1000\n",
+        "output": "1000000 4000\n"
+      },
+      {
+        "input": "1 1000\n",
+        "output": "1000 2002\n"
+      },
+      {
+        "input": "25 8\n",
+        "output": "200 66\n"
+      },
+      {
+        "input": "7 13\n",
+        "output": "91 40\n"
+      },
+      {
+        "input": "500 2\n",
+        "output": "1000 1004\n"
+      },
+      {
+        "input": "999 1\n",
+        "output": "999 2000\n"
+      },
+      {
+        "input": "12 12\n",
+        "output": "144 48\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int p, l;\n  scanf(\"%d %d\", &p, &l);\n  printf(\"%d %d\\n\", p * l, 2 * (p + l));\n  return 0;\n}\n"
+  },
+  {
+    "title": "Nilai Mutlak",
+    "tier": "easy",
+    "body": {
+      "statement": "Baca satu bilangan bulat, lalu cetak nilai mutlaknya (tanpa tanda minus).",
+      "input": "Satu bilangan bulat n antara -100000 dan 100000.",
+      "output": "Satu bilangan: nilai mutlak n.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "-7\n",
+        "output": "7\n"
+      },
+      {
+        "input": "15\n",
+        "output": "15\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "0\n",
+        "output": "0\n"
+      },
+      {
+        "input": "-100000\n",
+        "output": "100000\n"
+      },
+      {
+        "input": "100000\n",
+        "output": "100000\n"
+      },
+      {
+        "input": "-1\n",
+        "output": "1\n"
+      },
+      {
+        "input": "1\n",
+        "output": "1\n"
+      },
+      {
+        "input": "-99999\n",
+        "output": "99999\n"
+      },
+      {
+        "input": "42\n",
+        "output": "42\n"
+      },
+      {
+        "input": "-500\n",
+        "output": "500\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int n;\n  scanf(\"%d\", &n);\n  printf(\"%d\\n\", n < 0 ? -n : n);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Jumlah 1 sampai N",
+    "tier": "easy",
+    "body": {
+      "statement": "Baca n, lalu cetak hasil 1 + 2 + 3 + ... + n.",
+      "input": "Satu bilangan bulat n antara 1 dan 10000.",
+      "output": "Satu bilangan: jumlah semua bilangan dari 1 sampai n.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "5\n",
+        "output": "15\n"
+      },
+      {
+        "input": "100\n",
+        "output": "5050\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1\n",
+        "output": "1\n"
+      },
+      {
+        "input": "10000\n",
+        "output": "50005000\n"
+      },
+      {
+        "input": "2\n",
+        "output": "3\n"
+      },
+      {
+        "input": "99\n",
+        "output": "4950\n"
+      },
+      {
+        "input": "50\n",
+        "output": "1275\n"
+      },
+      {
+        "input": "7777\n",
+        "output": "30244753\n"
+      },
+      {
+        "input": "1000\n",
+        "output": "500500\n"
+      },
+      {
+        "input": "3\n",
+        "output": "6\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int n;\n  long long jumlah = 0;\n  scanf(\"%d\", &n);\n  for (int i = 1; i <= n; i++) jumlah += i;\n  printf(\"%lld\\n\", jumlah);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Bagi dan Sisa",
+    "tier": "easy",
+    "body": {
+      "statement": "Baca dua bilangan bulat a dan b, lalu cetak hasil bagi dan sisa bagi a dengan b.",
+      "input": "Satu baris berisi dua bilangan bulat: a antara 0 dan 10000, b antara 1 dan 100.",
+      "output": "Satu baris: a / b, spasi, a % b (pembagian bulat).",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "17 5\n",
+        "output": "3 2\n"
+      },
+      {
+        "input": "100 7\n",
+        "output": "14 2\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "0 3\n",
+        "output": "0 0\n"
+      },
+      {
+        "input": "10000 1\n",
+        "output": "10000 0\n"
+      },
+      {
+        "input": "10000 100\n",
+        "output": "100 0\n"
+      },
+      {
+        "input": "5 9\n",
+        "output": "0 5\n"
+      },
+      {
+        "input": "99 10\n",
+        "output": "9 9\n"
+      },
+      {
+        "input": "64 8\n",
+        "output": "8 0\n"
+      },
+      {
+        "input": "1 1\n",
+        "output": "1 0\n"
+      },
+      {
+        "input": "9999 99\n",
+        "output": "101 0\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int a, b;\n  scanf(\"%d %d\", &a, &b);\n  printf(\"%d %d\\n\", a / b, a % b);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Faktorial",
+    "tier": "medium",
+    "body": {
+      "statement": "Baca n, lalu cetak n! (n faktorial), yaitu 1 x 2 x 3 x ... x n. Nilai 0! adalah 1.",
+      "input": "Satu bilangan bulat n antara 0 dan 12.",
+      "output": "Satu bilangan: n!.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "5\n",
+        "output": "120\n"
+      },
+      {
+        "input": "3\n",
+        "output": "6\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "0\n",
+        "output": "1\n"
+      },
+      {
+        "input": "1\n",
+        "output": "1\n"
+      },
+      {
+        "input": "12\n",
+        "output": "479001600\n"
+      },
+      {
+        "input": "10\n",
+        "output": "3628800\n"
+      },
+      {
+        "input": "7\n",
+        "output": "5040\n"
+      },
+      {
+        "input": "2\n",
+        "output": "2\n"
+      },
+      {
+        "input": "11\n",
+        "output": "39916800\n"
+      },
+      {
+        "input": "6\n",
+        "output": "720\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int n;\n  long long hasil = 1;\n  scanf(\"%d\", &n);\n  for (int i = 2; i <= n; i++) hasil *= i;\n  printf(\"%lld\\n\", hasil);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Hitung Vokal",
+    "tier": "medium",
+    "body": {
+      "statement": "Baca satu kata, lalu cetak ada berapa huruf vokal (a, i, u, e, o) di dalamnya.",
+      "input": "Satu kata dari huruf kecil, panjang 1 sampai 100.",
+      "output": "Satu bilangan: jumlah huruf vokal.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "universitas\n",
+        "output": "5\n"
+      },
+      {
+        "input": "bcdfg\n",
+        "output": "0\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "aeiou\n",
+        "output": "5\n"
+      },
+      {
+        "input": "a\n",
+        "output": "1\n"
+      },
+      {
+        "input": "telkom\n",
+        "output": "2\n"
+      },
+      {
+        "input": "pemrograman\n",
+        "output": "4\n"
+      },
+      {
+        "input": "iris\n",
+        "output": "2\n"
+      },
+      {
+        "input": "xyz\n",
+        "output": "0\n"
+      },
+      {
+        "input": "ooooo\n",
+        "output": "5\n"
+      },
+      {
+        "input": "laboratorium\n",
+        "output": "6\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\n#include <string.h>\nint main(void) {\n  char s[128];\n  int n = 0;\n  scanf(\"%100s\", s);\n  for (int i = 0; s[i]; i++) if (strchr(\"aiueo\", s[i])) n++;\n  printf(\"%d\\n\", n);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Rata-rata Nilai",
+    "tier": "medium",
+    "body": {
+      "statement": "Baca n nilai, lalu cetak rata-ratanya dengan dua angka di belakang koma.",
+      "input": "Baris pertama berisi n (1 sampai 7). Baris kedua berisi n bilangan bulat antara 0 dan 100.",
+      "output": "Satu bilangan: rata-rata dengan dua angka di belakang koma (printf \"%.2f\").",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "4\n80 90 70 60\n",
+        "output": "75.00\n"
+      },
+      {
+        "input": "3\n1 2 2\n",
+        "output": "1.67\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1\n100\n",
+        "output": "100.00\n"
+      },
+      {
+        "input": "2\n0 0\n",
+        "output": "0.00\n"
+      },
+      {
+        "input": "5\n100 100 100 100 99\n",
+        "output": "99.80\n"
+      },
+      {
+        "input": "3\n1 1 2\n",
+        "output": "1.33\n"
+      },
+      {
+        "input": "6\n10 20 30 40 50 60\n",
+        "output": "35.00\n"
+      },
+      {
+        "input": "2\n3 4\n",
+        "output": "3.50\n"
+      },
+      {
+        "input": "7\n1 2 3 4 5 6 7\n",
+        "output": "4.00\n"
+      },
+      {
+        "input": "4\n0 0 0 1\n",
+        "output": "0.25\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int n, x, jumlah = 0;\n  scanf(\"%d\", &n);\n  for (int i = 0; i < n; i++) {\n    scanf(\"%d\", &x);\n    jumlah += x;\n  }\n  printf(\"%.2f\\n\", (double)jumlah / n);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Bilangan Fibonacci",
+    "tier": "medium",
+    "body": {
+      "statement": "Deret Fibonacci dimulai 1, 1, lalu tiap angka adalah jumlah dua angka sebelumnya (1, 1, 2, 3, 5, 8, ...). Baca n, lalu cetak angka ke-n.",
+      "input": "Satu bilangan bulat n antara 1 dan 40.",
+      "output": "Satu bilangan: angka ke-n dari deret Fibonacci.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "10\n",
+        "output": "55\n"
+      },
+      {
+        "input": "1\n",
+        "output": "1\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "2\n",
+        "output": "1\n"
+      },
+      {
+        "input": "3\n",
+        "output": "2\n"
+      },
+      {
+        "input": "40\n",
+        "output": "102334155\n"
+      },
+      {
+        "input": "20\n",
+        "output": "6765\n"
+      },
+      {
+        "input": "30\n",
+        "output": "832040\n"
+      },
+      {
+        "input": "5\n",
+        "output": "5\n"
+      },
+      {
+        "input": "15\n",
+        "output": "610\n"
+      },
+      {
+        "input": "25\n",
+        "output": "75025\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int n;\n  long long a = 1, b = 1;\n  scanf(\"%d\", &n);\n  for (int i = 3; i <= n; i++) {\n    long long c = a + b;\n    a = b;\n    b = c;\n  }\n  printf(\"%lld\\n\", b);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Urutkan Array",
+    "tier": "hard",
+    "body": {
+      "statement": "Baca n bilangan, lalu cetak urutannya dari yang terkecil ke yang terbesar.",
+      "input": "Baris pertama berisi n (1 sampai 100). Baris kedua berisi n bilangan bulat antara -1000 dan 1000.",
+      "output": "Satu baris: n bilangan yang sudah urut naik, dipisah spasi.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "5\n3 1 4 1 5\n",
+        "output": "1 1 3 4 5\n"
+      },
+      {
+        "input": "4\n9 8 7 6\n",
+        "output": "6 7 8 9\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1\n42\n",
+        "output": "42\n"
+      },
+      {
+        "input": "2\n2 1\n",
+        "output": "1 2\n"
+      },
+      {
+        "input": "6\n-5 3 0 -5 8 -1\n",
+        "output": "-5 -5 -1 0 3 8\n"
+      },
+      {
+        "input": "3\n1 2 3\n",
+        "output": "1 2 3\n"
+      },
+      {
+        "input": "7\n1000 -1000 0 500 -500 250 -250\n",
+        "output": "-1000 -500 -250 0 250 500 1000\n"
+      },
+      {
+        "input": "5\n7 7 7 7 7\n",
+        "output": "7 7 7 7 7\n"
+      },
+      {
+        "input": "8\n8 7 6 5 4 3 2 1\n",
+        "output": "1 2 3 4 5 6 7 8\n"
+      },
+      {
+        "input": "4\n0 -1 0 1\n",
+        "output": "-1 0 0 1\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int n, a[100];\n  scanf(\"%d\", &n);\n  for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n  for (int i = 0; i < n - 1; i++)\n    for (int j = 0; j < n - 1 - i; j++)\n      if (a[j] > a[j + 1]) {\n        int t = a[j];\n        a[j] = a[j + 1];\n        a[j + 1] = t;\n      }\n  for (int i = 0; i < n; i++) printf(i == n - 1 ? \"%d\\n\" : \"%d \", a[i]);\n  return 0;\n}\n"
+  },
+  {
+    "title": "FPB dan KPK",
+    "tier": "hard",
+    "body": {
+      "statement": "Baca dua bilangan, lalu cetak FPB (faktor persekutuan terbesar) dan KPK (kelipatan persekutuan terkecil) keduanya.",
+      "input": "Satu baris berisi dua bilangan bulat a dan b, masing-masing antara 1 dan 1000000.",
+      "output": "Satu baris: FPB, spasi, KPK. KPK bisa lebih besar dari 2 miliar, pakai long long.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "12 18\n",
+        "output": "6 36\n"
+      },
+      {
+        "input": "7 13\n",
+        "output": "1 91\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1 1\n",
+        "output": "1 1\n"
+      },
+      {
+        "input": "1000000 1000000\n",
+        "output": "1000000 1000000\n"
+      },
+      {
+        "input": "999983 999979\n",
+        "output": "1 999962000357\n"
+      },
+      {
+        "input": "100 75\n",
+        "output": "25 300\n"
+      },
+      {
+        "input": "48 180\n",
+        "output": "12 720\n"
+      },
+      {
+        "input": "1 1000000\n",
+        "output": "1 1000000\n"
+      },
+      {
+        "input": "123456 654321\n",
+        "output": "3 26926617792\n"
+      },
+      {
+        "input": "17 51\n",
+        "output": "17 51\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  long long a, b;\n  scanf(\"%lld %lld\", &a, &b);\n  long long x = a, y = b;\n  while (y != 0) {\n    long long r = x % y;\n    x = y;\n    y = r;\n  }\n  printf(\"%lld %lld\\n\", x, a / x * b);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Ubah ke Biner",
+    "tier": "hard",
+    "body": {
+      "statement": "Baca n, lalu cetak n dalam bilangan biner (hanya angka 0 dan 1, tanpa nol di depan). Biner dari 0 adalah 0.",
+      "input": "Satu bilangan bulat n antara 0 dan 1000000000.",
+      "output": "Satu baris: n dalam biner.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "10\n",
+        "output": "1010\n"
+      },
+      {
+        "input": "5\n",
+        "output": "101\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "0\n",
+        "output": "0\n"
+      },
+      {
+        "input": "1\n",
+        "output": "1\n"
+      },
+      {
+        "input": "2\n",
+        "output": "10\n"
+      },
+      {
+        "input": "255\n",
+        "output": "11111111\n"
+      },
+      {
+        "input": "1000000000\n",
+        "output": "111011100110101100101000000000\n"
+      },
+      {
+        "input": "1024\n",
+        "output": "10000000000\n"
+      },
+      {
+        "input": "7\n",
+        "output": "111\n"
+      },
+      {
+        "input": "65535\n",
+        "output": "1111111111111111\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  long long n;\n  char s[64];\n  int len = 0;\n  scanf(\"%lld\", &n);\n  if (n == 0) s[len++] = '0';\n  while (n > 0) {\n    s[len++] = (char)('0' + n % 2);\n    n /= 2;\n  }\n  for (int i = len - 1; i >= 0; i--) putchar(s[i]);\n  putchar('\\n');\n  return 0;\n}\n"
+  },
+  {
+    "title": "Jumlah Bilangan Prima",
+    "tier": "hard",
+    "body": {
+      "statement": "Baca n, lalu cetak jumlah semua bilangan prima yang kurang dari atau sama dengan n.",
+      "input": "Satu bilangan bulat n antara 1 dan 100000.",
+      "output": "Satu bilangan: jumlah semua prima sampai n (pakai long long). Kalau tidak ada prima, cetak 0.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "10\n",
+        "output": "17\n"
+      },
+      {
+        "input": "20\n",
+        "output": "77\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1\n",
+        "output": "0\n"
+      },
+      {
+        "input": "2\n",
+        "output": "2\n"
+      },
+      {
+        "input": "3\n",
+        "output": "5\n"
+      },
+      {
+        "input": "100\n",
+        "output": "1060\n"
+      },
+      {
+        "input": "100000\n",
+        "output": "454396537\n"
+      },
+      {
+        "input": "1000\n",
+        "output": "76127\n"
+      },
+      {
+        "input": "50\n",
+        "output": "328\n"
+      },
+      {
+        "input": "99999\n",
+        "output": "454396537\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  static char bukan[100001];\n  int n;\n  long long jumlah = 0;\n  scanf(\"%d\", &n);\n  for (int i = 2; i <= n; i++) {\n    if (bukan[i]) continue;\n    jumlah += i;\n    for (long long j = (long long)i * i; j <= n; j += i) bukan[j] = 1;\n  }\n  printf(\"%lld\\n\", jumlah);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Transpose Matriks",
+    "tier": "hard",
+    "body": {
+      "statement": "Baca sebuah matriks r baris x c kolom, lalu cetak transposenya (baris jadi kolom dan sebaliknya).",
+      "input": "Baris pertama berisi r dan c (masing-masing 1 sampai 10). Lalu r baris, tiap baris berisi c bilangan bulat.",
+      "output": "c baris, tiap baris berisi r bilangan dipisah spasi.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "2 3\n1 2 3\n4 5 6\n",
+        "output": "1 4\n2 5\n3 6\n"
+      },
+      {
+        "input": "3 2\n1 2\n3 4\n5 6\n",
+        "output": "1 3 5\n2 4 6\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1 1\n9\n",
+        "output": "9\n"
+      },
+      {
+        "input": "1 4\n1 2 3 4\n",
+        "output": "1\n2\n3\n4\n"
+      },
+      {
+        "input": "4 1\n1\n2\n3\n4\n",
+        "output": "1 2 3 4\n"
+      },
+      {
+        "input": "2 2\n1 0\n0 1\n",
+        "output": "1 0\n0 1\n"
+      },
+      {
+        "input": "3 3\n1 2 3\n4 5 6\n7 8 9\n",
+        "output": "1 4 7\n2 5 8\n3 6 9\n"
+      },
+      {
+        "input": "2 5\n-1 -2 -3 -4 -5\n5 4 3 2 1\n",
+        "output": "-1 5\n-2 4\n-3 3\n-4 2\n-5 1\n"
+      },
+      {
+        "input": "5 2\n1 2\n3 4\n5 6\n7 8\n9 10\n",
+        "output": "1 3 5 7 9\n2 4 6 8 10\n"
+      },
+      {
+        "input": "3 1\n5\n-5\n0\n",
+        "output": "5 -5 0\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int r, c, m[10][10];\n  scanf(\"%d %d\", &r, &c);\n  for (int i = 0; i < r; i++)\n    for (int j = 0; j < c; j++) scanf(\"%d\", &m[i][j]);\n  for (int j = 0; j < c; j++) {\n    for (int i = 0; i < r; i++) printf(i == r - 1 ? \"%d\\n\" : \"%d \", m[i][j]);\n  }\n  return 0;\n}\n"
+  },
+  {
+    "title": "Hitung Tiap Huruf",
+    "tier": "hard",
+    "body": {
+      "statement": "Baca satu kata, lalu cetak berapa kali tiap huruf muncul, berurutan dari a sampai z. Huruf yang tidak muncul tidak dicetak.",
+      "input": "Satu kata dari huruf kecil, panjang 1 sampai 100.",
+      "output": "Satu baris per huruf yang muncul, bentuknya \"huruf: jumlah\".",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "banana\n",
+        "output": "a: 3\nb: 1\nn: 2\n"
+      },
+      {
+        "input": "aab\n",
+        "output": "a: 2\nb: 1\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "z\n",
+        "output": "z: 1\n"
+      },
+      {
+        "input": "lalalababa\n",
+        "output": "a: 5\nb: 2\nl: 3\n"
+      },
+      {
+        "input": "iris\n",
+        "output": "i: 2\nr: 1\ns: 1\n"
+      },
+      {
+        "input": "mississippi\n",
+        "output": "i: 4\nm: 1\np: 2\ns: 4\n"
+      },
+      {
+        "input": "aaaaaaaaaa\n",
+        "output": "a: 10\n"
+      },
+      {
+        "input": "telkom\n",
+        "output": "e: 1\nk: 1\nl: 1\nm: 1\no: 1\nt: 1\n"
+      },
+      {
+        "input": "zzzyyyxxx\n",
+        "output": "x: 3\ny: 3\nz: 3\n"
+      },
+      {
+        "input": "pemrograman\n",
+        "output": "a: 2\ne: 1\ng: 1\nm: 2\nn: 1\no: 1\np: 1\nr: 2\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  char s[128];\n  int n[26] = {0};\n  scanf(\"%100s\", s);\n  for (int i = 0; s[i]; i++) n[s[i] - 'a']++;\n  for (int k = 0; k < 26; k++)\n    if (n[k]) printf(\"%c: %d\\n\", 'a' + k, n[k]);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Jumlah Terbesar Berurutan",
+    "tier": "hard",
+    "body": {
+      "statement": "Baca n bilangan, lalu cari jumlah terbesar dari sederet angka yang berurutan (minimal satu angka) di array itu.",
+      "input": "Baris pertama berisi n (1 sampai 100). Baris kedua berisi n bilangan bulat antara -1000 dan 1000.",
+      "output": "Satu bilangan: jumlah terbesar yang mungkin. Kalau semua angka negatif, jawabannya angka terbesar (paling dekat ke 0).",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "8\n-2 1 -3 4 -1 2 1 -5\n",
+        "output": "6\n"
+      },
+      {
+        "input": "5\n1 2 3 4 5\n",
+        "output": "15\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1\n-5\n",
+        "output": "-5\n"
+      },
+      {
+        "input": "3\n-3 -2 -1\n",
+        "output": "-1\n"
+      },
+      {
+        "input": "4\n5 -9 6 -2\n",
+        "output": "6\n"
+      },
+      {
+        "input": "6\n2 -1 2 -1 2 -1\n",
+        "output": "4\n"
+      },
+      {
+        "input": "2\n-1 -1\n",
+        "output": "-1\n"
+      },
+      {
+        "input": "7\n1 -2 3 -4 5 -6 7\n",
+        "output": "7\n"
+      },
+      {
+        "input": "5\n-1 -2 -3 -4 -5\n",
+        "output": "-1\n"
+      },
+      {
+        "input": "4\n1000 -1000 1000 -1000\n",
+        "output": "1000\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int n, x, terbaik, sekarang;\n  scanf(\"%d\", &n);\n  scanf(\"%d\", &x);\n  terbaik = sekarang = x;\n  for (int i = 1; i < n; i++) {\n    scanf(\"%d\", &x);\n    sekarang = sekarang > 0 ? sekarang + x : x;\n    if (sekarang > terbaik) terbaik = sekarang;\n  }\n  printf(\"%d\\n\", terbaik);\n  return 0;\n}\n"
+  },
+  {
+    "title": "Baris Segitiga Pascal",
+    "tier": "hard",
+    "body": {
+      "statement": "Segitiga Pascal dimulai dari baris ke-0 yang isinya 1. Tiap angka di baris berikutnya adalah jumlah dua angka di atasnya (1; 1 1; 1 2 1; 1 3 3 1; ...). Baca n, lalu cetak baris ke-n.",
+      "input": "Satu bilangan bulat n antara 0 dan 15.",
+      "output": "Satu baris: angka-angka baris ke-n, dipisah spasi.",
+      "starter": "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
+    },
+    "limits": {
+      "timeMs": 1000,
+      "memKb": 65536
+    },
+    "samples": [
+      {
+        "input": "4\n",
+        "output": "1 4 6 4 1\n"
+      },
+      {
+        "input": "0\n",
+        "output": "1\n"
+      }
+    ],
+    "tests": [
+      {
+        "input": "1\n",
+        "output": "1 1\n"
+      },
+      {
+        "input": "2\n",
+        "output": "1 2 1\n"
+      },
+      {
+        "input": "5\n",
+        "output": "1 5 10 10 5 1\n"
+      },
+      {
+        "input": "10\n",
+        "output": "1 10 45 120 210 252 210 120 45 10 1\n"
+      },
+      {
+        "input": "15\n",
+        "output": "1 15 105 455 1365 3003 5005 6435 6435 5005 3003 1365 455 105 15 1\n"
+      },
+      {
+        "input": "3\n",
+        "output": "1 3 3 1\n"
+      },
+      {
+        "input": "8\n",
+        "output": "1 8 28 56 70 56 28 8 1\n"
+      },
+      {
+        "input": "12\n",
+        "output": "1 12 66 220 495 792 924 792 495 220 66 12 1\n"
+      }
+    ],
+    "reference": "#include <stdio.h>\nint main(void) {\n  int n;\n  long long c = 1;\n  scanf(\"%d\", &n);\n  for (int k = 0; k <= n; k++) {\n    printf(k == n ? \"%lld\\n\" : \"%lld \", c);\n    c = c * (n - k) / (k + 1);\n  }\n  return 0;\n}\n"
   }
 ];

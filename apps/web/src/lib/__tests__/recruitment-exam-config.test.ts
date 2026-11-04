@@ -104,9 +104,9 @@ describe("upgradeConfig", () => {
     expect(c.v).toBe(2);
     expect(c.budgetMin).toBe(130);
     expect(c.order).toEqual(DEFAULT_EXAM_CONFIG.order);
-    expect(c.parts.logika).toEqual({ minutes: 12, shown: 10, pool: 20 });
-    expect(c.parts.fitb).toEqual({ minutes: 15, shown: 8, pool: 16 });
-    expect(c.parts.kodingan).toEqual({ minutes: 10, shown: 5, pool: 10 });
+    expect(c.parts.logika).toEqual({ minutes: 12, shown: 10, pool: 20, bonusMin: 5 });
+    expect(c.parts.fitb).toEqual({ minutes: 15, shown: 8, pool: 16, bonusMin: 5 });
+    expect(c.parts.kodingan).toEqual({ minutes: 10, shown: 5, pool: 10, bonusMin: 5 });
     expect("mikro" in c.parts).toBe(false);
     // the old rubric Live Coding has no counterpart: every Live Coding and score setting is the default
     expect(c.livecode).toEqual(DEFAULT_EXAM_CONFIG.livecode);
@@ -137,7 +137,7 @@ describe("validateConfig (scores and Live Coding)", () => {
     expect(validateConfig(DEFAULT_EXAM_CONFIG)).toEqual([]);
     const c = fresh();
     c.weights = { written: 50, livecode: 50 };
-    c.livecode.points = { easy: 300, medium: 550 };
+    c.livecode.points = { easy: 250, medium: 400, hard: 700 };
     expect(capsOf(c).livecode).toBe(2000);
     expect(dealtPoints(c)).toBe(2000);
     expect(validateConfig(c)).toEqual([]);

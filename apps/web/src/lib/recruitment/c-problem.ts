@@ -6,7 +6,7 @@
  * candidate (EXAM-ENGINE 2).
  */
 import { ZERO, cmp, frac, maxFrac, roundHalfUp, type Frac } from "./frac.js";
-import type { FieldError, Tier } from "./exam-types.js";
+import { TIERS, type FieldError, type Tier } from "./exam-types.js";
 
 /** What the judge says about one test. `ole` is output over the cap. */
 export const VERDICTS = ["ac", "wa", "tle", "mle", "re", "ole"] as const;
@@ -35,6 +35,8 @@ export interface CProblemBody extends CProblemText {
   en?: CProblemText;
   /** The code the editor starts with */
   starter: string;
+  /** What a full pass is worth; left out, the tier's points in the exam settings */
+  points?: number;
 }
 
 export interface CProblemLimits {
@@ -167,7 +169,17 @@ export function validateProblem(p: CProblemDraft): FieldError[] {
   const title = p.title.trim();
   if (!title) bad("title", "kosong");
   else if (title.length > C_LIMITS.title) bad("title", "terlalu_panjang");
-  if (!["easy", "medium"].includes(p.tier)) bad("tier", "tingkat_salah");
+  if (!(TIERS as readonly string[]).includes(p.tier)) bad("tier", "tingkat_salah");
+  if (
+    p.body.points !== undefined &&
+    (!Number.isInteger(p.body.points) || p.body.points < 1 || p.body.points > 4000)
+  )
+    bad("body.points", "poin_salah");
+  // A sample the candidate sees must not be a hidden test too: it would be no test at all.
+  const shown = new Set(p.samples.map((x) => normalizeOutput(x.input)));
+  p.tests.forEach((x, i) => {
+    if (shown.has(normalizeOutput(x.input))) bad(`tests.${i}`, "tes_sama_contoh");
+  });
   for (const k of ["statement", "input", "output"] as const) {
     if (!p.body[k].trim()) bad(`body.${k}`, "kosong");
     else if (tooLong(p.body[k], C_LIMITS.text)) bad(`body.${k}`, "terlalu_panjang");
@@ -237,7 +249,7 @@ export function parseProblemDraft(raw: unknown): CProblemDraft | null {
   if (typeof raw !== "object" || raw === null) return null;
   const o = raw as Record<string, unknown>;
   const title = str(o.title);
-  const tier = o.tier === "easy" || o.tier === "medium" ? o.tier : null;
+  const tier = (TIERS as readonly unknown[]).includes(o.tier) ? (o.tier as Tier) : null;
   const body =
     typeof o.body === "object" && o.body !== null ? (o.body as Record<string, unknown>) : null;
   const text = parseText(body);
@@ -260,6 +272,7 @@ export function parseProblemDraft(raw: unknown): CProblemDraft | null {
     reference === null
   )
     return null;
+  const points = Number.isInteger(body?.points) ? (body?.points as number) : undefined;
   const timeMs = Number(lim.timeMs);
   const memKb = Number(lim.memKb);
   let en: CProblemText | undefined;
@@ -271,7 +284,12 @@ export function parseProblemDraft(raw: unknown): CProblemDraft | null {
   return {
     title,
     tier,
-    body: { ...text, ...(en ? { en } : {}), starter },
+    body: {
+      ...text,
+      ...(en ? { en } : {}),
+      starter,
+      ...(points !== undefined ? { points } : {}),
+    },
     limits: { timeMs, memKb },
     samples,
     tests,

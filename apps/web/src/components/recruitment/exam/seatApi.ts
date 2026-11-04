@@ -51,6 +51,14 @@ export async function submitPart(part: string): Promise<{ ok: boolean; kode?: st
   return isFail(r) ? { ok: false, kode: r.kode } : { ok: true };
 }
 
+/** The bonus round: the part's other questions, dealt once (4 Nov 2026) */
+export async function askBonus(
+  part: string,
+): Promise<{ ok: boolean; kode?: string; count?: number }> {
+  const r = await recPost<{ ok: true; count: number }>("test-bonus", { part });
+  return isFail(r) ? { ok: false, kode: r.kode } : { ok: true, count: r.count };
+}
+
 export async function saveHotspot(
   b: { ssid: string; pass: string } | { clear: true },
 ): Promise<{ ok: boolean; ssid?: string; kode?: string }> {

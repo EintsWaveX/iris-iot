@@ -11,6 +11,12 @@ import { ZERO, add, div, frac, isOne, mul, roundHalfUp, sub, sum, type Frac } fr
 export interface SeatPart {
   seat: number;
   drawn: number[] | null;
+  /**
+   * The bonus round (4 Nov 2026): bonus questions the seat ANSWERED. They add to what the seat
+   * earned but not to what it could earn, so a seat can pass its part's cap. A bonus question
+   * left blank is not listed at all: it costs nothing and counts in no statistic.
+   */
+  bonus?: number[];
   /** Missing entries are unanswered: credit 0, still shown. */
   credits: Record<number, Frac>;
 }
@@ -36,10 +42,17 @@ export function scorePart(
   cap: number,
   seats: readonly SeatPart[],
   voided: ReadonlySet<number>,
+  /**
+   * What each question is worth, as a weight (4 Nov 2026). A question without an entry is worth
+   * `defaultPts`, so with no entries at all every question weighs the same and the result is
+   * the pass-rate weighting alone, as before.
+   */
+  pts: ReadonlyMap<number, number> = new Map(),
+  defaultPts = 1,
 ): { stats: Map<number, QuestionStat>; seats: Map<number, SeatScore> } {
   const counts = new Map<number, { n: number; m: number }>();
   for (const s of seats) {
-    for (const q of s.drawn ?? []) {
+    for (const q of [...(s.drawn ?? []), ...(s.bonus ?? [])]) {
       if (voided.has(q)) continue;
       const c = counts.get(q) ?? { n: 0, m: 0 };
       c.n++;
@@ -62,8 +75,14 @@ export function scorePart(
       out.set(s.seat, { score: 0, ratio: ZERO, flag: "empty" });
       continue;
     }
-    const ws = live.map((q) => stats.get(q)!.w);
-    const got = sum(live.map((q, i) => mul(s.credits[q] ?? ZERO, ws[i])));
+    // weight = pass-rate weight x the question's score; the cap is what the DEALT questions make
+    const wOf = (q: number) => mul(stats.get(q)!.w, frac(pts.get(q) ?? defaultPts));
+    const ws = live.map(wOf);
+    const extra = (s.bonus ?? []).filter((q) => !voided.has(q));
+    const got = sum([
+      ...live.map((q, i) => mul(s.credits[q] ?? ZERO, ws[i])),
+      ...extra.map((q) => mul(s.credits[q] ?? ZERO, wOf(q))),
+    ]);
     const ratio = div(got, sum(ws));
     out.set(s.seat, { score: roundHalfUp(cap, ratio), ratio });
   }

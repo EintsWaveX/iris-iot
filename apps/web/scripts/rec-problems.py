@@ -1,9 +1,10 @@
 """
-The default Live Coding problems in C (B7.2): eight problems, four easy and
-four medium. Each carries its statement, a reference solution and a list of
-inputs; the expected outputs are NOT typed here, they are what the reference
-prints when gcc builds and runs it. The first two inputs are the samples the
-candidate sees, the rest are the hidden tests.
+The default Live Coding problems in C (B7.2, widened 4 Nov 2026): 24 problems, eight
+easy (Mudah), eight medium (Sedang) and eight hard (Susah). Each carries its statement,
+a reference solution and a list of inputs; the expected outputs are NOT typed here, they
+are what the reference prints when gcc builds and runs it. The first two inputs are the
+samples the candidate sees, the rest are the hidden tests: no sample is ever a hidden
+test too (every input of a problem is different).
 
     python scripts/rec-problems.py          writes src/lib/recruitment/seed-problems.ts
     python scripts/rec-problems.py --check  fails when that file is out of date or a reference misbehaves
@@ -18,7 +19,17 @@ STARTER = "#include <stdio.h>\n\nint main(void) {\n  \n  return 0;\n}\n"
 P = []
 
 
+# Two more hidden tests for the first easy problems: their old lists doubled as samples AND tests
+EXTRA = {
+    "Jumlah Dua Bilangan": ["500 -250\n", "-1 1\n"],
+    "Genap atau Ganjil": ["3\n", "88888\n"],
+    "Terbesar dari Tiga": ["-1 -1 5\n", "999 998 997\n"],
+    "Hitung Mundur": ["12\n", "4\n"],
+}
+
+
 def prob(title, tier, brief, inp, out, ref, inputs, samples=2):
+    inputs = list(inputs) + EXTRA.get(title, [])
     P.append(dict(title=title, tier=tier, brief=brief, inp=inp, out=out, ref=ref, inputs=inputs, samples=samples))
 
 
@@ -88,6 +99,12 @@ prob(
 )
 
 
+sys.path.insert(0, HERE)
+from rec_problems_more import add  # noqa: E402
+
+add(prob)
+
+
 def run_all():
     out = []
     with tempfile.TemporaryDirectory() as d:
@@ -110,7 +127,7 @@ def run_all():
                 title=p["title"], tier=p["tier"],
                 body=dict(statement=p["brief"], input=p["inp"], output=p["out"], starter=STARTER),
                 limits=dict(timeMs=1000, memKb=65536),
-                samples=tests[: p["samples"]], tests=tests,
+                samples=tests[: p["samples"]], tests=tests[p["samples"]:],
                 reference=p["ref"],
             ))
     return out

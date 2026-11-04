@@ -6,7 +6,7 @@
  */
 import { dict } from "../../../lib/app";
 
-type Tier = Record<"easy" | "medium", string>;
+type Tier = Record<"easy" | "medium" | "hard", string>;
 
 export const LCC = dict({
   id: {
@@ -17,7 +17,7 @@ export const LCC = dict({
     drawHead: (n: number) => `Putar ${n} Soalmu`,
     drawHeadAfter: "Soalmu Malam Ini",
     drawLedeNew: (n: number) =>
-      `${n} soal C dibagikan acak, campuran mudah dan sedang. Hasilnya tersimpan, jadi memuat ulang halaman tidak mengubahnya. Waktu belum berjalan.`,
+      `${n} soal C dibagikan acak, campuran mudah, sedang, dan susah. Hasilnya tersimpan, jadi memuat ulang halaman tidak mengubahnya. Waktu belum berjalan.`,
     drawLedeAfter:
       "Kamu boleh mengerjakan dalam urutan apa pun dan kembali ke soal mana saja. Tiap test yang lolos menambah nilaimu.",
     drawGo: "Putar Undianku",
@@ -39,7 +39,7 @@ export const LCC = dict({
     drawLede: (n: number, minutes: number) =>
       `Kamu dapat ${n} soal C. Waktunya ${minutes} menit begitu pengawas menekan Start. Kerjakan yang kamu bisa dulu, nilainya dihitung dari test yang lolos.`,
     drawWait: "Menunggu pengawas menekan Start.",
-    tier: { easy: "Mudah", medium: "Sedang" } as Tier,
+    tier: { easy: "Mudah", medium: "Sedang", hard: "Susah" } as Tier,
     points: (n: number) => `${n} poin`,
     tests: (passed: number | null, total: number) =>
       passed === null ? `${total} test` : `${passed} / ${total} test`,
@@ -47,6 +47,27 @@ export const LCC = dict({
     waiting: "menunggu judge",
     running: "sedang dinilai",
     problemList: "Soal Live Coding",
+    bonus: {
+      badge: "Bonus",
+      tab: "Bonus",
+      title: "Masih ada waktu. Mau coba soal bonus?",
+      desc: (n: number, min: number) =>
+        `Ada ${n} soal Live Coding lain di bank yang tidak kebagian di kamu, karena soal diacak per peserta. Kerjakan sebisanya: nilainya ditambah di atas nilai maksimal, dan kosong atau gagal tidak mengurangi apa-apa. Tawaran ini cuma muncul kalau sisa waktumu ${min} menit atau lebih.`,
+      yes: "Ya, Ambil Soal Bonus",
+      no: "Tidak, Lanjut Selesai",
+      taking: "Menyiapkan soal bonus",
+      added: (n: number) => `${n} soal bonus ditambahkan di daftar soal.`,
+      fail: "Soal bonus belum bisa diambil. Coba lagi.",
+      late: "Sisa waktumu sudah kurang dari batas untuk bonus.",
+      bar: "Soal Bonus: nilainya tambahan. Kosong atau gagal tidak mengurangi.",
+    },
+    finish: "Selesai",
+    finishTitle: "Selesai Live Coding?",
+    finishDesc:
+      "Yang sudah kamu Submit tetap dinilai. Setelah ini kamu tidak bisa mengirim kode lagi dan menunggu bagian berikutnya.",
+    finishKeep: "Lanjut Mengerjakan",
+    finishGo: "Ya, Selesai",
+    finishFail: "Belum bisa menyelesaikan. Coba lagi.",
     scoreSoFar: "Nilai sementara",
     outOf: (cap: number) => `/ ${cap}`,
     statement: "Soal",
@@ -119,7 +140,7 @@ export const LCC = dict({
     drawHead: (n: number) => `Draw Your ${n} Problems`,
     drawHeadAfter: "Your Problems Tonight",
     drawLedeNew: (n: number) =>
-      `${n} C problems are dealt at random, a mix of easy and medium. The result is stored, so reloading does not change it. Your time has not started.`,
+      `${n} C problems are dealt at random, a mix of easy, medium and hard. The result is stored, so reloading does not change it. Your time has not started.`,
     drawLedeAfter:
       "Work in any order and go back to any problem. Every test that passes adds to your score.",
     drawGo: "Draw My Problems",
@@ -141,7 +162,7 @@ export const LCC = dict({
     drawLede: (n: number, minutes: number) =>
       `You have ${n} C problems. You get ${minutes} minutes once the proctor presses Start. Do what you can first: the score comes from the tests that pass.`,
     drawWait: "Waiting for the proctor to press Start.",
-    tier: { easy: "Easy", medium: "Medium" } as Tier,
+    tier: { easy: "Easy", medium: "Medium", hard: "Hard" } as Tier,
     points: (n: number) => `${n} points`,
     tests: (passed: number | null, total: number) =>
       passed === null ? `${total} tests` : `${passed} / ${total} tests`,
@@ -149,6 +170,27 @@ export const LCC = dict({
     waiting: "waiting for judge",
     running: "being judged",
     problemList: "Live Coding problems",
+    bonus: {
+      badge: "Bonus",
+      tab: "Bonus",
+      title: "There is still time. Try the bonus problems?",
+      desc: (n: number, min: number) =>
+        `${n} other Live Coding problems in the bank did not come to you, because problems are shuffled per candidate. Do what you can: their score is added on top of the maximum, and blank or failing takes nothing away. This offer only shows when you have ${min} minutes or more left.`,
+      yes: "Yes, Take the Bonus",
+      no: "No, Just Finish",
+      taking: "Getting the bonus problems ready",
+      added: (n: number) => `${n} bonus problems were added to the problem list.`,
+      fail: "The bonus problems could not be taken. Try again.",
+      late: "Your time left is now under the limit for the bonus.",
+      bar: "Bonus Problem: its score is extra. Blank or failing takes nothing away.",
+    },
+    finish: "Finish",
+    finishTitle: "Finish Live Coding?",
+    finishDesc:
+      "What you already Submitted is still scored. After this you cannot send code any more and you wait for the next part.",
+    finishKeep: "Keep Working",
+    finishGo: "Yes, Finish",
+    finishFail: "Could not finish. Try again.",
     scoreSoFar: "Score so far",
     outOf: (cap: number) => `/ ${cap}`,
     statement: "Problem",
@@ -221,7 +263,7 @@ export const LCC = dict({
     drawHead: (n: number) => `抽取你的 ${n} 道题`,
     drawHeadAfter: "今晚你的题目",
     drawLedeNew: (n: number) =>
-      `随机分配 ${n} 道 C 题，简单和中等混合。结果会保存，所以刷新页面不会改变。计时尚未开始。`,
+      `随机分配 ${n} 道 C 题，简单、中等和困难混合。结果会保存，所以刷新页面不会改变。计时尚未开始。`,
     drawLedeAfter: "可以按任意顺序作答，也可以回到任何一题。每通过一个测试，分数就增加。",
     drawGo: "抽我的题",
     drawOpening: "翻牌中",
@@ -242,7 +284,7 @@ export const LCC = dict({
     drawLede: (n: number, minutes: number) =>
       `你有 ${n} 道 C 语言题。监考按下开始后你有 ${minutes} 分钟。先做会的题，分数按通过的测试计算。`,
     drawWait: "等待监考按下开始。",
-    tier: { easy: "简单", medium: "中等" } as Tier,
+    tier: { easy: "简单", medium: "中等", hard: "困难" } as Tier,
     points: (n: number) => `${n} 分`,
     tests: (passed: number | null, total: number) =>
       passed === null ? `${total} 个测试` : `${passed} / ${total} 个测试`,
@@ -250,6 +292,26 @@ export const LCC = dict({
     waiting: "等待评测",
     running: "评测中",
     problemList: "现场编程题目",
+    bonus: {
+      badge: "加分",
+      tab: "加分",
+      title: "还有时间，要试试加分题吗？",
+      desc: (n: number, min: number) =>
+        `题库里还有 ${n} 道实时编程题没有分到你，因为题目是按考生随机分配的。尽力而为即可：分数会加在满分之上，空白或未通过不扣分。只有剩余时间不少于 ${min} 分钟时才会出现这个提示。`,
+      yes: "是，领取加分题",
+      no: "不用，直接结束",
+      taking: "正在准备加分题",
+      added: (n: number) => `已在题目列表中加入 ${n} 道加分题。`,
+      fail: "暂时无法领取加分题，请重试。",
+      late: "剩余时间已低于加分题的门槛。",
+      bar: "加分题：分数是额外的，空白或未通过不扣分。",
+    },
+    finish: "结束",
+    finishTitle: "结束实时编程？",
+    finishDesc: "已提交的代码仍会计分。结束后你不能再发送代码，请等待下一部分。",
+    finishKeep: "继续作答",
+    finishGo: "是，结束",
+    finishFail: "暂时无法结束，请重试。",
     scoreSoFar: "当前得分",
     outOf: (cap: number) => `/ ${cap}`,
     statement: "题目",

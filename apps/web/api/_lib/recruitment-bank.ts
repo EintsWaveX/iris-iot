@@ -789,11 +789,8 @@ export async function pasangBawaanKe(db: Db, edisiId: number, nim: string) {
   });
   // The default Live Coding problems: their expected outputs come from reference solutions
   // built with gcc (scripts/rec-problems.py), so they are installed as already checked.
-  const havePr = await k.db
-    .select({ title: recCProblem.title })
-    .from(recCProblem)
-    .where(eq(recCProblem.editionId, k.edisiId));
-  const takenPr = new Set(havePr.map((r) => r.title));
+  const havePr = await k.db.select().from(recCProblem).where(eq(recCProblem.editionId, k.edisiId));
+  const takenPr = new Map(havePr.map((r) => [r.title, r]));
   const newPr = SEED_PROBLEMS.filter((p) => !takenPr.has(p.title));
   if (newPr.length)
     await k.db.insert(recCProblem).values(
@@ -814,7 +811,35 @@ export async function pasangBawaanKe(db: Db, edisiId: number, nim: string) {
         updatedBy: k.nim,
       })),
     );
-  return { created, skipped, failed, problems: newPr.length };
+  // A default problem installed earlier whose samples or tests changed (4 Nov 2026: a sample was
+  // also a hidden test): refresh it while no real seat has been dealt it. A problem someone
+  // edited by hand keeps their edit, since only untouched defaults (version 1) are refreshed.
+  let refreshed = 0;
+  for (const p of SEED_PROBLEMS) {
+    const r = takenPr.get(p.title);
+    if (!r || !r.sample || r.shownAt !== null || r.version !== 1) continue;
+    const same =
+      JSON.stringify([r.tier, r.samples, r.tests, r.body.statement, r.reference]) ===
+      JSON.stringify([p.tier, p.samples, p.tests, p.body.statement, p.reference]);
+    if (same) continue;
+    await k.db
+      .update(recCProblem)
+      .set({
+        tier: p.tier,
+        body: p.body,
+        limits: p.limits,
+        samples: p.samples,
+        tests: p.tests,
+        reference: p.reference,
+        checkedAt: new Date(),
+        checkOk: true,
+        updatedBy: k.nim,
+        updatedAt: new Date(),
+      })
+      .where(eq(recCProblem.id, r.id));
+    refreshed++;
+  }
+  return { created, skipped, failed, problems: newPr.length, refreshed };
 }
 
 /* --------------------------------------------------------------- images */

@@ -9,8 +9,16 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import Drawer from "../../../../ui/Drawer";
 import Pill from "../../../../ui/Pill";
 import type { Lang } from "../../../../../lib/kelas";
-import type { QuestionSummary } from "../../../../../lib/recruitment/bank-api";
 import { BK } from "./bankStrings";
+
+/** One row of the drawer: a question of a written part, or a Live Coding problem. */
+export interface PickItem {
+  id: number;
+  title: string;
+  /** The small grey line: a format, or a tier */
+  meta: string;
+  state: "ready" | "draft" | "void";
+}
 
 export default function BankPicker({
   lang,
@@ -23,7 +31,7 @@ export default function BankPicker({
   lang: Lang;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  rows: QuestionSummary[];
+  rows: PickItem[];
   current: number | null;
   onPick: (id: number) => void;
 }) {
@@ -71,10 +79,10 @@ export default function BankPicker({
                   onClick={() => onPick(r.id)}
                 >
                   <span className="r3pick__t">{r.title}</span>
-                  <span className="hint">{t.formats[r.format]}</span>
-                  {r.voided ? (
+                  <span className="hint">{r.meta}</span>
+                  {r.state === "void" ? (
                     <Pill tone="danger">{t.voided}</Pill>
-                  ) : r.status === "ready" ? (
+                  ) : r.state === "ready" ? (
                     <Pill tone="ok">{t.ready}</Pill>
                   ) : (
                     <Pill>{t.draft}</Pill>

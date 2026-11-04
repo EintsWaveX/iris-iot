@@ -23,9 +23,15 @@ import {
   recExamSeat,
   server,
 } from "../../src/lib/schema.js";
-import { DrawShort, drawProblems, drawSeed } from "../../src/lib/recruitment/draw.js";
+import {
+  DrawShort,
+  drawBonusProblems,
+  drawProblems,
+  drawSeed,
+} from "../../src/lib/recruitment/draw.js";
 import { livecodeResult } from "../../src/lib/recruitment/c-problem.js";
-import { capsOf } from "../../src/lib/recruitment/exam-config.js";
+import { capsOf, problemWorth } from "../../src/lib/recruitment/exam-config.js";
+import { normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
   stateOf,
   type LccProblem,
@@ -38,7 +44,7 @@ import {
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
-import { bacaConfig } from "./recruitment-room.js";
+import { antreUjian, bacaConfig } from "./recruitment-room.js";
 import {
   faseLc,
   muatGaram,
@@ -64,12 +70,14 @@ export async function handleLcc(req: ApiRequest, res: ApiResponse, s: SessionPay
   if (fase === "usai") return void tolakLc(res, "ruang_selesai");
   if (aksi === "lcc") return bacaLcc(c, fase, res);
   if (aksi === "lcc-send") return kirim(c, fase, req, res);
+  if (aksi === "lcc-bonus") return mintaBonus(c, fase, res);
+  if (aksi === "lcc-done") return selesai(c, fase, res);
   tolak(res, "aksi_tidak_dikenal", 404);
 }
 
 /* ------------------------------------------------------------------- deal */
 
-type Dealt = { at: number; room: number; problems: number[] };
+type Dealt = { at: number; room: number; problems: number[]; bonus?: number[]; bonusAt?: number };
 
 /** The seat's hand, dealt on first read and kept; null when the pool is too small to deal one. */
 async function tanganKursi(c: KonteksLc): Promise<number[] | null> {
@@ -179,9 +187,29 @@ async function infoJudge(
   };
 }
 
+/** The bonus problems the seat took, if it did */
+const bonusKursi = (c: KonteksLc): number[] =>
+  (c.seat.draw as { livecode?: Dealt }).livecode?.bonus ?? [];
+
+/** Ready, judged-sound problems: what a hand or a bonus round is dealt from */
+async function soalSiap(c: KonteksLc) {
+  return c.db
+    .select({ id: recCProblem.id, tier: recCProblem.tier })
+    .from(recCProblem)
+    .where(
+      and(
+        eq(recCProblem.editionId, c.edisiId),
+        eq(recCProblem.status, "ready"),
+        eq(recCProblem.checkOk, true),
+      ),
+    );
+}
+
 async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
-  const ids = await tanganKursi(c);
-  if (!ids) return void tolak(res, "soal_kurang", 503);
+  const base = await tanganKursi(c);
+  if (!base) return void tolak(res, "soal_kurang", 503);
+  const ids = [...base, ...bonusKursi(c)];
+  const baseSet = new Set(base);
   const rows = await c.db.select().from(recCProblem).where(inArray(recCProblem.id, ids));
   const by = new Map(rows.map((r) => [r.id, r]));
   const hand: LccProblem[] = ids.flatMap((id) => {
@@ -193,7 +221,8 @@ async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
         id,
         title: p.title,
         tier: p.tier,
-        points: c.config.livecode.points[p.tier],
+        ...(baseSet.has(id) ? {} : { bonus: true }),
+        points: problemWorth(c.config, p.tier, p.body.points),
         text: { statement, input, output },
         ...(en ? { en } : {}),
         samples: p.samples,
@@ -228,8 +257,89 @@ async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
     cap: capsOf(c.config).livecode,
     minutes: c.config.livecode.minutes,
     judgeReady: await judgeSiap(c.db, c.now),
+    bonus: await infoBonus(c, ids),
+    done: c.seat.done.livecode != null,
   };
   res.status(200).json({ ok: true, ...body });
+}
+
+async function infoBonus(c: KonteksLc, have: number[]): Promise<LccSelf["bonus"]> {
+  const minLeftMs = c.config.livecode.bonusMin * 60_000;
+  const taken = bonusKursi(c).length > 0;
+  if (minLeftMs <= 0 || taken) return { count: 0, taken, minLeftMs };
+  const own = new Set(have);
+  const pool = await soalSiap(c);
+  return { count: pool.filter((p) => !own.has(p.id)).length, taken, minLeftMs };
+}
+
+/* ------------------------------------------------------------ bonus round */
+
+/** Time the seat has left in Live Coding, ms (0 when the part is not running for it). */
+function sisaMs(c: KonteksLc): number {
+  const state = normalize(c.room.state, c.now);
+  const run = state.runs.livecode;
+  return run && state.cur === "livecode" && run.state === "running"
+    ? seatLeft(run, c.seat.id, c.now)
+    : 0;
+}
+
+/** The bonus round of Live Coding: every other ready problem, once, with time left (4 Nov 2026). */
+async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
+  if (fase !== "kerja") return void tolakLc(res, "belum_dibuka");
+  if (c.seat.done.livecode != null) return void tolak(res, "sudah_kumpul", 409);
+  const base = await tanganKursi(c);
+  if (!base) return void tolak(res, "soal_kurang", 503);
+  const had = bonusKursi(c);
+  if (had.length) return void res.status(200).json({ ok: true, count: had.length });
+  const min = c.config.livecode.bonusMin * 60_000;
+  if (min <= 0) return void tolak(res, "bonus_mati", 409);
+  if (sisaMs(c) < min) return void tolak(res, "bonus_telat", 409);
+  const ids = drawBonusProblems(
+    await drawSeed(await muatGaram(c.db, c.edisiId), c.seat.id, "livecode"),
+    await soalSiap(c),
+    new Set(base),
+  );
+  if (!ids.length) return void tolak(res, "soal_kurang", 409);
+  // Only the first writer wins: two tabs asking at once end with one bonus list
+  await c.db
+    .update(recExamSeat)
+    .set({
+      draw: sql`jsonb_set(jsonb_set(${recExamSeat.draw}, '{livecode,bonus}', ${JSON.stringify(ids)}::jsonb, true), '{livecode,bonusAt}', ${String(c.now)}::jsonb, true)`,
+    })
+    .where(
+      and(
+        eq(recExamSeat.id, c.seat.id),
+        sql`not jsonb_exists(${recExamSeat.draw} -> 'livecode', 'bonus')`,
+      ),
+    );
+  if (!c.seat.rehearsal)
+    await c.db
+      .update(recCProblem)
+      .set({ shownAt: new Date() })
+      .where(and(inArray(recCProblem.id, ids), isNull(recCProblem.shownAt)));
+  res.status(200).json({ ok: true, count: ids.length });
+}
+
+/** Selesai: the seat is done with Live Coding. What it submitted counts; nothing more is taken from it. */
+async function selesai(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
+  if (fase !== "kerja") return void tolakLc(res, "belum_dibuka");
+  const at = c.seat.done.livecode ?? c.now;
+  if (c.seat.done.livecode == null)
+    await c.db
+      .update(recExamSeat)
+      .set({
+        done: sql`jsonb_set(${recExamSeat.done}, '{livecode}', ${String(at)}::jsonb, true)`,
+        lastSeenAt: new Date(c.now),
+      })
+      .where(eq(recExamSeat.id, c.seat.id));
+  antreUjian(res, c.seat.roomId, [
+    {
+      j: "kursi",
+      s: c.seat.id,
+      d: { seq: c.room.state.seq, done: { ...c.seat.done, livecode: at } },
+    },
+  ]);
+  res.status(200).json({ ok: true, done: at });
 }
 
 /* ------------------------------------------------------------------- send */
@@ -245,7 +355,9 @@ async function kirim(c: KonteksLc, fase: "spin" | "kerja", req: ApiRequest, res:
   if (!KINDS.has(kind)) return void tolak(res, "data_salah", 400, { field: "kind" });
   if (code === null) return void tolak(res, "data_salah", 400, { field: "code" });
   const ids = await tanganKursi(c);
-  if (!ids?.includes(problemId)) return void tolak(res, "soal_bukan_milikmu", 403);
+  if (!ids?.concat(bonusKursi(c)).includes(problemId))
+    return void tolak(res, "soal_bukan_milikmu", 403);
+  if (c.seat.done.livecode != null) return void tolak(res, "sudah_kumpul", 409);
   const r = await kirimKode(c.db, {
     kind: kind as "run" | "submit",
     seatId: c.seat.id,
@@ -292,7 +404,12 @@ async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
           )
       : [],
     db
-      .select({ id: recCProblem.id, title: recCProblem.title, tier: recCProblem.tier })
+      .select({
+        id: recCProblem.id,
+        title: recCProblem.title,
+        tier: recCProblem.tier,
+        body: recCProblem.body,
+      })
       .from(recCProblem)
       .where(eq(recCProblem.editionId, edisi.id)),
     ids.length ? db.select().from(recCSubmission).where(inArray(recCSubmission.seatId, ids)) : [],
@@ -305,12 +422,19 @@ async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const nama = new Map(kand.map((k) => [k.id, k.nama ?? ""]));
   const info = new Map(problems.map((x) => [x.id, x]));
   const out: LccRoomSeat[] = seats.map((seat) => {
-    const dealt = (seat.draw as { livecode?: { problems?: number[] } }).livecode?.problems ?? [];
+    const lcDraw = (seat.draw as { livecode?: { problems?: number[]; bonus?: number[] } }).livecode;
+    const dealt = [...(lcDraw?.problems ?? []), ...(lcDraw?.bonus ?? [])];
     const mine = subs.filter((x) => x.seatId === seat.id);
     const hand = dealt.flatMap((id) => {
       const pr = info.get(id);
       return pr
-        ? [{ problemId: id, points: config.livecode.points[pr.tier], title: pr.title }]
+        ? [
+            {
+              problemId: id,
+              points: problemWorth(config, pr.tier, pr.body.points),
+              title: pr.title,
+            },
+          ]
         : [];
     });
     const live = livecodeResult(

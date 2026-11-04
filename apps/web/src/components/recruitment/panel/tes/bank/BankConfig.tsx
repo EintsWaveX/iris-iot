@@ -12,9 +12,17 @@ import type { Lang } from "../../../../../lib/kelas";
 import type { ExamConfigResponse } from "../../../../../lib/recruitment/bank-api";
 import { canon } from "../../../../../lib/recruitment/bank-rules";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
-import { capsOf, dealtPoints } from "../../../../../lib/recruitment/exam-config";
+import {
+  capsOf,
+  dealtCount,
+  dealtPoints,
+  maxWithBonus,
+  spreadDraw,
+} from "../../../../../lib/recruitment/exam-config";
 import {
   PHASE1_PARTS,
+  TIERS,
+  TOTAL_SCORE,
   type ExamConfig,
   type Phase1Part,
 } from "../../../../../lib/recruitment/exam-types";
@@ -48,6 +56,7 @@ export default function BankConfig({
   const setPart = (p: Phase1Part, patch: Partial<ExamConfig["parts"][Phase1Part]>) =>
     setCfg({ ...cfg, parts: { ...cfg.parts, [p]: { ...cfg.parts[p], ...patch } } });
   const caps = capsOf(cfg);
+  const max = maxWithBonus(cfg);
 
   const setLive = (patch: Partial<ExamConfig["livecode"]>) =>
     setCfg({ ...cfg, livecode: { ...cfg.livecode, ...patch } });
@@ -111,6 +120,24 @@ export default function BankConfig({
     );
   };
 
+  const pointsLabel = (tier: (typeof TIERS)[number]) =>
+    tier === "easy" ? t.cfgPointsEasy : tier === "medium" ? t.cfgPointsMedium : t.cfgPointsHard;
+  const drawLabel = (tier: (typeof TIERS)[number]) =>
+    tier === "easy" ? t.cfgDrawEasy : tier === "medium" ? t.cfgDrawMedium : t.cfgDrawHard;
+  const bonusStep = (label: string, value: number, on: (v: number) => void) => (
+    <Stepper
+      value={value}
+      min={0}
+      max={60}
+      label={label}
+      fmt={(n) => (n === 0 ? t.cfgBonusOff : t.cfgBonusFmt(n))}
+      disabled={lock}
+      lessLabel={t.stepLess}
+      moreLabel={t.stepMore}
+      onChange={(v) => !lock && on(v)}
+    />
+  );
+
   return (
     <div className="stack">
       <div className="rec-note">
@@ -131,6 +158,7 @@ export default function BankConfig({
                 <th>{t.cfgMinutes}</th>
                 <th>{t.cfgShownTarget}</th>
                 <th>{t.cfgMax}</th>
+                <th title={t.cfgBonusTip}>{t.cfgBonus}</th>
               </tr>
             </thead>
             <tbody>
@@ -153,7 +181,13 @@ export default function BankConfig({
                   </td>
                   <td data-l={t.cfgShownTarget}>{pair(p)}</td>
                   <td className="num r3cfg__max" data-l={t.cfgMax}>
-                    {caps.parts[p]}
+                    <b>{max.parts[p]}</b>
+                    <span className="hint r3cfg__base">{t.cfgMaxBase(caps.parts[p])}</span>
+                  </td>
+                  <td data-l={t.cfgBonus}>
+                    {bonusStep(`${t.parts[p]} ${t.cfgBonus}`, cfg.parts[p].bonusMin, (v) =>
+                      setPart(p, { bonusMin: v }),
+                    )}
                   </td>
                 </tr>
               ))}
@@ -175,16 +209,45 @@ export default function BankConfig({
                     }
                   />
                 </td>
-                <td>
-                  <span className="hint">{t.cfgLiveBody}</span>
+                <td data-l={t.cfgShownTarget}>
+                  <span className="r3cfg__pair">
+                    <Stepper
+                      value={dealtCount(cfg)}
+                      min={1}
+                      max={cfg.livecode.pool}
+                      disabled={lock}
+                      label={`${t.cfgLive} ${t.cfgShown}`}
+                      lessLabel={t.stepLess}
+                      moreLabel={t.stepMore}
+                      onChange={(v) => !lock && setLive({ draw: spreadDraw(v) })}
+                    />
+                    <span className="hint">/</span>
+                    <Stepper
+                      value={cfg.livecode.pool}
+                      min={dealtCount(cfg)}
+                      max={100}
+                      label={`${t.cfgLive} ${t.cfgTarget}`}
+                      disabled={lock}
+                      lessLabel={t.stepLess}
+                      moreLabel={t.stepMore}
+                      onChange={(v) => !lock && setLive({ pool: v })}
+                    />
+                  </span>
                 </td>
                 <td className="num r3cfg__max" data-l={t.cfgMax}>
-                  {caps.livecode}
+                  <b>{max.livecode}</b>
+                  <span className="hint r3cfg__base">{t.cfgMaxBase(caps.livecode)}</span>
+                </td>
+                <td data-l={t.cfgBonus}>
+                  {bonusStep(`${t.cfgLive} ${t.cfgBonus}`, cfg.livecode.bonusMin, (v) =>
+                    setLive({ bonusMin: v }),
+                  )}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+        <p className="hint r3cfg__note">{t.cfgMaxNote}</p>
       </section>
       <section className="panel r3cfg__score" data-ok={scoreOk ? "yes" : "no"}>
         <div className="stack" style={{ gap: 2 }}>
@@ -193,6 +256,23 @@ export default function BankConfig({
         </div>
         <div className="r3cfg__grid">
           <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgWeightWritten}</span>
+            <Stepper
+              value={cfg.weights.written}
+              min={10}
+              max={90}
+              step={5}
+              label={t.cfgWeightWritten}
+              fmt={(n) => `${n}% · ${Math.round((TOTAL_SCORE * n) / 100)} ${t.ptsUnit}`}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) =>
+                !lock && setCfg({ ...cfg, weights: { written: v, livecode: 100 - v } })
+              }
+            />
+          </label>
+          <label className="stack stack--sm">
             <span className="label-caps">{t.cfgWeightLive}</span>
             <Stepper
               value={cfg.weights.livecode}
@@ -200,7 +280,7 @@ export default function BankConfig({
               max={90}
               step={5}
               label={t.cfgWeightLive}
-              fmt={(n) => `${n}%`}
+              fmt={(n) => `${n}% · ${Math.round((TOTAL_SCORE * n) / 100)} ${t.ptsUnit}`}
               disabled={lock}
               lessLabel={t.stepLess}
               moreLabel={t.stepMore}
@@ -209,12 +289,6 @@ export default function BankConfig({
               }
             />
           </label>
-          <div className="stack stack--sm">
-            <span className="label-caps">{t.cfgWeightWritten}</span>
-            <b className="num">
-              {cfg.weights.written}% · {caps.written} {t.ptsUnit}
-            </b>
-          </div>
           {PHASE1_PARTS.map((p) => (
             <label key={p} className="stack stack--sm">
               <span className="label-caps">
@@ -234,17 +308,15 @@ export default function BankConfig({
               />
             </label>
           ))}
-          {(["easy", "medium"] as const).map((tier) => (
+          {TIERS.map((tier) => (
             <label key={`pts-${tier}`} className="stack stack--sm">
-              <span className="label-caps">
-                {tier === "easy" ? t.cfgPointsEasy : t.cfgPointsMedium}
-              </span>
+              <span className="label-caps">{pointsLabel(tier)}</span>
               <Stepper
                 value={cfg.livecode.points[tier]}
                 min={50}
                 max={2400}
                 step={50}
-                label={tier === "easy" ? t.cfgPointsEasy : t.cfgPointsMedium}
+                label={pointsLabel(tier)}
                 disabled={lock}
                 lessLabel={t.stepLess}
                 moreLabel={t.stepMore}
@@ -254,16 +326,14 @@ export default function BankConfig({
               />
             </label>
           ))}
-          {(["easy", "medium"] as const).map((tier) => (
+          {TIERS.map((tier) => (
             <label key={`draw-${tier}`} className="stack stack--sm">
-              <span className="label-caps">
-                {tier === "easy" ? t.cfgDrawEasy : t.cfgDrawMedium}
-              </span>
+              <span className="label-caps">{drawLabel(tier)}</span>
               <Stepper
                 value={cfg.livecode.draw[tier]}
                 min={0}
                 max={10}
-                label={tier === "easy" ? t.cfgDrawEasy : t.cfgDrawMedium}
+                label={drawLabel(tier)}
                 disabled={lock}
                 lessLabel={t.stepLess}
                 moreLabel={t.stepMore}
