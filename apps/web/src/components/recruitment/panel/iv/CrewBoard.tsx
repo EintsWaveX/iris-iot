@@ -33,7 +33,8 @@ import "../../recruitment-r4.css";
 type Role = "penguji" | "pj_luar" | "pj_dalam";
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 
-const jam = (iso: string) =>
+// 14.30 in Indonesian, 14:30 everywhere else.
+const jam = (iso: string, lang: Lang) =>
   new Intl.DateTimeFormat("id-ID", {
     timeZone: "Asia/Jakarta",
     hour: "2-digit",
@@ -41,7 +42,7 @@ const jam = (iso: string) =>
     hour12: false,
   })
     .format(new Date(iso))
-    .replace(":", ".");
+    .replace(":", lang === "id" ? "." : ":");
 const hari = (iso: string, lang: Lang) =>
   new Intl.DateTimeFormat(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
     timeZone: "Asia/Jakarta",
@@ -91,7 +92,7 @@ export default function CrewBoard({
     if (!d) return [];
     const out: Flag[] = [];
     const slots = d.slots;
-    const at = (s: IvCrewSlot) => `${hari(s.startsAt, lang)}, ${jam(s.startsAt)} · ${s.room}`;
+    const at = (s: IvCrewSlot) => `${hari(s.startsAt, lang)}, ${jam(s.startsAt, lang)} · ${s.room}`;
     for (const s of slots) {
       for (const n of s.penguji) {
         const o = slots.find((x) => overlap(s, x) && x.id > s.id && x.penguji.includes(n));
@@ -228,7 +229,8 @@ export default function CrewBoard({
   /* ---------------------------------------------------- the Papan's examiner pieces */
   const cb = CB(lang);
   const panel = d.template.mode === "panel";
-  const when = (s: IvCrewSlot) => (panel ? hari(s.startsAt, lang).split(",")[0] : jam(s.startsAt));
+  const when = (s: IvCrewSlot) =>
+    panel ? hari(s.startsAt, lang).split(",")[0] : jam(s.startsAt, lang);
   const slotOf = (id: number) => d.slots.find((x) => x.id === id);
   const clashAt = (nim: string, s: IvCrewSlot) => bentrok(nim, [s], "penguji");
   const env: LaneEnv = {
@@ -445,7 +447,7 @@ export default function CrewBoard({
                         <span className="stack" style={{ gap: 0 }}>
                           <b>{hari(a.startsAt, lang)}</b>
                           <span className="hint num">
-                            {jam(a.startsAt)} - {jam(a.endsAt)}
+                            {jam(a.startsAt, lang)} - {jam(a.endsAt, lang)}
                           </span>
                         </span>
                       </td>
@@ -495,7 +497,7 @@ function Picker({
   const first = live[0];
   const title =
     pick.role === "penguji"
-      ? t.pick(first.room, jam(first.startsAt))
+      ? t.pick(first.room, jam(first.startsAt, lang))
       : pick.role === "pj_luar"
         ? t.out
         : t.inn;
