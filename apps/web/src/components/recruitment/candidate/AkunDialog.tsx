@@ -218,6 +218,9 @@ export default function AkunDialog({ lang }: { lang: Lang }) {
               className="field__input mono"
               value={klaim}
               autoComplete="one-time-code"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
               maxLength={12}
               onChange={(e) => setKlaim(e.target.value.toUpperCase())}
             />

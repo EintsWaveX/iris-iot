@@ -148,6 +148,9 @@ export default function Hadir({ lang }: { lang: Lang }) {
                   value={kode}
                   autoCapitalize="characters"
                   autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="send"
                   onChange={(e) => setKode(e.target.value.toUpperCase())}
                   placeholder={t.codePh}
                   aria-label={t.code}
