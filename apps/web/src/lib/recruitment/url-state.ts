@@ -29,3 +29,25 @@ export function useUrlState<T extends string>(
   );
   return [value, set];
 }
+
+/**
+ * Free text kept in the address (?q=raka), the same way: replaceState, read
+ * once at mount. An empty text removes the key so the address stays short.
+ */
+export function useUrlText(key: string): [string, (to: string) => void] {
+  const [value, setValue] = useState<string>(() => {
+    if (typeof location === "undefined") return "";
+    return new URLSearchParams(location.search).get(key) ?? "";
+  });
+  const set = useCallback(
+    (to: string) => {
+      setValue(to);
+      const u = new URL(location.href);
+      if (to.trim() === "") u.searchParams.delete(key);
+      else u.searchParams.set(key, to);
+      history.replaceState(history.state, "", u);
+    },
+    [key],
+  );
+  return [value, set];
+}

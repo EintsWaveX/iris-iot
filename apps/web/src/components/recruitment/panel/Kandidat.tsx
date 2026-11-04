@@ -54,6 +54,7 @@ import { S2 } from "../s2Strings";
 import { REC } from "../recruitmentStrings";
 import { clearHandoff, peekHandoff } from "../../../lib/recruitment/panel-handoff";
 import { bukaBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
+import { useUrlState, useUrlText } from "../../../lib/recruitment/url-state";
 import { StatusPill } from "../shared";
 import { NS } from "./nextStrings";
 import { PN } from "./panelStrings";
@@ -429,8 +430,9 @@ export default function Kandidat({
 }) {
   const t = PN[lang].cand;
   const k = KS[lang];
-  const [q, setQ] = useState("");
-  const [f, setF] = useState<Antre | "semua">("semua");
+  // The search text and the status chip live in the address, so a refresh or a shared link shows the same list.
+  const [q, setQ] = useUrlText("kq");
+  const [f, setF] = useUrlState<Antre | "semua">("kf", "semua", ["semua", ...URUT]);
   const [cutSaja, setCutSaja] = useState(false);
   const [prodiBuka, setProdiBuka] = useState(false);
   const ns = NS[lang === "id" ? "id" : "en"];

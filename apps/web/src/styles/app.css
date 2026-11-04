@@ -674,6 +674,43 @@ samp {
   padding: var(--space-3) var(--space-4);
 }
 
+/* ------------------------------------------------- forced colors (Windows high contrast)
+   The browser drops background colours there, so anything that shows a state or a size
+   with a fill alone (the open tab, a pressed chip, a progress bar) would disappear.
+   System colours survive, so each of those gets one back. */
+@media (forced-colors: active) {
+  :where([aria-pressed="true"], [aria-checked="true"], [aria-selected="true"]) {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  :where(.appnav__link, .appbar__item)[aria-current="page"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  :where(.panel, .empty-note, .ctl-stepper, .field__input, .textarea) {
+    border: 1px solid CanvasText;
+  }
+  :where(.empty-note) {
+    border-style: dashed;
+  }
+  :where(
+    .rec-funnel__bar i,
+    .b1-fun__bar i,
+    .r3pool__bar i,
+    .tp-bar2 i,
+    .n7-prog i,
+    progress,
+    meter
+  ) {
+    background-color: Highlight;
+    forced-color-adjust: none;
+  }
+  :where(.ctl-stepper input:focus-visible, .btn:focus-visible, button:focus-visible) {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
 /* ------------------------------------------------------ entrance motion */
 
 :root:not([data-motion-tier="0"]) .rise {
