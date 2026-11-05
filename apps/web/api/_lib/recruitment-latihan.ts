@@ -42,20 +42,24 @@ import {
   bacaModeLatihan,
   contohBiodata,
   cookieLatihan,
-  geserTanggal,
   latihanTahun,
-  selisihHari,
   tahapHariIni,
   type LatihanMode,
   type LatihanRingkas,
 } from "../../src/lib/recruitment/latihan.js";
-import { STAGES, type EditionInfo, type StageKey } from "../../src/lib/recruitment/types.js";
+import {
+  CUT_STAGES,
+  STAGES,
+  type EditionInfo,
+  type StageKey,
+} from "../../src/lib/recruitment/types.js";
 import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { SETTING_PREFIX } from "../../src/lib/recruitment/settings.js";
 import { muatOrang } from "./hak.js";
 import { pasangBawaanKe } from "./recruitment-bank.js";
 import { jalankanLatihan, konteksLatihan } from "./recruitment-latihan-ctx.js";
-import { bacaSetup, geserWaktu, tulisSetup } from "./recruitment-latihan-salin.js";
+import { bacaSetup, tulisSetup } from "./recruitment-latihan-salin.js";
+import { pastikanHasil } from "./recruitment-latihan-contoh.js";
 
 export { konteksLatihan };
 
@@ -362,43 +366,54 @@ export async function handleLatihan(
 }
 
 /**
- * Jump the practice edition to a stage (5 Nov 2026). Practice follows the real
- * calendar, so a later stage is closed until its real day; this moves the
- * practice calendar so the stage's first public day is today and puts every
- * sample CaAs on that stage. Samakan dengan Oprec Asli goes back to the real dates.
+ * Jump the practice edition to a stage. Practice has no gates (free mode), so nothing about the calendar has to
+ * move: the sample CaAs go to the stage and, for every earlier cut stage that has a Pengumuman, each one gets a
+ * locked, revealed, unopened Lolos envelope (never replacing a result that exists), so there is always something
+ * to read. Jumping forward keeps all practice work; jumping back restarts practice as Mulai Ulang does, because
+ * what was done after that stage cannot stay.
  */
 export async function lompatLatihan(
   db: Db,
   nim: string,
   tahap: StageKey,
 ): Promise<"ok" | "tidak_ada_edisi" | "tahap_kosong"> {
-  const edisi = await muatEdisiLatihan(db);
+  let edisi = await muatEdisiLatihan(db);
   if (!edisi) return "tidak_ada_edisi";
-  const acara = await db.select().from(recEvent).where(eq(recEvent.editionId, edisi.id));
-  const awal = acara
-    .filter((e) => e.stage === tahap && !e.internal)
-    .map((e) => e.startsOn)
-    .sort()[0];
-  if (!awal) return "tahap_kosong";
-  const geser = selisihHari(awal, hariIniWib());
-  await db.transaction(async (tx) => {
-    for (const e of acara)
+  let acara = await db.select().from(recEvent).where(eq(recEvent.editionId, edisi.id));
+  if (!acara.some((e) => e.stage === tahap && !e.internal)) return "tahap_kosong";
+  const tujuan = STAGES.indexOf(tahap);
+  const kini = (
+    await db
+      .select({ stage: recCandidate.currentStage })
+      .from(recCandidate)
+      .where(eq(recCandidate.editionId, edisi.id))
+  ).reduce((m, c) => Math.max(m, STAGES.indexOf(c.stage)), -1);
+  const mundur = tujuan < kini;
+  if (mundur) {
+    if (!(await ulangLatihan(db, nim))) return "tidak_ada_edisi";
+    edisi = await muatEdisiLatihan(db);
+    if (!edisi) return "tidak_ada_edisi";
+    acara = await db.select().from(recEvent).where(eq(recEvent.editionId, edisi.id));
+  }
+  const ada = edisi;
+  const calon = await db
+    .select({ id: recCandidate.id })
+    .from(recCandidate)
+    .where(eq(recCandidate.editionId, ada.id));
+  // The sample-makers only act inside a practice context, and the latihan routes run outside it.
+  await jalankanLatihan({ mode: "asisten", nim, nama: nim, edisi: ada }, () =>
+    db.transaction(async (tx) => {
       await tx
-        .update(recEvent)
-        .set({
-          startsOn: geserTanggal(e.startsOn, geser),
-          endsOn: geserTanggal(e.endsOn, geser),
-          updatedBy: nim,
-          updatedAt: new Date(),
-        })
-        .where(eq(recEvent.id, e.id));
-    // The slots people pick and the Tubes sessions move with the events, or they would stay on the old days.
-    await geserWaktu(tx as unknown as Db, edisi.id, geser);
-    await tx
-      .update(recCandidate)
-      .set({ currentStage: tahap })
-      .where(eq(recCandidate.editionId, edisi.id));
-  });
-  await writeAudit(nim, "rec_latihan_lompat", { stage: tahap, geser });
+        .update(recCandidate)
+        .set({ currentStage: tahap })
+        .where(eq(recCandidate.editionId, ada.id));
+      for (const s of CUT_STAGES) {
+        if (STAGES.indexOf(s) >= tujuan) continue;
+        if (!acara.some((e) => e.kind === "announcement" && e.stage === s)) continue;
+        for (const c of calon) await pastikanHasil(tx, c.id, s, nim);
+      }
+    }),
+  );
+  await writeAudit(nim, "rec_latihan_lompat", { stage: tahap, mundur });
   return "ok";
 }
