@@ -389,14 +389,14 @@ button.n7-task {
 }
 
 /* Atur Ruang's Pengawas list: one full-width row per Asisten, a plus to add and a check once picked */
-.r3pick {
+.n7-pengpick {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
   gap: 8px;
 }
-.r3pick__row {
+.n7-pengpick__row {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -413,16 +413,16 @@ button.n7-task {
     background-color 160ms ease,
     border-color 160ms ease;
 }
-.r3pick__row[aria-pressed="true"] {
+.n7-pengpick__row[aria-pressed="true"] {
   background: color-mix(in srgb, var(--ok) 14%, var(--surface-1));
   border-color: color-mix(in srgb, var(--ok) 55%, transparent);
 }
 @media (hover: hover) and (pointer: fine) {
-  .r3pick__row:hover:not(:disabled) {
+  .n7-pengpick__row:hover:not(:disabled) {
     border-color: var(--hairline-strong);
   }
 }
-.r3pick__row:disabled {
+.n7-pengpick__row:disabled {
   cursor: default;
   opacity: 0.7;
 }

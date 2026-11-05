@@ -6,12 +6,12 @@
  * the kit lent to them.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Checkbox } from "../../../../ui/Controls";
 import type { Lang } from "../../../../../lib/kelas";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
 import type { ConsoleView } from "../../../../../lib/recruitment/room-api";
 import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
+import { MG } from "./malamStrings";
 import { RG } from "./ruangStrings";
 
 /** The slot's day in WIB (a slot at 00:30 WIB is the day before in UTC). */
@@ -38,6 +38,11 @@ export function RuangPengaturan({
   const [pilih, setPilih] = useState<string[]>(v.pengawas.map((p) => p.nim));
   const kunci = v.pengawas.map((p) => p.nim).join(",");
   useEffect(() => setPilih(v.pengawas.map((p) => p.nim)), [kunci]);
+  // A practice room's participants: who holds a seat now, and who is picked to hold one.
+  const duduk = v.seats.map((x) => x.nim);
+  const [ikut, setIkut] = useState<string[]>(duduk);
+  const kunciIkut = duduk.join(",");
+  useEffect(() => setIkut(duduk), [kunciIkut]);
   const selesai = v.view === "finished";
 
   async function simpan(extra: Record<string, unknown>, ok: string): Promise<boolean> {
@@ -52,6 +57,9 @@ export function RuangPengaturan({
       toast(t.bad[r.kode] ?? RG[lang].con.fail, "danger");
       return false;
     }
+    const pe = (r as { peserta?: { noCandidate: string[]; busy: string[] } }).peserta;
+    if (pe?.noCandidate.length) toast(MG[lang].noCand(pe.noCandidate.length), "warn");
+    if (pe?.busy.length) toast(MG[lang].joinBusy(pe.busy.length), "warn");
     toast(ok);
     refresh();
     return true;
@@ -89,19 +97,42 @@ export function RuangPengaturan({
             onChange={(e) => setNama(e.target.value)}
           />
         </label>
-        {slot && (
+        <div className="stack stack--sm">
+          <span className="label-caps">{t.pengawas}</span>
+          <div className="rec-chips" role="group" aria-label={t.pickAria}>
+            {kandidat.map((p) => (
+              <button
+                key={p.nim}
+                type="button"
+                className="r3chip"
+                aria-pressed={pilih.includes(p.nim)}
+                title={p.nama}
+                onClick={() =>
+                  setPilih((l) =>
+                    l.includes(p.nim) ? l.filter((x) => x !== p.nim) : [...l, p.nim],
+                  )
+                }
+              >
+                {p.kode}
+              </button>
+            ))}
+          </div>
+          <span className="hint">{pilih.length ? t.pengawasHint : t.pengawasNone}</span>
+        </div>
+        {!slot && (
           <div className="stack stack--sm">
-            <span className="label-caps">{t.pengawas}</span>
-            <div className="rec-chips" role="group" aria-label={t.pickAria}>
+            <span className="label-caps">{t.participants}</span>
+            <div className="rec-chips" role="group" aria-label={t.participants}>
               {kandidat.map((p) => (
                 <button
                   key={p.nim}
                   type="button"
                   className="r3chip"
-                  aria-pressed={pilih.includes(p.nim)}
+                  aria-pressed={ikut.includes(p.nim)}
+                  disabled={selesai}
                   title={p.nama}
                   onClick={() =>
-                    setPilih((l) =>
+                    setIkut((l) =>
                       l.includes(p.nim) ? l.filter((x) => x !== p.nim) : [...l, p.nim],
                     )
                   }
@@ -110,29 +141,27 @@ export function RuangPengaturan({
                 </button>
               ))}
             </div>
-            <span className="hint">{pilih.length ? t.pengawasHint : t.pengawasNone}</span>
+            <span className="hint">{ikut.length ? t.participantsHint : t.participantsNone}</span>
           </div>
         )}
-        <div className="r3switchrow">
-          <div className="stack" style={{ gap: 2 }}>
-            <b>{t.practice}</b>
-            <span className="hint">{t.practiceHint}</span>
-          </div>
-          <Checkbox
-            checked={v.room.rehearsal}
-            onChange={() => undefined}
-            disabled
-            label={""}
-            ariaLabel={t.practice}
-          />
-        </div>
         <div className="row row--end">
           {selesai && <span className="hint">{t.locked}</span>}
           <button
             type="button"
             className="btn btn--primary"
             disabled={selesai}
-            onClick={() => void simpan(slot ? { pengawas: pilih } : {}, t.saved)}
+            onClick={() =>
+              void simpan(
+                slot
+                  ? { pengawas: pilih }
+                  : {
+                      pengawas: pilih,
+                      peserta: ikut,
+                      lepas: duduk.filter((n) => !ikut.includes(n)),
+                    },
+                t.saved,
+              )
+            }
           >
             {t.save}
           </button>

@@ -184,8 +184,23 @@ export async function muatKursiSendiri(
       .limit(1);
     if (r) rooms.push(r);
   }
-  const seat = pickSeat(seats, (id) => rooms.find((r) => r.id === id)?.state.stage ?? "setup");
-  if (seat) return { seat, room: rooms.find((r) => r.id === seat.roomId) ?? null };
+  const stageOf = (id: number) => rooms.find((r) => r.id === id)?.state.stage ?? "setup";
+  const seat = pickSeat(seats, stageOf);
+  if (seat) {
+    // A leftover practice seat must not hide the real evening: when the room of the
+    // candidate's own slot is open and they have no seat in it yet, serve that room so the
+    // first check-in makes the real seat. A practice room mid-part still wins.
+    const nyata = asg ? rooms.find((r) => r.slotId === asg.slotId && !r.rehearsal) : undefined;
+    if (
+      seat.rehearsal &&
+      nyata &&
+      ["prep", "parts", "spin"].includes(nyata.state.stage) &&
+      !seats.some((x) => x.roomId === nyata.id) &&
+      !["parts", "spin"].includes(stageOf(seat.roomId))
+    )
+      return { seat: null, room: nyata };
+    return { seat, room: rooms.find((r) => r.id === seat.roomId) ?? null };
+  }
   return { seat: null, room: asg ? (rooms.find((r) => r.slotId === asg.slotId) ?? null) : null };
 }
 
@@ -812,7 +827,10 @@ async function mintaBonus(k: Konteks) {
   const config = await muatConfig(db, edisiId);
   const minLeft = config.parts[part].bonusMin * 60_000;
   if (minLeft <= 0) return void tolakKursi(res, "bonus_mati");
-  if (seatLeft(run, seat.id, now) < minLeft) return void tolakKursi(res, "bonus_telat");
+  // Once a quote exists the dealt answers are already locked, so the offer must stay open:
+  // refusing it now for lack of time would lock the seat out of both the answers and the bonus.
+  if (!draw.quote && seatLeft(run, seat.id, now) < minLeft)
+    return void tolakKursi(res, "bonus_telat");
   const [conf] = await db
     .select({ salt: recExamConfig.salt })
     .from(recExamConfig)

@@ -82,8 +82,10 @@ export default function Kesiapan({
   if (!v) return <Skeleton height={300} />;
 
   const tertulis = v.config.order.filter((p) => p !== "livecode");
-  const soalOk = tertulis.every((p) => v.pool[p]?.ok ?? false);
-  const kurang = tertulis.find((p) => !(v.pool[p]?.ok ?? false));
+  // Live Coding counts as a part here: with too few checked C problems the room cannot start it.
+  const semuaBagian = v.config.order;
+  const soalOk = semuaBagian.every((p) => v.pool[p]?.ok ?? false);
+  const kurang = semuaBagian.find((p) => !(v.pool[p]?.ok ?? false));
   const siap = (p: (typeof v.config.order)[number]) =>
     (v.pool[p]?.counts ?? []).reduce((n, c) => n + c.ready, 0);
   const slot = v.room.slot;
@@ -113,7 +115,7 @@ export default function Kesiapan({
             v.config.order.includes("livecode") ? siap("livecode") : null,
             kursi,
           )
-        : t.soalNo(part[kurang ?? tertulis[0]].l),
+        : t.soalNo(part[kurang ?? semuaBagian[0]].l),
       siap: soalOk,
       aksi: () => setOpen("soal"),
     },
@@ -122,7 +124,8 @@ export default function Kesiapan({
       Ik: ShieldCheckIcon,
       judul: t.pengawas,
       sub: kodePeng.length ? kodePeng.join(", ") : t.pengawasNone,
-      siap: kodePeng.length > 0,
+      // A practice room may run without a plotted pengawas: anyone with the right can be Master.
+      siap: kodePeng.length > 0 || v.room.rehearsal,
       aksi: atur,
     },
     {

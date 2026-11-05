@@ -25,7 +25,17 @@
 }
 .lat-bar__txt {
   display: grid;
+  flex: 1 1 240px;
   min-width: 0;
+}
+/* The four buttons wrap as one group, so a narrow bar never leaves one stranded on its own row. */
+.lat-bar__acts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-inline-start: auto;
 }
 .lat-bar__txt b {
   color: var(--lat-gold);

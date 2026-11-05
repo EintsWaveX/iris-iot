@@ -311,6 +311,11 @@ export interface RoomState {
   finishedAt: number | null;
   master: { nim: string; since: number } | null;
   ask: { nim: string; at: number } | null;
+  /**
+   * A practice room has no slot to hang pengawas on, so its pengawas live here
+   * (NIMs). Real rooms never set it; their pengawas are the slot's examiners.
+   */
+  latihanPengawas?: string[];
 }
 
 export type RoomViewName =

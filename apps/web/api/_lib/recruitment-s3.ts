@@ -97,6 +97,7 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "room-note": handleRoom,
   "room-kit": handleRoom,
   "room-move": handleRoom,
+  "lcc-flush": handleLcc,
   "question-void": handleScore,
   "question-unvoid": handleScore,
   "score-finalize": handleScore,

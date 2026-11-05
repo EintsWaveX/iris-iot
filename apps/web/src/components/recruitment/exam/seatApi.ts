@@ -57,12 +57,14 @@ export async function askBonus(
   part: string,
   /** Only count what the seat would get, deal nothing */
   dry = false,
-): Promise<{ ok: boolean; kode?: string; count?: number; quote?: BonusQuote }> {
+): Promise<{ ok: boolean; kode?: string; status?: number; count?: number; quote?: BonusQuote }> {
   const r = await recPost<{ ok: true; count?: number; quote?: BonusQuote }>("test-bonus", {
     part,
     ...(dry ? { dry: true } : {}),
   });
-  return isFail(r) ? { ok: false, kode: r.kode } : { ok: true, count: r.count, quote: r.quote };
+  return isFail(r)
+    ? { ok: false, kode: r.kode, status: r.status }
+    : { ok: true, count: r.count, quote: r.quote };
 }
 
 export async function saveHotspot(

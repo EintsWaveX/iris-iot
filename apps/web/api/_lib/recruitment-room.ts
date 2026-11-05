@@ -21,7 +21,7 @@
  * one seat). A seat only ever receives RoomPublic: no Master, no names, no
  * other seat's extra time.
  */
-import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
@@ -41,6 +41,7 @@ import {
   recCompileJob,
   recMqttJob,
   recCSubmission,
+  recCProblem,
   recQuestion,
   recAttendance,
   recSeatNote,
@@ -52,6 +53,10 @@ import {
   type RecSlotRow,
 } from "../../src/lib/schema.js";
 import { upgradeConfig } from "../../src/lib/recruitment/exam-config.js";
+import { DrawShort, drawProblems, problemShortfall } from "../../src/lib/recruitment/draw.js";
+import { sapuKlaim } from "./recruitment-lc-judge.js";
+import { contohBiodata } from "../../src/lib/recruitment/latihan.js";
+import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 import {
   DEFAULT_EXAM_CONFIG,
   PHASE1_PARTS,
@@ -138,12 +143,96 @@ export interface RoomHooks {
   ): Promise<void>;
 }
 
+/** The ready, checked C problems of the edition: what Live Coding can deal from. */
+async function soalCSiap(db: Db, edisiId: number) {
+  return db
+    .select({ id: recCProblem.id, tier: recCProblem.tier })
+    .from(recCProblem)
+    .where(
+      and(
+        eq(recCProblem.editionId, edisiId),
+        eq(recCProblem.status, "ready"),
+        eq(recCProblem.checkOk, true),
+      ),
+    );
+}
+
 export const roomHooks: RoomHooks = {
   protokol: async () => new Map(),
-  topikSiap: async () => true,
+  // Live Coding may start only when the ready, checked C problems cover what a seat is dealt;
+  // otherwise every seat gets `soal_kurang` while the clock runs.
+  topikSiap: async (db, edisiId) => {
+    const config = await muatConfig(db, edisiId);
+    if (!config.order.includes("livecode")) return true;
+    return problemShortfall(config.livecode.draw, await soalCSiap(db, edisiId)).length === 0;
+  },
+  // The hand is dealt on a seat's first read, so a seat that never turned its cards over still gets
+  // one the moment it opens Live Coding: nothing to do here when the spin ends.
   spinRest: async () => undefined,
-  lcClose: async () => undefined,
-  reroll: async () => undefined,
+  // When the room closes, let go of the judge jobs a dead lab PC left claimed (the waiting ones are
+  // let go of after a grace time, see sapuJudgeMati).
+  lcClose: async (db) => sapuKlaim(db),
+  // Deal the seat another Live Coding hand: the next attempt of the same seeded draw. The IoT protocol
+  // reel is gone, so only a topic re-roll does anything.
+  reroll: async (db, roomId, seatId, what) => {
+    if (what !== "topic") return;
+    const [seat] = await db
+      .select({
+        id: recExamSeat.id,
+        editionId: recExamSeat.editionId,
+        draw: recExamSeat.draw,
+        rehearsal: recExamSeat.rehearsal,
+      })
+      .from(recExamSeat)
+      .where(and(eq(recExamSeat.id, seatId), eq(recExamSeat.roomId, roomId)))
+      .limit(1);
+    if (!seat) return;
+    const lc = (
+      seat.draw as {
+        livecode?: { problems?: number[]; attempt?: number; prev?: number[][] };
+      }
+    ).livecode;
+    const [conf] = await db
+      .select({ salt: recExamConfig.salt })
+      .from(recExamConfig)
+      .where(eq(recExamConfig.editionId, seat.editionId))
+      .limit(1);
+    if (!conf) return;
+    const config = await muatConfig(db, seat.editionId);
+    const pool = await soalCSiap(db, seat.editionId);
+    const old = lc?.problems ?? [];
+    let attempt = lc?.attempt ?? 0;
+    let ids: number[] = old;
+    try {
+      // A few tries: a small pool can deal the same hand again, and then the seat has nothing better.
+      for (let i = 0; i < 8; i++) {
+        attempt++;
+        ids = drawProblems(conf.salt, config.livecode.draw, pool, attempt);
+        if (!old.length || ids.some((x) => !old.includes(x))) break;
+      }
+    } catch (e) {
+      if (e instanceof DrawShort) return;
+      throw e;
+    }
+    const dealt = {
+      at: Date.now(),
+      room: roomId,
+      problems: ids,
+      attempt,
+      prev: [...(lc?.prev ?? []), ...(old.length ? [old] : [])],
+    };
+    await db
+      .update(recExamSeat)
+      .set({
+        draw: sql`jsonb_set(${recExamSeat.draw}, '{livecode}', ${JSON.stringify(dealt)}::jsonb, true)`,
+      })
+      .where(eq(recExamSeat.id, seat.id));
+    if (!seat.rehearsal)
+      await db
+        .update(recCProblem)
+        .set({ shownAt: new Date() })
+        .where(and(inArray(recCProblem.id, ids), isNull(recCProblem.shownAt)));
+  },
 };
 
 /* ---------------------------------------------------------------- helpers */
@@ -213,9 +302,32 @@ interface Pengawas {
   badges: readonly string[];
 }
 
-/** The pengawas plotted for a room's slot, with their names. */
-async function muatPengawas(db: Db, slotId: number | null): Promise<Pengawas[]> {
-  if (slotId === null) return [];
+/**
+ * The pengawas of a room, with their names: the slot's examiners for a real
+ * room, the NIMs kept in the room's own state for a practice room (it has no
+ * slot). Asisten who have left the lab drop out of both.
+ */
+async function muatPengawas(
+  db: Db,
+  room: Pick<RecExamRoomRow, "slotId" | "state">,
+): Promise<Pengawas[]> {
+  const slotId = room.slotId;
+  if (slotId === null) {
+    const nims = [...new Set(room.state.latihanPengawas ?? [])];
+    if (!nims.length) return [];
+    const rows = await db
+      .select({
+        nim: asisten.nim,
+        nama: asisten.nama,
+        kode: asisten.kode,
+        status: asisten.status,
+        badges: asisten.badges,
+      })
+      .from(asisten)
+      .where(inArray(asisten.nim, nims))
+      .orderBy(asc(asisten.nama));
+    return rows.filter((x) => bolehDuduk(x.status));
+  }
   return db
     .select({
       nim: asisten.nim,
@@ -245,8 +357,8 @@ async function namaAsisten(
 
 /**
  * Who may press Jadi Master (EXAM-ENGINE 5.4): plotted as pengawas for this
- * room, an active Asisten, never the Pencipta. A practice room has no plotted
- * pengawas, so there it is anyone holding the plotPengawas or bank right.
+ * room, an active Asisten, never the Pencipta. A practice room: anyone plotted as
+ * its pengawas, or holding the plotPengawas or bank right, Pencipta included.
  */
 async function bisaJadiMaster(
   db: Db,
@@ -259,9 +371,11 @@ async function bisaJadiMaster(
     const p = pengawas.find((x) => x.nim === nim);
     return !!p && bolehJadiMaster({ badges: p.badges, status: p.status ?? undefined });
   }
+  // A practice room counts toward nobody's score, so the Pencipta may run it too
+  // (the real-room ban of PRD 7.8 is about fairness on an exam night).
   const orang = await muatOrang(nim);
-  if (!orang || !bolehJadiMaster({ badges: orang.badges, status: orang.status ?? undefined }))
-    return false;
+  if (!orang || !(orang.status === "aktif" || orang.status === "cuti")) return false;
+  if (pengawas.some((x) => x.nim === nim)) return true;
   const p = await muatPelaku(db, edisiId, nim);
   return !!p && (p.penuh || p.hak.plotPengawas || p.hak.bank);
 }
@@ -300,6 +414,15 @@ async function muatKesiapan(
   for (const part of PHASE1_PARTS) {
     const counts: PoolCount[] = [{ lang: "c", shown: config.parts[part].shown, ready: siap(part) }];
     out[part] = { ok: counts.every((c) => c.ready >= c.shown), counts };
+  }
+  // Live Coding counts too: a room whose C problems cannot cover one seat's draw is not ready.
+  if (config.order.includes("livecode")) {
+    const problems = await soalCSiap(db, edisiId);
+    const draw = config.livecode.draw;
+    out.livecode = {
+      ok: problemShortfall(draw, problems).length === 0,
+      counts: [{ lang: "c", shown: draw.easy + draw.medium + draw.hard, ready: problems.length }],
+    };
   }
   return out;
 }
@@ -436,10 +559,13 @@ async function hitungKursiRuang(
           rooms.map((r) => r.room.id),
         ),
       );
+    const latihan = new Set(rooms.filter((r) => r.room.slotId === null).map((r) => r.room.id));
     for (const x of seats) {
       const o = out.get(x.roomId);
       if (!o) continue;
       if (sudahMasuk(x.checkin)) o.masuk++;
+      // A practice room has no slot assignments, so its seats are the headcount.
+      if (latihan.has(x.roomId)) o.seats++;
     }
   }
   return out;
@@ -456,8 +582,12 @@ async function daftarRuang({ res, db, edisi, p, s }: Ctx) {
   const rooms = rows.map((r) => ({ room: r.room, slot: r.slot ?? null }));
   const hitung = await hitungKursiRuang(db, rooms);
   const peng = new Map<number, Pengawas[]>();
-  for (const { room } of rooms) peng.set(room.id, await muatPengawas(db, room.slotId));
+  for (const { room } of rooms) peng.set(room.id, await muatPengawas(db, room));
   const lihat = bisaMenonton(p, [], s.nim);
+  const namaMaster = await namaAsisten(
+    db,
+    rooms.flatMap((r) => (r.room.state.master ? [r.room.state.master.nim] : [])),
+  );
   const out: RoomRow[] = [];
   for (const { room, slot } of rooms) {
     const pe = peng.get(room.id) ?? [];
@@ -477,8 +607,8 @@ async function daftarRuang({ res, db, edisi, p, s }: Ctx) {
       master: m
         ? {
             nim: m.nim,
-            nama: pe.find((x) => x.nim === m.nim)?.nama ?? m.nim,
-            kode: pe.find((x) => x.nim === m.nim)?.kode ?? "",
+            nama: pe.find((x) => x.nim === m.nim)?.nama ?? namaMaster.get(m.nim)?.nama ?? m.nim,
+            kode: pe.find((x) => x.nim === m.nim)?.kode ?? namaMaster.get(m.nim)?.kode ?? "",
           }
         : null,
       pengawas: pe.map((x) => ({ nim: x.nim, nama: x.nama, kode: x.kode })),
@@ -527,7 +657,7 @@ async function bacaRuang({ req, res, db, edisi, p, s }: Ctx) {
   if (!idOk(id)) return void tolak(res, "data_salah", 400, { field: "id" });
   const r = await muatRuang(db, edisi.id, id);
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
-  const pengawas = await muatPengawas(db, r.room.slotId);
+  const pengawas = await muatPengawas(db, r.room);
   if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
   const now = Date.now();
   const view = await susunKonsol(db, edisi.id, r.room, r.slot, pengawas, p, s.nim, now);
@@ -670,7 +800,9 @@ async function susunKonsol(
       nim: x.nim,
       nama: x.nama,
       kode: x.kode,
-      canBeMaster: bolehJadiMaster({ badges: x.badges, status: x.status ?? undefined }),
+      canBeMaster: room.rehearsal
+        ? bolehDuduk(x.status)
+        : bolehJadiMaster({ badges: x.badges, status: x.status ?? undefined }),
     });
   const stale =
     !!room.state.master &&
@@ -741,7 +873,7 @@ async function bacaLog({ req, res, db, edisi, p, s }: Ctx) {
   if (!idOk(id)) return void tolak(res, "data_salah", 400, { field: "id" });
   const r = await muatRuang(db, edisi.id, id);
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
-  const pengawas = await muatPengawas(db, r.room.slotId);
+  const pengawas = await muatPengawas(db, r.room);
   if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
   const rows = await db
     .select()
@@ -770,7 +902,7 @@ async function tiket({ req, res, db, edisi, p, s }: Ctx) {
   if (!idOk(id)) return void tolak(res, "data_salah", 400, { field: "id" });
   const r = await muatRuang(db, edisi.id, id);
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
-  const pengawas = await muatPengawas(db, r.room.slotId);
+  const pengawas = await muatPengawas(db, r.room);
   if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
   const env = konsolEnv();
   if (!env) return void res.status(200).json({ ok: false, kode: "relay_belum_diatur" });
@@ -868,6 +1000,18 @@ async function aturRuang({ req, res, s, db, edisi, p }: Ctx) {
     (!Array.isArray(pengawas) || !pengawas.every(nimOk) || pengawas.length > 20)
   )
     return void tolak(res, "data_salah", 400, { field: "pengawas" });
+  // Practice only: who tries the exam (their sample CaAs gets a seat in this room).
+  const pesertaRaw = b.peserta === undefined ? [] : b.peserta;
+  if (!Array.isArray(pesertaRaw) || !pesertaRaw.every(nimOk) || pesertaRaw.length > 40)
+    return void tolak(res, "data_salah", 400, { field: "peserta" });
+  const peserta = [...new Set(pesertaRaw as string[])];
+  // Practice only: who leaves this room (their practice seat goes, and what hangs off it).
+  const lepasRaw = b.lepas === undefined ? [] : b.lepas;
+  if (!Array.isArray(lepasRaw) || !lepasRaw.every(nimOk) || lepasRaw.length > 40)
+    return void tolak(res, "data_salah", 400, { field: "lepas" });
+  const lepas = [...new Set(lepasRaw as string[])].filter((n) => !peserta.includes(n));
+  const tanpaKandidat: string[] = [];
+  const sedangJalan: string[] = [];
 
   let slot: RecSlotRow | null = null;
   if (slotId !== null) {
@@ -952,24 +1096,133 @@ async function aturRuang({ req, res, s, db, edisi, p }: Ctx) {
         .set({ title, updatedAt: new Date() })
         .where(eq(recExamRoom.id, r.id));
     }
-    if (pengawas !== null && r.slotId !== null) {
-      await tx.delete(recSlotExaminer).where(eq(recSlotExaminer.slotId, r.slotId));
-      if (pengawas.length)
+    if (pengawas !== null) {
+      const uniq = [...new Set(pengawas)];
+      if (r.slotId !== null) {
         await tx
-          .insert(recSlotExaminer)
-          .values([...new Set(pengawas)].map((n) => ({ slotId: r.slotId!, asistenNim: n })));
+          .delete(recSlotExaminer)
+          .where(and(eq(recSlotExaminer.slotId, r.slotId), eq(recSlotExaminer.role, "pengawas")));
+        if (uniq.length)
+          await tx
+            .insert(recSlotExaminer)
+            .values(uniq.map((n) => ({ slotId: r.slotId!, asistenNim: n })));
+      } else {
+        // A practice room has no slot: its pengawas live in its own state.
+        await tx
+          .update(recExamRoom)
+          .set({
+            state: sql`jsonb_set(${recExamRoom.state}, '{latihanPengawas}', ${JSON.stringify(uniq)}::jsonb, true)`,
+            updatedAt: new Date(),
+          })
+          .where(eq(recExamRoom.id, r.id));
+      }
+      // Someone taken off the pengawas can no longer hold the Master seat of a real room.
+      if (r.slotId !== null && r.state.master && !uniq.includes(r.state.master.nim))
+        await tx
+          .update(recExamRoom)
+          .set({ state: sql`jsonb_set(${recExamRoom.state}, '{master}', 'null'::jsonb, true)` })
+          .where(eq(recExamRoom.id, r.id));
+    }
+    if (lepas.length && r.rehearsal && room) {
+      // Only while nothing is on the clock: a seat mid-part keeps its place.
+      if (ruangBerjalan(r.state, Date.now()))
+        return void (galat = { field: "lepas", kode: "ruang_berjalan" });
+      const keluar = await tx
+        .select({ id: recCandidate.id })
+        .from(recCandidate)
+        .where(and(eq(recCandidate.editionId, edisi.id), inArray(recCandidate.nim, lepas)));
+      if (keluar.length) {
+        const kursi = await tx
+          .select({ id: recExamSeat.id })
+          .from(recExamSeat)
+          .where(
+            and(
+              eq(recExamSeat.roomId, r.id),
+              eq(recExamSeat.rehearsal, true),
+              inArray(
+                recExamSeat.candidateId,
+                keluar.map((k) => k.id),
+              ),
+            ),
+          );
+        if (kursi.length) {
+          const ids = kursi.map((k) => k.id);
+          await tx.delete(recStrike).where(inArray(recStrike.seatId, ids));
+          await tx.delete(recExamSeat).where(inArray(recExamSeat.id, ids));
+        }
+      }
+    }
+    if (peserta.length && r.rehearsal) {
+      const cands = await tx
+        .select({ id: recCandidate.id, nim: recCandidate.nim })
+        .from(recCandidate)
+        .where(and(eq(recCandidate.editionId, edisi.id), inArray(recCandidate.nim, peserta)));
+      const orangDi = await namaAsisten(tx as unknown as Db, peserta);
+      for (const nim of peserta) {
+        let k = cands.find((c) => c.nim === nim);
+        if (!k) {
+          // In Mode Latihan an Asisten who joined after the edition was made has no sample CaAs yet:
+          // make one now, on the test stage, so they can be seated and practice as a CaAs.
+          const nm = orangDi.get(nim);
+          if (!konteksLatihan() || !nm) {
+            tanpaKandidat.push(nim);
+            continue;
+          }
+          await tx.insert(recAccount).values({ nim, nama: nm.nama }).onConflictDoNothing();
+          [k] = await tx
+            .insert(recCandidate)
+            .values({
+              editionId: edisi.id,
+              nim,
+              biodata: contohBiodata(nim, nm.nama),
+              status: "approved" as const,
+              currentStage: "tes_tulis" as const,
+              reviewedBy: s.nim,
+              reviewedAt: new Date(),
+            })
+            .returning({ id: recCandidate.id, nim: recCandidate.nim });
+        }
+        const [lama] = await tx
+          .select({ id: recExamSeat.id, roomId: recExamSeat.roomId })
+          .from(recExamSeat)
+          .where(
+            and(
+              eq(recExamSeat.editionId, edisi.id),
+              eq(recExamSeat.candidateId, k.id),
+              eq(recExamSeat.rehearsal, true),
+            ),
+          )
+          .limit(1);
+        if (lama?.roomId === r.id) continue;
+        if (lama) {
+          // One practice seat per person: start over in this room, unless the old one is mid-part.
+          const dari = await muatRuang(tx as unknown as Db, edisi.id, lama.roomId);
+          if (dari && ruangBerjalan(dari.room.state, Date.now())) {
+            sedangJalan.push(nim);
+            continue;
+          }
+          await tx.delete(recExamSeat).where(eq(recExamSeat.id, lama.id));
+        }
+        await tx
+          .insert(recExamSeat)
+          .values({ editionId: edisi.id, roomId: r.id, candidateId: k.id, rehearsal: true });
+      }
     }
   });
-  if (galat) return void tolak(res, (galat as { kode: string }).kode, 400, galat);
+  if (galat) {
+    const g = galat as { field: string; kode: string };
+    return void tolak(res, g.kode, g.kode === "ruang_berjalan" ? 409 : 400, g);
+  }
   await writeAudit(s.nim, room ? "rec_ruang_ubah" : "rec_ruang_buat", { id: hasil!.id, slotId });
   const sesudah = await muatRuang(db, edisi.id, hasil!.id);
   const fin = sesudah?.room ?? hasil!;
-  const pe = await muatPengawas(db, fin.slotId);
+  const pe = await muatPengawas(db, fin);
   res.status(200).json({
     ok: true,
     room: { id: fin.id, title: fin.title, rehearsal: fin.rehearsal },
     pengawas: pe.map((x) => ({ nim: x.nim, nama: x.nama, kode: x.kode })),
     hotspots: fin.hotspots.map(toView),
+    peserta: { noCandidate: tanpaKandidat, busy: sedangJalan },
   });
 }
 
@@ -985,7 +1238,10 @@ async function hapusRuang({ req, res, s, db, edisi, p }: Ctx) {
   const muat = await muatRuang(db, edisi.id, id);
   if (!muat) return void tolak(res, "tidak_ditemukan", 404);
   const { room } = muat;
-  const jalan = room.state.stage === "parts" || room.state.stage === "spin";
+  // Refuse only while a part is really on the clock; between parts (lobby, spin
+  // grace) a room that nobody has run for real may still go.
+  const v = roomView(room.state, Date.now()).view;
+  const jalan = v === "part-running" || v === "livecode-running" || v === "part-paused";
   if (jalan) return void tolak(res, "ruang_berjalan", 409);
   const pernahJalan = Object.keys(room.state.runs).length > 0 || room.state.stage === "finished";
   if (!room.rehearsal && pernahJalan) return void tolak(res, "ruang_sudah_dipakai", 409);
@@ -1178,7 +1434,7 @@ async function aksiRuang({ req, res, s, db, edisi, p }: Ctx) {
   if (!baca.ok) return void tolak(res, "data_salah", 400, { field: baca.field });
   const r = await muatRuang(db, edisi.id, id);
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
-  const pengawas = await muatPengawas(db, r.room.slotId);
+  const pengawas = await muatPengawas(db, r.room);
   if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
   const now = Date.now();
   const ctx = await konteksAksi(db, edisi.id, r.room, r.slot, pengawas, s.nim, null, now);
@@ -1272,7 +1528,7 @@ async function aksiMaster({ req, res, s, db, edisi, p }: Ctx) {
   for (let coba = 0; coba < 3; coba++) {
     const r = await muatRuang(db, edisi.id, id);
     if (!r) return void tolak(res, "tidak_ditemukan", 404);
-    const pengawas = await muatPengawas(db, r.room.slotId);
+    const pengawas = await muatPengawas(db, r.room);
     if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
     const now = Date.now();
     if (nama === "ping") {
@@ -1370,7 +1626,7 @@ async function catat({ req, res, s, db, edisi, p }: Ctx) {
     return void tolak(res, "data_salah", 400, { field: "text" });
   const r = await muatRuang(db, edisi.id, id);
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
-  const pengawas = await muatPengawas(db, r.room.slotId);
+  const pengawas = await muatPengawas(db, r.room);
   if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
   if (!(await kandidatAda(db, edisi.id, candidateId)))
     return void tolak(res, "tidak_ditemukan", 404);

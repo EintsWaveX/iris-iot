@@ -10,7 +10,7 @@
  * solution: a problem leaves as its public part plus the NUMBER of hidden tests.
  */
 import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
-import type { SessionPayload } from "../../src/lib/auth.js";
+import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, noStore } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
@@ -20,6 +20,7 @@ import {
   recCandidate,
   recCProblem,
   recCSubmission,
+  recExamRoom,
   recExamSeat,
   server,
 } from "../../src/lib/schema.js";
@@ -55,7 +56,7 @@ import {
   tolakLc,
   type KonteksLc,
 } from "./recruitment-lc-common.js";
-import { kirimKode } from "./recruitment-lc-judge.js";
+import { kirimKode, sapuJudgeMati, sapuKlaim } from "./recruitment-lc-judge.js";
 
 const KINDS = new Set(["run", "submit"]);
 
@@ -63,6 +64,7 @@ export async function handleLcc(req: ApiRequest, res: ApiResponse, s: SessionPay
   const aksi = String(req.query.aksi ?? "");
   if (aksi === "lcc-room") return bacaRuang(req, res, s);
   if (aksi === "lcc-judge") return bacaJudge(res, s);
+  if (aksi === "lcc-flush") return tutupAntrean(req, res, s);
   const c = await muatKonteksSeat(req, res, s);
   if (!c) return;
   noStore(res);
@@ -454,6 +456,33 @@ async function kirim(c: KonteksLc, fase: "spin" | "kerja", req: ApiRequest, res:
 
 /* -------------------------------------------------------- the staff's room view */
 
+/**
+ * `POST lcc-flush { id }`: Tutup Antrean. For a finished room whose Live Coding jobs the lab PC never
+ * answered: they go down with `judge_mati` now instead of after the grace time, so Finalkan can go on.
+ * The same people may press it as may press Finalkan (the bank right).
+ */
+async function tutupAntrean(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  noStore(res);
+  if (s.role !== "asisten") return void tolak(res, "tanpa_hak", 403);
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (!p || !(p.penuh || p.hak.bank)) return void tolak(res, "tanpa_hak", 403, { hak: "bank" });
+  const id = Number(jsonBody(req).id);
+  if (!Number.isInteger(id) || id <= 0) return void tolak(res, "data_salah", 400, { field: "id" });
+  const [room] = await db
+    .select({ id: recExamRoom.id, state: recExamRoom.state })
+    .from(recExamRoom)
+    .where(and(eq(recExamRoom.id, id), eq(recExamRoom.editionId, edisi.id)))
+    .limit(1);
+  if (!room) return void tolak(res, "tidak_ditemukan", 404);
+  if (room.state.stage !== "finished") return void tolak(res, "tahap_salah", 409);
+  const count = await sapuJudgeMati(db, { roomId: room.id, paksa: true });
+  await writeAudit(s.nim, "rec_antrean_tutup", { id: room.id, count });
+  res.status(200).json({ ok: true, count });
+}
+
 async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
@@ -464,6 +493,8 @@ async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const room = await ruangDinilai(db, edisi.id, Number(req.query.id), p, s.nim);
   if (!room) return void tolak(res, "tanpa_hak", 403);
   const config = await bacaConfig(db, edisi.id);
+  await sapuKlaim(db);
+  await sapuJudgeMati(db);
   const seats = await db.select().from(recExamSeat).where(eq(recExamSeat.roomId, room.id));
   const ids = seats.map((x) => x.id);
   const [nomor, kand, problems, subs, queue] = await Promise.all([

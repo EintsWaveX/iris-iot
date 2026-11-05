@@ -58,7 +58,14 @@ export default function TestPage({ lang }: { lang: Lang }) {
   const root = useRef<HTMLDivElement | null>(null);
   const motion = useRevealMotion();
   const poll = usePoll<Fetched>(fetchTest, 300_000, true, ["recroom"], 400);
-  const data = poll.data;
+  // A one-off refusal (a session glitch) must not unmount the runner and lose its unsent answers:
+  // keep the last good page, and show the refusal only when there never was one.
+  const lastGood = useRef<Fetched | null>(null);
+  if (poll.data && "tv" in poll.data) lastGood.current = poll.data;
+  const data =
+    poll.data && "err" in poll.data && lastGood.current && poll.data.err !== "belum_masuk_oprec"
+      ? lastGood.current
+      : poll.data;
   const tv = data && "tv" in data ? data.tv : null;
   const seat = tv?.seat ?? null;
   const refresh = poll.refresh;
@@ -95,8 +102,14 @@ export default function TestPage({ lang }: { lang: Lang }) {
     [room, seat, now],
   );
   const checkedIn = !!seat?.checkedIn;
+  // A part this seat already started in another room (a Susulan seat): it is closed here, so there
+  // is nothing to answer, no lockdown and no strikes. The lobby says so.
+  const doneElsewhere =
+    phase.k === "work" &&
+    phase.part !== "livecode" &&
+    (tv?.closedElsewhere ?? []).includes(phase.part as never);
 
-  const working = checkedIn && (phase.k === "work" || phase.k === "spin");
+  const working = checkedIn && !doneElsewhere && (phase.k === "work" || phase.k === "spin");
   const lock = useLockdown({
     active: working,
     seatId: seat?.id ?? null,
@@ -125,7 +138,11 @@ export default function TestPage({ lang }: { lang: Lang }) {
   // A part is running for this seat but its questions are not loaded: ask the API once per part.
   const asked = useRef("");
   const needPart =
-    phase.k === "work" && phase.part !== "livecode" && checkedIn && tv?.part?.key !== phase.part;
+    phase.k === "work" &&
+    phase.part !== "livecode" &&
+    checkedIn &&
+    !doneElsewhere &&
+    tv?.part?.key !== phase.part;
   useEffect(() => {
     if (!needPart || phase.k !== "work") return;
     const k = `${phase.part}:${room?.seq}`;
@@ -201,6 +218,7 @@ export default function TestPage({ lang }: { lang: Lang }) {
       />
     );
   } else if (
+    !doneElsewhere &&
     (phase.k === "work" || (phase.k === "wait" && showUp)) &&
     (tv!.part ?? (phase.k === "wait" ? lastPart.current : null))?.key === phase.part
   ) {
@@ -224,7 +242,7 @@ export default function TestPage({ lang }: { lang: Lang }) {
         onEnterFullscreen={() => void lock.enter()}
       />
     );
-  } else if (phase.k === "work") {
+  } else if (phase.k === "work" && !doneElsewhere) {
     screen = (
       <Gate motion={motion} title={t.loading}>
         <Skeleton height={120} />

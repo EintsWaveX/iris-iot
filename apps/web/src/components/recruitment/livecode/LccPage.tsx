@@ -102,6 +102,14 @@ export default function LccPage({
   useEffect(() => {
     if (signal !== first.current) refresh();
   }, [signal, refresh]);
+  // Any change of the room (a re-roll by the Master, a pause) asks for the hand again: the live link is only a hint.
+  const roomSeq = tv.room?.seq ?? null;
+  const lastSeq = useRef(roomSeq);
+  useEffect(() => {
+    if (lastSeq.current === roomSeq) return;
+    lastSeq.current = roomSeq;
+    refresh();
+  }, [roomSeq, refresh]);
   const kind = phase.k;
   const lastKind = useRef(kind);
   useEffect(() => {
