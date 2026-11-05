@@ -216,7 +216,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:latihan-masuk": [],
   "recruitment:latihan-ganti": [],
   "recruitment:latihan-keluar": [],
-  "recruitment:latihan-reset": [],
+  "recruitment:latihan-ulang": [],
+  "recruitment:latihan-samakan": [],
   "recruitment:latihan-lompat": [],
   "recruitment:latihan-siapkan": [],
   // B0 (2026-10-28): an editable setting (documents, wording, Cutting start) is saved or put back to its default.

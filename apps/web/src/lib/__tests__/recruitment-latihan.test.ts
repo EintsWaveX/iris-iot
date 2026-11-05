@@ -6,12 +6,15 @@ import { describe, expect, it } from "vitest";
 import {
   LATIHAN_COOKIE,
   bacaModeLatihan,
+  contohBiodata,
   cookieLatihan,
   geserTanggal,
   latihanTahun,
   modeDariCookie,
   selisihHari,
+  tahapHariIni,
 } from "../recruitment/latihan";
+import type { StageKey } from "../recruitment/types";
 import { jalankanLatihan, konteksLatihan } from "../../../api/_lib/recruitment-latihan-ctx";
 
 describe("mode", () => {
@@ -69,6 +72,74 @@ describe("year and dates", () => {
     expect(selisihHari(geserTanggal(a, geser), geserTanggal(b, geser))).toBe(selisihHari(a, b));
     // Jumping back to a stage that already opened moves the calendar forward again.
     expect(selisihHari("2026-11-02", hariIni)).toBe(3);
+  });
+});
+
+describe("the stage a fresh practice stands at (tahapHariIni)", () => {
+  const e = (stage: StageKey | null, startsOn: string, endsOn: string, internal = false) => ({
+    stage,
+    startsOn,
+    endsOn,
+    internal,
+  });
+  const jalan = [
+    e("berkas", "2026-10-25", "2026-11-02"),
+    e("first_meet", "2026-11-09", "2026-11-09"),
+    e("tes_tulis", "2026-11-14", "2026-11-15"),
+    e("wawancara", "2026-11-23", "2026-11-27"),
+  ];
+
+  it("is the stage of the earliest event that has not ended", () => {
+    expect(tahapHariIni(jalan, "2026-10-30")).toBe("berkas");
+    expect(tahapHariIni(jalan, "2026-11-02")).toBe("berkas"); // the last day still counts
+    expect(tahapHariIni(jalan, "2026-11-05")).toBe("first_meet");
+    expect(tahapHariIni(jalan, "2026-11-15")).toBe("tes_tulis");
+  });
+
+  it("is the last stage once everything is over, and Berkas with no stages", () => {
+    expect(tahapHariIni(jalan, "2027-03-01")).toBe("wawancara");
+    expect(tahapHariIni([], "2026-11-05")).toBe("berkas");
+    expect(tahapHariIni([e(null, "2026-11-05", "2026-11-06")], "2026-11-05")).toBe("berkas");
+  });
+
+  it("ignores the Panitia's internal events and does not depend on the order given", () => {
+    const campur = [
+      e("tes_tulis", "2026-11-14", "2026-11-15"),
+      e("tubes", "2026-11-01", "2026-12-30", true), // internal: never decides where CaAs stand
+      e("berkas", "2026-10-25", "2026-11-02"),
+    ];
+    expect(tahapHariIni(campur, "2026-11-05")).toBe("tes_tulis");
+    // after a jump the calendar was moved, so the jumped stage is the one that starts today
+    const lompat = jalan.map((x) => ({
+      ...x,
+      startsOn: geserTanggal(x.startsOn, selisihHari("2026-11-23", "2026-11-05")),
+      endsOn: geserTanggal(x.endsOn, selisihHari("2026-11-23", "2026-11-05")),
+    }));
+    expect(tahapHariIni(lompat, "2026-11-05")).toBe("wawancara");
+  });
+});
+
+describe("a sample CaAs' biodata (contohBiodata)", () => {
+  it("looks like a real one: year, class, phone and Line id", () => {
+    const b = contohBiodata("1202244011", "Budi Santoso");
+    expect(b.angkatan).toBe(2024);
+    expect(b.kelas).toMatch(/^TT-\d\d-\d\d$/);
+    expect(b.phone).toMatch(/^0812\d{8}$/);
+    expect(b.lineId).toBe("budi.santoso");
+  });
+
+  it("never changes for the same person, and differs between people", () => {
+    expect(contohBiodata("1202244011", "Budi Santoso")).toEqual(
+      contohBiodata("1202244011", "Budi Santoso"),
+    );
+    expect(contohBiodata("1202244011", "A").phone).not.toBe(contohBiodata("1202254022", "A").phone);
+  });
+
+  it("falls back to safe values for an odd NIM or name", () => {
+    const b = contohBiodata("x", "***");
+    expect(b.angkatan).toBe(2025);
+    expect(b.lineId).toBe("latihan");
+    expect(b.phone).toMatch(/^0812\d{8}$/);
   });
 });
 

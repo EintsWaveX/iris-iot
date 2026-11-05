@@ -17,7 +17,6 @@ import {
 import { pickEligible, standing } from "../../src/lib/recruitment/standing.js";
 import type { RecEvent } from "../../src/lib/recruitment/types.js";
 import { muatHasilBanyak } from "./recruitment-data.js";
-import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -105,20 +104,19 @@ export async function muatKelayakan(
   semua?: Map<number, Peserta & { status: string; stage: string }>,
 ): Promise<Peserta[]> {
   const peta = semua ?? (await muatSemuaPeserta(db, edisiId));
-  const latihan = !!konteksLatihan();
   const hasil = await muatHasilBanyak(db, [...peta.keys()]);
   const out: Peserta[] = [];
   for (const p of peta.values()) {
     if (p.status !== "approved") continue;
-    if (!latihan) {
-      const st = standing(
-        { status: p.status as never, currentStage: p.stage as never },
-        hasil.get(p.id) ?? [],
-        events,
-        now,
-      );
-      if (!pickEligible(st, "tubes")) continue;
-    }
+    // Practice follows the same rule as the real Oprec (5 Nov 2026): a sample CaAs reaches Tubes through
+    // Lompat Tahap or by being passed on, not by a bypass.
+    const st = standing(
+      { status: p.status as never, currentStage: p.stage as never },
+      hasil.get(p.id) ?? [],
+      events,
+      now,
+    );
+    if (!pickEligible(st, "tubes")) continue;
     out.push({ id: p.id, nim: p.nim, nama: p.nama, kelas: p.kelas });
   }
   return out;

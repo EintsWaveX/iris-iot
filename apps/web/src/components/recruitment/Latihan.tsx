@@ -7,6 +7,7 @@
 import { useState } from "react";
 import {
   ArrowsClockwiseIcon,
+  ArrowsLeftRightIcon,
   FastForwardIcon,
   SparkleIcon,
   UsersThreeIcon,
@@ -21,8 +22,9 @@ import {
   latihanKeluar,
   latihanLompat,
   latihanMasuk,
-  latihanReset,
+  latihanSamakan,
   latihanSiapkan,
+  latihanUlang,
   useLatihanMode,
   useLatihanRingkas,
 } from "../../lib/recruitment/latihan-client";
@@ -34,11 +36,46 @@ import "./recruitment-latihan.css";
 
 const awalan = (lang: Lang) => (lang === "id" ? "" : `/${lang}`);
 
+type AksiReset = "ulang" | "samakan";
+
+/**
+ * The confirmation of the two resets. Mulai Ulang wipes what was done in practice and keeps the practice
+ * setup; Samakan dengan Oprec Asli copies the real Oprec's setup over the practice one again. Both act on
+ * the one practice edition every Asisten shares, so the dialog says so.
+ */
+function KonfirmasiReset({
+  lang,
+  aksi,
+  onClose,
+}: {
+  lang: Lang;
+  aksi: AksiReset | null;
+  onClose: () => void;
+}) {
+  const t = LAT[lang];
+  const ulang = aksi !== "samakan";
+  return (
+    <Confirm
+      open={aksi !== null}
+      onOpenChange={(o) => !o && onClose()}
+      title={ulang ? t.ulangTitle : t.samakanTitle}
+      body={ulang ? t.ulangBody : t.samakanBody}
+      confirmLabel={ulang ? t.ulangYes : t.samakanYes}
+      cancelLabel={t.cancel}
+      tone="primary"
+      lang={lang}
+      onConfirm={async () => !(await (ulang ? latihanUlang : latihanSamakan)(awalan(lang)))}
+    >
+      <span className="hint">{t.resetHint}</span>
+    </Confirm>
+  );
+}
+
 /** The bar under the nav; nothing when practice is off. */
 export function LatihanBar({ lang }: { lang: Lang }) {
   const t = LAT[lang];
   const mode = useLatihanMode();
-  const [tanya, setTanya] = useState(false);
+  const [tanya, setTanya] = useState<AksiReset | null>(null);
   const [lompat, setLompat] = useState(false);
   const [tahap, setTahap] = useState<StageKey>("tes_tulis");
   const [galat, setGalat] = useState(false);
@@ -73,9 +110,13 @@ export function LatihanBar({ lang }: { lang: Lang }) {
         <FastForwardIcon size={16} aria-hidden="true" />
         <span className="btn__label">{t.jump}</span>
       </button>
-      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTanya(true)}>
+      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTanya("ulang")}>
         <ArrowsClockwiseIcon size={16} aria-hidden="true" />
-        <span className="btn__label">{t.reset}</span>
+        <span className="btn__label">{t.ulang}</span>
+      </button>
+      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTanya("samakan")}>
+        <ArrowsLeftRightIcon size={16} aria-hidden="true" />
+        <span className="btn__label">{t.samakan}</span>
       </button>
       <button
         type="button"
@@ -107,19 +148,7 @@ export function LatihanBar({ lang }: { lang: Lang }) {
         />
         <span className="hint">{t.jumpHint}</span>
       </Confirm>
-      <Confirm
-        open={tanya}
-        onOpenChange={setTanya}
-        title={t.resetTitle}
-        body={t.resetBody}
-        confirmLabel={t.resetYes}
-        cancelLabel={t.cancel}
-        tone="primary"
-        lang={lang}
-        onConfirm={async () => !(await latihanReset(awalan(lang)))}
-      >
-        <span className="hint">{t.resetHint}</span>
-      </Confirm>
+      <KonfirmasiReset lang={lang} aksi={tanya} onClose={() => setTanya(null)} />
     </div>
   );
 }
@@ -130,6 +159,7 @@ export function LatihanCard({ lang }: { lang: Lang }) {
   const mode = useLatihanMode();
   const ringkas = useLatihanRingkas(true);
   const [galat, setGalat] = useState<string | null>(null);
+  const [tanya, setTanya] = useState<AksiReset | null>(null);
   const r = ringkas.data;
   const masuk = async (as: LatihanMode) => {
     const g = await latihanMasuk(as, awalan(lang));
@@ -185,6 +215,19 @@ export function LatihanCard({ lang }: { lang: Lang }) {
           <span className="btn__label">{t.prepare}</span>
         </button>
       </div>
+      {r?.siap && (
+        <div className="lat-card__row">
+          <button type="button" className="btn btn--ghost" onClick={() => setTanya("ulang")}>
+            <ArrowsClockwiseIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{t.ulang}</span>
+          </button>
+          <button type="button" className="btn btn--ghost" onClick={() => setTanya("samakan")}>
+            <ArrowsLeftRightIcon size={18} aria-hidden="true" />
+            <span className="btn__label">{t.samakan}</span>
+          </button>
+        </div>
+      )}
+      <KonfirmasiReset lang={lang} aksi={tanya} onClose={() => setTanya(null)} />
     </section>
   );
 }
