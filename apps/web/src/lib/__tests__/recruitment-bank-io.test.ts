@@ -5,7 +5,8 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { FORMATS, type Format, type Question } from "../recruitment/exam-types";
+import { FORMATS, formatsOf, type Format, type Question } from "../recruitment/exam-types";
+import { SEED_MD } from "../recruitment/seed-bank";
 import { structureKey, validateQuestion } from "../recruitment/formats";
 import {
   idSequence,
@@ -384,5 +385,16 @@ describe("images", () => {
       ].join("\n"),
     );
     expect(it.errors.map((e) => e.kode)).toContain("gambar_hilang");
+  });
+});
+
+describe("the carry questions", () => {
+  it("every one fits its part's answer styles", () => {
+    const items = parseBank(SEED_MD).filter((i) => i.draft);
+    expect(items.length).toBeGreaterThan(0);
+    for (const it of items) {
+      const d = it.draft!;
+      expect(formatsOf(d.part), `${d.part}/${d.title}`).toContain(d.format);
+    }
   });
 });

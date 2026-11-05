@@ -59,6 +59,7 @@ import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak, anggotaPanitia } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 import { bacaConfig } from "./recruitment-room.js";
+import { sapuJudgeMati, sapuKlaim } from "./recruitment-lc-judge.js";
 
 const STATUS: Record<string, number> = {
   tanpa_hak: 403,
@@ -127,6 +128,9 @@ export function denganKunciNilai<T>(
 
 /** Everything a computation reads, as the pure table wants it. */
 async function muatMasukan(db: Db, edisiId: number) {
+  // A judge that is gone must not hold the scores (and Finalkan) for ever: let go of the jobs it will never answer.
+  await sapuKlaim(db);
+  await sapuJudgeMati(db);
   const seatRows = await db
     .select({
       id: recExamSeat.id,

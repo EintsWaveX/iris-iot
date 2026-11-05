@@ -106,25 +106,31 @@ export function LatihanBar({ lang }: { lang: Lang }) {
           {t.asCaas}
         </button>
       </span>
-      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setLompat(true)}>
-        <FastForwardIcon size={16} aria-hidden="true" />
-        <span className="btn__label">{t.jump}</span>
-      </button>
-      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTanya("ulang")}>
-        <ArrowsClockwiseIcon size={16} aria-hidden="true" />
-        <span className="btn__label">{t.ulang}</span>
-      </button>
-      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTanya("samakan")}>
-        <ArrowsLeftRightIcon size={16} aria-hidden="true" />
-        <span className="btn__label">{t.samakan}</span>
-      </button>
-      <button
-        type="button"
-        className="btn btn--sm"
-        onClick={async () => setGalat(!!(await latihanKeluar(awalan(lang))))}
-      >
-        <span className="btn__label">{t.leave}</span>
-      </button>
+      <div className="lat-bar__acts">
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setLompat(true)}>
+          <FastForwardIcon size={16} aria-hidden="true" />
+          <span className="btn__label">{t.jump}</span>
+        </button>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTanya("ulang")}>
+          <ArrowsClockwiseIcon size={16} aria-hidden="true" />
+          <span className="btn__label">{t.ulang}</span>
+        </button>
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          onClick={() => setTanya("samakan")}
+        >
+          <ArrowsLeftRightIcon size={16} aria-hidden="true" />
+          <span className="btn__label">{t.samakan}</span>
+        </button>
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={async () => setGalat(!!(await latihanKeluar(awalan(lang))))}
+        >
+          <span className="btn__label">{t.leave}</span>
+        </button>
+      </div>
       <Confirm
         open={lompat}
         onOpenChange={setLompat}

@@ -42,6 +42,7 @@ import {
   type Lang,
   type Phase1Part,
   type Question,
+  type SeatDraw,
 } from "../../src/lib/recruitment/exam-types.js";
 import { validateQuestion } from "../../src/lib/recruitment/formats.js";
 import { validateConfig } from "../../src/lib/recruitment/room.js";
@@ -98,6 +99,7 @@ const STATUS: Record<string, number> = {
   format_salah: 400,
   data_salah: 400,
   bahasa_salah: 400,
+  format_bukan_bagian: 400,
   struktur_terkunci: 409,
   perlu_catatan: 400,
   ruang_berjalan: 409,
@@ -237,6 +239,19 @@ function summary(r: RecQuestionRow, seats = 0) {
     voided: r.voidedAt !== null,
     updatedAt: r.updatedAt.toISOString(),
   };
+}
+
+/**
+ * Every question id a seat was dealt, bonus round included. A seat's draw also
+ * holds the Live Coding hand (`problems`, no `items`), so each entry is checked.
+ */
+function soalDiDraw(draw: SeatDraw): number[] {
+  return Object.values(draw).flatMap((d) => {
+    const x = d as { items?: { q: number }[]; bonus?: { q: number }[] } | undefined;
+    // Live Coding's entry has no `items`, and its `bonus` is a list of problem ids.
+    if (!Array.isArray(x?.items)) return [];
+    return [...x.items, ...(Array.isArray(x.bonus) ? x.bonus : [])].map((i) => i.q);
+  });
 }
 
 /** Seats dealt each question, from the draws kept on the seats of real (not rehearsal) rooms. */
@@ -587,9 +602,7 @@ async function dipakaiSeat(db: Db, edisiId: number, questionId: number): Promise
     .select({ draw: recExamSeat.draw })
     .from(recExamSeat)
     .where(eq(recExamSeat.editionId, edisiId));
-  return seats.some((x) =>
-    Object.values(x.draw).some((d) => d?.items.some((it) => it.q === questionId)),
-  );
+  return seats.some((x) => soalDiDraw(x.draw).includes(questionId));
 }
 
 async function hapusSoal(k: Konteks) {
@@ -1004,7 +1017,7 @@ async function seatPunyaGambar(
   if (!cand) return false;
   const { seat } = await muatKursiSendiri(db, edisiId, cand.id);
   if (!seat) return false;
-  const ids = Object.values(seat.draw).flatMap((d) => d?.items.map((i) => i.q) ?? []);
+  const ids = soalDiDraw(seat.draw);
   if (!ids.length) return false;
   const rows = await db
     .select({ body: recQuestion.body })

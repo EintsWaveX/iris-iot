@@ -220,6 +220,10 @@ export const TS = dict({
       pending: "Pengundian topik dan protokol belum tersedia di halaman ini.",
     },
     reason: {
+      ruang_selesai: "Ruang ujian ini sudah selesai.",
+      ruang_belum_dibuka: "Ruang ujian belum dibuka pengawas. Coba lagi sebentar.",
+      langkah_belum: "Selesaikan langkah sebelumnya dulu.",
+      bukan_peserta: "Akun ini bukan peserta ruang ujian ini.",
       waktu_habis: "Waktu bagian ini sudah habis, jawaban terakhir tidak masuk.",
       sudah_kumpul: "Bagian ini sudah kamu kumpulkan.",
       bagian_ruang_lain: "Bagian ini sudah kamu mulai di ruang lain, jadi tertutup di sini.",
@@ -415,6 +419,10 @@ export const TS = dict({
       pending: "The topic and protocol draw isn't available on this page yet.",
     },
     reason: {
+      ruang_selesai: "This exam room has finished.",
+      ruang_belum_dibuka: "The pengawas hasn't opened the room yet. Try again in a moment.",
+      langkah_belum: "Finish the earlier step first.",
+      bukan_peserta: "This account isn't a participant of this exam room.",
       waktu_habis: "This part's time is over, the last answer didn't go in.",
       sudah_kumpul: "You already handed this part in.",
       bagian_ruang_lain: "You started this part in another room, so it's closed here.",
@@ -593,6 +601,10 @@ export const TS = dict({
       pending: "本页暂时还不能抽取题目和协议。",
     },
     reason: {
+      ruang_selesai: "本考场已结束。",
+      ruang_belum_dibuka: "监考还没有开放考场，请稍后再试。",
+      langkah_belum: "请先完成前面的步骤。",
+      bukan_peserta: "此账号不是本考场的考生。",
       waktu_habis: "本部分时间已结束，最后一个答案没有提交成功。",
       sudah_kumpul: "你已经提交过本部分。",
       bagian_ruang_lain: "你在另一个考场开始了本部分，所以这里已关闭。",

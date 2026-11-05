@@ -16,7 +16,7 @@
  * Only an active Asisten ever gets the context; a stale or forged cookie on
  * anyone else does nothing. The live edition's rows are never read or written.
  */
-import { and, count, desc, eq, like, notInArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, like, notInArray } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, parseCookies } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
@@ -27,13 +27,20 @@ import {
   recAccount,
   recCandidate,
   recCommittee,
+  recCompileJob,
+  recCSubmission,
   recEdition,
   recEvent,
   recEventLog,
   recExamConfig,
+  recExamRoom,
+  recExamSeat,
+  recLivecode,
+  recMqttJob,
   recReference,
   recRubric,
   recSlot,
+  recStrike,
   recTubesSession,
   recTubesTopic,
 } from "../../src/lib/schema.js";
@@ -151,6 +158,21 @@ async function tulisCaas(
 }
 
 /**
+ * Gives every Asisten who has no sample CaAs yet one, on the stage the practice calendar is at. The
+ * edition makes them only when it is built, so an Asisten who joined (or came back) after that would
+ * have no CaAs to practice as and no seat to be given in a practice room. `hanya` limits it to one NIM.
+ */
+async function lengkapiCaas(db: Db, nim: string, hanya?: string): Promise<void> {
+  const edisi = await muatEdisiLatihan(db);
+  if (!edisi) return;
+  const acara = await db.select().from(recEvent).where(eq(recEvent.editionId, edisi.id));
+  const tahap = tahapHariIni(acara, hariIniWib());
+  const orang = (await kolam(db)).filter((o) => !hanya || o.nim === hanya);
+  if (!orang.length) return;
+  await db.transaction(async (tx) => tulisCaas(tx as unknown as Db, edisi.id, nim, orang, tahap));
+}
+
+/**
  * Makes the practice edition again, wiping the old one first. `dari` says where the setup comes from:
  *   "live"     the real Oprec (the first make): its calendar on the same dates, slots, rubrics, Tubes sessions,
  *              exam settings, reference documents and Panitia roster, plus the BUILT-IN sample bank and Live
@@ -241,6 +263,21 @@ export async function samakanLatihan(db: Db, nim: string): Promise<{ caas: numbe
   await db.transaction(async (tx) => {
     const t = tx as unknown as Db;
     const setup = await bacaSetup(t, live.id, false);
+    // The rooms of the slots go with them (cascade), but a seat in one does not (no cascade on
+    // its room), so the seats and what hangs off the room go first. Practice rooms have no slot and stay.
+    const ruangSlot = await tx
+      .select({ id: recExamRoom.id })
+      .from(recExamRoom)
+      .where(and(eq(recExamRoom.editionId, edisi.id), isNotNull(recExamRoom.slotId)));
+    if (ruangSlot.length) {
+      const ids = ruangSlot.map((r) => r.id);
+      await tx.delete(recStrike).where(inArray(recStrike.roomId, ids));
+      await tx.delete(recCSubmission).where(inArray(recCSubmission.roomId, ids));
+      await tx.delete(recLivecode).where(inArray(recLivecode.roomId, ids));
+      await tx.delete(recCompileJob).where(inArray(recCompileJob.roomId, ids));
+      await tx.delete(recMqttJob).where(inArray(recMqttJob.roomId, ids));
+      await tx.delete(recExamSeat).where(inArray(recExamSeat.roomId, ids));
+    }
     // The slots first: they point at events (set null) and rooms hang on them (cascade).
     await tx.delete(recSlot).where(eq(recSlot.editionId, edisi.id));
     await tx.delete(recEvent).where(eq(recEvent.editionId, edisi.id));
@@ -328,6 +365,9 @@ export async function handleLatihan(
     if (!(await muatEdisiLatihan(db))) {
       const dibuat = await siapkanLatihan(db, s.nim);
       if (!dibuat) return (tolak(res, "tidak_ada_edisi", 404), true);
+    } else {
+      // The edition is there: the button still adds a CaAs for every Asisten who has none.
+      await lengkapiCaas(db, s.nim);
     }
     res.status(200).json({ ok: true, latihan: await ringkas(db, sekarang) });
     return true;
@@ -339,6 +379,9 @@ export async function handleLatihan(
     if (!(await muatEdisiLatihan(db))) {
       const dibuat = await siapkanLatihan(db, s.nim);
       if (!dibuat) return (tolak(res, "tidak_ada_edisi", 404), true);
+    } else {
+      // Whoever comes in gets a CaAs of their own if they have none (they joined after the edition was made).
+      await lengkapiCaas(db, s.nim, s.nim);
     }
     res.setHeader("Set-Cookie", cookieLatihan(mode));
     res.status(200).json({ ok: true, latihan: await ringkas(db, mode) });

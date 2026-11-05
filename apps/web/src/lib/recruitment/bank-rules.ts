@@ -21,7 +21,7 @@ import type {
   Phase1Part,
   Question,
 } from "./exam-types.js";
-import { FORMATS, LANGS, PHASE1_PARTS } from "./exam-types.js";
+import { FORMATS, LANGS, PHASE1_PARTS, formatsOf } from "./exam-types.js";
 import { structureKey } from "./formats.js";
 
 /* ----------------------------------------------------------------- clean */
@@ -307,6 +307,8 @@ export function langsOf(_config: ExamConfig): Record<Phase1Part, Lang[]> {
  */
 export function judgeSave(old: StoredState | null, next: QuestionState, c: JudgeContext): Verdict {
   if (!c.langs[next.part].includes(next.lang)) return { ok: false, kode: "bahasa_salah" };
+  if (!formatsOf(next.part).includes(next.format))
+    return { ok: false, kode: "format_bukan_bagian" };
   if (!old) {
     if (c.roomRunning && next.status === "ready") return { ok: false, kode: "ruang_berjalan" };
     return { ok: true, kind: "create" };

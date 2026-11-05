@@ -32,6 +32,7 @@ import {
 import {
   type ConsoleSeat,
   type ConsoleView,
+  type RerollReason,
   type RoomLogLine,
 } from "../../../../../lib/recruitment/room-api";
 import type { Hadir, Kemajuan, StatusLangsung } from "../../../../../lib/recruitment/room-client";
@@ -95,7 +96,7 @@ function useKontrol(v: ConsoleView, now: number): Kontrol {
       isToday: v.room.isToday,
       rehearsal: v.room.rehearsal,
       seatsIn: v.seats.filter((s) => s.checkedIn && s.seatId !== null).map((s) => s.seatId!),
-      poolOk: (p) => (p === "livecode" ? true : (v.pool[p]?.ok ?? false)),
+      poolOk: (p) => v.pool[p]?.ok ?? p === "livecode",
       config: v.config,
     };
     const order = v.config.order;
@@ -292,7 +293,9 @@ function MasterBar({
         <div className="handover r3hand">
           <div className="stack" style={{ gap: 2, minWidth: 0 }}>
             <b>{t.hand.noneTitle}</b>
-            <span className="hint">{t.hand.noneBody}</span>
+            <span className="hint">
+              {v.room.rehearsal ? t.hand.noneBodyPractice : t.hand.noneBody}
+            </span>
           </div>
           <div className="row r3hand__acts">
             <button
@@ -847,6 +850,30 @@ function SeatDrawer({
 
   const g = d.sign;
   const [alasan, setAlasan] = useState("");
+  // Live Coding only: the Master deals one seat another hand (the same fixed reasons the API accepts).
+  const [why, setWhy] = useState<RerollReason | null>(null);
+  const [konfUndi, setKonfUndi] = useState(false);
+  const bisaUndi =
+    v.me.isMaster &&
+    s.seatId !== null &&
+    (rv === "livecode-spin" || (cur === "livecode" && !!run && run.state !== "ended"));
+  async function undi() {
+    if (s.seatId === null || !why) return;
+    const r = await recPost<{ ok: true }>("room-act", {
+      id: v.room.id,
+      seq: v.state.seq,
+      act: "reroll",
+      what: "topic",
+      seatId: s.seatId,
+      reason: why,
+    });
+    if (isFail(r)) toast(t.guard[r.kode] ?? t.fail, "danger");
+    else {
+      toast(d.redrawDone);
+      setWhy(null);
+    }
+    await jalan("room", {});
+  }
   const bisaMasuk = v.me.isPengawas || v.me.canSetup;
   async function masukkan(batal: boolean) {
     if (v.room.eventId === null) return;
@@ -977,6 +1004,65 @@ function SeatDrawer({
               ))}
             </div>
             <span className="hint">{d.timeHint}</span>
+          </section>
+        )}
+        {bisaUndi && (
+          <section className="stack stack--sm">
+            <h3 className="label-caps">{d.redrawTopic}</h3>
+            <span className="hint">{d.redrawAsk}</span>
+            <div className="rec-chips" role="group" aria-label={d.redrawAsk}>
+              {(["topik_terlalu_mirip", "lainnya"] as const).map((x) => (
+                <button
+                  key={x}
+                  type="button"
+                  className="r3chip"
+                  aria-pressed={why === x}
+                  onClick={() => setWhy(x)}
+                >
+                  {d.reasons[x]}
+                </button>
+              ))}
+            </div>
+            <span className="hint">{d.redrawHint}</span>
+            <div className="row row--end">
+              <button
+                type="button"
+                className="btn btn--inverse btn--sm"
+                disabled={!why}
+                onClick={() => setKonfUndi(true)}
+              >
+                {d.redraw}
+              </button>
+            </div>
+            <Dialog
+              open={konfUndi}
+              onOpenChange={setKonfUndi}
+              size="sm"
+              lang={lang}
+              title={d.redrawTopic}
+              description={d.redrawConfirm(depan(s.nama))}
+              actions={
+                <>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => setKonfUndi(false)}
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    onClick={() => {
+                      setKonfUndi(false);
+                      void undi();
+                    }}
+                  >
+                    {d.redraw}
+                  </button>
+                </>
+              }
+            />
           </section>
         )}
         <section className="stack stack--sm">
@@ -1200,7 +1286,11 @@ function Selesai({
         </span>
         <div className="stack stack--sm">
           <h2 className="h3">{t.title}</h2>
-          <span className="hint">{t.hint(st.finishedAt ? hm(st.finishedAt) : hm(now))}</span>
+          <span className="hint">
+            {(v.room.rehearsal ? t.hintPractice : t.hint)(
+              st.finishedAt ? hm(st.finishedAt) : hm(now),
+            )}
+          </span>
           {v.master && <Pill tone="ok">{t.by(v.master.nama)}</Pill>}
         </div>
         <div className="n7-done__stats">
@@ -1211,7 +1301,7 @@ function Selesai({
             </div>
           ))}
         </div>
-        {onNilai && (
+        {onNilai && !v.room.rehearsal && (
           <div className="row" style={{ gap: 10 }}>
             <button type="button" className="btn btn--inverse" onClick={onNilai}>
               <ListChecksIcon size={18} aria-hidden="true" />

@@ -104,9 +104,15 @@ export default function CheckIn({
     setBusy(true);
     setErr(null);
     try {
+      // The room may have changed under the page (opened, finished): say which, and reload it.
+      const gagal = (kode: string) => {
+        setErr(TS[lang].reason[kode] ?? t.failed);
+        if (kode in TS[lang].reason) refresh();
+      };
       if (!c.fullscreen) {
         if (!(await enter())) return setErr(t.fsFail);
-        if (!(await postCheckin("fullscreen")).ok) return setErr(t.failed);
+        const f = await postCheckin("fullscreen");
+        if (!f.ok) return gagal(f.kode);
       }
       if (!c.connection) {
         const r = await postCheckin("connection", {
@@ -114,9 +120,10 @@ export default function CheckIn({
           offsetMs: selisihJam(),
           chromium: okBrowser.current,
         });
-        if (!r.ok) return setErr(t.failed);
+        if (!r.ok) return gagal(r.kode);
       }
-      if (!(await postCheckin("name")).ok) return setErr(t.failed);
+      const n = await postCheckin("name");
+      if (!n.ok) return gagal(n.kode);
       refresh();
     } finally {
       setBusy(false);

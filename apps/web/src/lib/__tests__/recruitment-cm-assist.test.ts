@@ -146,7 +146,7 @@ describe("hover, like VS Code's C/C++ extension", () => {
     expect(hover("q;")).toBe("(local variable) struct P q");
     expect(hover("n;")).toBe("(local variable) unsigned long n");
     expect(hover("g = 5")).toBe("(global variable) int g = 5".replace(" = 5", ""));
-  });
+  }, 20_000); // the first parse loads the C grammar: slow under a busy full run
 
   it("knows a parameter and a for-loop variable, and uses the right `total` in each function", () => {
     expect(hover("a,", 1)).toBe("(parameter) int a");

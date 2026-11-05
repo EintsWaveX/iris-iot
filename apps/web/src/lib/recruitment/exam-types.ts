@@ -23,6 +23,17 @@ export const FORMATS = ["single", "multi", "lines", "fix", "order", "match", "fi
 export type Format = (typeof FORMATS)[number];
 
 /**
+ * The answer styles each written part takes (5 Nov 2026): Logika is choosing and arranging,
+ * FITB is filling blanks only, Kodingan is marking and fixing code. A style belongs to one part.
+ */
+export const FORMATS_BY_PART: Record<Phase1Part, readonly Format[]> = {
+  logika: ["single", "multi", "order", "match"],
+  fitb: ["fitb"],
+  kodingan: ["lines", "fix"],
+};
+export const formatsOf = (part: Phase1Part): readonly Format[] => FORMATS_BY_PART[part];
+
+/**
  * @deprecated The protocol reel belongs to the IoT Live Coding, which B7.7
  * deletes. Kept only so that dormant code still compiles until then.
  */
@@ -311,6 +322,11 @@ export interface RoomState {
   finishedAt: number | null;
   master: { nim: string; since: number } | null;
   ask: { nim: string; at: number } | null;
+  /**
+   * A practice room has no slot to hang pengawas on, so its pengawas live here
+   * (NIMs). Real rooms never set it; their pengawas are the slot's examiners.
+   */
+  latihanPengawas?: string[];
 }
 
 export type RoomViewName =

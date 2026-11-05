@@ -107,6 +107,7 @@ vi.mock("../../src/lib/db", () => {
     update: (t: unknown) => tulisan("update", t),
     delete: (t: unknown) => tulisan("delete", t),
     transaction: async (fn: (tx: unknown) => unknown) => fn(db),
+    execute: async () => [],
   };
   return { getDb: () => db };
 });
@@ -957,6 +958,148 @@ describe("setting up a room", () => {
     state = { ...state, stage: "finished" };
     const r = await jalan("room-setup", "AKD", { id: 7, slotId: 3, pengawas: ["N1"] });
     expect(r.status).toBe(409);
+  });
+});
+
+describe("a practice room's pengawas and participants", () => {
+  const latihan = (extra: Partial<RoomState> = {}) =>
+    kamar({
+      id: 9,
+      slotId: null,
+      rehearsal: true,
+      state: { ...newRoomState(), ...extra },
+    });
+
+  it("keeps a practice room's pengawas in its own state (it has no slot to hang them on)", async () => {
+    const praktik = latihan();
+    rows.room = (sel) => (sel ? [{ room: praktik, slot: null }] : [praktik]);
+    const r = await jalan("room-setup", "AKD", {
+      id: 9,
+      rehearsal: true,
+      pengawas: ["N1"],
+    });
+    expect(r.status).toBe(200);
+    const w = tulis.find(
+      (x) => x.op === "update" && x.tabel === "room" && "state" in (x.nilai as object),
+    );
+    expect(w).toBeTruthy();
+    // And nothing went to the slot examiners
+    expect(tulis.some((x) => x.tabel === "examiner")).toBe(false);
+  });
+
+  it("lists a practice room to the pengawas stored in its state and shows them", async () => {
+    const praktik = latihan({ latihanPengawas: ["N1"] });
+    rows.room = (sel) => (sel ? [{ room: praktik, slot: null }] : [praktik]);
+    rows.asisten = [PENGAWAS[0]];
+    const a = await jalan("rooms", "N1", null);
+    const ruang = (a.body.rooms as { pengawas: { nim: string }[]; mine: boolean }[])[0];
+    expect(ruang.pengawas.map((x) => x.nim)).toEqual(["N1"]);
+    expect(ruang.mine).toBe(true);
+  });
+
+  it("lets the Pencipta run a practice room, which counts toward nobody's score", async () => {
+    pelakuNim.PEN = pelaku({ plotPengawas: true });
+    const praktik = latihan({ stage: "prep" });
+    rows.room = (sel) => (sel ? [{ room: praktik, slot: null }] : [praktik]);
+    const r = await jalan("room-master", "PEN", { id: 9, act: "claim" });
+    expect(r.status).toBe(200);
+  });
+
+  it("seats the sample CaAs of the people picked to try the test, and says who has none", async () => {
+    rows.room = (sel) => (sel ? [] : []);
+    rows.candidate = [{ id: 101, nim: "N1" }];
+    rows.seat = [];
+    const awal = rows.room;
+    const dibuat = latihan();
+    rows.room = (sel) =>
+      tulis.some((x) => x.op === "insert" && x.tabel === "room")
+        ? sel
+          ? [{ room: dibuat, slot: null }]
+          : [dibuat]
+        : awal(sel);
+    const r = await jalan("room-setup", "AKD", { rehearsal: true, peserta: ["N1", "N2"] });
+    expect(r.status).toBe(200);
+    const kursi = tulis.find((x) => x.op === "insert" && x.tabel === "seat");
+    expect(kursi?.nilai).toMatchObject({ candidateId: 101, rehearsal: true });
+    expect((r.body.peserta as { noCandidate: string[] }).noCandidate).toEqual(["N2"]);
+  });
+
+  it("deletes a practice room that sits between parts, not only a finished one", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    // The lobby between two parts: the stage is still "parts", the last part ended long ago.
+    const lama = Date.now() - 600_000;
+    const praktik = latihan({
+      stage: "parts",
+      cur: "logika",
+      runs: {
+        logika: {
+          durMs: 900_000,
+          usedMs: 900_000,
+          mark: null,
+          state: "ended",
+          pausedAt: null,
+          extra: {},
+          startedAt: lama - 900_000,
+          endedAt: lama,
+          endedBy: "time",
+          leftAtSkip: 0,
+          reopened: 0,
+        },
+      },
+    });
+    rows.room = (sel) => (sel ? [{ room: praktik, slot: null }] : [praktik]);
+    const r = await jalan("room-delete", "AKD", { id: 9 });
+    expect(r.status).toBe(200);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "room")).toBe(true);
+  });
+
+  it("takes someone out of an existing practice room between parts (their seat goes)", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const praktik = latihan({ stage: "prep" });
+    rows.room = (sel) => (sel ? [{ room: praktik, slot: null }] : [praktik]);
+    rows.candidate = [{ id: 101, nim: "N1" }];
+    rows.seat = [{ id: 7 }];
+    const r = await jalan("room-setup", "AKD", { id: 9, rehearsal: true, lepas: ["N1"] });
+    expect(r.status).toBe(200);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "seat")).toBe(true);
+  });
+
+  it("does not take a seat out while a part is on the clock", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const praktik = latihan({
+      stage: "parts",
+      cur: "logika",
+      runs: {
+        logika: {
+          durMs: 900_000,
+          usedMs: 0,
+          mark: Date.now(),
+          state: "running",
+          pausedAt: null,
+          extra: {},
+          startedAt: Date.now(),
+          endedAt: null,
+          endedBy: null,
+          leftAtSkip: 0,
+          reopened: 0,
+        },
+      },
+    });
+    rows.room = (sel) => (sel ? [{ room: praktik, slot: null }] : [praktik]);
+    rows.candidate = [{ id: 101, nim: "N1" }];
+    rows.seat = [{ id: 7 }];
+    const r = await jalan("room-setup", "AKD", { id: 9, rehearsal: true, lepas: ["N1"] });
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("ruang_berjalan");
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "seat")).toBe(false);
+  });
+
+  it("refuses a malformed list of people to take out", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const praktik = latihan();
+    rows.room = (sel) => (sel ? [{ room: praktik, slot: null }] : [praktik]);
+    const r = await jalan("room-setup", "AKD", { id: 9, rehearsal: true, lepas: "N1" });
+    expect(r.status).toBe(400);
   });
 });
 
