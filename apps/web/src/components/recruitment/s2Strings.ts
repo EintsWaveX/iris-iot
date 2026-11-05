@@ -548,6 +548,22 @@ export const S2 = dict({
           'Spreadsheet belum bisa dibaca. Cek sharing-nya: harus "Siapa pun yang memiliki link".',
         scanForm: "Scan pakai kamera HP, lalu isi form-nya.",
         formNote: "Absensi lewat Google Form dan tercatat di spreadsheet-nya, bukan di IRIS.",
+        testTitle: "Mode Uji Coba",
+        testSwitch: "Nyalakan mode uji coba",
+        testHint:
+          "Buat nyoba QR dan absensi sebelum jamnya tiba. Selama menyala, QR langsung tampil dan CaAs yang scan dicatat sebagai data uji, bukan kehadiran asli.",
+        testOffNote:
+          "Begitu dimatikan, semua data uji ikut terhapus, jadi absensi asli mulai dari nol.",
+        testCount: (n: number) => (n === 0 ? "Belum ada data uji." : `${n} data uji tersimpan.`),
+        testReset: "Reset Data Uji",
+        testResetAsk: "Hapus semua data uji?",
+        testResetBody:
+          "Cuma data uji yang dihapus. Kehadiran asli dan yang ditandai manual tidak ikut terhapus.",
+        testResetYes: "Hapus Data Uji",
+        testResetDone: (n: number) => `${n} data uji dihapus.`,
+        testFail: "Belum bisa mengubahnya. Coba lagi.",
+        testPill: "Mode Uji Coba",
+        testBanner: "Ini uji coba. Yang scan tidak dihitung sebagai kehadiran asli.",
       },
       scan: {
         hadir: "Kamu tercatat hadir",
@@ -598,7 +614,7 @@ export const S2 = dict({
       here: "Hadir",
       all: "Semua",
       via: (v: string, at: string, by: string | null) =>
-        v === "qr" ? `QR ${at}` : `Manual · ${by ?? ""}`,
+        v === "qr" ? `QR ${at}` : v === "uji" ? `Uji coba ${at}` : `Manual · ${by ?? ""}`,
       notYet: "Belum",
       undo: "Batalkan",
       mark: "Tandai Hadir",
@@ -1169,6 +1185,22 @@ export const S2 = dict({
         scanForm: "Scan with your phone camera, then fill in the form.",
         formNote:
           "Attendance goes through a Google Form and is recorded in its spreadsheet, not in IRIS.",
+        testTitle: "Test Mode",
+        testSwitch: "Turn on test mode",
+        testHint:
+          "Try the QR and attendance before the real time. While it is on, the QR shows right away and every CaAs who scans is saved as test data, not real attendance.",
+        testOffNote:
+          "Turning it off deletes all the test data too, so the real attendance starts from zero.",
+        testCount: (n: number) => (n === 0 ? "No test data yet." : `${n} test scans saved.`),
+        testReset: "Reset Test Data",
+        testResetAsk: "Delete all the test data?",
+        testResetBody:
+          "Only test data is deleted. Real attendance and anything marked by hand stays.",
+        testResetYes: "Delete Test Data",
+        testResetDone: (n: number) => `${n} test scans deleted.`,
+        testFail: "It couldn't be changed. Try again.",
+        testPill: "Test Mode",
+        testBanner: "This is a test. Scans here don't count as real attendance.",
       },
       scan: {
         hadir: "You're marked present",
@@ -1219,7 +1251,7 @@ export const S2 = dict({
       here: "Present",
       all: "All",
       via: (v: string, at: string, by: string | null) =>
-        v === "qr" ? `QR ${at}` : `Manual · ${by ?? ""}`,
+        v === "qr" ? `QR ${at}` : v === "uji" ? `Test ${at}` : `Manual · ${by ?? ""}`,
       notYet: "Not yet",
       undo: "Undo",
       mark: "Mark Present",
@@ -1759,6 +1791,20 @@ export const S2 = dict({
         recentFail: "暂时读不到电子表格。请检查共享设置：必须是“知道链接的任何人”。",
         scanForm: "用手机相机扫描，然后填写表单。",
         formNote: "签到通过 Google 表单完成，记录在它的电子表格里，不在 IRIS 中。",
+        testTitle: "测试模式",
+        testSwitch: "打开测试模式",
+        testHint:
+          "在正式时间之前试一试二维码和签到。打开后二维码立刻显示，扫码的 CaAs 会被记为测试数据，不算真正的到场。",
+        testOffNote: "关闭时所有测试数据也会被删除，所以正式签到从零开始。",
+        testCount: (n: number) => (n === 0 ? "还没有测试数据。" : `已保存 ${n} 条测试数据。`),
+        testReset: "重置测试数据",
+        testResetAsk: "删除所有测试数据？",
+        testResetBody: "只会删除测试数据，真正的到场记录和手动标记的记录不受影响。",
+        testResetYes: "删除测试数据",
+        testResetDone: (n: number) => `已删除 ${n} 条测试数据。`,
+        testFail: "暂时无法修改，请再试一次。",
+        testPill: "测试模式",
+        testBanner: "这是测试，在这里扫码不算真正的到场。",
       },
       scan: {
         hadir: "已记录你到场",
@@ -1808,7 +1854,7 @@ export const S2 = dict({
       here: "已到",
       all: "全部",
       via: (v: string, at: string, by: string | null) =>
-        v === "qr" ? `扫码 ${at}` : `手动 · ${by ?? ""}`,
+        v === "qr" ? `扫码 ${at}` : v === "uji" ? `测试 ${at}` : `手动 · ${by ?? ""}`,
       notYet: "未到",
       undo: "撤销",
       mark: "标记到场",

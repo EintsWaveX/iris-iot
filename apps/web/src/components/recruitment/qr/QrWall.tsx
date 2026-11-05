@@ -29,7 +29,7 @@ import {
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import { PERIOD_MS } from "../../../lib/recruitment/qr";
 import type { QrTokenResponse, SettingsResponse } from "../../../lib/recruitment/types";
-import { QR_DEFAULT, qrUntuk, type QrMap, type QrSetting } from "../../../lib/recruitment/qr-luar";
+import { qrDengan, qrUntuk, type QrMap, type QrSetting } from "../../../lib/recruitment/qr-luar";
 import { judulAcara, tempatAcara } from "../judul";
 import { S2 } from "../s2Strings";
 import { kapanAcara } from "../shared";
@@ -196,15 +196,14 @@ export default function QrWall({ lang }: { lang: Lang }) {
       setSibukBuka(false);
       return void window.Toast?.show(t.openFail, "danger");
     }
-    const peta: QrMap = {
-      ...((s.settings.find((x) => x.key === "qr")?.value as QrMap | undefined) ?? QR_DEFAULT),
-    };
+    const peta = s.settings.find((x) => x.key === "qr")?.value as QrMap | undefined;
     const baru: QrSetting = { ...qrUntuk(peta, aktif.id) };
     if (v) baru.buka = true;
     else delete baru.buka;
-    if (baru.mode === "iris" && !baru.buka) delete peta[String(aktif.id)];
-    else peta[String(aktif.id)] = baru;
-    const r = await recPost<{ ok: true }>("setting-save", { key: "qr", value: peta });
+    const r = await recPost<{ ok: true }>("setting-save", {
+      key: "qr",
+      value: qrDengan(peta, aktif.id, baru),
+    });
     setSibukBuka(false);
     if (isFail(r)) return void window.Toast?.show(t.openFail, "danger");
     setTok(null);
@@ -237,6 +236,21 @@ export default function QrWall({ lang }: { lang: Lang }) {
         </button>
       )
     ) : null;
+  const baris = !aktif
+    ? []
+    : [
+        // Test mode: the strip says so too, so nobody takes a test run for the real thing
+        ...(aktif.test ? [t.luar.testBanner] : []),
+        ...(tutupAkhir
+          ? belum
+            ? t.tickSoonAkhir(judulAcara(aktif, lang), jamBuka)
+            : t.tickWait(judulAcara(aktif, lang), jamBuka)
+          : luar
+            ? t.tickLuar(judulAcara(aktif, lang))
+            : belum
+              ? t.tickSoon(judulAcara(aktif, lang))
+              : t.tickIris(judulAcara(aktif, lang), location.host)),
+      ];
   const kode = tok?.code ?? "";
   const titik = Math.min(Math.max(diharap, 0), 160);
   return (
@@ -249,6 +263,11 @@ export default function QrWall({ lang }: { lang: Lang }) {
       <div className="r2proj__top">
         <img src="/brand/iris-logo-mark.png" alt={t.logoAlt} width="198" height="90" />
         <span className="r2proj__ev">{REC[lang].eyebrow}</span>
+        {aktif?.test && (
+          <span className="r2proj__test" role="status">
+            {t.luar.testPill}
+          </span>
+        )}
         <span style={{ flex: 1 }} />
         {daftar.length > 1 && (
           <div style={{ minWidth: 220 }}>
@@ -319,6 +338,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
               {kapanAcara(aktif, lang)}
               {aktif.place ? ` · ${tempatAcara(aktif.place, lang)}` : ""}
             </span>
+            {aktif.test && <p className="r2proj__testnote">{t.luar.testBanner}</p>}
             {tutupAkhir ? (
               <div className="r2proj__how">
                 <span>{belum ? t.soonHintAkhir(jamBuka) : t.waitHint(jamBuka)}</span>
@@ -400,22 +420,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
           waiting={belum}
         />
       )}
-      {aktif && (
-        <Ticker
-          still={motion === "reduce"}
-          lines={
-            tutupAkhir
-              ? belum
-                ? t.tickSoonAkhir(judulAcara(aktif, lang), jamBuka)
-                : t.tickWait(judulAcara(aktif, lang), jamBuka)
-              : luar
-                ? t.tickLuar(judulAcara(aktif, lang))
-                : belum
-                  ? t.tickSoon(judulAcara(aktif, lang))
-                  : t.tickIris(judulAcara(aktif, lang), location.host)
-          }
-        />
-      )}
+      {aktif && <Ticker still={motion === "reduce"} lines={baris} />}
       {aktif && (
         <QrAtur
           lang={lang}
@@ -426,6 +431,8 @@ export default function QrWall({ lang }: { lang: Lang }) {
           mode={aktif.qr.mode}
           link={aktif.qr.link}
           sheet={aktif.qr.sheet}
+          uji={aktif.test}
+          ujiCount={aktif.testCount}
           onSaved={() => {
             setTok(null);
             events.refresh();

@@ -124,6 +124,19 @@ vi.mock("../_lib/recruitment-akun", async (orig) => ({
   },
 }));
 
+// The `qr` setting as the Panitia saved it (the db mock above has no settings table)
+let qrSetting: Record<string, unknown> | undefined;
+vi.mock("../_lib/recruitment-settings", async (orig) => {
+  const asli = await orig<Record<string, unknown>>();
+  return {
+    ...asli,
+    bacaSetting: async (db: unknown, key: string) =>
+      key === "qr" && qrSetting
+        ? qrSetting
+        : (asli.bacaSetting as (d: unknown, k: string) => Promise<unknown>)(db, key),
+  };
+});
+
 const { default: handler } = await import("../recruitment/[aksi]");
 const { buatToken, bacaToken, kodeKetik } = await import("../_lib/recruitment-attendance");
 const { periodAt } = await import("../../src/lib/recruitment/qr");
@@ -969,6 +982,123 @@ describe("QR attendance", () => {
       { id: 1, candidateId: 7, eventId: FIRST_MEET, via: "manual", by: "101022300900" },
     ];
     expect((await panggil("POST", "attend-manual", { body: undo })).body.present).toBe(false);
+  });
+
+  describe("test mode (the Panitia try the wall before the real window)", () => {
+    const uji = () => {
+      qrSetting = { [String(FIRST_MEET)]: { mode: "iris", link: "", sheet: "", uji: true } };
+    };
+    afterEach(() => {
+      qrSetting = undefined;
+    });
+
+    it("gives the wall a token before the window, only while the mode is on", async () => {
+      panitia("acara");
+      rows.candidate = [];
+      pada("2026-11-12T19:00:00");
+      const q = { query: { event: String(FIRST_MEET) } };
+      expect((await panggil("GET", "qr-token", q)).body.kode).toBe("absensi_belum");
+      uji();
+      expect((await panggil("GET", "qr-token", q)).body).toMatchObject({ ok: true });
+    });
+
+    it("does not turn an unknown event into a running one", async () => {
+      panitia("acara");
+      rows.candidate = [];
+      uji();
+      // The mode is a flag on one event, not a way around the other checks
+      pada("2026-11-12T19:00:00");
+      expect((await panggil("GET", "qr-token", { query: { event: "99999" } })).body.kode).toBe(
+        "tidak_ditemukan",
+      );
+    });
+
+    it("saves a scan before the window as a test (via uji)", async () => {
+      pada("2026-11-12T19:00:00");
+      lolosBerkas();
+      uji();
+      const r = await panggil("POST", "attend", { body: { token: tokenKini() } });
+      expect(r.body).toMatchObject({ ok: true, sudah: false });
+      expect(tulis.filter((w) => w.tabel === "attendance" && w.op === "insert")).toHaveLength(1);
+      expect(tulis.find((w) => w.tabel === "attendance")?.nilai).toMatchObject({
+        candidateId: 7,
+        eventId: FIRST_MEET,
+        via: "uji",
+      });
+    });
+
+    it("takes a typed code in test mode too", async () => {
+      pada("2026-11-12T19:00:00");
+      lolosBerkas();
+      uji();
+      const kode = kodeKetik(FIRST_MEET, periodAt(Date.now()));
+      expect((await panggil("POST", "attend", { body: { code: kode } })).body).toMatchObject({
+        ok: true,
+      });
+      expect(tulis.find((w) => w.tabel === "attendance")?.nilai).toMatchObject({ via: "uji" });
+    });
+
+    it("is a real scan when the real window is open, even with the mode still on", async () => {
+      malam();
+      lolosBerkas();
+      uji();
+      await panggil("POST", "attend", { body: { token: tokenKini() } });
+      expect(tulis.find((w) => w.tabel === "attendance")?.nilai).toMatchObject({ via: "qr" });
+    });
+
+    it("lets a real scan replace a leftover test scan instead of answering sudah", async () => {
+      malam();
+      lolosBerkas();
+      rows.attendance = [{ id: 9, candidateId: 7, eventId: FIRST_MEET, via: "uji" }];
+      const r = await panggil("POST", "attend", { body: { token: tokenKini() } });
+      expect(r.body).toMatchObject({ ok: true, sudah: false });
+      expect(tulis.some((w) => w.tabel === "attendance" && w.op === "delete")).toBe(true);
+      expect(tulis.find((w) => w.tabel === "attendance" && w.op === "insert")?.nilai).toMatchObject(
+        {
+          via: "qr",
+        },
+      );
+    });
+
+    it("still answers sudah for a second test scan", async () => {
+      pada("2026-11-12T19:00:00");
+      lolosBerkas();
+      uji();
+      rows.attendance = [{ id: 9, candidateId: 7, eventId: FIRST_MEET, via: "uji" }];
+      const r = await panggil("POST", "attend", { body: { token: tokenKini() } });
+      expect(r.body).toMatchObject({ ok: true, sudah: true });
+      expect(tulis.some((w) => w.tabel === "attendance")).toBe(false);
+    });
+
+    it("turns a scan away before the window when the mode is off", async () => {
+      pada("2026-11-12T19:00:00");
+      lolosBerkas();
+      const r = await panggil("POST", "attend", { body: { token: tokenKini() } });
+      expect(r.body.kode).toBe("absensi_belum");
+      expect(tulis.some((w) => w.tabel === "attendance")).toBe(false);
+    });
+
+    it("resets only the test scans, for an attendance keeper only", async () => {
+      malam();
+      panitia("acara");
+      rows.attendance = [{ id: 9, candidateId: 7, eventId: FIRST_MEET, via: "uji" }];
+      const r = await panggil("POST", "qr-test-reset", { body: { event: FIRST_MEET } });
+      expect(r.body).toMatchObject({ ok: true });
+      expect(tulis.some((w) => w.tabel === "attendance" && w.op === "delete")).toBe(true);
+      expect(tulis.some((w) => w.tabel === "attendance" && w.op === "insert")).toBe(false);
+
+      tulis.length = 0;
+      panitia("logistik");
+      const ditolak = await panggil("POST", "qr-test-reset", { body: { event: FIRST_MEET } });
+      expect(ditolak.code).toBe(403);
+      expect(tulis.some((w) => w.tabel === "attendance")).toBe(false);
+    });
+
+    it("checks the event id", async () => {
+      panitia("acara");
+      expect((await panggil("POST", "qr-test-reset", { body: { event: "x" } })).code).toBe(400);
+      expect((await panggil("POST", "qr-test-reset", { body: { event: 99999 } })).code).toBe(404);
+    });
   });
 });
 

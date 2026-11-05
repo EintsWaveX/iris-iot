@@ -21,7 +21,7 @@
  * one seat). A seat only ever receives RoomPublic: no Master, no names, no
  * other seat's extra time.
  */
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
@@ -575,13 +575,19 @@ async function susunKonsol(
       ? await db
           .select({
             candidateId: recAttendance.candidateId,
-            via: recAttendance.via,
+            // The query leaves test scans out, so the console only ever meets these two
+            via: sql<"qr" | "manual">`${recAttendance.via}`,
             by: recAttendance.by,
             reason: recAttendance.reason,
           })
           .from(recAttendance)
           .where(
-            and(eq(recAttendance.eventId, slot.eventId), inArray(recAttendance.candidateId, ids)),
+            and(
+              eq(recAttendance.eventId, slot.eventId),
+              inArray(recAttendance.candidateId, ids),
+              // A test scan (via "uji") never marks a seat as present
+              ne(recAttendance.via, "uji"),
+            ),
           )
       : [];
   const [strikes, kits, notes, jawab, protokol] = await Promise.all([

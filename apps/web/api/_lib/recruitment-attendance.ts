@@ -12,7 +12,7 @@
  * an evening they must hold a slot for, it must be that evening's.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
@@ -131,6 +131,18 @@ export const bisaDipindai = (e: RecEvent, now: Date): boolean => eventHadir(e) &
 export const absenBuka = (e: RecEvent, now: Date, map: QrMap | undefined): boolean =>
   eventHadir(e) && absensiBuka(e, now, qrUntuk(map, e.id).buka === true);
 
+/** Test mode is on for this event (the `uji` flag of its qr setting): the Panitia try the wall and a scan before the real window. */
+export const modeUji = (map: QrMap | undefined, eventId: number): boolean =>
+  qrUntuk(map, eventId).uji === true;
+
+/** The event runs and its attendance is open for real, whatever the test mode says. */
+export const sungguhBuka = (e: RecEvent, now: Date, map: QrMap | undefined): boolean =>
+  bisaDipindai(e, now) && absenBuka(e, now, map);
+
+/** Whether a scan can be taken now: for real, or because test mode is on (a scan then is saved as a test). */
+export const bisaAbsen = (e: RecEvent, now: Date, map: QrMap | undefined): boolean =>
+  eventHadir(e) && (modeUji(map, e.id) || sungguhBuka(e, now, map));
+
 /** An event the wall may list for an Asisten: running, or starting within the lead days (to prepare the QR). */
 const bisaDisiapkan = (e: RecEvent, now: Date): boolean => eventHadir(e) && eventSegera(e, now);
 
@@ -240,11 +252,25 @@ export async function muatDiharapkan(
     .map((k) => ({ candidateId: k.id, nim: k.nim, nama: k.nama ?? "" }));
 }
 
-async function hitungHadir(db: Db, eventId: number): Promise<number> {
+/** Who is present at an event. Test scans only count while the test mode is on, so they never leak into the real number. */
+async function hitungHadir(db: Db, eventId: number, denganUji = false): Promise<number> {
   const rows = await db
     .select({ id: recAttendance.id })
     .from(recAttendance)
-    .where(eq(recAttendance.eventId, eventId));
+    .where(
+      denganUji
+        ? eq(recAttendance.eventId, eventId)
+        : and(eq(recAttendance.eventId, eventId), ne(recAttendance.via, "uji")),
+    );
+  return rows.length;
+}
+
+/** How many test scans an event holds (what Reset Data Uji removes). */
+async function hitungUji(db: Db, eventId: number): Promise<number> {
+  const rows = await db
+    .select({ id: recAttendance.id })
+    .from(recAttendance)
+    .where(and(eq(recAttendance.eventId, eventId), eq(recAttendance.via, "uji")));
   return rows.length;
 }
 
@@ -284,23 +310,32 @@ export async function handleQrAcara(_req: ApiRequest, res: ApiResponse, s: Sessi
   }
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
-  const hidup = events.filter((e) => bisaDisiapkan(e, now) && (!sendiri || sendiri.has(e.id)));
-  const daftar = [];
   const qrMap = await bacaSetting(db, "qr");
+  // An event in test mode is listed wherever it is on the calendar, so the Panitia can find it to turn the mode off.
+  const hidup = events.filter(
+    (e) =>
+      (bisaDisiapkan(e, now) || (eventHadir(e) && modeUji(qrMap, e.id))) &&
+      (!sendiri || sendiri.has(e.id)),
+  );
+  const daftar = [];
   for (const e of hidup) {
     const q = qrUntuk(qrMap, e.id);
-    const live = bisaDipindai(e, now);
+    const uji = q.uji === true;
+    // Test mode makes the event behave as running and open; the real rules are untouched underneath
+    const live = uji || bisaDipindai(e, now);
     daftar.push({
       ...lite(e),
       qr: { mode: q.mode, link: q.mode === "luar" ? q.link : "", sheet: q.sheet },
       // Attendance counts only inside its window: for a gathering the closing 30 minutes (or opened by hand)
-      open: absenBuka(e, now, qrMap),
+      open: uji || absenBuka(e, now, qrMap),
       opensAt: absensiAkhir(e) ? absensiBukaJam(e) : null,
       manual: q.buka === true,
+      test: uji,
+      testCount: await hitungUji(db, e.id),
       stage: e.stage,
       live,
       // Counts only mean something while it runs; an event still to come is just to prepare
-      here: live ? await hitungHadir(db, e.id) : 0,
+      here: live ? await hitungHadir(db, e.id, uji) : 0,
       expected: live ? (await muatDiharapkan(db, edisi.id, e, events, now)).length : 0,
     });
   }
@@ -327,10 +362,12 @@ export async function handleQrToken(req: ApiRequest, res: ApiResponse, s: Sessio
   const events = await muatEvents(db, edisi.id);
   const e = events.find((v) => v.id === id);
   if (!e) return void tolak(res, "tidak_ditemukan", 404);
-  if (!bisaDipindai(e, now)) return void tolak(res, "jendela_tutup", 409);
   const qrMap = await bacaSetting(db, "qr");
+  // Test mode: the Panitia try the wall before the real window, so the two window checks are skipped
+  const uji = eventHadir(e) && modeUji(qrMap, e.id);
+  if (!uji && !bisaDipindai(e, now)) return void tolak(res, "jendela_tutup", 409);
   // A gathering takes attendance at its end: no code before then (the wall shows when it opens).
-  if (!absenBuka(e, now, qrMap))
+  if (!uji && !absenBuka(e, now, qrMap))
     return void tolak(res, "absensi_belum", 409, { opensAt: absensiBukaJam(e) });
   // An event that shows a QR made from a pasted link has no IRIS token to hand out.
   if (qrUntuk(qrMap, e.id).mode === "luar") return void tolak(res, "qr_luar", 409);
@@ -343,7 +380,7 @@ export async function handleQrToken(req: ApiRequest, res: ApiResponse, s: Sessio
     until: new Date(periodEnd(period)).toISOString(),
     now: now.toISOString(),
     event: lite(e),
-    here: await hitungHadir(db, e.id),
+    here: await hitungHadir(db, e.id, uji),
     expected: (await muatDiharapkan(db, edisi.id, e, events, now)).length,
   });
 }
@@ -405,6 +442,7 @@ export async function handleHadir(req: ApiRequest, res: ApiResponse, s: SessionP
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
   const periode = acceptedPeriods(now.getTime());
+  const qrMap = await bacaSetting(db, "qr");
 
   let e: RecEvent | undefined;
   if (b.token !== undefined) {
@@ -415,16 +453,22 @@ export async function handleHadir(req: ApiRequest, res: ApiResponse, s: SessionP
   } else {
     const kode = rapikanKode(b.code);
     if (kode.length !== CODE_LENGTH) return void tolak(res, "data_salah", 400, { field: "code" });
+    // A typed code finds its event among those running, or in test mode (which counts as running)
     e = events.find(
-      (v) => bisaDipindai(v, now) && periode.some((p) => kodeKetik(v.id, p) === kode),
+      (v) =>
+        (bisaDipindai(v, now) || (eventHadir(v) && modeUji(qrMap, v.id))) &&
+        periode.some((p) => kodeKetik(v.id, p) === kode),
     );
     if (!e) return void tolak(res, "qr_berganti", 409);
   }
   if (!e || e.internal) return void tolak(res, "tidak_ditemukan", 404);
-  if (!bisaDipindai(e, now)) return void tolak(res, "jendela_tutup", 409);
+  const uji = eventHadir(e) && modeUji(qrMap, e.id);
+  if (!uji && !bisaDipindai(e, now)) return void tolak(res, "jendela_tutup", 409);
   // A gathering takes attendance at its end, so a scan before then is turned away.
-  if (!absenBuka(e, now, await bacaSetting(db, "qr")))
+  if (!uji && !absenBuka(e, now, qrMap))
     return void tolak(res, "absensi_belum", 409, { opensAt: absensiBukaJam(e) });
+  // A scan is a real one whenever the real window is open, even with test mode still on; otherwise it is a test.
+  const via = sungguhBuka(e, now, qrMap) ? "qr" : "uji";
 
   const hasil = await muatHasilBanyak(db, [k.id]);
   const st = standing(k, hasil.get(k.id) ?? [], events, now);
@@ -445,15 +489,19 @@ export async function handleHadir(req: ApiRequest, res: ApiResponse, s: SessionP
       });
     }
   }
-  const [ada] = await db
-    .select({ id: recAttendance.id })
+  const [lama] = await db
+    .select({ id: recAttendance.id, via: recAttendance.via })
     .from(recAttendance)
     .where(and(eq(recAttendance.candidateId, k.id), eq(recAttendance.eventId, e.id)))
     .limit(1);
+  // A leftover test scan must never stand in for the real one: the real window is open, so the test row goes.
+  const basi = lama !== undefined && lama.via === "uji" && via === "qr";
+  if (basi) await db.delete(recAttendance).where(eq(recAttendance.id, lama.id));
+  const ada = basi ? undefined : lama;
   if (!ada)
     await db
       .insert(recAttendance)
-      .values({ candidateId: k.id, eventId: e.id, at: now, via: "qr", by: null })
+      .values({ candidateId: k.id, eventId: e.id, at: now, via, by: null })
       .onConflictDoNothing();
   res.status(200).json({ ok: true, sudah: !!ada, event: lite(e) });
 }
@@ -473,7 +521,14 @@ export async function handleKehadiran(req: ApiRequest, res: ApiResponse, s: Sess
   const e = events.find((v) => v.id === id);
   if (!e) return void tolak(res, "tidak_ditemukan", 404);
   const diharapkan = await muatDiharapkan(db, edisi.id, e, events, now);
-  const hadir = await db.select().from(recAttendance).where(eq(recAttendance.eventId, e.id));
+  const qrMap = await bacaSetting(db, "qr");
+  const uji = eventHadir(e) && modeUji(qrMap, e.id);
+  const hadir = (
+    await db.select().from(recAttendance).where(eq(recAttendance.eventId, e.id))
+  ).filter(
+    // Test scans show here only while the test mode is on
+    (h) => uji || h.via !== "uji",
+  );
   const peta = new Map(hadir.map((h) => [h.candidateId, h]));
   const dikenal = new Set(diharapkan.map((d) => d.candidateId));
   // Someone present who is no longer expected (marked by hand) still shows.
@@ -498,7 +553,7 @@ export async function handleKehadiran(req: ApiRequest, res: ApiResponse, s: Sess
   res.status(200).json({
     ok: true,
     event: lite(e),
-    live: bisaDipindai(e, now),
+    live: uji || bisaDipindai(e, now),
     rows: semua.map((d) => {
       const h = peta.get(d.candidateId);
       return {
@@ -513,6 +568,30 @@ export async function handleKehadiran(req: ApiRequest, res: ApiResponse, s: Sess
       };
     }),
   });
+}
+
+/**
+ * POST qr-test-reset { event }: removes the test scans (via "uji") of one event, and nothing else. The attendance
+ * keepers press it between test rounds and before the real attendance, so the real count starts clean. Real and
+ * hand-marked attendance rows are never touched.
+ */
+export async function handleQrUjiReset(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const id = Number(jsonBody(req).event);
+  if (!Number.isInteger(id) || id <= 0)
+    return void tolak(res, "data_salah", 400, { field: "event" });
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (!wajibHak(res, p, "attendance")) return;
+  const events = await muatEvents(db, edisi.id);
+  if (!events.some((v) => v.id === id)) return void tolak(res, "tidak_ditemukan", 404);
+  const dihapus = await db
+    .delete(recAttendance)
+    .where(and(eq(recAttendance.eventId, id), eq(recAttendance.via, "uji")))
+    .returning({ id: recAttendance.id });
+  await writeAudit(s.nim, "rec_hadir_uji_reset", { event: id, removed: dihapus.length });
+  res.status(200).json({ ok: true, removed: dihapus.length });
 }
 
 /**

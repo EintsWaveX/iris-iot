@@ -229,6 +229,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:envelope-open": ["reccutting", "reccandidates"],
   "recruitment:attend": ["reccandidates"],
   "recruitment:attend-manual": ["reccandidates", "recroom"],
+  // The QR wall's test mode: the test scans of one event removed (the wall's count and the Kehadiran list refresh)
+  "recruitment:qr-test-reset": ["reccandidates", "recroom"],
   "recruitment:slot-pick": ["recplotting", "reccandidates"],
   "recruitment:slot-change": ["recplotting"],
   "recruitment:slot-decide": ["recplotting", "reccandidates"],
