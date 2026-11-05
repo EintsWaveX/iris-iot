@@ -5,6 +5,7 @@
  * locked and the reveal time has come. The API calls these on every write
  * and on the candidate's own read; the pages use them for display only.
  */
+import { bebas } from "./bebas.js";
 import type { RecEvent, Proposal, StageKey } from "./types.js";
 
 export interface CutRow {
@@ -66,7 +67,8 @@ export function canLock(rows: readonly { proposal: Proposal | null }[]): {
   missing: number;
 } {
   const missing = rows.filter((r) => !r.proposal).length;
-  return { ok: rows.length > 0 && missing === 0, missing };
+  // Free mode: the lock goes ahead (the handler fills the missing proposals), the count stays true.
+  return { ok: bebas() || (rows.length > 0 && missing === 0), missing };
 }
 
 interface Kunci {
@@ -76,11 +78,11 @@ interface Kunci {
 
 /** A candidate may see the result only when locked and the time has come. */
 export const envelopeVisible = (r: Kunci, now: Date): boolean =>
-  r.locked && !!r.revealAt && r.revealAt <= now;
+  r.locked && (bebas() || (!!r.revealAt && r.revealAt <= now));
 
-/** The Ketua may unlock only before the reveal time. */
+/** The Ketua may unlock only before the reveal time (free mode: any locked row). */
 export const canUnlock = (r: Kunci, now: Date): boolean =>
-  r.locked && !!r.revealAt && now < r.revealAt;
+  r.locked && (bebas() || (!!r.revealAt && now < r.revealAt));
 
 /**
  * The instant a stage's envelopes open: the start of its Pengumuman, 12.00

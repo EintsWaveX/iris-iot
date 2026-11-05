@@ -12,6 +12,7 @@
  * - gateLive: the date and the event's daily window (First Meet's QR is
  *   only live 18.30 to 21.00). An event without a window is live all day.
  */
+import { bebas } from "./bebas.js";
 import { addDays } from "./calendar.js";
 import type { CandidateStatus, GateKey, Phase, RecEvent, StageKey, Viewer } from "./types.js";
 
@@ -89,6 +90,7 @@ export function absensiBuka(
   now: Date,
   manual: boolean,
 ): boolean {
+  if (bebas()) return true;
   if (!eventLive(e, now)) return false;
   if (!absensiAkhir(e) || manual) return true;
   const dari = absensiBukaJam(e);
@@ -135,7 +137,8 @@ export function gateLive(
   now: Date,
   stage?: StageKey,
 ): boolean {
-  return events.some((e) => cocok(e, gate, stage) && eventLive(e, now));
+  // Free mode: any event that carries the gate, whatever the day and the hour.
+  return events.some((e) => cocok(e, gate, stage) && (bebas() || eventLive(e, now)));
 }
 
 /**

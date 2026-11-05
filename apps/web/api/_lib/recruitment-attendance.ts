@@ -30,6 +30,7 @@ import {
   recTubesSession,
 } from "../../src/lib/schema.js";
 import { lite } from "../../src/lib/recruitment/banner.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import {
   absensiAkhir,
   absensiBuka,
@@ -125,7 +126,8 @@ interface Peserta {
 }
 
 /** Events a QR makes sense for: a gathering (see eventHadir) and running right now. */
-export const bisaDipindai = (e: RecEvent, now: Date): boolean => eventHadir(e) && eventLive(e, now);
+export const bisaDipindai = (e: RecEvent, now: Date): boolean =>
+  eventHadir(e) && (bebas() || eventLive(e, now));
 
 /** Whether a scan counts now: running, and for a gathering in its closing window or opened by hand. */
 export const absenBuka = (e: RecEvent, now: Date, map: QrMap | undefined): boolean =>
