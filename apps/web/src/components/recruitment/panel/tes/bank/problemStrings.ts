@@ -109,6 +109,9 @@ export const PR = dict({
     deleted: "Soal dihapus.",
     queued: "Dikirim ke judge.",
     problemsHead: "Masalah yang perlu dibereskan",
+    fixTests: "Hapus test yang sama",
+    fixTestsDone: (n: number) =>
+      `${n} test yang sama dihapus. Tambah test baru kalau kurang dari 3.`,
     err: {
       versi_lama: "Orang lain menyimpan soal ini lebih dulu. Muat ulang.",
       struktur_terkunci: "Test, contoh, batas dan Reference Solution sudah dikunci.",
@@ -236,6 +239,9 @@ export const PR = dict({
     deleted: "Problem deleted.",
     queued: "Sent to the judge.",
     problemsHead: "What needs fixing",
+    fixTests: "Remove the matching tests",
+    fixTestsDone: (n: number) =>
+      `${n} matching test${n === 1 ? "" : "s"} removed. Add new ones if fewer than 3 are left.`,
     err: {
       versi_lama: "Someone else saved this problem first. Reload.",
       struktur_terkunci: "Tests, samples, limits and the Reference Solution are locked.",
@@ -356,6 +362,8 @@ export const PR = dict({
     deleted: "题目已删除。",
     queued: "已发送给评测机。",
     problemsHead: "需要修正的地方",
+    fixTests: "删除重复的测试",
+    fixTestsDone: (n: number) => `已删除 ${n} 个重复测试。如果少于 3 个，请再添加。`,
     err: {
       versi_lama: "别人先保存了这道题，请刷新。",
       struktur_terkunci: "测试、样例、限制和参考解答已锁定。",

@@ -216,6 +216,42 @@ export function validateProblem(p: CProblemDraft): FieldError[] {
   return e;
 }
 
+/**
+ * Mends the one fault validateProblem calls `tes_sama_contoh` / `tes_kembar` (5 Nov 2026): a hidden test whose
+ * input is also a shown sample, or is a repeat of an earlier hidden test, is dropped (a candidate would see
+ * the answer). The list is then brought back to its old size from `spare`, tests the SAME reference solution
+ * has already answered (the default bank's), skipping any that would repeat an input again. Nothing else is
+ * touched, and the order of the kept tests stays.
+ */
+export function repairHiddenTests(
+  p: { samples: readonly CSample[]; tests: readonly CTest[] },
+  spare: readonly CTest[] = [],
+): { tests: CTest[]; dropped: number; added: number } {
+  const used = new Set(p.samples.map((s) => normalizeOutput(s.input)));
+  const tests: CTest[] = [];
+  let dropped = 0;
+  for (const t of p.tests) {
+    const k = normalizeOutput(t.input);
+    if (used.has(k)) {
+      dropped++;
+      continue;
+    }
+    used.add(k);
+    tests.push(t);
+  }
+  const want = Math.min(C_LIMITS.tests.max, p.tests.length);
+  let added = 0;
+  for (const t of spare) {
+    if (dropped === 0 || tests.length >= want) break;
+    const k = normalizeOutput(t.input);
+    if (used.has(k)) continue;
+    used.add(k);
+    tests.push({ input: t.input, output: t.output });
+    added++;
+  }
+  return { tests, dropped, added };
+}
+
 /* --------------------------------------------------------------- parsing */
 
 const str = (v: unknown): string | null => (typeof v === "string" ? v : null);

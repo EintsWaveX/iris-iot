@@ -1,7 +1,8 @@
 /**
  * The code and Markdown boxes of Bank Soal: a real code editor (CodeMirror 6, the same
  * kosmik theme as the Live Coding page) instead of a plain textarea. JetBrains Mono, line
- * numbers, bracket matching, auto indent, Tab to indent, highlighting for C, Python and
+ * numbers, bracket matching, closing pairs and C suggestions (cmAssist.ts), no spelling or
+ * grammar lines, auto indent, Tab to indent, highlighting for C, Python and
  * Markdown (with C and Python inside code fences). It grows with its text up to a ceiling,
  * then scrolls. Loaded on demand through CodeBox so CodeMirror stays out of the panel's
  * first bundle.
@@ -30,6 +31,7 @@ import {
 import { tags as t } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 import { cmHighlight, cmTheme } from "../../../livecode/CodeEditor";
+import { codeAssist, cSupport, noProofreading } from "../../../livecode/cmAssist";
 
 export type CodeFieldLang = "c" | "py" | "text" | "md";
 
@@ -72,7 +74,7 @@ const fences = [
 ];
 
 function language(lang: CodeFieldLang): Extension {
-  if (lang === "c") return cpp();
+  if (lang === "c") return cSupport();
   if (lang === "py") return python();
   if (lang === "md") return [markdown({ codeLanguages: fences }), syntaxHighlighting(mdHighlight)];
   return [];
@@ -114,6 +116,8 @@ export default function CodeField({
           indentOnInput(),
           bracketMatching(),
           highlightActiveLine(),
+          // C and Python: closing pairs and suggestions; prose and plain text: only no proofreading
+          lang === "c" || lang === "py" ? codeAssist() : noProofreading,
           keymap.of([...defaultKeymap, ...historyKeymap, ...(prose ? [] : [indentWithTab])]),
           langBox.current.of(language(lang)),
           syntaxHighlighting(cmHighlight),
@@ -123,9 +127,6 @@ export default function CodeField({
           EditorView.contentAttributes.of({
             ...(id ? { id } : {}),
             "aria-label": ariaLabel,
-            spellcheck: "false",
-            autocorrect: "off",
-            autocapitalize: "off",
           }),
           lockBox.current.of(lock(readOnly)),
           EditorView.updateListener.of((u) => {

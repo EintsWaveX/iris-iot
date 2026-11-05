@@ -9,7 +9,7 @@ test too (every input of a problem is different).
     python scripts/rec-problems.py          writes src/lib/recruitment/seed-problems.ts
     python scripts/rec-problems.py --check  fails when that file is out of date or a reference misbehaves
 """
-import json, os, subprocess, sys, tempfile
+import json, os, re, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "src", "lib", "recruitment", "seed-problems.ts")
@@ -105,6 +105,13 @@ from rec_problems_more import add  # noqa: E402
 add(prob)
 
 
+def norm_io(s):
+    """normalizeOutput of src/lib/recruitment/c-problem.ts: CRLF is LF, trailing blanks and trailing blank lines go"""
+    s = s.replace("\r\n", "\n").replace("\r", "\n")
+    s = "\n".join(re.sub(r"[ \t]+$", "", line) for line in s.split("\n"))
+    return re.sub(r"\n+$", "", s)
+
+
 def run_all():
     out = []
     with tempfile.TemporaryDirectory() as d:
@@ -121,8 +128,21 @@ def run_all():
                 if r.returncode:
                     sys.exit(f"{p['title']}: reference failed on {inp!r}")
                 tests.append(dict(input=inp, output=r.stdout))
-            if len({t["input"] for t in tests}) != len(tests):
-                sys.exit(f"{p['title']}: two tests share an input")
+            # The app refuses a problem whose hidden test reuses a shown sample, or two tests with one input,
+            # judged the way validateProblem does (line endings and trailing blanks do not count).
+            keys = [norm_io(t["input"]) for t in tests]
+            if len(set(keys)) != len(keys):
+                dup = sorted({k for k in keys if keys.count(k) > 1})
+                sys.exit(f"{p['title']}: two inputs are the same once normalized (a sample reused as a hidden test?): {dup!r}")
+            if not 1 <= p["samples"] <= 4:
+                sys.exit(f"{p['title']}: {p['samples']} samples, the app takes 1 to 4")
+            if not 3 <= len(tests) - p["samples"] <= 40:
+                sys.exit(f"{p['title']}: {len(tests) - p['samples']} hidden tests, the app takes 3 to 40")
+            for t in tests:
+                if not t["output"].strip():
+                    sys.exit(f"{p['title']}: the reference printed nothing for {t['input']!r}")
+                if len(t["input"]) > 4000 or len(t["output"]) > 4000:
+                    sys.exit(f"{p['title']}: a test is over 4000 characters")
             out.append(dict(
                 title=p["title"], tier=p["tier"],
                 body=dict(statement=p["brief"], input=p["inp"], output=p["out"], starter=STARTER),

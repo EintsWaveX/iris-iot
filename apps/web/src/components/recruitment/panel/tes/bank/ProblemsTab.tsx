@@ -32,6 +32,7 @@ import { usePoll } from "../../../../../lib/hooks";
 import {
   C_LIMITS,
   DEFAULT_STARTER,
+  repairHiddenTests,
   validateProblem,
   type CProblemDraft,
 } from "../../../../../lib/recruitment/c-problem";
@@ -292,6 +293,7 @@ function Editor({
   const [check, setCheck] = useState<ProblemCheck | null>(null);
   const [busy, setBusy] = useState(false);
   const [problems, setProblems] = useState<string[]>([]);
+  const problemsBox = useRef<HTMLDivElement>(null);
   const [ask, setAsk] = useState(false);
   const [tab, setTab] = useState<EdTab>("soal");
   const [pickOpen, setPickOpen] = useState(false);
@@ -358,15 +360,51 @@ function Editor({
   const tierPts = config.config.livecode.points[draft.tier];
   const points = draft.body.points ?? tierPts;
 
+  /** `tests.0` reads "Test tersembunyi 1"; the other fields use the label the form shows */
+  function fieldName(f: string): string {
+    const m = /^(samples|tests)\.(\d+)/.exec(f);
+    if (m) return `${m[1] === "samples" ? t.fSamples : t.fTests} ${Number(m[2]) + 1}`;
+    const named: Record<string, string> = {
+      title: t.fTitle,
+      tier: t.fTier,
+      "body.statement": t.fStatement,
+      "body.input": t.fInput,
+      "body.output": t.fOutput,
+      "body.starter": t.fStarter,
+      "body.points": t.fPoints,
+      "limits.timeMs": t.fTime,
+      "limits.memKb": t.fMem,
+      samples: t.fSamples,
+      tests: t.fTests,
+      reference: t.fReference,
+    };
+    return named[f] ?? f;
+  }
+
+  /**
+   * Show what is wrong where the Akademik will see it (5 Nov 2026 fix: Check on the Reference Solution
+   * tab only toasted "Isinya belum benar" while the list sat out of view at the top of the editor).
+   * The toast names the first problem, the editor opens the tab that holds it and the list scrolls in.
+   */
   function explain(errs: { field: string; kode: string }[]) {
-    setProblems(errs.map((e) => `${e.field}: ${t.field[e.kode] ?? e.kode}`));
+    const lines = errs.map((e) => `${fieldName(e.field)}: ${t.field[e.kode] ?? e.kode}`);
+    setProblems(lines);
+    const f = errs[0]?.field ?? "";
+    setTab(/^(samples|tests)/.test(f) ? "tests" : f === "reference" ? "key" : "soal");
+    window.setTimeout(
+      () => problemsBox.current?.scrollIntoView({ block: "center", behavior: "smooth" }),
+      0,
+    );
+    toast(
+      lines.length > 1 ? `${lines[0]} (+${lines.length - 1})` : (lines[0] ?? t.err.format_salah),
+      "danger",
+    );
   }
 
   async function save(ready: boolean): Promise<number | null> {
     const errs = validateProblem(draft);
     if (errs.length) {
       explain(errs);
-      toast(t.err.format_salah, "danger");
       return null;
     }
     setProblems([]);
@@ -380,8 +418,8 @@ function Editor({
     setBusy(false);
     if (isFail(r)) {
       const e = (r as { errors?: { field: string; kode: string }[] }).errors;
-      if (e) explain(e);
-      toast(t.err[r.kode] ?? t.err.other, "danger");
+      if (e?.length) explain(e);
+      else toast(t.err[r.kode] ?? t.err.other, "danger");
       return null;
     }
     apply({ ...r, check });
@@ -497,6 +535,10 @@ function Editor({
     </section>
   );
 
+  /** a hidden test repeats a sample or another test: the one fault the editor can mend by itself */
+  const repeated =
+    problems.length > 0 &&
+    validateProblem(draft).some((e) => e.kode === "tes_sama_contoh" || e.kode === "tes_kembar");
   const verified = meta.checkOk === true;
   const keyTone = verified ? "ok" : meta.checkOk === false ? "danger" : "warn";
   const keyWord = verified ? t.keyOk : meta.checkOk === false ? t.keyBad : t.keyNo;
@@ -611,13 +653,28 @@ function Editor({
         </div>
       )}
       {problems.length > 0 && (
-        <div className="rec-note rec-note--warn" role="alert">
+        <div className="rec-note rec-note--warn" role="alert" ref={problemsBox}>
           <b>{t.problemsHead}</b>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {problems.map((p) => (
               <li key={p}>{p}</li>
             ))}
           </ul>
+          {!lock && repeated && (
+            <button
+              type="button"
+              className="btn btn--sm btn--inverse"
+              style={{ justifySelf: "start" }}
+              onClick={() => {
+                const fix = repairHiddenTests(draft);
+                set({ tests: fix.tests });
+                setProblems([]);
+                toast(t.fixTestsDone(fix.dropped));
+              }}
+            >
+              {t.fixTests}
+            </button>
+          )}
         </div>
       )}
       {ask && (

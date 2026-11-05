@@ -15,6 +15,7 @@ import {
   asisten,
   recAnswer,
   recCandidate,
+  recCProblem,
   recEdition,
   recExamConfig,
   recExamRoom,
@@ -26,6 +27,7 @@ import {
 import { DEFAULT_EXAM_CONFIG, type ExamConfig } from "../../src/lib/recruitment/exam-types";
 import { newRoomState } from "../../src/lib/recruitment/room";
 import { parseBank } from "../../src/lib/recruitment/bank-io";
+import { SEED_PROBLEMS } from "../../src/lib/recruitment/seed-problems";
 import { readFileSync } from "node:fs";
 
 process.env.SESSION_SECRET = "x".repeat(40);
@@ -42,6 +44,7 @@ const nama = new Map<unknown, string>([
   [recAnswer, "answer"],
   [recExamSeat, "seat"],
   [recScoreFreeze, "freeze"],
+  [recCProblem, "problem"],
 ]);
 
 let rows: Rows = {};
@@ -781,6 +784,71 @@ describe("bank-seed", () => {
     expect(up).toHaveLength(1);
     expect(up[0].nilai).toMatchObject({ format: "match", updatedBy: expect.any(String) });
     expect(tulis.filter((w) => w.tabel === "question" && w.op === "delete")).toHaveLength(1);
+  });
+
+  it("mends a Live Coding problem whose hidden tests repeat a shown sample (problem 9 on prod)", async () => {
+    rows.question = [];
+    const seed = SEED_PROBLEMS.find((p) => p.title === "Jumlah Dua Bilangan")!;
+    const stale = {
+      id: 9,
+      editionId: 1,
+      title: seed.title,
+      tier: seed.tier,
+      body: seed.body,
+      limits: seed.limits,
+      samples: seed.samples,
+      // the old list: the two samples were also the first two hidden tests
+      tests: [...seed.samples, ...seed.tests.slice(0, 4)],
+      reference: seed.reference,
+      status: "draft",
+      version: 6,
+      sample: false,
+      shownAt: null,
+      checkOk: true,
+    };
+    const dealt = { ...stale, id: 10, title: "Dibagikan", shownAt: new Date() };
+    rows.problem = [stale, dealt];
+    const r = await jalan("bank-seed", AKD, {});
+    expect(r.status).toBe(200);
+    expect(r.body.mended).toBe(1);
+    const fix = tulis.filter((w) => w.tabel === "problem" && w.op === "update");
+    expect(fix).toHaveLength(1);
+    const nilai = fix[0].nilai as { tests: { input: string }[]; version: number };
+    expect(nilai.version).toBe(7);
+    expect(nilai.tests).toHaveLength(6);
+    const shown = new Set(seed.samples.map((x) => x.input));
+    expect(nilai.tests.filter((x) => shown.has(x.input))).toEqual([]);
+    expect(nilai.tests.map((x) => x.input)).toEqual(
+      expect.arrayContaining(seed.tests.slice(0, 4).map((x) => x.input)),
+    );
+  });
+
+  it("leaves a custom reference alone: only the repeats go, and too few left sends it back to draft", async () => {
+    rows.question = [];
+    const seed = SEED_PROBLEMS.find((p) => p.title === "Jumlah Dua Bilangan")!;
+    rows.problem = [
+      {
+        id: 11,
+        editionId: 1,
+        title: seed.title,
+        tier: seed.tier,
+        body: seed.body,
+        limits: seed.limits,
+        samples: seed.samples,
+        tests: [...seed.samples, seed.tests[0]],
+        reference: "int main(void){return 0;}",
+        status: "ready",
+        version: 2,
+        sample: false,
+        shownAt: null,
+        checkOk: true,
+      },
+    ];
+    const r = await jalan("bank-seed", AKD, {});
+    expect(r.body.mended).toBe(1);
+    const fix = tulis.find((w) => w.tabel === "problem" && w.op === "update")!;
+    expect(fix.nilai).toMatchObject({ status: "draft", checkOk: null, version: 3 });
+    expect((fix.nilai as { tests: unknown[] }).tests).toHaveLength(1);
   });
 });
 

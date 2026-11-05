@@ -122,6 +122,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
       skipped: number;
       updated?: number;
       removed?: number;
+      mended?: number;
       failed: string[];
     }>("bank-seed", {});
     setSeeding(false);
@@ -130,6 +131,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
       r.failed.length ? t.seedFail : t.seeded(r.created, r.skipped, r.updated, r.removed),
       r.failed.length ? "warn" : "ok",
     );
+    if (r.mended) toast(t.mended(r.mended), "ok");
     config.refresh();
     questions.refresh();
   }
