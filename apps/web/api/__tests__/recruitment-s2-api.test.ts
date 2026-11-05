@@ -1099,6 +1099,58 @@ describe("QR attendance", () => {
       expect((await panggil("POST", "qr-test-reset", { body: { event: "x" } })).code).toBe(400);
       expect((await panggil("POST", "qr-test-reset", { body: { event: 99999 } })).code).toBe(404);
     });
+
+    // A Google Form QR (mode "luar") keeps nothing in IRIS, but it hides its QR and its Latest Scans list until
+    // attendance opens, so test mode has to open the wall for it too (the user's Forms test, 5 Nov 2026).
+    describe("with a Google Form QR", () => {
+      const lijst = async () => {
+        const r = await panggil("GET", "qr-events");
+        return (r.body as { events: Record<string, unknown>[] }).events.find(
+          (e) => e.id === FIRST_MEET,
+        );
+      };
+      const form = (uji: boolean) => {
+        qrSetting = {
+          [String(FIRST_MEET)]: {
+            mode: "luar",
+            link: "https://forms.gle/abc",
+            sheet: "",
+            ...(uji ? { uji: true } : {}),
+          },
+        };
+      };
+
+      it("keeps the wall closed before the window when the mode is off", async () => {
+        pada("2026-11-12T19:00:00");
+        panitia("acara");
+        rows.candidate = [];
+        form(false);
+        expect(await lijst()).toMatchObject({ qr: { mode: "luar" }, open: false, test: false });
+      });
+
+      it("opens the wall before the window when the mode is on", async () => {
+        pada("2026-11-12T19:00:00");
+        panitia("acara");
+        rows.candidate = [];
+        form(true);
+        expect(await lijst()).toMatchObject({
+          qr: { mode: "luar" },
+          live: true,
+          open: true,
+          test: true,
+          testCount: 0,
+        });
+      });
+
+      it("never hands out an IRIS token for a Form QR, test mode or not", async () => {
+        pada("2026-11-12T19:00:00");
+        panitia("acara");
+        rows.candidate = [];
+        form(true);
+        const r = await panggil("GET", "qr-token", { query: { event: String(FIRST_MEET) } });
+        expect(r.body.kode).toBe("qr_luar");
+      });
+    });
   });
 });
 

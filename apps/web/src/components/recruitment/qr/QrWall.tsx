@@ -236,11 +236,13 @@ export default function QrWall({ lang }: { lang: Lang }) {
         </button>
       )
     ) : null;
+  // A Google Form QR still writes to the form's own sheet in a test, so its banner says to clean that up
+  const bannerUji = luar ? t.luar.testBannerLuar : t.luar.testBanner;
   const baris = !aktif
     ? []
     : [
         // Test mode: the strip says so too, so nobody takes a test run for the real thing
-        ...(aktif.test ? [t.luar.testBanner] : []),
+        ...(aktif.test ? [bannerUji] : []),
         ...(tutupAkhir
           ? belum
             ? t.tickSoonAkhir(judulAcara(aktif, lang), jamBuka)
@@ -338,7 +340,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
               {kapanAcara(aktif, lang)}
               {aktif.place ? ` · ${tempatAcara(aktif.place, lang)}` : ""}
             </span>
-            {aktif.test && <p className="r2proj__testnote">{t.luar.testBanner}</p>}
+            {aktif.test && <p className="r2proj__testnote">{bannerUji}</p>}
             {tutupAkhir ? (
               <div className="r2proj__how">
                 <span>{belum ? t.soonHintAkhir(jamBuka) : t.waitHint(jamBuka)}</span>

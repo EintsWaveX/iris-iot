@@ -227,17 +227,19 @@ export default function QrAtur({
               )}
             </>
           )}
-          {mode === "iris" && (
-            <section className="r2proj__uji" aria-label={t.testTitle}>
-              <Switch
-                on={uji}
-                onChange={(v) => void ubahUji(v)}
-                label={t.testSwitch}
-                showLabel
-                busy={sibukUji}
-                disabled={sibukUji}
-              />
-              <p className="hint">{t.testHint}</p>
+          {/* Test mode works for both QRs. It follows the saved QR (modeAwal), not the draft above, because the switch
+              saves at once. A Google Form keeps nothing in IRIS, so there is nothing to count or reset for it. */}
+          <section className="r2proj__uji" aria-label={t.testTitle}>
+            <Switch
+              on={uji}
+              onChange={(v) => void ubahUji(v)}
+              label={t.testSwitch}
+              showLabel
+              busy={sibukUji}
+              disabled={sibukUji}
+            />
+            <p className="hint">{modeAwal === "luar" ? t.testHintLuar : t.testHint}</p>
+            {modeAwal === "iris" && (
               <div className="r2proj__ujirow">
                 <span className="hint" aria-live="polite">
                   {t.testCount(ujiCount)}
@@ -251,9 +253,11 @@ export default function QrAtur({
                   <span className="btn__label">{t.testReset}</span>
                 </button>
               </div>
-              {uji && <p className="hint">{t.testOffNote}</p>}
-            </section>
-          )}
+            )}
+            {uji && (
+              <p className="hint">{modeAwal === "luar" ? t.testOffNoteLuar : t.testOffNote}</p>
+            )}
+          </section>
           {salah && (
             <span className="field__error" role="alert">
               {salah}

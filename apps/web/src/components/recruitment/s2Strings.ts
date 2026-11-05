@@ -554,6 +554,12 @@ export const S2 = dict({
           "Buat nyoba QR dan absensi sebelum jamnya tiba. Selama menyala, QR langsung tampil dan CaAs yang scan dicatat sebagai data uji, bukan kehadiran asli.",
         testOffNote:
           "Begitu dimatikan, semua data uji ikut terhapus, jadi absensi asli mulai dari nol.",
+        testHintLuar:
+          "Buat nyoba tampilan QR Google Form dan daftar Terakhir Scan sebelum jamnya tiba. Selama menyala, QR form langsung tampil.",
+        testOffNoteLuar:
+          "Isian yang masuk lewat form tetap tersimpan di spreadsheet-nya. Hapus sendiri baris ujinya di sana sebelum acara.",
+        testBannerLuar:
+          "Ini uji coba. Isian form tetap masuk ke spreadsheet, hapus baris ujinya sebelum acara.",
         testCount: (n: number) => (n === 0 ? "Belum ada data uji." : `${n} data uji tersimpan.`),
         testReset: "Reset Data Uji",
         testResetAsk: "Hapus semua data uji?",
@@ -1191,6 +1197,12 @@ export const S2 = dict({
           "Try the QR and attendance before the real time. While it is on, the QR shows right away and every CaAs who scans is saved as test data, not real attendance.",
         testOffNote:
           "Turning it off deletes all the test data too, so the real attendance starts from zero.",
+        testHintLuar:
+          "Try the Google Form QR and the Latest Scans list before the real time. While it is on, the form's QR shows right away.",
+        testOffNoteLuar:
+          "Anything sent through the form stays in its spreadsheet. Delete the test rows there yourself before the event.",
+        testBannerLuar:
+          "This is a test. Form entries still go to the spreadsheet, so delete the test rows before the event.",
         testCount: (n: number) => (n === 0 ? "No test data yet." : `${n} test scans saved.`),
         testReset: "Reset Test Data",
         testResetAsk: "Delete all the test data?",
@@ -1796,6 +1808,10 @@ export const S2 = dict({
         testHint:
           "在正式时间之前试一试二维码和签到。打开后二维码立刻显示，扫码的 CaAs 会被记为测试数据，不算真正的到场。",
         testOffNote: "关闭时所有测试数据也会被删除，所以正式签到从零开始。",
+        testHintLuar:
+          "在正式时间之前试一试 Google 表单二维码和“最近扫码”列表。打开后表单二维码立刻显示。",
+        testOffNoteLuar: "通过表单提交的内容仍保存在它的电子表格里，请在活动前自己删除测试行。",
+        testBannerLuar: "这是测试。表单提交的内容仍会进入电子表格，请在活动前删除测试行。",
         testCount: (n: number) => (n === 0 ? "还没有测试数据。" : `已保存 ${n} 条测试数据。`),
         testReset: "重置测试数据",
         testResetAsk: "删除所有测试数据？",
