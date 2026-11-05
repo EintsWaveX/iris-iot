@@ -475,7 +475,9 @@ export async function handleHadir(req: ApiRequest, res: ApiResponse, s: SessionP
   const hasil = await muatHasilBanyak(db, [k.id]);
   const st = standing(k, hasil.get(k.id) ?? [], events, now);
   if (!attendEligible(st, e.stage)) return void tolak(res, "bukan_tahapmu", 403);
-  if (eventKerjaTubes(e)) {
+  if (bebas()) {
+    // Free mode (Mode Latihan): any evening, with or without the seat or the Tubes session.
+  } else if (eventKerjaTubes(e)) {
     // Only on the evening the team picked.
     const t = await anggotaSesiHariIni(db, edisi.id, tanggalWib(now).tanggal);
     if (!t.hariIni.has(k.id))
@@ -677,7 +679,8 @@ export async function handleHadirManual(req: ApiRequest, res: ApiResponse, s: Se
     return void res.status(200).json({ ok: true, present: false });
   }
   // Marking someone before the event began makes no sense.
-  if (e.startsOn > tanggalWib(now).tanggal) return void tolak(res, "jendela_tutup", 409);
+  if (e.startsOn > tanggalWib(now).tanggal && !bebas())
+    return void tolak(res, "jendela_tutup", 409);
   if (!ada) {
     await db
       .insert(recAttendance)

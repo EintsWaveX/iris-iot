@@ -60,6 +60,7 @@ import {
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatEvents, muatKolam, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { anggotaPanitia, muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
@@ -428,6 +429,14 @@ async function handleMine(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
 
 /* ---------------------------------------------------------------- sheet */
 
+/** A locked stage closes its sheets for writing; free mode (Mode Latihan) keeps them open. */
+export const sheetTertutup = (tulis: boolean, terkunci: boolean): boolean =>
+  tulis && terkunci && !bebas();
+
+/** A sheet goes in only when no level is missing; free mode lets it go as it is. */
+export const sheetBolehKirim = (kurang: readonly unknown[]): boolean =>
+  kurang.length === 0 || bebas();
+
 interface Akses {
   t: IvTemplate;
   edisiId: number;
@@ -482,7 +491,7 @@ async function bukaAkses(
     .where(and(eq(recStageResult.candidateId, k.id), eq(recStageResult.stage, stageRaw)))
     .limit(1);
   const terkunci = !!hasil?.locked;
-  if (tulis && terkunci) {
+  if (sheetTertutup(tulis, terkunci)) {
     tolak(res, "terkunci", 409);
     return null;
   }
@@ -766,7 +775,7 @@ async function handleSheetSend(req: ApiRequest, res: ApiResponse, s: SessionPayl
     { levels: mine?.levels ?? {}, concl: shared?.concl ?? {}, verdict: shared?.verdict ?? null },
     a.t.params,
   );
-  if (kurang.length) return void tolak(res, "belum_lengkap", 409, { kurang });
+  if (!sheetBolehKirim(kurang)) return void tolak(res, "belum_lengkap", 409, { kurang });
   const now = new Date();
   await db
     .update(recSheet)

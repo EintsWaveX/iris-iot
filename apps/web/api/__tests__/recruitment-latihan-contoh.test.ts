@@ -3,7 +3,7 @@
  * They do nothing outside a practice context.
  */
 import { describe, expect, it } from "vitest";
-import { lengkapiUsulan, pastikanHasil } from "../_lib/recruitment-latihan-contoh";
+import { lengkapiUsulan, pastikanHasil, pastikanTawaran } from "../_lib/recruitment-latihan-contoh";
 import { jalankanLatihan, type KonteksLatihan } from "../_lib/recruitment-latihan-ctx";
 
 const konteks: KonteksLatihan = {
@@ -95,6 +95,32 @@ describe("pastikanHasil", () => {
     const { db, tulis } = fakeDb([{ id: 3, proposal: "gagal", locked: true }]);
     await dalamLatihan(() => pastikanHasil(db, 7, "berkas", "101022300900"));
     await dalamLatihan(() => pastikanHasil(db, 7, "berkas", "101022300900"));
+    expect(tulis).toEqual([]);
+  });
+});
+
+describe("pastikanTawaran", () => {
+  it("does nothing outside practice", async () => {
+    const { db, tulis } = fakeDb([]);
+    await pastikanTawaran(db, 7, "wawancara", "101022300900");
+    expect(tulis).toEqual([]);
+  });
+
+  it("makes the Susulan offer when there is none", async () => {
+    const { db, tulis } = fakeDb([]);
+    await dalamLatihan(() => pastikanTawaran(db, 7, "wawancara", "101022300900"));
+    expect(tulis).toHaveLength(1);
+    expect(tulis[0].nilai).toMatchObject({
+      candidateId: 7,
+      stage: "wawancara",
+      offeredBy: "101022300900",
+    });
+    expect(tulis[0].konflik).toBe(true);
+  });
+
+  it("leaves an existing offer alone", async () => {
+    const { db, tulis } = fakeDb([{ id: 5 }]);
+    await dalamLatihan(() => pastikanTawaran(db, 7, "wawancara", "101022300900"));
     expect(tulis).toEqual([]);
   });
 });

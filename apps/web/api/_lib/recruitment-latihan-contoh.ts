@@ -4,7 +4,8 @@
  * row, is safe to call twice, and does nothing at all outside a practice context.
  */
 import { and, eq, inArray } from "drizzle-orm";
-import { recStageResult } from "../../src/lib/schema.js";
+import { recMakeup, recStageResult } from "../../src/lib/schema.js";
+import type { MakeupStage } from "../../src/lib/recruitment/makeup.js";
 import type { CutStage } from "../../src/lib/recruitment/types.js";
 import type { Db } from "./recruitment-data.js";
 import { konteksLatihan } from "./recruitment-latihan-ctx.js";
@@ -98,4 +99,24 @@ export async function lengkapiUsulan(
         .set({ proposal: "lolos", proposedBy: oleh })
         .where(eq(recStageResult.id, r.id));
   }
+}
+
+/** The Susulan offer a CaAs has none of yet, so an answer, a record or a retract has something to work on. */
+export async function pastikanTawaran(
+  db: Q,
+  kandidatId: number,
+  stage: MakeupStage,
+  oleh: string,
+): Promise<void> {
+  if (!konteksLatihan()) return;
+  const [ada] = await db
+    .select({ id: recMakeup.id })
+    .from(recMakeup)
+    .where(and(eq(recMakeup.candidateId, kandidatId), eq(recMakeup.stage, stage)))
+    .limit(1);
+  if (ada) return;
+  await db
+    .insert(recMakeup)
+    .values({ candidateId: kandidatId, stage, offeredBy: oleh })
+    .onConflictDoNothing();
 }
