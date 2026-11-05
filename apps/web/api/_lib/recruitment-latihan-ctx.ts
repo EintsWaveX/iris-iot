@@ -8,6 +8,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { EditionInfo } from "../../src/lib/recruitment/types.js";
 import type { LatihanMode } from "../../src/lib/recruitment/latihan.js";
+import { setBebasHook } from "../../src/lib/recruitment/bebas.js";
 
 export interface KonteksLatihan {
   mode: LatihanMode;
@@ -20,5 +21,8 @@ export interface KonteksLatihan {
 const als = new AsyncLocalStorage<KonteksLatihan>();
 
 export const konteksLatihan = (): KonteksLatihan | undefined => als.getStore();
+
+// Free mode on the server is exactly "this request is inside a practice context".
+setBebasHook(() => als.getStore() !== undefined);
 
 export const jalankanLatihan = <T>(k: KonteksLatihan, fn: () => T): T => als.run(k, fn);

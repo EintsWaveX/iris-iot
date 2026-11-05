@@ -10,6 +10,8 @@
  */
 import { usePoll, usePollBersama } from "../hooks";
 import type { Topik } from "../siaran";
+import { setBebasHook } from "./bebas";
+import { modeDariCookie } from "./latihan";
 import type {
   AccountResponse,
   SettingsResponse,
@@ -30,6 +32,10 @@ import type {
   RecError,
   StageKey,
 } from "./types";
+
+// Free mode on the page: the practice cookie is on. Every recruitment page loads this file, so the
+// shared rule functions answer the same way here as on the server. The cookie is read on each call.
+if (typeof document !== "undefined") setBebasHook(() => modeDariCookie(document.cookie) !== null);
 
 export interface RecFail {
   ok: false;
