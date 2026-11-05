@@ -170,3 +170,22 @@ describe("validateConfig (scores and Live Coding)", () => {
     ]);
   });
 });
+
+describe("validateConfig agrees with what upgradeConfig reads back", () => {
+  it("rejects values above the readable range instead of letting them fall back to defaults", () => {
+    const c = fresh();
+    c.budgetMin = 700;
+    c.livecode.runLimit = 150;
+    c.livecode.draw.easy = 12;
+    c.parts.logika.shown = 250;
+    c.parts.logika.pool = 450;
+    expect(fields(c)).toEqual(
+      expect.arrayContaining([
+        "budgetMin:menit_salah",
+        "livecode.runLimit:batas_salah",
+        "livecode.draw.easy:jumlah_salah",
+        "parts.logika.counts:jumlah_salah",
+      ]),
+    );
+  });
+});

@@ -221,7 +221,14 @@ export function validateConfig(c: ExamConfig): FieldError[] {
     }
     if (!Number.isInteger(p.minutes) || p.minutes < 1 || p.minutes > 60)
       errs.push({ field: `${field}.minutes`, kode: "menit_salah" });
-    if (!Number.isInteger(p.shown) || p.shown < 1 || !Number.isInteger(p.pool) || p.pool < p.shown)
+    if (
+      !Number.isInteger(p.shown) ||
+      p.shown < 1 ||
+      p.shown > 200 ||
+      !Number.isInteger(p.pool) ||
+      p.pool < p.shown ||
+      p.pool > 400
+    )
       errs.push({ field: `${field}.counts`, kode: "jumlah_salah" });
     if (!Number.isInteger(p.bonusMin) || p.bonusMin < 0 || p.bonusMin > 60)
       errs.push({ field: `${field}.bonusMin`, kode: "menit_salah" });
@@ -229,18 +236,18 @@ export function validateConfig(c: ExamConfig): FieldError[] {
   const lc = c.livecode;
   if (!Number.isInteger(lc?.minutes) || lc.minutes < 10 || lc.minutes > 120)
     errs.push({ field: "livecode.minutes", kode: "menit_salah" });
-  if (!Number.isInteger(c.budgetMin) || c.budgetMin < 1)
+  if (!Number.isInteger(c.budgetMin) || c.budgetMin < 1 || c.budgetMin > 600)
     errs.push({ field: "budgetMin", kode: "menit_salah" });
   if (!Number.isInteger(lc?.bonusMin) || lc.bonusMin < 0 || lc.bonusMin > 120)
     errs.push({ field: "livecode.bonusMin", kode: "menit_salah" });
-  if (!Number.isInteger(lc?.pool) || lc.pool < dealtCount(c))
+  if (!Number.isInteger(lc?.pool) || lc.pool < dealtCount(c) || lc.pool > 100)
     errs.push({ field: "livecode.pool", kode: "jumlah_salah" });
-  if (!Number.isInteger(lc?.runLimit) || lc.runLimit < 0)
+  if (!Number.isInteger(lc?.runLimit) || lc.runLimit < 0 || lc.runLimit > 100)
     errs.push({ field: "livecode.runLimit", kode: "batas_salah" });
   if (!Number.isInteger(lc?.workers) || lc.workers < 1 || lc.workers > 16)
     errs.push({ field: "livecode.workers", kode: "jumlah_salah" });
   for (const t of TIERS) {
-    if (!Number.isInteger(lc?.draw?.[t]) || lc.draw[t] < 0)
+    if (!Number.isInteger(lc?.draw?.[t]) || lc.draw[t] < 0 || lc.draw[t] > 10)
       errs.push({ field: `livecode.draw.${t}`, kode: "jumlah_salah" });
     if (!Number.isInteger(lc?.points?.[t]) || lc.points[t] < 1)
       errs.push({ field: `livecode.points.${t}`, kode: "poin_salah" });

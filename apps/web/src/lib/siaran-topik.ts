@@ -248,6 +248,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:test-hotspot": [],
   "recruitment:test-bonus": [],
   "recruitment:lcc-send": ["recjudge"],
+  "recruitment:lcc-flush": ["recjudge", "recscore"],
   "recruitment:lcc-bonus": [],
   "recruitment:lcc-done": [],
   "recruitment:exam-config-save": ["recbank"],

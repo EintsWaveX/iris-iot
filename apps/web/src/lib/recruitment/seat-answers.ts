@@ -50,6 +50,12 @@ export interface SaveBody {
 
 const DEBOUNCE_MS = 400;
 const RETRY_MS = [2000, 5000, 10_000, 15_000];
+/** Refusals that mean the part is closed to this seat, not that one answer was bad */
+const TIME_REFUSALS: ReadonlySet<string> = new Set([
+  "waktu_habis",
+  "sudah_kumpul",
+  "bagian_ruang_lain",
+]);
 
 export class AnswerSaver {
   private pending = new Map<number, Value>();
@@ -58,6 +64,8 @@ export class AnswerSaver {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private retry = 0;
   private dead = false;
+  /** A refusal since the last clean send was about time */
+  private timeRefused = false;
   private readonly o: {
     seat: number;
     part: PartKey;
@@ -103,20 +111,28 @@ export class AnswerSaver {
     this.plan(DEBOUNCE_MS);
   }
 
-  /** Answers an old page left in storage go out again */
-  resume() {
+  /**
+   * Answers an old page left in storage go out again. Returns them, so the page can show
+   * what it is about to send instead of the older value the server still holds.
+   */
+  resume(): Record<number, Value> {
+    const back: Record<number, Value> = {};
     try {
       const raw = this.o.storage?.getItem(this.key);
-      if (!raw) return;
+      if (!raw) return back;
       for (const [q, v] of Object.entries(JSON.parse(raw) as Record<string, Value>))
-        if (!this.pending.has(Number(q))) this.pending.set(Number(q), v);
+        if (!this.pending.has(Number(q))) {
+          this.pending.set(Number(q), v);
+          back[Number(q)] = v;
+        }
     } catch {
-      return;
+      return back;
     }
     if (this.pending.size) {
       this.o.onState("ing");
       this.plan(DEBOUNCE_MS);
     }
+    return back;
   }
 
   /**
@@ -179,6 +195,7 @@ export class AnswerSaver {
       else {
         this.pending.delete(q);
         refused = true;
+        if (TIME_REFUSALS.has(r.kode)) this.timeRefused = true;
         this.o.onRefused?.(r.kode);
       }
     }
@@ -193,7 +210,8 @@ export class AnswerSaver {
       this.plan(DEBOUNCE_MS);
     } else {
       this.retry = 0;
-      this.o.onState(refused ? "closed" : "ok");
+      // "Closed" says the part's time is over; any other refusal is told through onRefused.
+      this.o.onState(refused && this.timeRefused ? "closed" : "ok");
     }
   }
 }

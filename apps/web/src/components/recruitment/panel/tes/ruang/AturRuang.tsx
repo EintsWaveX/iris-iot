@@ -8,7 +8,7 @@ import { CheckIcon, PlusIcon } from "@phosphor-icons/react";
 import Drawer from "../../../../ui/Drawer";
 import Pill from "../../../../ui/Pill";
 import TabLine from "../../../../ui/TabLine";
-import { Stepper, Switch } from "../../../../ui/Controls";
+import { Stepper } from "../../../../ui/Controls";
 import { dict } from "../../../../../lib/app";
 import type { Lang } from "../../../../../lib/kelas";
 import { usePoll } from "../../../../../lib/hooks";
@@ -16,6 +16,7 @@ import { isFail, recGet, recPost } from "../../../../../lib/recruitment/client";
 import type { LccRoom } from "../../../../../lib/recruitment/lcc-api";
 import { useRecRoom } from "../../../../../lib/recruitment/room-client";
 import Skeleton from "../../../../ui/Skeleton";
+import { RG } from "./ruangStrings";
 
 const W = dict({
   id: {
@@ -187,7 +188,11 @@ export default function AturRuang({
       pengawas: next,
     });
     setBusy(false);
-    if (isFail(r)) return void window.Toast?.show(t.fail, "danger");
+    if (isFail(r)) {
+      window.Toast?.show(RG[lang].setup.bad[r.kode] ?? t.fail, "danger");
+      rv.refresh();
+      return;
+    }
     window.Toast?.show(t.saved, "ok");
     rv.refresh();
     refresh();
@@ -201,6 +206,7 @@ export default function AturRuang({
       description={v?.room.title}
       storeKey="rec-aturruang"
       minWidth={420}
+      compact
       closeLabel={t.close}
       resizeLabel={t.resize}
       foot={
@@ -224,26 +230,14 @@ export default function AturRuang({
         ) : tab === "pengawas" ? (
           <>
             <span className="hint">{t.lede}</span>
-            <div className="r6set">
-              <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-                <b>{t.practice}</b>
-                <span className="hint">{t.practiceHint}</span>
-              </span>
-              <Switch
-                on={v.room.rehearsal}
-                label={t.practice}
-                disabled
-                onChange={() => undefined}
-              />
-            </div>
-            <ul className="r3pick" role="group" aria-label={t.tabPengawas}>
+            <ul className="n7-pengpick" role="group" aria-label={t.tabPengawas}>
               {people.map((p) => {
                 const on = pilih.includes(p.nim);
                 return (
                   <li key={p.nim}>
                     <button
                       type="button"
-                      className="r3pick__row"
+                      className="n7-pengpick__row"
                       aria-pressed={on}
                       disabled={busy || selesai}
                       onClick={() => void ubah(p.nim)}
@@ -281,7 +275,7 @@ export default function AturRuang({
               </div>
               <div className="rec-sum">
                 <span className="hint">{t.workers}</span>
-                <span className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+                <span className="row" style={{ gap: 8, flexWrap: "wrap" }}>
                   {juri.data?.info.canWorkers ? (
                     <Stepper
                       value={workers ?? juri.data.info.workers}

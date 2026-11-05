@@ -85,8 +85,10 @@ export function useLockdown(o: {
           body: JSON.stringify(body),
           keepalive: true,
         });
-        // A refusal is final; only a lost connection or a server error is tried again.
-        if (r.ok || (r.status >= 400 && r.status < 500)) queue.current.delete(id);
+        // A refusal is final; a lost connection, a server error, a timeout (408) or a rate limit (429)
+        // is tried again, so a strike never vanishes just because the line was busy.
+        if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429))
+          queue.current.delete(id);
       } catch {
         /* offline: it stays queued */
       }

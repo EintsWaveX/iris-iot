@@ -168,6 +168,8 @@ function HapusRuang({
                   : t.fail,
               "danger",
             );
+            // Already gone (someone else deleted it): the list is stale, so reload it.
+            if (r.kode === "tidak_ditemukan") done();
             return false;
           }
           toast(t.done);
@@ -204,7 +206,6 @@ function UbahRuang({
       slotId: room.slot?.id,
       rehearsal: room.rehearsal,
       title: nama.trim(),
-      ...(room.slot ? { pengawas: room.pengawas.map((p) => p.nim) } : {}),
     });
     setSibuk(false);
     if (isFail(r)) return toast(k.fail, "danger");
@@ -322,12 +323,16 @@ function Daftar({
   };
   async function siapkan(body: Record<string, unknown>) {
     setSibuk(true);
-    const r = await recPost<{ ok: true; room: { id: number } }>("room-setup", {
-      pengawas: [],
-      ...body,
-    });
+    // No `pengawas` here: preparing a room must never wipe the ones already plotted.
+    const r = await recPost<{
+      ok: true;
+      room: { id: number };
+      peserta?: { noCandidate: string[]; busy: string[] };
+    }>("room-setup", body);
     setSibuk(false);
     if (isFail(r)) return toast(RG[lang].con.fail, "danger");
+    if (r.peserta?.noCandidate.length) toast(m.noCand(r.peserta.noCandidate.length), "warn");
+    if (r.peserta?.busy.length) toast(m.joinBusy(r.peserta.busy.length), "warn");
     refresh();
     buka(r.room.id);
   }
@@ -596,7 +601,11 @@ function Daftar({
                 disabled={sibuk}
                 onClick={() => {
                   setDlg(null);
-                  void siapkan({ rehearsal: true, title: m.practiceRoom, pengawas: orang });
+                  void siapkan({
+                    rehearsal: true,
+                    title: m.practiceTitle(latihan.length + 1),
+                    peserta: orang,
+                  });
                 }}
               >
                 <SparkleIcon size={18} aria-hidden="true" />
@@ -830,7 +839,7 @@ function Ruang({
         {bagian === "atur" && v.me.canSetup ? (
           <RuangPengaturan lang={lang} v={v} people={people} refresh={refresh} />
         ) : bagian === "nilai" && v.state.runs.livecode ? (
-          <JudgeTab lang={lang} roomId={id} />
+          <JudgeTab lang={lang} roomId={id} selesai={rv.view === "finished"} />
         ) : (
           <Konsol
             lang={lang}

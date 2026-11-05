@@ -63,7 +63,7 @@ export const PN = dict({
         : b.kode === "ruang_belum_selesai"
           ? `${b.rooms} ruang belum ditutup dengan Selesai.`
           : b.kode === "nilai_lc_kurang"
-            ? `${b.seats} peserta belum punya dua lembar nilai Live Coding dari dua orang.`
+            ? `${b.seats} peserta masih menunggu judge untuk Live Coding. Tunggu judge hidup, atau buka ruangnya, tab Penilaian, lalu Tutup Antrean.`
             : b.kode === "slot_tanpa_ruang"
               ? `${b.slots} malam Tes Tulis punya peserta tapi belum punya ruang.`
               : b.kode === "peserta_tanpa_kursi"
@@ -186,7 +186,7 @@ export const PN = dict({
         : b.kode === "ruang_belum_selesai"
           ? `${b.rooms} room(s) not closed with Finish yet.`
           : b.kode === "nilai_lc_kurang"
-            ? `${b.seats} candidate(s) still lack two Live Coding sheets from two people.`
+            ? `${b.seats} candidate(s) still wait for the judge on Live Coding. Wait for the judge, or open the room, its Grading tab, and press Close Queue.`
             : b.kode === "slot_tanpa_ruang"
               ? `${b.slots} Written Test evening(s) have candidates but no room yet.`
               : b.kode === "peserta_tanpa_kursi"
@@ -296,7 +296,7 @@ export const PN = dict({
         : b.kode === "ruang_belum_selesai"
           ? `还有 ${b.rooms} 个考场没有点击结束。`
           : b.kode === "nilai_lc_kurang"
-            ? `还有 ${b.seats} 位候选人缺少两人给出的现场编程评分表。`
+            ? `还有 ${b.seats} 位候选人的现场编程仍在等待评测机。请等评测机恢复，或打开该考场的“评分”页并点击“关闭队列”。`
             : b.kode === "slot_tanpa_ruang"
               ? `还有 ${b.slots} 个笔试场次有候选人却还没有考场。`
               : b.kode === "peserta_tanpa_kursi"

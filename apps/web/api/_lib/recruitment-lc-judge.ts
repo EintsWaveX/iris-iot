@@ -70,30 +70,54 @@ export async function judgeSiaga(db: Db): Promise<boolean> {
 const testsOf = (kind: RecCSubmissionRow["kind"], p: { samples: CSample[]; tests: CTest[] }) =>
   kind === "run" ? p.samples : p.tests;
 
+/** A job still waiting this long after its room finished goes down with `judge_mati` (the lab PC never came back). */
+export const JUDGE_TUNGGU_USAI_MS = 15 * 60_000;
+
+/**
+ * Takes back a claimed job that sat too long (once) and fails it the second time. Runs on every
+ * heartbeat, and also from the score reads and the Judge card, since a dead PC sends no heartbeat.
+ */
+export async function sapuKlaim(db: Db, now = Date.now()): Promise<void> {
+  const basi = new Date(now - KLAIM_BASI_MS).toISOString();
+  await db.execute(sql`
+    UPDATE rec_c_submission SET status = 'antre', claimed_at = NULL, server_id = NULL, retried = true
+    WHERE status = 'diambil' AND retried = false AND claimed_at < ${basi}::timestamptz
+  `);
+  await db.execute(sql`
+    UPDATE rec_c_submission SET status = 'gagal', kode = 'agen_diam', finished_at = now()
+    WHERE status = 'diambil' AND retried = true AND claimed_at < ${basi}::timestamptz
+  `);
+}
+
+/**
+ * Fails the jobs of finished rooms that are still waiting for a judge that is not there, so the
+ * scores stop waiting for them and Finalkan is not held up for ever. `paksa` skips the grace time
+ * (the Panitia pressing Tutup Antrean); `roomId` limits it to one room. Returns how many it failed.
+ */
+export async function sapuJudgeMati(
+  db: Db,
+  opt: { now?: number; roomId?: number; paksa?: boolean } = {},
+): Promise<number> {
+  const now = opt.now ?? Date.now();
+  const batas = opt.paksa ? now : now - JUDGE_TUNGGU_USAI_MS;
+  const hasil = await db.execute(sql`
+    UPDATE rec_c_submission s SET status = 'gagal', kode = 'judge_mati', finished_at = now()
+    FROM rec_exam_seat k JOIN rec_exam_room r ON r.id = k.room_id
+    WHERE s.seat_id = k.id AND s.status IN ('antre', 'diambil')
+      AND r.state ->> 'stage' = 'finished'
+      AND (r.state ->> 'finishedAt')::bigint <= ${batas}
+      ${opt.roomId ? sql`AND r.id = ${opt.roomId}` : sql``}
+    RETURNING s.id
+  `);
+  const rows = (hasil as { rows?: unknown[] } | unknown[] | undefined) ?? [];
+  const list = Array.isArray(rows) ? rows : (rows.rows ?? []);
+  return list.length;
+}
+
 /** Takes back what sat too long (once), fails what sat too long twice, then claims up to `free` waiting jobs. */
 export async function ambilJudge(db: Db, serverId: number, free: number): Promise<JudgeJob[]> {
   if (!(await agenBisaJudge(db, serverId))) return [];
-  const basi = new Date(Date.now() - KLAIM_BASI_MS);
-  await db
-    .update(recCSubmission)
-    .set({ status: "antre", claimedAt: null, serverId: null, retried: true })
-    .where(
-      and(
-        eq(recCSubmission.status, "diambil"),
-        eq(recCSubmission.retried, false),
-        sql`${recCSubmission.claimedAt} < ${basi}`,
-      ),
-    );
-  await db
-    .update(recCSubmission)
-    .set({ status: "gagal", kode: "agen_diam", finishedAt: new Date() })
-    .where(
-      and(
-        eq(recCSubmission.status, "diambil"),
-        eq(recCSubmission.retried, true),
-        sql`${recCSubmission.claimedAt} < ${basi}`,
-      ),
-    );
+  await sapuKlaim(db);
   const n = Math.max(0, Math.min(Math.floor(free), 8));
   if (n === 0) return [];
   // MATERIALIZED: a plain IN (subselect with LIMIT) may be run again per row and claim more than n

@@ -64,13 +64,16 @@
 }
 
 /* the problem rail */
+/* Flex and wrap, not five fixed columns: a bonus round deals more than five problems, and the
+   score with its Selesai button needs room, so on a 1280px laptop nothing may be clipped. */
 .lcc-rail {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(180px, 0.9fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: stretch;
 }
 .lcc-tab {
+  flex: 1 1 150px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -131,15 +134,16 @@
   color: var(--warn);
 }
 .lcc-score {
+  flex: 1 1 280px;
   display: flex;
-  align-items: baseline;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 4px 8px;
   padding: 8px 12px;
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   background: var(--surface-1);
-  white-space: nowrap;
 }
 .lcc-score b {
   font-size: 1.5rem;
@@ -387,9 +391,6 @@
 }
 
 @media (max-width: 1100px) {
-  .lcc-rail {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .lcc-grid {
     grid-template-columns: minmax(0, 1fr);
   }

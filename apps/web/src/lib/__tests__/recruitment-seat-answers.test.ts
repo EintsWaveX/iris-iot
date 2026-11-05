@@ -111,9 +111,31 @@ describe("AnswerSaver", () => {
     a.saver.dispose();
     const up = vi.fn(async (): Promise<SaveResult> => ({ ok: true, rev: 1, at: 1 }));
     const b = make(up, storage);
-    b.saver.resume();
+    const back = b.saver.resume();
+    // The page gets the restored answers back so it can show what it is about to send
+    expect(back).toEqual({ 5: { picks: [2] } });
     await vi.advanceTimersByTimeAsync(500);
     expect(up).toHaveBeenCalledWith(expect.objectContaining({ q: 5, value: { picks: [2] } }));
+  });
+
+  it("a refusal that is not about time does not claim the time is over", async () => {
+    const send = vi.fn(async (): Promise<SaveResult> => ({ ok: false, kode: "jawaban_dikunci" }));
+    const onRefused = vi.fn();
+    const states: string[] = [];
+    const saver = new AnswerSaver({
+      seat: 7,
+      part: "logika",
+      tab: "t1",
+      send,
+      storage: memory(),
+      revs: {},
+      onState: (s) => states.push(s),
+      onRefused,
+    });
+    saver.set(5, { pick: "x" });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(onRefused).toHaveBeenCalledWith("jawaban_dikunci");
+    expect(states.at(-1)).toBe("ok");
   });
 
   it("drops a refused answer (time is over) instead of retrying, and says so", async () => {

@@ -109,11 +109,17 @@ export default function Runner({
       revs,
       onState: setSave,
       onWarn: onTwoTabs,
+      // A refused answer is not saved: say why instead of leaving the screen disagreeing with the server.
+      onRefused: (kode) => {
+        if (kode === "offline") return;
+        toast(TS[lang].reason[kode] ?? TS[lang].handIn.fail, "warn");
+      },
     });
     // The saver belongs to the part; a refetch of the same part keeps it.
   }, [seat.id, key]);
   useEffect(() => {
-    saver.resume();
+    const back = saver.resume();
+    if (Object.keys(back).length) setVals((v) => ({ ...v, ...back }));
     const flush = () => {
       if (document.visibilityState === "hidden") void saver.flush();
     };
@@ -244,6 +250,12 @@ export default function Runner({
       setAsk(false);
       setOffer(true);
       onRefresh();
+      return;
+    }
+    // A dropped connection or a server error is not "no bonus": handing in now would lose the
+    // offer without a word. Stay on the confirm so the seat can press Kumpulkan again.
+    if (!r.ok && (r.kode === "offline" || (r.status ?? 0) >= 500)) {
+      toast(t.handIn.fail, "warn");
       return;
     }
     void handIn();

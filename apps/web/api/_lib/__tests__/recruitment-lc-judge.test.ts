@@ -5,7 +5,15 @@
  * queries do (the claim with SKIP LOCKED) is proved on the rig.
  */
 import { describe, expect, it } from "vitest";
-import { kirimKode, terimaHasilJudge } from "../recruitment-lc-judge";
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
+import {
+  JUDGE_TUNGGU_USAI_MS,
+  kirimKode,
+  sapuJudgeMati,
+  sapuKlaim,
+  terimaHasilJudge,
+} from "../recruitment-lc-judge";
 import type { Db } from "../recruitment-data";
 
 type Call = { op: string; set?: unknown; values?: unknown };
@@ -196,5 +204,57 @@ describe("kirimKode", () => {
         code: "int main(){}",
       }),
     ).toEqual({ ok: true, id: 60, replaced: false });
+  });
+});
+
+describe("sapuJudgeMati and sapuKlaim: a judge that never comes back", () => {
+  const dialect = new PgDialect();
+  const teks = (q: unknown) => dialect.sqlToQuery(q as SQL);
+  function merekam(jawab: unknown[]) {
+    const dilihat: { text: string; params: unknown[] }[] = [];
+    const db = {
+      execute: (q: unknown) => {
+        const t = teks(q);
+        dilihat.push({ text: t.sql, params: t.params });
+        return Promise.resolve(jawab.shift() ?? []);
+      },
+    } as unknown as Db;
+    return { db, dilihat };
+  }
+
+  it("fails the waiting jobs of a room finished long enough ago, and counts them", async () => {
+    const { db, dilihat } = merekam([{ rows: [{ id: 1 }, { id: 2 }] }]);
+    const now = 10_000_000;
+    expect(await sapuJudgeMati(db, { now })).toBe(2);
+    expect(dilihat[0].text).toContain("'judge_mati'");
+    expect(dilihat[0].text).toContain("'finished'");
+    expect(dilihat[0].params).toContain(now - JUDGE_TUNGGU_USAI_MS);
+    expect(dilihat[0].text).not.toContain("AND r.id =");
+  });
+
+  it("Tutup Antrean skips the grace time and stays inside one room", async () => {
+    const { db, dilihat } = merekam([[{ id: 5 }]]);
+    const now = 10_000_000;
+    expect(await sapuJudgeMati(db, { now, roomId: 12, paksa: true })).toBe(1);
+    expect(dilihat[0].params).toContain(now);
+    expect(dilihat[0].params).toContain(12);
+    expect(dilihat[0].text).toContain("AND r.id =");
+  });
+
+  it("only ever touches a finished room: the text names that stage and no other", async () => {
+    const { db, dilihat } = merekam([]);
+    await sapuJudgeMati(db);
+    expect(dilihat[0].text).toMatch(/state ->> 'stage' = 'finished'/);
+    expect(dilihat[0].text).toMatch(/status IN \('antre', 'diambil'\)/);
+  });
+
+  it("hands a claim that went quiet back once, then fails it as agen_diam", async () => {
+    const { db, dilihat } = merekam([]);
+    await sapuKlaim(db);
+    expect(dilihat).toHaveLength(2);
+    expect(dilihat[0].text).toContain("retried = false");
+    expect(dilihat[0].text).toContain("'antre'");
+    expect(dilihat[1].text).toContain("retried = true");
+    expect(dilihat[1].text).toContain("'agen_diam'");
   });
 });

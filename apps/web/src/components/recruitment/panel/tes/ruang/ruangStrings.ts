@@ -114,6 +114,8 @@ export const RG = dict({
         noneTitle: "Ruang ini belum punya Master",
         noneBody:
           "Pengawas mana pun yang diplot boleh jadi Master. Hanya satu orang memegang tombol ruang.",
+        noneBodyPractice:
+          "Di ruang latihan, pengawas yang dipilih atau Asisten yang punya akses bisa jadi Master. Hanya satu orang memegang tombol ruang.",
         claim: "Jadi Master",
         now: "Kamu sekarang Master ruang ini.",
         given: "Master diserahkan.",
@@ -157,7 +159,8 @@ export const RG = dict({
         tahap_salah: "Belum bisa di tahap ini.",
         bukan_master: "Hanya Master yang memegang tombol ruang.",
         versi_lama: "Ruang baru saja berubah. Coba lagi.",
-        bank_kurang: "Bank soal belum cukup untuk bagian ini.",
+        bank_kurang:
+          "Soal belum cukup untuk bagian ini. Untuk Live Coding: soal C yang Siap dan sudah lolos Check harus cukup untuk tiap tingkat.",
         kursi_kosong: "Belum ada kursi yang selesai check-in.",
         bukan_hari_ini: "Ruang ini baru bisa dibuka pada hari ujiannya.",
         perlu_waktu: "Bagian yang habis waktunya butuh tambahan di atas 0.",
@@ -254,6 +257,8 @@ export const RG = dict({
         redrawAsk: "Alasannya",
         redrawHint: "Kandidat melihat alasannya dengan kata-kata, tanpa kode Asisten.",
         redrawDone: "Diundi ulang.",
+        redrawConfirm: (n: string) =>
+          `Undi ulang soal Live Coding untuk ${n}? Soal yang sudah dibagikan diganti, dan kiriman ke soal lama tidak ikut dihitung.`,
         notes: "Catatan Pengawas",
         notePh: "Terlihat semua pengawas dan Panitia yang melihat ruang ini",
         noteSave: "Simpan Catatan",
@@ -318,6 +323,7 @@ export const RG = dict({
         title: "Ruang Selesai",
         hint: (t: string) =>
           `Selesai ${t}. Skor tetap sementara sampai Susulan selesai dan Akademik menekan Finalkan.`,
+        hintPractice: (t: string) => `Selesai ${t}. Ruang latihan tidak masuk skor siapa pun.`,
         submitted: "menyerahkan",
         absent: "tidak hadir",
         incidents: "kejadian",
@@ -390,6 +396,10 @@ export const RG = dict({
       pengawas: "Pengawas",
       pengawasHint: "Mereka bisa jadi Master, menilai Live Coding, dan menulis catatan.",
       pengawasNone: "Belum ada pengawas dipilih",
+      participants: "Peserta",
+      participantsHint:
+        "Yang ikut mengerjakan sebagai CaAs contoh. Bisa diubah selama ruang tidak sedang jalan.",
+      participantsNone: "Belum ada peserta di ruang ini",
       pickPengawas: "Pilih pengawas",
       pickAria: "Pengawas ruang",
       practice: "Ruang Latihan",
@@ -399,10 +409,11 @@ export const RG = dict({
       created: "Ruang disiapkan.",
       saved: "Ruang disimpan.",
       practiceNote:
-        "Ruang latihan tidak punya malam sendiri. Kandidat dipindah ke sini dari Plotting atau Pinjaman Kit.",
+        "Ruang latihan tidak punya malam sendiri. Pilih di bawah siapa yang jadi pengawas dan siapa yang ikut mengerjakan.",
       locked: "Ruang sudah selesai, tidak bisa diubah.",
       bad: {
         bukan_pengawas: "Salah satu pengawas bukan Asisten aktif.",
+        ruang_berjalan: "Ruangnya sedang berjalan, tunggu sampai bagiannya selesai.",
         slot_salah: "Slot itu tidak ada.",
         sandi_salah: "Kata sandi hotspot 8 sampai 63 karakter.",
         ssid_salah: "SSID 1 sampai 32 byte, tanpa karakter kontrol.",
@@ -524,6 +535,8 @@ export const RG = dict({
         noneTitle: "This room has no Master yet",
         noneBody:
           "Any plotted pengawas may become Master. Only one person holds the room's controls.",
+        noneBodyPractice:
+          "In a practice room, the pengawas you picked or any Asisten with access may become Master. Only one person holds the room's controls.",
         claim: "Become Master",
         now: "You are now this room's Master.",
         given: "Master handed over.",
@@ -567,7 +580,8 @@ export const RG = dict({
         tahap_salah: "Not possible at this stage.",
         bukan_master: "Only the Master holds the room's controls.",
         versi_lama: "The room just changed. Try again.",
-        bank_kurang: "The bank does not have enough questions for this part.",
+        bank_kurang:
+          "Not enough questions for this part. For Live Coding: the Ready C problems that passed Check must cover every tier.",
         kursi_kosong: "No seat has finished check-in yet.",
         bukan_hari_ini: "This room can only be opened on its exam day.",
         perlu_waktu: "A part that ran out of time needs more than 0 added.",
@@ -664,6 +678,8 @@ export const RG = dict({
         redrawAsk: "The reason",
         redrawHint: "The candidate sees the reason in words, never the Asisten's code.",
         redrawDone: "Drawn again.",
+        redrawConfirm: (n: string) =>
+          `Redraw the Live Coding problems for ${n}? The ones already dealt are replaced and submissions to the old ones no longer count.`,
         notes: "Pengawas Notes",
         notePh: "Every pengawas and Panitia member who watches this room sees this",
         noteSave: "Save Note",
@@ -728,6 +744,7 @@ export const RG = dict({
         title: "Room Finished",
         hint: (t: string) =>
           `Finished ${t}. Scores stay provisional until the makeup room closes and Akademik presses Finalise.`,
+        hintPractice: (t: string) => `Finished ${t}. A practice room counts toward nobody's score.`,
         submitted: "submitted",
         absent: "absent",
         incidents: "incidents",
@@ -800,6 +817,10 @@ export const RG = dict({
       pengawas: "Pengawas",
       pengawasHint: "They can become Master, grade Live Coding and write notes.",
       pengawasNone: "No pengawas picked yet",
+      participants: "Participants",
+      participantsHint:
+        "Who takes the test as a sample CaAs. You can change this while the room is not running.",
+      participantsNone: "Nobody is seated in this room yet",
       pickPengawas: "Pick pengawas",
       pickAria: "The room's pengawas",
       practice: "Practice Room",
@@ -809,10 +830,11 @@ export const RG = dict({
       created: "Room set up.",
       saved: "Room saved.",
       practiceNote:
-        "A practice room has no evening of its own. Candidates are moved here from Plotting or Kit Loans.",
+        "A practice room has no evening of its own. Pick below who is a pengawas and who takes the test.",
       locked: "The room is finished and can't be changed.",
       bad: {
         bukan_pengawas: "One pengawas is not an active Asisten.",
+        ruang_berjalan: "The room is running; wait until the part is over.",
         slot_salah: "That slot does not exist.",
         sandi_salah: "A hotspot password is 8 to 63 characters.",
         ssid_salah: "An SSID is 1 to 32 bytes, with no control characters.",
@@ -930,6 +952,8 @@ export const RG = dict({
         takeYes: "接手",
         noneTitle: "本考场还没有主控",
         noneBody: "任何被安排的监考都可以成为主控。同一时间只有一个人掌握按钮。",
+        noneBodyPractice:
+          "在练习考场里，被选中的监考或有权限的助教都可以成为主控。同一时间只有一个人掌握按钮。",
         claim: "成为主控",
         now: "你现在是本考场的主控。",
         given: "已交出主控。",
@@ -972,7 +996,8 @@ export const RG = dict({
         tahap_salah: "当前阶段无法执行。",
         bukan_master: "只有主控掌握考场按钮。",
         versi_lama: "考场刚刚发生变化，请重试。",
-        bank_kurang: "题库的题目不够这一部分使用。",
+        bank_kurang:
+          "题目不够这一部分使用。现场编程：每个难度都需要足够多“已就绪且通过检查”的 C 题。",
         kursi_kosong: "还没有座位完成入场检查。",
         bukan_hari_ini: "考场只能在考试当天打开。",
         perlu_waktu: "已超时的部分需要加大于 0 的时间。",
@@ -1068,6 +1093,8 @@ export const RG = dict({
         redrawAsk: "原因",
         redrawHint: "考生会看到文字说明的原因，看不到助教代号。",
         redrawDone: "已重新抽签。",
+        redrawConfirm: (n: string) =>
+          `为 ${n} 重新抽现场编程题目？已发的题目会被换掉，对旧题目的提交不再计分。`,
         notes: "监考备注",
         notePh: "查看本考场的所有监考和委员都能看到",
         noteSave: "保存备注",
@@ -1131,6 +1158,7 @@ export const RG = dict({
       done: {
         title: "考场已结束",
         hint: (t: string) => `${t} 结束。补考考场结束且学术组按下“定稿”之前，成绩都是暂定的。`,
+        hintPractice: (t: string) => `${t} 结束。练习考场不计入任何人的成绩。`,
         submitted: "已交卷",
         absent: "缺席",
         incidents: "事件",
@@ -1202,6 +1230,9 @@ export const RG = dict({
       pengawas: "监考",
       pengawasHint: "他们可以成为主控、给现场编程评分并写备注。",
       pengawasNone: "还没有选择监考",
+      participants: "参加者",
+      participantsHint: "以示例 CaAs 身份参加考试的人。考场未进行时可以修改。",
+      participantsNone: "这个考场还没有人入座",
       pickPengawas: "选择监考",
       pickAria: "考场监考",
       practice: "练习考场",
@@ -1209,10 +1240,11 @@ export const RG = dict({
       save: "保存考场",
       created: "考场已设置。",
       saved: "考场已保存。",
-      practiceNote: "练习考场没有自己的晚次。考生通过排班或套件借用被调入这里。",
+      practiceNote: "练习考场没有自己的晚次。请在下面选择谁是监考、谁参加考试。",
       locked: "考场已结束，无法修改。",
       bad: {
         bukan_pengawas: "有一位监考不是在职助教。",
+        ruang_berjalan: "考场正在进行，请等这一部分结束。",
         slot_salah: "该时段不存在。",
         sandi_salah: "热点密码为 8 到 63 个字符。",
         ssid_salah: "SSID 为 1 到 32 字节，不含控制字符。",

@@ -4,12 +4,14 @@
  * a seat's points come from the tests its best Submit passed. Staff of the room see it
  * while the Live Coding timer runs and afterwards.
  */
+import { useState } from "react";
+import Dialog from "../../../../ui/Dialog";
 import { NOUN, Paged } from "../../../../ui/Pager";
 import { ArrowsClockwiseIcon, PlugsIcon, ProhibitIcon } from "@phosphor-icons/react";
 import type { Lang } from "../../../../../lib/kelas";
 import { dict } from "../../../../../lib/app";
 import { usePoll } from "../../../../../lib/hooks";
-import { isFail, recGet } from "../../../../../lib/recruitment/client";
+import { isFail, recGet, recPost } from "../../../../../lib/recruitment/client";
 import type { LccRoom } from "../../../../../lib/recruitment/lcc-api";
 import Skeleton from "../../../../ui/Skeleton";
 
@@ -37,6 +39,15 @@ const JT = dict({
     empty: "Belum ada kursi di ruang ini.",
     fail: "Belum bisa dimuat. Coba lagi.",
     outOf: (n: number) => `dari ${n}`,
+    flush: "Tutup Antrean",
+    flushTitle: "Tutup antrean judge?",
+    flushBody: (n: number) =>
+      `${n} kiriman di ruang ini masih menunggu judge yang tidak menjawab. Kalau ditutup, kiriman itu dianggap gagal dan bernilai 0, supaya Finalkan tidak tertahan. Ini tidak bisa dibatalkan.`,
+    flushAuto: "Kiriman yang masih menunggu 15 menit setelah ruang selesai ditutup sendiri.",
+    flushYes: "Tutup Antrean",
+    flushNo: "Batal",
+    flushDone: (n: number) => `${n} kiriman ditutup.`,
+    flushFail: "Belum bisa ditutup. Coba lagi.",
   },
   en: {
     title: "Live Coding",
@@ -61,6 +72,16 @@ const JT = dict({
     empty: "There are no seats in this room yet.",
     fail: "It could not load. Try again.",
     outOf: (n: number) => `of ${n}`,
+    flush: "Close Queue",
+    flushTitle: "Close the judge queue?",
+    flushBody: (n: number) =>
+      `${n} submission(s) in this room are still waiting for a judge that does not answer. Closing them counts them as failed, worth 0, so Finalkan is not held up. This cannot be undone.`,
+    flushAuto:
+      "Submissions still waiting 15 minutes after the room finished are closed by themselves.",
+    flushYes: "Close Queue",
+    flushNo: "Cancel",
+    flushDone: (n: number) => `${n} submission(s) closed.`,
+    flushFail: "It could not be closed. Try again.",
   },
   zh: {
     title: "现场编程",
@@ -85,11 +106,30 @@ const JT = dict({
     empty: "这个房间还没有座位。",
     fail: "无法加载，请重试。",
     outOf: (n: number) => `满分 ${n}`,
+    flush: "关闭队列",
+    flushTitle: "关闭评测队列？",
+    flushBody: (n: number) =>
+      `本考场还有 ${n} 个提交在等待没有响应的评测机。关闭后它们按失败处理、记 0 分，这样“定稿”不会被卡住。此操作无法撤销。`,
+    flushAuto: "考场结束 15 分钟后仍在等待的提交会自动关闭。",
+    flushYes: "关闭队列",
+    flushNo: "取消",
+    flushDone: (n: number) => `已关闭 ${n} 个提交。`,
+    flushFail: "无法关闭，请重试。",
   },
 });
 
-export default function JudgeTab({ lang, roomId }: { lang: Lang; roomId: number }) {
+export default function JudgeTab({
+  lang,
+  roomId,
+  selesai = false,
+}: {
+  lang: Lang;
+  roomId: number;
+  /** The room has finished: only then can its waiting jobs be given up on */
+  selesai?: boolean;
+}) {
   const t = JT[lang];
+  const [tanya, setTanya] = useState(false);
   const poll = usePoll<LccRoom | null>(
     async () => {
       const r = await recGet<LccRoom & { ok: true }>("lcc-room", { id: String(roomId) });
@@ -102,6 +142,13 @@ export default function JudgeTab({ lang, roomId }: { lang: Lang; roomId: number 
     300,
   );
   const d = poll.data;
+  async function tutup() {
+    setTanya(false);
+    const r = await recPost<{ ok: true; count: number }>("lcc-flush", { id: roomId });
+    if (isFail(r)) window.Toast?.show(t.flushFail, "danger");
+    else window.Toast?.show(t.flushDone(r.count), "ok");
+    poll.refresh();
+  }
   if (!d)
     return poll.errors >= 2 ? (
       <section className="panel">
@@ -113,6 +160,7 @@ export default function JudgeTab({ lang, roomId }: { lang: Lang; roomId: number 
       <Skeleton height={200} />
     );
 
+  const menunggu = d.seats.reduce((n, x) => n + x.waiting, 0);
   return (
     <section className="stack" style={{ gap: 16 }}>
       <div className="panel__head">
@@ -152,6 +200,40 @@ export default function JudgeTab({ lang, roomId }: { lang: Lang; roomId: number 
           <span>{t.notReadyBody}</span>
         </div>
       )}
+      {selesai && d.info.canWorkers && menunggu > 0 && (
+        <div className="rec-note rec-note--warn">
+          <span className="stack" style={{ gap: 6 }}>
+            <span>{t.flushAuto}</span>
+            <span>
+              <button
+                type="button"
+                className="btn btn--inverse btn--sm"
+                onClick={() => setTanya(true)}
+              >
+                {t.flush}
+              </button>
+            </span>
+          </span>
+        </div>
+      )}
+      <Dialog
+        open={tanya}
+        onOpenChange={setTanya}
+        size="sm"
+        lang={lang}
+        title={t.flushTitle}
+        description={t.flushBody(menunggu)}
+        actions={
+          <>
+            <button type="button" className="btn btn--ghost" onClick={() => setTanya(false)}>
+              {t.flushNo}
+            </button>
+            <button type="button" className="btn btn--primary" onClick={() => void tutup()}>
+              {t.flushYes}
+            </button>
+          </>
+        }
+      />
 
       {d.seats.length === 0 ? (
         <section className="panel">
