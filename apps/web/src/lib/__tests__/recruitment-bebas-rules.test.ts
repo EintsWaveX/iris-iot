@@ -11,6 +11,7 @@ import {
   judgePick,
   pickOpen,
   perubahanTerkunci,
+  pilihTampil,
   slotTerkunci,
   type SlotInfo,
 } from "../recruitment/slots";
@@ -20,6 +21,7 @@ import {
   canUnlock,
   envelopeVisible,
   kunciTertutup,
+  tahapCuttingAktif,
 } from "../recruitment/cutting";
 import { absensiBuka, eventSegera, gateLive } from "../recruitment/gates";
 import type { RecEvent } from "../recruitment/types";
@@ -105,6 +107,17 @@ describe("the picker's buttons in free mode", () => {
   });
 });
 
+describe("pilihTampil (the picker waits for the unlocking envelope)", () => {
+  it("shows the picker only once the envelope that unlocks it is opened and Lolos, with the switch off", () => {
+    expect(pilihTampil(false)).toBe(false);
+    expect(pilihTampil(true)).toBe(true);
+  });
+  it("shows it at once in free mode, envelope or not", () => {
+    bebasOn();
+    expect(pilihTampil(false)).toBe(true);
+  });
+});
+
 describe("judgePick in free mode", () => {
   const dalam = {
     open: false,
@@ -171,6 +184,29 @@ describe("the Cutting buttons in free mode", () => {
     bebasOn();
     expect(bukaKunciTampil(true, true)).toBe(true);
     expect(bukaKunciTampil(false, true)).toBe(false);
+  });
+});
+
+describe("tahapCuttingAktif (which stages the Cutting tab offers)", () => {
+  const kal = [
+    { stage: "berkas", kind: "review", startsOn: "2026-11-02" },
+    { stage: "berkas", kind: "cutting", startsOn: "2026-11-03" },
+    { stage: "tes_tulis", kind: "cutting", startsOn: "2026-11-18" },
+    { stage: "wawancara", kind: "cutting", startsOn: "2026-12-01" },
+  ] as never;
+  it("offers a stage once its Cutting began, with the switch off", () => {
+    expect(tahapCuttingAktif(kal, "2026-11-06")).toEqual(["berkas"]);
+    expect(tahapCuttingAktif(kal, "2026-11-19")).toEqual(["berkas", "tes_tulis"]);
+  });
+  it("offers every Cutting stage in free mode, begun or not", () => {
+    bebasOn();
+    expect(tahapCuttingAktif(kal, "2026-11-06")).toEqual([
+      "berkas",
+      "tes_tulis",
+      "wawancara",
+      "tubes",
+      "mengajar",
+    ]);
   });
 });
 

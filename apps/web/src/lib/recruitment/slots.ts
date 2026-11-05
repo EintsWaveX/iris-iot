@@ -91,6 +91,9 @@ export const slotTerkunci = (full: boolean, mine: boolean | undefined): boolean 
 /** Whether asking for a change is locked: past the cutoff, except in free mode. */
 export const perubahanTerkunci = (lewat: boolean): boolean => lewat && !bebas();
 
+/** Whether the picker of a stage shows: the envelope that unlocks it is opened and Lolos (no spoilers). Free mode shows it always. */
+export const pilihTampil = (sudahDibuka: boolean): boolean => sudahDibuka || bebas();
+
 export const seatsLeft = (s: Pick<SlotInfo, "capacity">, taken: number): number =>
   Math.max(0, s.capacity - taken);
 

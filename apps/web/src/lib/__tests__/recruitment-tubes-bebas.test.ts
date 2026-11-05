@@ -10,6 +10,7 @@ import {
   submitState,
   teamSizeProblem,
   teamsLocked,
+  tubesDibuka,
 } from "../recruitment/tubes";
 
 const bebasOn = () => setBebasHook(() => true);
@@ -91,5 +92,20 @@ describe("submitState", () => {
     expect(submitState(wib("2026-12-07T18:30:00"), wib("2026-12-06T18:30:00"), now, null)).toBe(
       "buka",
     );
+  });
+});
+
+describe("tubesDibuka (the Tubes tile on the CaAs page)", () => {
+  it("opens from the first day of the Tubes window, for a CaAs at Tubes, with the switch off", () => {
+    expect(tubesDibuka("tubes", "2026-12-03", "2026-12-02")).toBe(false);
+    expect(tubesDibuka("tubes", "2026-12-03", "2026-12-03")).toBe(true);
+    expect(tubesDibuka("tubes", null, "2026-12-03")).toBe(false);
+    expect(tubesDibuka("tes_tulis", "2026-12-03", "2026-12-04")).toBe(false);
+  });
+  it("opens before the window and with no window in free mode, still for a CaAs at Tubes", () => {
+    bebasOn();
+    expect(tubesDibuka("tubes", "2026-12-03", "2026-11-06")).toBe(true);
+    expect(tubesDibuka("tubes", null, "2026-11-06")).toBe(true);
+    expect(tubesDibuka("tes_tulis", "2026-12-03", "2026-11-06")).toBe(false);
   });
 });

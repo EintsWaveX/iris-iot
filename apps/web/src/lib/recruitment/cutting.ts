@@ -6,7 +6,7 @@
  * and on the candidate's own read; the pages use them for display only.
  */
 import { bebas } from "./bebas.js";
-import type { RecEvent, Proposal, StageKey } from "./types.js";
+import { CUT_STAGES, type CutStage, type RecEvent, type Proposal, type StageKey } from "./types.js";
 
 export interface CutRow {
   id: number;
@@ -81,6 +81,25 @@ export const kunciTertutup = (i: { baris: number; missing: number; adaWaktu: boo
 /** Buka Kunci shows while the envelopes are still sealed; free mode shows it after the reveal too. */
 export const bukaKunciTampil = (dikunci: boolean, dibuka: boolean): boolean =>
   dikunci && (!dibuka || bebas());
+
+/**
+ * The stages the Cutting tab offers: those whose Cutting (or, for Berkas, review) event has begun. Free mode
+ * (Mode Latihan) offers every stage with a Cutting board, begun or not (Penerimaan has none).
+ */
+export function tahapCuttingAktif(
+  events: readonly Pick<RecEvent, "stage" | "kind" | "startsOn">[],
+  hariIni: string,
+): CutStage[] {
+  if (bebas()) return CUT_STAGES.filter((s) => s !== "penerimaan");
+  return CUT_STAGES.filter((s) =>
+    events.some(
+      (e) =>
+        e.stage === s &&
+        ((e.kind === "cutting" && e.startsOn <= hariIni) ||
+          (s === "berkas" && e.kind === "review" && e.startsOn <= hariIni)),
+    ),
+  );
+}
 
 interface Kunci {
   locked: boolean;

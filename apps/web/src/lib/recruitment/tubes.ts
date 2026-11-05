@@ -20,6 +20,16 @@ import { bebas } from "./bebas.js";
 import type { Bi } from "./interview.js";
 import type { RecEvent } from "./types.js";
 
+/**
+ * Whether the Tubes tile on the CaAs page opens: they are at Tubes and the first day of its window came.
+ * Free mode (Mode Latihan) drops the date (a practicing CaAs at Tubes has no window to wait for), not the stage.
+ */
+export const tubesDibuka = (
+  stage: string | undefined,
+  awal: string | null,
+  hariIni: string,
+): boolean => stage === "tubes" && (bebas() || (awal !== null && hariIni >= awal));
+
 /* ------------------------------------------------------------ time */
 
 const WIB = (tanggal: string, jam: string) => new Date(`${tanggal}T${jam}:00+07:00`);

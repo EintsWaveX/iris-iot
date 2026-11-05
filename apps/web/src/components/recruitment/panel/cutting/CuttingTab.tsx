@@ -45,6 +45,7 @@ import {
   kunciTertutup,
   matchesReason,
   reasonsOf,
+  tahapCuttingAktif,
   thresholdProposals,
   type Ambang,
   type CutRow,
@@ -87,18 +88,6 @@ const waktu = (iso: string, lang: Lang) => {
   const w = tanggalWib(new Date(iso));
   return `${tgl(w.tanggal, lang)}, ${w.jam} WIB`;
 };
-
-/** The stages whose Cutting has started (their cutting or review event began). */
-function tahapAktif(events: RecEvent[], hariIni: string): CutStage[] {
-  return CUT_STAGES.filter((s) =>
-    events.some(
-      (e) =>
-        e.stage === s &&
-        ((e.kind === "cutting" && e.startsOn <= hariIni) ||
-          (s === "berkas" && e.kind === "review" && e.startsOn <= hariIni)),
-    ),
-  );
-}
 
 /* ------------------------------------------------------------- slider */
 
@@ -356,7 +345,7 @@ export default function CuttingTab({
   rights: RecRights;
 }) {
   const t = S2[lang].cut;
-  const aktif = useMemo(() => tahapAktif(events, hariIni), [events, hariIni]);
+  const aktif = useMemo(() => tahapCuttingAktif(events, hariIni), [events, hariIni]);
   const [stageQ, setStage] = useUrlState<CutStage | "">("cut", "", ["", ...CUT_STAGES]);
   const stage: CutStage | null = stageQ || null;
   const pilih: CutStage | null = stage && aktif.includes(stage) ? stage : (aktif[0] ?? null);
