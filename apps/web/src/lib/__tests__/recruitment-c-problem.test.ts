@@ -14,6 +14,7 @@ import {
   parseProblemDraft,
   passedOf,
   problemPoints,
+  repairHiddenTests,
   sameOutput,
   validateProblem,
   type CProblemDraft,
@@ -287,5 +288,80 @@ describe("parseProblemDraft", () => {
     const d = draft();
     const p = parseProblemDraft({ ...d, limits: { memKb: 65536 } })!;
     expect(validateProblem(p).map((e) => e.kode)).toContain("batas_salah");
+  });
+});
+
+describe("repairHiddenTests", () => {
+  const prod9 = (): CProblemDraft => {
+    // The shape problem 9 had on prod (5 Nov 2026): its old list doubled as samples AND hidden tests
+    const d = draft();
+    d.samples = [
+      { input: "3 5\n", output: "8\n" },
+      { input: "-4 10\n", output: "6\n" },
+    ];
+    d.tests = [
+      { input: "3 5\n", output: "8\n" },
+      { input: "-4 10\n", output: "6\n" },
+      { input: "0 0\n", output: "0\n" },
+      { input: "1000 1000\n", output: "2000\n" },
+      { input: "-1000 -1000\n", output: "-2000\n" },
+      { input: "-1000 1000\n", output: "0\n" },
+      { input: "123 877\n", output: "1000\n" },
+      { input: "-7 -3\n", output: "-10\n" },
+    ];
+    return d;
+  };
+
+  it("drops the tests that repeat a sample and fills back up from the spare ones", () => {
+    const d = prod9();
+    expect(fields(d)).toEqual(["tests.0:tes_sama_contoh", "tests.1:tes_sama_contoh"]);
+    const spare = [
+      { input: "500 -250\n", output: "250\n" },
+      { input: "-1 1\n", output: "0\n" },
+      { input: "0 0\n", output: "0\n" },
+    ];
+    const r = repairHiddenTests(d, spare);
+    expect(r.dropped).toBe(2);
+    expect(r.added).toBe(2);
+    expect(r.tests).toHaveLength(8);
+    expect(r.tests.map((t) => t.input)).toContain("500 -250\n");
+    expect(validateProblem({ ...d, tests: r.tests })).toEqual([]);
+  });
+
+  it("with nothing to fill from it only drops", () => {
+    const d = prod9();
+    const r = repairHiddenTests(d);
+    expect(r).toMatchObject({ dropped: 2, added: 0 });
+    expect(r.tests).toHaveLength(6);
+    expect(validateProblem({ ...d, tests: r.tests })).toEqual([]);
+  });
+
+  it("sees through line endings and trailing blanks, and drops repeats among the tests too", () => {
+    const d = draft();
+    d.tests = [
+      { input: "1 2  \r\n", output: "3\n" }, // the sample, dressed differently
+      { input: "7 8\n", output: "15\n" },
+      { input: "7 8\r\n", output: "15\n" },
+      { input: "5 5\n", output: "10\n" },
+    ];
+    const r = repairHiddenTests(d);
+    expect(r.dropped).toBe(2);
+    expect(r.tests.map((t) => t.input)).toEqual(["7 8\n", "5 5\n"]);
+  });
+
+  it("never lets a spare test repeat a sample, and leaves a sound problem alone", () => {
+    const d = prod9();
+    const r = repairHiddenTests(d, [{ input: "3 5\n", output: "8\n" }]);
+    expect(r.added).toBe(0);
+    const ok = draft();
+    expect(repairHiddenTests(ok, [{ input: "9 9\n", output: "18\n" }])).toEqual({
+      tests: ok.tests,
+      dropped: 0,
+      added: 0,
+    });
+  });
+
+  it("every default problem is already sound, so installing the bank never mends anything", () => {
+    for (const p of SEED_PROBLEMS) expect(repairHiddenTests(p).dropped, p.title).toBe(0);
   });
 });

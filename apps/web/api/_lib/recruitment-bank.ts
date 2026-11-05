@@ -73,6 +73,7 @@ import {
   simpanMasalah,
 } from "./recruitment-lc-problems.js";
 import { SEED_PROBLEMS } from "../../src/lib/recruitment/seed-problems.js";
+import { C_LIMITS, repairHiddenTests } from "../../src/lib/recruitment/c-problem.js";
 import { BANK_GAMBAR, REK_BANK_RE, kunciBank } from "../../src/lib/tp-r2.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak, type PelakuServer } from "./recruitment-rights.js";
@@ -895,7 +896,39 @@ export async function pasangBawaanKe(db: Db, edisiId: number, nim: string) {
       .where(eq(recCProblem.id, r.id));
     refreshed++;
   }
-  return { created, skipped, updated, removed, failed, problems: newPr.length, refreshed };
+  // A problem, edited by hand or not, whose hidden tests repeat a shown sample (or each other) cannot be
+  // checked: validateProblem refuses it ("tes_sama_contoh"). Mend it here (5 Nov 2026): drop the repeats and,
+  // when the reference solution is still the default one, fill back up from the default's tests, whose
+  // outputs that same reference produced. Problems already dealt to a seat are left alone (their tests are
+  // locked). A mended problem gets a new version so an editor open on the old one reloads.
+  let mended = 0;
+  const seedByTitle = new Map(SEED_PROBLEMS.map((p) => [p.title, p]));
+  const nowRows = await k.db.select().from(recCProblem).where(eq(recCProblem.editionId, k.edisiId));
+  for (const r of nowRows) {
+    if (r.shownAt !== null) continue;
+    const seed = seedByTitle.get(r.title);
+    const spare = seed && seed.reference === r.reference ? seed.tests : [];
+    const fix = repairHiddenTests({ samples: r.samples, tests: r.tests }, spare);
+    if (fix.dropped === 0) continue;
+    // fewer than the minimum left and nothing to fill with: it needs the Akademik's hands and a new check
+    const short = fix.tests.length < C_LIMITS.tests.min;
+    await k.db
+      .update(recCProblem)
+      .set({
+        tests: fix.tests,
+        ...(short ? { status: "draft" as const, checkOk: null, checkedAt: null } : {}),
+        version: r.version + 1,
+        updatedBy: nim,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(recCProblem.id, r.id), eq(recCProblem.version, r.version)));
+    await writeAudit(nim, "rec_masalah_ubah", {
+      id: r.id,
+      mended: { dropped: fix.dropped, added: fix.added },
+    });
+    mended++;
+  }
+  return { created, skipped, updated, removed, failed, problems: newPr.length, refreshed, mended };
 }
 
 /* --------------------------------------------------------------- images */

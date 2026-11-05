@@ -1,13 +1,13 @@
 /**
  * The Live Coding editor (prompt 12, EXAM-ENGINE 9.3, mockup r3-lc): CodeMirror
- * 6 with the C++ grammar in the kosmik colours, ligatures off (JetBrains Mono
+ * 6 with the C++ grammar in the kosmik colours, closing pairs, C suggestions and no
+ * spelling or grammar lines (cmAssist.ts), ligatures off (JetBrains Mono
  * turns <= into one glyph, which is wrong in an exam), the lines between a
  * `// TODO-MULAI` and its `// TODO-SELESAI` striped gold, and `jumpTo(line)`
  * for the build log's error links (scroll, then flash the line). This file is
  * loaded on demand so CodeMirror stays out of the test page's first bundle.
  */
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { cpp } from "@codemirror/lang-cpp";
 import {
   bracketMatching,
   HighlightStyle,
@@ -29,6 +29,7 @@ import {
 import { tags as t } from "@lezer/highlight";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { todoRanges } from "../../../lib/recruitment/lc-ui";
+import { codeAssist, cSupport } from "./cmAssist";
 
 export interface CodeEditorHandle {
   /** Scrolls a 1-based line into the middle and flashes it */
@@ -159,17 +160,13 @@ const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor(
           indentOnInput(),
           bracketMatching(),
           highlightActiveLine(),
+          codeAssist(),
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-          cpp(),
+          cSupport(),
           syntaxHighlighting(cmHighlight),
           cmTheme,
           todoStripes,
-          EditorView.contentAttributes.of({
-            "aria-label": ariaLabel,
-            spellcheck: "false",
-            autocorrect: "off",
-            autocapitalize: "off",
-          }),
+          EditorView.contentAttributes.of({ "aria-label": ariaLabel }),
           lock.current.of([EditorState.readOnly.of(!!readOnly), EditorView.editable.of(!readOnly)]),
           errs.current.of([]),
           EditorView.updateListener.of((u) => {

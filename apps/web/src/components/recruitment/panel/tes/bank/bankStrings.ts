@@ -96,6 +96,8 @@ export const BK = dict({
       "Pasang soal bawaan untuk mulai: 120 soal yang sudah dicoba satu per satu, cukup untuk satu ruang dengan pengaturan standar. Semuanya bisa diubah atau dihapus.",
     seed: "Pasang Soal Bawaan",
     seedBusy: "Memasang",
+    mended: (n: number) =>
+      `${n} soal Live Coding dibereskan: test tersembunyi yang sama dengan contoh sudah diganti.`,
     seeded: (n: number, skipped: number, updated = 0, removed = 0) =>
       n || updated || removed
         ? [
@@ -472,6 +474,8 @@ export const BK = dict({
       "Install the default questions to start: 120 questions, each one tested before it went in, enough for one room on the standard settings. Every one can be edited or deleted.",
     seed: "Install Default Questions",
     seedBusy: "Installing",
+    mended: (n: number) =>
+      `${n} Live Coding problem${n === 1 ? "" : "s"} mended: hidden tests that matched a sample were replaced.`,
     seeded: (n: number, skipped: number, updated = 0, removed = 0) =>
       n || updated || removed
         ? [
@@ -839,6 +843,7 @@ export const BK = dict({
       "安装内置题目即可开始：共 120 道题，每道都已逐一运行或编译过，足够按标准设置开一个考场。全部都可以修改或删除。",
     seed: "安装内置题目",
     seedBusy: "正在安装",
+    mended: (n: number) => `已修复 ${n} 道 Live Coding 题：与样例相同的隐藏测试已替换。`,
     seeded: (n: number, skipped: number, updated = 0, removed = 0) =>
       n || updated || removed
         ? [
