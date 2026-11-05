@@ -169,6 +169,14 @@
   margin-inline-start: 12px;
   text-decoration: none;
 }
+/* A finger needs about 44px: the padding grows the tap area and the negative margin
+   gives the space back, so the card does not get taller. */
+@media (pointer: coarse), (max-width: 720px) {
+  .rec-next__more {
+    margin-block: -13px;
+    padding-block: 13px;
+  }
+}
 @media (hover: hover) {
   .rec-next__more:hover {
     text-decoration: underline;
