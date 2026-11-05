@@ -765,6 +765,23 @@ describe("bank-seed", () => {
     const first = tulis.find((w) => w.tabel === "question" && w.op === "insert")!;
     expect(first.nilai).toMatchObject({ sample: true, status: "ready" });
   });
+
+  it("brings an untouched default up to the bank and drops one the bank no longer has", async () => {
+    rows.question = [
+      { ...BARIS(), id: 7, title: "Ekspresi dan Hasil", sample: true, version: 1 },
+      { ...BARIS(), id: 8, title: "Operator Bit", sample: true, version: 1 },
+      { ...BARIS(), id: 9, title: "Soal sendiri", sample: false, version: 1 },
+      { ...BARIS(), id: 10, title: "Operator Dua", sample: true, version: 2 },
+    ];
+    const r = await jalan("bank-seed", AKD, {});
+    expect(r.status).toBe(200);
+    expect(r.body.updated).toBe(1);
+    expect(r.body.removed).toBe(1);
+    const up = tulis.filter((w) => w.tabel === "question" && w.op === "update");
+    expect(up).toHaveLength(1);
+    expect(up[0].nilai).toMatchObject({ format: "match", updatedBy: expect.any(String) });
+    expect(tulis.filter((w) => w.tabel === "question" && w.op === "delete")).toHaveLength(1);
+  });
 });
 
 /* ---------------------------------------------------------------- media */

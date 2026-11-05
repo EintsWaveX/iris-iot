@@ -523,3 +523,582 @@ int hitungBesar(char s[]) {
   return n;
 }
 ```
+
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Jumlah Isi Array
+sample: true
+status: ready
+bugs: [3]
+---
+Fungsi ini harus menjumlahkan semua isi array. Klik baris yang salah.
+
+```c
+int jumlah(int a[], int n) {
+  int s = 0;
+  for (int i = 1; i < n; i++) {
+    s += a[i];
+  }
+  return s;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Ada Angka Negatif
+sample: true
+status: ready
+bugs: [4, 7]
+---
+Fungsi ini harus mengembalikan 1 kalau ada angka negatif di array, dan 0 kalau tidak ada. Klik baris yang salah.
+
+```c
+int adaNegatif(int a[], int n) {
+  for (int i = 0; i < n; i++) {
+    if (a[i] < 0) {
+      return 0;
+    }
+  }
+  return 1;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Jumlah Kelipatan Tiga
+sample: true
+status: ready
+bugs: [4, 5]
+---
+Fungsi ini harus menjumlahkan hanya angka kelipatan 3 di array. Klik baris yang salah.
+
+```c
+int kelipatan3(int a[], int n) {
+  int s = 0;
+  for (int i = 0; i < n; i++) {
+    if (a[i] / 3 == 0) {
+      s = a[i];
+    }
+  }
+  return s;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Rata-rata Desimal
+sample: true
+status: ready
+bugs: [6]
+---
+Fungsi ini harus mengembalikan rata-rata isi array dengan angka desimal (rata-rata `1, 2, 4` adalah `2.33`). Klik baris yang salah.
+
+```c
+float rata(int a[], int n) {
+  int s = 0;
+  for (int i = 0; i < n; i++) {
+    s += a[i];
+  }
+  return s / n;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Genap Pertama
+sample: true
+status: ready
+bugs: [4]
+---
+Fungsi ini harus mengembalikan angka genap pertama di array (bukan index-nya), atau -1 kalau tidak ada. Klik baris yang salah.
+
+```c
+int genapPertama(int a[], int n) {
+  for (int i = 0; i < n; i++) {
+    if (a[i] % 2 == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Hitung Mundur Rekursif
+sample: true
+status: ready
+bugs: [4]
+---
+Fungsi ini harus mencetak hitung mundur dari `n` sampai 1 (`mundur(3)` mencetak `3 2 1`). Klik baris yang salah.
+
+```c
+void mundur(int n) {
+  if (n == 0) return;
+  printf("%d ", n);
+  mundur(n + 1);
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Cek Palindrom
+sample: true
+status: ready
+bugs: [3]
+---
+Fungsi ini harus mengembalikan 1 kalau isi array sama dibaca dari depan maupun dari belakang, dan 0 kalau tidak. Klik baris yang salah.
+
+```c
+int palindrom(int a[], int n) {
+  for (int i = 0; i < n / 2; i++) {
+    if (a[i] != a[n - i]) {
+      return 0;
+    }
+  }
+  return 1;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Hitung Jumlah Digit
+sample: true
+status: ready
+bugs: [4]
+---
+Fungsi ini harus menghitung ada berapa digit di sebuah bilangan positif (`4096` punya 4 digit). Klik baris yang salah.
+
+```c
+int hitungDigit(int n) {
+  int c = 0;
+  while (n > 0) {
+    c = 1;
+    n = n / 10;
+  }
+  return c;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Dua Pangkat n
+sample: true
+status: ready
+bugs: [2]
+---
+Fungsi ini harus mengembalikan 2 pangkat `n` (`pangkat2(5)` hasilnya `32`). Klik baris yang salah.
+
+```c
+int pangkat2(int n) {
+  int hasil = 0;
+  for (int i = 0; i < n; i++) {
+    hasil *= 2;
+  }
+  return hasil;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Selisih Terbesar
+sample: true
+status: ready
+bugs: [6]
+---
+Fungsi ini harus mengembalikan selisih antara angka terbesar dan terkecil di array. Klik baris yang salah.
+
+```c
+int selisih(int a[], int n) {
+  int min = a[0];
+  int maks = a[0];
+  for (int i = 1; i < n; i++) {
+    if (a[i] < min) min = a[i];
+    if (a[i] < maks) maks = a[i];
+  }
+  return maks - min;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Jumlah Index Genap
+sample: true
+status: ready
+bugs: [4]
+---
+Fungsi ini harus menjumlahkan isi array yang index-nya genap (index 0, 2, 4, dan seterusnya). Klik baris yang salah.
+
+```c
+int jumlahIndexGenap(int a[], int n) {
+  int s = 0;
+  for (int i = 0; i < n; i += 2) {
+    s += a[i + 1];
+  }
+  return s;
+}
+```
+
+---
+part: kodingan
+lang: c
+format: lines
+title: Bersihkan Angka Negatif
+sample: true
+status: ready
+bugs: [3]
+---
+Fungsi ini harus mengganti semua angka negatif di array jadi 0. Klik baris yang salah.
+
+```c
+void bersihkan(int a[], int n) {
+  for (int i = 0; i < n; i++) {
+    if (a[i] > 0) {
+      a[i] = 0;
+    }
+  }
+}
+```
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Hitung Angka Negatif
+sample: true
+status: ready
+---
+Program ini harus menghitung ada berapa angka negatif di array (hasilnya `4`). Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a[6] = {-3, 2, -7, -8, 0, -1};
+  int negatif = 1;
+  for (int i = 1; i < 6; i++) {
+    if (a[i] > 0) {
+      negatif++;
+    }
+  }
+  printf("%d\n", negatif);
+  return 0;
+}
+```
+
+### Baris 5
+- [ ] `  int negatif = 1;`
+- [x] `  int negatif = 0;`
+- [ ] `  int negatif = -1;`
+
+### Baris 6
+- [ ] `  for (int i = 1; i < 6; i++) {`
+- [x] `  for (int i = 0; i < 6; i++) {`
+- [ ] `  for (int i = 0; i < 5; i++) {`
+
+### Baris 7
+- [ ] `    if (a[i] > 0) {`
+- [x] `    if (a[i] < 0) {`
+- [ ] `    if (a[i] != 0) {`
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Jumlah Index Ganjil
+sample: true
+status: ready
+---
+Program ini harus menjumlahkan isi array yang index-nya ganjil (index 1, 3, dan 5), hasilnya `6`. Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int a[6] = {5, 1, 6, 2, 7, 3};
+  int jumlah = a[0];
+  for (int i = 0; i < 6; i += 1) {
+    jumlah = a[i];
+  }
+  printf("%d\n", jumlah);
+  return 0;
+}
+```
+
+### Baris 5
+- [ ] `  int jumlah = a[0];`
+- [x] `  int jumlah = 0;`
+- [ ] `  int jumlah = 1;`
+
+### Baris 6
+- [ ] `  for (int i = 0; i < 6; i += 1) {`
+- [x] `  for (int i = 1; i < 6; i += 2) {`
+- [ ] `  for (int i = 0; i < 6; i += 2) {`
+
+### Baris 7
+- [ ] `    jumlah = a[i];`
+- [x] `    jumlah += a[i];`
+- [ ] `    jumlah += i;`
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Jumlah Hitung Mundur
+sample: true
+status: ready
+---
+Program ini harus menjumlahkan 5 + 4 + 3 + 2 + 1 dengan `while` (hasilnya `15`). Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int n = 5;
+  int total = 1;
+  while (n > 2) {
+    total += n;
+    n -= 2;
+  }
+  printf("%d\n", total);
+  return 0;
+}
+```
+
+### Baris 5
+- [ ] `  int total = 1;`
+- [x] `  int total = 0;`
+- [ ] `  int total = n;`
+
+### Baris 6
+- [ ] `  while (n > 2) {`
+- [x] `  while (n > 0) {`
+- [ ] `  while (n < 5) {`
+
+### Baris 8
+- [ ] `    n -= 2;`
+- [x] `    n--;`
+- [ ] `    n = n / 2;`
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Hitung Spasi di String
+sample: true
+status: ready
+---
+Program ini harus menghitung ada berapa karakter spasi di sebuah string (hasilnya `2`). Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  char s[] = " ini iris";
+  int spasi = 1;
+  for (int i = 1; s[i] != '\0'; i++) {
+    if (s[i] = ' ') {
+      spasi++;
+    }
+  }
+  printf("%d\n", spasi);
+  return 0;
+}
+```
+
+### Baris 5
+- [ ] `  int spasi = 1;`
+- [x] `  int spasi = 0;`
+- [ ] `  int spasi = -1;`
+
+### Baris 6
+- [ ] `  for (int i = 1; s[i] != '\0'; i++) {`
+- [x] `  for (int i = 0; s[i] != '\0'; i++) {`
+- [ ] `  for (int i = 0; s[i] != ' '; i++) {`
+
+### Baris 7
+- [ ] `    if (s[i] = ' ') {`
+- [x] `    if (s[i] == ' ') {`
+- [ ] `    if (s[i] == 'i') {`
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Faktorial dengan Loop
+sample: true
+status: ready
+---
+Program ini harus menghitung 5 faktorial dengan perulangan (hasilnya `120`). Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int n = 5;
+  int hasil = 0;
+  for (int i = 1; i < n; i++) {
+    hasil += i;
+  }
+  printf("%d\n", hasil);
+  return 0;
+}
+```
+
+### Baris 5
+- [ ] `  int hasil = 0;`
+- [x] `  int hasil = 1;`
+- [ ] `  int hasil = 2;`
+
+### Baris 6
+- [ ] `  for (int i = 1; i < n; i++) {`
+- [x] `  for (int i = 1; i <= n; i++) {`
+- [ ] `  for (int i = 0; i <= n; i++) {`
+
+### Baris 7
+- [ ] `    hasil += i;`
+- [x] `    hasil *= i;`
+- [ ] `    hasil = i;`
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Kelipatan Lima
+sample: true
+status: ready
+---
+Program ini harus mencetak empat angka kelipatan 5 yang pertama (hasilnya `5 10 15 20`). Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+  int kali = 3;
+  for (int i = 0; i <= kali; i++) {
+    printf("%d ", 5 + i);
+  }
+  printf("\n");
+  return 0;
+}
+```
+
+### Baris 4
+- [ ] `  int kali = 3;`
+- [x] `  int kali = 4;`
+- [ ] `  int kali = 5;`
+
+### Baris 5
+- [ ] `  for (int i = 0; i <= kali; i++) {`
+- [x] `  for (int i = 1; i <= kali; i++) {`
+- [ ] `  for (int i = 1; i < kali; i++) {`
+
+### Baris 6
+- [ ] `    printf("%d ", 5 + i);`
+- [x] `    printf("%d ", 5 * i);`
+- [ ] `    printf("%d ", i * i);`
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Hitung Genap dengan Fungsi
+sample: true
+status: ready
+---
+Program ini harus menghitung ada berapa angka genap dari 1 sampai 9 (hasilnya `4`). Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int genap(int n) {
+  if (n % 2 == 1) return 1;
+  return 0;
+}
+
+int main(void) {
+  int c = 0;
+  for (int i = 0; i <= 9; i++) {
+    c = genap(i);
+  }
+  printf("%d\n", c);
+  return 0;
+}
+```
+
+### Baris 4
+- [ ] `  if (n % 2 == 1) return 1;`
+- [x] `  if (n % 2 == 0) return 1;`
+- [ ] `  if (n / 2 == 0) return 1;`
+
+### Baris 10
+- [ ] `  for (int i = 0; i <= 9; i++) {`
+- [x] `  for (int i = 1; i <= 9; i++) {`
+- [ ] `  for (int i = 1; i <= 7; i++) {`
+
+### Baris 11
+- [ ] `    c = genap(i);`
+- [x] `    c += genap(i);`
+- [ ] `    c += i;`
+
+---
+part: kodingan
+lang: c
+format: fix
+title: Penjumlahan Rekursif
+sample: true
+status: ready
+---
+Program ini harus menjumlahkan 1 + 2 + 3 + 4 secara rekursif (hasilnya `10`). Pilih isi yang benar untuk tiap baris yang ditandai.
+
+```c
+#include <stdio.h>
+
+int jumlah(int n) {
+  if (n == 0) return 1;
+  return n + jumlah(n + 1);
+}
+
+int main(void) {
+  printf("%d\n", jumlah(5));
+  return 0;
+}
+```
+
+### Baris 4
+- [ ] `  if (n == 0) return 1;`
+- [x] `  if (n == 0) return 0;`
+- [ ] `  if (n == 0) return 2;`
+
+### Baris 5
+- [ ] `  return n + jumlah(n + 1);`
+- [x] `  return n + jumlah(n - 1);`
+- [ ] `  return n * jumlah(n - 1);`
+
+### Baris 9
+- [ ] `  printf("%d\n", jumlah(5));`
+- [x] `  printf("%d\n", jumlah(4));`
+- [ ] `  printf("%d\n", jumlah(3));`

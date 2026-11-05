@@ -105,6 +105,7 @@ def ctext(s):
 EXPECT = {
     "Cetak Segitiga": "* ** ***",
     "Genap atau Ganjil": "ganjil genap",
+    "Segitiga Terbalik": "*** ** *",
 }
 
 # multi: option text (without backticks) -> C expression, true when the claim is true.
@@ -129,6 +130,27 @@ CLAIMS = {
         "r bernilai 0": "r == 0",
         "p bernilai 1": "p == 1",
         "r bernilai 1": "r == 1",
+    },
+    "Loop Lompat Dua": {
+        "s bernilai 8": "s == 8",
+        "i bernilai 4": "i == 4",
+        "Loop-nya berjalan 2 kali": "i / 2 == 2",
+        "s bernilai 20": "s == 20",
+        "a[1] ikut dijumlahkan": "0",  # only the even indexes 0 and 2 are added
+    },
+    "String dan Index": {
+        "n bernilai 4": "n == 4",
+        "c bernilai 'r'": "c == 'r'",
+        "s[4] adalah '\\0'": "s[4] == '\\0'",
+        "n bernilai 5": "n == 5",
+        "s[n] adalah 's'": "s[n] == 's'",
+    },
+    "Hasil Perbandingan": {
+        "p bernilai 1": "p == 1",
+        "q bernilai 1": "q == 1",
+        "r bernilai 1": "r == 1",
+        "s bernilai 0": "s == 0",
+        "s bernilai 1": "s == 1",
     },
 }
 
@@ -195,6 +217,66 @@ LINES = {
         "harness": "",
         "expect": "1 12 123",
     },
+    "Jumlah Isi Array": {
+        "fix": {3: "  for (int i = 0; i < n; i++) {"},
+        "harness": 'int main(void) { int a[4] = {5, 1, 2, 3}; printf("%d\\n", jumlah(a, 4)); return 0; }',
+        "expect": "11",
+    },
+    "Ada Angka Negatif": {
+        "fix": {4: "      return 1;", 7: "  return 0;"},
+        "harness": 'int main(void) { int a[3] = {3, -2, 5}; int b[3] = {1, 2, 3}; printf("%d %d\\n", adaNegatif(a, 3), adaNegatif(b, 3)); return 0; }',
+        "expect": "1 0",
+    },
+    "Jumlah Kelipatan Tiga": {
+        "fix": {4: "    if (a[i] % 3 == 0) {", 5: "      s += a[i];"},
+        "harness": 'int main(void) { int a[5] = {3, 5, 6, 7, 9}; printf("%d\\n", kelipatan3(a, 5)); return 0; }',
+        "expect": "18",
+    },
+    "Rata-rata Desimal": {
+        "fix": {6: "  return (float)s / n;"},
+        "harness": 'int main(void) { int a[3] = {1, 2, 4}; printf("%.2f\\n", rata(a, 3)); return 0; }',
+        "expect": "2.33",
+    },
+    "Genap Pertama": {
+        "fix": {4: "      return a[i];"},
+        "harness": 'int main(void) { int a[4] = {3, 5, 8, 2}; int b[2] = {1, 3}; printf("%d %d\\n", genapPertama(a, 4), genapPertama(b, 2)); return 0; }',
+        "expect": "8 -1",
+    },
+    "Hitung Mundur Rekursif": {
+        "fix": {4: "  mundur(n - 1);"},
+        "harness": 'int main(void) { mundur(3); printf("\\n"); return 0; }',
+        "expect": "3 2 1", "ub": [4],
+    },
+    "Cek Palindrom": {
+        "fix": {3: "    if (a[i] != a[n - 1 - i]) {"},
+        "harness": 'int main(void) { int a[5] = {1, 2, 3, 2, 1}; int b[5] = {1, 2, 3, 4, 5}; printf("%d %d\\n", palindrom(a, 5), palindrom(b, 5)); return 0; }',
+        "expect": "1 0", "ub": [3],
+    },
+    "Hitung Jumlah Digit": {
+        "fix": {4: "    c++;"},
+        "harness": 'int main(void) { printf("%d %d\\n", hitungDigit(4096), hitungDigit(7)); return 0; }',
+        "expect": "4 1",
+    },
+    "Dua Pangkat n": {
+        "fix": {2: "  int hasil = 1;"},
+        "harness": 'int main(void) { printf("%d\\n", pangkat2(5)); return 0; }',
+        "expect": "32",
+    },
+    "Selisih Terbesar": {
+        "fix": {6: "    if (a[i] > maks) maks = a[i];"},
+        "harness": 'int main(void) { int a[4] = {4, 9, 1, 6}; printf("%d\\n", selisih(a, 4)); return 0; }',
+        "expect": "8",
+    },
+    "Jumlah Index Genap": {
+        "fix": {4: "    s += a[i];"},
+        "harness": 'int main(void) { int a[4] = {1, 2, 3, 4}; printf("%d\\n", jumlahIndexGenap(a, 4)); return 0; }',
+        "expect": "4",
+    },
+    "Bersihkan Angka Negatif": {
+        "fix": {3: "    if (a[i] < 0) {"},
+        "harness": 'int main(void) { int a[4] = {3, -1, 4, -5}; bersihkan(a, 4); printf("%d %d %d %d\\n", a[0], a[1], a[2], a[3]); return 0; }',
+        "expect": "3 0 4 0",
+    },
 }
 
 
@@ -233,7 +315,7 @@ def check_match(q):
     for l in q["body"]["left"]:
         m = re.fullmatch(r"`([^`]+)`", l["text"].strip())
         want = ctext(right[q["answer"]["pairs"][l["id"]]])
-        if not m or not re.fullmatch(r"[0-9a-zA-Z_ +\-*/%&^~<>().]+", m.group(1)):
+        if not m or m.group(1).startswith("%") or not re.fullmatch(r"[0-9a-zA-Z_ +\-*/%&^~<>().]+", m.group(1)):
             continue
         ok, out = build_run(f'#include <stdio.h>\nint main(void) {{ printf("%g\\n", (double)({m.group(1)})); return 0; }}')
         rec(q["title"], f"{m.group(1)} = {want}", ok and float(out) == float(want), out)

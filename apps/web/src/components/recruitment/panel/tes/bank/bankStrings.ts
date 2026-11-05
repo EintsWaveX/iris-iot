@@ -93,12 +93,19 @@ export const BK = dict({
     emptyPart: "Bagian ini belum punya soal.",
     emptyBankTitle: "Bank soal masih kosong",
     emptyBankBody:
-      "Pasang soal bawaan untuk mulai: 45 soal yang sudah dicoba satu per satu, cukup untuk satu ruang dengan pengaturan standar. Semuanya bisa diubah atau dihapus.",
+      "Pasang soal bawaan untuk mulai: 120 soal yang sudah dicoba satu per satu, cukup untuk satu ruang dengan pengaturan standar. Semuanya bisa diubah atau dihapus.",
     seed: "Pasang Soal Bawaan",
     seedBusy: "Memasang",
-    seeded: (n: number, skipped: number) =>
-      n
-        ? `${n} soal bawaan dipasang${skipped ? `, ${skipped} sudah ada` : ""}.`
+    seeded: (n: number, skipped: number, updated = 0, removed = 0) =>
+      n || updated || removed
+        ? [
+            n ? `${n} soal bawaan dipasang` : "",
+            updated ? `${updated} diperbarui` : "",
+            removed ? `${removed} soal bawaan lama dihapus` : "",
+            skipped ? `${skipped} sudah ada` : "",
+          ]
+            .filter(Boolean)
+            .join(", ") + "."
         : "Semua soal bawaan sudah ada.",
     seedFail: "Soal bawaan belum bisa dipasang.",
     /* editor */
@@ -462,12 +469,19 @@ export const BK = dict({
     emptyPart: "This part has no questions yet.",
     emptyBankTitle: "The question bank is empty",
     emptyBankBody:
-      "Install the default questions to start: 45 questions, each one tested before it went in, enough for one room on the standard settings. Every one can be edited or deleted.",
+      "Install the default questions to start: 120 questions, each one tested before it went in, enough for one room on the standard settings. Every one can be edited or deleted.",
     seed: "Install Default Questions",
     seedBusy: "Installing",
-    seeded: (n: number, skipped: number) =>
-      n
-        ? `${n} default questions installed${skipped ? `, ${skipped} already there` : ""}.`
+    seeded: (n: number, skipped: number, updated = 0, removed = 0) =>
+      n || updated || removed
+        ? [
+            n ? `${n} default questions installed` : "",
+            updated ? `${updated} updated` : "",
+            removed ? `${removed} old default questions removed` : "",
+            skipped ? `${skipped} already there` : "",
+          ]
+            .filter(Boolean)
+            .join(", ") + "."
         : "Every default question is already there.",
     seedFail: "The default questions could not be installed.",
     back: "Back to the list",
@@ -822,11 +836,20 @@ export const BK = dict({
     emptyPart: "这个分类还没有题目。",
     emptyBankTitle: "题库还是空的",
     emptyBankBody:
-      "安装内置题目即可开始：共 45 道题，每道都已逐一运行或编译过，足够按标准设置开一个考场。全部都可以修改或删除。",
+      "安装内置题目即可开始：共 120 道题，每道都已逐一运行或编译过，足够按标准设置开一个考场。全部都可以修改或删除。",
     seed: "安装内置题目",
     seedBusy: "正在安装",
-    seeded: (n: number, skipped: number) =>
-      n ? `已安装 ${n} 道内置题${skipped ? `，${skipped} 道已存在` : ""}。` : "内置题目都已存在。",
+    seeded: (n: number, skipped: number, updated = 0, removed = 0) =>
+      n || updated || removed
+        ? [
+            n ? `已安装 ${n} 道内置题` : "",
+            updated ? `已更新 ${updated} 道` : "",
+            removed ? `已删除 ${removed} 道旧内置题` : "",
+            skipped ? `${skipped} 道已存在` : "",
+          ]
+            .filter(Boolean)
+            .join("，") + "。"
+        : "内置题目都已存在。",
     seedFail: "内置题目暂时无法安装。",
     back: "返回列表",
     backShort: "返回",

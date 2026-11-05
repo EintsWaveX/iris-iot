@@ -116,14 +116,21 @@ export default function BankTab({ lang }: { lang: Lang }) {
 
   async function pasang() {
     setSeeding(true);
-    const r = await recPost<{ ok: true; created: number; skipped: number; failed: string[] }>(
+    const r = await recPost<{
+      ok: true;
+      created: number;
+      skipped: number;
+      updated?: number;
+      removed?: number;
+      failed: string[];
+    }>(
       "bank-seed",
       {},
     );
     setSeeding(false);
     if (isFail(r)) return toast(t.seedFail, "danger");
     toast(
-      r.failed.length ? t.seedFail : t.seeded(r.created, r.skipped),
+      r.failed.length ? t.seedFail : t.seeded(r.created, r.skipped, r.updated, r.removed),
       r.failed.length ? "warn" : "ok",
     );
     config.refresh();

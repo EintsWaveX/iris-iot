@@ -237,9 +237,9 @@ export const DEFAULT_EXAM_CONFIG: ExamConfig = {
   budgetMin: 120,
   order: ["logika", "fitb", "kodingan", "livecode"],
   parts: {
-    logika: { minutes: 15, shown: 15, pool: 20, bonusMin: 5 },
-    fitb: { minutes: 15, shown: 15, pool: 20, bonusMin: 5 },
-    kodingan: { minutes: 15, shown: 15, pool: 20, bonusMin: 5 },
+    logika: { minutes: 15, shown: 15, pool: 40, bonusMin: 5 },
+    fitb: { minutes: 15, shown: 15, pool: 40, bonusMin: 5 },
+    kodingan: { minutes: 15, shown: 15, pool: 40, bonusMin: 5 },
   },
   livecode: {
     minutes: 60,

@@ -62,6 +62,7 @@ const KINDS = new Set(["run", "submit"]);
 export async function handleLcc(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const aksi = String(req.query.aksi ?? "");
   if (aksi === "lcc-room") return bacaRuang(req, res, s);
+  if (aksi === "lcc-judge") return bacaJudge(res, s);
   const c = await muatKonteksSeat(req, res, s);
   if (!c) return;
   noStore(res);
@@ -129,6 +130,9 @@ async function tanganKursi(c: KonteksLc): Promise<number[] | null> {
 
 /* ------------------------------------------------------------------- read */
 
+/** A judge heartbeat older than this means the lab PC is gone. */
+const JUDGE_BATAS_DETIK = 120;
+
 export async function judgeSiap(db: Db, now = Date.now()): Promise<boolean> {
   const [r] = await db
     .select({ id: server.id })
@@ -136,11 +140,30 @@ export async function judgeSiap(db: Db, now = Date.now()): Promise<boolean> {
     .where(
       and(
         sql`${server.infoSistem} -> 'judge' = 'true'::jsonb`,
-        gt(server.kondisiPada, new Date(now - 120_000)),
+        gt(server.kondisiPada, new Date(now - JUDGE_BATAS_DETIK * 1000)),
       ),
     )
     .limit(1);
   return !!r;
+}
+
+/**
+ * `GET lcc-judge`: whether the lab PC's judge answers, with no room needed, for the Oprec panel's
+ * header (5 Nov 2026). `ageSec` is how long ago the newest judge heartbeat came, null when none ever did.
+ */
+async function bacaJudge(res: ApiResponse, s: SessionPayload) {
+  noStore(res);
+  if (s.role !== "asisten") return void tolak(res, "tanpa_hak", 403);
+  const db = getDb();
+  const [r] = await db
+    .select({ at: server.kondisiPada })
+    .from(server)
+    .where(sql`${server.infoSistem} -> 'judge' = 'true'::jsonb`)
+    .orderBy(desc(server.kondisiPada))
+    .limit(1);
+  const now = Date.now();
+  const ageSec = r?.at ? Math.max(0, Math.round((now - r.at.getTime()) / 1000)) : null;
+  res.status(200).json({ ok: true, judgeReady: ageSec !== null && ageSec < JUDGE_BATAS_DETIK, ageSec });
 }
 
 /**
