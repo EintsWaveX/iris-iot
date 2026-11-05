@@ -123,10 +123,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
       updated?: number;
       removed?: number;
       failed: string[];
-    }>(
-      "bank-seed",
-      {},
-    );
+    }>("bank-seed", {});
     setSeeding(false);
     if (isFail(r)) return toast(t.seedFail, "danger");
     toast(

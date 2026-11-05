@@ -163,7 +163,9 @@ async function bacaJudge(res: ApiResponse, s: SessionPayload) {
     .limit(1);
   const now = Date.now();
   const ageSec = r?.at ? Math.max(0, Math.round((now - r.at.getTime()) / 1000)) : null;
-  res.status(200).json({ ok: true, judgeReady: ageSec !== null && ageSec < JUDGE_BATAS_DETIK, ageSec });
+  res
+    .status(200)
+    .json({ ok: true, judgeReady: ageSec !== null && ageSec < JUDGE_BATAS_DETIK, ageSec });
 }
 
 /**
