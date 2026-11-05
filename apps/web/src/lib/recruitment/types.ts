@@ -138,7 +138,8 @@ export type CommitteeDivision = (typeof DIVISIONS)[number];
 export const PROPOSALS = ["lolos", "gagal"] as const;
 export type Proposal = (typeof PROPOSALS)[number];
 
-export const ATTENDANCE_VIA = ["qr", "manual"] as const;
+/** "uji" is a scan made while the QR wall's test mode was on (before the real window); it is purged, never counted. */
+export const ATTENDANCE_VIA = ["qr", "manual", "uji"] as const;
 
 /** Admin's check of one uploaded file. */
 export const DOC_VERDICTS = ["ok", "fix"] as const;
@@ -953,8 +954,18 @@ export interface QrEventsResponse {
     opensAt: string | null;
     /** Panitia opened the attendance early by hand */
     manual: boolean;
+    /** Test mode is on: the wall behaves as if the event were running and open, and scans are marked as tests */
+    test: boolean;
+    /** How many test scans are saved for this event (what Reset Data Uji would remove) */
+    testCount: number;
   })[];
   now: string;
+}
+
+/** POST qr-test-reset { event } (attendance): removes the test scans of one event. */
+export interface QrTestResetResponse {
+  ok: true;
+  removed: number;
 }
 
 /** GET qr-recent?event= (attendance): the last scans read from the event's responses sheet */
@@ -998,7 +1009,7 @@ export interface AttendanceRow {
   nim: string;
   nama: string;
   present: boolean;
-  via: "qr" | "manual" | null;
+  via: "qr" | "manual" | "uji" | null;
   reason: string | null;
   by: string | null;
   at: string | null;

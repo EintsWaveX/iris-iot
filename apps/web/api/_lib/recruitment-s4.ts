@@ -20,7 +20,7 @@
  * a CaAs never sees who examines them. The levels of the other examiners stay
  * hidden until every sheet is sent, unless the template says otherwise.
  */
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
@@ -368,7 +368,12 @@ async function handleMine(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
           .select({ cid: recAttendance.candidateId, at: recAttendance.at })
           .from(recAttendance)
           .where(
-            and(inArray(recAttendance.candidateId, kandIds), inArray(recAttendance.eventId, evIds)),
+            and(
+              inArray(recAttendance.candidateId, kandIds),
+              inArray(recAttendance.eventId, evIds),
+              // A test scan (via "uji", from the QR wall's test mode) is never real attendance
+              ne(recAttendance.via, "uji"),
+            ),
           )
       : [];
   return void res.status(200).json({
@@ -514,7 +519,11 @@ async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload)
           .select({ id: recAttendance.id })
           .from(recAttendance)
           .where(
-            and(eq(recAttendance.candidateId, a.kandidat.id), eq(recAttendance.eventId, fm.id)),
+            and(
+              eq(recAttendance.candidateId, a.kandidat.id),
+              eq(recAttendance.eventId, fm.id),
+              ne(recAttendance.via, "uji"),
+            ),
           )
           .limit(1)
       ).length > 0
@@ -540,7 +549,11 @@ async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload)
         .select({ at: recAttendance.at })
         .from(recAttendance)
         .where(
-          and(eq(recAttendance.candidateId, a.kandidat.id), inArray(recAttendance.eventId, evIds)),
+          and(
+            eq(recAttendance.candidateId, a.kandidat.id),
+            inArray(recAttendance.eventId, evIds),
+            ne(recAttendance.via, "uji"),
+          ),
         )
         .orderBy(asc(recAttendance.at))
         .limit(1)

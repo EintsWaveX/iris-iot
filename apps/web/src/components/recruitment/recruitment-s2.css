@@ -2465,8 +2465,11 @@ li.r2cutline {
   }
 }
 /* The moving strip sits on the bottom edge of the screen (5 Nov 2026: on a short page it floated
-   under the content, mid-screen). The wall keeps room for it so nothing ends up behind it. */
-.r2proj__tick {
+   under the content, mid-screen). The wall keeps room for it so nothing ends up behind it.
+   The selector must be as specific as `.r2proj > *:not(.r2proj__stars)` above (position: relative, z-index: 1), which
+   otherwise wins: PR #85 used the bare `.r2proj__tick`, so the strip stayed in the flow and floated under the content
+   whenever the wall had no tall lobby row (Belum Mulai). */
+.r2proj > .r2proj__tick {
   position: fixed;
   inset: auto 0 0;
   z-index: 2;
@@ -2508,6 +2511,48 @@ li.r2cutline {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+}
+
+/* Test mode (5 Nov 2026): the Panitia try the wall before the real window. The wall says so loudly, in the top bar,
+   under the title and in the moving strip, so nobody takes a test run for the real attendance. */
+.r2proj__test {
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 1.5px solid var(--warn);
+  background: var(--warn-soft);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.r2proj__testnote {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--warn);
+  background: var(--warn-soft);
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+/* In Atur QR: the switch, what it does, how many test scans are saved, and the reset. */
+.r2proj__uji {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.r2proj__uji .hint {
+  margin: 0;
+}
+.r2proj__ujirow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 /* The result and its line are one live region (a heading can't carry role="status", so the wrapper does). */

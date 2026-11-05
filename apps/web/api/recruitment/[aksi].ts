@@ -168,6 +168,7 @@ import {
   handleQrAcara,
   handleQrToken,
   handleQrTerbaru,
+  handleQrUjiReset,
 } from "../_lib/recruitment-attendance.js";
 import {
   handleAtur,
@@ -1231,6 +1232,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "lock") return handleKunci(req, res, s);
   if (aksi === "unlock") return handleBukaKunci(req, res, s);
   if (aksi === "attend-manual") return handleHadirManual(req, res, s);
+  if (aksi === "qr-test-reset") return handleQrUjiReset(req, res, s);
   if (aksi === "slot-decide") return handleKeputusan(req, res, s);
   if (aksi === "slot-set") return handleAtur(req, res, s);
   if (aksi === "slot-autofill") return handleIsiOtomatis(req, res, s);

@@ -10,7 +10,7 @@
  * "tubes"), the rubric in the Template tab, the scores through the interview
  * engine.
  */
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import {
@@ -137,7 +137,8 @@ async function handleBoard(_req: ApiRequest, res: ApiResponse, s: SessionPayload
     for (const h of await c.db
       .select({ id: recAttendance.candidateId })
       .from(recAttendance)
-      .where(eq(recAttendance.eventId, work.id)))
+      // A test scan (via "uji", from the QR wall's test mode) is never real attendance
+      .where(and(eq(recAttendance.eventId, work.id), ne(recAttendance.via, "uji"))))
       hadir.add(h.id);
   const meja = await muatMeja(c, tims);
   const letak = new Map<number, { slotId: number; pos: number }>();

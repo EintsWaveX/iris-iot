@@ -20,6 +20,12 @@ export interface QrSetting {
   sheet: string;
   /** Panitia opened the attendance early (a gathering takes it in its last 30 minutes otherwise) */
   buka?: boolean;
+  /**
+   * Test mode: the wall and the scan behave as if the event were running and its attendance open, so the Panitia can
+   * try the whole thing before the real window. Scans made this way are saved as "uji" and purged (Reset Data Uji, or
+   * when the mode is turned off), so they never count as real attendance.
+   */
+  uji?: boolean;
 }
 
 /** Per event id (as text). An event with no entry shows the IRIS QR. */
@@ -69,7 +75,13 @@ export function cekQrSetting(v: unknown): QrSetting | null {
   const sheetRaw = typeof o.sheet === "string" ? o.sheet.trim() : "";
   if (sheetRaw !== "" && !bacaSheet(sheetRaw)) return null;
   if (o.mode === "luar" && link === "") return null;
-  return { mode: o.mode, link, sheet: sheetRaw, ...(o.buka === true ? { buka: true } : {}) };
+  return {
+    mode: o.mode,
+    link,
+    sheet: sheetRaw,
+    ...(o.buka === true ? { buka: true } : {}),
+    ...(o.uji === true ? { uji: true } : {}),
+  };
 }
 
 export function cekQrMap(v: unknown): QrMap | null {
@@ -87,6 +99,17 @@ export function cekQrMap(v: unknown): QrMap | null {
 /** What an event shows: its own entry, or the IRIS QR. */
 export const qrUntuk = (map: QrMap | undefined, eventId: number): QrSetting =>
   map?.[String(eventId)] ?? { mode: "iris", link: "", sheet: "" };
+
+/**
+ * The map with one event's entry replaced. An entry that is only the IRIS QR with no flag is the default, so it is
+ * dropped instead of saved (the map stays as small as the settings page expects).
+ */
+export function qrDengan(map: QrMap | undefined, eventId: number, s: QrSetting): QrMap {
+  const out: QrMap = { ...(map ?? QR_DEFAULT) };
+  if (s.mode === "iris" && !s.buka && !s.uji) delete out[String(eventId)];
+  else out[String(eventId)] = s;
+  return out;
+}
 
 /* ------------------------------------------------------------------ CSV */
 

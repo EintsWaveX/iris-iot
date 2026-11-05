@@ -10,7 +10,7 @@
  * Praktikan session.
  */
 import { aturanDokumen, bacaSetting } from "./recruitment-settings.js";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
@@ -174,7 +174,8 @@ export async function muatPool(
     ? await db
         .select({ c: recAttendance.candidateId, e: recAttendance.eventId })
         .from(recAttendance)
-        .where(inArray(recAttendance.eventId, semuaEvent))
+        // A test scan (via "uji", from the QR wall's test mode) is never real attendance
+        .where(and(inArray(recAttendance.eventId, semuaEvent), ne(recAttendance.via, "uji")))
     : [];
   const fm = new Set(hadir.filter((h) => eventFm.includes(h.e)).map((h) => h.c));
   const tt = new Set(hadir.filter((h) => eventTt.includes(h.e)).map((h) => h.c));
@@ -377,6 +378,7 @@ export async function handleCuttingRinci(req: ApiRequest, res: ApiResponse, s: S
               recAttendance.eventId,
               relevan.map((e) => e.id),
             ),
+            ne(recAttendance.via, "uji"),
           ),
         )
     : [];

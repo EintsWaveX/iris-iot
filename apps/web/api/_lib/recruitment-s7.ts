@@ -20,7 +20,7 @@
  *   GET  tubes-file           ?team=&part=  a read link (the team's members, or Panitia)
  * Teams lock at the Techmeet; Panitia can still change them (panel file).
  */
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
@@ -227,7 +227,8 @@ export async function muatTubesCutting(c: Konteks): Promise<
     for (const h of await c.db
       .select({ id: recAttendance.candidateId })
       .from(recAttendance)
-      .where(eq(recAttendance.eventId, work.id)))
+      // A test scan (via "uji", from the QR wall's test mode) is never real attendance
+      .where(and(eq(recAttendance.eventId, work.id), ne(recAttendance.via, "uji"))))
       hadir.add(h.id);
   const out = new Map<
     number,
@@ -345,7 +346,13 @@ async function handleMine(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
       const [h] = await c.db
         .select({ id: recAttendance.id })
         .from(recAttendance)
-        .where(and(eq(recAttendance.candidateId, k.id), eq(recAttendance.eventId, work.id)))
+        .where(
+          and(
+            eq(recAttendance.candidateId, k.id),
+            eq(recAttendance.eventId, work.id),
+            ne(recAttendance.via, "uji"),
+          ),
+        )
         .limit(1);
       attended = !!h;
     }
