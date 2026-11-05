@@ -17,7 +17,8 @@
  * The room's rules stay in src/lib/recruitment/room.ts (answerOpen, seatLeft,
  * normalize): this file reads rows and asks them, it never restates a timer.
  */
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, noStore } from "./http.js";
@@ -186,7 +187,16 @@ export async function muatKursiSendiri(
   }
   const seat = pickSeat(seats, (id) => rooms.find((r) => r.id === id)?.state.stage ?? "setup");
   if (seat) return { seat, room: rooms.find((r) => r.id === seat.roomId) ?? null };
-  return { seat: null, room: asg ? (rooms.find((r) => r.slotId === asg.slotId) ?? null) : null };
+  const dariSlot = asg ? (rooms.find((r) => r.slotId === asg.slotId) ?? null) : null;
+  if (dariSlot || !bebas()) return { seat: null, room: dariSlot };
+  // Free mode (Mode Latihan): with no Tes Tulis slot, the newest room that has not finished is theirs.
+  const terbaru = await db
+    .select()
+    .from(recExamRoom)
+    .where(eq(recExamRoom.editionId, edisiId))
+    .orderBy(desc(recExamRoom.id))
+    .limit(20);
+  return { seat: null, room: terbaru.find((r) => r.state.stage !== "finished") ?? null };
 }
 
 /* ------------------------------------------------------------------ read */
