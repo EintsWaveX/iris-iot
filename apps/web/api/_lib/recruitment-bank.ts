@@ -764,7 +764,16 @@ export async function pasangBawaanKe(db: Db, edisiId: number, nim: string) {
   const running = await ruangBerjalan(k.db, k.edisiId);
   let created = 0;
   let skipped = 0;
+  let updated = 0;
+  let removed = 0;
   const failed: string[] = [];
+  // A default installed earlier that the bank changed or dropped since (5 Nov 2026: the bitwise
+  // questions were replaced): while it is still an untouched seed (sample, version 1, never dealt,
+  // not voided) it follows the bank; one someone edited keeps their edit. Nothing moves while a
+  // real room runs, because a ready question is locked then.
+  const untouched = (r: RecQuestionRow) =>
+    r.sample && r.version === 1 && r.shownAt === null && r.voidedAt === null;
+  const inBank = new Set<string>();
   await k.db.transaction(async (tx) => {
     for (const it of items) {
       const d = it.draft;
@@ -772,7 +781,44 @@ export async function pasangBawaanKe(db: Db, edisiId: number, nim: string) {
         failed.push(it.title || `#${it.index}`);
         continue;
       }
+      inBank.add(key(d.part, d.lang, d.title));
       if (taken.has(key(d.part, d.lang, d.title))) {
+        const old = have.find((r) => key(r.part, r.lang, r.title) === key(d.part, d.lang, d.title));
+        const clean = cleanQuestion(d.format, d.body, d.answer);
+        if (
+          old &&
+          clean &&
+          !running &&
+          untouched(old) &&
+          (old.format !== d.format ||
+            old.status !== d.status ||
+            canon(old.body) !== canon(clean.body) ||
+            canon(old.answer) !== canon(clean.answer))
+        ) {
+          const now = new Date();
+          await tx
+            .update(recQuestion)
+            .set({
+              format: d.format,
+              status: d.status,
+              body: clean.body,
+              answer: clean.answer,
+              updatedBy: nim,
+              updatedAt: now,
+            })
+            .where(and(eq(recQuestion.id, old.id), eq(recQuestion.version, 1)));
+          await tx.insert(recQuestionLog).values({
+            questionId: old.id,
+            who: nim,
+            kind: "save",
+            before: { title: old.title, status: old.status, body: old.body, answer: old.answer },
+            after: { title: d.title, status: d.status, body: clean.body, answer: clean.answer },
+            note: "Soal bawaan diperbarui",
+            at: now,
+          });
+          updated++;
+          continue;
+        }
         skipped++;
         continue;
       }
@@ -785,6 +831,16 @@ export async function pasangBawaanKe(db: Db, edisiId: number, nim: string) {
       );
       if (r.ok) created++;
       else failed.push(`${d.title}: ${r.kode}`);
+    }
+    // The untouched defaults the bank no longer has go away (a title that was renamed lands here).
+    if (!failed.length && !running) {
+      for (const r of have) {
+        if (!untouched(r) || inBank.has(key(r.part, r.lang, r.title))) continue;
+        if (await dipakaiSeat(tx as unknown as Db, k.edisiId, r.id)) continue;
+        await tx.delete(recQuestion).where(eq(recQuestion.id, r.id));
+        await writeAudit(nim, "rec_soal_hapus", { id: r.id, title: r.title, bawaan: true });
+        removed++;
+      }
     }
   });
   // The default Live Coding problems: their expected outputs come from reference solutions
@@ -839,7 +895,7 @@ export async function pasangBawaanKe(db: Db, edisiId: number, nim: string) {
       .where(eq(recCProblem.id, r.id));
     refreshed++;
   }
-  return { created, skipped, failed, problems: newPr.length, refreshed };
+  return { created, skipped, updated, removed, failed, problems: newPr.length, refreshed };
 }
 
 /* --------------------------------------------------------------- images */

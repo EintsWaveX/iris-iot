@@ -282,7 +282,7 @@ describe("poolCounts", () => {
     ];
     const p = poolCounts(rows, DEFAULT_EXAM_CONFIG);
     expect(p.logika).toEqual([
-      { lang: "c", ready: 2, draft: 1, seed: 1, voided: 1, shown: 15, pool: 20, missing: 13 },
+      { lang: "c", ready: 2, draft: 1, seed: 1, voided: 1, shown: 15, pool: 40, missing: 13 },
     ]);
     expect(p.fitb.every((c) => c.ready === 0 && c.missing === c.shown)).toBe(true);
   });

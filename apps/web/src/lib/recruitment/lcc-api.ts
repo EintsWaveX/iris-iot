@@ -200,3 +200,10 @@ export function stateOf(
 }
 
 export { passedOf };
+
+/** `GET lcc-judge`: the lab PC's judge, for the panel header. */
+export interface LccJudge {
+  judgeReady: boolean;
+  /** Seconds since the judge's newest heartbeat, null when it never reported */
+  ageSec: number | null;
+}

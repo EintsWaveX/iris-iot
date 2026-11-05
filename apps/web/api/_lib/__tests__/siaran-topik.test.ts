@@ -77,6 +77,7 @@ const BACA: Record<string, string[]> = {
     "room-ticket",
     "room-log",
     "lcc-room",
+    "lcc-judge",
     "score-stats",
     // R4 and R6 (2026-11-01), api/_lib/recruitment-s4.ts
     "iv-crew",

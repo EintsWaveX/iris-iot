@@ -37,8 +37,8 @@ describe("the default config", () => {
 
   it("a part's maximum with bonus counts every bonus question at half", () => {
     const m = maxWithBonus(DEFAULT_EXAM_CONFIG);
-    // 640 for 15 questions, 5 more in the pool at half: 640 + 5 x 640 / 15 / 2
-    expect(m.parts.logika).toBe(Math.round(640 * (1 + (0.5 * 5) / 15)));
+    // 640 for 15 questions, 25 more in the pool at half: 640 + 25 x 640 / 15 / 2
+    expect(m.parts.logika).toBe(Math.round(640 * (1 + (0.5 * 25) / 15)));
     // 2400 base plus half of the 19 other problems of an even 8 / 8 / 8 pool at their tier's points
     expect(m.livecode).toBe(2400 + Math.round((6 * 300 + 6 * 500 + 7 * 800) / 2));
   });

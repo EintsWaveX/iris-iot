@@ -355,3 +355,53 @@
     display: none;
   }
 }
+
+/* The lab PC's connection beside the Oprec switch (5 Nov 2026): a pulsing dot and one word. */
+.rec-labpc {
+  --lp: var(--ok);
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 600;
+  gap: 8px;
+  white-space: nowrap;
+}
+.rec-labpc[data-tone="off"] {
+  --lp: var(--danger);
+}
+.rec-labpc[data-tone="retry"] {
+  --lp: var(--warn);
+}
+.rec-labpc__dot {
+  background: var(--lp);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--lp);
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+:root:not([data-motion-tier="0"]) .rec-labpc__dot {
+  animation: rec-labpc-pulse 1.8s ease-out infinite;
+}
+:root:not([data-motion-tier="0"]) .rec-labpc[data-tone="retry"] .rec-labpc__dot {
+  animation-duration: 0.9s;
+}
+@keyframes rec-labpc-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--lp) 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-labpc__dot {
+    animation: none !important;
+  }
+}
+@media (max-width: 899px) {
+  .rec-labpc__t {
+    display: none;
+  }
+}

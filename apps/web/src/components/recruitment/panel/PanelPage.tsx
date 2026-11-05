@@ -34,6 +34,7 @@ import { TUBES } from "../tubes/tubesStrings";
 import Ringkasan from "./Ringkasan";
 import { LatihanCard } from "../Latihan";
 import TampilOprec from "./TampilOprec";
+import LabPcStatus from "./LabPcStatus";
 import { PN } from "./panelStrings";
 import { TitleCaseContext } from "../../ui/Dropdown";
 import Skeleton from "../../ui/Skeleton";
@@ -229,6 +230,7 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           stc={tab === "mengajar" || tab === "penerimaan" ? STC[lang] : undefined}
           sub={hariKe ? t.day(hariKe, tgl(hariIni, lang)) : t.dayPlain(tgl(hariIni, lang))}
         >
+          {panitia && <LabPcStatus lang={lang} />}
           {panitia && edisi.data && (
             <TampilOprec
               lang={lang}
