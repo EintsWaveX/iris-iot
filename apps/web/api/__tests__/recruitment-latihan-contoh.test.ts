@@ -3,7 +3,12 @@
  * They do nothing outside a practice context.
  */
 import { describe, expect, it } from "vitest";
-import { lengkapiUsulan, pastikanHasil, pastikanTawaran } from "../_lib/recruitment-latihan-contoh";
+import {
+  lengkapiUsulan,
+  pastikanHasil,
+  pastikanTawaran,
+  perbaikiKode,
+} from "../_lib/recruitment-latihan-contoh";
 import { jalankanLatihan, type KonteksLatihan } from "../_lib/recruitment-latihan-ctx";
 
 const konteks: KonteksLatihan = {
@@ -96,6 +101,42 @@ describe("pastikanHasil", () => {
     await dalamLatihan(() => pastikanHasil(db, 7, "berkas", "101022300900"));
     await dalamLatihan(() => pastikanHasil(db, 7, "berkas", "101022300900"));
     expect(tulis).toEqual([]);
+  });
+});
+
+describe("perbaikiKode", () => {
+  it("gives nothing for codes that are fine", () => {
+    const r = perbaikiKode(
+      [
+        { id: 1, nama: "Raka Putra", code: "RAK" },
+        { id: 2, nama: "Sari Dewi", code: "SAD" },
+      ],
+      new Set(),
+    );
+    expect(r.size).toBe(0);
+  });
+
+  it("replaces an empty, badly shaped, repeated or taken code with a fresh one", () => {
+    const r = perbaikiKode(
+      [
+        { id: 1, nama: "Raka Putra", code: null },
+        { id: 2, nama: "Sari Dewi", code: "s1" },
+        { id: 3, nama: "Budi Santoso", code: "BUD" },
+        { id: 4, nama: "Budi Setiawan", code: "BUD" },
+        { id: 5, nama: "Tono Wijaya", code: "TWI" },
+      ],
+      new Set(["TWI"]),
+    );
+    expect([...r.keys()].sort()).toEqual([1, 2, 3, 4, 5]);
+    const kode = [...r.values()];
+    for (const k of kode) expect(k).toMatch(/^[A-Z]{3}$/);
+    expect(new Set(kode).size).toBe(kode.length);
+    expect(kode).not.toContain("TWI");
+  });
+
+  it("finds a code even for a name that offers none", () => {
+    const r = perbaikiKode([{ id: 1, nama: "Al", code: null }], new Set());
+    expect(r.get(1)).toMatch(/^[A-Z]{3}$/);
   });
 });
 

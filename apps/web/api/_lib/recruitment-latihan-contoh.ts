@@ -4,7 +4,8 @@
  * row, is safe to call twice, and does nothing at all outside a practice context.
  */
 import { and, eq, inArray } from "drizzle-orm";
-import { recMakeup, recStageResult } from "../../src/lib/schema.js";
+import { recMakeup, recStageResult, recTeam, recTeamMember } from "../../src/lib/schema.js";
+import { cekKode, usulKode } from "../../src/lib/recruitment/penerimaan.js";
 import type { MakeupStage } from "../../src/lib/recruitment/makeup.js";
 import type { CutStage } from "../../src/lib/recruitment/types.js";
 import type { Db } from "./recruitment-data.js";
@@ -119,4 +120,92 @@ export async function pastikanTawaran(
     .insert(recMakeup)
     .values({ candidateId: kandidatId, stage, offeredBy: oleh })
     .onConflictDoNothing();
+}
+
+/** The first three-letter code nobody holds (AAA, AAB, ...), for a name that offers no suggestion. */
+function kodeCadangan(dipakai: ReadonlySet<string>): string {
+  for (let n = 0; n < 26 ** 3; n++) {
+    const k =
+      String.fromCharCode(65 + Math.floor(n / 676)) +
+      String.fromCharCode(65 + (Math.floor(n / 26) % 26)) +
+      String.fromCharCode(65 + (n % 26));
+    if (!dipakai.has(k)) return k;
+  }
+  return "AAA";
+}
+
+/**
+ * The codes Penerimaan would refuse (empty, badly shaped, repeated, or held by an Asisten) swapped for fresh ones,
+ * so practice never stops at "kode bermasalah". Returns only the rows that change, by CaAs id. Pure.
+ */
+export function perbaikiKode(
+  items: readonly { id: number; nama: string; code: string | null }[],
+  taken: ReadonlySet<string>,
+): Map<number, string> {
+  const cek = cekKode(
+    items.map((i) => ({ id: i.id, code: i.code })),
+    taken,
+  );
+  const dipakai = new Set(taken);
+  for (const c of cek) if (!c.problem && c.code) dipakai.add(c.code);
+  const out = new Map<number, string>();
+  for (const c of cek) {
+    if (!c.problem) continue;
+    const nama = items.find((i) => i.id === c.id)?.nama ?? "";
+    const baru = usulKode(nama, dipakai) ?? kodeCadangan(dipakai);
+    dipakai.add(baru);
+    out.set(c.id, baru);
+  }
+  return out;
+}
+
+/**
+ * Takes a CaAs out of the Tubes team they are in, so making or joining another is never refused. A team they
+ * lead goes with them (its members and files follow); a plain member just leaves.
+ */
+export async function lepasTimLama(db: Q, kandidatId: number): Promise<void> {
+  if (!konteksLatihan()) return;
+  const milik = await db
+    .select({ teamId: recTeamMember.teamId })
+    .from(recTeamMember)
+    .where(and(eq(recTeamMember.candidateId, kandidatId), eq(recTeamMember.status, "joined")));
+  for (const { teamId } of milik) {
+    const [t] = await db
+      .select({ leaderId: recTeam.leaderId })
+      .from(recTeam)
+      .where(eq(recTeam.id, teamId))
+      .limit(1);
+    if (t?.leaderId === kandidatId) await db.delete(recTeam).where(eq(recTeam.id, teamId));
+    else
+      await db
+        .delete(recTeamMember)
+        .where(and(eq(recTeamMember.teamId, teamId), eq(recTeamMember.candidateId, kandidatId)));
+  }
+}
+
+/**
+ * The CaAs's Tubes team: the one they have joined, or a new one they lead when they have none.
+ * Returns its id (0 outside practice, where nothing is made).
+ */
+export async function pastikanTim(
+  db: Q,
+  edisiId: number,
+  kandidatId: number,
+  oleh: string,
+): Promise<number> {
+  if (!konteksLatihan()) return 0;
+  const [ada] = await db
+    .select({ teamId: recTeamMember.teamId })
+    .from(recTeamMember)
+    .where(and(eq(recTeamMember.candidateId, kandidatId), eq(recTeamMember.status, "joined")))
+    .limit(1);
+  if (ada) return ada.teamId;
+  const [t] = await db
+    .insert(recTeam)
+    .values({ editionId: edisiId, leaderId: kandidatId })
+    .returning({ id: recTeam.id });
+  await db
+    .insert(recTeamMember)
+    .values({ teamId: t.id, candidateId: kandidatId, status: "joined", by: oleh });
+  return t.id;
 }
