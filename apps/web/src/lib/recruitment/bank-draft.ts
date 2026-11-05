@@ -19,6 +19,7 @@ import type {
   Rng,
   View,
 } from "./exam-types";
+import { formatsOf } from "./exam-types";
 import { rngFrom } from "./draw";
 import { makePerm, newId, structureKey, toView, validateQuestion } from "./formats";
 import { canon } from "./bank-rules";
@@ -140,6 +141,18 @@ export function changeFormat(d: Draft, format: Format): Draft {
   const s = starter(format, d.lang);
   const keep = { prompt: d.body.prompt, ...(d.body.images ? { images: d.body.images } : {}) };
   return { ...d, ...s, body: { ...s.body, ...keep } } as Draft;
+}
+
+/**
+ * Another part for a question nobody has seen yet. The language stays when the new part lists
+ * it, else the part's first; a style the new part does not take becomes its first style (the
+ * prompt and pictures stay, the key starts over), so no draft is left on a style its part refuses.
+ */
+export function changePart(d: Draft, part: Phase1Part, langs: readonly Lang[]): Draft {
+  const lang = langs.includes(d.lang) ? d.lang : langs[0];
+  const next = { ...d, part, lang } as Draft;
+  const styles = formatsOf(part);
+  return styles.includes(d.format) ? next : changeFormat(next, styles[0]);
 }
 
 /** The question the validator and the preview take; an unsaved draft has id 0 */

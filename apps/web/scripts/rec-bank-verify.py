@@ -34,6 +34,8 @@ import subprocess
 import sys
 import tempfile
 
+from rec_bank_pm import PM, parse_num
+
 HERE = pathlib.Path(__file__).resolve().parent
 WEB = HERE.parent
 TMP = pathlib.Path(tempfile.gettempdir()) / "rec-bank-verify"
@@ -151,6 +153,20 @@ CLAIMS = {
         "r bernilai 1": "r == 1",
         "s bernilai 0": "s == 0",
         "s bernilai 1": "s == 1",
+    },
+    "Kirim Kalau Terhubung": {
+        "cek bernilai 0": "cek == 0",
+        "kirim bernilai 2": "kirim == 2",
+        "cek bernilai 1": "cek == 1",
+        "kirim bernilai 3": "kirim == 3",
+        "kirim bernilai 1": "kirim == 1",
+    },
+    "Batas Nilai Sensor": {
+        "hasil bernilai 100": "hasil == 100",
+        "lebar bernilai 90": "lebar == 90",
+        "hasil bernilai 140": "hasil == 140",
+        "hasil bernilai 10": "hasil == 10",
+        "BATAS_ATAS adalah variabel int yang memakai memori": "0",  # #define is plain text replacement: a concept claim
     },
 }
 
@@ -425,11 +441,78 @@ def check_lines(q):
 HANDLERS = {"single": check_single, "multi": check_multi, "match": check_match, "order": check_order, "fitb": check_fitb, "fix": check_fix, "lines": check_lines}
 
 
+def same_answer(option_text, want):
+    """A computed number matches an option that holds that one number; anything else is a text match."""
+    if isinstance(want, (int, float)):
+        got = parse_num(option_text)
+        return got is not None and abs(got - want) < 1e-9
+    return norm(ctext(option_text)) == norm(str(want))
+
+
+def check_pm(q):
+    """A PM question has no code: its right answer is recomputed in rec_bank_pm.PM, not read from the key."""
+    spec = PM.get(q["title"])
+    if not spec:
+        return rec(q["title"], "PM check written", False, "add a PM entry for this title in rec_bank_pm.py")
+    options = q["body"]["options"]
+    if "single" in spec:
+        hits = [o for o in options if same_answer(o["text"], spec["single"])]
+        rec(q["title"], "exactly one option equals the computed answer", len(hits) == 1,
+            f"computed {spec['single']!r}, matching options {[o['text'] for o in hits]}")
+        if len(hits) == 1:
+            rec(q["title"], "that option is the key", hits[0]["id"] == q["answer"]["correct"],
+                f"computed {hits[0]['text']!r}, key is {q['answer']['correct']!r}")
+    elif "multi" in spec:
+        truth = spec["multi"]
+        keyed = set(q["answer"]["correct"])
+        for o in options:
+            t = ctext(o["text"])
+            if t not in truth:
+                rec(q["title"], "statement known", False, o["text"])
+                continue
+            rec(q["title"], f"statement {t!r} matches the key", truth[t] == (o["id"] in keyed),
+                f"true={truth[t]}, keyed={o['id'] in keyed}")
+        unused = set(truth) - {ctext(o["text"]) for o in options}
+        rec(q["title"], "every computed statement is an option", not unused, str(sorted(unused)))
+    else:
+        rec(q["title"], "PM entry has single or multi", False, repr(spec))
+
+
+def selftest():
+    """check_pm must pass a right key and catch a wrong key, a doubled answer and a wrong claim."""
+    def q(title, fmt, options, correct):
+        return {"title": title, "part": "logika", "format": fmt,
+                "body": {"prompt": "x", "options": [{"id": i, "text": t} for i, t in options]},
+                "answer": {"correct": correct}}
+
+    def outcome(question, spec):
+        results.clear()
+        PM[question["title"]] = spec
+        check_pm(question)
+        return all(r[2] for r in results)
+
+    opts = [("a", "Rp1.300.000"), ("b", "Rp1.350.000"), ("c", "1,5"), ("d", "1.5")]
+    assert outcome(q("t1", "single", opts, "a"), {"single": 1300000})
+    assert not outcome(q("t2", "single", opts, "b"), {"single": 1300000}), "wrong key must fail"
+    assert not outcome(q("t3", "single", [("a", "40"), ("b", "40%")], "a"), {"single": 40}), "two equal options must fail"
+    assert not outcome(q("t4", "single", opts, "a"), {"single": 999}), "no option equal must fail"
+    assert not outcome(q("t5", "single", opts, "a"), None), "missing PM entry must fail"
+    words = [("a", "Paket A"), ("b", "Paket B")]
+    assert outcome(q("t6", "single", words, "b"), {"single": "Paket B"})
+    stm = [("a", "x lebih besar dari y"), ("b", "y lebih besar dari x")]
+    assert outcome(q("t7", "multi", stm, ["a"]), {"multi": {"x lebih besar dari y": True, "y lebih besar dari x": False}})
+    assert not outcome(q("t8", "multi", stm, ["a", "b"]), {"multi": {"x lebih besar dari y": True, "y lebih besar dari x": False}})
+    print("selftest ok")
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--only")
     ap.add_argument("--json", help="a dump of the parsed bank (default: made with npx tsx)")
     args = ap.parse_args()
+    if args.selftest:
+        return selftest()
     path = args.json
     if not path:
         path = str(TMP / "bank.json")
@@ -440,7 +523,10 @@ def main():
             continue
         print(f"{q['part']}/{q['format']}: {q['title']}")
         try:
-            HANDLERS[q["format"]](q)
+            if q["part"] == "logika" and q["format"] in ("single", "multi") and "```c" not in q["body"]["prompt"]:
+                check_pm(q)
+            else:
+                HANDLERS[q["format"]](q)
         except Exception as e:  # a crash in a check is a failure, not a pass
             rec(q["title"], "check ran", False, repr(e))
     bad = [r for r in results if not r[2]]

@@ -7,6 +7,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_EXAM_CONFIG,
+  FORMATS,
+  PHASE1_PARTS,
+  formatsOf,
   type Question,
   type SingleAnswer,
   type SingleBody,
@@ -164,6 +167,37 @@ describe("judgeSave", () => {
     });
   });
 
+  it("a part takes only its own answer styles", () => {
+    const as = (part: QuestionState["part"], format: QuestionState["format"]) => ({
+      ...base,
+      part,
+      format,
+    });
+    const bad = { ok: false, kode: "format_bukan_bagian" };
+    expect(judgeSave(null, as("logika", "fitb"), ctx())).toEqual(bad);
+    expect(judgeSave(null, as("fitb", "single"), ctx())).toEqual(bad);
+    expect(judgeSave(null, as("kodingan", "order"), ctx())).toEqual(bad);
+    for (const [p, f] of [
+      ["logika", "match"],
+      ["fitb", "fitb"],
+      ["kodingan", "fix"],
+    ] as const)
+      expect(judgeSave(null, as(p, f), ctx()), `${p}/${f}`).toEqual({ ok: true, kind: "create" });
+  });
+
+  it("a stored question with a style its part does not take is refused on save, even unchanged", () => {
+    const wrong = { ...base, part: "fitb", format: "single" } as QuestionState;
+    expect(judgeSave(stored(wrong), wrong, ctx())).toEqual({
+      ok: false,
+      kode: "format_bukan_bagian",
+    });
+  });
+
+  it("formatsOf lists every style once across the parts", () => {
+    const all = PHASE1_PARTS.flatMap((p) => [...formatsOf(p)]);
+    expect([...all].sort()).toEqual([...FORMATS].sort());
+  });
+
   it("an identical save is a no-op, even while a room runs", () => {
     expect(judgeSave(stored(base), base, ctx({ roomRunning: true }))).toEqual({
       ok: true,
@@ -184,9 +218,15 @@ describe("judgeSave", () => {
     fewer.body = { ...fewer.body, options: fewer.body.options.slice(0, 3) };
     fewer.answer = { correct: fewer.body.options[0].id };
     expect(judgeSave(shown, fewer, ctx())).toEqual({ ok: false, kode: "struktur_terkunci" });
-    expect(judgeSave(shown, { ...base, part: "fitb" }, ctx())).toEqual({
+    // a style change inside its part is locked once shown; a move to another part is refused too
+    // (its style would not fit there)
+    expect(judgeSave(shown, { ...base, format: "multi" }, ctx())).toEqual({
       ok: false,
       kode: "struktur_terkunci",
+    });
+    expect(judgeSave(shown, { ...base, part: "fitb" }, ctx())).toEqual({
+      ok: false,
+      kode: "format_bukan_bagian",
     });
   });
 

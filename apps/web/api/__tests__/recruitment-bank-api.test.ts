@@ -713,6 +713,29 @@ describe("bank-import", () => {
     expect(tulis.filter((w) => w.tabel === "question" && w.op === "insert")).toHaveLength(7);
   });
 
+  it("a question filed under a part that does not take its style is an error, dry or applied", async () => {
+    rows.question = [];
+    const text = `---
+part: fitb
+lang: c
+format: single
+title: Salah Bagian
+---
+Q
+
+- [x] a
+- [ ] b
+`;
+    const dry = await jalan("bank-import", AKD, { text, dry: true });
+    expect(dry.body.counts).toMatchObject({ create: 0, error: 1 });
+    const item = (dry.body.items as { action: string; errors: { kode: string }[] }[])[0];
+    expect(item.action).toBe("error");
+    expect(item.errors.map((e) => e.kode)).toEqual(["format_bukan_bagian"]);
+    const apply = await jalan("bank-import", AKD, { text, dry: false });
+    expect(apply.body.counts).toMatchObject({ create: 0, error: 1 });
+    expect(tulis.filter((w) => w.tabel === "question" && w.op === "insert")).toHaveLength(0);
+  });
+
   it("ignores a refs line from an older file: there are no references any more", async () => {
     rows.question = [];
     const text = `---\npart: logika\nlang: c\nformat: single\ntitle: R\nrefs: [https://old.example/x]\n---\nQ\n\n- [x] a\n- [ ] b\n`;
@@ -771,7 +794,7 @@ describe("bank-seed", () => {
 
   it("brings an untouched default up to the bank and drops one the bank no longer has", async () => {
     rows.question = [
-      { ...BARIS(), id: 7, title: "Ekspresi dan Hasil", sample: true, version: 1 },
+      { ...BARIS(), id: 7, title: "Waktu dan Wrap", sample: true, version: 1 },
       { ...BARIS(), id: 8, title: "Operator Bit", sample: true, version: 1 },
       { ...BARIS(), id: 9, title: "Soal sendiri", sample: false, version: 1 },
       { ...BARIS(), id: 10, title: "Operator Dua", sample: true, version: 2 },
