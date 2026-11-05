@@ -5,9 +5,23 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setBebasHook } from "../recruitment/bebas";
 import { attendEligible, pickEligible } from "../recruitment/standing";
-import { canChange, judgeChange, judgePick, pickOpen, type SlotInfo } from "../recruitment/slots";
-import { canLock, canUnlock, envelopeVisible } from "../recruitment/cutting";
-import { absensiBuka, gateLive } from "../recruitment/gates";
+import {
+  canChange,
+  judgeChange,
+  judgePick,
+  pickOpen,
+  perubahanTerkunci,
+  slotTerkunci,
+  type SlotInfo,
+} from "../recruitment/slots";
+import {
+  bukaKunciTampil,
+  canLock,
+  canUnlock,
+  envelopeVisible,
+  kunciTertutup,
+} from "../recruitment/cutting";
+import { absensiBuka, eventSegera, gateLive } from "../recruitment/gates";
 import type { RecEvent } from "../recruitment/types";
 
 const bebasOn = () => setBebasHook(() => true);
@@ -71,6 +85,26 @@ describe("lifts the pick window and the change cutoff in free mode", () => {
   });
 });
 
+describe("the picker's buttons in free mode", () => {
+  it("slotTerkunci locks a full slot and the one you hold with the switch off", () => {
+    expect(slotTerkunci(true, false)).toBe(true);
+    expect(slotTerkunci(false, true)).toBe(true);
+    expect(slotTerkunci(false, false)).toBe(false);
+    expect(slotTerkunci(true, undefined)).toBe(true);
+  });
+  it("slotTerkunci opens a full slot in free mode but still not the one you hold", () => {
+    bebasOn();
+    expect(slotTerkunci(true, false)).toBe(false);
+    expect(slotTerkunci(false, true)).toBe(true);
+  });
+  it("perubahanTerkunci follows the cutoff with the switch off and never locks in free mode", () => {
+    expect(perubahanTerkunci(true)).toBe(true);
+    expect(perubahanTerkunci(false)).toBe(false);
+    bebasOn();
+    expect(perubahanTerkunci(true)).toBe(false);
+  });
+});
+
 describe("judgePick in free mode", () => {
   const dalam = {
     open: false,
@@ -118,6 +152,28 @@ describe("judgeChange in free mode", () => {
   });
 });
 
+describe("the Cutting buttons in free mode", () => {
+  const penuh = { baris: 4, missing: 0, adaWaktu: true };
+  it("kunciTertutup disables the lock for an empty board, a missing proposal or no Pengumuman", () => {
+    expect(kunciTertutup(penuh)).toBe(false);
+    expect(kunciTertutup({ ...penuh, baris: 0 })).toBe(true);
+    expect(kunciTertutup({ ...penuh, missing: 2 })).toBe(true);
+    expect(kunciTertutup({ ...penuh, adaWaktu: false })).toBe(true);
+  });
+  it("kunciTertutup never disables the lock in free mode", () => {
+    bebasOn();
+    expect(kunciTertutup({ baris: 0, missing: 2, adaWaktu: false })).toBe(false);
+  });
+  it("bukaKunciTampil shows Buka Kunci only before the reveal, and after it in free mode", () => {
+    expect(bukaKunciTampil(true, false)).toBe(true);
+    expect(bukaKunciTampil(true, true)).toBe(false);
+    expect(bukaKunciTampil(false, false)).toBe(false);
+    bebasOn();
+    expect(bukaKunciTampil(true, true)).toBe(true);
+    expect(bukaKunciTampil(false, true)).toBe(false);
+  });
+});
+
 describe("lifts the lock rules in free mode", () => {
   it("canLock needs every proposal with the switch off; with it on it is ok and still counts what is missing", () => {
     expect(canLock([{ proposal: "lolos" }, { proposal: null }])).toEqual({ ok: false, missing: 1 });
@@ -140,6 +196,21 @@ describe("lifts the lock rules in free mode", () => {
     expect(envelopeVisible(row, now)).toBe(true);
     expect(envelopeVisible({ locked: true, revealAt: null }, now)).toBe(true);
     expect(envelopeVisible({ locked: false, revealAt: null }, now)).toBe(false);
+  });
+});
+
+describe("eventSegera (the QR may be prepared) in free mode", () => {
+  const lewat: RecEvent = { ...EVENT, startsOn: "2026-10-01", endsOn: "2026-10-01" };
+  const jauh: RecEvent = { ...EVENT, startsOn: "2026-12-30", endsOn: "2026-12-30" };
+  it("is only for an event that has not ended and starts within the lead days, with the switch off", () => {
+    expect(eventSegera(lewat, now)).toBe(false);
+    expect(eventSegera(jauh, now)).toBe(false);
+    expect(eventSegera({ ...EVENT, startsOn: "2026-11-07", endsOn: "2026-11-07" }, now)).toBe(true);
+  });
+  it("is true for any event in free mode, past or far away", () => {
+    bebasOn();
+    expect(eventSegera(lewat, now)).toBe(true);
+    expect(eventSegera(jauh, now)).toBe(true);
   });
 });
 

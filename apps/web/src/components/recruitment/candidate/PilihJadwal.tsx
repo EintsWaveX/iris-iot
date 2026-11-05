@@ -14,7 +14,12 @@ import { Roll } from "../Roll";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
-import { seatsLeft, tutupTampil } from "../../../lib/recruitment/slots";
+import {
+  perubahanTerkunci,
+  seatsLeft,
+  slotTerkunci,
+  tutupTampil,
+} from "../../../lib/recruitment/slots";
 import type { CandidateSlotsStage, SlotSeat } from "../../../lib/recruitment/types";
 import { S2 } from "../s2Strings";
 import { REC } from "../recruitmentStrings";
@@ -63,7 +68,7 @@ function SlotBtn({
       type="button"
       className="r2slot"
       aria-pressed={picked}
-      disabled={full || mine}
+      disabled={slotTerkunci(full, mine)}
       data-full={full ? "yes" : undefined}
       data-mine={mine ? "yes" : undefined}
       onClick={() => onPick(s.id)}
@@ -532,7 +537,12 @@ export function PickCard({
       </div>
       {!pend && (
         <span className="stack stack--sm r2pick__btn">
-          <button type="button" className="btn" disabled={lewat} onClick={onChange}>
+          <button
+            type="button"
+            className="btn"
+            disabled={perubahanTerkunci(lewat)}
+            onClick={onChange}
+          >
             <span className="btn__label">{t.ask}</span>
           </button>
           <span className="hint">

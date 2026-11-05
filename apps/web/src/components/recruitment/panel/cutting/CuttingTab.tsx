@@ -41,6 +41,8 @@ import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost, useRecCut, useRecSettings } from "../../../../lib/recruitment/client";
 import {
   boardOrder,
+  bukaKunciTampil,
+  kunciTertutup,
   matchesReason,
   reasonsOf,
   thresholdProposals,
@@ -662,6 +664,14 @@ export default function CuttingTab({
           )}
         </div>
       )}
+      {/* Free mode (Mode Latihan): a stage can be unlocked after its reveal too. */}
+      {dibuka && ketua && bukaKunciTampil(dikunci, dibuka) && (
+        <div className="r2lockd__right">
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setBuka(true)}>
+            {t.unlock}
+          </button>
+        </div>
+      )}
     </section>
   );
 
@@ -705,7 +715,11 @@ export default function CuttingTab({
             icon={LockSimpleIcon}
             tone="primary"
             ms={1600}
-            disabled={missing > 0 || baris.length === 0 || !lock?.defaultRevealAt}
+            disabled={kunciTertutup({
+              baris: baris.length,
+              missing,
+              adaWaktu: !!lock?.defaultRevealAt,
+            })}
             onDone={kunci}
           />
           {missing > 0 && baris.length > 0 && (

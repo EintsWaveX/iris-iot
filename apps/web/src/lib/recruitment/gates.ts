@@ -44,6 +44,8 @@ export const ASISTEN_LEAD_DAYS = 3;
 
 /** Not over yet and starting within `days` days (or already running): open for the Asisten to prepare. */
 export function eventSegera(e: Jendela, now: Date, days = ASISTEN_LEAD_DAYS): boolean {
+  // Free mode (Mode Latihan): any event may be prepared, past or far off.
+  if (bebas()) return true;
   return !eventEnded(e, now) && e.startsOn <= addDays(tanggalWib(now).tanggal, days);
 }
 

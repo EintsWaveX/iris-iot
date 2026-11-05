@@ -71,6 +71,17 @@ export function canLock(rows: readonly { proposal: Proposal | null }[]): {
   return { ok: bebas() || (rows.length > 0 && missing === 0), missing };
 }
 
+/**
+ * Whether the Kunci hold button is disabled on the board: nothing on it, a proposal missing, or no Pengumuman to
+ * take the reveal time from. Free mode (Mode Latihan) lifts all three; the server fills what is missing.
+ */
+export const kunciTertutup = (i: { baris: number; missing: number; adaWaktu: boolean }): boolean =>
+  !bebas() && (i.baris === 0 || i.missing > 0 || !i.adaWaktu);
+
+/** Buka Kunci shows while the envelopes are still sealed; free mode shows it after the reveal too. */
+export const bukaKunciTampil = (dikunci: boolean, dibuka: boolean): boolean =>
+  dikunci && (!dibuka || bebas());
+
 interface Kunci {
   locked: boolean;
   revealAt: Date | null;

@@ -81,6 +81,16 @@ export const changeCutoff = (s: Pick<SlotInfo, "startsAt">): Date => wib(slotDat
 export const canChange = (s: Pick<SlotInfo, "startsAt">, now: Date): boolean =>
   bebas() || now < changeCutoff(s);
 
+/**
+ * Whether a slot's button is locked on the picker: a full slot, or the one the CaAs already holds. Free mode
+ * (Mode Latihan) opens a full slot too, since the server will take the pick; the held slot stays locked.
+ */
+export const slotTerkunci = (full: boolean, mine: boolean | undefined): boolean =>
+  !!mine || (full && !bebas());
+
+/** Whether asking for a change is locked: past the cutoff, except in free mode. */
+export const perubahanTerkunci = (lewat: boolean): boolean => lewat && !bebas();
+
 export const seatsLeft = (s: Pick<SlotInfo, "capacity">, taken: number): number =>
   Math.max(0, s.capacity - taken);
 
