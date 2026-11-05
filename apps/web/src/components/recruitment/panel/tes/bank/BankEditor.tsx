@@ -24,6 +24,7 @@ import { defaultQuestionPoints } from "../../../../../lib/recruitment/exam-confi
 import {
   blankDraft,
   changeFormat,
+  changePart,
   codeLangOf,
   fromFull,
   keySig,
@@ -44,7 +45,7 @@ import type {
 import { useBankQuestion } from "../../../../../lib/recruitment/bank-client";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
 import {
-  FORMATS,
+  formatsOf,
   type CodeLang,
   type Format,
   type Phase1Part,
@@ -148,7 +149,7 @@ export default function BankEditor({
 
   const fresh = useMemo(() => {
     const langs = allowedLangs(config.config, part);
-    return blankDraft(part, langs[0]);
+    return blankDraft(part, langs[0], formatsOf(part)[0]);
   }, [config.config, part]);
   const [d, setD] = useState<Draft | null>(id === null ? fresh : null);
   const [orig, setOrig] = useState<Draft | null>(id === null ? fresh : null);
@@ -290,7 +291,7 @@ export default function BankEditor({
   const FormatPick = (
     <div className="stack stack--sm">
       <div className="r3fmts" role="radiogroup" aria-label={t.fieldFormat}>
-        {FORMATS.map((f: Format) => (
+        {formatsOf(d.part).map((f: Format) => (
           <label key={f} className="r3fmt" data-off={lock && d.format !== f ? "yes" : undefined}>
             <input
               type="radio"
@@ -466,8 +467,9 @@ export default function BankEditor({
               }))}
               onChange={(v) => {
                 const part2 = v as Phase1Part;
-                const ok: readonly string[] = allowedLangs(config.config, part2);
-                set({ ...d, part: part2, lang: ok.includes(d.lang) ? d.lang : ok[0] } as Draft);
+                const next = changePart(d, part2, allowedLangs(config.config, part2));
+                if (next.format !== d.format) setValue(null);
+                set(next);
               }}
             />
             <div className="stack stack--sm">

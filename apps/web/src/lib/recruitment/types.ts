@@ -333,6 +333,7 @@ export type RecError =
   | "perlu_catatan"
   | "belum_diatur"
   | "bahasa_salah"
+  | "format_bukan_bagian"
   | "struktur_terkunci"
   | "ruang_berjalan"
   | "ruang_sudah_dipakai"
