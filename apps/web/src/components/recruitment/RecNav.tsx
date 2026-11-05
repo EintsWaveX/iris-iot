@@ -46,6 +46,7 @@ import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
 import DisplayPanel, { BUKA_TAMPILAN } from "../shell/DisplayPanel";
 import NavClock from "../shell/NavClock";
+import LabPcStatus from "./panel/LabPcStatus";
 import AlertRail from "../shell/AlertRail";
 import OfflineNotice from "../shell/OfflineNotice";
 import Avatar from "../shell/Avatar";
@@ -449,6 +450,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         )}
 
         <div className="appnav__side">
+          {panitia && <LabPcStatus lang={lang} />}
           <NavClock lang={lang} inSession={false} />
           <RadixPopover.Root open={dispPop} onOpenChange={setDispPop}>
             <RadixPopover.Trigger asChild>

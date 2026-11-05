@@ -2464,6 +2464,23 @@ li.r2cutline {
     overflow: clip;
   }
 }
+/* The moving strip sits on the bottom edge of the screen (5 Nov 2026: on a short page it floated
+   under the content, mid-screen). The wall keeps room for it so nothing ends up behind it. */
+.r2proj__tick {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 2;
+  margin: 0;
+  background: var(--void);
+}
+.r2proj {
+  padding-bottom: calc(clamp(16px, 3vw, 44px) + 4.5rem);
+}
+@media (min-width: 1024px) {
+  .r2proj:has(> .r2proj__main) {
+    padding-bottom: 4.5rem;
+  }
+}
 
 /* The user's notes on the Belum Mulai screenshot (4 Nov, 21:04): the QR and its text sit in the middle of the
    screen, and the lobby is not a white card, only the page's own background. */
