@@ -140,6 +140,7 @@ vi.mock("../_lib/recruitment-settings", async (orig) => {
 const { default: handler } = await import("../recruitment/[aksi]");
 const { buatToken, bacaToken, kodeKetik } = await import("../_lib/recruitment-attendance");
 const { periodAt } = await import("../../src/lib/recruitment/qr");
+const latihanCtx = await import("../_lib/recruitment-latihan-ctx");
 
 const SEMBUNYI = "x".repeat(40);
 const EDISI = { id: 1, year: 2026, title: "Open Recruitment Asisten IRIS 2026", status: "live" };
@@ -1222,6 +1223,62 @@ describe("Pilih Jadwal", () => {
     expect((await pick()).body.kode).toBe("bukan_peserta");
   });
 
+  describe("in practice (free mode)", () => {
+    const { jalankanLatihan } = latihanCtx;
+    const LATIHAN = { mode: "caas", nim: "101022300001", nama: "Raka", edisi: EDISI } as never;
+    const bebasPick = (slotId = 1) => jalankanLatihan(LATIHAN, () => pick(slotId));
+
+    it("takes a seat outside the window", async () => {
+      peserta();
+      pada("2026-11-11T04:00:00");
+      const r = await bebasPick();
+      expect(r.body).toMatchObject({ ok: true, slotId: 1 });
+      expect(tulis.find((w) => w.tabel === "assignment")?.nilai).toMatchObject({
+        slotId: 1,
+        candidateId: 7,
+        stage: "tes_tulis",
+        via: "self",
+      });
+    });
+
+    it("takes a seat for someone who is not in the stage yet", async () => {
+      peserta();
+      pada("2026-11-11T19:30:00");
+      rows.result = [];
+      expect((await bebasPick()).body).toMatchObject({ ok: true, slotId: 1 });
+    });
+
+    it("takes a seat in a full slot", async () => {
+      peserta();
+      pada("2026-11-11T19:30:00");
+      rows.assignment = (sel) => (sel && "n" in (sel as object) ? [{ n: 3 }] : []);
+      expect((await bebasPick()).body).toMatchObject({ ok: true, slotId: 1 });
+    });
+
+    it("replaces the pick they already hold instead of refusing", async () => {
+      peserta();
+      pada("2026-11-11T19:30:00");
+      rows.assignment = (sel) =>
+        sel && "n" in (sel as object) ? [{ n: 0 }] : [{ id: 9, slotId: 4 }];
+      const r = await bebasPick();
+      expect(r.body).toMatchObject({ ok: true, slotId: 1 });
+      expect(tulis.some((w) => w.tabel === "assignment" && w.op === "insert")).toBe(false);
+      expect(tulis.find((w) => w.tabel === "assignment" && w.op === "update")?.nilai).toMatchObject(
+        {
+          slotId: 1,
+          via: "self",
+        },
+      );
+    });
+
+    it("still refuses a slot that does not exist", async () => {
+      peserta();
+      pada("2026-11-11T19:30:00");
+      rows.slot = [];
+      expect((await bebasPick(9)).body.kode).toBe("slot_salah");
+    });
+  });
+
   it("shows a candidate seat counts and never another candidate", async () => {
     peserta();
     pada("2026-11-12T10:00:00");
@@ -1326,6 +1383,94 @@ describe("Pilih Jadwal", () => {
       const r = await panggil("POST", "slot-change", { body: { withdraw: true } });
       expect(r.body).toMatchObject({ ok: true, status: "withdrawn" });
     });
+  });
+});
+
+describe("change requests and Plotting in practice (free mode)", () => {
+  const LATIHAN = {
+    mode: "asisten",
+    nim: "101022300900",
+    nama: "Asisten Uji",
+    edisi: EDISI,
+  } as never;
+  const dalam = <T>(f: () => Promise<T>) => latihanCtx.jalankanLatihan(LATIHAN, f);
+
+  it("a change request from a CaAs with no pick simply takes the seat", async () => {
+    sebagaiPraktikan();
+    rows.candidate = [KANDIDAT()];
+    rows.result = [HASIL()];
+    rows.slot = [SLOT(2)];
+    rows.assignment = (sel) => (sel && "n" in (sel as object) ? [{ n: 0 }] : []);
+    rows.change = [];
+    pada("2026-11-17T10:00:00");
+    const r = await dalam(() =>
+      panggil("POST", "slot-change", { body: { toSlot: 2, reason: "Bentrok dengan kuis lain" } }),
+    );
+    expect(r.body).toMatchObject({ ok: true, status: "approved" });
+    expect(tulis.find((w) => w.tabel === "assignment" && w.op === "insert")?.nilai).toMatchObject({
+      slotId: 2,
+      candidateId: 7,
+      via: "self",
+    });
+    expect(tulis.some((w) => w.tabel === "change" && w.op === "insert")).toBe(false);
+  });
+
+  it("a late change request goes through, and an open one gives way to the new one", async () => {
+    sebagaiPraktikan();
+    rows.candidate = [KANDIDAT()];
+    rows.result = [HASIL()];
+    rows.slot = [SLOT(2)];
+    rows.assignment = (sel) =>
+      sel && "n" in (sel as object)
+        ? [{ n: 3 }]
+        : [
+            {
+              a: { id: 5, slotId: 1, candidateId: 7, stage: "tes_tulis" },
+              slot: SLOT(1),
+              id: 5,
+              slotId: 1,
+            },
+          ];
+    rows.change = [{ id: 77 }];
+    pada("2026-11-17T20:00:00");
+    const r = await dalam(() =>
+      panggil("POST", "slot-change", { body: { toSlot: 2, reason: "Bentrok dengan kuis lain" } }),
+    );
+    expect(r.body).toMatchObject({ ok: true, status: "open" });
+    expect(tulis.find((w) => w.tabel === "change" && w.op === "update")?.nilai).toMatchObject({
+      status: "withdrawn",
+    });
+    expect(tulis.find((w) => w.tabel === "change" && w.op === "insert")?.nilai).toMatchObject({
+      fromSlot: 1,
+      toSlot: 2,
+    });
+  });
+
+  it("approves a request into a full slot without asking to go over", async () => {
+    panitia("admin");
+    rows.change = [
+      {
+        m: { id: 3, candidateId: 7, stage: "tes_tulis", fromSlot: 1, toSlot: 2, status: "open" },
+        edisi: 1,
+      },
+    ];
+    rows.slot = [SLOT(2, { capacity: 1 })];
+    rows.assignment = (sel) =>
+      sel && "n" in (sel as object) ? [{ n: 1 }] : [{ id: 5, slotId: 1 }];
+    const r = await dalam(() => panggil("POST", "slot-decide", { body: { id: 3, approve: true } }));
+    expect(r.body).toMatchObject({ ok: true, status: "approved" });
+  });
+
+  it("lets Plotting delete a slot with people in it and set capacity below the seats taken", async () => {
+    panitia("akademik");
+    rows.slot = [SLOT(1)];
+    rows.assignment = (sel) => (sel && "n" in (sel as object) ? [{ n: 2 }] : []);
+    const bawah = await dalam(() =>
+      panggil("POST", "slot-set", { body: { op: "edit", id: 1, capacity: 1 } }),
+    );
+    expect(bawah.body.ok).toBe(true);
+    const hapus = await dalam(() => panggil("POST", "slot-set", { body: { op: "delete", id: 1 } }));
+    expect(hapus.body.ok).toBe(true);
   });
 });
 
