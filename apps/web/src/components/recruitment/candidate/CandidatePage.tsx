@@ -16,7 +16,7 @@ import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
 import SegmentedControl from "../../ui/SegmentedControl";
 import { href } from "../../../lib/app";
-import { useLatihanMode, useRecOrang } from "../../../lib/recruitment/latihan-client";
+import { useRecOrang } from "../../../lib/recruitment/latihan-client";
 import type { Lang } from "../../../lib/kelas";
 import {
   bukaAkun,
@@ -165,7 +165,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
   const me = useRecOrang();
-  const latihan = useLatihanMode();
   const asisten = me?.role === "asisten";
   // The candidate is their oprec account, never the practicum sign-in (2026-10-24).
   const akun = useRecAkun(me !== undefined && !asisten);
@@ -309,8 +308,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const tubesAwal = events
     .filter((e) => e.stage === "tubes" && !e.internal)
     .reduce<string | null>((m, e) => (m === null || e.startsOn < m ? e.startsOn : m), null);
-  const tubesOpen =
-    (cand?.stage === "tubes" || latihan === "caas") && tubesAwal !== null && hariIni >= tubesAwal;
+  const tubesOpen = cand?.stage === "tubes" && tubesAwal !== null && hariIni >= tubesAwal;
 
   const first = events.length
     ? events.reduce((m, e) => (e.startsOn < m ? e.startsOn : m), events[0].startsOn)

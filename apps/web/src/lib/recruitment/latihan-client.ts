@@ -63,7 +63,13 @@ function tujuan(mode: LatihanMode | null, prefix: string): string {
 }
 
 async function aksi(
-  nama: "latihan-masuk" | "latihan-ganti" | "latihan-reset" | "latihan-lompat" | "latihan-keluar",
+  nama:
+    | "latihan-masuk"
+    | "latihan-ganti"
+    | "latihan-ulang"
+    | "latihan-samakan"
+    | "latihan-lompat"
+    | "latihan-keluar",
   body: unknown,
   mode: LatihanMode | null,
   prefix: string,
@@ -71,7 +77,7 @@ async function aksi(
   const r = await recPost<LatihanJawab>(nama, body);
   if (isFail(r)) return r;
   window.dispatchEvent(new Event(LATIHAN_BERUBAH));
-  const tetap = nama === "latihan-reset" || nama === "latihan-lompat";
+  const tetap = nama === "latihan-ulang" || nama === "latihan-samakan" || nama === "latihan-lompat";
   location.assign(tetap ? location.href : tujuan(mode, prefix));
   return null;
 }
@@ -80,7 +86,11 @@ export const latihanMasuk = (as: LatihanMode, prefix: string) =>
   aksi("latihan-masuk", { as }, as, prefix);
 export const latihanGanti = (as: LatihanMode, prefix: string) =>
   aksi("latihan-ganti", { as }, as, prefix);
-export const latihanReset = (prefix: string) => aksi("latihan-reset", {}, bacaLatihan(), prefix);
+/** Mulai Ulang: wipes what was done in practice, keeps the practice setup */
+export const latihanUlang = (prefix: string) => aksi("latihan-ulang", {}, bacaLatihan(), prefix);
+/** Samakan dengan Oprec Asli: copies the real Oprec setup over the practice one again */
+export const latihanSamakan = (prefix: string) =>
+  aksi("latihan-samakan", {}, bacaLatihan(), prefix);
 export const latihanLompat = (stage: string, prefix: string) =>
   aksi("latihan-lompat", { stage }, bacaLatihan(), prefix);
 export const latihanKeluar = (prefix: string) => aksi("latihan-keluar", {}, null, prefix);

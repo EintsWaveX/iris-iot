@@ -4,7 +4,8 @@
  *   GET  /api/recruitment/latihan          { latihan: { mode, siap, caas, asisten } }
  *   POST /api/recruitment/latihan-masuk    { as } turn it on (makes the practice edition the first time)
  *   POST /api/recruitment/latihan-ganti    { as } swap between Asisten and CaAs
- *   POST /api/recruitment/latihan-reset    wipe the practice edition and make it again
+ *   POST /api/recruitment/latihan-ulang    Mulai Ulang: wipe what was done in practice, keep the practice setup
+ *   POST /api/recruitment/latihan-samakan  Samakan: copy the real Oprec's setup over the practice one again
  *   POST /api/recruitment/latihan-lompat   { stage } move the practice calendar so that stage opens today
  *   POST /api/recruitment/latihan-keluar   turn it off
  *
@@ -25,59 +26,38 @@ import {
   pengaturan,
   recAccount,
   recCandidate,
+  recCommittee,
   recEdition,
   recEvent,
   recEventLog,
   recExamConfig,
+  recReference,
+  recRubric,
+  recSlot,
+  recTubesSession,
   recTubesTopic,
 } from "../../src/lib/schema.js";
 import {
   LATIHAN_COOKIE,
   bacaModeLatihan,
+  contohBiodata,
   cookieLatihan,
   geserTanggal,
   latihanTahun,
   selisihHari,
+  tahapHariIni,
   type LatihanMode,
   type LatihanRingkas,
 } from "../../src/lib/recruitment/latihan.js";
 import { STAGES, type EditionInfo, type StageKey } from "../../src/lib/recruitment/types.js";
 import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { SETTING_PREFIX } from "../../src/lib/recruitment/settings.js";
-import { randomBytes } from "node:crypto";
 import { muatOrang } from "./hak.js";
 import { pasangBawaanKe } from "./recruitment-bank.js";
 import { jalankanLatihan, konteksLatihan } from "./recruitment-latihan-ctx.js";
+import { bacaSetup, geserWaktu, tulisSetup } from "./recruitment-latihan-salin.js";
 
 export { konteksLatihan };
-
-/** The practice edition's sample Tubes topics (mockup rec5-data.js S5.TOPICS). */
-const TOPIK_CONTOH: [string, string][] = [
-  [
-    "Stasiun Cuaca Mini",
-    "Rancang node sensor suhu, kelembapan dan tekanan yang mengirim data lewat MQTT ke dasbor web. Data harus tetap tersimpan bila jaringan putus sebentar.",
-  ],
-  [
-    "Gerbang Akses RFID",
-    "Bangun gerbang yang membaca kartu RFID, mencocokkannya dengan daftar di server dan mencatat setiap percobaan masuk lengkap dengan waktunya.",
-  ],
-  [
-    "Pemantau Energi Ruangan",
-    "Ukur arus dan tegangan satu ruangan, hitung dayanya, dan tampilkan grafik pemakaian per jam serta peringatan bila melewati batas.",
-  ],
-  [
-    "Parkir Pintar",
-    "Deteksi terisi atau kosongnya beberapa petak parkir, kirim statusnya ke satu halaman web yang diperbarui langsung.",
-  ],
-  [
-    "Penyiram Tanaman Otomatis",
-    "Baca kelembapan tanah, siram bila perlu, dan beri tahu lewat web bila tandon hampir habis. Jelaskan cara kamu mencegah penyiraman berlebih.",
-  ],
-  [
-    "Pelacak Aset Gudang",
-    "Lacak perpindahan beberapa kotak di gudang dengan tag dan beberapa penerima, lalu tampilkan lokasi terakhir tiap kotak.",
-  ],
-];
 
 type Db = ReturnType<typeof getDb>;
 
@@ -129,14 +109,58 @@ const kolam = (db: Db) =>
     .from(asisten)
     .where(notInArray(asisten.status, ["nonaktif", "alumni"]));
 
+/** One sample CaAs per Asisten who has none yet, on `tahap`, verified and waiting (names for the Cutting and Plotting lists included). */
+async function tulisCaas(
+  tx: Db,
+  edisiId: number,
+  nim: string,
+  orang: { nim: string; nama: string }[],
+  tahap: StageKey,
+): Promise<void> {
+  if (orang.length === 0) return;
+  // A name for the Cutting and Plotting lists (they join rec_account); no password, so no sign in.
+  await tx
+    .insert(recAccount)
+    .values(orang.map((o) => ({ nim: o.nim, nama: o.nama })))
+    .onConflictDoNothing();
+  const ada = new Set(
+    (
+      await tx
+        .select({ nim: recCandidate.nim })
+        .from(recCandidate)
+        .where(eq(recCandidate.editionId, edisiId))
+    ).map((r) => r.nim),
+  );
+  const baru = orang.filter((o) => !ada.has(o.nim));
+  if (baru.length === 0) return;
+  await tx.insert(recCandidate).values(
+    baru.map((o) => ({
+      editionId: edisiId,
+      nim: o.nim,
+      biodata: contohBiodata(o.nim, o.nama),
+      status: "approved" as const,
+      currentStage: tahap,
+      reviewedBy: nim,
+      reviewedAt: new Date(),
+    })),
+  );
+}
+
 /**
- * Makes the practice edition from the live one, wiping the old one first: the
- * calendar (the same dates, so practice follows the real schedule), the exam settings (with a fresh salt),
- * the built-in sample question bank and Live Coding problems, and one sample
- * CaAs per Asisten, verified and waiting at the start of the road. No
- * candidates, scores, envelopes or live questions are copied.
+ * Makes the practice edition again, wiping the old one first. `dari` says where the setup comes from:
+ *   "live"     the real Oprec (the first make): its calendar on the same dates, slots, rubrics, Tubes sessions,
+ *              exam settings, reference documents and Panitia roster, plus the BUILT-IN sample bank and Live
+ *              Coding problems (never the live questions: their answer keys are not for a practicing Asisten).
+ *   "latihan"  the practice edition that is there now (Mulai Ulang): everything the Asisten set up while
+ *              practicing, the bank and problems included, carries over; everything anyone DID is gone.
+ * Either way one sample CaAs per active Asisten is made, on the stage the calendar is at today. No real
+ * candidate, score, envelope or answer is ever copied.
  */
-export async function siapkanLatihan(db: Db, nim: string): Promise<{ caas: number } | null> {
+async function bangunEdisi(
+  db: Db,
+  nim: string,
+  dari: "live" | "latihan",
+): Promise<{ caas: number } | null> {
   const [live] = await db
     .select()
     .from(recEdition)
@@ -146,10 +170,14 @@ export async function siapkanLatihan(db: Db, nim: string): Promise<{ caas: numbe
   if (!live) return null;
   const orang = await kolam(db);
   await db.transaction(async (tx) => {
+    const t = tx as unknown as Db;
     const lama = await tx
       .select({ id: recEdition.id })
       .from(recEdition)
       .where(eq(recEdition.status, "latihan"));
+    const lanjutan = dari === "latihan" && lama.length > 0;
+    // Read the setup BEFORE the old edition goes: its rows go with it.
+    const setup = await bacaSetup(t, lanjutan ? lama[0]!.id : live.id, lanjutan);
     for (const e of lama) {
       // The log has no foreign key (it outlives a deleted event), so it goes by hand.
       await tx.delete(recEventLog).where(eq(recEventLog.editionId, e.id));
@@ -165,68 +193,80 @@ export async function siapkanLatihan(db: Db, nim: string): Promise<{ caas: numbe
       })
       .returning({ id: recEdition.id });
     const baru = ed!.id;
-    // The practice copies of the settings (recruitment-settings.ts) start over too.
-    await tx.delete(pengaturan).where(like(pengaturan.kunci, `${SETTING_PREFIX}%.latihan`));
-
-    const acara = await tx.select().from(recEvent).where(eq(recEvent.editionId, live.id));
-    // The practice calendar is the live one on the same dates, so practice runs on the real schedule:
-    // a stage is open to try only when its real window comes (5 Nov 2026).
-    if (acara.length > 0) {
-      await tx.insert(recEvent).values(
-        acara.map(({ id: _id, ...e }) => ({
-          ...e,
-          editionId: baru,
-          updatedBy: nim,
-          updatedAt: new Date(),
-        })),
-      );
-    }
-
-    // Exam settings keep the live values but get their own salt, so no draw of the real exam repeats here.
-    const [cfg] = await tx.select().from(recExamConfig).where(eq(recExamConfig.editionId, live.id));
-    if (cfg) {
-      await tx.insert(recExamConfig).values({
-        editionId: baru,
-        config: cfg.config,
-        salt: randomBytes(16).toString("hex"),
-        lockedAt: null,
-        updatedBy: nim,
-      });
-    }
-    // The bank is the built-in sample set, never the live one: a practicing Asisten holds every right here,
-    // and the live questions and their answer keys are for the people who hold the bank right on the live edition.
-    await pasangBawaanKe(tx as unknown as Db, baru, nim);
-    // Six sample Tubes topics (the mockup's "Contoh" list), practice only: the Tubes tab is not empty to try.
-    await tx.insert(recTubesTopic).values(
-      TOPIK_CONTOH.map(([title, brief], sort) => ({
-        editionId: baru,
-        title,
-        brief,
-        cap: 6,
-        sort,
-      })),
-    );
-
-    if (orang.length > 0) {
-      // A name for the Cutting and Plotting lists (they join rec_account); no password, so no sign in.
-      await tx
-        .insert(recAccount)
-        .values(orang.map((o) => ({ nim: o.nim, nama: o.nama })))
-        .onConflictDoNothing();
-      await tx.insert(recCandidate).values(
-        orang.map((o) => ({
-          editionId: baru,
-          nim: o.nim,
-          biodata: { angkatan: 2026, kelas: "Latihan", phone: "0800000000", lineId: "latihan" },
-          status: "approved" as const,
-          currentStage: "berkas" as const,
-          reviewedBy: nim,
-          reviewedAt: new Date(),
-        })),
-      );
-    }
+    // The practice copies of the settings (recruitment-settings.ts) start over only when the real ones are the source.
+    if (!lanjutan)
+      await tx.delete(pengaturan).where(like(pengaturan.kunci, `${SETTING_PREFIX}%.latihan`));
+    await tulisSetup(t, setup, baru, nim, { topikContoh: true });
+    if (!lanjutan) await pasangBawaanKe(t, baru, nim);
+    await tulisCaas(t, baru, nim, orang, tahapHariIni(setup.events, hariIniWib()));
   });
-  await writeAudit(nim, "rec_latihan_reset", { caas: orang.length });
+  await writeAudit(nim, dari === "live" ? "rec_latihan_reset" : "rec_latihan_ulang", {
+    caas: orang.length,
+  });
+  return { caas: orang.length };
+}
+
+/** The first make, or a full start over from the real Oprec. */
+export const siapkanLatihan = (db: Db, nim: string) => bangunEdisi(db, nim, "live");
+
+/**
+ * Mulai Ulang: everything done in practice is wiped (CaAs progress, schedule picks, attendance, berkas, rooms,
+ * answers, scores, Tubes teams, interview scores) and the sample CaAs go back to the stage the calendar is at.
+ * What the Asisten set up while practicing stays: calendar position, slots, rubrics, settings, bank.
+ */
+export const ulangLatihan = (db: Db, nim: string) => bangunEdisi(db, nim, "latihan");
+
+/**
+ * Samakan dengan Oprec Asli: the practice setup is replaced by the real Oprec's again (calendar back on the real
+ * dates, slots, rubrics, Tubes sessions and topics, exam settings, reference documents, Panitia roster, the
+ * practice copies of the settings). The sample CaAs stay, with their files and results, and move to the stage the
+ * real calendar is at. What hangs on a replaced row goes with it: attendance (events), schedule picks and exam
+ * rooms (slots), interview scores (rubrics). The bank and Live Coding problems are left as they are.
+ */
+export async function samakanLatihan(db: Db, nim: string): Promise<{ caas: number } | null> {
+  const edisi = await muatEdisiLatihan(db);
+  if (!edisi) return siapkanLatihan(db, nim);
+  const [live] = await db
+    .select()
+    .from(recEdition)
+    .where(eq(recEdition.status, "live"))
+    .orderBy(desc(recEdition.year))
+    .limit(1);
+  if (!live) return null;
+  const orang = await kolam(db);
+  await db.transaction(async (tx) => {
+    const t = tx as unknown as Db;
+    const setup = await bacaSetup(t, live.id, false);
+    // The slots first: they point at events (set null) and rooms hang on them (cascade).
+    await tx.delete(recSlot).where(eq(recSlot.editionId, edisi.id));
+    await tx.delete(recEvent).where(eq(recEvent.editionId, edisi.id));
+    await tx.delete(recRubric).where(eq(recRubric.editionId, edisi.id));
+    await tx.delete(recTubesSession).where(eq(recTubesSession.editionId, edisi.id));
+    await tx.delete(recTubesTopic).where(eq(recTubesTopic.editionId, edisi.id));
+    await tx.delete(recReference).where(eq(recReference.editionId, edisi.id));
+    await tx.delete(recCommittee).where(eq(recCommittee.editionId, edisi.id));
+    await tx.delete(pengaturan).where(like(pengaturan.kunci, `${SETTING_PREFIX}%.latihan`));
+    // The exam settings keep the practice salt and lock and take the real values.
+    const [cfg] = await tx
+      .select({ id: recExamConfig.editionId })
+      .from(recExamConfig)
+      .where(eq(recExamConfig.editionId, edisi.id));
+    if (cfg && setup.config)
+      await tx
+        .update(recExamConfig)
+        .set({ config: setup.config, updatedBy: nim })
+        .where(eq(recExamConfig.editionId, edisi.id));
+    await tulisSetup(t, cfg ? { ...setup, config: null } : setup, edisi.id, nim, {
+      topikContoh: true,
+    });
+    const tahap = tahapHariIni(setup.events, hariIniWib());
+    await tx
+      .update(recCandidate)
+      .set({ currentStage: tahap })
+      .where(eq(recCandidate.editionId, edisi.id));
+    await tulisCaas(t, edisi.id, nim, orang, tahap);
+  });
+  await writeAudit(nim, "rec_latihan_samakan", { caas: orang.length });
   return { caas: orang.length };
 }
 
@@ -300,8 +340,9 @@ export async function handleLatihan(
     res.status(200).json({ ok: true, latihan: await ringkas(db, mode) });
     return true;
   }
-  if (aksi === "latihan-reset") {
-    const dibuat = await siapkanLatihan(db, s.nim);
+  if (aksi === "latihan-ulang" || aksi === "latihan-samakan") {
+    const dibuat =
+      aksi === "latihan-ulang" ? await ulangLatihan(db, s.nim) : await samakanLatihan(db, s.nim);
     if (!dibuat) return (tolak(res, "tidak_ada_edisi", 404), true);
     res.status(200).json({ ok: true, latihan: await ringkas(db, sekarang) });
     return true;
@@ -324,7 +365,7 @@ export async function handleLatihan(
  * Jump the practice edition to a stage (5 Nov 2026). Practice follows the real
  * calendar, so a later stage is closed until its real day; this moves the
  * practice calendar so the stage's first public day is today and puts every
- * sample CaAs on that stage. Atur Ulang goes back to the real dates.
+ * sample CaAs on that stage. Samakan dengan Oprec Asli goes back to the real dates.
  */
 export async function lompatLatihan(
   db: Db,
@@ -351,6 +392,8 @@ export async function lompatLatihan(
           updatedAt: new Date(),
         })
         .where(eq(recEvent.id, e.id));
+    // The slots people pick and the Tubes sessions move with the events, or they would stay on the old days.
+    await geserWaktu(tx as unknown as Db, edisi.id, geser);
     await tx
       .update(recCandidate)
       .set({ currentStage: tahap })
