@@ -1720,7 +1720,7 @@ async function handleDetak(req: ApiRequest, res: ApiResponse) {
   // Phase 18: the lab clock's minute (automatic starts); it never throws.
   await jamLabBilaPerlu(db);
   // The lab clock alone sets the pace now: every minute through the day,
-  // asleep from 00:15 to 05:50 so the database can idle (2026-10-21).
+  // asleep from 00:00 to 04:59 so the database can idle (2026-10-21, window moved 2026-11-07).
   res.status(200).json({ ok: true, tidurDetik: batasTidurJamLab(6 * 3600) });
 }
 

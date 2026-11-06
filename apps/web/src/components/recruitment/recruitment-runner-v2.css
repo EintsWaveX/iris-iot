@@ -1,0 +1,734 @@
+/* The exam pages, second look (2026-11-07, the user's notes on the FITB screenshot). Loads after
+   recruitment-s3-runner.css and recruitment-runner-look.css, so it only has to override them:
+     - a bigger top bar with the timer in its centre,
+     - a roomier question rail with number buttons that show answered, unanswered, flagged and bonus,
+     - a fixed-size question box that scrolls both ways,
+     - Sebelumnya and Berikutnya pinned to the bottom corners,
+     - toasts up under the top bar (exam pages only),
+     - calm stars in the margins and a glow along the screen edges that follows the timer. */
+
+/* ------------------------------------------------------------------ top bar */
+.r3top {
+  --r3-top-h: 88px;
+  align-items: center;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  min-height: var(--r3-top-h);
+  padding: 16px 28px 18px;
+}
+.r3top__id {
+  gap: 16px;
+}
+.r3top__logo {
+  border-radius: 14px;
+  height: 56px;
+  width: 56px;
+}
+.r3top .rec-eyebrow {
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+}
+.r3top__part {
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+.r3top__mid {
+  justify-self: center;
+}
+.r3top__right {
+  justify-self: end;
+}
+.r3timer {
+  border-radius: 18px;
+  justify-items: center;
+  min-width: 220px;
+  padding: 8px 28px 10px;
+}
+.r3timer small {
+  font-size: 0.8rem;
+}
+.r3timer b,
+.r3timer--big b {
+  font-size: 2.35rem;
+  letter-spacing: 0.04em;
+}
+.r3save {
+  font-size: 0.95rem;
+}
+@media (max-width: 819px) {
+  .r3top {
+    gap: 8px 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 12px 16px 14px;
+  }
+  .r3top__logo {
+    height: 44px;
+    width: 44px;
+  }
+  .r3top__part {
+    font-size: 1.1rem;
+  }
+  .r3top__right {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .r3timer {
+    min-width: 0;
+    padding: 6px 16px 8px;
+  }
+  .r3timer b,
+  .r3timer--big b {
+    font-size: 1.7rem;
+  }
+}
+
+/* ------------------------------------------------------- the shell and body */
+.r3t {
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: fixed;
+  right: 0;
+  top: 0;
+}
+.r3t__body {
+  flex: 1 1 auto;
+  gap: 28px;
+  margin: 0;
+  max-width: none;
+  min-height: 0;
+  overflow: hidden;
+  padding: 20px 28px 18px;
+  position: relative;
+  z-index: 1;
+  align-items: stretch;
+}
+@media (min-width: 820px) {
+  .r3t__body {
+    grid-template-columns: clamp(300px, 25vw, 400px) minmax(0, 1fr);
+  }
+}
+@media (max-width: 819px) {
+  .r3t__body {
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
+/* ------------------------------------------------------------------- the rail */
+.r3rail {
+  position: static;
+}
+@media (min-width: 820px) {
+  .r3rail {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: 24px;
+  }
+  .r3rail > .btn {
+    border-radius: 16px;
+    font-size: 1.08rem;
+    font-weight: 700;
+    margin-top: auto;
+    min-height: 60px;
+  }
+  .r3rail .r3h3 {
+    font-size: 1.3rem;
+  }
+}
+.r3cells {
+  gap: 10px;
+}
+.r3rail .r3cell {
+  border-radius: 14px;
+  font-size: 1.25rem;
+  height: clamp(52px, 7vh, 68px);
+}
+.r3cell {
+  display: grid;
+  place-items: center;
+}
+/* Unanswered reads as an open slot; answered fills and carries a tick */
+.r3cell[data-a="no"] {
+  border-style: dashed;
+}
+.r3cell[data-a="yes"] {
+  border-style: solid;
+}
+.r3cell__n {
+  line-height: 1;
+}
+.r3cell__ck,
+.r3cell__fl,
+.r3cell__sp {
+  pointer-events: none;
+  position: absolute;
+}
+.r3cell__ck {
+  bottom: 4px;
+  color: var(--ok);
+  right: 5px;
+}
+.r3cell__fl {
+  color: var(--gold);
+  right: 5px;
+  top: 4px;
+}
+.r3cell__sp {
+  color: #c4a1ff;
+  left: 5px;
+  top: 4px;
+}
+.r3cell[data-f="yes"] {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.r3cell[data-b="yes"] {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in srgb, #a78bfa 22%, transparent),
+    color-mix(in srgb, var(--gold) 12%, transparent)
+  );
+  border-color: color-mix(in srgb, #a78bfa 60%, transparent);
+}
+.r3cell[aria-current="true"] {
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    0 0 18px -2px color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: scale(1.04);
+}
+.r3legend {
+  font-size: 0.9rem;
+  gap: 8px 16px;
+}
+.r3lg {
+  border-radius: 5px;
+  height: 14px;
+  width: 14px;
+}
+.r3lg[data-a="no"],
+.r3lg:not([data-a]):not([data-c]):not([data-f]):not([data-v]):not([data-b]) {
+  border-style: dashed;
+}
+.r3lg[data-b="yes"] {
+  background: color-mix(in srgb, #a78bfa 30%, transparent);
+  border-color: #a78bfa;
+}
+
+/* -------------------------------------------------------- the question box */
+.r3main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  max-width: none;
+  min-height: 0;
+}
+.r3cardbox {
+  border-radius: var(--radius-lg);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+}
+.r3cardbox:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.r3cardbox > div {
+  min-height: 100%;
+}
+.r3cardbox .r3q {
+  min-height: 100%;
+  min-width: min(100%, 700px);
+}
+
+/* ------------------------------------------------------------ the bottom bar */
+.r3nav {
+  align-items: center;
+  backdrop-filter: blur(14px);
+  background: var(--nav-bg-scrolled);
+  border-top: 1px solid var(--hairline);
+  bottom: auto;
+  display: grid;
+  flex: none;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  margin: 0;
+  padding: 14px 28px calc(14px + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  z-index: 5;
+}
+.r3nav__prev {
+  justify-self: start;
+}
+.r3nav__next {
+  justify-self: end;
+}
+.r3nav .btn {
+  align-items: center;
+  border-radius: 16px;
+  display: inline-flex;
+  font-size: 1.1rem;
+  font-weight: 700;
+  gap: 10px;
+  min-height: 60px;
+  padding: 0 34px;
+}
+.r3nav .btn:not(:disabled):active {
+  transform: scale(0.97);
+}
+.r3nav__pos {
+  color: var(--text-muted);
+  font: 700 1.05rem / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+}
+@media (max-width: 819px) {
+  .r3nav {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .r3nav .btn {
+    min-height: 54px;
+    padding: 0 20px;
+  }
+  .r3nav__pos {
+    display: none;
+  }
+  .r3nav .r3nav__hand {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+}
+
+/* ---------------------------------------------------------------- toasts */
+/* On the exam pages the toast lands just under the top bar, not over Berikutnya at the bottom corner. */
+body:has(.r3top) .toast-host {
+  --toast-lift: 0px;
+  bottom: auto;
+  left: auto;
+  right: 24px;
+  top: calc(var(--r3-top-h, 88px) + 12px);
+  transform: none;
+}
+body:has(.r3top) .toast {
+  transform: translateY(-10px) scale(0.98);
+}
+body:has(.r3top) .toast[data-shown="yes"] {
+  transform: none;
+}
+@media (max-width: 819px) {
+  body:has(.r3top) .toast-host {
+    left: 12px;
+    right: 12px;
+    top: 84px;
+    width: auto;
+  }
+}
+
+/* ------------------------------------------------------------ calm stars */
+.r3stars {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+.r3stars i {
+  animation: r3-twinkle var(--t, 7s) ease-in-out var(--d, 0s) infinite;
+  background: var(--gold, #e8b64d);
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+  display: block;
+  opacity: 0;
+  position: absolute;
+}
+.r3stars i[data-c="b"] {
+  background: #9ad8ff;
+}
+@keyframes r3-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.55) rotate(0deg);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1) rotate(20deg);
+  }
+}
+@media (max-width: 819px) {
+  .r3stars {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------- the edge glow */
+/* Two layers crossfade, so the colour drifts between two close tones; --g (0..1) is how far the glow
+   reaches, and the level (calm, warm, hot, crit) sets the tones, the strength and the speed. */
+.r3glow {
+  --a: 0.16;
+  --c1: #38bdf8;
+  --c2: #2dd4bf;
+  --dur: 8s;
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 4;
+}
+.r3glow[data-lv="warm"] {
+  --a: 0.24;
+  --c1: #f5b942;
+  --c2: #f59e0b;
+  --dur: 5s;
+}
+.r3glow[data-lv="hot"] {
+  --a: 0.34;
+  --c1: #fb923c;
+  --c2: #ef4444;
+  --dur: 2.8s;
+}
+.r3glow[data-lv="crit"] {
+  --a: 0.5;
+  --c1: #ef4444;
+  --c2: #f43f5e;
+  --dur: 1.3s;
+}
+.r3glow::before,
+.r3glow::after {
+  box-shadow: inset 0 0 calc(34px + 90px * var(--g, 0)) calc(2px + 14px * var(--g, 0)) var(--gc);
+  content: "";
+  inset: 0;
+  opacity: var(--a);
+  position: absolute;
+}
+.r3glow::before {
+  --gc: var(--c1);
+  animation: r3-glow-a var(--dur) ease-in-out infinite;
+}
+.r3glow::after {
+  --gc: var(--c2);
+  animation: r3-glow-b var(--dur) ease-in-out infinite;
+}
+@keyframes r3-glow-a {
+  0%,
+  100% {
+    opacity: var(--a);
+  }
+  50% {
+    opacity: calc(var(--a) * 0.2);
+  }
+}
+@keyframes r3-glow-b {
+  0%,
+  100% {
+    opacity: calc(var(--a) * 0.2);
+  }
+  50% {
+    opacity: var(--a);
+  }
+}
+/* Paused or over: hold still and dim */
+.r3glow[data-frozen="yes"]::before,
+.r3glow[data-frozen="yes"]::after {
+  animation-play-state: paused;
+  opacity: calc(var(--a) * 0.5);
+}
+/* Reduced motion and Low Detail: a still glow, the same colour for the same level */
+.r3glow[data-m="reduce"]::before,
+.r3glow[data-m="reduce"]::after,
+.r3glow[data-m="ldm"]::before,
+.r3glow[data-m="ldm"]::after {
+  animation: none;
+}
+.r3glow[data-m="reduce"]::after,
+.r3glow[data-m="ldm"]::after {
+  display: none;
+}
+.r3glow[data-m="ldm"]::before {
+  box-shadow: inset 0 0 40px 4px var(--gc);
+}
+@media (prefers-reduced-motion: reduce) {
+  .r3stars {
+    display: none;
+  }
+  .r3glow::before,
+  .r3glow::after {
+    animation: none;
+  }
+  .r3glow::after {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------ Live Coding */
+/* The same top bar and effects apply; the workbench gets roomier controls and a statement that scrolls
+   inside its card instead of growing past the screen. */
+.lcc-tab {
+  min-height: 62px;
+}
+.lcc-statement {
+  max-height: calc(100dvh - 270px);
+  overflow: auto;
+}
+.lcc-actions .btn {
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  min-height: 54px;
+}
+.lcc,
+.lcc-work {
+  position: relative;
+  z-index: 1;
+}
+
+/* ------------------------------------------- Live Coding: results and readable text */
+/* The result reads at a glance: green when every test passed, red when anything failed, amber with a
+   spinner while it waits. Every line is large enough to read without leaning in (2026-11-07). */
+.lcc .hint {
+  font-size: 0.95rem;
+}
+.lcc-statement {
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+.lcc-statement__title {
+  font-size: 1.4rem;
+}
+.lcc-h {
+  font-size: 1.1rem;
+  margin-top: 12px;
+}
+.lcc-pre,
+.lcc-log {
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.lcc-actions__hint {
+  font-size: 0.95rem;
+}
+.lcc-note {
+  align-items: flex-start;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.95rem;
+  gap: 8px;
+  line-height: 1.45;
+  margin: -4px 0 0;
+}
+.lcc-note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.lcc-result {
+  --rc: var(--text-muted);
+  border-width: 2px;
+  gap: 16px;
+  padding: 18px 20px;
+}
+.lcc-result[data-tone="ok"] {
+  --rc: var(--ok);
+}
+.lcc-result[data-tone="bad"] {
+  --rc: var(--danger);
+}
+.lcc-result[data-tone="wait"] {
+  --rc: var(--warn);
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+}
+.lcc-result__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 14px;
+  justify-content: flex-start;
+}
+.lcc-result__ic {
+  color: var(--rc);
+  display: grid;
+  flex: none;
+  place-items: center;
+}
+.lcc-result__ic[data-spin="yes"] svg {
+  animation: r3-spin 1.1s linear infinite;
+}
+@keyframes r3-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.lcc-result__txt {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.lcc-result__title {
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 650;
+}
+.lcc-result__state {
+  color: var(--rc);
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.lcc-result__note {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.lcc-log {
+  font-size: 0.95rem;
+  max-height: 240px;
+}
+
+.lcc-tests {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lcc-test {
+  align-items: center;
+  border: 1.5px solid;
+  border-radius: 12px;
+  display: flex;
+  font-size: 1.05rem;
+  font-weight: 700;
+  gap: 10px;
+  padding: 10px 14px;
+}
+.lcc-test svg {
+  flex: none;
+}
+.lcc-test__t small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 500;
+  margin-top: 1px;
+}
+.lcc-test[data-v="ok"] {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 60%, transparent);
+  color: var(--ok);
+}
+.lcc-test[data-v="bad"] {
+  background: var(--danger-soft);
+  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+  color: var(--danger);
+}
+.lcc-test .lcc-test__t {
+  color: var(--text);
+}
+
+.lcc-best {
+  display: grid;
+  gap: 8px;
+}
+.lcc-best__t {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.lcc-best[data-full="yes"] .lcc-best__t {
+  color: var(--ok);
+}
+.lcc-best__bar {
+  background: var(--surface-3);
+  border-radius: 99px;
+  height: 10px;
+  overflow: hidden;
+}
+.lcc-best__bar i {
+  background: var(--accent);
+  border-radius: 99px;
+  display: block;
+  height: 100%;
+  transition: width 420ms ease;
+}
+.lcc-best[data-full="yes"] .lcc-best__bar i {
+  background: var(--ok);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lcc-result__ic[data-spin="yes"] svg {
+    animation: none;
+  }
+  .lcc-best__bar i {
+    transition: none;
+  }
+}
+
+/* ------------------------------- Live Coding: the score and Selesai, pinned to the bottom */
+.lcc-work {
+  padding-bottom: 104px;
+}
+.lcc-bar {
+  align-items: center;
+  backdrop-filter: blur(14px);
+  background: var(--nav-bg-scrolled);
+  border-top: 1px solid var(--hairline);
+  bottom: 0;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  left: 0;
+  padding: 14px 28px calc(14px + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  right: 0;
+  z-index: 5;
+}
+.lcc-bar__score {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.lcc-bar__label {
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 650;
+}
+.lcc-bar__n {
+  color: var(--text);
+  font: 800 2.2rem / 1 var(--font-mono);
+}
+.lcc-bar__of {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+.lcc-bar__done {
+  align-items: center;
+  border-radius: 16px;
+  display: inline-flex;
+  font-size: 1.1rem;
+  font-weight: 700;
+  gap: 10px;
+  min-height: 58px;
+  padding: 0 32px;
+}
+@media (max-width: 819px) {
+  .lcc-bar {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .lcc-bar__n {
+    font-size: 1.7rem;
+  }
+  .lcc-bar__done {
+    min-height: 52px;
+    padding: 0 20px;
+  }
+}

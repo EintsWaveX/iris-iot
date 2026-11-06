@@ -210,15 +210,15 @@ describe("a Susulan draft", () => {
 });
 
 describe("the relay's sleep", () => {
-  it("is a minute at most from 05:50 to 00:15 WIB", () => {
-    expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "05:50:00"))).toBe(60);
+  it("is a minute at most from 05:00 to 23:59 WIB", () => {
+    expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "05:00:00"))).toBe(60);
     expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "19:00:00"))).toBe(60);
-    expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "00:14:30"))).toBe(60);
+    expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "23:59:30"))).toBe(60);
   });
-  it("in the quiet hours never sleeps past 05:50", () => {
-    expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "00:15:00"))).toBe(5 * 3600 + 35 * 60);
+  it("in the quiet hours never sleeps past 05:00", () => {
+    expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "00:00:00"))).toBe(5 * 3600);
     expect(batasTidurJamLab(600, pada(KAMIS, "03:00:00"))).toBe(600);
-    expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "05:49:30"))).toBe(60);
+    expect(batasTidurJamLab(6 * 3600, pada(KAMIS, "04:59:30"))).toBe(60);
   });
 });
 

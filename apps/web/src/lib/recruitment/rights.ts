@@ -10,7 +10,7 @@
  * Koordinator has exactly their division's rights (the star is a badge).
  * Overrides of other rights (hak_override) never widen recruitment.
  */
-import { hakPenuh, isPencipta, type Orang } from "../hak.js";
+import { hakPenuh, type Orang } from "../hak.js";
 import { RIGHTS_KEYS, type CommitteeDivision, type RecRights } from "./types.js";
 
 export interface Kursi {

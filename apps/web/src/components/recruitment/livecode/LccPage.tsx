@@ -11,13 +11,18 @@ import {
   ArrowCounterClockwiseIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
+  CheckCircleIcon,
   CheckIcon,
+  CircleNotchIcon,
   CopyIcon,
+  FlagCheckeredIcon,
+  InfoIcon,
   PaperPlaneTiltIcon,
   PlayIcon,
   PlugsIcon,
   QuestionIcon,
   SparkleIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react";
 import {
   lazy,
@@ -40,6 +45,7 @@ import Dialog from "../../ui/Dialog";
 import type { BonusQuote } from "../../../lib/recruitment/bonus";
 import BonusOffer from "../exam/BonusOffer";
 import { Gate, Timer, type Motion } from "../exam/parts";
+import { CalmStars, EdgeGlow } from "../exam/ScreenFx";
 import { TS } from "../exam/testStrings";
 import type { PlanPart } from "../../../lib/recruitment/seat-types";
 import { Md } from "../exam/render/text";
@@ -97,7 +103,13 @@ export default function LccPage({
 }) {
   const t = LCC[lang];
   const poll = usePoll<Fetched>(fetchLcc, 300_000, true, ["recroom"], 300);
-  const { refresh } = poll;
+  // usePoll hands back a new `refresh` on every render, and this page renders every second for the
+  // timer: an effect that depended on it tore its interval down before the 2.5 s re-check could ever
+  // fire, so a judged Submit only showed after pressing Submit again (2026-11-07). A stable wrapper
+  // over the latest one fixes that.
+  const refreshRef = useRef(poll.refresh);
+  refreshRef.current = poll.refresh;
+  const refresh = useCallback(() => refreshRef.current(), []);
   const first = useRef(signal);
   useEffect(() => {
     if (signal !== first.current) refresh();
@@ -121,11 +133,11 @@ export default function LccPage({
   const lcc = poll.data && "lcc" in poll.data ? poll.data.lcc : null;
   const err = poll.data && "err" in poll.data ? poll.data.err : null;
 
-  // While anything waits at the judge, ask again every 2.5 s; the live link is only a hint
+  // While anything waits at the judge, ask again every 1.5 s; the live link is only a hint
   const inflight = !!lcc && Object.values(lcc.state).some((s) => busy(s.run) || busy(s.submit));
   useEffect(() => {
     if (!inflight) return;
-    const id = setInterval(refresh, 2500);
+    const id = setInterval(refresh, 1500);
     return () => clearInterval(id);
   }, [inflight, refresh]);
 
@@ -161,6 +173,13 @@ export default function LccPage({
   const working = phase.k === "work";
   return (
     <>
+      <CalmStars motion={motion} />
+      <EdgeGlow
+        left={working ? phase.left : lcc.minutes * 60_000}
+        total={lcc.minutes * 60_000}
+        frozen={!working || phase.paused}
+        motion={motion}
+      />
       <LccTop
         lang={lang}
         plan={tv.plan}
@@ -231,6 +250,9 @@ function LccTop({
           </b>
         </div>
       </div>
+      <div className="r3top__mid">
+        <Timer left={left} frozen={frozen} lang={lang} big label={label} />
+      </div>
       <div className="r3top__right">
         {!frozen || label === undefined ? (
           <span className="r3save" data-s="ok" role="status">
@@ -238,7 +260,6 @@ function LccTop({
             {t.saved}
           </span>
         ) : null}
-        <Timer left={left} frozen={frozen} lang={lang} big label={label} />
       </div>
       <ol className="n7t-rail" aria-label={ts.lobby.tonight}>
         {plan.map((p, i) => (
@@ -583,14 +604,6 @@ function Workbench({
             </button>
           );
         })}
-        <div className="lcc-score" aria-label={t.scoreSoFar}>
-          <span className="hint">{t.scoreSoFar}</span>
-          <b className="num">{lcc.total}</b>
-          <span className="hint num">{t.outOf(lcc.cap)}</span>
-          <button type="button" className="btn btn--inverse btn--sm" onClick={() => setFin(true)}>
-            {t.finish}
-          </button>
-        </div>
       </div>
 
       <BonusOffer
@@ -729,10 +742,30 @@ function Workbench({
             </button>
             <span className="hint lcc-actions__hint">{note ? note.text : t.runHint}</span>
           </div>
+          {/* Was a loose line at the very bottom of the page, far from the editor it is about */}
+          <p className="lcc-note">
+            <InfoIcon size={18} aria-hidden="true" />
+            <span>{t.lineHint}</span>
+          </p>
           <Result lang={lang} sub={shown} p={p} best={st.best} position={st.position} />
         </section>
       </div>
-      <p className="hint lcc-foot">{t.lineHint}</p>
+      {/* Pinned to the bottom edge like the written parts' bar: the score on the left, Selesai at the right */}
+      <div className="lcc-bar" role="group" aria-label={t.scoreSoFar}>
+        <div className="lcc-bar__score">
+          <span className="lcc-bar__label">{t.scoreSoFar}</span>
+          <b className="num lcc-bar__n">{lcc.total}</b>
+          <span className="num lcc-bar__of">{t.outOf(lcc.cap)}</span>
+        </div>
+        <button
+          type="button"
+          className="btn btn--primary lcc-bar__done"
+          onClick={() => setFin(true)}
+        >
+          <FlagCheckeredIcon size={22} weight="fill" aria-hidden="true" />
+          {t.finish}
+        </button>
+      </div>
     </div>
   );
 }
@@ -806,50 +839,66 @@ function Result({
   const failed = sub.status === "gagal";
   const ce = sub.status === "selesai" && sub.compileLog !== null;
   const all = sub.status === "selesai" && !ce && sub.passed !== null && sub.passed === sub.total;
-  const tone = failed || ce ? "bad" : all ? "ok" : waiting || running ? "wait" : "part";
+  // Green when every test passed, red when anything failed (a compile error, a failed judge run, or
+  // even one wrong test), amber with a spinner while it waits: the colour says the result at a glance.
+  const tone = failed || ce ? "bad" : all ? "ok" : waiting || running ? "wait" : "bad";
+  const StateIcon =
+    tone === "ok" ? CheckCircleIcon : tone === "wait" ? CircleNotchIcon : XCircleIcon;
   return (
-    <div className="lcc-result" data-tone={tone} role="status">
+    <div className="lcc-result" data-tone={tone} role="status" aria-live="polite">
       <div className="lcc-result__head">
-        <b>{title}</b>
-        <span className="hint">
-          {waiting
-            ? t.queued(position)
-            : running
-              ? t.judging
-              : failed
-                ? t.failedTitle
-                : ce
-                  ? t.compileError
-                  : all
-                    ? t.allPassed
-                    : t.somePassed(sub.passed ?? 0, sub.total ?? 0)}
+        <span className="lcc-result__ic" data-spin={tone === "wait" ? "yes" : undefined}>
+          <StateIcon size={36} weight={tone === "wait" ? "bold" : "fill"} aria-hidden="true" />
         </span>
+        <div className="lcc-result__txt">
+          <b className="lcc-result__title">{title}</b>
+          <span className="lcc-result__state">
+            {waiting
+              ? t.queued(position)
+              : running
+                ? t.judging
+                : failed
+                  ? t.failedTitle
+                  : ce
+                    ? t.compileError
+                    : all
+                      ? t.allPassed
+                      : t.somePassed(sub.passed ?? 0, sub.total ?? 0)}
+          </span>
+        </div>
       </div>
-      {failed && <span className="hint">{t.failedLede}</span>}
+      {failed && <span className="lcc-result__note">{t.failedLede}</span>}
       {ce && (
         <>
-          <span className="hint">{t.compileErrorLede}</span>
+          <span className="lcc-result__note">{t.compileErrorLede}</span>
           <pre className="lcc-log">{sub.compileLog}</pre>
         </>
       )}
       {sub.verdicts.length > 0 && (
-        <ul className="lcc-dots" aria-label={title}>
+        <ul className="lcc-tests" aria-label={title}>
           {sub.verdicts.map((v: Verdict, i) => (
-            <li
-              key={i}
-              className="lcc-dot"
-              data-v={v === "ac" ? "ok" : "bad"}
-              title={`${t.testN(i + 1)}: ${t.verdict[v]}`}
-            >
-              <span className="lcc-dot__i" aria-hidden="true" />
-              <span className="lcc-dot__t">
-                {t.testN(i + 1)} · {t.verdict[v]}
+            <li key={i} className="lcc-test" data-v={v === "ac" ? "ok" : "bad"}>
+              {v === "ac" ? (
+                <CheckCircleIcon size={24} weight="fill" aria-hidden="true" />
+              ) : (
+                <XCircleIcon size={24} weight="fill" aria-hidden="true" />
+              )}
+              <span className="lcc-test__t">
+                {t.testN(i + 1)}
+                <small>{t.verdict[v]}</small>
               </span>
             </li>
           ))}
         </ul>
       )}
-      {best && sub.kind === "submit" && <span className="hint">{t.best(best.got, p.points)}</span>}
+      {best && sub.kind === "submit" && (
+        <div className="lcc-best" data-full={best.passed === best.total ? "yes" : undefined}>
+          <span className="lcc-best__t">{t.best(best.got, p.points)}</span>
+          <span className="lcc-best__bar" aria-hidden="true">
+            <i style={{ width: `${Math.round((best.got / Math.max(1, p.points)) * 100)}%` }} />
+          </span>
+        </div>
+      )}
     </div>
   );
 }

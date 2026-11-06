@@ -76,7 +76,12 @@ import {
 import { jamLabBilaPerlu } from "../_lib/jam-lab.js";
 import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
 import { bacaBilaPerlu } from "../_lib/seelabs-baca.js";
-import { ambilJudge, judgeSiaga, terimaHasilJudge } from "../_lib/recruitment-lc-judge.js";
+import {
+  ambilJudge,
+  judgeSiaga,
+  terimaHasilJudge,
+  ujianBuka,
+} from "../_lib/recruitment-lc-judge.js";
 import { kirimRelay } from "../_lib/aliran.js";
 import { ruangSesi } from "../../src/lib/aliran.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
@@ -100,6 +105,7 @@ import {
   INTERVAL_MALAM_SEC,
   INTERVAL_SIAGA_SEC,
   INTERVAL_TELEMETRI_SEC,
+  INTERVAL_UJIAN_SEC,
   MODUL_TELEMETRI_PC,
   adaPerintahBaru,
   batasLuringDetik,
@@ -360,9 +366,13 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
           ? INTERVAL_TELEMETRI_SEC
           : sesiAktif || robot === "baca" || tugasSeelabs.length > 0
             ? INTERVAL_AKTIF_SEC
-            : jamSepi() && !(await adaAsistenOnline())
-              ? INTERVAL_MALAM_SEC
-              : INTERVAL_IDLE_SEC;
+            : // An open exam room keeps the PC close, in the quiet hours too: its first Submit is
+              // claimed at once instead of waiting out the idle beat (2026-11-07).
+              (await ujianBuka(db))
+              ? INTERVAL_UJIAN_SEC
+              : jamSepi() && !(await adaAsistenOnline())
+                ? INTERVAL_MALAM_SEC
+                : INTERVAL_IDLE_SEC;
 
     await pruneOldTelemetryOccasionally();
 

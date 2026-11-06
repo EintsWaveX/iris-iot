@@ -37,6 +37,7 @@ import "../recruitment-s3-runner.css";
 import "../recruitment-checkin.css";
 import "../recruitment-runner-look.css";
 import "../recruitment-lcc-draw.css";
+import "../recruitment-runner-v2.css";
 
 type Fetched = { tv: TestView } | { err: string };
 

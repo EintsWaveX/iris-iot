@@ -38,11 +38,13 @@ export function menitSekarangWib(now = new Date()): number {
   return get("hour") * 60 + get("minute");
 }
 
-/** The quiet hours (WIB), 00:15 to 05:50: no slot runs, so the relay's
+/** The quiet hours (WIB), 00:00 to 04:59: no slot runs, so the relay's
  *  timer, the PC's beat and the SeeLabs reads slow down and the database
- *  can sleep (2026-10-21, after the Neon quota ran out). */
-export const SEPI_MULAI_MENIT = 15;
-export const SEPI_AKHIR_MENIT = 5 * 60 + 50;
+ *  can sleep (2026-10-21, after the Neon quota ran out). Everything from
+ *  05:00 to 23:59 runs at the day's pace (user, 2026-11-07; it was 00:15 to
+ *  05:50, which left an exam that ran past midnight with a slow judge). */
+export const SEPI_MULAI_MENIT = 0;
+export const SEPI_AKHIR_MENIT = 5 * 60;
 
 export function jamSepi(now = new Date()): boolean {
   const m = menitSekarangWib(now);

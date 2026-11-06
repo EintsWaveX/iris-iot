@@ -525,7 +525,7 @@ export async function jamLabBilaPerlu(db: Db, now: Date = new Date()): Promise<b
 /**
  * The relay's sleep (from tidurDetik) cut for the lab clock: at most a
  * minute through the practicum day and just past midnight, and in the
- * quiet hours (jamSepi, 00:15 to 05:50) never past 05:50.
+ * quiet hours (jamSepi, 00:00 to 04:59) never past 05:00.
  */
 export function batasTidurJamLab(detik: number, now: Date = new Date()): number {
   if (!jamSepi(now)) return Math.min(detik, 60);

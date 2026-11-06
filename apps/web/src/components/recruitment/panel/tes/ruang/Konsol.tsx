@@ -10,8 +10,20 @@
  * says something changed; only while the socket is down does it ask on a
  * timer, every 15 s.
  */
-import { useEffect, useMemo, useState } from "react";
-import { ListChecksIcon, NotePencilIcon, SealCheckIcon } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
+import {
+  ArrowCounterClockwiseIcon,
+  DoorOpenIcon,
+  ListChecksIcon,
+  MinusIcon,
+  NotePencilIcon,
+  PauseIcon,
+  PlayIcon,
+  PlusIcon,
+  SealCheckIcon,
+  SkipForwardIcon,
+  type IconProps,
+} from "@phosphor-icons/react";
 import Dialog from "../../../../ui/Dialog";
 import Disclose from "../../../../ui/Disclose";
 import Drawer from "../../../../ui/Drawer";
@@ -333,6 +345,9 @@ function Transport({
   const run: PartRun | undefined = cur ? v.state.runs[cur] : undefined;
   const [reopen, setReopen] = useState(false);
   const [tambah, setTambah] = useState(2);
+  // The custom time adjust, in seconds (kept as typed so the box can be emptied while typing).
+  const [custom, setCustom] = useState("45");
+  const customS = Math.min(1800, Math.max(1, Math.round(Number(custom) || 1)));
   const [awal, setAwal] = useState(false);
   const [alasan, setAlasan] = useState("");
 
@@ -409,59 +424,103 @@ function Transport({
       <div className="r3tp__ctl">
         <div className="r3tp__grp">
           {rv.view === "setup" ? (
-            <Ctl
+            <HoldCtl
               guard={guard}
               a={{ act: "open" }}
-              kind="primary"
+              tint="ok"
+              icon={DoorOpenIcon}
+              ms={800}
               label={c.open}
-              onClick={() => void kirim({ act: "open" })}
+              onDone={() => void kirim({ act: "open" })}
             />
           ) : k.next ? (
-            <Ctl
+            <HoldCtl
               guard={guard}
               a={{ act: "start" }}
-              kind="primary"
+              tint="ok"
+              icon={PlayIcon}
+              ms={800}
               label={k.next === "livecode" ? c.startLc : c.start(nextL)}
-              onClick={() => void kirim({ act: "start" })}
+              onDone={() => void kirim({ act: "start" })}
             />
           ) : null}
           {rv.view === "part-paused" ? (
-            <Ctl
+            <HoldCtl
               guard={guard}
               a={{ act: "resume" }}
-              kind="primary"
+              tint="ok"
+              icon={PlayIcon}
+              ms={600}
               label={c.resume}
-              onClick={() => void kirim({ act: "resume" })}
+              onDone={() => void kirim({ act: "resume" })}
             />
           ) : (
-            <Ctl
+            <HoldCtl
               guard={guard}
               a={{ act: "pause" }}
+              tint="warn"
+              icon={PauseIcon}
+              ms={600}
               label={c.pause}
-              onClick={() => void kirim({ act: "pause" })}
+              onDone={() => void kirim({ act: "pause" })}
             />
           )}
-          <Ctl
+          <HoldCtl
             guard={guard}
             a={{ act: "skip" }}
+            tint="danger"
+            icon={SkipForwardIcon}
+            ms={1000}
             label={c.skip}
-            onClick={() => void kirim({ act: "skip" }, t.con.skipDone)}
+            onDone={() => void kirim({ act: "skip" }, t.con.skipDone)}
           />
-          <Ctl
+          <HoldCtl
             guard={guard}
             a={{ act: "reopen", addMs: MIN }}
+            tint="warn"
+            icon={ArrowCounterClockwiseIcon}
+            ms={1000}
             label={c.reopen}
-            onClick={() => setReopen(true)}
+            onDone={() => setReopen(true)}
           />
         </div>
         <div className="r3tp__grp r3tp__time" role="group" aria-label={c.timeAria}>
-          {[-1, 1, 5].map((d) => (
-            <Ctl
+          {[-30, -10, 10, 30].map((d) => (
+            <HoldCtl
               guard={guard}
               key={d}
-              a={{ act: "time", deltaMs: d * MIN }}
-              label={`${d > 0 ? "+" : "−"}${Math.abs(d)} ${c.min}`}
-              onClick={() => void kirim({ act: "time", deltaMs: d * MIN })}
+              a={{ act: "time", deltaMs: d * 1000 }}
+              tint={d < 0 ? "warn" : "ok"}
+              icon={d < 0 ? MinusIcon : PlusIcon}
+              ms={450}
+              label={`${Math.abs(d)} ${c.sec}`}
+              onDone={() => void kirim({ act: "time", deltaMs: d * 1000 })}
+            />
+          ))}
+          <label className="r3tp__custom">
+            <span className="hint">{c.customHint}</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={1800}
+              step={1}
+              value={custom}
+              aria-label={c.customAria}
+              onChange={(e) => setCustom(e.target.value)}
+            />
+            <span className="hint">{c.sec}</span>
+          </label>
+          {[-1, 1].map((sign) => (
+            <HoldCtl
+              guard={guard}
+              key={sign}
+              a={{ act: "time", deltaMs: sign * customS * 1000 }}
+              tint={sign < 0 ? "warn" : "ok"}
+              icon={sign < 0 ? MinusIcon : PlusIcon}
+              ms={450}
+              label={`${customS} ${c.sec}`}
+              onDone={() => void kirim({ act: "time", deltaMs: sign * customS * 1000 })}
             />
           ))}
         </div>
@@ -1350,32 +1409,40 @@ function Selesai({
 
 /* --------------------------------------------------------------- Console */
 
-/** One room control. A module-level component, so it keeps its DOM node (and focus) while the console re-renders every second. */
-function Ctl({
+/**
+ * One room control, press and hold (2026-11-07: a stray click must not start, pause or skip a part
+ * mid-exam). A module-level component, so it keeps its DOM node (and focus) while the console
+ * re-renders every second. Its disabled reason is the same guard in words as before.
+ */
+function HoldCtl({
   guard,
   a,
   label,
-  kind = "inverse",
-  onClick,
+  tint,
+  icon,
+  ms,
+  onDone,
 }: {
   guard: (a: Record<string, unknown>) => string | undefined;
   a: Record<string, unknown>;
   label: string;
-  kind?: string;
-  onClick: () => void;
+  tint: "danger" | "warn" | "ok";
+  icon: ComponentType<IconProps>;
+  ms: number;
+  onDone: () => void;
 }) {
   const why = guard(a);
   return (
-    <button
-      type="button"
-      className={`btn btn--${kind}`}
+    <HoldButton
+      label={label}
+      tint={tint}
+      icon={icon}
+      ms={ms}
+      size="compact"
       disabled={!!why}
       title={why}
-      aria-label={why ? `${label}. ${why}` : undefined}
-      onClick={onClick}
-    >
-      {label}
-    </button>
+      onDone={onDone}
+    />
   );
 }
 

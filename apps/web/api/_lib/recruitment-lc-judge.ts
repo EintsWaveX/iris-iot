@@ -15,6 +15,7 @@ import { and, eq, sql } from "drizzle-orm";
 import {
   recCProblem,
   recCSubmission,
+  recExamRoom,
   server,
   type RecCSubmissionRow,
 } from "../../src/lib/schema.js";
@@ -56,6 +57,20 @@ export async function agenBisaJudge(db: Db, serverId: number): Promise<boolean> 
   return (
     typeof info.protokol === "number" && info.protokol >= PROTOKOL_JUDGE && info.judge === true
   );
+}
+
+/**
+ * Is a Tes Tulis room open (check-in, a part running or the Live Coding draw)? Then the lab PC beats
+ * every few seconds even before anything is queued, so the first Run or Submit is claimed at once
+ * instead of waiting out the idle beat, quiet hours included (2026-11-07: a test past midnight left
+ * a Submit "in the queue" for minutes).
+ */
+export async function ujianBuka(db: Db): Promise<boolean> {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(recExamRoom)
+    .where(sql`${recExamRoom.state}->>'stage' in ('prep', 'parts', 'spin')`);
+  return (r?.n ?? 0) > 0;
 }
 
 /** Is anything waiting or running? The heartbeat shortens while it is. */
