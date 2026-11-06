@@ -84,6 +84,7 @@ export const TS = dict({
       live: "Siaran langsung",
       liveOk: "Terhubung, pengawas melihat kursimu",
       liveBad: "Belum tersambung. Tes tetap jalan lewat server dan sambungan dicoba lagi.",
+      liveLater: "Tersambung begitu kamu masuk ruang",
       clock: "Jam laptopmu",
       clockOk: (s: string) => `Selisih ${s} detik dari server, sudah disesuaikan`,
       notMe: "Bukan Aku",
@@ -287,6 +288,7 @@ export const TS = dict({
       liveOk: "Connected, the pengawas sees your seat",
       liveBad:
         "Not connected yet. The test still runs through the server and the link keeps retrying.",
+      liveLater: "Connects as soon as you enter the room",
       clock: "Your laptop clock",
       clockOk: (s: string) => `${s} seconds off the server, already adjusted`,
       notMe: "That's Not Me",
@@ -485,6 +487,7 @@ export const TS = dict({
       live: "实时更新",
       liveOk: "已连接，监考能看到你的座位",
       liveBad: "尚未连接。考试仍通过服务器进行，并会继续重连。",
+      liveLater: "进入考场后自动连接",
       clock: "你的电脑时钟",
       clockOk: (s: string) => `与服务器相差 ${s} 秒，已自动校准`,
       notMe: "这不是我",
