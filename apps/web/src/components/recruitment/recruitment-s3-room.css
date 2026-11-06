@@ -1032,3 +1032,44 @@
   border-color: var(--ok);
   color: var(--ok);
 }
+
+/* ---------------------------------------- the finished room (2026-11-07, the user's notes) */
+/* The Master chip shows the long name; the summary reads at a size you do not lean in for. */
+.r3mchip b {
+  font-size: 1.05rem;
+}
+.r3mchip {
+  padding-right: 18px;
+}
+.n7-done .hint {
+  font-size: 1rem;
+}
+.n7-done__stats small {
+  font-size: 0.95rem;
+}
+.r3done__grade {
+  font-size: 1.1rem;
+  min-height: 56px;
+  padding: 0 28px;
+}
+.r3done__details {
+  padding: 18px 20px;
+}
+.r3done__details summary,
+.r3done__details .disclose__head {
+  font-size: 1.1rem;
+}
+.r3done__details .table {
+  font-size: 1.05rem;
+}
+.r3done__details .table th {
+  font-size: 0.95rem;
+}
+.r3done__details .table td,
+.r3done__details .table th {
+  padding: 10px 12px;
+}
+.r3done__details ul.hint {
+  font-size: 1rem;
+  line-height: 1.55;
+}

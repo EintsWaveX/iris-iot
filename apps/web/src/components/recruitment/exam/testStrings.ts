@@ -212,6 +212,8 @@ export const TS = dict({
       nextBody: "Pengumuman hasil Tes Tulis akan muncul sebagai amplop di halaman Rekrutmen.",
       board:
         "Kembalikan papan ke Logistik sebelum pulang. Kamu boleh keluar dari layar penuh sekarang.",
+      back: "Kembali ke Rekrutmen",
+      exitFs: "Keluar dari Layar Penuh",
     },
     lc: {
       title: "Live Coding",
@@ -412,6 +414,8 @@ export const TS = dict({
       next: "Next",
       nextBody: "The Written Test results come out as an envelope on the Recruitment page.",
       board: "Return the board to Logistik before you leave. You can leave full screen now.",
+      back: "Back to Recruitment",
+      exitFs: "Leave Full Screen",
     },
     lc: {
       title: "Live Coding",
@@ -594,6 +598,8 @@ export const TS = dict({
       next: "接下来",
       nextBody: "笔试结果会以信封的形式出现在招募页面上。",
       board: "离开前请把开发板归还后勤。你现在可以退出全屏了。",
+      back: "返回招募页面",
+      exitFs: "退出全屏",
     },
     lc: {
       title: "现场编程",

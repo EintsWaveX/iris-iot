@@ -205,7 +205,9 @@ function MasterBar({
           <span className="stack" style={{ gap: 0, minWidth: 0 }}>
             <span className="hint">{t.masterK}</span>
             <b>
-              {aku ? t.you : m ? m.nama : t.none}
+              {/* The long name always, and who "you" is beside it (2026-11-07) */}
+              {m ? m.nama : t.none}
+              {aku ? ` (${t.you})` : ""}
               {m?.stale ? ` (${t.stale})` : ""}
             </b>
           </span>
@@ -1362,47 +1364,54 @@ function Selesai({
         </div>
         {onNilai && !v.room.rehearsal && (
           <div className="row" style={{ gap: 10 }}>
-            <button type="button" className="btn btn--inverse" onClick={onNilai}>
-              <ListChecksIcon size={18} aria-hidden="true" />
+            <button
+              type="button"
+              className="btn btn--primary btn--lg r3done__grade"
+              onClick={onNilai}
+            >
+              <ListChecksIcon size={24} aria-hidden="true" />
               <span className="btn__label">{t.grade}</span>
             </button>
           </div>
         )}
       </section>
-      <Disclose head={<b>{t.details}</b>}>
-        <div className="r3done__tbl">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t.part}</th>
-                <th>{t.ran}</th>
-                <th>{t.minutes}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {PART_KEYS.filter((p) => st.runs[p]).map((p) => {
-                const r = st.runs[p]!;
-                return (
-                  <tr key={p}>
-                    <td>
-                      <b>{RG[lang].part[p].l}</b>
-                    </td>
-                    <td className="hint">
-                      {hm(r.startedAt)} {t.until} {r.endedAt ? hm(r.endedAt) : hm(now)}
-                    </td>
-                    <td className="num">{Math.round(clock(r, r.endedAt ?? now) / MIN)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <ul className="hint" style={{ margin: 0, paddingLeft: 18 }}>
-          {t.effects.map((e) => (
-            <li key={e}>{e}</li>
-          ))}
-        </ul>
-      </Disclose>
+      {/* A solid panel with readable type: the table used to float on the page background in small text */}
+      <div className="panel r3done__details">
+        <Disclose head={<b>{t.details}</b>}>
+          <div className="r3done__tbl">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t.part}</th>
+                  <th>{t.ran}</th>
+                  <th>{t.minutes}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PART_KEYS.filter((p) => st.runs[p]).map((p) => {
+                  const r = st.runs[p]!;
+                  return (
+                    <tr key={p}>
+                      <td>
+                        <b>{RG[lang].part[p].l}</b>
+                      </td>
+                      <td className="hint">
+                        {hm(r.startedAt)} {t.until} {r.endedAt ? hm(r.endedAt) : hm(now)}
+                      </td>
+                      <td className="num">{Math.round(clock(r, r.endedAt ?? now) / MIN)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ul className="hint" style={{ margin: 0, paddingLeft: 18 }}>
+            {t.effects.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </Disclose>
+      </div>
     </div>
   );
 }
