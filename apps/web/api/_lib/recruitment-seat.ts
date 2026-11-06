@@ -570,8 +570,9 @@ async function masuk(k: Konteks) {
 
 /**
  * How many bonus questions this seat gets right now (bonus.ts): its time left in question-lengths,
- * plus the dealt questions it got fully right, minus those it answered wrong. Read from its stored
- * answers and the current keys; a blank question is neither.
+ * plus the dealt questions it got fully right, minus those it answered wrong, minus those it left
+ * blank (2026-11-07). Read from its stored answers and the current keys; a voided question is not
+ * counted at all.
  */
 async function kuotaBonus(
   db: Db,
@@ -606,12 +607,20 @@ async function kuotaBonus(
     if (isOne(credit(asQuestion(r), a.value))) correct++;
     else wrong++;
   }
+  // Every dealt question that still counts (it exists and is not voided) and was neither right
+  // nor wrong is blank: never answered, or answered with nothing.
+  const counted = ids.filter((id) => {
+    const r = by.get(id);
+    return !!r && r.voidedAt === null;
+  }).length;
+  const blank = Math.max(0, counted - correct - wrong);
   const plan = config.parts[part];
   return bonusQuota({
     leftMs: seatLeft(run as Parameters<typeof seatLeft>[0], seat.id, now),
     perQuestionMs: (plan.minutes * 60_000) / Math.max(1, plan.shown),
     correct,
     wrong,
+    blank,
     rest,
   });
 }

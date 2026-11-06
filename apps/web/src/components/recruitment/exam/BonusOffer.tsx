@@ -13,7 +13,7 @@ export interface BonusText {
   title: string;
   counting: string;
   desc: (q: BonusQuote) => string;
-  calc: { time: string; right: string; wrong: string; total: string };
+  calc: { time: string; right: string; wrong: string; blank: string; total: string };
   max: (n: number) => string;
   yes: string;
   no: string;
@@ -84,6 +84,10 @@ export default function BonusOffer({
               <li>
                 <span>{t.calc.wrong}</span>
                 <b className="num">-{quote.wrong}</b>
+              </li>
+              <li>
+                <span>{t.calc.blank}</span>
+                <b className="num">-{quote.blank}</b>
               </li>
               <li data-total="yes">
                 <span>

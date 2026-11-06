@@ -163,11 +163,12 @@ export const TS = dict({
       title: "Masih ada waktu. Mau coba soal bonus?",
       counting: "Menghitung jatah bonusmu...",
       desc: (q: BonusQuote) =>
-        `Kamu dapat ${q.quota} soal bonus dari ${q.rest} soal lain di bank (diacak). Jumlahnya dari sisa waktumu, ditambah jawaban benar, dikurangi jawaban salah. Tiap soal bonus bernilai setengah soal biasa, dan kosong atau salah tidak mengurangi nilaimu.`,
+        `Kamu dapat ${q.quota} soal bonus dari ${q.rest} soal lain di bank (diacak). Jumlahnya dari sisa waktumu, ditambah jawaban benar, dikurangi jawaban salah dan soal yang kamu biarkan kosong. Tiap soal bonus bernilai setengah soal biasa. Soal kosong atau salah tidak mengurangi nilai soalnya sendiri, tapi mengurangi jatah bonusmu.`,
       calc: {
         time: "Sisa waktu",
         right: "Jawaban benar",
         wrong: "Jawaban salah",
+        blank: "Dibiarkan kosong",
         total: "Soal bonus",
       },
       max: (n: number) => `paling banyak ${n}`,
@@ -363,11 +364,12 @@ export const TS = dict({
       title: "There is still time. Try the bonus questions?",
       counting: "Counting your bonus...",
       desc: (q: BonusQuote) =>
-        `You get ${q.quota} bonus questions out of the ${q.rest} other questions in the bank (shuffled). The number comes from your time left, plus right answers, minus wrong ones. Each bonus question is worth half a normal one, and blank or wrong takes nothing away.`,
+        `You get ${q.quota} bonus questions out of the ${q.rest} other questions in the bank (shuffled). The number comes from your time left, plus right answers, minus wrong ones and questions you left blank. Each bonus question is worth half a normal one. A blank or wrong question takes nothing from its own score, but it does cut your bonus.`,
       calc: {
         time: "Time left",
         right: "Right answers",
         wrong: "Wrong answers",
+        blank: "Left blank",
         total: "Bonus questions",
       },
       max: (n: number) => `at most ${n}`,
@@ -554,8 +556,8 @@ export const TS = dict({
       title: "还有时间，要试试加分题吗？",
       counting: "正在计算你的加分题数量...",
       desc: (q: BonusQuote) =>
-        `你可获得 ${q.quota} 道加分题，来自题库中另外 ${q.rest} 道题（随机）。数量由剩余时间、答对题数、答错题数决定。每道加分题的分值是普通题的一半，空白或答错不扣分。`,
-      calc: { time: "剩余时间", right: "答对", wrong: "答错", total: "加分题" },
+        `你可获得 ${q.quota} 道加分题，来自题库中另外 ${q.rest} 道题（随机）。数量由剩余时间、答对题数、答错题数和留空题数决定。每道加分题的分值是普通题的一半；空白或答错不扣该题本身的分，但会减少加分题数量。`,
+      calc: { time: "剩余时间", right: "答对", wrong: "答错", blank: "留空", total: "加分题" },
       max: (n: number) => `最多 ${n} 道`,
       yes: "是，领取加分题",
       no: "不用，继续提交",

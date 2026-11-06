@@ -316,7 +316,7 @@ function sisaMs(c: KonteksLc): number {
 /**
  * How many bonus problems this seat gets (bonus.ts): its time left in problem-lengths, plus the
  * dealt problems whose best finished Submit passed every test, minus those with a finished
- * Submit that did not. A problem never submitted is neither.
+ * Submit that did not, minus those never submitted (2026-11-07).
  */
 async function kuotaBonus(c: KonteksLc, base: number[], rest: number): Promise<BonusQuote> {
   const subs = base.length
@@ -355,6 +355,8 @@ async function kuotaBonus(c: KonteksLc, base: number[], rest: number): Promise<B
     perQuestionMs: (c.config.livecode.minutes * 60_000) / Math.max(1, dealtCount(c.config)),
     correct,
     wrong,
+    // A dealt problem with no finished Submit counts as blank.
+    blank: Math.max(0, base.length - correct - wrong),
     rest,
   });
 }

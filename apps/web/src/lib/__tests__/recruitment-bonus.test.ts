@@ -197,7 +197,7 @@ describe("drawBonusProblems", () => {
   });
 });
 
-describe("bonusQuota (time left, right and wrong)", () => {
+describe("bonusQuota (time left, right, wrong and blank)", () => {
   const MIN = 60_000;
 
   it("the Akademik's example: 13 min 7 s left of a 1 minute a question part, 12 right, 8 wrong", () => {
@@ -206,28 +206,69 @@ describe("bonusQuota (time left, right and wrong)", () => {
       perQuestionMs: MIN,
       correct: 12,
       wrong: 8,
+      blank: 0,
       rest: 20,
     });
-    expect(q).toEqual({ rest: 20, time: 13, correct: 12, wrong: 8, quota: 17 });
+    expect(q).toEqual({ rest: 20, time: 13, correct: 12, wrong: 8, blank: 0, quota: 17 });
+  });
+
+  it("a blank question counts -1, like a wrong one", () => {
+    const base = { leftMs: 13 * MIN, perQuestionMs: MIN, correct: 12, wrong: 4, rest: 40 };
+    expect(bonusQuota({ ...base, blank: 0 }).quota).toBe(21);
+    expect(bonusQuota({ ...base, blank: 4 }).quota).toBe(17);
+  });
+
+  it("handing in an empty part no longer keeps the whole time bonus (2026-11-07)", () => {
+    // 14 min 58 s left of a 15 minute part of 20 questions, nothing answered
+    const q = bonusQuota({
+      leftMs: 14 * MIN + 58_000,
+      perQuestionMs: (15 * MIN) / 20,
+      correct: 0,
+      wrong: 0,
+      blank: 20,
+      rest: 20,
+    });
+    expect(q.time).toBe(19);
+    expect(q.quota).toBe(0);
   });
 
   it("never passes what is left in the pool", () => {
     expect(
-      bonusQuota({ leftMs: 15 * MIN, perQuestionMs: MIN, correct: 20, wrong: 0, rest: 20 }).quota,
+      bonusQuota({
+        leftMs: 15 * MIN,
+        perQuestionMs: MIN,
+        correct: 20,
+        wrong: 0,
+        blank: 0,
+        rest: 20,
+      }).quota,
     ).toBe(20);
   });
 
   it("never goes below zero", () => {
     expect(
-      bonusQuota({ leftMs: 2 * MIN, perQuestionMs: MIN, correct: 1, wrong: 15, rest: 20 }).quota,
+      bonusQuota({
+        leftMs: 2 * MIN,
+        perQuestionMs: MIN,
+        correct: 1,
+        wrong: 15,
+        blank: 0,
+        rest: 20,
+      }).quota,
     ).toBe(0);
   });
 
   it("time counts in question-lengths, so a longer question gives fewer bonuses for the same time", () => {
     // Live Coding: 60 minutes for 5 problems is 12 minutes a problem
     expect(
-      bonusQuota({ leftMs: 30 * MIN, perQuestionMs: 12 * MIN, correct: 3, wrong: 0, rest: 19 })
-        .quota,
+      bonusQuota({
+        leftMs: 30 * MIN,
+        perQuestionMs: 12 * MIN,
+        correct: 3,
+        wrong: 0,
+        blank: 0,
+        rest: 19,
+      }).quota,
     ).toBe(5);
   });
 
