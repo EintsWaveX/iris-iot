@@ -31,7 +31,8 @@ import {
 import { fogLimit } from "../../../lib/recruitment/fog";
 import { wordsFor } from "../../../lib/recruitment/settings";
 import { useRevealClock } from "../../../lib/recruitment/reveal-clock";
-import { pickEvent, pickWindow } from "../../../lib/recruitment/slots";
+import { pickEvent, pickWindow, pilihTampil } from "../../../lib/recruitment/slots";
+import { tubesDibuka } from "../../../lib/recruitment/tubes";
 import {
   gateClosesAt,
   gateOpen,
@@ -308,7 +309,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const tubesAwal = events
     .filter((e) => e.stage === "tubes" && !e.internal)
     .reduce<string | null>((m, e) => (m === null || e.startsOn < m ? e.startsOn : m), null);
-  const tubesOpen = cand?.stage === "tubes" && tubesAwal !== null && hariIni >= tubesAwal;
+  const tubesOpen = tubesDibuka(cand?.stage, tubesAwal, hariIni);
 
   const first = events.length
     ? events.reduce((m, e) => (e.startsOn < m ? e.startsOn : m), events[0].startsOn)
@@ -449,7 +450,10 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       ? slots.data.stages.filter((sd) => {
           const prev = GERBANG[sd.window.stage];
           // Picking stays hidden until the envelope that unlocks it is opened: no spoilers.
-          return !prev || envs.some((e) => e.stage === prev && e.opened && e.result === "lolos");
+          return (
+            !prev ||
+            pilihTampil(envs.some((e) => e.stage === prev && e.opened && e.result === "lolos"))
+          );
         })
       : [];
   const perluPilih = pickable.filter((sd) => sd.window.open && !sd.mine);

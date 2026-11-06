@@ -16,8 +16,19 @@
  * Everything a number or a name here can be is a default the Akademik edits
  * (`TubesSetting`, the topics, the interview template of stage "tubes").
  */
+import { bebas } from "./bebas.js";
 import type { Bi } from "./interview.js";
 import type { RecEvent } from "./types.js";
+
+/**
+ * Whether the Tubes tile on the CaAs page opens: they are at Tubes and the first day of its window came.
+ * Free mode (Mode Latihan) drops the date (a practicing CaAs at Tubes has no window to wait for), not the stage.
+ */
+export const tubesDibuka = (
+  stage: string | undefined,
+  awal: string | null,
+  hariIni: string,
+): boolean => stage === "tubes" && (bebas() || (awal !== null && hariIni >= awal));
 
 /* ------------------------------------------------------------ time */
 
@@ -52,6 +63,8 @@ export function teamsLocked(
   forced: "open" | "closed" | null | undefined,
   now: Date,
 ): boolean {
+  // Free mode (Mode Latihan): teams are never locked.
+  if (bebas()) return false;
   if (forced === "open") return false;
   if (forced === "closed") return true;
   const at = teamsLockAt(events);
@@ -194,6 +207,7 @@ export function teamSizeProblem(
   joined: number,
   s: Pick<TubesSetting, "teamMin" | "teamMax">,
 ): TeamProblem {
+  if (bebas()) return null;
   if (joined < s.teamMin) return "kurang";
   if (joined > s.teamMax) return "lebih";
   return null;
@@ -203,7 +217,7 @@ export function teamSizeProblem(
 export const canInviteMore = (
   members: readonly TeamMemberLite[],
   s: Pick<TubesSetting, "teamMax">,
-) => asking(members) < s.teamMax;
+) => bebas() || asking(members) < s.teamMax;
 
 /** A NIM as people write it: trimmed, upper case. */
 export const nimBersih = (v: unknown): string | null => {
@@ -239,6 +253,7 @@ export function sessionPickProblem(
   ownSeats: number,
   now: Date,
 ): PickProblem {
+  if (bebas()) return null;
   if (!sessionChangeOpen(new Date(s.startsAt), now)) return "lewat";
   if (size > seatsLeft(s, used - ownSeats)) return "penuh";
   return null;
@@ -281,6 +296,7 @@ export function submitState(
   now: Date,
   ov: Override | null,
 ): SubmitState {
+  if (bebas()) return "buka";
   if (workStart && now < workStart) return "belum";
   if (!closeAt || now < closeAt) return "buka";
   if (ov && (!ov.until || now < ov.until)) return "izin";

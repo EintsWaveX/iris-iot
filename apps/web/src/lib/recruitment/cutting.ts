@@ -5,7 +5,8 @@
  * locked and the reveal time has come. The API calls these on every write
  * and on the candidate's own read; the pages use them for display only.
  */
-import type { RecEvent, Proposal, StageKey } from "./types.js";
+import { bebas } from "./bebas.js";
+import { CUT_STAGES, type CutStage, type RecEvent, type Proposal, type StageKey } from "./types.js";
 
 export interface CutRow {
   id: number;
@@ -66,7 +67,38 @@ export function canLock(rows: readonly { proposal: Proposal | null }[]): {
   missing: number;
 } {
   const missing = rows.filter((r) => !r.proposal).length;
-  return { ok: rows.length > 0 && missing === 0, missing };
+  // Free mode: the lock goes ahead (the handler fills the missing proposals), the count stays true.
+  return { ok: bebas() || (rows.length > 0 && missing === 0), missing };
+}
+
+/**
+ * Whether the Kunci hold button is disabled on the board: nothing on it, a proposal missing, or no Pengumuman to
+ * take the reveal time from. Free mode (Mode Latihan) lifts all three; the server fills what is missing.
+ */
+export const kunciTertutup = (i: { baris: number; missing: number; adaWaktu: boolean }): boolean =>
+  !bebas() && (i.baris === 0 || i.missing > 0 || !i.adaWaktu);
+
+/** Buka Kunci shows while the envelopes are still sealed; free mode shows it after the reveal too. */
+export const bukaKunciTampil = (dikunci: boolean, dibuka: boolean): boolean =>
+  dikunci && (!dibuka || bebas());
+
+/**
+ * The stages the Cutting tab offers: those whose Cutting (or, for Berkas, review) event has begun. Free mode
+ * (Mode Latihan) offers every stage with a Cutting board, begun or not (Penerimaan has none).
+ */
+export function tahapCuttingAktif(
+  events: readonly Pick<RecEvent, "stage" | "kind" | "startsOn">[],
+  hariIni: string,
+): CutStage[] {
+  if (bebas()) return CUT_STAGES.filter((s) => s !== "penerimaan");
+  return CUT_STAGES.filter((s) =>
+    events.some(
+      (e) =>
+        e.stage === s &&
+        ((e.kind === "cutting" && e.startsOn <= hariIni) ||
+          (s === "berkas" && e.kind === "review" && e.startsOn <= hariIni)),
+    ),
+  );
 }
 
 interface Kunci {
@@ -76,11 +108,11 @@ interface Kunci {
 
 /** A candidate may see the result only when locked and the time has come. */
 export const envelopeVisible = (r: Kunci, now: Date): boolean =>
-  r.locked && !!r.revealAt && r.revealAt <= now;
+  r.locked && (bebas() || (!!r.revealAt && r.revealAt <= now));
 
-/** The Ketua may unlock only before the reveal time. */
+/** The Ketua may unlock only before the reveal time (free mode: any locked row). */
 export const canUnlock = (r: Kunci, now: Date): boolean =>
-  r.locked && !!r.revealAt && now < r.revealAt;
+  r.locked && (bebas() || (!!r.revealAt && now < r.revealAt));
 
 /**
  * The instant a stage's envelopes open: the start of its Pengumuman, 12.00

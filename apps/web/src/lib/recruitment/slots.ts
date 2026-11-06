@@ -14,6 +14,7 @@
  * first day and `dayEnd` when it closes on its last day (exclusive, like
  * eventLive); it is not a daily window.
  */
+import { bebas } from "./bebas.js";
 import { addDays } from "./calendar.js";
 import { tanggalWib } from "./gates.js";
 import type { RecEvent, StageKey } from "./types.js";
@@ -63,6 +64,7 @@ export function pickEvent<T extends Pick<RecEvent, "kind" | "stage">>(
 
 /** Picking is open now: inside the pick event's window. */
 export function pickOpen(events: readonly Peristiwa[], stage: StageKey, now: Date): boolean {
+  if (bebas()) return true;
   const e = pickEvent(events, stage);
   if (!e) return false;
   const { opensAt, closesAt } = pickWindow(e);
@@ -77,7 +79,20 @@ export const slotDate = (s: Pick<SlotInfo, "startsAt">): string =>
 export const changeCutoff = (s: Pick<SlotInfo, "startsAt">): Date => wib(slotDate(s), "00:00");
 
 export const canChange = (s: Pick<SlotInfo, "startsAt">, now: Date): boolean =>
-  now < changeCutoff(s);
+  bebas() || now < changeCutoff(s);
+
+/**
+ * Whether a slot's button is locked on the picker: a full slot, or the one the CaAs already holds. Free mode
+ * (Mode Latihan) opens a full slot too, since the server will take the pick; the held slot stays locked.
+ */
+export const slotTerkunci = (full: boolean, mine: boolean | undefined): boolean =>
+  !!mine || (full && !bebas());
+
+/** Whether asking for a change is locked: past the cutoff, except in free mode. */
+export const perubahanTerkunci = (lewat: boolean): boolean => lewat && !bebas();
+
+/** Whether the picker of a stage shows: the envelope that unlocks it is opened and Lolos (no spoilers). Free mode shows it always. */
+export const pilihTampil = (sudahDibuka: boolean): boolean => sudahDibuka || bebas();
 
 export const seatsLeft = (s: Pick<SlotInfo, "capacity">, taken: number): number =>
   Math.max(0, s.capacity - taken);
@@ -97,6 +112,8 @@ export interface PickInput {
 
 /** Whether a candidate may take this seat. The order is the order of the answers the page can act on. */
 export function judgePick(i: PickInput): "ok" | PickError {
+  // Free mode (Mode Latihan): only a slot that does not exist, or is of another stage, still refuses.
+  if (bebas()) return !i.slot || i.slot.stage !== i.stage ? "slot_salah" : "ok";
   if (!i.eligible) return "bukan_peserta";
   if (!i.slot || i.slot.stage !== i.stage) return "slot_salah";
   if (!i.open) return "jendela_tutup";
@@ -119,6 +136,12 @@ export interface ChangeInput {
 
 /** Whether a candidate may ask for another slot. The seat is checked now and not held. */
 export function judgeChange(i: ChangeInput): "ok" | ChangeError {
+  // Free mode: no pick yet, a late change, an open request and a full target all go through.
+  if (bebas()) {
+    if (!i.to || (i.from && i.to.stage !== i.from.stage)) return "slot_salah";
+    if (i.from && i.to.id === i.from.id) return "slot_sama";
+    return "ok";
+  }
   if (!i.from) return "belum_memilih";
   if (!canChange(i.from, i.now)) return "lewat_batas";
   if (i.hasOpen) return "sudah_ada_permintaan";

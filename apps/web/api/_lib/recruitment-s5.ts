@@ -17,6 +17,8 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { konteksLatihan } from "./recruitment-latihan-ctx.js";
+import { pastikanHasil, perbaikiKode } from "./recruitment-latihan-contoh.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   ACCEPT_REASON,
@@ -59,7 +61,22 @@ interface PoolRow {
 }
 
 /** The CaAs who passed Mengajar: a locked Mengajar result that says Lolos. */
+/**
+ * The final list. Free mode (Mode Latihan): when nobody has passed Mengajar, every approved CaAs is given a
+ * sample Lolos for it first, so Penerimaan always has a list to work on.
+ */
 async function muatKolamAkhir(db: Db, edisiId: number): Promise<PoolRow[]> {
+  const hasil = await bacaKolamAkhir(db, edisiId);
+  if (!bebas() || hasil.length > 0) return hasil;
+  const calon = await db
+    .select({ id: recCandidate.id })
+    .from(recCandidate)
+    .where(and(eq(recCandidate.editionId, edisiId), eq(recCandidate.status, "approved")));
+  for (const c of calon) await pastikanHasil(db, c.id, "mengajar", "latihan");
+  return bacaKolamAkhir(db, edisiId);
+}
+
+async function bacaKolamAkhir(db: Db, edisiId: number): Promise<PoolRow[]> {
   const rows = await db
     .select({
       id: recCandidate.id,
@@ -272,7 +289,8 @@ async function handleCodes(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   if (!edisi) return;
   const p = await muatPelaku(db, edisi.id, s.nim);
   if (!wajibHak(res, p, "accept")) return;
-  const pool = new Set((await muatKolamAkhir(db, edisi.id)).map((r) => r.id));
+  const kolamAkhir = await muatKolamAkhir(db, edisi.id);
+  const pool = new Set(kolamAkhir.map((r) => r.id));
   const bersih: {
     id: number;
     code: string | null;
@@ -297,7 +315,8 @@ async function handleCodes(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     .select()
     .from(recAcceptance)
     .where(inArray(recAcceptance.candidateId, ids));
-  if (sudah.some((a) => a.promotedNim)) return void tolak(res, "sudah_dijadikan", 409);
+  // Free mode (Mode Latihan): the list can still be edited after Jadikan Asisten.
+  if (sudah.some((a) => a.promotedNim) && !bebas()) return void tolak(res, "sudah_dijadikan", 409);
   const kolam = new Set((await muatKolam(db)).map((a) => a.kode));
   // The other rows' saved codes count as taken too.
   const lain = await db
@@ -311,7 +330,22 @@ async function handleCodes(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     bersih.filter((i) => i.code !== null),
     ambil,
   );
-  const masalah = cek.filter((c) => c.problem && c.problem !== "kosong");
+  let masalah = cek.filter((c) => c.problem && c.problem !== "kosong");
+  // Free mode: a code that is badly shaped, repeated or taken is swapped for a fresh one instead of refused.
+  if (masalah.length && bebas()) {
+    const nama = new Map(kolamAkhir.map((r) => [r.id, r.nama]));
+    const fix = perbaikiKode(
+      bersih
+        .filter((i) => i.code !== null)
+        .map((i) => ({ id: i.id, nama: nama.get(i.id) ?? "", code: i.code })),
+      ambil,
+    );
+    for (const i of bersih) {
+      const baru = fix.get(i.id);
+      if (baru) i.code = baru;
+    }
+    masalah = [];
+  }
   if (masalah.length) return void tolak(res, "kode_bermasalah", 409, { masalah });
   const now = new Date();
   await db.transaction(async (tx) => {
@@ -374,7 +408,19 @@ async function handleConfirm(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
     perlu.map((x) => ({ id: x.r.id, code: x.code })),
     kolam,
   );
-  const masalah = cek.filter((c) => c.problem);
+  let masalah = cek.filter((c) => c.problem);
+  // Free mode: a bad, repeated or taken code is swapped for a fresh one instead of refused.
+  if (masalah.length && bebas()) {
+    const fix = perbaikiKode(
+      perlu.map((x) => ({ id: x.r.id, nama: x.r.nama, code: x.code })),
+      kolam,
+    );
+    for (const x of perlu) {
+      const baru = fix.get(x.r.id);
+      if (baru) x.code = baru;
+    }
+    masalah = [];
+  }
   if (masalah.length) return void tolak(res, "kode_bermasalah", 409, { masalah });
   const events = await muatEvents(db, edisi.id);
   const now = new Date();

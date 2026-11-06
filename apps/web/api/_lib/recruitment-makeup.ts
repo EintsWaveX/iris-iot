@@ -14,6 +14,7 @@ import {
   recSlotAssignment,
   type RecMakeupRow,
 } from "../../src/lib/schema.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { tanggalWib } from "../../src/lib/recruitment/gates.js";
 import {
   makeupDeadline,
@@ -77,7 +78,8 @@ export const posisiMakeup = (
   makeupState({
     row: row ?? null,
     placed: !!slotMulai && diHariSusulan(ctx, slotMulai),
-    deadline: ctx.deadline,
+    // Free mode: an offer never lapses.
+    deadline: bebas() ? null : ctx.deadline,
     now,
   });
 

@@ -77,6 +77,8 @@ import { bacaSetting } from "./recruitment-settings.js";
 import { depNyata } from "./recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah, urlBaca } from "./tp-simpan.js";
 import { joined, muatKelayakan, muatTim, namaTim, type Tim } from "./recruitment-tim.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
+import { lepasTimLama, pastikanTim } from "./recruitment-latihan-contoh.js";
 
 export type H = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => unknown;
 
@@ -423,7 +425,9 @@ async function handleTimBuat(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
   if (!d) return;
   if (teamsLocked(d.c.events, d.c.state?.teamsLock, d.c.now))
     return void tolak(res, "terkunci", 409);
-  if (milikKu(d.tims, d.k.id)) return void tolak(res, "sudah_punya_tim", 409);
+  // Free mode (Mode Latihan): making a team leaves the one they are in.
+  if (bebas()) await lepasTimLama(d.c.db, d.k.id);
+  else if (milikKu(d.tims, d.k.id)) return void tolak(res, "sudah_punya_tim", 409);
   try {
     const id = await d.c.db.transaction(async (tx) => {
       const [t] = await tx
@@ -447,8 +451,18 @@ async function handleTimBuat(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
   }
 }
 
-/** The leader's own team, or a refusal written here. */
-function wajibPemimpin(res: ApiResponse, d: Dalam): Tim | null {
+/**
+ * The leader's own team, or a refusal written here. Free mode (Mode Latihan): a CaAs with no team gets one
+ * to lead, and a member may act as the leader.
+ */
+async function wajibPemimpin(res: ApiResponse, d: Dalam): Promise<Tim | null> {
+  if (bebas()) {
+    if (!milikKu(d.tims, d.k.id)) {
+      await pastikanTim(d.c.db, d.c.edisiId, d.k.id, d.k.nim);
+      d.tims = await muatTim(d.c.db, d.c.edisiId);
+    }
+    return milikKu(d.tims, d.k.id);
+  }
   const t = milikKu(d.tims, d.k.id);
   if (!t) return (void tolak(res, "belum_punya_tim", 409), null);
   if (t.team.leaderId !== d.k.id) return (void tolak(res, "bukan_pemimpin", 403), null);
@@ -458,7 +472,7 @@ function wajibPemimpin(res: ApiResponse, d: Dalam): Tim | null {
 async function handleTimNama(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const d = await wajibLayak(res, s);
   if (!d) return;
-  const t = wajibPemimpin(res, d);
+  const t = await wajibPemimpin(res, d);
   if (!t) return;
   const nama = typeof jsonBody(req).name === "string" ? String(jsonBody(req).name).trim() : null;
   if (nama === null || nama.length > 40)
@@ -474,14 +488,15 @@ async function handleUndang(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!d) return;
   if (teamsLocked(d.c.events, d.c.state?.teamsLock, d.c.now))
     return void tolak(res, "terkunci", 409);
-  const t = wajibPemimpin(res, d);
+  const t = await wajibPemimpin(res, d);
   if (!t) return;
   if (!canInviteMore(t.members, d.c.setting)) return void tolak(res, "penuh", 409);
   const layak = await muatKelayakan(d.c.db, d.c.edisiId, d.c.events, d.c.now);
   const target = layak.find((x) => x.nim === nim);
   // The same answer for a NIM that does not exist and one that is not in Tubes: nothing is leaked.
   if (!target) return void tolak(res, "nim_tidak_ada", 404);
-  if (milikKu(d.tims, target.id)) return void tolak(res, "sudah_punya_tim", 409);
+  // Free mode: someone who already has a team may still be invited (accepting moves them).
+  if (milikKu(d.tims, target.id) && !bebas()) return void tolak(res, "sudah_punya_tim", 409);
   if (t.members.some((m) => m.id === target.id)) return void tolak(res, "sudah_diundang", 409);
   try {
     await d.c.db
@@ -503,7 +518,7 @@ async function handleBatalUndang(req: ApiRequest, res: ApiResponse, s: SessionPa
   if (!d) return;
   if (teamsLocked(d.c.events, d.c.state?.teamsLock, d.c.now))
     return void tolak(res, "terkunci", 409);
-  const t = wajibPemimpin(res, d);
+  const t = await wajibPemimpin(res, d);
   if (!t) return;
   await d.c.db
     .delete(recTeamMember)
@@ -536,7 +551,9 @@ async function handleJawab(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   }
   if (teamsLocked(d.c.events, d.c.state?.teamsLock, d.c.now))
     return void tolak(res, "terkunci", 409);
-  if (milikKu(d.tims, d.k.id)) return void tolak(res, "sudah_punya_tim", 409);
+  // Free mode: joining another team leaves the one they are in.
+  if (bebas()) await lepasTimLama(d.c.db, d.k.id);
+  else if (milikKu(d.tims, d.k.id)) return void tolak(res, "sudah_punya_tim", 409);
   let kode = "ok";
   try {
     await d.c.db.transaction(async (tx) => {
@@ -590,7 +607,7 @@ async function handleKeluarkan(req: ApiRequest, res: ApiResponse, s: SessionPayl
   if (!d) return;
   if (teamsLocked(d.c.events, d.c.state?.teamsLock, d.c.now))
     return void tolak(res, "terkunci", 409);
-  const t = wajibPemimpin(res, d);
+  const t = await wajibPemimpin(res, d);
   if (!t) return;
   if (id === d.k.id) return void tolak(res, "data_salah", 400, { field: "candidateId" });
   await d.c.db
@@ -605,7 +622,7 @@ async function handleBubar(_req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!d) return;
   if (teamsLocked(d.c.events, d.c.state?.teamsLock, d.c.now))
     return void tolak(res, "terkunci", 409);
-  const t = wajibPemimpin(res, d);
+  const t = await wajibPemimpin(res, d);
   if (!t) return;
   await d.c.db.delete(recTeam).where(eq(recTeam.id, t.team.id));
   await writeAudit(s.nim, "rec_tim_bubar", { team: t.team.id });
@@ -621,7 +638,7 @@ async function handlePilihSesi(req: ApiRequest, res: ApiResponse, s: SessionPayl
     return void tolak(res, "data_salah", 400, { field: "sessionId" });
   const d = await wajibLayak(res, s);
   if (!d) return;
-  const t = wajibPemimpin(res, d);
+  const t = await wajibPemimpin(res, d);
   if (!t) return;
   const ukuran = joined(t).length;
   if (teamSizeProblem(ukuran, d.c.setting)) return void tolak(res, "ukuran_tim", 409);
@@ -736,6 +753,11 @@ async function wajibKirim(
 ): Promise<{ d: Dalam; t: Tim; part: (key: unknown) => TubesPart | undefined } | null> {
   const d = await wajibLayak(res, s);
   if (!d) return null;
+  // Free mode: with no team, one is made so there is somewhere to put the files.
+  if (bebas() && !milikKu(d.tims, d.k.id)) {
+    await pastikanTim(d.c.db, d.c.edisiId, d.k.id, d.k.nim);
+    d.tims = await muatTim(d.c.db, d.c.edisiId);
+  }
   const t = milikKu(d.tims, d.k.id);
   if (!t) return (void tolak(res, "belum_punya_tim", 409), null);
   const o = overrideDari(t);

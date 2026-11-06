@@ -7,7 +7,7 @@ import { dict } from "../../lib/app";
 export const LAT = dict({
   id: {
     title: "Mode Latihan",
-    bar: "Data contoh. Tidak masuk skor dan tidak terlihat kandidat sungguhan.",
+    bar: "Di Latihan semua terbuka: tidak ada batas waktu atau urutan. Data contoh, tidak masuk skor, dan tidak terlihat kandidat sungguhan.",
     actAs: "Jadi siapa",
     asAsisten: "Sebagai Asisten",
     asCaas: "Sebagai CaAs",
@@ -16,9 +16,8 @@ export const LAT = dict({
     jump: "Lompat Tahap",
     jumpTitle: "Lompat ke Tahap Mana?",
     jumpBody:
-      "Latihan mengikuti jadwal sungguhan, jadi tahap yang belum waktunya masih tertutup. Lompat memajukan kalender latihan supaya tahap pilihanmu mulai hari ini, lalu memindahkan semua CaAs contoh ke tahap itu.",
-    jumpHint:
-      "Berlaku untuk semua Asisten yang sedang berlatih. Samakan dengan Oprec Asli mengembalikan jadwal sungguhan.",
+      "Lompat memindahkan semua CaAs contoh ke tahap pilihanmu dan menyiapkan amplop yang sudah terbuka untuk tahap-tahap sebelumnya, jadi ada yang bisa dibaca. Kalender tidak berubah. Maju ke tahap berikutnya menjaga semua yang sudah kamu kerjakan. Mundur ke tahap sebelumnya mengulang latihan, sama seperti Mulai Ulang.",
+    jumpHint: "Berlaku untuk semua Asisten yang sedang berlatih.",
     jumpPick: "Tahap",
     jumpYes: "Lompat",
     leave: "Keluar",
@@ -51,7 +50,7 @@ export const LAT = dict({
   },
   en: {
     title: "Practice Mode",
-    bar: "Sample data. It never counts toward scores and real candidates never see it.",
+    bar: "Everything is open in Practice: no time or order limits. Sample data, never counted toward scores, never seen by real candidates.",
     actAs: "Act as",
     asAsisten: "As Asisten",
     asCaas: "As CaAs",
@@ -60,9 +59,8 @@ export const LAT = dict({
     jump: "Jump Stage",
     jumpTitle: "Jump to Which Stage?",
     jumpBody:
-      "Practice follows the real schedule, so a stage that is not due yet stays closed. Jumping moves the practice calendar so the stage you pick starts today, then puts every sample CaAs on that stage.",
-    jumpHint:
-      "This applies to every Asisten who is practicing. Match the Real Oprec brings back the real dates.",
+      "Jumping moves every sample CaAs to the stage you pick and sets up already-opened envelopes for the stages before it, so there is something to read. The calendar does not change. Going forward keeps everything you have done. Going back restarts practice, the same as Start Over.",
+    jumpHint: "This applies to every Asisten who is practicing.",
     jumpPick: "Stage",
     jumpYes: "Jump",
     leave: "Leave",
@@ -95,7 +93,7 @@ export const LAT = dict({
   },
   zh: {
     title: "练习模式",
-    bar: "示例数据，不计入成绩，真正的候选人也看不到。",
+    bar: "练习中一切都是开放的：没有时间或顺序限制。示例数据，不计入成绩，真正的候选人也看不到。",
     actAs: "扮演",
     asAsisten: "扮演助教",
     asCaas: "扮演候选人",
@@ -104,8 +102,8 @@ export const LAT = dict({
     jump: "跳到阶段",
     jumpTitle: "跳到哪个阶段？",
     jumpBody:
-      "练习按真实日程进行，还没到时间的阶段会保持关闭。跳转会移动练习日历，让你选的阶段从今天开始，并把所有示例 CaAs 放到该阶段。",
-    jumpHint: "对所有正在练习的助教都有效。与正式招募同步会恢复真实日期。",
+      "跳转会把所有示例 CaAs 放到你选的阶段，并为之前的阶段准备好已开启的信封，这样就有内容可读。日历不会改变。向前跳会保留你做过的一切；往回跳会重新开始练习，与“重新开始”相同。",
+    jumpHint: "对所有正在练习的助教都有效。",
     jumpPick: "阶段",
     jumpYes: "跳转",
     leave: "退出",

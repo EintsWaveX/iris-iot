@@ -16,6 +16,7 @@
  * Void, key fixes and the like are refused while frozen (`nilai_final`).
  */
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
@@ -312,6 +313,8 @@ async function halangan(
   edisiId: number,
   hitung: Awaited<ReturnType<typeof hitungSekarang>>,
 ): Promise<FinalBlocker[]> {
+  // Free mode (Mode Latihan): Finalkan has no preconditions, so it can be tried at any point.
+  if (bebas()) return [];
   const out: FinalBlocker[] = [];
   if (hitung.kursi.length === 0) return [{ kode: "tanpa_kursi" }];
   const ruang = await db

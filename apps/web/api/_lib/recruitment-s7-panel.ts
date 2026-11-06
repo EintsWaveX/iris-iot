@@ -43,7 +43,9 @@ import type {
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { tolak } from "./recruitment-data.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { konteksLatihan } from "./recruitment-latihan-ctx.js";
+import { lepasTimLama } from "./recruitment-latihan-contoh.js";
 import { muatPelaku, wajibHak, anggotaPanitia } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
 import { joined, muatKelayakan, muatTim, namaTim, type Tim } from "./recruitment-tim.js";
@@ -266,7 +268,9 @@ async function handleTimAdmin(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   if (op === "make") {
     const o = orang(b.candidateId);
     if (!o) return void tolak(res, "tidak_ada", 404);
-    if (sudah(o.id)) return void tolak(res, "sudah_punya_tim", 409);
+    // Free mode (Mode Latihan): a CaAs with a team leaves it to lead a new one.
+    if (bebas()) await lepasTimLama(c.db, o.id);
+    else if (sudah(o.id)) return void tolak(res, "sudah_punya_tim", 409);
     const id = await c.db.transaction(async (tx) => {
       const [t] = await tx
         .insert(recTeam)
@@ -293,7 +297,9 @@ async function handleTimAdmin(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   } else if (op === "add") {
     const o = orang(b.candidateId);
     if (!o) return void tolak(res, "tidak_ada", 404);
-    if (sudah(o.id)) return void tolak(res, "sudah_punya_tim", 409);
+    // Free mode: adding someone who has a team moves them.
+    if (bebas()) await lepasTimLama(c.db, o.id);
+    else if (sudah(o.id)) return void tolak(res, "sudah_punya_tim", 409);
     // Panitia may go past the size the Akademik set (the board warns); never past what a table of this size can seat.
     if (joined(t).length >= 8) return void tolak(res, "penuh", 409);
     await c.db.transaction(async (tx) => {
@@ -315,7 +321,8 @@ async function handleTimAdmin(req: ApiRequest, res: ApiResponse, s: SessionPaylo
     const id = nomor(b.candidateId);
     if (!id || !joined(t).some((m) => m.id === id)) return void tolak(res, "tidak_ada", 404);
     // The sheets and the table are kept under the leader's id; once a table is dealt the leader stays.
-    if (await diurutkan(t.team.leaderId)) return void tolak(res, "sudah_diurutkan", 409);
+    if ((await diurutkan(t.team.leaderId)) && !bebas())
+      return void tolak(res, "sudah_diurutkan", 409);
     await c.db.update(recTeam).set({ leaderId: id }).where(eq(recTeam.id, t.team.id));
   } else if (op === "disband") {
     await c.db
@@ -558,7 +565,9 @@ async function handleTerbit(req: ApiRequest, res: ApiResponse, s: SessionPayload
     const lebih = topik.filter(
       (x) => tims.filter((t) => t.team.topicId === x.id).length > x.cap,
     ).length;
-    if (tanpa > 0 || lebih > 0) return void tolak(res, "topik_penuh", 409, { tanpa, lebih });
+    // Free mode: the topics go out even when a team has none or a topic is over its cap.
+    if ((tanpa > 0 || lebih > 0) && !bebas())
+      return void tolak(res, "topik_penuh", 409, { tanpa, lebih });
   }
   await c.db
     .insert(recTubesState)

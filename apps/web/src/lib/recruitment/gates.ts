@@ -12,6 +12,7 @@
  * - gateLive: the date and the event's daily window (First Meet's QR is
  *   only live 18.30 to 21.00). An event without a window is live all day.
  */
+import { bebas } from "./bebas.js";
 import { addDays } from "./calendar.js";
 import type { CandidateStatus, GateKey, Phase, RecEvent, StageKey, Viewer } from "./types.js";
 
@@ -43,6 +44,8 @@ export const ASISTEN_LEAD_DAYS = 3;
 
 /** Not over yet and starting within `days` days (or already running): open for the Asisten to prepare. */
 export function eventSegera(e: Jendela, now: Date, days = ASISTEN_LEAD_DAYS): boolean {
+  // Free mode (Mode Latihan): any event may be prepared, past or far off.
+  if (bebas()) return true;
   return !eventEnded(e, now) && e.startsOn <= addDays(tanggalWib(now).tanggal, days);
 }
 
@@ -89,6 +92,7 @@ export function absensiBuka(
   now: Date,
   manual: boolean,
 ): boolean {
+  if (bebas()) return true;
   if (!eventLive(e, now)) return false;
   if (!absensiAkhir(e) || manual) return true;
   const dari = absensiBukaJam(e);
@@ -135,7 +139,8 @@ export function gateLive(
   now: Date,
   stage?: StageKey,
 ): boolean {
-  return events.some((e) => cocok(e, gate, stage) && eventLive(e, now));
+  // Free mode: any event that carries the gate, whatever the day and the hour.
+  return events.some((e) => cocok(e, gate, stage) && (bebas() || eventLive(e, now)));
 }
 
 /**

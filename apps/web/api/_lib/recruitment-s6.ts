@@ -51,6 +51,8 @@ import {
 } from "./recruitment-makeup.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
+import { pastikanTawaran } from "./recruitment-latihan-contoh.js";
 
 type Handler = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => unknown;
 
@@ -238,7 +240,8 @@ async function bukaKasus(res: ApiResponse, s: SessionPayload, b: Record<string, 
     .from(recStageResult)
     .where(and(eq(recStageResult.candidateId, k.id), eq(recStageResult.stage, stage)))
     .limit(1);
-  if (hasil?.locked) return void tolak(res, "terkunci", 409);
+  // Free mode (Mode Latihan): a locked stage still takes Susulan work.
+  if (hasil?.locked && !bebas()) return void tolak(res, "terkunci", 409);
   return { db, edisiId: edisi.id, stage, kandidatId: k.id };
 }
 
@@ -246,7 +249,10 @@ async function handleOffer(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const a = await bukaKasus(res, s, jsonBody(req));
   if (!a) return;
   const { db, stage, kandidatId } = a;
-  if (stage === "tes_tulis") {
+  // Free mode: an offer may be made to anyone, not only to a no-show or a Susulan case.
+  if (bebas()) {
+    /* no case needed */
+  } else if (stage === "tes_tulis") {
     if (!(await muatTidakHadirTulis(db, a.edisiId)).has(kandidatId))
       return void tolak(res, "bukan_susulan", 409);
   } else {
@@ -264,7 +270,10 @@ async function handleOffer(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     .from(recMakeup)
     .where(and(eq(recMakeup.candidateId, kandidatId), eq(recMakeup.stage, stage)))
     .limit(1);
-  if (ada) return void tolak(res, "sudah_ditawari", 409);
+  if (ada)
+    return bebas()
+      ? void res.status(200).json({ ok: true })
+      : void tolak(res, "sudah_ditawari", 409);
   const kursi = await kursiKandidat(db, kandidatId, stage);
   await db.insert(recMakeup).values({
     candidateId: kandidatId,
@@ -282,6 +291,8 @@ async function handleRecord(req: ApiRequest, res: ApiResponse, s: SessionPayload
   const a = await bukaKasus(res, s, b);
   if (!a) return;
   const { db, stage, kandidatId } = a;
+  // Free mode: recording an answer with no offer makes the offer first.
+  await pastikanTawaran(db, kandidatId, stage, s.nim);
   const [row] = await db
     .select()
     .from(recMakeup)
@@ -420,6 +431,8 @@ async function handleAnswer(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!edisi) return;
   const k = await muatKandidat(db, edisi.id, s.nim);
   if (!k) return void tolak(res, "kandidat_tidak_ada", 404);
+  // Free mode (Mode Latihan): with no offer, one is made, so a CaAs can always answer.
+  await pastikanTawaran(db, k.id, b.stage, s.nim);
   const [row] = await db
     .select()
     .from(recMakeup)
@@ -429,8 +442,8 @@ async function handleAnswer(req: ApiRequest, res: ApiResponse, s: SessionPayload
   const ctx = await muatMakeupCtx(db, edisi.id, b.stage);
   const kursi = await kursiKandidat(db, k.id, b.stage);
   const st = posisiMakeup(ctx, row, kursi?.startsAt ?? null, new Date());
-  // Only an open offer takes an answer; after it, Panitia are the ones who change it.
-  if (st.state !== "tawar")
+  // Only an open offer takes an answer; after it, Panitia are the ones who change it (free mode: any answer, again).
+  if (st.state !== "tawar" && !bebas())
     return void tolak(res, st.unanswered ? "lewat_batas" : "sudah_dijawab", 409);
   const baru = await db
     .update(recMakeup)
@@ -441,7 +454,11 @@ async function handleAnswer(req: ApiRequest, res: ApiResponse, s: SessionPayload
       answeredBy: null,
       answeredAt: new Date(),
     })
-    .where(and(eq(recMakeup.id, row.id), eq(recMakeup.status, "tawar")))
+    .where(
+      bebas()
+        ? eq(recMakeup.id, row.id)
+        : and(eq(recMakeup.id, row.id), eq(recMakeup.status, "tawar")),
+    )
     .returning({ id: recMakeup.id });
   if (!baru.length) return void tolak(res, "sudah_dijawab", 409);
   await writeAudit(s.nim, "rec_susulan_jawab_caas", { stage: b.stage, ans: b.ans });

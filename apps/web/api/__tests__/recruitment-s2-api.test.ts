@@ -18,6 +18,8 @@ import {
   recEventLog,
   recExamRoom,
   recExamSeat,
+  recMakeup,
+  recSheetShared,
   recSlot,
   recSlotAssignment,
   recSlotChange,
@@ -50,6 +52,8 @@ const tabelNama = new Map<unknown, string>([
   [recExamRoom, "room"],
   [recExamSeat, "seat"],
   [recStrike, "strike"],
+  [recMakeup, "makeup"],
+  [recSheetShared, "sheetShared"],
 ]);
 
 let rows: Rows = {};
@@ -140,6 +144,7 @@ vi.mock("../_lib/recruitment-settings", async (orig) => {
 const { default: handler } = await import("../recruitment/[aksi]");
 const { buatToken, bacaToken, kodeKetik } = await import("../_lib/recruitment-attendance");
 const { periodAt } = await import("../../src/lib/recruitment/qr");
+const latihanCtx = await import("../_lib/recruitment-latihan-ctx");
 
 const SEMBUNYI = "x".repeat(40);
 const EDISI = { id: 1, year: 2026, title: "Open Recruitment Asisten IRIS 2026", status: "live" };
@@ -1222,6 +1227,62 @@ describe("Pilih Jadwal", () => {
     expect((await pick()).body.kode).toBe("bukan_peserta");
   });
 
+  describe("in practice (free mode)", () => {
+    const { jalankanLatihan } = latihanCtx;
+    const LATIHAN = { mode: "caas", nim: "101022300001", nama: "Raka", edisi: EDISI } as never;
+    const bebasPick = (slotId = 1) => jalankanLatihan(LATIHAN, () => pick(slotId));
+
+    it("takes a seat outside the window", async () => {
+      peserta();
+      pada("2026-11-11T04:00:00");
+      const r = await bebasPick();
+      expect(r.body).toMatchObject({ ok: true, slotId: 1 });
+      expect(tulis.find((w) => w.tabel === "assignment")?.nilai).toMatchObject({
+        slotId: 1,
+        candidateId: 7,
+        stage: "tes_tulis",
+        via: "self",
+      });
+    });
+
+    it("takes a seat for someone who is not in the stage yet", async () => {
+      peserta();
+      pada("2026-11-11T19:30:00");
+      rows.result = [];
+      expect((await bebasPick()).body).toMatchObject({ ok: true, slotId: 1 });
+    });
+
+    it("takes a seat in a full slot", async () => {
+      peserta();
+      pada("2026-11-11T19:30:00");
+      rows.assignment = (sel) => (sel && "n" in (sel as object) ? [{ n: 3 }] : []);
+      expect((await bebasPick()).body).toMatchObject({ ok: true, slotId: 1 });
+    });
+
+    it("replaces the pick they already hold instead of refusing", async () => {
+      peserta();
+      pada("2026-11-11T19:30:00");
+      rows.assignment = (sel) =>
+        sel && "n" in (sel as object) ? [{ n: 0 }] : [{ id: 9, slotId: 4 }];
+      const r = await bebasPick();
+      expect(r.body).toMatchObject({ ok: true, slotId: 1 });
+      expect(tulis.some((w) => w.tabel === "assignment" && w.op === "insert")).toBe(false);
+      expect(tulis.find((w) => w.tabel === "assignment" && w.op === "update")?.nilai).toMatchObject(
+        {
+          slotId: 1,
+          via: "self",
+        },
+      );
+    });
+
+    it("still refuses a slot that does not exist", async () => {
+      peserta();
+      pada("2026-11-11T19:30:00");
+      rows.slot = [];
+      expect((await bebasPick(9)).body.kode).toBe("slot_salah");
+    });
+  });
+
   it("shows a candidate seat counts and never another candidate", async () => {
     peserta();
     pada("2026-11-12T10:00:00");
@@ -1325,6 +1386,332 @@ describe("Pilih Jadwal", () => {
       rows.change = [{ id: 3, status: "open" }];
       const r = await panggil("POST", "slot-change", { body: { withdraw: true } });
       expect(r.body).toMatchObject({ ok: true, status: "withdrawn" });
+    });
+  });
+});
+
+describe("change requests and Plotting in practice (free mode)", () => {
+  const LATIHAN = {
+    mode: "asisten",
+    nim: "101022300900",
+    nama: "Asisten Uji",
+    edisi: EDISI,
+  } as never;
+  const dalam = <T>(f: () => Promise<T>) => latihanCtx.jalankanLatihan(LATIHAN, f);
+
+  it("a change request from a CaAs with no pick simply takes the seat", async () => {
+    sebagaiPraktikan();
+    rows.candidate = [KANDIDAT()];
+    rows.result = [HASIL()];
+    rows.slot = [SLOT(2)];
+    rows.assignment = (sel) => (sel && "n" in (sel as object) ? [{ n: 0 }] : []);
+    rows.change = [];
+    pada("2026-11-17T10:00:00");
+    const r = await dalam(() =>
+      panggil("POST", "slot-change", { body: { toSlot: 2, reason: "Bentrok dengan kuis lain" } }),
+    );
+    expect(r.body).toMatchObject({ ok: true, status: "approved" });
+    expect(tulis.find((w) => w.tabel === "assignment" && w.op === "insert")?.nilai).toMatchObject({
+      slotId: 2,
+      candidateId: 7,
+      via: "self",
+    });
+    expect(tulis.some((w) => w.tabel === "change" && w.op === "insert")).toBe(false);
+  });
+
+  it("a late change request goes through, and an open one gives way to the new one", async () => {
+    sebagaiPraktikan();
+    rows.candidate = [KANDIDAT()];
+    rows.result = [HASIL()];
+    rows.slot = [SLOT(2)];
+    rows.assignment = (sel) =>
+      sel && "n" in (sel as object)
+        ? [{ n: 3 }]
+        : [
+            {
+              a: { id: 5, slotId: 1, candidateId: 7, stage: "tes_tulis" },
+              slot: SLOT(1),
+              id: 5,
+              slotId: 1,
+            },
+          ];
+    rows.change = [{ id: 77 }];
+    pada("2026-11-17T20:00:00");
+    const r = await dalam(() =>
+      panggil("POST", "slot-change", { body: { toSlot: 2, reason: "Bentrok dengan kuis lain" } }),
+    );
+    expect(r.body).toMatchObject({ ok: true, status: "open" });
+    expect(tulis.find((w) => w.tabel === "change" && w.op === "update")?.nilai).toMatchObject({
+      status: "withdrawn",
+    });
+    expect(tulis.find((w) => w.tabel === "change" && w.op === "insert")?.nilai).toMatchObject({
+      fromSlot: 1,
+      toSlot: 2,
+    });
+  });
+
+  it("approves a request into a full slot without asking to go over", async () => {
+    panitia("admin");
+    rows.change = [
+      {
+        m: { id: 3, candidateId: 7, stage: "tes_tulis", fromSlot: 1, toSlot: 2, status: "open" },
+        edisi: 1,
+      },
+    ];
+    rows.slot = [SLOT(2, { capacity: 1 })];
+    rows.assignment = (sel) =>
+      sel && "n" in (sel as object) ? [{ n: 1 }] : [{ id: 5, slotId: 1 }];
+    const r = await dalam(() => panggil("POST", "slot-decide", { body: { id: 3, approve: true } }));
+    expect(r.body).toMatchObject({ ok: true, status: "approved" });
+  });
+
+  it("lets Plotting delete a slot with people in it and set capacity below the seats taken", async () => {
+    panitia("akademik");
+    rows.slot = [SLOT(1)];
+    rows.assignment = (sel) => (sel && "n" in (sel as object) ? [{ n: 2 }] : []);
+    const bawah = await dalam(() =>
+      panggil("POST", "slot-set", { body: { op: "edit", id: 1, capacity: 1 } }),
+    );
+    expect(bawah.body.ok).toBe(true);
+    const hapus = await dalam(() => panggil("POST", "slot-set", { body: { op: "delete", id: 1 } }));
+    expect(hapus.body.ok).toBe(true);
+  });
+});
+
+describe("Cutting and envelopes in practice (free mode)", () => {
+  const LATIHAN = {
+    mode: "asisten",
+    nim: "101022300900",
+    nama: "Asisten Uji",
+    edisi: EDISI,
+  } as never;
+  const dalam = <T>(f: () => Promise<T>) => latihanCtx.jalankanLatihan(LATIHAN, f);
+  const siap = (proposal: string | null = "lolos") => {
+    panitia("ketua");
+    rows.candidate = [KANDIDAT(7), KANDIDAT(8, "101022300002")];
+    rows.result = [
+      HASIL({ locked: false, lockedBy: null, revealAt: null, proposal }),
+      HASIL({
+        id: 2,
+        candidateId: 8,
+        locked: false,
+        lockedBy: null,
+        revealAt: null,
+        proposal: "gagal",
+      }),
+    ];
+  };
+
+  it("takes a proposal on a stage that is already locked", async () => {
+    panitia("akademik");
+    rows.candidate = [KANDIDAT(7)];
+    rows.result = [HASIL()];
+    const body = { stage: "berkas", items: [{ id: 7, proposal: "gagal" }] };
+    expect((await panggil("POST", "propose", { body })).body.kode).toBe("terkunci");
+    const r = await dalam(() => panggil("POST", "propose", { body }));
+    expect(r.body).toMatchObject({ ok: true, changed: 1 });
+  });
+
+  it("locks with proposals missing, giving the missing one a Lolos first", async () => {
+    siap(null);
+    pada("2026-11-10T10:00:00");
+    expect((await panggil("POST", "lock", { body: { stage: "berkas" } })).body.kode).toBe(
+      "belum_lengkap",
+    );
+    tulis.length = 0;
+    const r = await dalam(() => panggil("POST", "lock", { body: { stage: "berkas" } }));
+    expect(r.body).toMatchObject({ ok: true, locked: true });
+    const urut = tulis
+      .filter((w) => w.tabel === "result")
+      .map((w) => w.nilai as Record<string, unknown>);
+    expect(urut[0]).toMatchObject({ proposal: "lolos" });
+    expect(urut.some((n) => n.locked === true)).toBe(true);
+  });
+
+  it("locks a stage that has no Pengumuman, revealing now", async () => {
+    siap();
+    rows.event = EVENT_ROWS.filter((e) => !(e.kind === "announcement" && e.stage === "berkas"));
+    pada("2026-11-10T10:00:00");
+    expect((await panggil("POST", "lock", { body: { stage: "berkas" } })).body.kode).toBe(
+      "tanpa_pengumuman",
+    );
+    const r = await dalam(() => panggil("POST", "lock", { body: { stage: "berkas" } }));
+    expect(r.body).toMatchObject({ ok: true, locked: true });
+    expect(r.body.revealAt).toBe(new Date("2026-11-10T10:00:00+07:00").toISOString());
+  });
+
+  it("reveals at once when it locks, not on the Pengumuman day", async () => {
+    siap();
+    pada("2026-11-10T10:00:00");
+    const r = await dalam(() => panggil("POST", "lock", { body: { stage: "berkas" } }));
+    expect(r.body.revealAt).toBe(new Date("2026-11-10T10:00:00+07:00").toISOString());
+  });
+
+  it("unlocks after the reveal and clears what was opened", async () => {
+    panitia("ketua");
+    rows.candidate = [KANDIDAT(7)];
+    rows.result = [HASIL({ openedAt: new Date("2026-11-11T13:00:00+07:00") })];
+    pada("2026-11-12T10:00:00");
+    expect((await panggil("POST", "unlock", { body: { stage: "berkas" } })).body.kode).toBe(
+      "lewat_waktu",
+    );
+    tulis.length = 0;
+    const r = await dalam(() => panggil("POST", "unlock", { body: { stage: "berkas" } }));
+    expect(r.body).toMatchObject({ ok: true, locked: false });
+    expect(tulis.find((w) => w.tabel === "result")?.nilai).toMatchObject({
+      locked: false,
+      revealAt: null,
+      openedAt: null,
+    });
+  });
+
+  it("opens an envelope that had no result, making one first", async () => {
+    sebagaiPraktikan();
+    rows.candidate = [KANDIDAT()];
+    rows.result = () =>
+      tulis.some((w) => w.tabel === "result" && w.op === "insert")
+        ? [HASIL({ revealAt: new Date("2026-11-20T12:00:00+07:00") })]
+        : [];
+    pada("2026-11-01T10:00:00");
+    expect((await panggil("POST", "envelope-open", { body: { stage: "berkas" } })).code).toBe(404);
+    const r = await dalam(() => panggil("POST", "envelope-open", { body: { stage: "berkas" } }));
+    expect(r.body).toMatchObject({ ok: true, stage: "berkas", result: "lolos" });
+    expect(tulis.find((w) => w.tabel === "result" && w.op === "insert")?.nilai).toMatchObject({
+      candidateId: 7,
+      stage: "berkas",
+      proposal: "lolos",
+      locked: true,
+    });
+  });
+
+  it("opens a locked envelope before its reveal time", async () => {
+    sebagaiPraktikan();
+    rows.candidate = [KANDIDAT()];
+    rows.result = [HASIL({ revealAt: new Date("2026-11-20T12:00:00+07:00") })];
+    pada("2026-11-01T10:00:00");
+    expect((await panggil("POST", "envelope-open", { body: { stage: "berkas" } })).code).toBe(404);
+    const r = await dalam(() => panggil("POST", "envelope-open", { body: { stage: "berkas" } }));
+    expect(r.body).toMatchObject({ ok: true, result: "lolos" });
+  });
+});
+
+describe("attendance and makeup in practice (free mode)", () => {
+  const LATIHAN = {
+    mode: "asisten",
+    nim: "101022300900",
+    nama: "Asisten Uji",
+    edisi: EDISI,
+  } as never;
+  const dalam = <T>(f: () => Promise<T>) => latihanCtx.jalankanLatihan(LATIHAN, f);
+  const tawaran = (over: Record<string, unknown> = {}) => ({
+    id: 5,
+    candidateId: 7,
+    stage: "wawancara",
+    status: "tawar",
+    via: "web",
+    note: "",
+    offeredBy: "101022300900",
+    fromSlotId: null,
+    ...over,
+  });
+
+  it("takes a scan outside the window from someone not yet in the stage, as a real one", async () => {
+    sebagaiPraktikan();
+    rows.candidate = [KANDIDAT()];
+    rows.result = [];
+    rows.attendance = [];
+    pada("2026-11-12T04:00:00");
+    const token = buatToken(FIRST_MEET, periodAt(Date.now()));
+    expect((await panggil("POST", "attend", { body: { token } })).body.kode).toBe("jendela_tutup");
+    const r = await dalam(() => panggil("POST", "attend", { body: { token } }));
+    expect(r.body).toMatchObject({ ok: true, sudah: false });
+    expect(tulis.find((w) => w.tabel === "attendance")?.nilai).toMatchObject({
+      candidateId: 7,
+      eventId: FIRST_MEET,
+      via: "qr",
+    });
+  });
+
+  it("takes a scan at an exam evening for someone with no seat that day", async () => {
+    sebagaiPraktikan();
+    rows.candidate = [KANDIDAT(7, "101022300001", "approved", "tes_tulis")];
+    rows.result = [HASIL()];
+    rows.attendance = [];
+    rows.assignment = [];
+    pada("2026-11-17T19:00:00");
+    const token = buatToken(TES, periodAt(Date.now()));
+    expect((await panggil("POST", "attend", { body: { token } })).body.kode).toBe("bukan_jadwalmu");
+    const r = await dalam(() => panggil("POST", "attend", { body: { token } }));
+    expect(r.body).toMatchObject({ ok: true, sudah: false });
+  });
+
+  it("lets the Panitia mark someone present before the event began", async () => {
+    panitia("acara");
+    rows.candidate = [KANDIDAT()];
+    rows.attendance = [];
+    pada("2026-11-10T10:00:00");
+    const body = { id: 7, event: idAcara("Tes Wawancara"), reason: "hp mati" };
+    expect((await panggil("POST", "attend-manual", { body })).body.kode).toBe("jendela_tutup");
+    const r = await dalam(() => panggil("POST", "attend-manual", { body }));
+    expect(r.body).toMatchObject({ ok: true, present: true });
+  });
+
+  describe("the Susulan offer", () => {
+    const siap = () => {
+      panitia("akademik");
+      rows.candidate = [KANDIDAT()];
+      rows.result = [HASIL({ stage: "wawancara" })];
+      rows.sheetShared = [];
+      rows.assignment = [];
+      pada("2026-11-25T10:00:00");
+    };
+
+    it("is made for a locked stage and for someone who is not a Susulan case", async () => {
+      siap();
+      const body = { id: 7, stage: "wawancara" };
+      rows.makeup = [];
+      expect((await panggil("POST", "ms-offer", { body })).body.kode).toBe("terkunci");
+      const r = await dalam(() => panggil("POST", "ms-offer", { body }));
+      expect(r.body).toMatchObject({ ok: true });
+      expect(tulis.find((w) => w.tabel === "makeup" && w.op === "insert")?.nilai).toMatchObject({
+        candidateId: 7,
+        stage: "wawancara",
+        offeredBy: "101022300900",
+      });
+    });
+
+    it("is made on the spot when Panitia record an answer with none", async () => {
+      siap();
+      rows.result = [];
+      rows.makeup = () =>
+        tulis.some((w) => w.tabel === "makeup" && w.op === "insert") ? [tawaran()] : [];
+      const body = { id: 7, stage: "wawancara", ans: "ikut", via: "line" };
+      expect((await panggil("POST", "ms-record", { body })).body.kode).toBe("belum_ditawari");
+      const r = await dalam(() => panggil("POST", "ms-record", { body }));
+      expect(r.body).toMatchObject({ ok: true });
+      expect(tulis.find((w) => w.tabel === "makeup" && w.op === "update")?.nilai).toMatchObject({
+        status: "ya",
+      });
+    });
+
+    it("takes a CaAs's answer after the deadline, and with no offer made", async () => {
+      sebagaiPraktikan();
+      rows.candidate = [KANDIDAT()];
+      rows.assignment = [];
+      pada("2026-12-03T23:00:00");
+      rows.makeup = [tawaran()];
+      const body = { stage: "wawancara", ans: "ikut" };
+      expect((await panggil("POST", "ms-answer", { body })).body.kode).toBe("lewat_batas");
+      expect((await dalam(() => panggil("POST", "ms-answer", { body }))).body).toMatchObject({
+        ok: true,
+      });
+      tulis.length = 0;
+      rows.makeup = () =>
+        tulis.some((w) => w.tabel === "makeup" && w.op === "insert") ? [tawaran()] : [];
+      expect((await panggil("POST", "ms-answer", { body })).body.kode).toBe("belum_ditawari");
+      expect((await dalam(() => panggil("POST", "ms-answer", { body }))).body).toMatchObject({
+        ok: true,
+      });
     });
   });
 });

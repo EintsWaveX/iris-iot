@@ -14,6 +14,7 @@
  * opens the evening before it (PRD 3), so the Tes Tulis slots are for those at
  * First Meet or Tes Tulis.
  */
+import { bebas } from "./bebas.js";
 import { eventEnded } from "./gates.js";
 import type { CandidateStatus, Proposal, RecEvent, StageKey } from "./types.js";
 
@@ -98,11 +99,13 @@ const hidup = (s: Pick<Standing, "status">) => s.status !== "out" && s.status !=
 
 /** In this stage and still going: may pick one of its slots. */
 export function pickEligible(s: Standing, stage: StageKey): boolean {
+  if (bebas()) return true;
   return hidup(s) && RANK[s.stage] === RANK[stage];
 }
 
 /** Has reached the event's stage and is not out: a QR scan counts for them. */
 export function attendEligible(s: Standing, eventStage: StageKey | null): boolean {
+  if (bebas()) return true;
   return !!eventStage && hidup(s) && s.status !== "accepted" && RANK[s.stage] >= RANK[eventStage];
 }
 

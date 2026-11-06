@@ -33,8 +33,10 @@ import {
   revealAtFor,
   tally,
 } from "../../src/lib/recruitment/cutting.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { nextPublicEvent, tanggalWib } from "../../src/lib/recruitment/gates.js";
 import { cuttingPool, standing } from "../../src/lib/recruitment/standing.js";
+import { lengkapiUsulan, pastikanHasil } from "./recruitment-latihan-contoh.js";
 import {
   CUT_STAGES,
   PROPOSALS,
@@ -539,7 +541,8 @@ export async function handleUsul(req: ApiRequest, res: ApiResponse, s: SessionPa
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
   const pool = await muatPool(db, edisi.id, stage, events, now);
-  if (pool.some((r) => r.result?.locked)) return void tolak(res, "terkunci", 409);
+  // Free mode (Mode Latihan): a locked stage still takes proposals.
+  if (pool.some((r) => r.result?.locked) && !bebas()) return void tolak(res, "terkunci", 409);
   const peta = new Map(pool.map((r) => [r.id, r]));
   if (bersih.some((i) => !peta.has(i.id))) return void tolak(res, "tidak_ditemukan", 404);
 
@@ -597,11 +600,20 @@ export async function handleKunci(req: ApiRequest, res: ApiResponse, s: SessionP
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
   const pool = await muatPool(db, edisi.id, stage, events, now);
-  if (pool.some((r) => r.result?.locked)) return void tolak(res, "terkunci", 409);
+  // Free mode: locking a locked stage locks it again, and a lock with proposals missing fills them first.
+  if (pool.some((r) => r.result?.locked) && !bebas()) return void tolak(res, "terkunci", 409);
   const cek = canLock(pool.map((r) => ({ proposal: r.result?.proposal ?? null })));
   if (!cek.ok) return void tolak(res, "belum_lengkap", 409, { missing: cek.missing });
+  if (bebas())
+    await lengkapiUsulan(
+      db,
+      stage,
+      pool.map((r) => r.id),
+      s.nim,
+    );
 
-  let buka = revealAtFor(events, stage);
+  // Free mode: the envelopes open as it locks, not on the Pengumuman day.
+  let buka = bebas() ? now : revealAtFor(events, stage);
   if (b.revealAt !== undefined) {
     // A rehearsal: the Ketua brings the reveal to a time of their choosing, never to the past.
     const t = typeof b.revealAt === "string" ? new Date(b.revealAt) : null;
@@ -610,18 +622,19 @@ export async function handleKunci(req: ApiRequest, res: ApiResponse, s: SessionP
     buka = t;
   }
   if (!buka) return void tolak(res, "tanpa_pengumuman", 409);
-  await db
-    .update(recStageResult)
-    .set({ locked: true, lockedBy: s.nim, lockedAt: now, revealAt: buka })
-    .where(
-      and(
-        inArray(
-          recStageResult.candidateId,
-          pool.map((r) => r.id),
+  if (pool.length)
+    await db
+      .update(recStageResult)
+      .set({ locked: true, lockedBy: s.nim, lockedAt: now, revealAt: buka })
+      .where(
+        and(
+          inArray(
+            recStageResult.candidateId,
+            pool.map((r) => r.id),
+          ),
+          eq(recStageResult.stage, stage),
         ),
-        eq(recStageResult.stage, stage),
-      ),
-    );
+      );
   await writeAudit(s.nim, "rec_kunci", { stage, n: pool.length, revealAt: buka.toISOString() });
   res.status(200).json({ ok: true, locked: true, revealAt: buka.toISOString() });
 }
@@ -646,7 +659,14 @@ export async function handleBukaKunci(req: ApiRequest, res: ApiResponse, s: Sess
     return void tolak(res, "lewat_waktu", 409);
   await db
     .update(recStageResult)
-    .set({ locked: false, lockedBy: null, lockedAt: null, revealAt: null })
+    .set({
+      locked: false,
+      lockedBy: null,
+      lockedAt: null,
+      revealAt: null,
+      // Free mode: an unlock after the reveal also seals the envelopes again.
+      ...(bebas() ? { openedAt: null } : {}),
+    })
     .where(
       and(
         inArray(
@@ -681,6 +701,8 @@ export async function handleAmplopBuka(req: ApiRequest, res: ApiResponse, s: Ses
   const k = await muatKandidat(db, edisi.id, s.nim);
   if (!k) return void tolak(res, "tidak_ditemukan", 404);
   const now = new Date();
+  // Free mode (Mode Latihan): an envelope that does not exist yet is made, so there is always one to read.
+  await pastikanHasil(db, k.id, stage, s.nim);
   const [r] = await db
     .select()
     .from(recStageResult)

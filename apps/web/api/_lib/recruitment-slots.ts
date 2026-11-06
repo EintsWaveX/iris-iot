@@ -26,6 +26,7 @@ import {
   recSlotChange,
   type RecSlotRow,
 } from "../../src/lib/schema.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { addDays } from "../../src/lib/recruitment/calendar.js";
 import { tanggalWib } from "../../src/lib/recruitment/gates.js";
 import {
@@ -389,9 +390,16 @@ export async function handlePilih(req: ApiRequest, res: ApiResponse, s: SessionP
         taken: n,
       });
       if (kode !== "ok") return;
-      await tx
-        .insert(recSlotAssignment)
-        .values({ slotId, candidateId: k.id, stage, via: "self", by: s.nim, at: now });
+      // Free mode (Mode Latihan): a pick they already hold is replaced, so a CaAs can try slot after slot.
+      if (bebas() && punya)
+        await tx
+          .update(recSlotAssignment)
+          .set({ slotId, via: "self", by: s.nim, at: now })
+          .where(eq(recSlotAssignment.id, punya.id));
+      else
+        await tx
+          .insert(recSlotAssignment)
+          .values({ slotId, candidateId: k.id, stage, via: "self", by: s.nim, at: now });
       if (stage === "tes_tulis" && (await sinkronKursi(tx, k.id, slotId)).tetap) kursiTetap = true;
     });
   } catch (e) {
@@ -475,6 +483,25 @@ export async function handleUbah(req: ApiRequest, res: ApiResponse, s: SessionPa
     takenTo: n,
   });
   if (kode !== "ok") return void tolak(res, kode, kode === "slot_salah" ? 404 : 409);
+  // Free mode (Mode Latihan): with no pick to change, the request simply takes the seat.
+  if (bebas() && !punya) {
+    await db.insert(recSlotAssignment).values({
+      slotId: ke!.id,
+      candidateId: k.id,
+      stage: ke!.stage,
+      via: "self",
+      by: s.nim,
+      at: now,
+    });
+    await writeAudit(s.nim, "rec_pilih", { slotId: ke!.id });
+    return void res.status(200).json({ ok: true, status: "approved" });
+  }
+  // Free mode: a request that is still open gives way to the new one.
+  if (bebas() && buka)
+    await db
+      .update(recSlotChange)
+      .set({ status: "withdrawn", decidedAt: now })
+      .where(eq(recSlotChange.id, buka.id));
   try {
     await db.insert(recSlotChange).values({
       candidateId: k.id,
@@ -552,7 +579,7 @@ export async function handleKeputusan(req: ApiRequest, res: ApiResponse, s: Sess
       approve: true,
       capacity: ke.capacity,
       taken: n,
-      over: b.over === true,
+      over: b.over === true || bebas(),
     });
     if (j !== "ok") return void (kode = j);
     await tx
@@ -668,7 +695,7 @@ export async function handleAtur(req: ApiRequest, res: ApiResponse, s: SessionPa
     if (!r) return void tolak(res, "tidak_ditemukan", 404);
     const terisi = await hitungKursi(db, r.id);
     if (b.op === "delete") {
-      if (terisi > 0) return void tolak(res, "slot_terisi", 409);
+      if (terisi > 0 && !bebas()) return void tolak(res, "slot_terisi", 409);
       await db.delete(recSlot).where(eq(recSlot.id, r.id));
       await writeAudit(s.nim, "rec_slot_hapus", { id: r.id });
       return void res.status(200).json({ ok: true });
@@ -676,7 +703,7 @@ export async function handleAtur(req: ApiRequest, res: ApiResponse, s: SessionPa
     const nilai = cekSlot(b, false);
     if (!nilai) return void tolak(res, "data_salah", 400);
     // The Stepper never goes below the seats taken.
-    if (nilai.capacity !== undefined && nilai.capacity < terisi)
+    if (nilai.capacity !== undefined && nilai.capacity < terisi && !bebas())
       return void tolak(res, "slot_terisi", 409, { taken: terisi });
     const mulai = nilai.startsAt ?? r.startsAt;
     const selesai = nilai.endsAt ?? r.endsAt;
@@ -725,7 +752,7 @@ export async function handleAtur(req: ApiRequest, res: ApiResponse, s: SessionPa
           .limit(1);
         if (punya?.slotId === ke.id) return;
         // Panitia may go over a full slot, but they say so first.
-        if (n >= ke.capacity && b.over !== true) return void (kode = "penuh");
+        if (n >= ke.capacity && b.over !== true && !bebas()) return void (kode = "penuh");
         if (punya)
           await tx
             .update(recSlotAssignment)
