@@ -487,7 +487,9 @@ const tglJamWib = (iso: string, lang: Lang) =>
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(iso));
-const tglIso = (d: Date) => d.toISOString().slice(0, 10);
+/** The calendar day in WIB (the lab's day), not in UTC: between 00:00 and 07:00 WIB UTC is still yesterday. */
+const tglIso = (d: Date) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(d);
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 
 /** The people created, from the rows that were promoted. */
