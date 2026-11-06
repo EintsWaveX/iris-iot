@@ -4,7 +4,9 @@
  * then Live Coding and Pengaturan. A question is chosen in the address
  * (?soal=12, or ?soal=baru for a new one in the open part), so the back
  * button and a shared link both work. The Live Coding tab is the C problem
- * bank (ProblemsTab). There are no references: candidates see none.
+ * bank (ProblemsTab) and works the same way: a count on its tab, a C pool card, Impor, Ekspor
+ * and Tambah Soal up here, and the tab line gone while a problem is open.
+ * There are no references: candidates see none.
  */
 import { useCallback, useEffect, useState, type ComponentType } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
@@ -23,14 +25,16 @@ import {
 import Fade from "../../../../ui/Fade";
 import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
+import { usePoll } from "../../../../../lib/hooks";
 import { useBankConfig, useBankQuestions } from "../../../../../lib/recruitment/bank-client";
+import type { PoolCount } from "../../../../../lib/recruitment/bank-rules";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
 import { PHASE1_PARTS, type Phase1Part } from "../../../../../lib/recruitment/exam-types";
 import BankConfig from "./BankConfig";
 import BankEditor from "./BankEditor";
 import BankImport from "./BankImport";
 import BankList from "./BankList";
-import ProblemsTab from "./ProblemsTab";
+import ProblemsTab, { fetchList } from "./ProblemsTab";
 import { BK } from "./bankStrings";
 import Skeleton from "../../../../ui/Skeleton";
 
@@ -111,6 +115,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
   const config = useBankConfig(true);
   const questions = useBankQuestions(true);
   const [where, go] = useWhere();
+  const probs = usePoll(fetchList, 300_000, true, ["recbank"], 300);
   const [imp, setImp] = useState(false);
   const [seeding, setSeeding] = useState(false);
 
@@ -134,6 +139,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
     if (r.mended) toast(t.mended(r.mended), "ok");
     config.refresh();
     questions.refresh();
+    probs.refresh();
   }
 
   if (!config.data || !questions.data) {
@@ -149,7 +155,23 @@ export default function BankTab({ lang }: { lang: Lang }) {
   const view = where.view;
   const isPart = (PHASE1_PARTS as readonly string[]).includes(view);
   const part = (isPart ? view : "logika") as Phase1Part;
-  const editing = isPart && where.soal !== null;
+  const live = view === "livecode";
+  const editing = (isPart || live) && where.soal !== null;
+  const problems = probs.data?.problems ?? null;
+  /** The C pool card of Live Coding, counted the way the written parts' cards are: a problem is dealt when Siap and Terverifikasi */
+  const lc = config.data.config.livecode;
+  const lcShown = lc.draw.easy + lc.draw.medium + lc.draw.hard;
+  const lcReady = problems?.filter((p) => p.status === "ready" && p.checkOk === true) ?? [];
+  const lcPool: PoolCount = {
+    lang: "c",
+    ready: lcReady.length,
+    draft: (problems?.length ?? 0) - lcReady.length,
+    seed: lcReady.filter((p) => p.sample).length,
+    voided: 0,
+    shown: lcShown,
+    pool: lc.pool,
+    missing: Math.max(0, lcShown - lcReady.length),
+  };
 
   return (
     <div className="stack r3bank">
@@ -165,12 +187,16 @@ export default function BankTab({ lang }: { lang: Lang }) {
                 label: tab(IK_PART[p], t.parts[p]),
                 n: count(p),
               })),
-              { v: "livecode" as BankView, label: tab(LightningIcon, t.tabLive) },
+              {
+                v: "livecode" as BankView,
+                label: tab(LightningIcon, t.tabLive),
+                n: problems?.length,
+              },
               { v: "config" as BankView, label: tab(GearSixIcon, t.tabConfig) },
             ]}
           />
           <span className="grow" />
-          {isPart && rows.length > 0 && (
+          {((isPart && rows.length > 0) || live) && (
             <div className="row r3bank__acts">
               <RadixPopover.Root>
                 <RadixPopover.Trigger asChild>
@@ -197,8 +223,12 @@ export default function BankTab({ lang }: { lang: Lang }) {
                       </button>
                       <a
                         className="btn btn--inverse btn--block"
-                        href={`/api/recruitment/bank-export?part=${part}`}
-                        download={t.exportFile(part)}
+                        href={
+                          live
+                            ? "/api/recruitment/problem-export"
+                            : `/api/recruitment/bank-export?part=${part}`
+                        }
+                        download={live ? "bank-live-coding.md" : t.exportFile(part)}
                       >
                         <DownloadSimpleIcon size={18} aria-hidden="true" />
                         <span className="btn__label">{t.export}</span>
@@ -221,7 +251,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
       )}
 
       <Fade k={editing ? `ed${where.soal}` : view}>
-        {editing ? (
+        {editing && !live ? (
           <BankEditor
             key={String(where.soal)}
             lang={lang}
@@ -240,8 +270,20 @@ export default function BankTab({ lang }: { lang: Lang }) {
             seeding={seeding}
             onSeed={() => void pasang()}
           />
-        ) : view === "livecode" ? (
-          <ProblemsTab lang={lang} config={config.data} />
+        ) : live ? (
+          <ProblemsTab
+            lang={lang}
+            config={config.data}
+            problems={problems}
+            pool={lcPool}
+            open={where.soal}
+            // from the list a click adds an address entry; inside an editor the arrows replace it
+            onOpen={(o) => go({ soal: o }, where.soal === null)}
+            onBack={() => {
+              go({ soal: null });
+              probs.refresh();
+            }}
+          />
         ) : rows.length === 0 ? (
           <section className="panel bkempty">
             <h2 className="panel__title">{t.emptyBankTitle}</h2>
@@ -283,10 +325,12 @@ export default function BankTab({ lang }: { lang: Lang }) {
       <BankImport
         lang={lang}
         open={imp}
+        problems={live}
         onClose={() => setImp(false)}
         onDone={() => {
           questions.refresh();
           config.refresh();
+          probs.refresh();
         }}
       />
     </div>

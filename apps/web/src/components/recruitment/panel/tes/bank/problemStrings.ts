@@ -11,6 +11,24 @@ export const PR = dict({
   id: {
     title: "Soal Live Coding",
     lede: "Soal C yang dibagikan ke peserta. Tiap peserta dapat beberapa soal dari sini, nilainya dari test yang lolos.",
+    importDesc:
+      "Satu berkas .md berisi banyak soal Live Coding. Tiap soal diawali YAML di antara dua baris ---, lalu bagian Soal, Input, Output, Kode Awal, Contoh, Test, dan Reference Solution. Coba dulu: tidak ada yang tersimpan sampai kamu menekan Impor.",
+    importFoot:
+      "Soal dengan id memperbarui soal itu, soal tanpa id jadi soal baru. Semuanya masuk sebagai Draf: tekan Cek dengan Reference Solution dulu supaya bisa Siap. Soal yang sudah dibagikan menolak perubahan test, contoh, batas, dan Reference Solution.",
+    sampleName: "contoh-soal-live-coding.md",
+    importErr: {
+      front_matter_salah: "YAML di atas soal belum benar atau tidak ditutup dengan ---.",
+      id_salah: "Id harus bilangan bulat.",
+      id_tak_dikenal: "Id soal tidak dikenal.",
+      status_salah: "Status harus draft atau ready.",
+      bagian_kosong: "Bagian ini kosong atau tidak ada",
+      kode_salah: "Bagian ini harus berisi satu blok kode",
+      io_salah: "Input dan Output harus berpasangan, masing-masing satu blok kode",
+      en_tidak_lengkap: "Teks English harus lengkap: Soal, Input, dan Output",
+      struktur_terkunci:
+        "Test, contoh, batas dan Reference Solution soal yang sudah dibagikan tidak bisa diubah.",
+      versi_lama: "Orang lain mengubah soal ini lebih dulu. Coba lagi.",
+    } as ErrMap,
     add: "Tambah Soal",
     empty: "Belum ada soal Live Coding. Pasang bawaan di Pengaturan, atau tambah sendiri.",
     colTitle: "Soal",
@@ -139,6 +157,24 @@ export const PR = dict({
   en: {
     title: "Live Coding Problems",
     lede: "The C problems dealt to candidates. Each candidate gets a few of these, scored by the tests that pass.",
+    importDesc:
+      "One .md file with many Live Coding problems. Each starts with YAML between two --- lines, then the sections Soal, Input, Output, Kode Awal, Contoh, Test and Reference Solution. Try first: nothing is saved until you press Import.",
+    importFoot:
+      "A problem with an id updates that problem, one without becomes a new problem. Everything lands as a Draft: run Cek dengan Reference Solution first to make it Ready. A problem that was already dealt refuses changes to its tests, samples, limits and Reference Solution.",
+    sampleName: "sample-live-coding-problem.md",
+    importErr: {
+      front_matter_salah: "The YAML above the problem is not valid or is not closed with ---.",
+      id_salah: "The id must be a whole number.",
+      id_tak_dikenal: "The problem id is not known.",
+      status_salah: "Status must be draft or ready.",
+      bagian_kosong: "This section is empty or missing",
+      kode_salah: "This section must hold exactly one code block",
+      io_salah: "Input and Output must come in pairs, one code block each",
+      en_tidak_lengkap: "The English text must be complete: Soal, Input and Output",
+      struktur_terkunci:
+        "The tests, samples, limits and Reference Solution of a dealt problem can't change.",
+      versi_lama: "Someone else changed this problem first. Try again.",
+    } as ErrMap,
     add: "Add Problem",
     empty:
       "There are no Live Coding problems yet. Install the defaults in Settings, or add your own.",
@@ -269,6 +305,23 @@ export const PR = dict({
   zh: {
     title: "现场编程题目",
     lede: "发给考生的 C 语言题。每位考生会从这里拿到几道，按通过的测试计分。",
+    importDesc:
+      "一个 .md 文件可包含多道现场编程题。每题以两行 --- 之间的 YAML 开头，后面是 Soal、Input、Output、Kode Awal、Contoh、Test 和 Reference Solution 各部分。先试运行：按下导入之前不会保存任何内容。",
+    importFoot:
+      "带 id 的题目会更新该题，没有 id 的会成为新题。全部以草稿导入：先运行 Cek dengan Reference Solution 才能设为就绪。已经发出的题目不允许更改测试、示例、限制和 Reference Solution。",
+    sampleName: "现场编程示例题.md",
+    importErr: {
+      front_matter_salah: "题目上方的 YAML 无效，或没有用 --- 结束。",
+      id_salah: "id 必须是整数。",
+      id_tak_dikenal: "不认识这个题目编号。",
+      status_salah: "状态必须是 draft 或 ready。",
+      bagian_kosong: "这一部分为空或缺失",
+      kode_salah: "这一部分必须正好有一个代码块",
+      io_salah: "Input 和 Output 必须成对出现，各占一个代码块",
+      en_tidak_lengkap: "英文文本必须完整：Soal、Input 和 Output",
+      struktur_terkunci: "已发出的题目不能更改测试、示例、限制和 Reference Solution。",
+      versi_lama: "别人先改了这道题，请再试一次。",
+    } as ErrMap,
     add: "添加题目",
     empty: "还没有现场编程题。请在设置里安装默认题目，或自己添加。",
     colTitle: "题目",

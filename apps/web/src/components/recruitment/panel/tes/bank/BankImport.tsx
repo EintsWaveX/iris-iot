@@ -2,7 +2,8 @@
  * Impor Soal (mockup r3-bank): one .md file, a dry run that says per question
  * what would happen (new, update, unchanged, or refused with its line number),
  * then Impor N Soal, which saves only the clean ones. Nothing is saved before
- * the person presses it.
+ * the person presses it. The Live Coding tab uses the same dialog for its problems (`problems`): another
+ * action, another sample file and its own words, the rest is the same.
  */
 import { NOUN, Paged } from "../../../../ui/Pager";
 import { useEffect, useState } from "react";
@@ -15,6 +16,8 @@ import type { ImportItem, ImportResponse } from "../../../../../lib/recruitment/
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
 import { SAMPLE_MD } from "./bankSample";
 import { BK } from "./bankStrings";
+import { SAMPLE_PROBLEM_MD } from "./problemSample";
+import { PR } from "./problemStrings";
 
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 const MAX_BYTES = 2_500_000;
@@ -32,13 +35,20 @@ export default function BankImport({
   open,
   onClose,
   onDone,
+  problems = false,
 }: {
   lang: Lang;
   open: boolean;
   onClose: () => void;
   onDone: () => void;
+  /** Import Live Coding problems instead of questions */
+  problems?: boolean;
 }) {
   const t = BK[lang];
+  const p = PR[lang];
+  const action = problems ? "problem-import" : "bank-import";
+  const errText = (k: string) => (problems ? (p.importErr[k] ?? p.field[k] ?? k) : t.importErr(k));
+  const failText = (k: string) => (problems ? p.err : t.err)[k] ?? t.err.other;
   const [file, setFile] = useState<{ name: string; size: number; text: string } | null>(null);
   const [dry, setDry] = useState<ImportResponse | null>(null);
   const [busy, setBusy] = useState<"" | "dry" | "run">("");
@@ -65,10 +75,9 @@ export default function BankImport({
     if (!file) return;
     setBusy("dry");
     setFail("");
-    const r = await recPost<ImportResponse>("bank-import", { text: file.text, dry: true });
+    const r = await recPost<ImportResponse>(action, { text: file.text, dry: true });
     setBusy("");
-    if (isFail(r))
-      return setFail(r.kode === "terlalu_besar" ? t.importTooBig : (t.err[r.kode] ?? t.err.other));
+    if (isFail(r)) return setFail(r.kode === "terlalu_besar" ? t.importTooBig : failText(r.kode));
     if (r.items.length === 0) setFail(t.importEmpty);
     setDry(r);
   }
@@ -76,13 +85,13 @@ export default function BankImport({
   async function impor() {
     if (!file || !dry) return;
     setBusy("run");
-    const r = await recPost<ImportResponse>("bank-import", {
+    const r = await recPost<ImportResponse>(action, {
       text: file.text,
       dry: false,
-      ...(note.trim() ? { note: note.trim() } : {}),
+      ...(!problems && note.trim() ? { note: note.trim() } : {}),
     });
     setBusy("");
-    if (isFail(r)) return setFail(t.err[r.kode] ?? t.err.other);
+    if (isFail(r)) return setFail(failText(r.kode));
     toast(t.importDone(r.counts.create + r.counts.update, r.counts.error));
     onDone();
     onClose();
@@ -90,10 +99,12 @@ export default function BankImport({
 
   const n = dry ? dry.counts.create + dry.counts.update : 0;
   const sample = () => {
-    const url = URL.createObjectURL(new Blob([SAMPLE_MD], { type: "text/markdown" }));
+    const url = URL.createObjectURL(
+      new Blob([problems ? SAMPLE_PROBLEM_MD : SAMPLE_MD], { type: "text/markdown" }),
+    );
     const a = document.createElement("a");
     a.href = url;
-    a.download = t.sampleName;
+    a.download = problems ? p.sampleName : t.sampleName;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -103,7 +114,7 @@ export default function BankImport({
       open={open}
       onOpenChange={(o) => !busy && !o && onClose()}
       title={t.importTitle}
-      description={t.importDesc}
+      description={problems ? p.importDesc : t.importDesc}
       size="lg"
       lang={lang}
       alt={
@@ -199,7 +210,7 @@ export default function BankImport({
                             <span className="stack" style={{ gap: 2 }}>
                               {it.errors.map((e, i) => (
                                 <span className="r3err" key={i}>
-                                  {t.importLine(e.line)}: {t.importErr(e.kode)}
+                                  {t.importLine(e.line)}: {errText(e.kode)}
                                   {e.detail ? ` (${e.detail})` : ""}
                                   {e.field ? ` [${e.field}]` : ""}
                                 </span>
@@ -217,7 +228,7 @@ export default function BankImport({
             )}
           </Paged>
         )}
-        {dry && n > 0 && (
+        {dry && n > 0 && !problems && (
           <label className="stack stack--sm">
             <span className="label-caps">{t.importNote}</span>
             <input
@@ -229,7 +240,7 @@ export default function BankImport({
             <span className="hint">{t.importNoteHelp}</span>
           </label>
         )}
-        <span className="hint">{t.importFoot}</span>
+        <span className="hint">{problems ? p.importFoot : t.importFoot}</span>
       </div>
     </Dialog>
   );

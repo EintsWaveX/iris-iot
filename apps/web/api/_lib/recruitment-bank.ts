@@ -70,7 +70,9 @@ import {
   bacaMasalah,
   cekMasalah,
   daftarMasalah,
+  eksporMasalah,
   hapusMasalah,
+  imporMasalah,
   simpanMasalah,
 } from "./recruitment-lc-problems.js";
 import { SEED_PROBLEMS } from "../../src/lib/recruitment/seed-problems.js";
@@ -161,6 +163,10 @@ export async function handleBank(req: ApiRequest, res: ApiResponse, s: SessionPa
       return cekMasalah(k);
     case "problem-delete":
       return hapusMasalah(k);
+    case "problem-import":
+      return imporMasalah(k);
+    case "problem-export":
+      return eksporMasalah(k);
     case "bank-import":
       return impor(k);
     case "bank-export":

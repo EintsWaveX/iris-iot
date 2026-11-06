@@ -257,6 +257,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:problem-save": ["recbank"],
   "recruitment:problem-check": ["recbank"],
   "recruitment:problem-delete": ["recbank"],
+  "recruitment:problem-import": ["recbank"],
   "recruitment:bank-import": ["recbank"],
   "recruitment:media-ticket": [],
   "recruitment:bank-seed": ["recbank"],

@@ -11,9 +11,12 @@ import type { Db } from "../recruitment-data";
 
 vi.mock("../../../src/lib/auth.js", () => ({ writeAudit: vi.fn(async () => undefined) }));
 
+import { writeProblems } from "../../../src/lib/recruitment/problem-io";
 import {
   cekMasalah,
+  eksporMasalah,
   hapusMasalah,
+  imporMasalah,
   simpanMasalah,
   type KonteksMasalah,
 } from "../recruitment-lc-problems";
@@ -221,5 +224,107 @@ describe("cekMasalah and hapusMasalah", () => {
     await hapusMasalah(b.k);
     expect(b.out.status).toBe(200);
     expect(s.calls.some((c) => c.op === "delete")).toBe(true);
+  });
+});
+
+describe("imporMasalah and eksporMasalah", () => {
+  const file = (items: Record<string, unknown>[]) =>
+    writeProblems(
+      items.map((o) => ({ ...draft(), status: "draft" as const, ...o })) as Parameters<
+        typeof writeProblems
+      >[0],
+    );
+  const stored = (over: Record<string, unknown> = {}) => {
+    const r = row(over);
+    // as Postgres jsonb hands it back
+    r.limits = { memKb: r.limits.memKb, timeMs: r.limits.timeMs } as typeof r.limits;
+    return r;
+  };
+
+  it("a dry run says what would happen to each problem and writes nothing", async () => {
+    const bad = draft();
+    bad.tests = bad.tests.slice(0, 1);
+    const same = stored({ checkOk: null, status: "draft" });
+    const { db, calls } = scripted([[same]]);
+    const text = file([
+      { id: 5 },
+      { id: 77 },
+      { title: "Soal Baru Sekali" },
+      { ...bad, title: "Rusak" },
+    ]);
+    const { k, out } = ctx(db, { text, dry: true });
+    await imporMasalah(k);
+    expect(out.status).toBe(200);
+    const items = out.body.items as { action: string; errors: { kode: string }[] }[];
+    expect(items.map((i) => i.action)).toEqual(["same", "error", "create", "error"]);
+    expect(items[1].errors[0].kode).toBe("id_tak_dikenal");
+    expect(items[3].errors.map((e) => e.kode)).toContain("tes_kurang");
+    expect(out.body.counts).toEqual({ create: 1, update: 0, same: 1, error: 2 });
+    expect(calls.filter((c) => c.op !== "select")).toEqual([]);
+  });
+
+  it("a changed hidden test updates the problem, clears the check and lands as a draft whatever the file says", async () => {
+    const changed = draft();
+    changed.tests[0].output = "999\n";
+    const { db, calls } = scripted([[stored()], [row({ version: 4, checkOk: null })]]);
+    const { k, out } = ctx(db, {
+      text: file([{ id: 5, ...changed, status: "ready" }]),
+      dry: false,
+    });
+    await imporMasalah(k);
+    expect(out.body.counts).toMatchObject({ update: 1, error: 0 });
+    expect(calls.find((c) => c.op === "update")!.set).toMatchObject({
+      status: "draft",
+      checkOk: null,
+      checkedAt: null,
+      version: 4,
+    });
+  });
+
+  it("text-only edits keep a Terverifikasi problem Siap", async () => {
+    const fixed = draft();
+    fixed.body.statement = "Baca dua bilangan bulat a dan b, lalu cetak jumlahnya.";
+    const { db, calls } = scripted([[stored({ status: "ready" })], [row({ version: 4 })]]);
+    const { k, out } = ctx(db, {
+      text: file([{ id: 5, ...fixed, status: "ready" }]),
+      dry: false,
+    });
+    await imporMasalah(k);
+    expect(out.body.counts).toMatchObject({ update: 1 });
+    expect(calls.find((c) => c.op === "update")!.set).toMatchObject({
+      status: "ready",
+      checkOk: true,
+    });
+  });
+
+  it("refuses to change the tests of a problem a seat was dealt, and creates new ones as drafts", async () => {
+    const changed = draft();
+    changed.tests[0].output = "999\n";
+    const { db, calls } = scripted([[stored({ shownAt: new Date(5) })], [row({ id: 9 })]]);
+    const { k, out } = ctx(db, {
+      text: file([{ id: 5, ...changed }, { title: "Soal Baru Sekali" }]),
+      dry: false,
+    });
+    await imporMasalah(k);
+    const items = out.body.items as { action: string; errors: { kode: string }[] }[];
+    expect(items[0].errors[0].kode).toBe("struktur_terkunci");
+    expect(items[1].action).toBe("create");
+    expect(calls.find((c) => c.op === "insert")!.values).toMatchObject({
+      status: "draft",
+      title: "Soal Baru Sekali",
+    });
+  });
+
+  it("export writes every problem with its id, and the file imports back as unchanged", async () => {
+    const { db } = scripted([[stored({ status: "ready" })]]);
+    const sent: { text?: string } = {};
+    const { k } = ctx(db, undefined);
+    (k.res as unknown as { end: (t: string) => void }).end = (t) => (sent.text = t);
+    await eksporMasalah(k);
+    expect(sent.text).toContain("id: 5");
+    const again = scripted([[stored({ status: "ready" })]]);
+    const r = ctx(again.db, { text: sent.text, dry: true });
+    await imporMasalah(r.k);
+    expect(r.out.body.counts).toEqual({ create: 0, update: 0, same: 1, error: 0 });
   });
 });
