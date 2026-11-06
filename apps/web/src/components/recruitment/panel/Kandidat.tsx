@@ -710,6 +710,7 @@ export default function Kandidat({
           id={sel}
           queue={rows.filter((c) => c.status === "applied")}
           canAdd={canAdd}
+          rollback={rights.cuttingLock}
           back={
             dari
               ? {
