@@ -145,7 +145,7 @@ export interface ActCtx {
   now: number;
   /** The actor. */
   nim: string;
-  /** Plotted as pengawas for this room, active, never the Pencipta. */
+  /** Plotted as pengawas for this room and active (the Pencipta included since 2026-11-06). */
   canBeMaster: (nim: string) => boolean;
   /** The Master has not pinged for 60 s. */
   masterStale: boolean;

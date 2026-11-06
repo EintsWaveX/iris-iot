@@ -79,10 +79,11 @@ export const bolehDuduk = (status: string | null | undefined): boolean =>
   status === "aktif" || status === "cuti";
 
 /**
- * Who may press Jadi Master on a test evening: an active Asisten who is
- * not the Pencipta (PRD 7.8). Whether they were plotted as pengawas that
- * evening is the exam engine's check.
+ * Who may press Jadi Master on a test evening: any active Asisten, the
+ * Pencipta included (user, 2026-11-06: PRD 7.8 used to exclude the Pencipta,
+ * which hid real-room bugs from the one person testing them). Whether they
+ * were plotted as pengawas that evening is the exam engine's check.
  */
 export function bolehJadiMaster(o: Pick<Orang, "badges"> & { status?: string }): boolean {
-  return !isPencipta(o) && (o.status === undefined || o.status === "aktif");
+  return o.status === undefined || o.status === "aktif";
 }
