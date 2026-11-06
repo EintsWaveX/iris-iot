@@ -24,7 +24,7 @@ export const PN = dict({
     shown: (n: number, total: number) => `${n} dari ${total} peserta`,
     col: {
       name: "Peserta",
-      logika: "Logika",
+      logika: "PU & IoT",
       fitb: "FITB",
       debugging: "Debugging",
       livecode: "Live Coding",
@@ -81,7 +81,7 @@ export const PN = dict({
     statsLede:
       "N = peserta yang membuka bagian dan mendapat soal ini, M = yang benar penuh. p = (M + 1) / (N + 2), bobot w = 2 - p. Cek soal yang p-nya rendah sekali, atau yang pilihan salahnya jauh lebih banyak dipilih daripada kunci.",
     part: {
-      logika: "Logika",
+      logika: "PU dan Dasar IoT",
       fitb: "FITB",
       kodingan: "Code Tracing",
       mikro: "Mikrokontroler",
@@ -148,7 +148,7 @@ export const PN = dict({
     shown: (n: number, total: number) => `${n} of ${total} candidates`,
     col: {
       name: "Candidate",
-      logika: "Logic",
+      logika: "GK & IoT",
       fitb: "FITB",
       debugging: "Debugging",
       livecode: "Live Coding",
@@ -202,7 +202,12 @@ export const PN = dict({
     },
     statsLede:
       "N = candidates who opened the part and got this question, M = those who got it fully right. p = (M + 1) / (N + 2), weight w = 2 - p. Take a look at a question with a very low p, or a wrong option picked far more often than the key.",
-    part: { logika: "Logic", fitb: "FITB", kodingan: "Coding", mikro: "Microcontroller" },
+    part: {
+      logika: "GK and IoT Basics",
+      fitb: "FITB",
+      kodingan: "Coding",
+      mikro: "Microcontroller",
+    },
     allParts: "All Parts",
     statsEmpty: "No question is dealt yet.",
     scol: {
@@ -259,7 +264,7 @@ export const PN = dict({
     shown: (n: number, total: number) => `${total} 位候选人中的 ${n} 位`,
     col: {
       name: "候选人",
-      logika: "逻辑",
+      logika: "常识与IoT",
       fitb: "填空",
       debugging: "调试",
       livecode: "现场编程",
@@ -312,7 +317,7 @@ export const PN = dict({
     },
     statsLede:
       "N 为打开该部分并抽到此题的候选人数，M 为完全答对的人数。p = (M + 1) / (N + 2)，权重 w = 2 - p。p 特别低，或某个错误选项远比答案键热门的题目值得检查。",
-    part: { logika: "逻辑", fitb: "填空", kodingan: "编程", mikro: "单片机" },
+    part: { logika: "常识与物联网基础", fitb: "填空", kodingan: "编程", mikro: "单片机" },
     allParts: "全部部分",
     statsEmpty: "还没有题目被抽出。",
     scol: { q: "题目", n: "N", m: "M", p: "p", w: "w", wrong: "最多人选的错误项", act: "操作" },

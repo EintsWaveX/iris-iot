@@ -178,7 +178,7 @@ const BARIS = () => ({
   id: 5,
   editionId: 1,
   part: "logika",
-  lang: "c",
+  lang: "text",
   format: "single",
   title: "Soal lama",
   body: {
@@ -205,7 +205,7 @@ const BARIS = () => ({
 
 const masuk = (o: Record<string, unknown> = {}) => ({
   part: "logika",
-  lang: "c",
+  lang: "text",
   format: "single",
   title: "Soal baru",
   status: "draft",
@@ -344,8 +344,8 @@ describe("who may reach the bank", () => {
 describe("exam-config", () => {
   it("answers the config, whether it is locked and the pools", async () => {
     rows.question = [
-      { part: "logika", lang: "c", status: "ready", sample: true, voided: false },
-      { part: "logika", lang: "c", status: "draft", sample: false, voided: false },
+      { part: "logika", lang: "text", status: "ready", sample: true, voided: false },
+      { part: "logika", lang: "text", status: "draft", sample: false, voided: false },
     ];
     const r = await jalan("exam-config", AKD, null);
     expect(r.status).toBe(200);
@@ -353,7 +353,7 @@ describe("exam-config", () => {
     const logika = (
       r.body.pools as Record<string, { lang: string; ready: number; draft: number; seed: number }[]>
     ).logika;
-    expect(logika.find((c) => c.lang === "c")).toMatchObject({ ready: 1, draft: 1, seed: 1 });
+    expect(logika.find((c) => c.lang === "text")).toMatchObject({ ready: 1, draft: 1, seed: 1 });
   });
 
   it("saves a valid change and refuses an invalid one with the field errors", async () => {
@@ -425,14 +425,24 @@ describe("question-save", () => {
     expect(tulis).toEqual([]);
   });
 
-  it("takes only C", async () => {
+  it("locks only the code parts to C: Logika takes any language", async () => {
     const r = await jalan("question-save", AKD, masuk({ part: "logika", lang: "any" }));
     expect(r.status).toBe(400);
     expect(r.body.kode).toBe("format_salah");
     const cpp = await jalan("question-save", AKD, masuk({ part: "logika", lang: "cpp" }));
     expect(cpp.status).toBe(400);
     expect(cpp.body.kode).toBe("format_salah");
+    // Logika (PU dan Dasar IoT) is general and takes either; the code parts are locked to C
+    const t = await jalan("question-save", AKD, masuk({ part: "fitb", lang: "text" }));
+    expect(t.status).toBe(400);
+    expect(t.body.kode).toBe("bahasa_salah");
+    expect(
+      (await jalan("question-save", AKD, masuk({ part: "logika", lang: "text" }))).status,
+    ).toBe(200);
     expect((await jalan("question-save", AKD, masuk({ part: "logika", lang: "c" }))).status).toBe(
+      200,
+    );
+    expect((await jalan("question-save", AKD, masuk({ part: "fitb", lang: "c" }))).status).toBe(
       200,
     );
   });
@@ -713,29 +723,6 @@ describe("bank-import", () => {
     expect(tulis.filter((w) => w.tabel === "question" && w.op === "insert")).toHaveLength(7);
   });
 
-  it("a question filed under a part that does not take its style is an error, dry or applied", async () => {
-    rows.question = [];
-    const text = `---
-part: fitb
-lang: c
-format: single
-title: Salah Bagian
----
-Q
-
-- [x] a
-- [ ] b
-`;
-    const dry = await jalan("bank-import", AKD, { text, dry: true });
-    expect(dry.body.counts).toMatchObject({ create: 0, error: 1 });
-    const item = (dry.body.items as { action: string; errors: { kode: string }[] }[])[0];
-    expect(item.action).toBe("error");
-    expect(item.errors.map((e) => e.kode)).toEqual(["format_bukan_bagian"]);
-    const apply = await jalan("bank-import", AKD, { text, dry: false });
-    expect(apply.body.counts).toMatchObject({ create: 0, error: 1 });
-    expect(tulis.filter((w) => w.tabel === "question" && w.op === "insert")).toHaveLength(0);
-  });
-
   it("ignores a refs line from an older file: there are no references any more", async () => {
     rows.question = [];
     const text = `---\npart: logika\nlang: c\nformat: single\ntitle: R\nrefs: [https://old.example/x]\n---\nQ\n\n- [x] a\n- [ ] b\n`;
@@ -749,7 +736,7 @@ Q
     expect(
       (await jalan("bank-import", AKD, { text: unknown, dry: true })).body.counts,
     ).toMatchObject({ error: 1 });
-    const same = `---\nid: 5\npart: logika\nlang: c\nformat: single\nstatus: ready\ntitle: Soal lama\n---\nBerapa?\n\n- [x] 1\n- [ ] 2\n`;
+    const same = `---\nid: 5\npart: logika\nlang: text\nformat: single\nstatus: ready\ntitle: Soal lama\n---\nBerapa?\n\n- [x] 1\n- [ ] 2\n`;
     const r = await jalan("bank-import", AKD, { text: same, dry: true });
     expect(r.body.counts).toMatchObject({ same: 1, update: 0, error: 0 });
   });
@@ -794,10 +781,10 @@ describe("bank-seed", () => {
 
   it("brings an untouched default up to the bank and drops one the bank no longer has", async () => {
     rows.question = [
-      { ...BARIS(), id: 7, title: "Waktu dan Wrap", sample: true, version: 1 },
-      { ...BARIS(), id: 8, title: "Operator Bit", sample: true, version: 1 },
+      { ...BARIS(), id: 7, title: "Analogi Alat Ukur", sample: true, version: 1 },
+      { ...BARIS(), id: 8, title: "Operator Bit", lang: "c", sample: true, version: 1 },
       { ...BARIS(), id: 9, title: "Soal sendiri", sample: false, version: 1 },
-      { ...BARIS(), id: 10, title: "Operator Dua", sample: true, version: 2 },
+      { ...BARIS(), id: 10, title: "Operator Dua", lang: "c", sample: true, version: 2 },
     ];
     const r = await jalan("bank-seed", AKD, {});
     expect(r.status).toBe(200);
@@ -805,7 +792,7 @@ describe("bank-seed", () => {
     expect(r.body.removed).toBe(1);
     const up = tulis.filter((w) => w.tabel === "question" && w.op === "update");
     expect(up).toHaveLength(1);
-    expect(up[0].nilai).toMatchObject({ format: "match", updatedBy: expect.any(String) });
+    expect(up[0].nilai).toMatchObject({ format: "single", updatedBy: expect.any(String) });
     expect(tulis.filter((w) => w.tabel === "question" && w.op === "delete")).toHaveLength(1);
   });
 

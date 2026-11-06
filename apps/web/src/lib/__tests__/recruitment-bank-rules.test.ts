@@ -7,9 +7,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_EXAM_CONFIG,
-  FORMATS,
-  PHASE1_PARTS,
-  formatsOf,
+  LANG_OF_PART,
   type Question,
   type SingleAnswer,
   type SingleBody,
@@ -141,7 +139,8 @@ describe("cleanQuestion", () => {
 });
 
 describe("judgeSave", () => {
-  const base = stateOf(0);
+  // the example is a Logika question, so it has Logika's language
+  const base = { ...stateOf(0), lang: LANG_OF_PART[stateOf(0).part] };
 
   it("creates freely, but a ready question not while a real room runs", () => {
     expect(judgeSave(null, base, ctx())).toEqual({ ok: true, kind: "create" });
@@ -155,8 +154,19 @@ describe("judgeSave", () => {
     });
   });
 
-  it("takes only C: any other language is refused", () => {
+  it("locks only the code parts to C: Logika takes any language, a code part takes no text", () => {
+    expect(judgeSave(null, { ...base, lang: "text" }, ctx())).toEqual({ ok: true, kind: "create" });
+    // Logika (PU dan Dasar IoT) is general, so C is fine there too
     expect(judgeSave(null, { ...base, lang: "c" }, ctx())).toEqual({ ok: true, kind: "create" });
+    // a code part is locked to C
+    expect(judgeSave(null, { ...base, part: "fitb", lang: "c" }, ctx())).toEqual({
+      ok: true,
+      kind: "create",
+    });
+    expect(judgeSave(null, { ...base, part: "fitb", lang: "text" }, ctx())).toEqual({
+      ok: false,
+      kode: "bahasa_salah",
+    });
     expect(judgeSave(null, { ...base, lang: "cpp" as never }, ctx())).toEqual({
       ok: false,
       kode: "bahasa_salah",
@@ -165,37 +175,6 @@ describe("judgeSave", () => {
       ok: false,
       kode: "bahasa_salah",
     });
-  });
-
-  it("a part takes only its own answer styles", () => {
-    const as = (part: QuestionState["part"], format: QuestionState["format"]) => ({
-      ...base,
-      part,
-      format,
-    });
-    const bad = { ok: false, kode: "format_bukan_bagian" };
-    expect(judgeSave(null, as("logika", "fitb"), ctx())).toEqual(bad);
-    expect(judgeSave(null, as("fitb", "single"), ctx())).toEqual(bad);
-    expect(judgeSave(null, as("kodingan", "order"), ctx())).toEqual(bad);
-    for (const [p, f] of [
-      ["logika", "match"],
-      ["fitb", "fitb"],
-      ["kodingan", "fix"],
-    ] as const)
-      expect(judgeSave(null, as(p, f), ctx()), `${p}/${f}`).toEqual({ ok: true, kind: "create" });
-  });
-
-  it("a stored question with a style its part does not take is refused on save, even unchanged", () => {
-    const wrong = { ...base, part: "fitb", format: "single" } as QuestionState;
-    expect(judgeSave(stored(wrong), wrong, ctx())).toEqual({
-      ok: false,
-      kode: "format_bukan_bagian",
-    });
-  });
-
-  it("formatsOf lists every style once across the parts", () => {
-    const all = PHASE1_PARTS.flatMap((p) => [...formatsOf(p)]);
-    expect([...all].sort()).toEqual([...FORMATS].sort());
   });
 
   it("an identical save is a no-op, even while a room runs", () => {
@@ -218,15 +197,9 @@ describe("judgeSave", () => {
     fewer.body = { ...fewer.body, options: fewer.body.options.slice(0, 3) };
     fewer.answer = { correct: fewer.body.options[0].id };
     expect(judgeSave(shown, fewer, ctx())).toEqual({ ok: false, kode: "struktur_terkunci" });
-    // a style change inside its part is locked once shown; a move to another part is refused too
-    // (its style would not fit there)
-    expect(judgeSave(shown, { ...base, format: "multi" }, ctx())).toEqual({
+    expect(judgeSave(shown, { ...base, part: "fitb", lang: "c" }, ctx())).toEqual({
       ok: false,
       kode: "struktur_terkunci",
-    });
-    expect(judgeSave(shown, { ...base, part: "fitb" }, ctx())).toEqual({
-      ok: false,
-      kode: "format_bukan_bagian",
     });
   });
 
@@ -306,7 +279,7 @@ describe("poolCounts", () => {
     o: Partial<{ status: "draft" | "ready"; sample: boolean; voided: boolean }> = {},
   ) => ({
     part,
-    lang: "c" as const,
+    lang: LANG_OF_PART[part],
     status: "ready" as const,
     sample: false,
     voided: false,
@@ -322,7 +295,7 @@ describe("poolCounts", () => {
     ];
     const p = poolCounts(rows, DEFAULT_EXAM_CONFIG);
     expect(p.logika).toEqual([
-      { lang: "c", ready: 2, draft: 1, seed: 1, voided: 1, shown: 15, pool: 40, missing: 13 },
+      { lang: "text", ready: 2, draft: 1, seed: 1, voided: 1, shown: 15, pool: 40, missing: 13 },
     ]);
     expect(p.fitb.every((c) => c.ready === 0 && c.missing === c.shown)).toBe(true);
   });

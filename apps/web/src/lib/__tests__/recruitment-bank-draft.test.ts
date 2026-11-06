@@ -6,7 +6,6 @@ import {
   blankDraft,
   blankNumbers,
   changeFormat,
-  changePart,
   fromFull,
   imageUse,
   keySummary,
@@ -110,40 +109,6 @@ describe("changing the format", () => {
   });
 });
 
-describe("changePart", () => {
-  const withPrompt = (d: Draft): Draft => ({ ...d, body: { ...d.body, prompt: "Apa?" } }) as Draft;
-
-  it("keeps a style the new part also takes", () => {
-    const d = withPrompt(blankDraft("logika", "c", "multi"));
-    const e = changePart(d, "logika", ["c"]);
-    expect(e.part).toBe("logika");
-    expect(e.format).toBe("multi");
-    expect(e.body).toEqual(d.body);
-  });
-
-  it("moves a Logika question to FITB as an empty fill-in, keeping the prompt", () => {
-    const e = changePart(withPrompt(blankDraft("logika", "c", "single")), "fitb", ["c"]);
-    expect(e.part).toBe("fitb");
-    expect(e.format).toBe("fitb");
-    expect(e.body.prompt).toBe("Apa?");
-    expect(e.answer).toEqual({ blanks: {} });
-  });
-
-  it("moves FITB to Kodingan as lines, and Kodingan to Logika as a single", () => {
-    const k = changePart(blankDraft("fitb", "c", "fitb"), "kodingan", ["c"]);
-    expect(k.format).toBe("lines");
-    const l = changePart(k, "logika", ["c"]);
-    expect(l.part).toBe("logika");
-    expect(l.format).toBe("single");
-  });
-
-  it("keeps the language when the new part lists it, else takes its first", () => {
-    const d = blankDraft("logika", "c", "single");
-    expect(changePart(d, "fitb", ["c"]).lang).toBe("c");
-    expect(changePart({ ...d, lang: "x" as never } as Draft, "fitb", ["c"]).lang).toBe("c");
-  });
-});
-
 describe("blanks follow the code", () => {
   const base = (src: string): Draft => {
     const d = blankDraft("fitb", "c", "fitb");
@@ -240,8 +205,7 @@ describe("the key in words", () => {
   const say = (format: string) =>
     keySummary(fromFull(full(seed.find((i) => i.draft!.format === format)!.draft, 1)));
   it("names the right option of a single choice and every right one of a checkbox", () => {
-    // the first single in the bank is "Timer Tanpa Delay", whose right option is 3
-    expect(say("single")).toBe("3");
+    expect(say("single")).toBe("Semua sensor memerlukan daya.");
     expect(say("multi").split("; ").length).toBeGreaterThan(1);
   });
   it("lists the wrong lines by number", () => expect(say("lines")).toBe("4, 5"));

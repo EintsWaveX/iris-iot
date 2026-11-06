@@ -24,7 +24,6 @@ import { defaultQuestionPoints } from "../../../../../lib/recruitment/exam-confi
 import {
   blankDraft,
   changeFormat,
-  changePart,
   codeLangOf,
   fromFull,
   keySig,
@@ -45,7 +44,8 @@ import type {
 import { useBankQuestion } from "../../../../../lib/recruitment/bank-client";
 import { isFail, recPost } from "../../../../../lib/recruitment/client";
 import {
-  formatsOf,
+  FORMATS,
+  LANGS_OF_PART,
   type CodeLang,
   type Format,
   type Phase1Part,
@@ -74,9 +74,9 @@ import "../../../recruitment-s3-bank.css";
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 const hm = (iso: string) => new Date(Date.parse(iso) + 7 * 3600_000).toISOString().slice(11, 16);
 
-/** Every question is C now */
-export function allowedLangs(_cfg: ExamConfigResponse["config"], _part: Phase1Part) {
-  return ["c"] as const;
+/** Only FITB and Code Tracing are locked to C; Logika (PU dan Dasar IoT) is general */
+export function allowedLangs(_cfg: ExamConfigResponse["config"], part: Phase1Part) {
+  return LANGS_OF_PART[part];
 }
 
 function CodeArea({
@@ -149,7 +149,7 @@ export default function BankEditor({
 
   const fresh = useMemo(() => {
     const langs = allowedLangs(config.config, part);
-    return blankDraft(part, langs[0], formatsOf(part)[0]);
+    return blankDraft(part, langs[0]);
   }, [config.config, part]);
   const [d, setD] = useState<Draft | null>(id === null ? fresh : null);
   const [orig, setOrig] = useState<Draft | null>(id === null ? fresh : null);
@@ -291,7 +291,7 @@ export default function BankEditor({
   const FormatPick = (
     <div className="stack stack--sm">
       <div className="r3fmts" role="radiogroup" aria-label={t.fieldFormat}>
-        {formatsOf(d.part).map((f: Format) => (
+        {FORMATS.map((f: Format) => (
           <label key={f} className="r3fmt" data-off={lock && d.format !== f ? "yes" : undefined}>
             <input
               type="radio"
@@ -467,9 +467,8 @@ export default function BankEditor({
               }))}
               onChange={(v) => {
                 const part2 = v as Phase1Part;
-                const next = changePart(d, part2, allowedLangs(config.config, part2));
-                if (next.format !== d.format) setValue(null);
-                set(next);
+                const ok: readonly string[] = allowedLangs(config.config, part2);
+                set({ ...d, part: part2, lang: ok.includes(d.lang) ? d.lang : ok[0] } as Draft);
               }}
             />
             <div className="stack stack--sm">

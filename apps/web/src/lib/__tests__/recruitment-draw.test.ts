@@ -87,6 +87,12 @@ describe("drawPart", () => {
     for (const it of items) expect(it.v).toBe(3);
   });
 
+  it("keeps each question's own language: a general (text) pool is dealt as text, not C", async () => {
+    const seed = await drawSeed(SALT, 3, "logika");
+    const text = POOL.map((p) => ({ ...p, lang: "text" as const }));
+    expect(drawPart(seed, PLAN, text).every((i) => i.lang === "text")).toBe(true);
+  });
+
   it("does not depend on the pool's order", async () => {
     const seed = await drawSeed(SALT, 3, "logika");
     expect(drawPart(seed, PLAN, [...POOL].reverse())).toEqual(drawPart(seed, PLAN, POOL));

@@ -100,12 +100,14 @@ export function poolShortfall(
   plan: { shown: number },
   pool: readonly Question[],
 ): { lang: Lang; need: number; have: number }[] {
-  return pool.length < plan.shown ? [{ lang: "c", need: plan.shown, have: pool.length }] : [];
+  return pool.length < plan.shown
+    ? [{ lang: pool[0]?.lang ?? "c", need: plan.shown, have: pool.length }]
+    : [];
 }
 
 /**
  * One seat's questions for one written part. `pool` is the part's ready, not
- * voided questions; every question is C, so one shuffle takes `shown` of them.
+ * voided questions; a part's questions all share one language, so one shuffle takes `shown` of them.
  */
 export function drawPart(
   seedHex: string,
@@ -119,7 +121,7 @@ export function drawPart(
     .map((question) => ({
       q: question.id,
       v: question.version,
-      lang: "c" as const,
+      lang: question.lang,
       perm: makePerm(question, rngFrom(seedHex, "q", question.id)),
     }));
 }
@@ -137,7 +139,7 @@ export function drawBonus(
   return shuffle(rest, rngFrom(seedHex, "bonus", "c")).map((question) => ({
     q: question.id,
     v: question.version,
-    lang: "c" as const,
+    lang: question.lang,
     perm: makePerm(question, rngFrom(seedHex, "q", question.id)),
   }));
 }

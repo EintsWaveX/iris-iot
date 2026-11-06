@@ -11,19 +11,19 @@ import type { Filter } from "../../../../../lib/recruitment/kejadian";
 import type { RerollReason } from "../../../../../lib/recruitment/room-api";
 
 const partId: Record<PartKey, { l: string; s: string }> = {
-  logika: { l: "Logika", s: "Logika" },
+  logika: { l: "PU dan Dasar IoT", s: "PU & IoT" },
   fitb: { l: "FITB", s: "FITB" },
   kodingan: { l: "Code Tracing", s: "Kodingan" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partEn: Record<PartKey, { l: string; s: string }> = {
-  logika: { l: "Logic", s: "Logic" },
+  logika: { l: "GK and IoT Basics", s: "GK & IoT" },
   fitb: { l: "Fill in the Blanks", s: "FITB" },
   kodingan: { l: "Code Tracing", s: "Code" },
   livecode: { l: "Live Coding", s: "Live Coding" },
 };
 const partZh: Record<PartKey, { l: string; s: string }> = {
-  logika: { l: "逻辑", s: "逻辑" },
+  logika: { l: "常识与物联网基础", s: "常识与IoT" },
   fitb: { l: "填空", s: "填空" },
   kodingan: { l: "代码追踪", s: "代码" },
   livecode: { l: "现场编程", s: "现场编程" },

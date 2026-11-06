@@ -1,833 +1,676 @@
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Timer Tanpa Delay
+title: Silogisme Sensor
 sample: true
 status: ready
 ---
-Sebuah board mengirim data kalau jarak waktu dari kiriman terakhir sudah cukup. Waktu di array ini dalam milidetik. Berapa output program ini?
+Perhatikan dua pernyataan berikut.
 
-```c
-#include <stdio.h>
-#define SEND_INTERVAL 1000
+Pernyataan 1: Semua sensor adalah perangkat elektronik.
+Pernyataan 2: Semua perangkat elektronik memerlukan daya.
 
-int main(void) {
-  unsigned long waktu[] = {0, 400, 1000, 1500, 2100, 3000, 3200};
-  unsigned long previousSendTime = 0;
-  int kirim = 0;
-  for (int i = 0; i < 7; i++) {
-    if (waktu[i] - previousSendTime >= SEND_INTERVAL) {
-      previousSendTime = waktu[i];
-      kirim++;
-    }
-  }
-  printf("%d\n", kirim);
-  return 0;
-}
-```
+Kesimpulan mana yang pasti benar?
 
-- [ ] 2
-- [x] 3
-- [ ] 4
-- [ ] 7
+- [ ] Semua perangkat yang memerlukan daya adalah sensor.
+- [x] Semua sensor memerlukan daya.
+- [ ] Tidak ada sensor yang memerlukan daya.
+- [ ] Ada perangkat elektronik yang bukan sensor dan tidak memerlukan daya.
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Counter Kiriman
+title: Analogi Alat Ukur
 sample: true
 status: ready
 ---
-Counter ini naik setelah tiap pesan dicetak. Berapa output program ini?
+Barometer : tekanan udara = higrometer : ...
 
-```c
-int counter = 3;
-for (int i = 0; i < 3; i++) {
-  printf("hello %d ", counter);
-  counter++;
-}
-printf("| %d\n", counter);
-```
-
-- [x] `hello 3 hello 4 hello 5 | 6`
-- [ ] `hello 4 hello 5 hello 6 | 6`
-- [ ] `hello 3 hello 4 hello 5 | 5`
-- [ ] `hello 3 hello 4 hello 5 hello 6 | 7`
+- [ ] suhu udara
+- [ ] kecepatan angin
+- [x] kelembapan udara
+- [ ] arah angin
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Increment Sebelum Kirim
+title: Lampu dan Saklar
 sample: true
 status: ready
 ---
-Berapa output program ini?
+Aturan: "Jika lampu menyala, maka saklarnya tertutup."
 
-```c
-int counter = 0;
-int a = counter++;
-int b = ++counter;
-printf("%d %d %d\n", a, b, counter++);
-```
+Diketahui saklarnya terbuka. Kesimpulan mana yang pasti benar?
 
-- [ ] `0 1 2`
-- [x] `0 2 2`
-- [ ] `0 2 3`
-- [ ] `1 2 3`
+- [ ] Lampu menyala.
+- [ ] Lampu rusak.
+- [x] Lampu tidak menyala.
+- [ ] Saklarnya rusak.
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Event Tanpa Break
+title: Urutan Tinggi Badan
 sample: true
 status: ready
 ---
-Sebuah event masuk ke `switch`. Berapa output program ini?
+Ani lebih tinggi dari Budi. Citra lebih pendek dari Budi. Dedi lebih tinggi dari Ani.
 
-```c
-int event = 1;
-int kode = 0;
-switch (event) {
-  case 0:
-    kode += 1;
-  case 1:
-    kode += 10;
-  case 2:
-    kode += 100;
-    break;
-  case 3:
-    kode += 1000;
-}
-printf("%d\n", kode);
-```
+Siapa yang paling pendek?
 
-- [ ] 10
-- [x] 110
-- [ ] 111
-- [ ] 1110
+- [ ] Ani
+- [ ] Budi
+- [x] Citra
+- [ ] Dedi
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Event Tidak Dikenal
+title: Lawan dari Semua
 sample: true
 status: ready
 ---
-Empat event masuk satu per satu. Berapa output program ini?
+Pernyataan: "Semua peserta hadir tepat waktu."
 
-```c
-int event[] = {0, 2, 7, 1};
-int terhubung = 0;
-int error = 0;
-for (int i = 0; i < 4; i++) {
-  switch (event[i]) {
-    case 0: terhubung++; break;
-    case 1: terhubung--; break;
-    case 2: error++; break;
-    default: error += 10;
-  }
-}
-printf("%d %d\n", terhubung, error);
-```
+Mana yang merupakan negasi (lawan logis) dari pernyataan itu?
 
-- [ ] `1 11`
-- [x] `0 11`
-- [ ] `0 1`
-- [ ] `1 1`
+- [ ] Tidak ada peserta yang hadir tepat waktu.
+- [ ] Semua peserta tidak hadir tepat waktu.
+- [ ] Sebagian peserta hadir tepat waktu.
+- [x] Ada peserta yang tidak hadir tepat waktu.
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Coba Sambung Ulang
+title: Pola Huruf
 sample: true
 status: ready
 ---
-Board menunggu 500 ms setiap kali gagal tersambung. Berapa output program ini?
+Lanjutkan pola huruf ini: A, C, F, J, O, ...
 
-```c
-int coba = 0;
-int tunggu = 0;
-int terhubung = 0;
-while (!terhubung) {
-  coba++;
-  if (coba == 4) {
-    terhubung = 1;
-  } else {
-    tunggu += 500;
-  }
-}
-printf("%d %d\n", coba, tunggu);
-```
-
-- [ ] `4 2000`
-- [ ] `3 1500`
-- [x] `4 1500`
-- [ ] `3 1000`
+- [ ] S
+- [ ] T
+- [x] U
+- [ ] V
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Isi Buffer Pesan
+title: Arti Kata Redundan
 sample: true
 status: ready
 ---
-Pesan disimpan di array `message` yang muat 50 karakter. Berapa output program ini?
+Dua server menyimpan salinan data yang sama, jadi kalau satu mati, yang lain tetap bisa dipakai. Server cadangan seperti ini disebut redundan.
 
-```c
-#include <stdio.h>
-#include <string.h>
+Arti kata "redundan" yang paling tepat dalam kalimat itu adalah ...
 
-int main(void) {
-  char message[50];
-  int counter = 12;
-  snprintf(message, sizeof(message), "hello %d", counter);
-  printf("%s %d\n", message, (int)strlen(message));
-  return 0;
-}
-```
-
-- [ ] `hello 12 7`
-- [x] `hello 12 8`
-- [ ] `hello 12 9`
-- [ ] `hello 12 50`
+- [ ] sangat rahasia dan tidak boleh dibuka
+- [ ] selalu berubah-ubah
+- [x] berlebih, karena ada yang sama fungsinya, dan itu sengaja dipasang sebagai cadangan
+- [ ] paling penting di antara semuanya
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Pesan Terpotong
+title: Tiga Pintu Hadiah
 sample: true
 status: ready
 ---
-Kali ini array `message` cuma muat 8 byte, sudah termasuk karakter penutup `'\0'`. Berapa output program ini?
+Hadiah hanya ada di satu dari tiga pintu. Tiap pintu punya tulisan:
 
-```c
-#include <stdio.h>
+Pintu A: "Hadiah tidak ada di pintu ini."
+Pintu B: "Hadiah ada di pintu A."
+Pintu C: "Hadiah tidak ada di pintu B."
 
-int main(void) {
-  char message[8];
-  snprintf(message, sizeof(message), "hello %d", 12345);
-  printf("%s\n", message);
-  return 0;
-}
-```
+Diketahui tepat satu tulisan yang benar. Di pintu mana hadiahnya?
 
-- [ ] `hello 12345`
-- [ ] `hello 12`
-- [ ] `hello 123`
-- [x] `hello 1`
+- [ ] Pintu A
+- [x] Pintu B
+- [ ] Pintu C
+- [ ] Tidak bisa ditentukan
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Counter Static
+title: Kesimpulan dari Bacaan
 sample: true
 status: ready
 ---
-Variabel `static` di dalam fungsi tidak mulai dari awal tiap dipanggil. Berapa output program ini?
+Sebuah kota memasang sensor di setiap lampu jalan. Begitu sebuah lampu mati, sensornya langsung mengirim laporan ke petugas. Sebelum sensor dipasang, rata-rata lampu mati baru diperbaiki setelah 5 hari. Setahun sesudahnya, rata-rata itu menjadi 1 hari.
 
-```c
-#include <stdio.h>
+Kesimpulan mana yang paling didukung oleh bacaan?
 
-int hitung(void) {
-  static int pesan = 0;
-  pesan += 2;
-  return pesan;
-}
-
-int main(void) {
-  hitung();
-  hitung();
-  printf("%d\n", hitung());
-  return 0;
-}
-```
-
-- [ ] 2
-- [ ] 3
-- [ ] 4
-- [x] 6
+- [ ] Lampu jalan di kota itu sekarang tidak pernah mati lagi.
+- [ ] Jumlah petugas perbaikan di kota itu berkurang.
+- [x] Laporan otomatis dari sensor kemungkinan besar mempercepat perbaikan lampu.
+- [ ] Biaya perbaikan lampu menjadi lebih murah.
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Ubah Lewat Pointer
+title: Penalaran yang Keliru
 sample: true
 status: ready
 ---
-Berapa output program ini?
+Pernyataan 1: Semua mikrokontroler memiliki prosesor.
+Pernyataan 2: Perangkat X memiliki prosesor.
+Kesimpulan: Perangkat X adalah mikrokontroler.
 
-```c
-#include <stdio.h>
+Penilaian mana yang paling tepat tentang kesimpulan itu?
 
-void tambah(int *p) {
-  *p += 5;
-}
-
-void salin(int x) {
-  x += 5;
-}
-
-int main(void) {
-  int messageCounter = 10;
-  tambah(&messageCounter);
-  salin(messageCounter);
-  tambah(&messageCounter);
-  printf("%d\n", messageCounter);
-  return 0;
-}
-```
-
-- [ ] 10
-- [ ] 15
-- [x] 20
-- [ ] 25
+- [ ] Pasti benar, karena kedua pernyataannya benar.
+- [x] Belum tentu benar, karena perangkat lain juga bisa memiliki prosesor.
+- [ ] Pasti salah, karena perangkat X pasti bukan mikrokontroler.
+- [ ] Pasti benar, karena pernyataan pertama berlaku untuk semua perangkat.
 
 ---
 part: logika
-lang: c
-format: single
-title: Counter Muat Satu Byte
-sample: true
-status: ready
----
-Variabel `unsigned char` hanya muat 0 sampai 255. Berapa output program ini?
-
-```c
-unsigned char counter = 250;
-for (int i = 0; i < 10; i++) {
-  counter++;
-}
-printf("%d\n", counter);
-```
-
-- [ ] 10
-- [ ] 255
-- [ ] 260
-- [x] 4
-
----
-part: logika
-lang: c
-format: single
-title: Menit dan Sisa Interval
-sample: true
-status: ready
----
-Board mengirim data tiap `interval` milidetik. Berapa output program ini?
-
-```c
-int interval = 60000;
-int sekarang = 150000;
-printf("%d %d\n", sekarang / interval, sekarang % interval);
-```
-
-- [ ] `3 30000`
-- [x] `2 30000`
-- [ ] `2 90000`
-- [ ] `2 3000`
-
----
-part: logika
-lang: c
-format: single
-title: Skala Sensor
-sample: true
-status: ready
----
-Bacaan sensor 0 sampai 4095 diubah ke skala 0 sampai 100. Semua variabelnya `int`. Berapa output program ini?
-
-```c
-int adc = 1000;
-int persen = adc * 100 / 4095;
-printf("%d\n", persen);
-```
-
-- [ ] 0
-- [ ] 4
-- [x] 24
-- [ ] 25
-
----
-part: logika
-lang: c
-format: single
-title: Suhu di Atas Batas
-sample: true
-status: ready
----
-Jumlah elemen array dihitung dengan `sizeof`. Berapa output program ini?
-
-```c
-int suhu[] = {21, 25, 30, 28, 22, 26};
-int n = sizeof(suhu) / sizeof(suhu[0]);
-int panas = 0;
-for (int i = 0; i < n; i++) {
-  if (suhu[i] >= 26) {
-    panas++;
-  }
-}
-printf("%d %d\n", n, panas);
-```
-
-- [ ] `5 3`
-- [ ] `6 2`
-- [x] `6 3`
-- [ ] `24 3`
-
----
-part: logika
-lang: c
+lang: text
 format: multi
-title: Kirim Kalau Terhubung
+title: Mana yang Proposisi
 sample: true
 status: ready
 ---
-Operator `&&` dan `||` berhenti begitu hasilnya sudah pasti. Pilih semua pernyataan yang benar setelah kode ini jalan.
+Proposisi adalah kalimat yang bisa dinilai benar atau salah. Pilih semua kalimat yang merupakan proposisi.
 
-```c
-int terhubung = 0;
-int cek = 0;
-int kirim = 0;
-if (terhubung && ++cek > 0) {
-  kirim = 1;
-}
-if (!terhubung || ++cek > 0) {
-  kirim += 2;
-}
-```
-
-- [x] `cek` bernilai 0
-- [x] `kirim` bernilai 2
-- [ ] `cek` bernilai 1
-- [ ] `kirim` bernilai 3
-- [ ] `kirim` bernilai 1
+- [x] Air membeku pada suhu 0 derajat Celsius di tekanan udara normal.
+- [ ] Tolong tutup pintunya.
+- [ ] Berapa jumlah pesertanya?
+- [x] Dua ditambah dua sama dengan lima.
+- [ ] Semoga hujan segera turun.
 
 ---
 part: logika
-lang: c
+lang: text
 format: multi
-title: Batas Nilai Sensor
+title: Kesimpulan yang Pasti
 sample: true
 status: ready
 ---
-Pilih semua pernyataan yang benar setelah kode ini jalan.
+Aturan: "Semua kandidat yang lolos berkas mengikuti tes." Diketahui Rani lolos berkas, dan Tono tidak mengikuti tes.
 
-```c
-#define BATAS_ATAS 100
-#define BATAS_BAWAH 10
-int nilai = 140;
-int hasil = nilai;
-if (hasil > BATAS_ATAS) hasil = BATAS_ATAS;
-if (hasil < BATAS_BAWAH) hasil = BATAS_BAWAH;
-int lebar = BATAS_ATAS - BATAS_BAWAH;
-```
+Pilih semua kesimpulan yang pasti benar.
 
-- [x] `hasil` bernilai 100
-- [x] `lebar` bernilai 90
-- [ ] `hasil` bernilai 140
-- [ ] `hasil` bernilai 10
-- [ ] `BATAS_ATAS` adalah variabel `int` yang memakai memori
+- [x] Rani mengikuti tes.
+- [ ] Rani lolos tes.
+- [x] Tono tidak lolos berkas.
+- [ ] Tono tidak mendaftar.
+- [ ] Semua yang mengikuti tes lolos berkas.
 
 ---
 part: logika
-lang: c
+lang: text
+format: multi
+title: Pasangan Sinonim
+sample: true
+status: ready
+---
+Sinonim adalah kata-kata yang artinya sama atau hampir sama. Pilih semua pasangan kata yang bersinonim.
+
+- [x] cermat dan teliti
+- [ ] hemat dan boros
+- [x] mutakhir dan terbaru
+- [ ] lazim dan janggal
+- [x] kukuh dan kokoh
+
+---
+part: logika
+lang: text
 format: order
-title: Hitung Huruf di Paket
+title: Menyusun Paragraf
 sample: true
 status: ready
-also: [[1, 2, 4, 3, 5, 6, 7, 8, 9, 10, 11, 12]]
 ---
-Susun baris berikut jadi program yang menghitung berapa kali huruf `l` muncul di paket `hello 12`. Baris terakhir mencetak `2`.
+Susun kalimat-kalimat berikut menjadi paragraf yang runtut.
 
-```c
-#include <stdio.h>
-int main(void) {
-  char paket[] = "hello 12";
-  int jumlah = 0;
-  for (int i = 0; paket[i] != '\0'; i++) {
-    if (paket[i] == 'l') {
-      jumlah++;
-    }
-  }
-  printf("%d\n", jumlah);
-  return 0;
-}
+```
+Sebuah pabrik ingin tahu mengapa mesinnya sering berhenti.
+Karena itu, teknisi memasang sensor getar pada mesin.
+Data getaran dikumpulkan selama dua minggu.
+Dari data itu terlihat bahwa getaran melonjak sebelum mesin berhenti.
+Kesimpulannya, lonjakan getaran bisa dipakai sebagai tanda peringatan dini.
 ```
 
 ---
 part: logika
-lang: c
+lang: text
 format: order
-title: Urutan Loop Kirim
+title: Satuan Data dari Kecil
 sample: true
 status: ready
-also: [[1, 2, 4, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13], [1, 2, 3, 4, 5, 6, 8, 7, 9, 10, 11, 12, 13]]
 ---
-Susun baris berikut jadi program yang mengirim tiap 3 detik dan mencetak `kirim 0 kirim 1`. Counter naik setelah pesan dicetak.
+Urutkan satuan data berikut dari yang paling kecil sampai yang paling besar.
 
-```c
-#include <stdio.h>
-int main(void) {
-  int counter = 0;
-  int previous = 0;
-  for (int t = 0; t <= 6; t++) {
-    if (t - previous >= 3) {
-      printf("kirim %d ", counter);
-      previous = t;
-      counter++;
-    }
-  }
-  return 0;
-}
+```
+bit
+byte
+kilobyte
+megabyte
+gigabyte
 ```
 
 ---
 part: logika
-lang: c
+lang: text
+format: order
+title: Wilayah dari Kecil
+sample: true
+status: ready
+---
+Urutkan wilayah pemerintahan berikut dari yang cakupannya paling kecil sampai yang paling besar.
+
+```
+Desa
+Kecamatan
+Kabupaten
+Provinsi
+Negara
+```
+
+---
+part: logika
+lang: text
+format: order
+title: Langkah Memecahkan Masalah
+sample: true
+status: ready
+---
+Urutkan langkah memecahkan masalah secara logis berikut.
+
+```
+Memahami masalahnya
+Menyusun rencana penyelesaian
+Menjalankan rencana itu
+Memeriksa kembali hasilnya
+```
+
+---
+part: logika
+lang: text
 format: match
-title: Hitungan dari Modul
+title: Istilah Penalaran
 sample: true
 status: ready
 ---
-Semua angka di sini `int`. Pasangkan tiap ekspresi C dengan hasilnya.
+Pasangkan tiap istilah penalaran dengan artinya.
 
-| Ekspresi | Hasil |
+| Istilah | Arti |
 |---|---|
-| `5000 / 1000 + 20` | `25` |
-| `60000 / 1000` | `60` |
-| `4095 / 100` | `40` |
-| `2000 + 500 * 3` | `3500` |
-| `20 * 12 / 5` | `48` |
-|  | `100` |
+| Deduksi | Menarik kesimpulan khusus dari aturan yang berlaku umum |
+| Induksi | Menarik kesimpulan umum dari beberapa contoh khusus |
+| Hipotesis | Dugaan sementara yang masih perlu diuji |
+| Premis | Pernyataan yang dijadikan dasar untuk menarik kesimpulan |
+| Analogi | Penalaran berdasarkan kemiripan antara dua hal |
+|  | Kesimpulan yang diambil tanpa alasan apa pun |
 
 ---
 part: logika
-lang: c
+lang: text
 format: match
-title: Waktu dan Wrap
+title: Alat Ukur dan Besaran
 sample: true
 status: ready
 ---
-Semua angka di sini `int`. Pasangkan tiap ekspresi C dengan hasilnya.
+Pasangkan tiap alat ukur dengan besaran yang diukurnya.
 
-| Ekspresi | Hasil |
+| Alat | Besaran |
 |---|---|
-| `(250 + 10) % 256` | `4` |
-| `150000 / 60000` | `2` |
-| `(150000 % 60000) / 1000` | `30` |
-| `7 / 2 * 2` | `6` |
-| `1000 / 3` | `333` |
-|  | `0` |
+| Termometer | Suhu |
+| Barometer | Tekanan udara |
+| Higrometer | Kelembapan udara |
+| Anemometer | Kecepatan angin |
+| Amperemeter | Kuat arus listrik |
+|  | Massa jenis benda |
 
 ---
 part: logika
-lang: c
-format: single
-title: Diskon Sepatu
+lang: text
+format: match
+title: Satuan Listrik
 sample: true
 status: ready
 ---
-Sepasang sepatu harganya Rp240.000. Toko memberi diskon 25%. Berapa yang harus dibayar?
+Pasangkan tiap satuan dengan besaran yang diukurnya.
 
-- [ ] Rp60.000
-- [x] Rp180.000
-- [ ] Rp215.000
-- [ ] Rp225.000
+| Satuan | Besaran |
+|---|---|
+| Volt | Tegangan listrik |
+| Ampere | Kuat arus listrik |
+| Ohm | Hambatan listrik |
+| Watt | Daya listrik |
+| Hertz | Frekuensi |
+|  | Massa benda |
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Sewa Lapangan
+title: Apa Itu IoT
 sample: true
 status: ready
 ---
-Sewa lapangan futsal Rp100.000 untuk biaya tetap, ditambah Rp25.000 untuk setiap jam. Anggaran kelompok paling banyak Rp350.000. Berapa jam paling lama (jam utuh) lapangan itu bisa disewa?
+Menurut modul, pernyataan mana yang paling tepat tentang Internet of Things (IoT)?
 
-- [ ] 8
-- [ ] 9
-- [x] 10
-- [ ] 14
+- [ ] Jenis mikrokontroler khusus yang sudah punya koneksi internet bawaan.
+- [ ] Protokol jaringan yang menggantikan model OSI dan TCP/IP.
+- [x] Konsep yang menghubungkan objek fisik, sensor, aktuator, perangkat komputasi, dan aplikasi lewat jaringan, supaya data bisa dikumpulkan dan dipertukarkan.
+- [ ] Sistem yang hanya bisa jalan jika semua perangkatnya terhubung ke internet publik.
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Isi Akuarium
+title: Lapisan Perception
 sample: true
 status: ready
 ---
-Sebuah akuarium berbentuk balok berukuran 60 cm × 40 cm × 30 cm. Akuarium diisi air sampai tiga perempat penuh. Berapa liter air di dalamnya? (1 liter = 1.000 cm³)
+Sebuah sistem rumah pintar memakai sensor untuk mengukur suhu dan aktuator untuk menyalakan AC. Pada arsitektur IoT tiga lapis, keduanya berada di lapisan ...
 
-- [ ] 18 liter
-- [ ] 36 liter
-- [x] 54 liter
-- [ ] 72 liter
+- [ ] Network Layer
+- [ ] Application Layer
+- [x] Physical/Perception Layer
+- [ ] Transport Layer
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Skala Peta
+title: Alamat MAC di OSI
 sample: true
 status: ready
 ---
-Sebuah peta berskala 1 : 200.000. Jarak dua kota di peta 7,5 cm. Berapa jarak sebenarnya?
+Pada model OSI, alamat MAC sumber dan tujuan ditambahkan ke data pada layer ...
 
-- [ ] 1,5 km
-- [ ] 7,5 km
-- [x] 15 km
-- [ ] 150 km
+- [ ] Physical
+- [ ] Network
+- [x] Data Link
+- [ ] Transport
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Untung Jual Buku
+title: Protokol Tanpa Koneksi
 sample: true
 status: ready
 ---
-Bu Rani membeli 20 buku seharga Rp15.000 per buku. Semua buku dijual lagi dengan harga Rp18.000 per buku. Berapa total keuntungannya?
+Protokol transport mana yang tanpa koneksi dan overhead-nya kecil, tetapi tidak menjamin data sampai, tiba berurutan, atau tiba hanya sekali?
 
-- [ ] Rp3.000
-- [ ] Rp30.000
-- [x] Rp60.000
-- [ ] Rp360.000
+- [ ] TCP
+- [x] UDP
+- [ ] ARP
+- [ ] DNS
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Kursi Bioskop
+title: Peran BLE Peripheral
 sample: true
 status: ready
 ---
-Baris pertama sebuah bioskop punya 12 kursi. Tiap baris berikutnya punya 3 kursi lebih banyak dari baris di depannya. Berapa total kursi di 8 baris pertama?
+Pada Bluetooth Low Energy (BLE), perangkat yang melakukan advertising dan menyediakan datanya lewat struktur GATT disebut ...
 
-- [ ] 33
-- [ ] 168
-- [x] 180
-- [ ] 264
+- [ ] Central/Client
+- [ ] Master
+- [ ] Broker
+- [x] Peripheral/Server
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Harga Naik Lalu Turun
+title: WebSocket dan HTTP
 sample: true
 status: ready
 ---
-Harga sebuah barang Rp50.000. Harganya naik 10%, lalu turun 10% dari harga yang baru. Berapa harga akhirnya?
+Pernyataan mana yang benar tentang WebSocket dibandingkan HTTP tradisional?
 
-- [ ] Rp45.000
-- [x] Rp49.500
-- [ ] Rp50.000
-- [ ] Rp55.000
+- [ ] Setiap pesan harus diawali request HTTP yang baru.
+- [ ] Server tidak boleh mengirim pesan sebelum client memintanya.
+- [x] Setelah handshake, koneksi dipertahankan sehingga client dan server bisa saling mengirim pesan.
+- [ ] Masking pada frame membuat data terenkripsi, jadi isinya pasti rahasia.
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Kelereng Bukan Biru
+title: Topic MQTT
 sample: true
 status: ready
 ---
-Di dalam sebuah kantong ada 5 kelereng merah, 3 kelereng biru, dan 2 kelereng hijau. Satu kelereng diambil secara acak. Berapa peluang yang terambil BUKAN kelereng biru?
+Sebuah device mempublikasikan pesan ke topic Rumah/Suhu. Device lain berlangganan ke topic rumah/suhu (semua huruf kecil), tanpa wildcard. Apa yang terjadi?
 
-- [ ] 3/10
-- [ ] 1/2
-- [x] 7/10
-- [ ] 7/3
+- [ ] Pesan tetap diterima, karena broker mengabaikan perbedaan huruf besar dan kecil.
+- [x] Pesan tidak diterima, karena topic bersifat case-sensitive sehingga keduanya dua topic yang berbeda.
+- [ ] Pesan diterima setelah broker mengubah semua huruf topic jadi huruf kecil.
+- [ ] Pesan diterima hanya jika QoS yang dipakai adalah 2.
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Dua Keran Bak Air
+title: LoRa dan LoRaWAN
 sample: true
 status: ready
 ---
-Keran A bisa mengisi sebuah bak sampai penuh dalam 6 jam. Keran B bisa mengisinya dalam 3 jam. Kalau kedua keran dibuka bersamaan dari bak kosong, berapa jam sampai bak penuh?
+Pernyataan mana yang benar tentang hubungan LoRa dan LoRaWAN?
 
-- [ ] 1,5 jam
-- [x] 2 jam
-- [ ] 3 jam
-- [ ] 4,5 jam
+- [ ] LoRa adalah protokol jaringan, sedangkan LoRaWAN adalah teknik modulasi radio.
+- [x] LoRa adalah teknik modulasi radio untuk jarak jauh, sedangkan LoRaWAN adalah protokol jaringan yang dibangun di atasnya.
+- [ ] Komunikasi LoRa selalu membutuhkan gateway dan network server.
+- [ ] LoRa dan LoRaWAN hanyalah dua nama untuk hal yang sama.
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Rata-rata Dua Kelas
+title: Wilayah LoRaWAN Indonesia
 sample: true
 status: ready
 ---
-Kelas A punya 12 siswa dengan nilai rata-rata 80. Kelas B punya 8 siswa dengan nilai rata-rata 90. Berapa nilai rata-rata kedua kelas kalau digabung?
+Menurut modul, parameter regional LoRaWAN yang dipakai untuk Indonesia adalah ...
 
-- [x] 84
-- [ ] 85
-- [ ] 86
-- [ ] 88
+- [ ] EU863-870
+- [ ] US902-928
+- [x] AS923-2, pada pita 920 sampai 923 MHz
+- [ ] ISM 2,4 GHz tanpa batasan daya
 
 ---
 part: logika
-lang: c
+lang: text
 format: single
-title: Pajak Bertingkat
+title: Platform ANTARES
 sample: true
 status: ready
 ---
-Sebuah aturan pajak punya tiga lapis. Penghasilan sampai Rp5.000.000 tidak kena pajak. Bagian di atas Rp5.000.000 sampai Rp10.000.000 kena pajak 10%. Bagian di atas Rp10.000.000 kena pajak 20%. Berapa pajak untuk penghasilan Rp13.000.000?
+Apa itu ANTARES menurut modul?
 
-- [ ] Rp500.000
-- [x] Rp1.100.000
-- [ ] Rp1.300.000
-- [ ] Rp2.600.000
-
----
-part: logika
-lang: c
-format: single
-title: Pola Ubin
-sample: true
-status: ready
----
-Sebuah pola dibuat dari ubin. Pola ke-1 memakai 4 ubin, pola ke-2 memakai 9 ubin, pola ke-3 memakai 16 ubin, dan pola ke-4 memakai 25 ubin. Kalau polanya terus sama, berapa ubin yang dipakai pola ke-10?
-
-- [ ] 100
-- [ ] 110
-- [x] 121
-- [ ] 144
+- [ ] Broker MQTT sumber terbuka dari Eclipse.
+- [ ] Dev board LoRa berbasis ESP32.
+- [x] Platform IoT horizontal dari PT Telkom Indonesia untuk mengelola perangkat IoT, menyimpan data sensor, dan menyajikannya lewat dashboard.
+- [ ] Library untuk komunikasi Bluetooth Serial.
 
 ---
 part: logika
-lang: c
-format: single
-title: Siswa Suka Pelajaran
-sample: true
-status: ready
----
-Dari 40 siswa, 24 siswa suka Matematika dan 18 siswa suka Fisika. Ada 8 siswa yang suka keduanya. Berapa siswa yang tidak suka keduanya?
-
-- [ ] 4
-- [x] 6
-- [ ] 8
-- [ ] 10
-
----
-part: logika
-lang: c
-format: single
-title: Mobil Dua Kecepatan
-sample: true
-status: ready
----
-Sebuah mobil menempuh jarak 300 km. Pada 2 jam pertama kecepatannya 60 km/jam, sisanya 80 km/jam. Berapa total waktu perjalanannya?
-
-- [ ] 4 jam
-- [x] 4,25 jam
-- [ ] 4,5 jam
-- [ ] 5 jam
-
----
-part: logika
-lang: c
-format: single
-title: Berat Tiga Kotak
-sample: true
-status: ready
----
-Sebuah kotak besar beratnya dua kali berat kotak kecil. Satu kotak kecil dan dua kotak besar kalau ditimbang bersama beratnya 25 kg. Berapa berat tiga kotak besar?
-
-- [ ] 15 kg
-- [ ] 20 kg
-- [x] 30 kg
-- [ ] 40 kg
-
----
-part: logika
-lang: c
-format: single
-title: Biaya Kirim Termurah
-sample: true
-status: ready
----
-Sebuah paket beratnya 2,4 kg. Ada tiga layanan kirim. Kilat: Rp9.000 per kg, berat dibulatkan ke atas ke kg utuh. Reguler: Rp8.000 per kg, berat dibulatkan ke atas ke kg utuh. Hemat: Rp7.000 per kg, tapi dihitung minimal 3 kg. Berapa biaya paling murah?
-
-- [ ] Rp16.800
-- [x] Rp21.000
-- [ ] Rp24.000
-- [ ] Rp27.000
-
----
-part: logika
-lang: c
-format: single
-title: Cat Dinding
-sample: true
-status: ready
----
-Sebuah ruangan berukuran 6 m × 4 m dengan tinggi 3 m. Keempat dindingnya dicat 2 lapis. Ada 1 pintu berukuran 1 m × 2 m dan 2 jendela berukuran 1,5 m × 1 m yang tidak dicat. Satu kaleng cat berisi 2,5 liter, dan 1 liter cat menutup 8 m² untuk satu lapis. Berapa kaleng yang minimal harus dibeli? (Kaleng tidak dijual eceran.)
-
-- [ ] 5 kaleng
-- [x] 6 kaleng
-- [ ] 7 kaleng
-- [ ] 11 kaleng
-
----
-part: logika
-lang: c
+lang: text
 format: multi
-title: Penjualan Es Teh
+title: Fitur Bluetooth 5.0
 sample: true
 status: ready
 ---
-Penjualan es teh dalam seminggu kerja: Senin 40 gelas, Selasa 35 gelas, Rabu 50 gelas, Kamis 45 gelas, Jumat 60 gelas. Pilih semua pernyataan yang benar.
+Pilih semua fitur yang diperkenalkan oleh Bluetooth 5.0.
 
-- [x] Rata-rata penjualan per hari adalah 46 gelas.
-- [ ] Penjualan hari Jumat 50% lebih banyak daripada hari Selasa.
-- [ ] Penjualan naik setiap hari dari Selasa sampai Jumat.
-- [x] Total penjualan Senin sampai Rabu lebih banyak daripada total Kamis dan Jumat.
-- [ ] Selisih penjualan terbesar antara dua hari berurutan adalah 20 gelas.
+- [x] LE 2M PHY, untuk laju data hingga 2 kali lipat
+- [x] LE Coded PHY, untuk jangkauan hingga 4 kali lipat pada kondisi tertentu
+- [x] Extended Advertising, dengan kapasitas data advertising hingga 8 kali lipat
+- [ ] Channel Sounding, untuk pencarian perangkat dengan presisi centimeter
+- [ ] Alternate MAC/PHY (AMP), yang memindahkan data ke radio IEEE 802.11
 
 ---
 part: logika
-lang: c
+lang: text
 format: multi
-title: Pola Barisan Naik Empat
+title: Komponen LoRaWAN
 sample: true
 status: ready
 ---
-Sebuah barisan dimulai dari 3, 7, 11, 15, dan seterusnya dengan pola yang sama. Pilih semua pernyataan yang benar.
+Pilih semua komponen utama dalam sistem LoRaWAN.
 
-- [x] Suku ke-10 bernilai 39.
-- [x] Selisih dua suku berurutan selalu 4.
-- [ ] Ada suku yang bernilai 50.
-- [x] Semua suku adalah bilangan ganjil.
-- [ ] Jumlah lima suku pertama adalah 60.
+- [x] End-device
+- [ ] Broker MQTT
+- [x] Gateway
+- [x] Network server
+- [ ] Server WebSocket
+- [x] Application server
 
 ---
 part: logika
-lang: c
+lang: text
 format: multi
-title: Pasti Benar
+title: Pernyataan Benar tentang MQTT
 sample: true
 status: ready
 ---
-Misalkan x dan y adalah bilangan bulat positif, x genap dan y ganjil. Pilih semua pernyataan yang pasti benar.
+Pilih semua pernyataan yang benar tentang MQTT.
 
-- [x] x + y selalu ganjil.
-- [x] x × y selalu genap.
-- [ ] x − y selalu positif.
-- [x] x dibagi 2 selalu menghasilkan bilangan bulat.
-- [ ] y × y selalu genap.
+- [x] Client berkomunikasi lewat broker menggunakan topic.
+- [ ] Publisher mengirim pesan langsung ke alamat IP subscriber.
+- [x] MQTT mendukung QoS 0, QoS 1, dan QoS 2.
+- [ ] QoS yang lebih tinggi selalu membuat latensi lebih rendah.
+- [x] Wildcard + dan # dipakai saat berlangganan, bukan sebagai nama topic saat publish.
+
+---
+part: logika
+lang: text
+format: order
+title: Alur Komunikasi Bluetooth
+sample: true
+status: ready
+---
+Urutkan langkah alur komunikasi Bluetooth berikut.
+
+```
+Discovery: perangkat mencari perangkat lain dalam jangkauan
+Pairing: dibentuk kunci dan hubungan tepercaya bila diperlukan
+Connection: perangkat saling bertukar data
+```
+
+---
+part: logika
+lang: text
+format: order
+title: Perjalanan Data LoRaWAN
+sample: true
+status: ready
+---
+Urutkan perjalanan data dari sensor sampai tampil di dashboard pada LoRaWAN.
+
+```
+End-device membaca sensor, lalu mengemas dan mengenkripsi datanya
+Data dikirim memakai modulasi LoRa
+Gateway menerima paket dan meneruskannya lewat jaringan IP
+Network server memeriksa keamanan paket dan menghapus paket duplikat
+Application server menyimpan dan menampilkan data di dashboard
+```
+
+---
+part: logika
+lang: text
+format: order
+title: Alur Handshake WebSocket
+sample: true
+status: ready
+---
+Urutkan alur komunikasi WebSocket berikut.
+
+```
+Client mengirim request HTTP khusus yang meminta peningkatan koneksi ke WebSocket
+Server membalas dengan 101 Switching Protocols
+Client dan server mulai saling mengirim frame
+```
+
+---
+part: logika
+lang: text
+format: order
+title: Lapisan Model OSI
+sample: true
+status: ready
+---
+Urutkan layer model OSI dari yang paling bawah (dekat media fisik) sampai yang paling atas (dekat pengguna).
+
+```
+Physical
+Data Link
+Network
+Transport
+Session
+Presentation
+Application
+```
+
+---
+part: logika
+lang: text
+format: match
+title: Teknologi dan Lapisan TCP/IP
+sample: true
+status: ready
+---
+Pasangkan tiap teknologi atau protokol dengan lapisan model TCP/IP tempatnya bekerja.
+
+| Teknologi | Lapisan |
+|---|---|
+| Wi-Fi | Network Access (Link) |
+| NAT | Internet |
+| UDP | Transport |
+| SSH | Application |
+|  | Session |
+
+---
+part: logika
+lang: text
+format: match
+title: Istilah MQTT
+sample: true
+status: ready
+---
+Pasangkan tiap istilah MQTT dengan artinya.
+
+| Istilah | Arti |
+|---|---|
+| Publisher | Client yang mengirim pesan ke sebuah topic |
+| Subscriber | Client yang berlangganan topic filter agar menerima pesan yang cocok |
+| Broker | Perantara yang menerima pesan lalu meneruskannya ke subscriber yang cocok |
+| Topic | String hierarkis, case-sensitive, yang dipakai untuk mengarahkan pesan |
+| QoS | Tingkat jaminan pengiriman pesan, yaitu 0, 1, atau 2 |
+|  | Kunci rahasia untuk mengamankan sesi LoRaWAN |
+
+---
+part: logika
+lang: text
+format: match
+title: Kelas dan Aktivasi LoRaWAN
+sample: true
+status: ready
+---
+Pasangkan tiap istilah LoRaWAN dengan penjelasannya.
+
+| Istilah | Penjelasan |
+|---|---|
+| Kelas A | Membuka dua jendela downlink setelah setiap uplink, dengan daya paling rendah |
+| Kelas B | Menambah beacon jaringan dan ping slot terjadwal untuk downlink |
+| Kelas C | Penerima terbuka hampir sepanjang waktu, latensi downlink paling rendah, daya paling tinggi |
+| ABP | Aktivasi dengan alamat perangkat dan kunci sesi yang sudah ditentukan, tanpa prosedur join setiap perangkat menyala |
+|  | Topologi mesh yang membuat end-device meneruskan paket perangkat lain |
