@@ -1263,6 +1263,9 @@ async function hapusRuang({ req, res, s, db, edisi, p }: Ctx) {
         return void tolak(res, "ruang_ada_jawaban", 409);
     }
   }
+  // The slot the room was made from goes with it, so the evening shows nothing of it. Only an empty one:
+  // a slot with candidates seated in it is their booking, and Plotting keeps those (same rule as slot_terisi).
+  let slotDihapus = false;
   await db.transaction(async (tx) => {
     await tx.delete(recStrike).where(eq(recStrike.roomId, room.id));
     await tx.delete(recCSubmission).where(eq(recCSubmission.roomId, room.id));
@@ -1271,15 +1274,31 @@ async function hapusRuang({ req, res, s, db, edisi, p }: Ctx) {
     await tx.delete(recMqttJob).where(eq(recMqttJob.roomId, room.id));
     await tx.delete(recExamSeat).where(eq(recExamSeat.roomId, room.id));
     await tx.delete(recExamRoom).where(eq(recExamRoom.id, room.id));
+    if (room.slotId === null) return;
+    const [[duduk], [lain]] = await Promise.all([
+      tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(recSlotAssignment)
+        .where(eq(recSlotAssignment.slotId, room.slotId)),
+      tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(recExamRoom)
+        .where(eq(recExamRoom.slotId, room.slotId)),
+    ]);
+    if (Number(duduk?.n ?? 0) > 0 || Number(lain?.n ?? 0) > 0) return;
+    await tx.delete(recSlotExaminer).where(eq(recSlotExaminer.slotId, room.slotId));
+    await tx.delete(recSlot).where(eq(recSlot.id, room.slotId));
+    slotDihapus = true;
   });
   await writeAudit(s.nim, "rec_ruang_hapus", {
     id: room.id,
     title: room.title,
     rehearsal: room.rehearsal,
+    slotId: slotDihapus ? room.slotId : null,
   });
   // Seats that were connected to the room are let go; quietly nothing without a relay.
   await tutupRuangUjian(room.id);
-  return void res.status(200).json({ ok: true });
+  return void res.status(200).json({ ok: true, slotDihapus });
 }
 
 /* ------------------------------------------------------------ the Master */

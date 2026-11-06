@@ -108,6 +108,10 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   padding: 16px 20px;
 }
+/* The panel's "last button sinks to the bottom" rule must not drop Siapkan Ruang below the card's middle */
+.panel.n7-stagehead > .btn:last-child {
+  margin-top: 0;
+}
 .n7-stagehead__t {
   align-items: center;
   display: flex;

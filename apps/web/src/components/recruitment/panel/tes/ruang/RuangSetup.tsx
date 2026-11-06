@@ -74,76 +74,84 @@ export function RuangPengaturan({
           <h2 className="panel__title">{t.room}</h2>
           <span className="hint">{slot ? t.fromSlot : t.practice}</span>
         </div>
-        {slot ? (
-          <div className="rec-sum">
-            <span className="hint">{t.slot}</span>
-            <b>
-              {tgl(hariWib(slot.startsAt), lang)} · {slot.room}
-            </b>
-            <span className="hint">{t.candidates}</span>
-            <b>{v.seats.length}</b>
+        <div className="r3setup__cols">
+          <div className="stack">
+            {slot ? (
+              <div className="rec-sum">
+                <span className="hint">{t.slot}</span>
+                <b>
+                  {tgl(hariWib(slot.startsAt), lang)} · {slot.room}
+                </b>
+                <span className="hint">{t.candidates}</span>
+                <b>{v.seats.length}</b>
+              </div>
+            ) : (
+              <p className="hint">{t.practiceNote}</p>
+            )}
+            <label className="r3lbl">
+              <span className="label-caps">{t.name}</span>
+              <input
+                className="field__input"
+                id="r3-room-title"
+                value={nama}
+                maxLength={60}
+                disabled={selesai}
+                onChange={(e) => setNama(e.target.value)}
+              />
+            </label>
           </div>
-        ) : (
-          <p className="hint">{t.practiceNote}</p>
-        )}
-        <label className="r3lbl">
-          <span className="label-caps">{t.name}</span>
-          <input
-            className="field__input"
-            id="r3-room-title"
-            value={nama}
-            maxLength={60}
-            disabled={selesai}
-            onChange={(e) => setNama(e.target.value)}
-          />
-        </label>
-        <div className="stack stack--sm">
-          <span className="label-caps">{t.pengawas}</span>
-          <div className="rec-chips" role="group" aria-label={t.pickAria}>
-            {kandidat.map((p) => (
-              <button
-                key={p.nim}
-                type="button"
-                className="r3chip"
-                aria-pressed={pilih.includes(p.nim)}
-                title={p.nama}
-                onClick={() =>
-                  setPilih((l) =>
-                    l.includes(p.nim) ? l.filter((x) => x !== p.nim) : [...l, p.nim],
-                  )
-                }
-              >
-                {p.kode}
-              </button>
-            ))}
-          </div>
-          <span className="hint">{pilih.length ? t.pengawasHint : t.pengawasNone}</span>
-        </div>
-        {!slot && (
-          <div className="stack stack--sm">
-            <span className="label-caps">{t.participants}</span>
-            <div className="rec-chips" role="group" aria-label={t.participants}>
-              {kandidat.map((p) => (
-                <button
-                  key={p.nim}
-                  type="button"
-                  className="r3chip"
-                  aria-pressed={ikut.includes(p.nim)}
-                  disabled={selesai}
-                  title={p.nama}
-                  onClick={() =>
-                    setIkut((l) =>
-                      l.includes(p.nim) ? l.filter((x) => x !== p.nim) : [...l, p.nim],
-                    )
-                  }
-                >
-                  {p.kode}
-                </button>
-              ))}
+          <div className="stack">
+            <div className="stack stack--sm">
+              <span className="label-caps">{t.pengawas}</span>
+              <div className="rec-chips" role="group" aria-label={t.pickAria}>
+                {kandidat.map((p) => (
+                  <button
+                    key={p.nim}
+                    type="button"
+                    className="r3chip"
+                    aria-pressed={pilih.includes(p.nim)}
+                    title={p.nama}
+                    onClick={() =>
+                      setPilih((l) =>
+                        l.includes(p.nim) ? l.filter((x) => x !== p.nim) : [...l, p.nim],
+                      )
+                    }
+                  >
+                    {p.kode}
+                  </button>
+                ))}
+              </div>
+              <span className="hint">{pilih.length ? t.pengawasHint : t.pengawasNone}</span>
             </div>
-            <span className="hint">{ikut.length ? t.participantsHint : t.participantsNone}</span>
+            {!slot && (
+              <div className="stack stack--sm">
+                <span className="label-caps">{t.participants}</span>
+                <div className="rec-chips" role="group" aria-label={t.participants}>
+                  {kandidat.map((p) => (
+                    <button
+                      key={p.nim}
+                      type="button"
+                      className="r3chip"
+                      aria-pressed={ikut.includes(p.nim)}
+                      disabled={selesai}
+                      title={p.nama}
+                      onClick={() =>
+                        setIkut((l) =>
+                          l.includes(p.nim) ? l.filter((x) => x !== p.nim) : [...l, p.nim],
+                        )
+                      }
+                    >
+                      {p.kode}
+                    </button>
+                  ))}
+                </div>
+                <span className="hint">
+                  {ikut.length ? t.participantsHint : t.participantsNone}
+                </span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
         <div className="row row--end">
           {selesai && <span className="hint">{t.locked}</span>}
           <button
