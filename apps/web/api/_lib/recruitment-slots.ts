@@ -485,16 +485,14 @@ export async function handleUbah(req: ApiRequest, res: ApiResponse, s: SessionPa
   if (kode !== "ok") return void tolak(res, kode, kode === "slot_salah" ? 404 : 409);
   // Free mode (Mode Latihan): with no pick to change, the request simply takes the seat.
   if (bebas() && !punya) {
-    await db
-      .insert(recSlotAssignment)
-      .values({
-        slotId: ke!.id,
-        candidateId: k.id,
-        stage: ke!.stage,
-        via: "self",
-        by: s.nim,
-        at: now,
-      });
+    await db.insert(recSlotAssignment).values({
+      slotId: ke!.id,
+      candidateId: k.id,
+      stage: ke!.stage,
+      via: "self",
+      by: s.nim,
+      at: now,
+    });
     await writeAudit(s.nim, "rec_pilih", { slotId: ke!.id });
     return void res.status(200).json({ ok: true, status: "approved" });
   }
