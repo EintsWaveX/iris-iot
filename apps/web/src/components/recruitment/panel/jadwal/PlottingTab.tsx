@@ -28,6 +28,8 @@ import {
 import {
   BroadcastIcon,
   CalendarBlankIcon,
+  CaretDownIcon,
+  CaretUpIcon,
   ClockIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
@@ -169,6 +171,14 @@ function SlotTab({
   const makeup = events.filter((e) => e.stage === stage && e.kind === "makeup");
   const [busy, setBusy] = useState(false);
   const [hapus, setHapus] = useState<Slot | null>(null);
+  // Rooms whose list of CaAs is open
+  const [buka, setBuka] = useState<Set<number>>(new Set());
+  const toggle = (id: number) =>
+    setBuka((cur) => {
+      const n = new Set(cur);
+      if (!n.delete(id)) n.add(id);
+      return n;
+    });
   // The room dialog: a new room on a day (with the makeup event it belongs to) or one slot being edited.
   const [dlg, setDlg] = useState<{
     day: string;
@@ -232,6 +242,37 @@ function SlotTab({
                   {s.taken}/{s.capacity}
                 </span>
               </div>
+              {s.seats.length > 0 && (
+                <div className="n7-room__who">
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    aria-expanded={buka.has(s.id)}
+                    aria-controls={`n7-who-${s.id}`}
+                    onClick={() => toggle(s.id)}
+                  >
+                    {buka.has(s.id) ? (
+                      <CaretUpIcon size={16} aria-hidden="true" />
+                    ) : (
+                      <CaretDownIcon size={16} aria-hidden="true" />
+                    )}
+                    <span className="btn__label">{buka.has(s.id) ? t.whoHide : t.whoShow}</span>
+                  </button>
+                  {buka.has(s.id) && (
+                    <ol id={`n7-who-${s.id}`} className="n7-who__list">
+                      {s.seats.map((x) => (
+                        <li key={x.candidateId}>
+                          <b>{x.nama}</b>
+                          <span className="mono hint">{x.nim}</span>
+                          {x.via && x.via !== "self" && (
+                            <span className="r2chip__via">{t.whoVia[x.via] ?? x.via}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              )}
               {can && (
                 <span className="n7-room__act">
                   <IconButton

@@ -15,7 +15,7 @@
  *
  * Oprec accounts (api/_lib/recruitment-akun.ts):
  * GET  /api/recruitment/account      { account: { nim, nama } | null }
- * POST /api/recruitment/account-signup | account-signin | account-signout
+ * POST /api/recruitment/account-signup | account-signin | account-signout | account-password
  *
  * Candidates, signed in with their oprec account (never the practicum session):
  * GET  /api/recruitment/me           my candidacy, documents and envelopes
@@ -181,6 +181,7 @@ import {
 import {
   handleAkun,
   handleBuatAkun,
+  handleGantiSandi,
   handleKeluarAkun,
   handleMasukAkun,
   handleResetAkun,
@@ -1137,6 +1138,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "account-signin") {
     if (!requireMethod(req, res, "POST")) return;
     return handleMasukAkun(req, res);
+  }
+  if (aksi === "account-password") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleGantiSandi(req, res);
   }
   if (aksi === "account-signout") {
     if (!requireMethod(req, res, "POST")) return;

@@ -34,7 +34,28 @@ interface AkunStrings {
     offline: string;
     lain: string;
   };
-  menu: { label: string; keluar: string; akun: string; badge: string };
+  menu: { label: string; keluar: string; akun: string; badge: string; ganti: string };
+  /** The candidate changes their own password (6 Nov 2026) */
+  ganti: {
+    title: string;
+    desc: string;
+    lama: string;
+    baru: string;
+    ulang: string;
+    simpan: string;
+    tunggu: string;
+    ok: string;
+    err: {
+      lama: string;
+      baru: string;
+      ulang: string;
+      salah: string;
+      sama: string;
+      terkunci: string;
+      offline: string;
+      lain: string;
+    };
+  };
   masukDulu: string;
   asisten: string;
   asistenBtn: string;
@@ -94,6 +115,27 @@ export const AK: Record<Lang, AkunStrings> = {
       keluar: "Keluar dari Akun Oprec",
       akun: "Akun Oprec",
       badge: "Caas",
+      ganti: "Ganti Sandi",
+    },
+    ganti: {
+      title: "Ganti Sandi Akun Oprec",
+      desc: "Minimal 8 karakter. Perangkat lain yang masuk ke akun ini akan keluar, perangkat ini tetap masuk.",
+      lama: "Sandi Sekarang",
+      baru: "Sandi Baru",
+      ulang: "Ulangi Sandi Baru",
+      simpan: "Simpan Sandi",
+      tunggu: "Menyimpan",
+      ok: "Sandi diganti. Perangkat lain sudah keluar.",
+      err: {
+        lama: "Isi sandi sekarang.",
+        baru: "Sandi baru minimal 8 karakter.",
+        ulang: "Kedua sandi baru belum sama.",
+        salah: "Sandi sekarang salah.",
+        sama: "Sandi baru harus beda dari yang sekarang.",
+        terkunci: "Terlalu banyak percobaan. Coba lagi sekitar 15 menit.",
+        offline: "Tidak tersambung. Coba lagi.",
+        lain: "Belum berhasil. Coba lagi, ya.",
+      },
     },
     masukDulu: "Masuk ke akun oprec dulu untuk melanjutkan.",
     asisten: "Asisten dan Panitia masuk dengan akun IRIS Praktikum.",
@@ -154,6 +196,27 @@ export const AK: Record<Lang, AkunStrings> = {
       keluar: "Sign Out of Oprec",
       akun: "Oprec Account",
       badge: "Caas",
+      ganti: "Change Password",
+    },
+    ganti: {
+      title: "Change Your Oprec Password",
+      desc: "At least 8 characters. Other devices signed in to this account will be signed out, this one stays in.",
+      lama: "Current Password",
+      baru: "New Password",
+      ulang: "Repeat New Password",
+      simpan: "Save Password",
+      tunggu: "Saving",
+      ok: "Password changed. Other devices are signed out.",
+      err: {
+        lama: "Type your current password.",
+        baru: "The new password needs at least 8 characters.",
+        ulang: "The two new passwords don't match.",
+        salah: "The current password is wrong.",
+        sama: "The new password must differ from the current one.",
+        terkunci: "Too many tries. Try again in about 15 minutes.",
+        offline: "No connection. Try again.",
+        lain: "That didn't work. Try again.",
+      },
     },
     masukDulu: "Sign in to your oprec account to continue.",
     asisten: "Asisten and Panitia sign in with their IRIS Praktikum account.",
@@ -209,7 +272,33 @@ export const AK: Record<Lang, AkunStrings> = {
       offline: "网络已断开，请稍后再试。",
       lain: "出了点问题，请再试一次。",
     },
-    menu: { label: "招新账号", keluar: "退出招新账号", akun: "招新账号", badge: "报名者" },
+    menu: {
+      label: "招新账号",
+      keluar: "退出招新账号",
+      akun: "招新账号",
+      badge: "报名者",
+      ganti: "修改密码",
+    },
+    ganti: {
+      title: "修改招新账号密码",
+      desc: "至少 8 个字符。其他已登录此账号的设备会退出，当前设备保持登录。",
+      lama: "当前密码",
+      baru: "新密码",
+      ulang: "再次输入新密码",
+      simpan: "保存密码",
+      tunggu: "正在保存",
+      ok: "密码已修改，其他设备已退出。",
+      err: {
+        lama: "请输入当前密码。",
+        baru: "新密码至少 8 个字符。",
+        ulang: "两次输入的新密码不一致。",
+        salah: "当前密码不正确。",
+        sama: "新密码不能与当前密码相同。",
+        terkunci: "尝试次数过多，请约 15 分钟后再试。",
+        offline: "没有网络，请重试。",
+        lain: "没有成功，请再试一次。",
+      },
+    },
     masukDulu: "请先登录招新账号再继续。",
     asisten: "助教与招新委员会请用 IRIS 实验课账号登录。",
     asistenBtn: "以助教身份登录",

@@ -34,6 +34,7 @@ import {
   MapPinIcon,
   ScissorsIcon,
   SealCheckIcon,
+  KeyIcon,
   SignOutIcon,
   SlidersHorizontalIcon,
   StarIcon,
@@ -58,6 +59,7 @@ import { readLangPref, saveLangPref } from "../../lib/hooks";
 import {
   REC_SESI_HABIS,
   bukaAkun,
+  bukaGantiSandi,
   recPost,
   useRecAkun,
   useRecCandidates,
@@ -65,6 +67,7 @@ import {
 } from "../../lib/recruitment/client";
 import { useRecRooms } from "../../lib/recruitment/room-client";
 import AkunDialog from "./candidate/AkunDialog";
+import SandiDialog from "./candidate/SandiDialog";
 import { AK } from "./candidate/akunStrings";
 import {
   alamatBagian,
@@ -390,6 +393,19 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
             <span>{t.myAccount}</span>
           </a>
         )}
+        {!asisten && !latihanCaas && (
+          <button
+            type="button"
+            className="acct__row"
+            onClick={() => {
+              close?.();
+              bukaGantiSandi();
+            }}
+          >
+            <span>{ak.menu.ganti}</span>
+            <KeyIcon size={20} aria-hidden="true" />
+          </button>
+        )}
         {(asisten || latihanCaas) && <LatihanBaris lang={lang} onDone={close} />}
         <button
           type="button"
@@ -563,6 +579,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         {account(() => setSheet(false))}
       </Dialog>
       <AkunDialog lang={lang} />
+      <SandiDialog lang={lang} />
     </>
   );
 }

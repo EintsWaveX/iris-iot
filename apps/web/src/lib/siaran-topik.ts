@@ -291,6 +291,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:account-signup": [],
   "recruitment:account-signin": [],
   "recruitment:account-signout": [],
+  "recruitment:account-password": [],
   "recruitment:account-reset": [],
   // Tambah CaAs (2026-10-25): the Panitia add a candidate and their PDFs.
   "recruitment:candidate-add": ["reccandidates"],

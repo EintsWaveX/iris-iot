@@ -325,6 +325,8 @@ export type RecError =
   | "salah"
   | "terlalu_sering"
   | "akun_ada"
+  | "sandi_salah"
+  | "sandi_sama"
   | "nim_asisten"
   | "perlu_klaim"
   | "klaim_salah"

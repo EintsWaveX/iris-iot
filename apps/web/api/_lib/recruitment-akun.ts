@@ -16,6 +16,7 @@
  *                                        while the Google Form is the way in, only with klaim
  * POST /api/recruitment/account-signin   { nim, sandi }
  * POST /api/recruitment/account-signout
+ * POST /api/recruitment/account-password { lama, baru }  the candidate changes their own; other devices sign out
  * GET  /api/recruitment/account          { account: { nim, nama } | null }
  * POST /api/recruitment/account-reset    { nim }   Panitia with the approve right;
  *                                        answers the one-time claim code
@@ -38,7 +39,12 @@ import {
   type SessionPayload,
 } from "../../src/lib/auth.js";
 import { asisten, percobaanMasuk, praktikan, recAccount } from "../../src/lib/schema.js";
-import { cekAkunBaru, cekMasukOprec, cekNimOprec } from "../../src/lib/recruitment/akun.js";
+import {
+  cekAkunBaru,
+  cekGantiSandi,
+  cekMasukOprec,
+  cekNimOprec,
+} from "../../src/lib/recruitment/akun.js";
 import { FORMULIR } from "../../src/lib/recruitment/formulir.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
@@ -266,6 +272,40 @@ export async function handleMasukAkun(req: ApiRequest, res: ApiResponse) {
     })
     .where(eq(recAccount.nim, a.nim));
   masukkan(res, a.nim, a.nama, a.versi);
+}
+
+/**
+ * POST account-password { lama, baru }: a candidate changes their own password (6 Nov 2026). The current one is
+ * checked again (a borrowed phone must not be enough) under the same lockout as signing in. The account's versi
+ * goes up, so every other device is signed out; this one gets a fresh cookie and stays in.
+ */
+export async function handleGantiSandi(req: ApiRequest, res: ApiResponse) {
+  // Mode Latihan, As CaAs: the practising Asisten has no oprec account, so there is no password to change.
+  if (konteksLatihan()) return tolak(res, "latihan", 409);
+  const s = await wajibOprec(req, res);
+  if (!s) return;
+  const b = cekGantiSandi(jsonBody(req));
+  if (!b.ok) return tolak(res, "data_salah", 400, { field: b.field });
+  const db = getDb();
+  const ip = clientIp(req);
+  if (await terkunci(db, s.nim, ip)) return tolak(res, "terlalu_sering", 429);
+  const [a] = await db.select().from(recAccount).where(eq(recAccount.nim, s.nim)).limit(1);
+  if (!a?.passHash) return tolak(res, "belum_masuk_oprec", 401);
+  if (!verifyPasswordHash(b.lama, a.passHash)) {
+    await catat(db, s.nim, ip, false);
+    return tolak(res, "sandi_salah", 401);
+  }
+  if (b.baru === b.lama) return tolak(res, "sandi_sama", 400);
+  const versi = a.versi + 1;
+  const [u] = await db
+    .update(recAccount)
+    .set({ passHash: hashPassword(b.baru), versi })
+    .where(and(eq(recAccount.nim, a.nim), eq(recAccount.versi, a.versi)))
+    .returning({ nim: recAccount.nim });
+  if (!u) return tolak(res, "sandi_salah", 401);
+  await catat(db, s.nim, ip, true);
+  await writeAudit(s.nim, "rec_akun_sandi", {});
+  masukkan(res, a.nim, a.nama, versi);
 }
 
 export function handleKeluarAkun(_req: ApiRequest, res: ApiResponse) {
