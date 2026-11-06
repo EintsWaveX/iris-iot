@@ -245,11 +245,19 @@
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+/* The card stretches to the box (a flex column, since a percent height on a flex item is not reliable) */
+.r3cardbox {
+  display: flex;
+  flex-direction: column;
+}
 .r3cardbox > div {
-  min-height: 100%;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 .r3cardbox .r3q {
-  min-height: 100%;
+  flex: 1 1 auto;
   min-width: min(100%, 700px);
 }
 
@@ -293,6 +301,10 @@
   font: 700 1.05rem / 1 var(--font-mono);
   letter-spacing: 0.06em;
 }
+/* The hand-in shortcut is for phones only; `.r3nav .btn` above would otherwise show it everywhere */
+.r3nav .r3nav__hand {
+  display: none;
+}
 @media (max-width: 819px) {
   .r3nav {
     padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
@@ -305,6 +317,7 @@
     display: none;
   }
   .r3nav .r3nav__hand {
+    display: inline-flex;
     min-height: 44px;
     padding: 0 16px;
   }

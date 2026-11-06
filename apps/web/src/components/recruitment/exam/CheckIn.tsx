@@ -92,7 +92,10 @@ export default function CheckIn({
 
   const serverSt = rtt === null ? "wait" : rtt === false ? "bad" : "ok";
   const liveOk = link === "live";
-  const liveSt = liveOk ? "ok" : liveWait && link !== "mati" ? "wait" : "warn";
+  // The live channel belongs to a seat, and the seat is made by the first check-in: until then there is
+  // nothing to connect, which is not a fault (2026-11-07: it showed "Belum tersambung" as a warning).
+  const noSeat = tv.seat === null;
+  const liveSt = liveOk ? "ok" : noSeat ? "todo" : liveWait && link !== "mati" ? "wait" : "warn";
   const clockSt = rtt === null ? "wait" : "ok";
   const judgeSt = rtt === null ? "wait" : tv.judge ? "ok" : "warn";
   const failed = rtt === false;
@@ -174,7 +177,9 @@ export default function CheckIn({
           <CheckRow
             st={liveSt}
             title={t.live}
-            sub={liveOk ? t.liveOk : liveSt === "wait" ? t.waiting : t.liveBad}
+            sub={
+              liveOk ? t.liveOk : noSeat ? t.liveLater : liveSt === "wait" ? t.waiting : t.liveBad
+            }
           />
           <CheckRow
             st={clockSt}

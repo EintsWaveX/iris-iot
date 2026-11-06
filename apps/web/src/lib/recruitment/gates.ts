@@ -14,7 +14,16 @@
  */
 import { bebas } from "./bebas.js";
 import { addDays } from "./calendar.js";
-import type { CandidateStatus, GateKey, Phase, RecEvent, StageKey, Viewer } from "./types.js";
+import type {
+  CandidateSlotsStage,
+  CandidateStatus,
+  GateKey,
+  Phase,
+  RecEvent,
+  SlotSeat,
+  StageKey,
+  Viewer,
+} from "./types.js";
 
 const WIB_MS = 7 * 3_600_000;
 
@@ -254,4 +263,33 @@ export function tahapSudahMulai(
 ): boolean {
   if (e.startsOn <= tanggalWib(now).tanggal) return true;
   return !!e.stage && phaseOf(events, e.stage, now) !== "before";
+}
+
+/**
+ * The stages a candidate already picked a slot in. Their Pilih Jadwal window has nothing left to tell
+ * them, so the Berikutnya card skips it (2026-11-07: it kept offering "Pilih Jadwal Tes Tulis" after a pick).
+ */
+export function pickedStages(
+  stages: readonly Pick<CandidateSlotsStage, "window" | "mine">[],
+): Set<StageKey> {
+  return new Set(stages.filter((x) => x.mine).map((x) => x.window.stage));
+}
+
+/**
+ * The candidate's own next slot: the earliest of the slots they picked or were placed in that has not
+ * ended yet. It is what the Berikutnya card shows in place of the shared Pilih Jadwal window.
+ */
+export function ownNextSlot(
+  stages: readonly Pick<CandidateSlotsStage, "window" | "mine" | "slots">[],
+  now: Date,
+): { stage: StageKey; slot: SlotSeat } | null {
+  let best: { stage: StageKey; slot: SlotSeat } | null = null;
+  for (const st of stages) {
+    if (!st.mine) continue;
+    const slot = st.slots.find((x) => x.id === st.mine!.slotId);
+    if (!slot || Date.parse(slot.endsAt) <= now.getTime()) continue;
+    if (!best || Date.parse(slot.startsAt) < Date.parse(best.slot.startsAt))
+      best = { stage: st.window.stage, slot };
+  }
+  return best;
 }

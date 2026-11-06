@@ -55,6 +55,7 @@ export const CP = dict({
       closes: "Pendaftaran tutup",
       opens: "Pendaftaran dibuka",
       nothing: "Belum ada acara berikutnya.",
+      mySlot: (tahap: string) => `Jadwalmu: ${tahap}`,
       at: (d: string, p: string) => (p ? `${d} · ${p}` : d),
     },
     docs: {
@@ -172,6 +173,7 @@ export const CP = dict({
       closes: "Registration closes",
       opens: "Registration opens",
       nothing: "Nothing is scheduled next yet.",
+      mySlot: (tahap: string) => `Your slot: ${tahap}`,
       at: (d: string, p: string) => (p ? `${d} · ${p}` : d),
     },
     docs: {
@@ -287,6 +289,7 @@ export const CP = dict({
       closes: "报名截止",
       opens: "开放报名",
       nothing: "接下来还没有安排。",
+      mySlot: (tahap: string) => `你的场次：${tahap}`,
       at: (d: string, p: string) => (p ? `${d} · ${p}` : d),
     },
     docs: {

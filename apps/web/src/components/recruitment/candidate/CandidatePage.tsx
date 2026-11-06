@@ -37,6 +37,8 @@ import {
   gateClosesAt,
   gateOpen,
   nextPublicEvent,
+  ownNextSlot,
+  pickedStages,
   showsNextCard,
   tanggalWib,
 } from "../../../lib/recruitment/gates";
@@ -357,10 +359,16 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   );
 
   // ---- the side cards
+  // A stage the candidate already picked a slot in has nothing left to offer in its Pilih Jadwal
+  // window: skip that window, and show their own slot when it comes before the next shared event.
+  const dipilih = pickedStages(slots.data?.stages ?? []);
   const lanjut = nextPublicEvent(
-    applied ? events.filter((e) => !e.gates.includes("daftar")) : events,
+    (applied ? events.filter((e) => !e.gates.includes("daftar")) : events).filter(
+      (e) => !(e.kind === "pick" && e.stage && dipilih.has(e.stage)),
+    ),
     now,
   );
+  const sendiri = applied ? ownNextSlot(slots.data?.stages ?? [], now) : null;
   const next = (() => {
     if (!applied && buka && tutupAt)
       return {
@@ -370,6 +378,22 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       };
     if (!applied && sebelum && opensOn)
       return { title: t.next.opens, when: tgl(opensOn, lang), ke: wibMs(opensOn) };
+    if (
+      sendiri &&
+      (!lanjut ||
+        Date.parse(sendiri.slot.startsAt) <= wibMs(lanjut.startsOn, lanjut.dayStart ?? "00:00"))
+    ) {
+      const mulai = tanggalWib(new Date(sendiri.slot.startsAt));
+      const akhir = tanggalWib(new Date(sendiri.slot.endsAt));
+      return {
+        title: t.next.mySlot(r.stage[sendiri.stage]),
+        when: t.next.at(
+          `${tgl(mulai.tanggal, lang)}, ${mulai.jam}–${akhir.jam} WIB`,
+          sendiri.slot.room,
+        ),
+        ke: Date.parse(sendiri.slot.startsAt),
+      };
+    }
     if (lanjut)
       return {
         title: judulAcara(lanjut, lang),
