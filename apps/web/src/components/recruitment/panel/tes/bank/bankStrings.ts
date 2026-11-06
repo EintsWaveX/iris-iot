@@ -370,7 +370,7 @@ export const BK = dict({
     cfgBonusOff: "Mati",
     cfgBonusFmt: (n: number) => `sisa ${n} menit atau lebih`,
     cfgBonusTip:
-      "Bonus ditawarkan kalau peserta mau Kumpulkan dan sisa waktunya segini atau lebih. Jumlahnya: sisa waktu (dalam panjang satu soal) ditambah jawaban benar dikurangi jawaban salah, paling banyak sisa soal di pool. 0 berarti tanpa bonus.",
+      "Bonus ditawarkan kalau peserta mau Kumpulkan dan sisa waktunya segini atau lebih. Jumlahnya: sisa waktu (dalam panjang satu soal) ditambah jawaban benar dikurangi jawaban salah dan soal yang dibiarkan kosong, paling banyak sisa soal di pool. 0 berarti tanpa bonus.",
     cfgMaxBase: (n: number) => `dasar ${n}`,
     cfgMaxNote:
       "Nilai maks adalah nilai kalau semua soal di pool dikerjakan. Soal bonus bernilai setengah soal biasa. Nilai dasar (tanpa bonus) tetap sama dengan jatahnya.",
@@ -739,7 +739,7 @@ export const BK = dict({
     cfgBonusOff: "Off",
     cfgBonusFmt: (n: number) => `${n} minutes or more left`,
     cfgBonusTip:
-      "Bonus is offered when a candidate wants to hand in with this much time left or more. The count is time left (in question-lengths) plus right answers minus wrong answers, at most the rest of the pool. 0 means no bonus.",
+      "Bonus is offered when a candidate wants to hand in with this much time left or more. The count is time left (in question-lengths) plus right answers minus wrong answers and questions left blank, at most the rest of the pool. 0 means no bonus.",
     cfgMaxBase: (n: number) => `base ${n}`,
     cfgMaxNote:
       "Max score is what a candidate gets by finishing every question in the pool. A bonus question is worth half a normal one. The base score (no bonus) still equals the share.",

@@ -3,12 +3,15 @@
  * rule). Pure and browser safe: the API works it out from the seat's own answers, the page only
  * shows the numbers it is given.
  *
- *   bonus = floor(time left / time per question) + (questions fully right) - (questions answered wrong)
+ *   bonus = floor(time left / time per question) + (questions fully right)
+ *           - (questions answered wrong) - (questions left blank)
  *
  * clamped to 0 .. every question of the part the seat was not dealt. A part of 20 minutes with 20
- * questions shown is 1 minute a question: 13 min 7 s left, 12 right and 8 wrong gives 13 + 12 - 8 =
- * 17. A question left blank is neither right nor wrong. Each bonus question is worth half of a
- * normal one (bonusWorth, scoring.ts), and the bonuses are drawn at random from the rest.
+ * questions shown is 1 minute a question: 13 min 7 s left, 12 right, 8 wrong and none blank gives
+ * 13 + 12 - 8 - 0 = 17. A question left blank counts as -1, like a wrong one (user, 2026-11-07:
+ * handing in an empty part used to keep the whole time bonus). Blank questions do not take
+ * anything from the part's own score. Each bonus question is worth half of a normal one
+ * (bonusWorth, scoring.ts), and the bonuses are drawn at random from the rest.
  */
 
 export interface BonusQuote {
@@ -20,6 +23,8 @@ export interface BonusQuote {
   correct: number;
   /** Dealt questions answered, but not fully right */
   wrong: number;
+  /** Dealt questions left blank (never answered, or answered with nothing) */
+  blank: number;
   /** What the seat gets */
   quota: number;
 }
@@ -37,9 +42,20 @@ export function bonusQuota(i: {
   perQuestionMs: number;
   correct: number;
   wrong: number;
+  blank: number;
   rest: number;
 }): BonusQuote {
   const time = i.perQuestionMs > 0 ? Math.floor(Math.max(0, i.leftMs) / i.perQuestionMs) : 0;
-  const quota = Math.min(Math.max(0, time + i.correct - i.wrong), Math.max(0, i.rest));
-  return { rest: i.rest, time, correct: i.correct, wrong: i.wrong, quota };
+  const quota = Math.min(
+    Math.max(0, time + i.correct - i.wrong - Math.max(0, i.blank)),
+    Math.max(0, i.rest),
+  );
+  return {
+    rest: i.rest,
+    time,
+    correct: i.correct,
+    wrong: i.wrong,
+    blank: Math.max(0, i.blank),
+    quota,
+  };
 }
