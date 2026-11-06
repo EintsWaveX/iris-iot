@@ -13,25 +13,31 @@ export type Phase1Part = (typeof PHASE1_PARTS)[number];
 export const PART_KEYS = [...PHASE1_PARTS, "livecode"] as const;
 export type PartKey = (typeof PART_KEYS)[number];
 
-/** Every written question is C. The word stays a field so the bank import keeps its shape. */
-export const LANGS = ["c"] as const;
+/**
+ * A written question's language: "c" for the code parts (FITB, Code Tracing), "text" for general
+ * questions with no code (PU dan Dasar IoT: general knowledge and IoT theory, words only). Which
+ * part takes which is LANGS_OF_PART; the field stays so the bank import keeps its shape.
+ */
+export const LANGS = ["c", "text"] as const;
 export type Lang = (typeof LANGS)[number];
 /** A question's code language: C, or plain text for output samples. */
 export type CodeLang = "c" | "text";
 
+/** The language a new question of each written part starts with: Logika (PU dan Dasar IoT) is general, words only. */
+export const LANG_OF_PART: Record<Phase1Part, Lang> = {
+  logika: "text",
+  fitb: "c",
+  kodingan: "c",
+};
+/** The languages each part allows: only FITB and Code Tracing are locked to C, Logika is not locked to any. */
+export const LANGS_OF_PART: Record<Phase1Part, readonly Lang[]> = {
+  logika: ["text", "c"],
+  fitb: ["c"],
+  kodingan: ["c"],
+};
+
 export const FORMATS = ["single", "multi", "lines", "fix", "order", "match", "fitb"] as const;
 export type Format = (typeof FORMATS)[number];
-
-/**
- * The answer styles each written part takes (5 Nov 2026): Logika is choosing and arranging,
- * FITB is filling blanks only, Kodingan is marking and fixing code. A style belongs to one part.
- */
-export const FORMATS_BY_PART: Record<Phase1Part, readonly Format[]> = {
-  logika: ["single", "multi", "order", "match"],
-  fitb: ["fitb"],
-  kodingan: ["lines", "fix"],
-};
-export const formatsOf = (part: Phase1Part): readonly Format[] => FORMATS_BY_PART[part];
 
 /**
  * @deprecated The protocol reel belongs to the IoT Live Coding, which B7.7

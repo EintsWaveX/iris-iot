@@ -13,7 +13,7 @@ import { useMinWidth } from "../../../../../lib/hooks";
 import type { Lang } from "../../../../../lib/kelas";
 import type { QuestionSummary } from "../../../../../lib/recruitment/bank-api";
 import type { PoolCount } from "../../../../../lib/recruitment/bank-rules";
-import { formatsOf, type Format, type Phase1Part } from "../../../../../lib/recruitment/exam-types";
+import { FORMATS, type Format, type Phase1Part } from "../../../../../lib/recruitment/exam-types";
 import { BK } from "./bankStrings";
 
 const LANG_ORDER = ["cpp", "py", "any"];
@@ -76,9 +76,7 @@ export default function BankList({
   const t = BK[lang];
   const wide = useMinWidth(820);
   const [q, setQ] = useState("");
-  const [f0, setF] = useState<"semua" | Format>("semua");
-  // a style filter left over from another part shows nothing: fall back to all
-  const f = f0 !== "semua" && !formatsOf(part).includes(f0) ? "semua" : f0;
+  const [f, setF] = useState<"semua" | Format>("semua");
   const mine = useMemo(() => rows.filter((r) => r.part === part), [rows, part]);
   const list = useMemo(
     () =>
@@ -119,7 +117,7 @@ export default function BankList({
             value={f}
             options={[
               { value: "semua", label: t.allFormats },
-              ...formatsOf(part).map((k) => ({ value: k, label: t.formats[k] })),
+              ...FORMATS.map((k) => ({ value: k, label: t.formats[k] })),
             ]}
             onChange={(v) => setF(v as "semua" | Format)}
           />

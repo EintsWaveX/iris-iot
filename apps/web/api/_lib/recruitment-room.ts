@@ -59,6 +59,7 @@ import { contohBiodata } from "../../src/lib/recruitment/latihan.js";
 import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 import {
   DEFAULT_EXAM_CONFIG,
+  LANG_OF_PART,
   PHASE1_PARTS,
   type ExamConfig,
   type PartKey,
@@ -412,7 +413,9 @@ async function muatKesiapan(
     rows.filter((r) => r.part === part).reduce((a, r) => a + r.n, 0);
   const out: NonNullable<ConsoleView["pool"]> = {};
   for (const part of PHASE1_PARTS) {
-    const counts: PoolCount[] = [{ lang: "c", shown: config.parts[part].shown, ready: siap(part) }];
+    const counts: PoolCount[] = [
+      { lang: LANG_OF_PART[part], shown: config.parts[part].shown, ready: siap(part) },
+    ];
     out[part] = { ok: counts.every((c) => c.ready >= c.shown), counts };
   }
   // Live Coding counts too: a room whose C problems cannot cover one seat's draw is not ready.

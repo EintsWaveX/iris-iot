@@ -99,7 +99,6 @@ const STATUS: Record<string, number> = {
   format_salah: 400,
   data_salah: 400,
   bahasa_salah: 400,
-  format_bukan_bagian: 400,
   struktur_terkunci: 409,
   perlu_catatan: 400,
   ruang_berjalan: 409,

@@ -21,7 +21,7 @@ import type {
   Phase1Part,
   Question,
 } from "./exam-types.js";
-import { FORMATS, LANGS, PHASE1_PARTS, formatsOf } from "./exam-types.js";
+import { FORMATS, LANGS, LANGS_OF_PART, LANG_OF_PART, PHASE1_PARTS } from "./exam-types.js";
 import { structureKey } from "./formats.js";
 
 /* ----------------------------------------------------------------- clean */
@@ -292,10 +292,13 @@ const asQ = (s: QuestionState): Question =>
     answer: s.answer,
   }) as Question;
 
-/** The languages a question of each part may have: only C (the test is formal C since 29 Oct 2026). */
+/**
+ * The languages a question of each part may have: only FITB and Kodingan are locked to C (formal C
+ * since 29 Oct 2026); Logika (PU dan Dasar IoT, 6 Nov 2026) is general and takes any.
+ */
 export function langsOf(_config: ExamConfig): Record<Phase1Part, Lang[]> {
   const out = {} as Record<Phase1Part, Lang[]>;
-  for (const p of PHASE1_PARTS) out[p] = ["c"];
+  for (const p of PHASE1_PARTS) out[p] = [...LANGS_OF_PART[p]];
   return out;
 }
 
@@ -307,8 +310,6 @@ export function langsOf(_config: ExamConfig): Record<Phase1Part, Lang[]> {
  */
 export function judgeSave(old: StoredState | null, next: QuestionState, c: JudgeContext): Verdict {
   if (!c.langs[next.part].includes(next.lang)) return { ok: false, kode: "bahasa_salah" };
-  if (!formatsOf(next.part).includes(next.format))
-    return { ok: false, kode: "format_bukan_bagian" };
   if (!old) {
     if (c.roomRunning && next.status === "ready") return { ok: false, kode: "ruang_berjalan" };
     return { ok: true, kind: "create" };
@@ -376,7 +377,7 @@ export function poolCounts(
     const ready = live.filter((r) => r.status === "ready").length;
     out[part] = [
       {
-        lang: "c",
+        lang: LANG_OF_PART[part],
         ready,
         draft: live.filter((r) => r.status === "draft").length,
         seed: live.filter((r) => r.status === "ready" && r.sample).length,
