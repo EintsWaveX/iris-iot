@@ -496,10 +496,11 @@ describe("Jadi Master", () => {
     expect((w?.nilai as { state: RoomState }).state.seq).toBe(1);
   });
 
-  it("never lets the Pencipta be Master", async () => {
+  it("lets the Pencipta be Master when plotted as pengawas (PRD 7.8 ban lifted 2026-11-06)", async () => {
     const r = await jalan("room-master", "PEN", { id: 7, act: "claim" });
-    expect(r.status).toBe(403);
-    expect(r.body.kode).toBe("tidak_boleh_master");
+    expect(r.status).toBe(200);
+    const w = tulis.find((x) => x.op === "update" && x.tabel === "room");
+    expect((w?.nilai as { state: RoomState }).state.master?.nim).toBe("PEN");
   });
 
   it("refuses someone who was not plotted for this room", async () => {
@@ -551,11 +552,13 @@ describe("Jadi Master", () => {
     expect(m.map((x) => x.j)).toEqual(["ruang", "master"]);
   });
 
-  it("refuses to hand the room to the Pencipta", async () => {
+  it("hands the room to the Pencipta when they are plotted as pengawas", async () => {
     state = { ...state, master: { nim: "N1", since: 1 } };
     rows.room = (sel) => (sel ? [] : [kamar({ masterSeenAt: new Date() })]);
     const r = await jalan("room-master", "N1", { id: 7, act: "give", to: "PEN" });
-    expect(r.body.kode).toBe("tidak_boleh_master");
+    expect(r.status).toBe(200);
+    const w = tulis.find((x) => x.op === "update" && x.tabel === "room");
+    expect((w?.nilai as { state: RoomState }).state.master?.nim).toBe("PEN");
   });
 
   it("takes a ping from the Master only, without touching the version", async () => {

@@ -87,12 +87,15 @@ describe("hakRekrutmen: hakPenuh", () => {
 });
 
 describe("bolehJadiMaster", () => {
-  it("excludes the Pencipta, even though they hold every other right", () => {
-    expect(bolehJadiMaster(PENCIPTA)).toBe(false);
+  it("lets the Pencipta be Master (2026-11-06; PRD 7.8 no longer excludes them)", () => {
+    expect(bolehJadiMaster(PENCIPTA)).toBe(true);
   });
   it("lets an Admin or an ordinary Asisten be Master", () => {
     expect(bolehJadiMaster(ADMIN_TIER)).toBe(true);
     expect(bolehJadiMaster(BIASA)).toBe(true);
+  });
+  it("still excludes an inactive Pencipta", () => {
+    expect(bolehJadiMaster({ ...PENCIPTA, status: "nonaktif" })).toBe(false);
   });
   it("excludes an inactive Asisten", () => {
     expect(bolehJadiMaster({ ...BIASA, status: "nonaktif" })).toBe(false);

@@ -358,7 +358,7 @@ async function namaAsisten(
 
 /**
  * Who may press Jadi Master (EXAM-ENGINE 5.4): plotted as pengawas for this
- * room, an active Asisten, never the Pencipta. A practice room: anyone plotted as
+ * room and an active Asisten (the Pencipta too, since 2026-11-06). A practice room: anyone plotted as
  * its pengawas, or holding the plotPengawas or bank right, Pencipta included.
  */
 async function bisaJadiMaster(
@@ -372,8 +372,8 @@ async function bisaJadiMaster(
     const p = pengawas.find((x) => x.nim === nim);
     return !!p && bolehJadiMaster({ badges: p.badges, status: p.status ?? undefined });
   }
-  // A practice room counts toward nobody's score, so the Pencipta may run it too
-  // (the real-room ban of PRD 7.8 is about fairness on an exam night).
+  // A practice room is looser still: anyone with the plotting or bank right may run it,
+  // plotted or not. (PRD 7.8's old ban on the Pencipta in real rooms is gone, 2026-11-06.)
   const orang = await muatOrang(nim);
   if (!orang || !(orang.status === "aktif" || orang.status === "cuti")) return false;
   if (pengawas.some((x) => x.nim === nim)) return true;
