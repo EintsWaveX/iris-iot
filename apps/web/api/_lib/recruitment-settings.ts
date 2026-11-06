@@ -57,6 +57,25 @@ export async function bacaSetting<K extends SettingKey>(
   return (SETTINGS[key].check(r.nilai) ?? SETTINGS[key].def) as (typeof SETTINGS)[K]["def"];
 }
 
+/**
+ * Save one setting from code (a rollback turning auto-close off), the same
+ * row Simpan writes. The caller audits it.
+ */
+export async function tulisSetting<K extends SettingKey>(
+  db: Pick<Db, "insert">,
+  key: K,
+  value: (typeof SETTINGS)[K]["def"],
+  nim: string,
+): Promise<void> {
+  await db
+    .insert(pengaturan)
+    .values({ kunci: kunciTulis(key), nilai: value, diubahOleh: nim, diubahPada: sql`now()` })
+    .onConflictDoUpdate({
+      target: pengaturan.kunci,
+      set: { nilai: value, diubahOleh: nim, diubahPada: sql`now()` },
+    });
+}
+
 export async function handleSettings(
   _req: ApiRequest,
   res: ApiResponse,

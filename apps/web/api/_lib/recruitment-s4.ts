@@ -61,6 +61,7 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatEvents, muatKolam, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { bebas } from "../../src/lib/recruitment/bebas.js";
+import { KURSI_KENDALI } from "../../src/lib/recruitment/rights.js";
 import { anggotaPanitia, muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
 import { muatNilaiCutting } from "./recruitment-score.js";
@@ -76,9 +77,10 @@ const MAX_TEXT = 4000;
 /** Who may read Penilaian: the Ketua, Akademik and Admin seats, and hakPenuh. */
 const bolehNilai = (p: Awaited<ReturnType<typeof muatPelaku>>): boolean =>
   !!p && (p.penuh || (!!p.kursi && ["ketua", "akademik", "admin"].includes(p.kursi.division)));
-/** Who may open any sheet to read or fix it. */
+/** Who may open any sheet to read or fix it (and take back another examiner's): the control seats. */
 const bolehSemua = (p: Awaited<ReturnType<typeof muatPelaku>>): boolean =>
-  !!p && (p.penuh || (!!p.kursi && ["ketua", "akademik"].includes(p.kursi.division)));
+  !!p &&
+  (p.penuh || (!!p.kursi && (KURSI_KENDALI as readonly string[]).includes(p.kursi.division)));
 
 async function namaPerNim(db: Db, nims: string[]): Promise<Map<string, string>> {
   const unik = [...new Set(nims)];
@@ -603,6 +605,7 @@ async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload)
       kode: kode.get(n) ?? n,
       sent: !!sheets.find((r) => r.graderNim === n)?.sentAt,
     })),
+    penuh: a.penuh,
     me: s.nim,
     cond: { fm: !hadirFm },
     locked: a.terkunci,
@@ -795,7 +798,9 @@ async function handleSheetReopen(req: ApiRequest, res: ApiResponse, s: SessionPa
   const b = jsonBody(req);
   const a = await bukaAkses(res, s, b.stage, b.id, true);
   if (!a) return;
-  if (!a.penguji) return void tolak(res, "tanpa_hak", 403);
+  // My own sheet needs me to examine the CaAs; another examiner's (`grader`) needs the control seats.
+  const grader = typeof b.grader === "string" && b.grader.trim() ? b.grader.trim() : s.nim;
+  if (grader === s.nim ? !a.penguji : !a.penuh) return void tolak(res, "tanpa_hak", 403);
   await getDb()
     .update(recSheet)
     .set({ sentAt: null, updatedAt: new Date() })
@@ -803,10 +808,14 @@ async function handleSheetReopen(req: ApiRequest, res: ApiResponse, s: SessionPa
       and(
         eq(recSheet.candidateId, a.kandidat.id),
         eq(recSheet.stage, b.stage as IvStage),
-        eq(recSheet.graderNim, s.nim),
+        eq(recSheet.graderNim, grader),
       ),
     );
-  await writeAudit(s.nim, "rec_iv_buka", { stage: b.stage, candidateId: a.kandidat.id });
+  await writeAudit(s.nim, "rec_iv_buka", {
+    stage: b.stage,
+    candidateId: a.kandidat.id,
+    ...(grader !== s.nim ? { grader } : {}),
+  });
   return void res.status(200).json({ ok: true });
 }
 

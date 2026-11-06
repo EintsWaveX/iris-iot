@@ -29,12 +29,14 @@ import {
   WarningIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
+import Confirm from "../../../ui/Confirm";
 import Dialog from "../../../ui/Dialog";
 import Dropdown from "../../../ui/Dropdown";
 import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
 import Popover from "../../../ui/Popover";
 import Tooltip from "../../../ui/Tooltip";
+import { RB } from "../rollback/rollbackStrings";
 import { Checkbox, Stepper, TimeField } from "../../../ui/Controls";
 import { localeOf } from "../../../../lib/app";
 import type { Lang } from "../../../../lib/kelas";
@@ -293,6 +295,8 @@ export default function Lembar({
   const [step, setStep] = useState<Step>("tanya");
   const [qi, setQi] = useState(0);
   const [sent, setSent] = useState(false);
+  /** A control seat reopening another examiner's sent sheet (asks first) */
+  const [bukaLain, setBukaLain] = useState<{ nim: string; kode: string } | null>(null);
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "fail">("idle");
   const [kasus, setKasus] = useState(false);
   const [miss, setMiss] = useState<string | null>(null);
@@ -1102,6 +1106,19 @@ export default function Lembar({
           <div className="rec-note r4mate">
             <span className="r4mate__d" aria-hidden="true" />
             <span>{partnerAt ? L.mateLive(mate) : L.mate(mate)}</span>
+            {data.penuh &&
+              data.pair
+                .filter((p) => p.nim !== data.me && p.sent)
+                .map((p) => (
+                  <button
+                    key={p.nim}
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => setBukaLain(p)}
+                  >
+                    {RB[lang].sheet.button(p.kode)}
+                  </button>
+                ))}
           </div>
         )}
       </div>
@@ -1713,6 +1730,29 @@ export default function Lembar({
           </>
         )}
       </div>
+      <Confirm
+        open={!!bukaLain}
+        onOpenChange={(o) => !o && setBukaLain(null)}
+        title={RB[lang].sheet.title}
+        body={RB[lang].sheet.body(bukaLain?.kode ?? "")}
+        confirmLabel={RB[lang].sheet.run}
+        lang={lang}
+        onConfirm={async () => {
+          if (!bukaLain) return;
+          const r = await recPost<{ ok: true }>("iv-sheet-reopen", {
+            stage,
+            id,
+            grader: bukaLain.nim,
+          });
+          if (isFail(r)) {
+            toast(w.err[r.kode] ?? r.kode, "danger");
+            return false;
+          }
+          toast(RB[lang].sheet.done);
+          const fresh = await fetchIvSheet(stage, id);
+          if (!isFail(fresh)) setData(fresh);
+        }}
+      />
       {kasus && (
         <Kasus
           lang={lang}

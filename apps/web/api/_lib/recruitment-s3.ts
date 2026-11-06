@@ -24,6 +24,7 @@ import { handleRoom } from "./recruitment-room.js";
 import { handleScore } from "./recruitment-score.js";
 import { S4_GET, S4_POST } from "./recruitment-s4.js";
 import { S5_GET, S5_POST, guardTutup } from "./recruitment-s5.js";
+import { ROLLBACK_POST } from "./recruitment-rollback.js";
 import { S6_GET, S6_OPREC_GET, S6_OPREC_POST, S6_POST } from "./recruitment-s6.js";
 import { S7_OPREC_GET, S7_OPREC_POST } from "./recruitment-s7.js";
 import { S7_BERSAMA_GET, S7_GET, S7_POST } from "./recruitment-s7-panel.js";
@@ -100,12 +101,14 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "room-kit": handleRoom,
   "room-move": handleRoom,
   "lcc-flush": handleLcc,
+  "room-seat-reset": handleRoom,
   "question-void": handleScore,
   "question-unvoid": handleScore,
   "score-finalize": handleScore,
   "score-unfreeze": handleScore,
   ...S4_POST,
   ...S5_POST,
+  ...ROLLBACK_POST,
   ...S6_POST,
   ...S7_POST,
 };
@@ -137,12 +140,13 @@ export async function handleS3(aksi: unknown, req: ApiRequest, res: ApiResponse)
     s = sesiku?.role === "asisten" ? sesiku : await sesiOprec(req);
     if (!s) res.status(401).json({ ok: false, kode: "belum_masuk" });
   }
-  // A closed edition is read-only for the Panitia (closing itself is the one write left).
+  // A closed edition is read-only for the Panitia (closing it and opening it again are the writes left).
   if (
     s &&
     jalur.siapa === "asisten" &&
     jalur.method === "POST" &&
     aksi !== "pn-close" &&
+    aksi !== "pn-reopen" &&
     (await guardTutup(res))
   )
     return true;

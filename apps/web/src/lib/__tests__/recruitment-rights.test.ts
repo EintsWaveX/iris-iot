@@ -19,8 +19,8 @@ const kursi = (division: CommitteeDivision, isKoor = false) => ({ division, isKo
 
 /** The PRD table: which divisions hold each right. */
 const TABEL: Record<keyof RecRights, CommitteeDivision[]> = {
-  calendar: ["ketua", "acara"],
-  board: ["ketua"],
+  calendar: ["ketua", "akademik", "admin", "acara"],
+  board: ["ketua", "akademik", "admin"],
   seatKetua: [],
   candidates: ["ketua", "wakil", "acara", "akademik", "logistik", "admin", "pdd"],
   documents: ["ketua", "admin"],
@@ -29,10 +29,10 @@ const TABEL: Record<keyof RecRights, CommitteeDivision[]> = {
   plotting: ["ketua", "akademik", "admin"],
   plotPengawas: ["ketua", "akademik"],
   cuttingPropose: ["ketua", "acara", "akademik", "admin", "logistik", "pdd"],
-  cuttingLock: ["ketua"],
+  cuttingLock: ["ketua", "akademik", "admin"],
   attendance: ["ketua", "acara", "admin"],
-  kitLoans: ["ketua", "logistik"],
-  accept: ["ketua"],
+  kitLoans: ["ketua", "akademik", "admin", "logistik"],
+  accept: ["ketua", "akademik", "admin"],
 };
 
 describe("hakRekrutmen: the PRD table", () => {

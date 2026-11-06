@@ -647,7 +647,9 @@ export async function handleHadirManual(req: ApiRequest, res: ApiResponse, s: Se
   // Attendance keepers always may. So may an Asisten who examines a slot of this very event:
   // when a QR will not scan on exam night, the room's own staff signs the candidate in.
   // The examiner's reach is their own room's candidates, and only the marks they made.
-  const hanyaPenguji = !p?.hak.attendance;
+  // Whoever holds rollback (Ketua, Akademik, Admin) may also take back any mark, a scan too, with force.
+  const kendali = b.undo === true && b.force === true && p?.hak.cuttingLock === true;
+  const hanyaPenguji = !p?.hak.attendance && !kendali;
   if (hanyaPenguji && !(p && (await penguji(db, edisi.id, s.nim, eventId, id))))
     return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "attendance" });
   const now = new Date();
@@ -668,14 +670,18 @@ export async function handleHadirManual(req: ApiRequest, res: ApiResponse, s: Se
 
   if (b.undo === true) {
     if (!ada) return void tolak(res, "tidak_ditemukan", 404);
-    // A scan is the candidate's own word; only a hand mark can be taken back.
-    if (ada.via !== "manual") return void tolak(res, "tidak_bisa_batal", 409);
+    // A scan is the candidate's own word; only a hand mark can be taken back, unless a rollback holder forces it.
+    if (ada.via !== "manual" && !kendali) return void tolak(res, "tidak_bisa_batal", 409);
     if (hanyaPenguji && ada.by !== s.nim)
       return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "attendance" });
     await db
       .delete(recAttendance)
       .where(and(eq(recAttendance.candidateId, k.id), eq(recAttendance.eventId, e.id)));
-    await writeAudit(s.nim, "rec_hadir_batal", { id: k.id, event: e.id });
+    await writeAudit(s.nim, "rec_hadir_batal", {
+      id: k.id,
+      event: e.id,
+      ...(ada.via !== "manual" ? { via: ada.via, forced: true } : {}),
+    });
     return void res.status(200).json({ ok: true, present: false });
   }
   // Marking someone before the event began makes no sense.

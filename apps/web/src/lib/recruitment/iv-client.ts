@@ -91,6 +91,8 @@ export interface IvSheetResponse {
   candidate: IvCandidate;
   slot: { id: number; room: string; startsAt: string; endsAt: string; booth: number };
   pair: { nim: string; kode: string; sent: boolean }[];
+  /** The viewer holds a control seat (may reopen another examiner's sent sheet) */
+  penuh?: boolean;
   me: string;
   cond: { fm: boolean };
   scores: {

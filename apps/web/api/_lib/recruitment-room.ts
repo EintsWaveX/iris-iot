@@ -15,6 +15,7 @@
  * POST room-note    { id, candidateId, text }  a pengawas' note on a seat
  * POST room-kit     { id, candidateId, kit, boards, returned? }  (kitLoans)
  * POST room-move    { candidateId, toRoomId }  (plotting)
+ * POST room-seat-reset { id, candidateId }  one CaAs's seat back to nothing, not while a part runs  (cuttingLock)
  *
  * The API is the truth: every accepted action is logged to rec_exam_log and
  * sent to the relay room (`ruang` to everyone, the rest to the Panitia or the
@@ -521,6 +522,8 @@ export async function handleRoom(req: ApiRequest, res: ApiResponse, s: SessionPa
       return pinjamKit(ctx);
     case "room-move":
       return pindahKursi(ctx);
+    case "room-seat-reset":
+      return resetKursi(ctx);
   }
   return void tolak(res, "aksi_tidak_dikenal", 404);
 }
@@ -867,6 +870,7 @@ async function susunKonsol(
       canSetup: bisaSetup(p),
       canKit: p.penuh || p.hak.kitLoans,
       canMove: p.penuh || p.hak.plotting,
+      canReset: p.hak.cuttingLock,
     },
   };
 }
@@ -1299,6 +1303,31 @@ async function hapusRuang({ req, res, s, db, edisi, p }: Ctx) {
   // Seats that were connected to the room are let go; quietly nothing without a relay.
   await tutupRuangUjian(room.id);
   return void res.status(200).json({ ok: true, slotDihapus });
+}
+
+/**
+ * room-seat-reset { id, candidateId }: take one CaAs's seat in a room back to nothing (5 Nov 2026), so they
+ * check in and draw again. The answers, strikes, Live Coding and submissions of that seat go with it (they
+ * hang off the seat). Ketua, Akademik and Admin (cuttingLock), and never while a part is running.
+ */
+async function resetKursi({ req, res, s, db, edisi, p }: Ctx) {
+  if (!p.hak.cuttingLock) return void tolak(res, "tanpa_hak", 403, { hak: "cuttingLock" });
+  const b = jsonBody(req);
+  const id = Number(b.id);
+  const candidateId = Number(b.candidateId);
+  if (!idOk(id) || !idOk(candidateId)) return void tolak(res, "data_salah", 400);
+  const muat = await muatRuang(db, edisi.id, id);
+  if (!muat) return void tolak(res, "tidak_ditemukan", 404);
+  const { room } = muat;
+  if (room.state.stage === "parts" || room.state.stage === "spin")
+    return void tolak(res, "ruang_berjalan", 409);
+  const hapus = await db
+    .delete(recExamSeat)
+    .where(and(eq(recExamSeat.roomId, id), eq(recExamSeat.candidateId, candidateId)))
+    .returning({ id: recExamSeat.id });
+  if (!hapus.length) return void tolak(res, "tidak_ditemukan", 404);
+  await writeAudit(s.nim, "rec_kursi_reset", { room: id, candidateId, rehearsal: room.rehearsal });
+  return void res.status(200).json({ ok: true });
 }
 
 /* ------------------------------------------------------------ the Master */

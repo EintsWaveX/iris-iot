@@ -24,7 +24,7 @@ export const CAL = dict({
     tipEdit:
       "Seret batang untuk memindah, seret ujungnya untuk mengubah panjang, klik untuk mengubah isinya.",
     canEdit: "Kamu bisa mengubah kalender (Ketua dan Acara).",
-    cannotEdit: "Hanya Ketua dan Acara yang mengubah kalender.",
+    cannotEdit: "Hanya Ketua, Akademik, Admin, dan Acara yang mengubah kalender.",
     add: "Tambah Acara",
     other: "Lainnya",
     moved: (name: string, when: string) => `${name}: ${when}. Halaman kandidat ikut berubah.`,
@@ -99,7 +99,7 @@ export const CAL = dict({
     stcNote: "This stage's dates may still change. Candidates see the tag too.",
     tipEdit: "Drag a bar to move it, drag its ends to change its length, click it to edit.",
     canEdit: "You can edit the calendar (Ketua and Acara).",
-    cannotEdit: "Only the Ketua and Acara edit the calendar.",
+    cannotEdit: "Only the Ketua, Akademik, Admin and Acara edit the calendar.",
     add: "Add Event",
     other: "Other",
     moved: (name: string, when: string) => `${name}: ${when}. Candidate pages update too.`,

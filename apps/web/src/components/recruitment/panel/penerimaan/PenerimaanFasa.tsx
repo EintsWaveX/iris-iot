@@ -3,7 +3,11 @@
  * (a hero, the people who were created, the audit log and what comes next), then closing the edition (the retention
  * clock, how it closes, what turns read-only and what happens to the data).
  */
+import { useState } from "react";
 import { NOUN, Paged } from "../../../ui/Pager";
+import Confirm from "../../../ui/Confirm";
+import RollbackDialog, { ringkasPn } from "../rollback/RollbackDialog";
+import { RB } from "../rollback/rollbackStrings";
 import {
   ArrowsClockwiseIcon,
   CheckIcon,
@@ -167,7 +171,7 @@ const W: Record<Lang, Words> = {
       leadHand: (on) => `Ditutup Ketua ${on}.`,
       leadPlan: (on, d) =>
         `Kalau tidak ditutup lebih dulu, edisi menutup sendiri ${on}, ${d} hari setelah pengumuman.`,
-      leadOff: "Penutupan otomatis mati. Hanya Ketua yang bisa menutup edisi.",
+      leadOff: "Penutupan otomatis mati. Hanya Ketua, Akademik, dan Admin yang bisa menutup edisi.",
       dayOf: (done, total) =>
         `Hari ke ${done} dari ${total}. Pekerjaan penghapusan yang sudah ada yang menghapusnya, bukan layar ini.`,
       clockOpen: (total, until) =>
@@ -184,7 +188,7 @@ const W: Record<Lang, Words> = {
       back: "Kembali ke Hasil",
       howTitle: "Cara Edisi Ditutup",
       howLede:
-        "Dua cara berjalan bersama: Ketua menutupnya sendiri, atau edisi menutup sendiri. Yang lebih dulu menang. Hanya Ketua yang mengubah angka di sini, dan angkanya terkunci setelah ditutup.",
+        "Dua cara berjalan bersama: Ketua menutupnya sendiri, atau edisi menutup sendiri. Yang lebih dulu menang. Hanya Ketua, Akademik, dan Admin yang mengubah angka di sini, dan angkanya terkunci setelah ditutup.",
       swTitle: "Tutup otomatis",
       swHint:
         "Edisi menutup sendiri beberapa hari setelah pengumuman, supaya jam penyimpanan tidak bergantung pada ingatan siapa pun.",
@@ -235,7 +239,7 @@ const W: Record<Lang, Words> = {
       legend: (n, out) =>
         `${n} Asisten dibuat, ${out} CaAs tidak diterima. Perjalanan CaAs yang tidak diterima dibekukan; mereka tetap melihat perjalanannya sendiri sampai data dihapus.`,
       done: "Edisi ditutup.",
-      ro: "Hanya Ketua yang bisa mengubah ini.",
+      ro: "Hanya Ketua, Akademik, dan Admin yang bisa mengubah ini.",
     },
   },
   en: {
@@ -287,7 +291,8 @@ const W: Record<Lang, Words> = {
       leadHand: (on) => `Closed by the Ketua on ${on}.`,
       leadPlan: (on, d) =>
         `If nobody closes it sooner, the edition closes by itself on ${on}, ${d} days after the reveal.`,
-      leadOff: "Automatic closing is off. Only the Ketua can close the edition.",
+      leadOff:
+        "Automatic closing is off. Only the Ketua, Akademik and Admin can close the edition.",
       dayOf: (done, total) =>
         `Day ${done} of ${total}. The existing purge job does the deleting, not this screen.`,
       clockOpen: (total, until) =>
@@ -304,7 +309,7 @@ const W: Record<Lang, Words> = {
       back: "Back to the Result",
       howTitle: "How the Edition Closes",
       howLede:
-        "Both ways run together: the Ketua closes it, or it closes by itself. Whichever comes first wins. Only the Ketua changes the numbers here, and they lock once it is closed.",
+        "Both ways run together: the Ketua closes it, or it closes by itself. Whichever comes first wins. Only the Ketua, Akademik and Admin change the numbers here, and they lock once it is closed.",
       swTitle: "Close by itself",
       swHint:
         "The edition closes by itself some days after the reveal, so the retention clock never depends on anyone remembering.",
@@ -360,7 +365,7 @@ const W: Record<Lang, Words> = {
       legend: (n, out) =>
         `${n} Asisten created, ${out} CaAs not accepted. Their journeys are frozen; they keep seeing their own journey until the data is deleted.`,
       done: "Edition closed.",
-      ro: "Only the Ketua can change this.",
+      ro: "Only the Ketua, Akademik and Admin can change this.",
     },
   },
   zh: {
@@ -494,6 +499,7 @@ export function Hasil({
   onAgain,
   onReplay,
   onClose,
+  refresh,
 }: {
   lang: Lang;
   d: PnListResponse;
@@ -502,8 +508,10 @@ export function Hasil({
   onAgain: () => void;
   onReplay: () => void;
   onClose: () => void;
+  refresh: () => void;
 }) {
   const t = W[lang];
+  const [batal, setBatal] = useState(false);
   const baru = rows.filter((r) => r.promotedNim);
   const runs = d.runs;
   const first = runs[runs.length - 1];
@@ -629,11 +637,35 @@ export function Hasil({
               ))}
             </ul>
             {can && (
-              <button type="button" className="btn btn--ghost btn--sm" onClick={onAgain}>
-                <ArrowsClockwiseIcon size={16} aria-hidden="true" />
-                <span className="btn__label">{t.audit.again}</span>
-              </button>
+              <div className="row">
+                <button type="button" className="btn btn--ghost btn--sm" onClick={onAgain}>
+                  <ArrowsClockwiseIcon size={16} aria-hidden="true" />
+                  <span className="btn__label">{t.audit.again}</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => setBatal(true)}
+                >
+                  <span className="btn__label">{RB[lang].pnUndo.button}</span>
+                </button>
+              </div>
             )}
+            <RollbackDialog
+              open={batal}
+              onOpenChange={setBatal}
+              lang={lang}
+              aksi="pn-undo"
+              body={{}}
+              title={RB[lang].pnUndo.title}
+              intro={RB[lang].pnUndo.intro}
+              kata={RB[lang].pnUndo.kata}
+              jalankan={RB[lang].pnUndo.run}
+              selesai={RB[lang].pnUndo.done}
+              ringkas={ringkasPn as never}
+              bolehPaksa
+              onDone={refresh}
+            />
           </section>
           <section className="panel r8-next">
             <div className="panel__head">
@@ -691,6 +723,7 @@ export function Tutup({
   refresh: () => void;
 }) {
   const t = W[lang].tutup;
+  const [bukaLagi, setBukaLagi] = useState(false);
   const c = d.close;
   const closed = c.closed;
   const auto = closed && !c.closedAt;
@@ -802,6 +835,35 @@ export function Tutup({
           ) : (
             <span className="hint">{t.ro}</span>
           ))}
+        {closed && can && (
+          <div className="stack stack--sm r8-clock__act">
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => setBukaLagi(true)}
+            >
+              <span className="btn__label">{RB[lang].reopen.button}</span>
+            </button>
+          </div>
+        )}
+        <Confirm
+          open={bukaLagi}
+          onOpenChange={setBukaLagi}
+          title={RB[lang].reopen.title}
+          body={RB[lang].reopen.body}
+          confirmLabel={RB[lang].reopen.run}
+          tone="primary"
+          lang={lang}
+          onConfirm={async () => {
+            const r = await recPost<{ ok: true }>("pn-reopen", { confirm: true });
+            if (isFail(r)) {
+              toast(RB[lang].failed, "danger");
+              return false;
+            }
+            toast(RB[lang].reopen.done);
+            refresh();
+          }}
+        />
       </section>
 
       <section className="panel r8-how" aria-label={t.howTitle}>

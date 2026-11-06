@@ -78,6 +78,8 @@ import "../../recruitment-cutting.css";
 import { TUBES } from "../../tubes/tubesStrings";
 import { CS } from "./cutStrings";
 import { CW } from "./cutWhyStrings";
+import RollbackDialog, { ringkasCounts } from "../rollback/RollbackDialog";
+import { RB } from "../rollback/rollbackStrings";
 import CuttingDrawer from "./CuttingDrawer";
 import ReasonTags from "./ReasonTags";
 import { AturTitikAwal, UbahTeksAmplop } from "./CutSettings";
@@ -404,6 +406,10 @@ export default function CuttingTab({
   const [absFail, setAbsFail] = useState(true);
   const [timpa, setTimpa] = useState(false);
   const [buka, setBuka] = useState(false);
+  // Rollback (5 Nov 2026): pull a revealed stage back, empty its proposals, seal its envelopes again.
+  const [tarik, setTarik] = useState(false);
+  const [kosongkan, setKosongkan] = useState(false);
+  const [segel, setSegel] = useState(false);
   const [busy, setBusy] = useState(false);
   // What was just set, shown at once; the refetch (siaran) replaces it with the server's word.
   const [lokal, setLokal] = useState<
@@ -653,12 +659,29 @@ export default function CuttingTab({
           )}
         </div>
       )}
-      {/* Free mode (Mode Latihan): a stage can be unlocked after its reveal too. */}
-      {dibuka && ketua && bukaKunciTampil(dikunci, dibuka) && (
+      {dibuka && ketua && (
         <div className="r2lockd__right">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setBuka(true)}>
-            {t.unlock}
-          </button>
+          {lock.opened > 0 && (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setSegel(true)}>
+              {RB[lang].seal.button}
+            </button>
+          )}
+          {/* Free mode (Mode Latihan): the plain unlock also works after the reveal; the real edition pulls the result back instead. */}
+          {bukaKunciTampil(dikunci, dibuka) ? (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setBuka(true)}>
+              {t.unlock}
+            </button>
+          ) : (
+            pilih !== "penerimaan" && (
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => setTarik(true)}
+              >
+                {RB[lang].unlock.button}
+              </button>
+            )
+          )}
         </div>
       )}
     </section>
@@ -694,6 +717,11 @@ export default function CuttingTab({
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTeks(true)}>
           <EnvelopeSimpleOpenIcon size={18} aria-hidden="true" />
           <span className="btn__label">{CS[lang].words}</span>
+        </button>
+      )}
+      {!dikunci && ketua && lolosN + gagalN > 0 && (
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setKosongkan(true)}>
+          <span className="btn__label">{RB[lang].clear.button}</span>
         </button>
       )}
       {dikunci ? null : ketua ? (
@@ -1302,6 +1330,8 @@ export default function CuttingTab({
           }
           onPropose={set}
           onNote={note}
+          rollback={ketua}
+          onRolled={() => board.refresh()}
         />
       )}
       <Confirm
@@ -1319,6 +1349,54 @@ export default function CuttingTab({
             return false;
           }
           window.Toast?.show(t.unlockDone, "warn");
+          board.refresh();
+        }}
+      />
+      <RollbackDialog
+        open={tarik}
+        onOpenChange={setTarik}
+        lang={lang}
+        aksi="cut-unlock-force"
+        body={{ stage: pilih }}
+        title={RB[lang].unlock.title(t.stageName[pilih])}
+        intro={RB[lang].unlock.intro(t.stageName[pilih])}
+        kata={pilih}
+        jalankan={RB[lang].unlock.run}
+        selesai={RB[lang].unlock.done}
+        ringkas={ringkasCounts as never}
+        onDone={() => board.refresh()}
+      />
+      <RollbackDialog
+        open={kosongkan}
+        onOpenChange={setKosongkan}
+        lang={lang}
+        aksi="cut-clear"
+        body={{ stage: pilih }}
+        title={RB[lang].clear.title(t.stageName[pilih])}
+        intro={RB[lang].clear.intro}
+        kata={pilih}
+        jalankan={RB[lang].clear.run}
+        selesai={RB[lang].clear.done}
+        onDone={() => board.refresh()}
+      />
+      <Confirm
+        open={segel}
+        onOpenChange={setSegel}
+        title={RB[lang].seal.title}
+        body={RB[lang].seal.body}
+        confirmLabel={RB[lang].seal.run}
+        tone="primary"
+        lang={lang}
+        onConfirm={async () => {
+          const r = await recPost<{ ok: true; sealed: number }>("envelope-reset", { stage: pilih });
+          if (isFail(r)) {
+            window.Toast?.show(RB[lang].failed, "danger");
+            return false;
+          }
+          window.Toast?.show(
+            r.sealed ? RB[lang].seal.done(r.sealed) : RB[lang].seal.none,
+            r.sealed ? "ok" : "warn",
+          );
           board.refresh();
         }}
       />
