@@ -5,7 +5,10 @@
  */
 import { CompletionContext } from "@codemirror/autocomplete";
 import { EditorState } from "@codemirror/state";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// The C grammar loads on the first parse, which is slow in a busy full run.
+vi.setConfig({ testTimeout: 20_000 });
 import {
   cCompletions,
   cSupport,

@@ -1227,9 +1227,10 @@ async function aturRuang({ req, res, s, db, edisi, p }: Ctx) {
 }
 
 /**
- * Delete a room. A real room only while nobody has run a part in it (its seats
- * hold no answers to lose); a practice room any time it is not running, since
- * it counts toward nobody's score. Its seats and what hangs off them go with it.
+ * Delete a room completely: the room, its seats and everything that hangs off them. A room made by
+ * mistake goes whatever its state (open, running, even a part ended): only a real room whose
+ * candidates already have saved answers or judged submissions stays, since deleting it would throw
+ * their work away. A practice room counts toward nobody's score, so it always goes.
  */
 async function hapusRuang({ req, res, s, db, edisi, p }: Ctx) {
   if (!bisaSetup(p)) return void tolak(res, "tanpa_hak", 403, { hak: "plotPengawas" });
@@ -1238,13 +1239,27 @@ async function hapusRuang({ req, res, s, db, edisi, p }: Ctx) {
   const muat = await muatRuang(db, edisi.id, id);
   if (!muat) return void tolak(res, "tidak_ditemukan", 404);
   const { room } = muat;
-  // Refuse only while a part is really on the clock; between parts (lobby, spin
-  // grace) a room that nobody has run for real may still go.
-  const v = roomView(room.state, Date.now()).view;
-  const jalan = v === "part-running" || v === "livecode-running" || v === "part-paused";
-  if (jalan) return void tolak(res, "ruang_berjalan", 409);
-  const pernahJalan = Object.keys(room.state.runs).length > 0 || room.state.stage === "finished";
-  if (!room.rehearsal && pernahJalan) return void tolak(res, "ruang_sudah_dipakai", 409);
+  if (!room.rehearsal) {
+    const kursi = await db
+      .select({ id: recExamSeat.id })
+      .from(recExamSeat)
+      .where(eq(recExamSeat.roomId, room.id));
+    if (kursi.length) {
+      const ids = kursi.map((k) => k.id);
+      const [[jawab], [kirim]] = await Promise.all([
+        db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(recAnswer)
+          .where(inArray(recAnswer.seatId, ids)),
+        db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(recCSubmission)
+          .where(and(inArray(recCSubmission.seatId, ids), eq(recCSubmission.kind, "submit"))),
+      ]);
+      if (Number(jawab?.n ?? 0) + Number(kirim?.n ?? 0) > 0)
+        return void tolak(res, "ruang_ada_jawaban", 409);
+    }
+  }
   await db.transaction(async (tx) => {
     await tx.delete(recStrike).where(eq(recStrike.roomId, room.id));
     await tx.delete(recCSubmission).where(eq(recCSubmission.roomId, room.id));
@@ -1259,6 +1274,8 @@ async function hapusRuang({ req, res, s, db, edisi, p }: Ctx) {
     title: room.title,
     rehearsal: room.rehearsal,
   });
+  // Seats that were connected to the room are let go; quietly nothing without a relay.
+  await tutupRuangUjian(room.id);
   return void res.status(200).json({ ok: true });
 }
 

@@ -337,6 +337,7 @@ export type RecError =
   | "struktur_terkunci"
   | "ruang_berjalan"
   | "ruang_sudah_dipakai"
+  | "ruang_ada_jawaban"
   | "sudah_jadi_asisten"
   | "sudah_ada_hasil"
   | "sudah_tampil"

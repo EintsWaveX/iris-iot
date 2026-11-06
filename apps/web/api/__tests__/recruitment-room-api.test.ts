@@ -1103,6 +1103,80 @@ describe("a practice room's pengawas and participants", () => {
   });
 });
 
+describe("deleting a room completely", () => {
+  const berjalan = (): RoomState["runs"] => ({
+    logika: {
+      durMs: 900_000,
+      usedMs: 0,
+      mark: Date.now(),
+      state: "running",
+      pausedAt: null,
+      extra: {},
+      startedAt: Date.now(),
+      endedAt: null,
+      endedBy: null,
+      leftAtSkip: 0,
+      reopened: 0,
+    },
+  });
+  const nyata = (extra: Partial<RoomState>) =>
+    kamar({ id: 9, slotId: 3, rehearsal: false, state: { ...newRoomState(), ...extra } });
+
+  it("removes a practice room even while a part is on the clock", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const praktik = kamar({
+      id: 9,
+      slotId: null,
+      rehearsal: true,
+      state: { ...newRoomState(), stage: "parts", cur: "logika", runs: berjalan() },
+    });
+    rows.room = (sel) => (sel ? [{ room: praktik, slot: null }] : [praktik]);
+    const r = await jalan("room-delete", "AKD", { id: 9 });
+    expect(r.status).toBe(200);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "room")).toBe(true);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "seat")).toBe(true);
+  });
+
+  it("removes a real room that was opened or started by mistake, when nobody has saved an answer", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const ruang = nyata({ stage: "parts", cur: "logika", runs: berjalan() });
+    rows.room = (sel) => (sel ? [{ room: ruang, slot: null }] : [ruang]);
+    rows.seat = [{ id: 7 }];
+    rows.answer = [{ n: 0 }];
+    const r = await jalan("room-delete", "AKD", { id: 9 });
+    expect(r.status).toBe(200);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "room")).toBe(true);
+  });
+
+  it("removes an empty real room that was never opened", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const ruang = nyata({ stage: "prep" });
+    rows.room = (sel) => (sel ? [{ room: ruang, slot: null }] : [ruang]);
+    rows.seat = [];
+    const r = await jalan("room-delete", "AKD", { id: 9 });
+    expect(r.status).toBe(200);
+  });
+
+  it("keeps a real room whose candidates already have saved answers", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const ruang = nyata({ stage: "finished", finishedAt: Date.now() });
+    rows.room = (sel) => (sel ? [{ room: ruang, slot: null }] : [ruang]);
+    rows.seat = [{ id: 7 }];
+    rows.answer = [{ n: 12 }];
+    const r = await jalan("room-delete", "AKD", { id: 9 });
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("ruang_ada_jawaban");
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "room")).toBe(false);
+  });
+
+  it("needs the plotting right", async () => {
+    const ruang = nyata({ stage: "prep" });
+    rows.room = (sel) => (sel ? [{ room: ruang, slot: null }] : [ruang]);
+    const r = await jalan("room-delete", "N1", { id: 9 });
+    expect(r.status).toBe(403);
+  });
+});
+
 describe("moving a seat", () => {
   it("needs the plotting right", async () => {
     const r = await jalan("room-move", "N1", { candidateId: 101, toRoomId: 7 });
