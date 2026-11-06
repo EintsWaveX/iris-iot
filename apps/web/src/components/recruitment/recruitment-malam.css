@@ -105,12 +105,12 @@
   border-left: 4px solid var(--tc);
   display: grid;
   gap: 22px;
-  /* Name | rail | actions: the rail sits in the middle of its own column, so the gap before it and after it match */
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   padding: 16px 20px;
 }
-.n7-stagehead > .n7-rail {
-  justify-self: center;
+/* The panel's "last button sinks to the bottom" rule must not drop Siapkan Ruang below the card's middle */
+.panel.n7-stagehead > .btn:last-child {
+  margin-top: 0;
 }
 .n7-stagehead__t {
   align-items: center;
@@ -205,9 +205,6 @@
 @media (max-width: 1100px) {
   .n7-stagehead {
     grid-template-columns: 1fr;
-  }
-  .n7-stagehead > .n7-rail {
-    justify-self: start;
   }
 }
 @media (max-width: 720px) {
