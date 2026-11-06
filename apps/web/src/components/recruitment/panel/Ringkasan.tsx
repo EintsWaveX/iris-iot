@@ -9,6 +9,7 @@ import { useState } from "react";
 import {
   QrCodeIcon,
   ArrowRightIcon,
+  CalendarBlankIcon,
   CaretRightIcon,
   ChalkboardTeacherIcon,
   CheckIcon,
@@ -284,20 +285,23 @@ export default function Ringkasan({
               {others.map((s, i) => langkahItem({ s, i: i + 1 }))}
             </ol>
           )}
-          <div className="b1-next__foot">
-            {langkah.tab ? (
-              <button
-                type="button"
-                className="btn btn--primary btn--lg"
-                onClick={() => bukaBagian(langkah.tab as PanelTab)}
-              >
-                <span className="btn__label">{n.open(n.tabs[langkah.tab])}</span>
-                <ArrowRightIcon size={18} aria-hidden="true" />
-              </button>
-            ) : (
-              <p className="empty-note empty-note--sm">{n.noScreen}</p>
-            )}
-          </div>
+          {/* The Kalender button lives on the Hari Ini card below, next to the dates it opens */}
+          {langkah.tab !== "kalender" && (
+            <div className="b1-next__foot">
+              {langkah.tab ? (
+                <button
+                  type="button"
+                  className="btn btn--primary btn--lg"
+                  onClick={() => bukaBagian(langkah.tab as PanelTab)}
+                >
+                  <span className="btn__label">{n.open(n.tabs[langkah.tab])}</span>
+                  <ArrowRightIcon size={18} aria-hidden="true" />
+                </button>
+              ) : (
+                <p className="empty-note empty-note--sm">{n.noScreen}</p>
+              )}
+            </div>
+          )}
         </section>
 
         {perhatian.length > 0 && (
@@ -363,6 +367,18 @@ export default function Ringkasan({
             {deadline.ke > Date.now() && (
               <Countdown ke={deadline.ke} label={deadline.title} lang={lang} />
             )}
+          </div>
+        )}
+        {tabs.includes("kalender") && (
+          <div className="row r2today">
+            <button
+              type="button"
+              className={`btn btn--sm ${langkah.tab === "kalender" ? "btn--primary" : "btn--inverse"}`}
+              onClick={() => bukaBagian("kalender")}
+            >
+              <CalendarBlankIcon size={16} aria-hidden="true" />
+              <span className="btn__label">{n.open(n.tabs.kalender)}</span>
+            </button>
           </div>
         )}
       </Kartu>

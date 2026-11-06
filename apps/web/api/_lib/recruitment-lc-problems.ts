@@ -26,6 +26,12 @@ import {
   type CProblemDraft,
   type TestVerdict,
 } from "../../src/lib/recruitment/c-problem.js";
+import {
+  parseProblems,
+  writeProblems,
+  type ProblemFileError,
+  type ProblemFileItem,
+} from "../../src/lib/recruitment/problem-io.js";
 import { tolak, type Db } from "./recruitment-data.js";
 import { kirimKode } from "./recruitment-lc-judge.js";
 
@@ -47,6 +53,7 @@ const STATUS: Record<string, number> = {
   belum_dicek: 409,
   kode_kosong: 400,
   kode_terlalu_besar: 413,
+  terlalu_besar: 413,
 };
 const galat = (res: ApiResponse, kode: string, extra: Record<string, unknown> = {}) =>
   tolak(res, kode, STATUS[kode] ?? 400, extra);
@@ -244,4 +251,184 @@ export async function hapusMasalah(k: KonteksMasalah) {
   await k.db.delete(recCProblem).where(eq(recCProblem.id, id));
   await writeAudit(k.nim, "rec_masalah_hapus", { id, title: r.title });
   k.res.status(200).json({ ok: true });
+}
+
+/* ------------------------------------------------------- Impor and Ekspor */
+
+const MAX_IMPORT = 2_500_000;
+const MAX_ITEMS = 200;
+
+/** Object keys in sorted order, so two copies of the same value compare equal whoever stored them. */
+const canon = (v: unknown): string =>
+  JSON.stringify(v, (_k, x) =>
+    x && typeof x === "object" && !Array.isArray(x)
+      ? Object.fromEntries(
+          Object.entries(x as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : 1)),
+        )
+      : x,
+  );
+
+export interface ImportItemMasalah {
+  index: number;
+  line: number;
+  title: string;
+  action: "create" | "update" | "same" | "error";
+  id?: number;
+  errors: ProblemFileError[];
+}
+
+/**
+ * POST problem-import { text, dry }: the file's problems, one verdict each. A problem with an `id` updates that
+ * stored problem (refused when a seat was dealt it and its tests, limits or reference differ); one without is
+ * created. Whatever the file says, a created or changed problem lands as a draft unless its check still holds:
+ * Siap needs a reference check, and a changed test, limit or reference clears the old one.
+ */
+export async function imporMasalah(k: KonteksMasalah) {
+  const b = jsonBody(k.req);
+  const text = typeof b.text === "string" ? b.text : null;
+  if (text === null) return galat(k.res, "data_salah");
+  if (text.length > MAX_IMPORT) return galat(k.res, "terlalu_besar");
+  const dry = b.dry !== false;
+  const parsed = parseProblems(text);
+  if (parsed.length > MAX_ITEMS) return galat(k.res, "terlalu_besar");
+  const stored = await k.db.select().from(recCProblem).where(eq(recCProblem.editionId, k.edisiId));
+  const byId = new Map(stored.map((r) => [r.id, r]));
+  const items: ImportItemMasalah[] = [];
+  for (const it of parsed) {
+    const base = { index: it.index, line: it.line, title: it.title };
+    if (!it.draft) {
+      items.push({ ...base, action: "error", errors: it.errors });
+      continue;
+    }
+    const d = it.draft;
+    const bad = validateProblem(d);
+    if (bad.length) {
+      items.push({
+        ...base,
+        action: "error",
+        errors: bad.map((e) => ({ line: it.line, kode: e.kode, field: e.field })),
+      });
+      continue;
+    }
+    const old = it.id !== undefined ? byId.get(it.id) : undefined;
+    if (it.id !== undefined && !old) {
+      items.push({
+        ...base,
+        action: "error",
+        errors: [{ line: it.line, kode: "id_tak_dikenal", field: "id" }],
+      });
+      continue;
+    }
+    if (!old) {
+      if (!dry) {
+        const [row] = await k.db
+          .insert(recCProblem)
+          .values({
+            editionId: k.edisiId,
+            title: d.title.trim(),
+            tier: d.tier,
+            body: d.body,
+            limits: d.limits,
+            samples: d.samples,
+            tests: d.tests,
+            reference: d.reference,
+            status: "draft",
+            createdBy: k.nim,
+            updatedBy: k.nim,
+          })
+          .returning();
+        if (row) byId.set(row.id, row);
+        items.push({ ...base, action: "create", id: row?.id, errors: [] });
+      } else items.push({ ...base, action: "create", errors: [] });
+      continue;
+    }
+    const changedJudged = judged(d) !== judged(draftOf(old));
+    if (old.shownAt && changedJudged) {
+      items.push({
+        ...base,
+        action: "error",
+        errors: [{ line: it.line, kode: "struktur_terkunci" }],
+      });
+      continue;
+    }
+    const checkOk = changedJudged ? null : old.checkOk;
+    const status = it.status === "ready" && checkOk === true ? "ready" : "draft";
+    const same =
+      !changedJudged &&
+      status === old.status &&
+      d.title.trim() === old.title &&
+      canon(d.body) === canon(old.body);
+    if (same) {
+      items.push({ ...base, action: "same", id: old.id, errors: [] });
+      continue;
+    }
+    if (!dry) {
+      const [row] = await k.db
+        .update(recCProblem)
+        .set({
+          title: d.title.trim(),
+          tier: d.tier,
+          body: d.body,
+          limits: d.limits,
+          samples: d.samples,
+          tests: d.tests,
+          reference: d.reference,
+          status,
+          checkOk,
+          checkedAt: changedJudged ? null : old.checkedAt,
+          version: old.version + 1,
+          updatedBy: k.nim,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(recCProblem.id, old.id), eq(recCProblem.version, old.version)))
+        .returning();
+      if (!row) {
+        items.push({
+          ...base,
+          action: "error",
+          errors: [{ line: it.line, kode: "versi_lama" }],
+        });
+        continue;
+      }
+      byId.set(row.id, row);
+    }
+    items.push({ ...base, action: "update", id: old.id, errors: [] });
+  }
+  if (!dry)
+    await writeAudit(k.nim, "rec_masalah_impor", {
+      n: items.filter((i) => i.action === "create" || i.action === "update").length,
+    });
+  const count = (a: ImportItemMasalah["action"]) => items.filter((i) => i.action === a).length;
+  k.res.status(200).json({
+    ok: true,
+    dry,
+    items,
+    counts: {
+      create: count("create"),
+      update: count("update"),
+      same: count("same"),
+      error: count("error"),
+    },
+  });
+}
+
+/** GET problem-export: every problem of the edition as one .md file (with the reference solutions). */
+export async function eksporMasalah(k: KonteksMasalah) {
+  const rows = await k.db
+    .select()
+    .from(recCProblem)
+    .where(eq(recCProblem.editionId, k.edisiId))
+    .orderBy(
+      sql`case ${recCProblem.tier} when 'easy' then 0 when 'medium' then 1 else 2 end`,
+      recCProblem.id,
+    );
+  const items: ProblemFileItem[] = rows.map((r) => ({
+    ...draftOf(r),
+    id: r.id,
+    status: r.status,
+  }));
+  k.res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+  k.res.setHeader("Content-Disposition", 'attachment; filename="bank-live-coding.md"');
+  k.res.status(200);
+  k.res.end(writeProblems(items));
 }

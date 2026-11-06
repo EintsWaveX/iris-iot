@@ -220,19 +220,19 @@ export function LatihanCard({ lang }: { lang: Lang }) {
           <UsersThreeIcon size={18} aria-hidden="true" />
           <span className="btn__label">{t.prepare}</span>
         </button>
+        {r?.siap && (
+          <>
+            <button type="button" className="btn btn--ghost" onClick={() => setTanya("ulang")}>
+              <ArrowsClockwiseIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{t.ulang}</span>
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => setTanya("samakan")}>
+              <ArrowsLeftRightIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{t.samakan}</span>
+            </button>
+          </>
+        )}
       </div>
-      {r?.siap && (
-        <div className="lat-card__row">
-          <button type="button" className="btn btn--ghost" onClick={() => setTanya("ulang")}>
-            <ArrowsClockwiseIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{t.ulang}</span>
-          </button>
-          <button type="button" className="btn btn--ghost" onClick={() => setTanya("samakan")}>
-            <ArrowsLeftRightIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{t.samakan}</span>
-          </button>
-        </div>
-      )}
       <KonfirmasiReset lang={lang} aksi={tanya} onClose={() => setTanya(null)} />
     </section>
   );

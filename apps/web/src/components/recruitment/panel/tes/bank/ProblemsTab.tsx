@@ -28,7 +28,6 @@ import SegmentedControl from "../../../../ui/SegmentedControl";
 import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
 import { useBelumSimpan } from "../../../../../lib/belum-simpan";
-import { usePoll } from "../../../../../lib/hooks";
 import {
   C_LIMITS,
   DEFAULT_STARTER,
@@ -37,6 +36,7 @@ import {
   type CProblemDraft,
 } from "../../../../../lib/recruitment/c-problem";
 import type { ExamConfigResponse } from "../../../../../lib/recruitment/bank-api";
+import type { PoolCount } from "../../../../../lib/recruitment/bank-rules";
 import { isFail, recGet, recPost } from "../../../../../lib/recruitment/client";
 import { TIERS, type Tier } from "../../../../../lib/recruitment/exam-types";
 import type {
@@ -47,6 +47,7 @@ import type {
 } from "../../../../../lib/recruitment/problem-api";
 import Pill from "../../../../ui/Pill";
 import { useRevealAdded } from "../../../ui/useRevealAdded";
+import { PoolCard } from "./BankList";
 import BankPicker from "./BankPicker";
 import CodeBox from "./CodeBox";
 import LcPreview from "./LcPreview";
@@ -74,35 +75,52 @@ const blank = (): CProblemDraft => ({
   reference: "",
 });
 
-async function fetchList(): Promise<ProblemsResponse | null> {
+export async function fetchList(): Promise<ProblemsResponse | null> {
   const r = await recGet<ProblemsResponse>("problems");
   if (isFail(r)) throw new Error(String(r.status || 408));
   return r;
 }
 
-type Open = number | "new" | null;
+/** The open problem, as the address keeps it: an id, "baru" for a new one, or none (the list) */
+export type Open = number | "baru" | null;
 
-export default function ProblemsTab({ lang, config }: { lang: Lang; config: ExamConfigResponse }) {
-  const list = usePoll<ProblemsResponse | null>(fetchList, 300_000, true, ["recbank"], 300);
-  const [open, setOpen] = useState<Open>(null);
-  const d = list.data;
-  if (open !== null && d)
+/**
+ * The tab's body. The Bank Soal shell (BankTab) owns the list, the badge on the tab, the Impor,
+ * Ekspor and Tambah Soal buttons, and which problem is open (?soal=), the same as for the other
+ * three parts; this draws the pool card with the list, or the editor of the open problem.
+ */
+export default function ProblemsTab({
+  lang,
+  config,
+  problems,
+  pool,
+  open,
+  onOpen,
+  onBack,
+}: {
+  lang: Lang;
+  config: ExamConfigResponse;
+  problems: ProblemSummary[] | null;
+  pool: PoolCount;
+  open: Open;
+  /** Walk to a problem; true replaces the address entry instead of adding one */
+  onOpen: (o: number | "baru") => void;
+  onBack: () => void;
+}) {
+  if (open !== null && problems)
     return (
       <Editor
         key={String(open)}
         lang={lang}
-        id={open === "new" ? null : open}
+        id={open === "baru" ? null : open}
         config={config}
-        rows={d.problems}
-        onOpen={setOpen}
-        onBack={() => {
-          setOpen(null);
-          list.refresh();
-        }}
+        rows={problems}
+        onOpen={onOpen}
+        onBack={onBack}
       />
     );
-  if (!d) return <Skeleton height={180} />;
-  return <ProblemList lang={lang} problems={d.problems} onOpen={setOpen} />;
+  if (!problems) return <Skeleton height={180} />;
+  return <ProblemList lang={lang} problems={problems} pool={pool} onOpen={onOpen} />;
 }
 
 /* -------------------------------------------------------------------- list */
@@ -110,11 +128,13 @@ export default function ProblemsTab({ lang, config }: { lang: Lang; config: Exam
 function ProblemList({
   lang,
   problems,
+  pool,
   onOpen,
 }: {
   lang: Lang;
   problems: ProblemSummary[];
-  onOpen: (o: Open) => void;
+  pool: PoolCount;
+  onOpen: (o: number) => void;
 }) {
   const t = PR[lang];
   const b = BK[lang];
@@ -131,16 +151,9 @@ function ProblemList({
   );
   const pg = usePager(list, { id: "bank-livecode", size: 20, reset: [tier, q] });
   return (
-    <section className="stack" style={{ gap: 12 }}>
-      <div className="panel__head">
-        <div className="stack" style={{ gap: 2 }}>
-          <h2 className="panel__title">{t.title}</h2>
-          <span className="hint">{t.lede}</span>
-        </div>
-        <button type="button" className="btn btn--primary" onClick={() => onOpen("new")}>
-          <PlusIcon size={18} aria-hidden="true" />
-          {t.add}
-        </button>
+    <section className="stack">
+      <div className="r3pools">
+        <PoolCard lang={lang} p={pool} />
       </div>
       {problems.length === 0 ? (
         <section className="panel">
