@@ -17,7 +17,7 @@ import {
 } from "../../src/lib/schema";
 import { EVENT_SEED } from "../../src/lib/recruitment/seed";
 import { createSessionCookie, hashPassword } from "../../src/lib/auth";
-import { cekAkunBaru, cekMasukOprec, cekNama } from "../../src/lib/recruitment/akun";
+import { cekAkunBaru, cekGantiSandi, cekMasukOprec, cekNama } from "../../src/lib/recruitment/akun";
 
 type Rows = Record<string, unknown[]>;
 const tabelNama = new Map<unknown, string>([
@@ -152,6 +152,13 @@ describe("the checks", () => {
     expect(cekNama("Muhammad Al-Fatih O'Neil")).toBe("Muhammad Al-Fatih O'Neil");
     expect(cekNama("李小龙")).toBe("李小龙");
     expect(cekMasukOprec({ nim: NIM, sandi: "" })).toMatchObject({ field: "sandi" });
+    expect(cekGantiSandi({ lama: "a", baru: "sandibaru99" })).toEqual({
+      ok: true,
+      lama: "a",
+      baru: "sandibaru99",
+    });
+    expect(cekGantiSandi({ lama: "", baru: "sandibaru99" })).toMatchObject({ field: "lama" });
+    expect(cekGantiSandi({ lama: "a", baru: "1234567" })).toMatchObject({ field: "baru" });
   });
 });
 
@@ -302,5 +309,65 @@ describe("Reset Akun", () => {
     expect(ok.code).toBe(200);
     expect(ok.body.klaim).toMatch(/^[A-HJ-KM-NP-Z2-9]{8}$/);
     expect(tulis.find((w) => w.tabel === "account")?.nilai).toMatchObject({ passHash: null });
+  });
+});
+
+describe("changing your own password", () => {
+  beforeEach(() => {
+    HASH ||= hashPassword("rahasia12");
+    rows.account = [{ nim: NIM, nama: "Sari", passHash: HASH, ada: HASH, versi: 2 }];
+    rows["account:update"] = [{ nim: NIM }];
+  });
+  const kirim = (body: unknown, cookie = oprecCookie(2)) =>
+    panggil("POST", "account-password", { body, cookie });
+
+  it("saves a new hash, raises the versi and keeps this device signed in with a fresh cookie", async () => {
+    const r = await kirim({ lama: "rahasia12", baru: "sandibaru99" });
+    expect(r.code).toBe(200);
+    expect(bacaTokenOprec(r.headers["set-cookie"].split(";")[0].split("=")[1])?.v).toBe(3);
+    const u = tulis.find((w) => w.tabel === "account" && w.op === "update")!.nilai as {
+      passHash: string;
+      versi: number;
+    };
+    expect(u.versi).toBe(3);
+    expect(u.passHash).not.toContain("sandibaru99");
+  });
+
+  it("needs the current password, and a miss counts toward the lockout", async () => {
+    const r = await kirim({ lama: "salah1234", baru: "sandibaru99" });
+    expect([r.code, r.body.kode]).toEqual([401, "sandi_salah"]);
+    expect(r.headers["set-cookie"]).toBeUndefined();
+    expect(tulis.some((w) => w.tabel === "account")).toBe(false);
+    expect(tulis.find((w) => w.tabel === "percobaan")?.nilai).toMatchObject({
+      berhasil: false,
+      jenis: "oprec",
+    });
+  });
+
+  it("refuses the same password, a short one and a missing field", async () => {
+    expect((await kirim({ lama: "rahasia12", baru: "rahasia12" })).body.kode).toBe("sandi_sama");
+    expect((await kirim({ lama: "rahasia12", baru: "pendek" })).body).toMatchObject({
+      kode: "data_salah",
+      field: "baru",
+    });
+    expect((await kirim({ baru: "sandibaru99" })).body).toMatchObject({
+      kode: "data_salah",
+      field: "lama",
+    });
+  });
+
+  it("is locked after five misses, and needs a signed-in candidate", async () => {
+    rows.percobaan = [{ n: 5 }];
+    expect((await kirim({ lama: "rahasia12", baru: "sandibaru99" })).code).toBe(429);
+    rows.percobaan = [{ n: 0 }];
+    const anon = await panggil("POST", "account-password", {
+      body: { lama: "rahasia12", baru: "sandibaru99" },
+    });
+    expect([anon.code, anon.body.kode]).toEqual([401, "belum_masuk_oprec"]);
+  });
+
+  it("a device with an old versi cannot change it", async () => {
+    const r = await kirim({ lama: "rahasia12", baru: "sandibaru99" }, oprecCookie(1));
+    expect(r.code).toBe(401);
   });
 });

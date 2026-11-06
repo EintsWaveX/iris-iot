@@ -127,6 +127,25 @@
   padding: 10px 12px;
   position: relative;
 }
+.n7-room__who {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.n7-who__list {
+  display: grid;
+  gap: 4px;
+  list-style: decimal inside;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+.n7-who__list li {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
 .n7-room__cap {
   align-items: center;
   display: grid;

@@ -114,6 +114,10 @@ export const REC_AKUN_EVENT = "iris:rec-akun";
 export const REC_SESI_HABIS = "iris:rec-sesi-habis";
 export type AkunMode = "masuk" | "daftar";
 
+/** Opens the candidate's Ganti Sandi dialog (RecNav hosts it) */
+export const REC_SANDI_EVENT = "iris:rec-sandi";
+export const bukaGantiSandi = () => window.dispatchEvent(new Event(REC_SANDI_EVENT));
+
 /** Opens the oprec account dialog (RecNav hosts it); after signing in the page goes to `next`. */
 export function bukaAkun(mode: AkunMode = "masuk", next?: string) {
   window.dispatchEvent(new CustomEvent(REC_AKUN_EVENT, { detail: { mode, next } }));

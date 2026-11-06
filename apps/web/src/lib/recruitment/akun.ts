@@ -42,6 +42,15 @@ export function cekAkunBaru(
   return { ok: true, nim, nama, sandi: r.sandi };
 }
 
+/** A candidate changing their own password: the current one, and a new one that follows the same rule. */
+export function cekGantiSandi(raw: unknown): { ok: true; lama: string; baru: string } | Gagal {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  if (typeof r.lama !== "string" || !r.lama || r.lama.length > SANDI_MAX)
+    return { ok: false, field: "lama" };
+  if (!cekSandi(r.baru)) return { ok: false, field: "baru" };
+  return { ok: true, lama: r.lama, baru: r.baru };
+}
+
 export function cekMasukOprec(raw: unknown): { ok: true; nim: string; sandi: string } | Gagal {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const nim = typeof r.nim === "string" ? r.nim.trim() : r.nim;
