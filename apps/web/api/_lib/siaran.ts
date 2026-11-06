@@ -14,6 +14,7 @@
  *
  * PC heartbeats (api/agent) send only when something a page shows changed.
  */
+import { waitUntil } from "@vercel/functions";
 import type { ApiHandler, ApiRequest, ApiResponse } from "./http.js";
 import { ambilAntre, kirimRelay } from "./aliran.js";
 import { denganGalat } from "./galat.js";
@@ -30,6 +31,12 @@ export async function siarkan(topik: readonly Topik[]): Promise<void> {
  * Wraps a route: once a non-GET request has answered with a success (a 2xx
  * whose JSON isn't `ok: false`), the route's topics go out. The answer has
  * already been sent by then, so the caller never waits on the relay.
+ *
+ * The send is kept alive with waitUntil (2026-11-06): awaited after the
+ * response alone, the instance could freeze before the relay call finished
+ * and about one broadcast in three never went out (a room opened or ended
+ * showed on a candidate's page only after a refresh). api/agent had the
+ * same bug on 2026-10-13 and the same fix.
  */
 export function denganSiaran(rute: string, handler: ApiHandler): ApiHandler {
   // Errors it logs or throws are reported too (_lib/galat.ts).
@@ -55,9 +62,9 @@ export function denganSiaran(rute: string, handler: ApiHandler): ApiHandler {
     if (topikUntuk(rute, aksi) === null) {
       // A write missing from siaran-topik.ts: reported, so it gets listed.
       console.error(`[siaran] ${rute}:${String(aksi ?? "")} has no topics`);
-      await kirimRelay([], antre);
+      waitUntil(kirimRelay([], antre));
       return;
     }
-    await kirimRelay(topik, antre);
+    waitUntil(kirimRelay(topik, antre));
   });
 }
