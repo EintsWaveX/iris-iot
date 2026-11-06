@@ -40,6 +40,7 @@ import { tgl } from "../../shared";
 import { useRevealMotion } from "../../reveal/fx";
 import { PN } from "../panelStrings";
 import AkunCek from "./AkunCek";
+import CandidateRollback from "../rollback/CandidateRollback";
 import TambahCaAs, { BerkasPanitia } from "./TambahCaAs";
 
 const waktu = (iso: string, lang: Lang) => {
@@ -55,6 +56,7 @@ export default function BerkasReview({
   id: id0,
   queue,
   canAdd = false,
+  rollback = false,
   back,
   onClose,
   onChanged,
@@ -65,6 +67,8 @@ export default function BerkasReview({
   queue: CandidateRow[];
   /** hakPenuh: upload the candidate's PDFs and correct their details (Tambah CaAs) */
   canAdd?: boolean;
+  /** Holds the rollback right (cuttingLock): bring a withdrawn CaAs back, or put any CaAs back at a stage */
+  rollback?: boolean;
   /** Opened from another part of the panel: a button in the header goes back there. */
   back?: { label: string; go: () => void };
   onClose: () => void;
@@ -446,6 +450,19 @@ export default function BerkasReview({
                     {p.del}
                   </button>
                 </div>
+              )}
+              {rollback && (
+                <CandidateRollback
+                  lang={lang}
+                  id={c.id}
+                  nim={c.nim}
+                  nama={c.nama}
+                  status={c.status}
+                  onChanged={() => {
+                    onChanged();
+                    void muat();
+                  }}
+                />
               )}
               {c.status === "revision" && c.reviewNote && (
                 <div className="rec-note rec-note--warn">
