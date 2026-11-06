@@ -81,7 +81,16 @@ const draftOf = (r: RecCProblemRow): CProblemDraft => ({
 
 /** What counts as the problem's judged content: changing any of it means the key must be checked again. */
 const judged = (d: CProblemDraft) =>
-  JSON.stringify([d.tier, d.limits, d.samples, d.tests, d.reference]);
+  JSON.stringify([
+    d.tier,
+    // Named one by one: Postgres jsonb hands object keys back shortest first ({ memKb, timeMs }),
+    // the parsed draft has { timeMs, memKb }, and a plain stringify of the two never matches.
+    // That made every save look "changed", wiped the check and refused Siap (6 Nov 2026).
+    [d.limits.timeMs, d.limits.memKb],
+    d.samples.map((s) => [s.input, s.output]),
+    d.tests.map((t) => [t.input, t.output]),
+    d.reference,
+  ]);
 
 export async function daftarMasalah(k: KonteksMasalah) {
   const rows = await k.db
