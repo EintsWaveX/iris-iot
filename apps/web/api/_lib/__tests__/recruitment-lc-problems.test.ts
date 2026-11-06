@@ -146,6 +146,31 @@ describe("simpanMasalah", () => {
     });
   });
 
+  it("a checked problem read back from jsonb (keys in the database's order) is not 'changed'", async () => {
+    // Postgres jsonb stores object keys shortest first, so limits come back as { memKb, timeMs };
+    // the parsed draft has { timeMs, memKb }. Same values: the check must survive (6 Nov 2026 bug:
+    // Terverifikasi, yet Simpan sebagai Siap answered "belum dicek").
+    const stored = row();
+    const { timeMs, memKb } = stored.limits;
+    stored.limits = { memKb, timeMs };
+    const a = scripted([[stored], [row({ version: 4, status: "ready" })]]);
+    const r = ctx(a.db, { id: 5, version: 3, draft: draft(), status: "ready" });
+    await simpanMasalah(r.k);
+    expect(r.out.status).toBe(200);
+    expect(a.calls.find((c) => c.op === "update")!.set).toMatchObject({
+      status: "ready",
+      checkOk: true,
+    });
+    // and a problem already dealt to a seat is not "locked" by the same false alarm
+    const b = ctx(scripted([[{ ...stored, shownAt: new Date(5) }], [row({ version: 4 })]]).db, {
+      id: 5,
+      version: 3,
+      draft: draft(),
+    });
+    await simpanMasalah(b.k);
+    expect(b.out.status).toBe(200);
+  });
+
   it("after a real deal the tests, samples, limits and reference are locked but the text is not", async () => {
     const changed = draft();
     changed.limits.timeMs = 2000;
