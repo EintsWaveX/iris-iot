@@ -1,0 +1,31 @@
+/* The rollback dialog (5 Nov 2026): what would be deleted, in a plain list. */
+.rb__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  padding: 10px 12px;
+}
+.rb__list li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  color: var(--text);
+}
+.rb__list .num {
+  min-width: 2ch;
+  text-align: right;
+  font-weight: 600;
+}
+.rb__force {
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text);
+}
+.rb__force input {
+  margin-top: 3px;
+}

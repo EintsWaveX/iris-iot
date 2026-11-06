@@ -66,6 +66,7 @@ import "../recruitment-kandidat.css";
 import TambahCaAs, { BerkasPanitia } from "./kandidat/TambahCaAs";
 import AturBerkas from "./kandidat/AturBerkas";
 import BerkasReview from "./kandidat/BerkasReview";
+import CandidateRollback from "./rollback/CandidateRollback";
 
 import { useDocRules } from "../../../lib/recruitment/doc-rules";
 import Skeleton from "../../ui/Skeleton";
@@ -272,6 +273,19 @@ function Lembar({
                 {t.del}
               </button>
             </div>
+          )}
+          {rights.cuttingLock && (
+            <CandidateRollback
+              lang={lang}
+              id={c.id}
+              nim={c.nim}
+              nama={c.nama}
+              status={c.status}
+              onChanged={() => {
+                onChanged();
+                void muat();
+              }}
+            />
           )}
           {rights.approve && (
             <AkunCek lang={lang} nim={c.nim} nama={c.nama} roster={c.namaRoster} judul="rec-h3" />

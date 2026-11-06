@@ -369,10 +369,23 @@ describe("who may reach the Cutting board", () => {
     ).toBe(400);
   });
 
-  it("lets only the Ketua lock or unlock", async () => {
-    panitia("acara");
-    for (const aksi of ["lock", "unlock"])
-      expect((await panggil("POST", aksi, { body: { stage: "berkas" } })).code, aksi).toBe(403);
+  it("lets only the Ketua, Akademik and Admin lock or unlock", async () => {
+    for (const seat of ["acara", "wakil", "logistik", "pdd"] as const) {
+      panitia(seat);
+      for (const aksi of ["lock", "unlock"])
+        expect(
+          (await panggil("POST", aksi, { body: { stage: "berkas" } })).code,
+          `${seat} ${aksi}`,
+        ).toBe(403);
+    }
+    for (const seat of ["ketua", "akademik", "admin"] as const) {
+      panitia(seat);
+      for (const aksi of ["lock", "unlock"])
+        expect(
+          (await panggil("POST", aksi, { body: { stage: "berkas" } })).code,
+          `${seat} ${aksi}`,
+        ).not.toBe(403);
+    }
   });
 
   it("refuses a stage the journey has no Cutting for", async () => {

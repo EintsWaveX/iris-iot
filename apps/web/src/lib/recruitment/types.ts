@@ -300,6 +300,12 @@ export type RecError =
   | "sesi_berganti"
   // S2: Cutting
   | "terkunci"
+  // Rollback (2026-11-05)
+  | "terblokir"
+  | "pakai_pn_undo"
+  | "belum_dijadikan"
+  | "amplop_sudah_dibuka"
+  | "belum_ditutup"
   | "belum_lengkap"
   | "belum_dikunci"
   | "lewat_waktu"

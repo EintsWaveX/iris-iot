@@ -330,7 +330,7 @@ export const SETTINGS: { [K in SettingKey]: SettingDef<K> } = {
   penerimaan: {
     key: "penerimaan",
     label: { id: "Penerimaan dan penutupan edisi", en: "Acceptance and closing the edition" },
-    roles: ["ketua"],
+    roles: ["ketua", "akademik", "admin"],
     def: ACCEPT_DEFAULT,
     check: checkAccept,
   },

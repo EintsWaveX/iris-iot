@@ -124,7 +124,7 @@ export interface TutupInfo {
   autoClose: boolean;
 }
 
-async function muatTutup(db: Db, edisiId: number, now: Date): Promise<TutupInfo> {
+export async function muatTutup(db: Db, edisiId: number, now: Date): Promise<TutupInfo> {
   const cfg = await bacaSetting(db, "penerimaan");
   const [e] = await db
     .select({ closedAt: recEdition.closedAt, closedBy: recEdition.closedBy })
@@ -267,7 +267,7 @@ async function handleList(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
     taken: [...dipakai],
     takenNames: kolam.map((a) => ({ kode: a.kode, nama: a.nama })),
     quota: cfg.quota,
-    canConfirm: p?.penuh === true || p?.kursi?.division === "ketua",
+    canConfirm: p?.hak.accept === true,
     done: rows.length > 0 && rows.every((r) => r.decision === "tolak" || r.promotedNim !== null),
     locked: akhir?.locked === true,
     revealAt: akhir?.at?.toISOString() ?? null,
@@ -569,7 +569,7 @@ async function handleState(_req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!anggotaPanitia(p)) return void tolak(res, "tanpa_hak", 403);
   return void res.status(200).json({
     ok: true,
-    canConfirm: p?.penuh === true || p?.kursi?.division === "ketua",
+    canConfirm: p?.hak.accept === true,
     close: await muatTutup(db, edisi.id, new Date()),
   });
 }
