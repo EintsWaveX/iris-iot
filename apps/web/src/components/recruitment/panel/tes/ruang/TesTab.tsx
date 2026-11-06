@@ -21,6 +21,7 @@ import {
 } from "@phosphor-icons/react";
 import Confirm from "../../../../ui/Confirm";
 import Dialog from "../../../../ui/Dialog";
+import Disclose from "../../../../ui/Disclose";
 import IconButton from "../../../../ui/IconButton";
 import Fade from "../../../../ui/Fade";
 import Pill from "../../../../ui/Pill";
@@ -121,8 +122,6 @@ function HapusRuang({
   title,
   rehearsal,
   seats,
-  view,
-  selesai,
   done,
 }: {
   lang: Lang;
@@ -130,26 +129,15 @@ function HapusRuang({
   title: string;
   rehearsal: boolean;
   seats: number;
-  view: ReturnType<typeof roomView>["view"];
-  /** Some part has run in it */
-  selesai: boolean;
   done: () => void;
 }) {
   const t = RG[lang].list.del;
   const [open, setOpen] = useState(false);
-  const jalan = view === "part-running" || view === "livecode-running" || view === "part-paused";
-  const dipakai = !rehearsal && selesai;
-  const alasan = jalan ? t.running : dipakai ? t.used : undefined;
+  // Always pressable: a room made by mistake must go, whatever state it is in. The server keeps only
+  // a real room whose candidates already have saved answers.
   return (
     <>
-      <IconButton
-        icon={TrashIcon}
-        kind="danger"
-        label={t.aria}
-        tip={alasan}
-        disabled={!!alasan}
-        onClick={() => setOpen(true)}
-      />
+      <IconButton icon={TrashIcon} kind="danger" label={t.aria} onClick={() => setOpen(true)} />
       <Confirm
         open={open}
         onOpenChange={setOpen}
@@ -160,14 +148,7 @@ function HapusRuang({
         onConfirm={async () => {
           const r = await recPost<{ ok: true }>("room-delete", { id });
           if (isFail(r)) {
-            toast(
-              r.kode === "ruang_berjalan"
-                ? t.running
-                : r.kode === "ruang_sudah_dipakai"
-                  ? t.used
-                  : t.fail,
-              "danger",
-            );
+            toast(r.kode === "ruang_ada_jawaban" ? t.used : t.fail, "danger");
             // Already gone (someone else deleted it): the list is stale, so reload it.
             if (r.kode === "tidak_ditemukan") done();
             return false;
@@ -357,7 +338,9 @@ function Daftar({
   };
   const rel = (v: Daftarku["rooms"][number]["view"]): 0 | 1 | 2 =>
     v === "setup" || v === "persiapan" ? 0 : v === "finished" ? 2 : 1;
-  const kartu = (r: Daftarku["rooms"][number], hariPanjang: string) => {
+  // `ringkas`: the night has more than one slot, so each room's Kesiapan sits folded under a header
+  // and the next slot's Siapkan Ruang button stays within reach instead of far down the page.
+  const kartu = (r: Daftarku["rooms"][number], hariPanjang: string, ringkas = false) => {
     // Before the room opens, its setup is the page: readiness and the Mulai Ujian card.
     const siap = r.view === "setup" || r.view === "persiapan";
     return (
@@ -417,29 +400,31 @@ function Daftar({
                 title={r.title}
                 rehearsal={r.rehearsal}
                 seats={r.seats}
-                view={r.view}
-                selesai={r.view === "finished" || r.part !== null}
                 done={refresh}
               />
             )}
           </div>
         </section>
-        {siap && (
-          <Kesiapan
-            lang={lang}
-            room={r}
-            buka={() => buka(r.id)}
-            atur={() => setAturId(r.id)}
-            latihan={() => setPilih("latihan")}
-          />
-        )}
+        {siap &&
+          (() => {
+            const isi = (
+              <Kesiapan
+                lang={lang}
+                room={r}
+                buka={() => buka(r.id)}
+                atur={() => setAturId(r.id)}
+                latihan={() => setPilih("latihan")}
+              />
+            );
+            return ringkas ? <Disclose head={<b>{KS[lang].title}</b>}>{isi}</Disclose> : isi;
+          })()}
       </div>
     );
   };
   const isiMalam = () => {
     if (cur === "latihan")
       return latihan.length ? (
-        latihan.map((r) => kartu(r, m.practiceRoom))
+        latihan.map((r) => kartu(r, m.practiceRoom, latihan.length > 1))
       ) : (
         <section className="panel n7-empty">
           <span className="n7-empty__art" aria-hidden="true">
@@ -472,7 +457,7 @@ function Daftar({
     const panjang = tgl(cur, lang);
     return (
       <>
-        {x.rooms.map((r) => kartu(r, panjang))}
+        {x.rooms.map((r) => kartu(r, panjang, x.rooms.length + x.pending.length > 1))}
         {x.pending.map((sl) => (
           <section className="panel n7-stagehead" key={`p${sl.id}`}>
             <div className="stack" style={{ gap: 2, minWidth: 0 }}>
@@ -813,8 +798,6 @@ function Ruang({
             title={v.room.title}
             rehearsal={v.room.rehearsal}
             seats={v.seats.length}
-            view={rv.view}
-            selesai={Object.keys(v.state.runs).length > 0 || v.state.stage === "finished"}
             done={() => {
               rooms.refresh();
               kembali();

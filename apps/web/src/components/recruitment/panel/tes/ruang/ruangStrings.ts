@@ -73,14 +73,14 @@ export const RG = dict({
         aria: "Hapus ruang",
         title: (t: string) => `Hapus ${t}?`,
         bodyReal: (n: number) =>
-          `Ruang ini belum pernah dijalankan. ${n} kursi di dalamnya ikut terhapus dan kandidatnya bisa masuk ruang lain. Slot di Plotting tidak berubah.`,
+          `Ruang ini dihapus seluruhnya, termasuk ${n} kursi di dalamnya. Kandidatnya bisa masuk ruang lain dan slot di Plotting tidak berubah. Tidak bisa dibatalkan.`,
         bodyPractice: (n: number) =>
           `Ruang latihan, ${n} kursi, jawaban dan hasil percobaannya ikut terhapus. Ini tidak bisa dibatalkan.`,
         confirm: "Hapus Ruang",
         done: "Ruang dihapus.",
         fail: "Ruang belum terhapus. Coba lagi.",
         running: "Ruang sedang berjalan. Selesaikan dulu.",
-        used: "Ruang ini sudah dijalankan, jadi tidak bisa dihapus.",
+        used: "Kandidat di ruang ini sudah punya jawaban tersimpan, jadi ruangnya tidak bisa dihapus.",
       },
     },
     con: {
@@ -494,14 +494,14 @@ export const RG = dict({
         aria: "Delete room",
         title: (t: string) => `Delete ${t}?`,
         bodyReal: (n: number) =>
-          `Nobody has run this room. Its ${n} seats go with it and those candidates can sit in another room. The slot in Plotting is unchanged.`,
+          `This room is removed completely, with its ${n} seats. Those candidates can sit in another room and the slot in Plotting is unchanged. This can't be undone.`,
         bodyPractice: (n: number) =>
           `The practice room goes, with its ${n} seats, answers and test results. This can't be undone.`,
         confirm: "Delete Room",
         done: "Room deleted.",
         fail: "The room wasn't deleted. Try again.",
         running: "The room is running. Finish it first.",
-        used: "This room already ran, so you can't delete it.",
+        used: "Candidates in this room already have saved answers, so the room can't be deleted.",
       },
     },
     con: {
@@ -913,14 +913,14 @@ export const RG = dict({
         aria: "删除考场",
         title: (t: string) => `删除${t}？`,
         bodyReal: (n: number) =>
-          `这个考场从未运行过。里面的 ${n} 个座位会一起删除，这些考生可以进入其他考场。排程里的时段不变。`,
+          `这个考场会被完整删除，包括里面的 ${n} 个座位。这些考生可以进入其他考场，排程里的时段不变。此操作无法撤销。`,
         bodyPractice: (n: number) =>
           `练习考场连同它的 ${n} 个座位、答案和测试结果都会被删除。此操作无法撤销。`,
         confirm: "删除考场",
         done: "考场已删除。",
         fail: "考场没有删除成功，请重试。",
         running: "考场正在进行。请先结束。",
-        used: "这个考场已经运行过，所以不能删除。",
+        used: "这个考场里的考生已经有保存的答案，所以不能删除。",
       },
     },
     con: {
