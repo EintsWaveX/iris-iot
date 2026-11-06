@@ -1157,6 +1157,32 @@ describe("deleting a room completely", () => {
     expect(r.status).toBe(200);
   });
 
+  it("takes the room's own slot with it when nobody is seated in it", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const ruang = nyata({ stage: "prep" });
+    rows.room = (sel) => (sel ? [{ room: ruang, slot: null }] : [ruang]);
+    rows.seat = [];
+    rows.assignment = [{ n: 0 }];
+    const r = await jalan("room-delete", "AKD", { id: 9 });
+    expect(r.status).toBe(200);
+    expect(r.body.slotDihapus).toBe(true);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "slot")).toBe(true);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "examiner")).toBe(true);
+  });
+
+  it("keeps the slot when candidates are still booked in it", async () => {
+    pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
+    const ruang = nyata({ stage: "prep" });
+    rows.room = (sel) => (sel ? [{ room: ruang, slot: null }] : [ruang]);
+    rows.seat = [];
+    rows.assignment = [{ n: 3 }];
+    const r = await jalan("room-delete", "AKD", { id: 9 });
+    expect(r.status).toBe(200);
+    expect(r.body.slotDihapus).toBe(false);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "room")).toBe(true);
+    expect(tulis.some((x) => x.op === "delete" && x.tabel === "slot")).toBe(false);
+  });
+
   it("keeps a real room whose candidates already have saved answers", async () => {
     pelakuNim.AKD = pelaku({ plotPengawas: true, bank: true });
     const ruang = nyata({ stage: "finished", finishedAt: Date.now() });

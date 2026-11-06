@@ -105,8 +105,12 @@
   border-left: 4px solid var(--tc);
   display: grid;
   gap: 22px;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  /* Name | rail | actions: the rail sits in the middle of its own column, so the gap before it and after it match */
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 1fr) auto;
   padding: 16px 20px;
+}
+.n7-stagehead > .n7-rail {
+  justify-self: center;
 }
 .n7-stagehead__t {
   align-items: center;
@@ -201,6 +205,9 @@
 @media (max-width: 1100px) {
   .n7-stagehead {
     grid-template-columns: 1fr;
+  }
+  .n7-stagehead > .n7-rail {
+    justify-self: start;
   }
 }
 @media (max-width: 720px) {

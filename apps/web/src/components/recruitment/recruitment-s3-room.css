@@ -595,6 +595,15 @@
   gap: 18px;
   align-items: start;
 }
+/* One panel across the page: the room's own details on the left, who watches it on the right */
+.r3setup__cols {
+  display: grid;
+  gap: 18px 32px;
+  align-items: start;
+}
+.r3setup__cols > * {
+  min-width: 0;
+}
 .r3setup .card {
   gap: 14px;
   min-width: 0;
@@ -767,7 +776,7 @@
   .r3tp__now {
     grid-column: 2;
   }
-  .r3setup {
+  .r3setup__cols {
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   }
 }

@@ -73,7 +73,9 @@ export const RG = dict({
         aria: "Hapus ruang",
         title: (t: string) => `Hapus ${t}?`,
         bodyReal: (n: number) =>
-          `Ruang ini dihapus seluruhnya, termasuk ${n} kursi di dalamnya. Kandidatnya bisa masuk ruang lain dan slot di Plotting tidak berubah. Tidak bisa dibatalkan.`,
+          n === 0
+            ? "Ruang ini dihapus seluruhnya, termasuk slotnya di Plotting. Tidak bisa dibatalkan."
+            : `Ruang ini dihapus seluruhnya, termasuk ${n} kursi di dalamnya. Slot di Plotting tetap ada karena kandidatnya masih terdaftar di sana. Tidak bisa dibatalkan.`,
         bodyPractice: (n: number) =>
           `Ruang latihan, ${n} kursi, jawaban dan hasil percobaannya ikut terhapus. Ini tidak bisa dibatalkan.`,
         confirm: "Hapus Ruang",
@@ -494,7 +496,9 @@ export const RG = dict({
         aria: "Delete room",
         title: (t: string) => `Delete ${t}?`,
         bodyReal: (n: number) =>
-          `This room is removed completely, with its ${n} seats. Those candidates can sit in another room and the slot in Plotting is unchanged. This can't be undone.`,
+          n === 0
+            ? "This room is removed completely, with its slot in Plotting. This can't be undone."
+            : `This room is removed completely, with its ${n} seats. The slot in Plotting stays because those candidates are still booked in it. This can't be undone.`,
         bodyPractice: (n: number) =>
           `The practice room goes, with its ${n} seats, answers and test results. This can't be undone.`,
         confirm: "Delete Room",
@@ -913,7 +917,9 @@ export const RG = dict({
         aria: "删除考场",
         title: (t: string) => `删除${t}？`,
         bodyReal: (n: number) =>
-          `这个考场会被完整删除，包括里面的 ${n} 个座位。这些考生可以进入其他考场，排程里的时段不变。此操作无法撤销。`,
+          n === 0
+            ? "这个考场会被完整删除，包括它在排程里的时段。此操作无法撤销。"
+            : `这个考场会被完整删除，包括里面的 ${n} 个座位。排程里的时段会保留，因为这些考生仍预约在其中。此操作无法撤销。`,
         bodyPractice: (n: number) =>
           `练习考场连同它的 ${n} 个座位、答案和测试结果都会被删除。此操作无法撤销。`,
         confirm: "删除考场",
