@@ -189,9 +189,12 @@ describe("act: guards", () => {
     expect(no(logika(), { act: "start" }, L0 + 15 * MIN + 1)).toBe("tahap_salah");
   });
 
-  it("time: whole minutes from −10 to +30, only while the room has time", () => {
+  it("time: whole seconds from −10 to +30 minutes, only while the room has time", () => {
     const s = logika();
-    expect(no(s, { act: "time", deltaMs: 30_000 }, L0 + MIN)).toBe("nilai_salah");
+    expect(no(s, { act: "time", deltaMs: 30_000 }, L0 + MIN)).toBe("ok");
+    expect(no(s, { act: "time", deltaMs: -45_000 }, L0 + MIN)).toBe("ok");
+    expect(no(s, { act: "time", deltaMs: 1500 }, L0 + MIN)).toBe("nilai_salah");
+    expect(no(s, { act: "time", deltaMs: -11 * MIN }, L0 + MIN)).toBe("nilai_salah");
     expect(no(s, { act: "time", deltaMs: 31 * MIN }, L0 + MIN)).toBe("nilai_salah");
     expect(no(s, { act: "time", deltaMs: 0 }, L0 + MIN)).toBe("nilai_salah");
     expect(no(s, { act: "time", deltaMs: MIN }, L0 + 15 * MIN + 1)).toBe("tahap_salah");

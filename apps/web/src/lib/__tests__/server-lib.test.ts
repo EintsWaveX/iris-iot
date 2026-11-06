@@ -24,11 +24,11 @@ describe("batasLuringDetik", () => {
     expect(batasLuringDetik(new Date("2026-09-24T03:00:00+07:00"), null)).toBeGreaterThan(
       INTERVAL_MALAM_SEC,
     );
-    // 05:50 WIB and 00:14 WIB are the day's pace again.
-    expect(batasLuringDetik(new Date("2026-09-24T05:50:00+07:00"), null)).toBeLessThan(
+    // 05:00 WIB and 23:59 WIB are the day's pace again.
+    expect(batasLuringDetik(new Date("2026-09-24T05:00:00+07:00"), null)).toBeLessThan(
       INTERVAL_MALAM_SEC,
     );
-    expect(batasLuringDetik(new Date("2026-09-24T00:14:00+07:00"), null)).toBeLessThan(
+    expect(batasLuringDetik(new Date("2026-09-24T23:59:00+07:00"), null)).toBeLessThan(
       INTERVAL_MALAM_SEC,
     );
   });

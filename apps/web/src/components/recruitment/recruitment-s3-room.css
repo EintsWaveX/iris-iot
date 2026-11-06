@@ -287,6 +287,41 @@
 .r3tp .btn:not(:disabled):active {
   transform: scale(0.97);
 }
+/* The hold controls (2026-11-07): each carries its own tone and icon, so the row reads by colour and shape. */
+.r3tp__grp {
+  align-items: center;
+}
+.r3tp__time {
+  gap: 8px 8px;
+}
+.r3tp__time .hold--tint[data-size="compact"] {
+  min-height: 44px;
+  padding: 0 12px 0 10px;
+}
+.r3tp__custom {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+.r3tp__custom input {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--accent);
+  color: var(--text);
+  font: 700 1.1rem / 1 var(--font-mono);
+  min-height: 32px;
+  text-align: center;
+  width: 4.2ch;
+}
+.r3tp__custom input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .r3tp__now {
   margin: 0;
 }
@@ -996,4 +1031,45 @@
 .judgeprob[data-full="yes"] {
   border-color: var(--ok);
   color: var(--ok);
+}
+
+/* ---------------------------------------- the finished room (2026-11-07, the user's notes) */
+/* The Master chip shows the long name; the summary reads at a size you do not lean in for. */
+.r3mchip b {
+  font-size: 1.05rem;
+}
+.r3mchip {
+  padding-right: 18px;
+}
+.n7-done .hint {
+  font-size: 1rem;
+}
+.n7-done__stats small {
+  font-size: 0.95rem;
+}
+.r3done__grade {
+  font-size: 1.1rem;
+  min-height: 56px;
+  padding: 0 28px;
+}
+.r3done__details {
+  padding: 18px 20px;
+}
+.r3done__details summary,
+.r3done__details .disclose__head {
+  font-size: 1.1rem;
+}
+.r3done__details .table {
+  font-size: 1.05rem;
+}
+.r3done__details .table th {
+  font-size: 0.95rem;
+}
+.r3done__details .table td,
+.r3done__details .table th {
+  padding: 10px 12px;
+}
+.r3done__details ul.hint {
+  font-size: 1rem;
+  line-height: 1.55;
 }

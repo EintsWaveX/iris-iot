@@ -227,6 +227,10 @@ const newRun = (durMs: number, now: number): PartRun => ({
 const wholeMinutes = (ms: number, lo: number, hi: number) =>
   Number.isInteger(ms) && ms % MIN === 0 && ms !== 0 && ms >= lo * MIN && ms <= hi * MIN;
 
+/** The room's time adjust is in whole seconds, -10 to +30 minutes (2026-11-07: custom seconds, was whole minutes). */
+const wholeSeconds = (ms: number, loS: number, hiS: number) =>
+  Number.isInteger(ms) && ms % 1000 === 0 && ms !== 0 && ms >= loS * 1000 && ms <= hiS * 1000;
+
 function controlAct(s: RoomState, a: Action, ctx: ActCtx): ActResult {
   const { now } = ctx;
   if (s.master?.nim !== ctx.nim) return fail("bukan_master");
@@ -307,7 +311,7 @@ function controlAct(s: RoomState, a: Action, ctx: ActCtx): ActResult {
     }
 
     case "time": {
-      if (!wholeMinutes(a.deltaMs, -10, 30)) return fail("nilai_salah");
+      if (!wholeSeconds(a.deltaMs, -10 * 60, 30 * 60)) return fail("nilai_salah");
       if (!r || r.state === "ended") return fail("tahap_salah");
       if (roomLeft(r, now) <= 0) return fail("waktu_ruang_habis");
       const c = clock(r, now);

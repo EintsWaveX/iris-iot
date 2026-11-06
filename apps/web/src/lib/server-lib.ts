@@ -44,12 +44,17 @@ const ENROLL_TOKEN_TTL_MIN = 30;
 // above the 5min a Neon free-tier compute needs to suspend only overnight.
 // A Module 2 to 4 session beats every 5s too: its readings reach the live
 // page only with a beat, and 15s made the page jump in bursts.
-// In the quiet hours (jamSepi) an idle beat waits 10 min while no Asisten
-// is online, so the database can sleep between beats (2026-10-21: a beat
-// every minute or less kept Neon awake all night and spent its quota).
+// In the quiet hours (jamSepi) an idle beat waits a while longer while no
+// Asisten is online, so the database can sleep between beats (2026-10-21: a
+// beat every minute or less kept Neon awake all night and spent its quota).
+// 2026-11-07: the server plan is bought now, so the day's idle beat is twice
+// as quick (user): 60 s -> 30 s. The quiet hours' beat stays at 600 s, since
+// nobody tests at midnight.
 export const INTERVAL_AKTIF_SEC = 15;
-export const INTERVAL_IDLE_SEC = 60;
+export const INTERVAL_IDLE_SEC = 30;
 export const INTERVAL_MALAM_SEC = 600;
+/** While a Tes Tulis room is open: a Run or Submit is claimed within seconds, at any hour. */
+export const INTERVAL_UJIAN_SEC = 5;
 export const INTERVAL_SIAGA_SEC = 5;
 export const INTERVAL_TELEMETRI_SEC = 5;
 export const MODUL_TELEMETRI_PC: ReadonlySet<number> = new Set([2, 3, 4]);

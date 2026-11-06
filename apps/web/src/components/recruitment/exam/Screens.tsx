@@ -6,6 +6,8 @@
  * The end lists what was handed in, never a score.
  */
 import {
+  ArrowLeftIcon,
+  ArrowsInIcon,
   ArrowsOutIcon,
   ClockIcon,
   FloppyDiskIcon,
@@ -14,7 +16,7 @@ import {
   TimerIcon,
   UserIcon,
 } from "@phosphor-icons/react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { PartKey } from "../../../lib/recruitment/exam-types";
 import type { Lang } from "../../../lib/kelas";
 import type { RoomPublic } from "../../../lib/recruitment/room-relay";
@@ -221,6 +223,14 @@ export function Finished({ lang, tv, motion }: { lang: Lang; tv: TestView; motio
   const room: RoomPublic | null = tv.room;
   const seat = tv.seat;
   const first = tv.me.nama.split(/\s+/)[0] ?? tv.me.nama;
+  // The test is over: there has to be a way off this screen (2026-11-07, "no back? or close?")
+  const [fs, setFs] = useState(false);
+  useEffect(() => {
+    const on = () => setFs(!!document.fullscreenElement);
+    on();
+    document.addEventListener("fullscreenchange", on);
+    return () => document.removeEventListener("fullscreenchange", on);
+  }, []);
   const line = (k: PartKey): { ok: boolean; sub: string } => {
     if (k === "livecode") {
       const r = room?.runs.livecode;
@@ -257,6 +267,22 @@ export function Finished({ lang, tv, motion }: { lang: Lang; tv: TestView; motio
           <span>{f.nextBody}</span>
         </div>
         <span className="hint">{f.board}</span>
+        <div className="row r3fin__acts" style={{ flexWrap: "wrap", gap: 10 }}>
+          {fs && (
+            <button
+              type="button"
+              className="btn btn--inverse btn--lg"
+              onClick={() => void document.exitFullscreen?.()}
+            >
+              <ArrowsInIcon size={22} aria-hidden="true" />
+              <span className="btn__label">{f.exitFs}</span>
+            </button>
+          )}
+          <a className="btn btn--primary btn--lg" href={href(lang, "/recruitment")}>
+            <ArrowLeftIcon size={22} aria-hidden="true" />
+            <span className="btn__label">{f.back}</span>
+          </a>
+        </div>
       </div>
     </div>
   );

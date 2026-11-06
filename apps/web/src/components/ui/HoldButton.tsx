@@ -19,6 +19,8 @@ export default function HoldButton({
   disabled = false,
   tint,
   icon: Icon,
+  size = "wide",
+  title,
 }: {
   label: string;
   onDone: () => void;
@@ -28,6 +30,10 @@ export default function HoldButton({
   /** The mockup's look (N7.Hold): a tinted outline, an icon, the label and a small "hold" tag. */
   tint?: "danger" | "warn" | "ok";
   icon?: ComponentType<IconProps>;
+  /** "compact" sits inline at its own width (a control row); "wide" fills its row. */
+  size?: "wide" | "compact";
+  /** Why it is disabled, for a tooltip and screen readers (the console's guard in words). */
+  title?: string;
 }) {
   const [tahan, setTahan] = useState(false);
   const jam = useRef<number | null>(null);
@@ -58,9 +64,12 @@ export default function HoldButton({
       type="button"
       className={tint ? "hold hold--tint" : `btn btn--${tone} hold`}
       data-tint={tint}
+      data-size={tint ? size : undefined}
       data-hold={tahan ? "yes" : undefined}
       style={{ "--hold-ms": `${ms}ms` } as CSSProperties}
       disabled={disabled}
+      title={title}
+      aria-label={disabled && title ? `${label}. ${title}` : undefined}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         e.currentTarget.setPointerCapture(e.pointerId);

@@ -726,14 +726,12 @@ function Ruang({
   people,
   kembali,
   rooms,
-  onNilai,
 }: {
   lang: Lang;
   id: number;
   people: { nim: string; nama: string; kode: string }[];
   kembali: () => void;
   rooms: { refresh: () => void };
-  onNilai: () => void;
 }) {
   const t = RG[lang];
   const room = useRecRoom(id, true);
@@ -765,8 +763,12 @@ function Ruang({
   const tabs: { v: Bagian; label: string }[] = [
     { v: "konsol", label: t.tabs.console },
     ...(v.me.canSetup ? [{ v: "atur" as const, label: t.tabs.setup }] : []),
-    // Grading opens with Live Coding's timer; the page asks the API who may grade
-    ...(v.state.runs.livecode ? [{ v: "nilai" as const, label: t.tabs.grade }] : []),
+    // One Penilaian tab (2026-11-07): this room's Live Coding grading, which opens with Live Coding's
+    // timer (the page asks the API who may grade), and everyone's scores below it. "Buka Penilaian" on
+    // the finished room's summary switches to this tab instead of opening a second Penilaian page.
+    ...(v.state.runs.livecode || (!v.room.rehearsal && rv.view === "finished")
+      ? [{ v: "nilai" as const, label: t.tabs.grade }]
+      : []),
   ];
   const slot = v.room.slot;
   const sub = slot
@@ -821,8 +823,13 @@ function Ruang({
       <Fade k={bagian}>
         {bagian === "atur" && v.me.canSetup ? (
           <RuangPengaturan lang={lang} v={v} people={people} refresh={refresh} />
-        ) : bagian === "nilai" && v.state.runs.livecode ? (
-          <JudgeTab lang={lang} roomId={id} selesai={rv.view === "finished"} />
+        ) : bagian === "nilai" && (v.state.runs.livecode || !v.room.rehearsal) ? (
+          <div className="stack">
+            {v.state.runs.livecode && (
+              <JudgeTab lang={lang} roomId={id} selesai={rv.view === "finished"} />
+            )}
+            {!v.room.rehearsal && <PenilaianTab lang={lang} />}
+          </div>
         ) : (
           <Konsol
             lang={lang}
@@ -833,7 +840,7 @@ function Ruang({
             kemajuan={live.kemajuan}
             log={log.data?.log ?? []}
             refresh={refresh}
-            onNilai={onNilai}
+            onNilai={() => setBagian("nilai")}
           />
         )}
       </Fade>
@@ -850,24 +857,11 @@ export default function TesTab({ lang }: { lang: Lang }) {
   const rooms = useRecRooms(true);
   const cal = useRecCalendar(true);
   const [id, pilih] = useRuangDipilih();
-  // The scores of everyone who sat in the rooms: opened from a finished room (Buka Penilaian), as in the mockup
-  const [nilai, setNilai] = useState(false);
   if (!rooms.data) return <Skeleton height={320} />;
   const jadwal = new Set<string>();
   for (const e of cal.data?.events ?? [])
     if (e.stage === "tes_tulis" && ["test", "makeup"].includes(e.kind))
       for (let d = e.startsOn; d <= e.endsOn; d = tambahHari(d, 1)) jadwal.add(d);
-  if (nilai)
-    return (
-      <div className="stack">
-        <div className="row">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setNilai(false)}>
-            <ArrowLeftIcon size={16} aria-hidden="true" /> {RG[lang].con.back}
-          </button>
-        </div>
-        <PenilaianTab lang={lang} />
-      </div>
-    );
   if (id !== null)
     return (
       <Ruang
@@ -876,7 +870,6 @@ export default function TesTab({ lang }: { lang: Lang }) {
         people={rooms.data.people ?? []}
         kembali={() => pilih(null)}
         rooms={rooms}
-        onNilai={() => setNilai(true)}
       />
     );
   return (

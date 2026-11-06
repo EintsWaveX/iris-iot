@@ -12,7 +12,14 @@
  * blurred, inert test; blur applies instantly.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeftIcon, LockSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  FlagIcon,
+  LockSimpleIcon,
+  SparkleIcon,
+} from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import type { PartKey, Phase1Part, Value } from "../../../lib/recruitment/exam-types";
 import type { Lang } from "../../../lib/kelas";
@@ -21,6 +28,7 @@ import { AnswerSaver, isAnswered, type SaveState } from "../../../lib/recruitmen
 import type { PartView, TestView } from "../../../lib/recruitment/seat-types";
 import { QuestionCard } from "./render";
 import { BigIcon, LiveChip, PartsMini, SaveChip, Timer, type Motion } from "./parts";
+import { CalmStars, EdgeGlow } from "./ScreenFx";
 import type { BonusQuote } from "../../../lib/recruitment/bonus";
 import BonusOffer from "./BonusOffer";
 import { TAB, askBonus, sendAnswer, submitPart, toast } from "./seatApi";
@@ -296,6 +304,8 @@ export default function Runner({
     .filter((i) => i >= 0);
   const pc = tv.plan.findIndex((p) => p.key === key);
   const timer = <Timer left={left} frozen={paused} lang={lang} big />;
+  // The part's planned length, for the edge glow (a +time can make `left` longer: the glow reads full then)
+  const totalMs = (tv.plan[pc]?.minutes ?? 0) * 60_000;
 
   const cells = (strip: boolean) => (
     <div
@@ -326,8 +336,16 @@ export default function Runner({
           }
           onClick={() => go(i)}
         >
-          {i + 1}
-          {flags.has(x.q) && <i className="r3cell__f" aria-hidden="true" />}
+          <span className="r3cell__n">{i + 1}</span>
+          {x.bonus && (
+            <SparkleIcon className="r3cell__sp" size={13} weight="fill" aria-hidden="true" />
+          )}
+          {flags.has(x.q) && (
+            <FlagIcon className="r3cell__fl" size={13} weight="fill" aria-hidden="true" />
+          )}
+          {!voided.has(x.q) && (x.bonus ? isAnswered(vals[x.q]) : answered.has(x.q)) && (
+            <CheckIcon className="r3cell__ck" size={13} weight="bold" aria-hidden="true" />
+          )}
         </button>
       ))}
     </div>
@@ -347,6 +365,8 @@ export default function Runner({
       data-blur={blur ? "yes" : "no"}
       data-enter={entering ? "yes" : undefined}
     >
+      <CalmStars motion={motion} />
+      <EdgeGlow left={left} total={totalMs} frozen={paused || timeUp} motion={motion} />
       <header className="r3top" data-chips={linkDown ? "2" : "1"}>
         <div className="r3top__id">
           <img
@@ -365,10 +385,10 @@ export default function Runner({
             </b>
           </div>
         </div>
+        <div className="r3top__mid">{timer}</div>
         <div className="r3top__right">
           {linkDown && <LiveChip lang={lang} />}
           <SaveChip s={save} lang={lang} />
-          {timer}
         </div>
         <ol className="n7t-rail" aria-label={TS[lang].lobby.tonight}>
           {tv.plan.map((p, i) => (
@@ -432,6 +452,12 @@ export default function Runner({
                 <i className="r3lg" data-f="yes" />
                 {t.run.legend[2]}
               </span>
+              {bonusItems.length > 0 && (
+                <span>
+                  <i className="r3lg" data-b="yes" />
+                  {t.bonus.cell}
+                </span>
+              )}
               {voided.size > 0 && (
                 <span>
                   <i className="r3lg" data-v="yes" />
@@ -469,56 +495,73 @@ export default function Runner({
               <span>{t.bonus.bar}</span>
             </div>
           )}
-          <div
-            ref={card}
-            data-b={it.bonus ? "yes" : undefined}
-            className={it.bonus ? "r3bonus__card" : undefined}
-          >
-            <QuestionCard
-              key={it.q}
-              view={it.view}
-              codeLang={it.lang}
-              index={cur}
-              total={items.length}
-              value={vals[it.q] ?? null}
-              onChange={(v) => setV(it.q, v)}
-              lang={lang}
-              flagged={flags.has(it.q)}
-              onFlag={() => flip(it.q)}
-              voided={it.voided}
-              disabled={blur || (locked && !it.bonus)}
-            />
+          {/* A fixed-size box: a long question or a wide code block scrolls inside it, both ways */}
+          <div className="r3cardbox" tabIndex={0} role="region" aria-label={t.run.questions}>
+            <div
+              ref={card}
+              data-b={it.bonus ? "yes" : undefined}
+              className={it.bonus ? "r3bonus__card" : undefined}
+            >
+              <QuestionCard
+                key={it.q}
+                view={it.view}
+                codeLang={it.lang}
+                index={cur}
+                total={items.length}
+                value={vals[it.q] ?? null}
+                onChange={(v) => setV(it.q, v)}
+                lang={lang}
+                flagged={flags.has(it.q)}
+                onFlag={() => flip(it.q)}
+                voided={it.voided}
+                disabled={blur || (locked && !it.bonus)}
+              />
+            </div>
           </div>
-          <nav className="r3nav" aria-label={t.run.moveNav}>
-            <button
-              type="button"
-              className="btn btn--ghost r3nav__prev"
-              aria-label={t.run.prev}
-              disabled={cur === 0}
-              onClick={() => go(cur - 1)}
-            >
-              <ArrowLeftIcon aria-hidden="true" />
-              <span className="r3nav__t">{t.run.prev}</span>
-            </button>
-            <button
-              type="button"
-              className="btn btn--inverse btn--sm r3nav__hand"
-              onClick={() => setAsk(true)}
-            >
-              {t.run.handInShort}
-            </button>
-            {cur < items.length - 1 ? (
-              <button type="button" className="btn btn--primary" onClick={() => go(cur + 1)}>
-                {t.run.nextQ}
-              </button>
-            ) : (
-              <button type="button" className="btn btn--primary" onClick={() => setAsk(true)}>
-                {t.run.review}
-              </button>
-            )}
-          </nav>
         </main>
       </div>
+      {/* Pinned to the bottom edge: Sebelumnya at the left corner, Berikutnya at the right */}
+      <nav className="r3nav" aria-label={t.run.moveNav} inert={blur}>
+        <button
+          type="button"
+          className="btn btn--ghost r3nav__prev"
+          aria-label={t.run.prev}
+          disabled={cur === 0}
+          onClick={() => go(cur - 1)}
+        >
+          <ArrowLeftIcon size={22} aria-hidden="true" />
+          <span className="r3nav__t">{t.run.prev}</span>
+        </button>
+        <span className="r3nav__pos num" aria-hidden="true">
+          {cur + 1} / {items.length}
+        </span>
+        <button
+          type="button"
+          className="btn btn--inverse btn--sm r3nav__hand"
+          onClick={() => setAsk(true)}
+        >
+          {t.run.handInShort}
+        </button>
+        {cur < items.length - 1 ? (
+          <button
+            type="button"
+            className="btn btn--primary r3nav__next"
+            onClick={() => go(cur + 1)}
+          >
+            <span className="r3nav__t">{t.run.nextQ}</span>
+            <ArrowRightIcon size={22} aria-hidden="true" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn--primary r3nav__next"
+            onClick={() => setAsk(true)}
+          >
+            <span className="r3nav__t">{t.run.review}</span>
+            <CheckIcon size={22} weight="bold" aria-hidden="true" />
+          </button>
+        )}
+      </nav>
 
       {paused && !timeUp && !cover && (
         <div className="r3over r3over--pause" role="status">

@@ -62,6 +62,22 @@
 .hold--tint .hold__fill {
   background: color-mix(in srgb, var(--tone) 42%, transparent);
 }
+/* Inline, at its own width: the console's transport row (Mulai, Jeda, Lewati, Buka Ulang, the seconds). */
+.hold--tint[data-size="compact"] {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 16px 0 14px;
+  width: auto;
+}
+.hold--tint[data-size="compact"] .hold__t {
+  justify-content: center;
+  width: auto;
+}
+.hold--tint[data-size="compact"] .hold__t small {
+  margin-left: 4px;
+}
 .hold__t {
   align-items: center;
   display: flex;

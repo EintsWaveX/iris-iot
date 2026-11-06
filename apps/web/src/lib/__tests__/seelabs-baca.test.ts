@@ -143,14 +143,14 @@ describe("jedaBaca", () => {
 
   it("reads every 30 minutes through a quiet day", () => {
     expect(jedaBaca(wib("10:00:00"), false)).toBe(JEDA_BACA_TENANG_MS);
-    expect(jedaBaca(wib("05:50:00"), false)).toBe(30 * 60_000);
-    expect(jedaBaca(wib("00:14:00"), false)).toBe(30 * 60_000);
+    expect(jedaBaca(wib("05:00:00"), false)).toBe(30 * 60_000);
+    expect(jedaBaca(wib("23:59:00"), false)).toBe(30 * 60_000);
   });
 
-  it("reads nothing in the quiet hours, 00:15 to 05:50", () => {
-    expect(jedaBaca(wib("00:15:00"), false)).toBeNull();
+  it("reads nothing in the quiet hours, 00:00 to 04:59", () => {
+    expect(jedaBaca(wib("00:00:00"), false)).toBeNull();
     expect(jedaBaca(wib("03:00:00"), false)).toBeNull();
-    expect(jedaBaca(wib("05:49:00"), false)).toBeNull();
+    expect(jedaBaca(wib("04:59:00"), false)).toBeNull();
   });
 });
 
