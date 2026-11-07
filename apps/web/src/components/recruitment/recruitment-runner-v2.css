@@ -384,37 +384,32 @@ body:has(.r3top) .toast[data-shown="yes"] {
 }
 
 /* ------------------------------------------------------- the edge glow */
-/* Two layers crossfade, so the colour drifts between two close tones; --g (0..1) is how far the glow
-   reaches, and the level (calm, warm, hot, crit) sets the tones, the strength and the speed. */
+/* Two layers crossfade, so the colour drifts between two close tones. The colours and the strength
+   (--c1, --c2, --a) come from the page and slide with the time left (glowTone), --g (0..1) is how far
+   the glow reaches, and the level only sets the pace of the breathing (--dur) and how deep it dips
+   (--dip). Slow on purpose (9 Nov 2026): about twice as slow as before, and the red stage keeps a
+   steady glow that only dips a little, so the last minutes feel urgent without flashing. */
 .r3glow {
-  /* Green with plenty of time, yellow, orange, then red as it runs out. A steady base strength keeps it
-     visible at every level; the pulse only dips to about half, so it never flashes (user, 2026-11-07). */
   --a: 0.34;
   --c1: #4ade80;
   --c2: #22c55e;
-  --dur: 8s;
+  --dur: 16s;
+  --dip: 0.5;
   inset: 0;
   pointer-events: none;
   position: fixed;
   z-index: 4;
 }
 .r3glow[data-lv="warm"] {
-  --a: 0.38;
-  --c1: #facc15;
-  --c2: #eab308;
-  --dur: 6s;
+  --dur: 12s;
 }
 .r3glow[data-lv="hot"] {
-  --a: 0.42;
-  --c1: #fb923c;
-  --c2: #f97316;
-  --dur: 3.4s;
+  --dur: 8s;
+  --dip: 0.6;
 }
 .r3glow[data-lv="crit"] {
-  --a: 0.5;
-  --c1: #ef4444;
-  --c2: #dc2626;
-  --dur: 1.8s;
+  --dur: 5s;
+  --dip: 0.8;
 }
 .r3glow::before,
 .r3glow::after {
@@ -438,17 +433,27 @@ body:has(.r3top) .toast[data-shown="yes"] {
     opacity: var(--a);
   }
   50% {
-    opacity: calc(var(--a) * 0.5);
+    opacity: calc(var(--a) * var(--dip));
   }
 }
 @keyframes r3-glow-b {
   0%,
   100% {
-    opacity: calc(var(--a) * 0.5);
+    opacity: calc(var(--a) * var(--dip));
   }
   50% {
     opacity: var(--a);
   }
+}
+/* The seat's violations: a steady tint on top (amber, orange, red by warning level), never pulsing */
+.r3glow__vio {
+  box-shadow: inset 0 0 var(--vr, 40px) calc(var(--vr, 40px) * 0.1) var(--vc, transparent);
+  inset: 0;
+  opacity: var(--va, 0);
+  position: absolute;
+  transition:
+    opacity 1.6s ease,
+    box-shadow 1.6s ease;
 }
 /* Paused or over: hold still and dim */
 .r3glow[data-frozen="yes"]::before,
@@ -470,6 +475,10 @@ body:has(.r3top) .toast[data-shown="yes"] {
 .r3glow[data-m="ldm"]::before {
   box-shadow: inset 0 0 40px 4px var(--gc);
 }
+.r3glow[data-m="reduce"] .r3glow__vio,
+.r3glow[data-m="ldm"] .r3glow__vio {
+  transition: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .r3stars {
     display: none;
@@ -480,6 +489,9 @@ body:has(.r3top) .toast[data-shown="yes"] {
   }
   .r3glow::after {
     display: none;
+  }
+  .r3glow__vio {
+    transition: none;
   }
 }
 

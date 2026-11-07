@@ -52,7 +52,15 @@ export function kejadianPerSeat(
   return out;
 }
 
-export const FILTERS = ["semua", "keluar", "kejadian", "keputusan", "terputus", "belum"] as const;
+export const FILTERS = [
+  "semua",
+  "keluar",
+  "kejadian",
+  "keputusan",
+  "ditahan",
+  "terputus",
+  "belum",
+] as const;
 export type Filter = (typeof FILTERS)[number];
 
 /** A seat tile reduced to what the chips look at. */
@@ -64,6 +72,12 @@ export interface Tile {
   open: boolean;
   /** A suggested violation cut nobody has decided yet (9 Nov 2026) */
   pending: boolean;
+  /** The Master holds this seat */
+  held?: boolean;
+  /** The worst violation warning level across parts, 0 to 3 */
+  level?: number;
+  /** Handed in the part that is running */
+  handed?: boolean;
 }
 
 export function matchFilter(f: Filter, t: Tile): boolean {
@@ -76,6 +90,8 @@ export function matchFilter(f: Filter, t: Tile): boolean {
       return t.count > 0;
     case "keputusan":
       return t.pending;
+    case "ditahan":
+      return !!t.held;
     case "terputus":
       return t.checkedIn && t.connected === false;
     case "belum":
@@ -87,4 +103,44 @@ export function countFilters(tiles: readonly Tile[]): Record<Filter, number> {
   const out = {} as Record<Filter, number>;
   for (const f of FILTERS) out[f] = tiles.filter((t) => matchFilter(f, t)).length;
   return out;
+}
+
+/** Why a seat needs a pengawas' look, most urgent first (9 Nov 2026). */
+export type Reason = "keluar" | "keputusan" | "ditahan" | "terputus" | "peringatan";
+
+export function attentionReasons(t: Tile): Reason[] {
+  const out: Reason[] = [];
+  if (t.open) out.push("keluar");
+  if (t.pending) out.push("keputusan");
+  if (t.held) out.push("ditahan");
+  if (t.checkedIn && t.connected === false) out.push("terputus");
+  if ((t.level ?? 0) >= 2) out.push("peringatan");
+  return out;
+}
+
+export interface Summary {
+  total: number;
+  /** Signed in */
+  masuk: number;
+  /** Signed in, not handed in, not out right now */
+  mengerjakan: number;
+  kumpul: number;
+  keluar: number;
+  terputus: number;
+  keputusan: number;
+  ditahan: number;
+}
+
+export function summarize(tiles: readonly Tile[]): Summary {
+  const masuk = tiles.filter((t) => t.checkedIn);
+  return {
+    total: tiles.length,
+    masuk: masuk.length,
+    mengerjakan: masuk.filter((t) => !t.handed && !t.open).length,
+    kumpul: masuk.filter((t) => t.handed).length,
+    keluar: tiles.filter((t) => t.open).length,
+    terputus: masuk.filter((t) => t.connected === false).length,
+    keputusan: tiles.filter((t) => t.pending).length,
+    ditahan: tiles.filter((t) => t.held).length,
+  };
 }

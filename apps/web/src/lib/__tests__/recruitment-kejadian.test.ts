@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  attentionReasons,
   countFilters,
+  summarize,
   kejadianPerSeat,
   matchFilter,
   type StrikeRow,
@@ -93,7 +95,15 @@ describe("the console's filters", () => {
       tile({ connected: false }),
       tile({ checkedIn: false, connected: null }),
     ]);
-    expect(c).toEqual({ semua: 5, keluar: 1, kejadian: 2, keputusan: 0, terputus: 1, belum: 1 });
+    expect(c).toEqual({
+      semua: 5,
+      keluar: 1,
+      kejadian: 2,
+      keputusan: 0,
+      ditahan: 0,
+      terputus: 1,
+      belum: 1,
+    });
   });
 });
 
@@ -146,5 +156,56 @@ describe("the filter for decisions still to make (9 Nov 2026)", () => {
     const n = countFilters([tile({ pending: true }), tile({}), tile({ pending: true })]);
     expect(n.keputusan).toBe(2);
     expect(n.semua).toBe(3);
+  });
+});
+
+describe("the room console's attention list and counters (9 Nov 2026)", () => {
+  const tile = (o: Partial<Tile> = {}): Tile => ({
+    checkedIn: true,
+    connected: true,
+    count: 0,
+    open: false,
+    pending: false,
+    ...o,
+  });
+
+  it("lists why a seat needs a look, most urgent first", () => {
+    expect(attentionReasons(tile())).toEqual([]);
+    expect(attentionReasons(tile({ open: true }))).toEqual(["keluar"]);
+    expect(
+      attentionReasons(tile({ open: true, pending: true, held: true, connected: false, level: 3 })),
+    ).toEqual(["keluar", "keputusan", "ditahan", "terputus", "peringatan"]);
+  });
+  it("a strong warning is worth a look, a notice is not", () => {
+    expect(attentionReasons(tile({ level: 1 }))).toEqual([]);
+    expect(attentionReasons(tile({ level: 2 }))).toEqual(["peringatan"]);
+  });
+  it("a seat that never came in is not offline", () => {
+    expect(attentionReasons(tile({ checkedIn: false, connected: false }))).toEqual([]);
+  });
+
+  it("counts seats in, answering, handed in, away, offline, undecided and held", () => {
+    const c = summarize([
+      tile({}),
+      tile({ handed: true }),
+      tile({ open: true, count: 1 }),
+      tile({ connected: false }),
+      tile({ pending: true, held: true }),
+      tile({ checkedIn: false, connected: null }),
+    ]);
+    expect(c).toEqual({
+      total: 6,
+      masuk: 5,
+      mengerjakan: 3,
+      kumpul: 1,
+      keluar: 1,
+      terputus: 1,
+      keputusan: 1,
+      ditahan: 1,
+    });
+  });
+  it("the held filter lists held seats", () => {
+    expect(matchFilter("ditahan", tile({ held: true }))).toBe(true);
+    expect(matchFilter("ditahan", tile({}))).toBe(false);
   });
 });
