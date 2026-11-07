@@ -1806,13 +1806,13 @@ html:has(.r3page:not(.r3page--shell)) {
 }
 
 /* The seat's violations (9 Nov 2026): a chip with the points in the part, and the icon of the
-   warning dialog. The chip sits at the bottom-left, clear of the timer, the bar and the watermark. */
+   warning dialog. The chip sits at the bottom-left, above the bottom bar so it never covers Sebelumnya, and clear of the timer and the watermark. */
 .r3vio__chip {
   align-items: center;
   background: color-mix(in srgb, var(--warn) 16%, var(--surface-1));
   border: 1px solid var(--warn);
   border-radius: 999px;
-  bottom: 16px;
+  bottom: 92px;
   color: var(--text);
   display: inline-flex;
   font-size: 0.85rem;
