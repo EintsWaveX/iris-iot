@@ -389,11 +389,41 @@ export const BK = dict({
     cfgTotal: "Total",
     cfgTotalNote:
       "Baris Total adalah nilai tertinggi secara teori: kalau peserta mengerjakan semua soal di pool dengan benar, bonus ikut, tanpa potongan Submit gagal. Nilai dasar tanpa bonus selalu sama dengan jatahnya.",
+    vioTitle: "Aturan Pelanggaran",
+    vioBody:
+      "Pelanggaran tercatat otomatis. Di sini kamu mengatur mana yang dihitung, seberapa berat, kapan peserta diperingatkan dan potongan nilai yang disarankan. Potongan tidak pernah jalan sendiri: panitia yang memutuskan.",
+    vioKind: "Jenis",
+    vioCounts: "Dihitung",
+    vioWeight: "Bobot",
+    vioKinds: {
+      layar: "Keluar dari layar penuh",
+      tab: "Pindah tab",
+      fokus: "Jendela kehilangan fokus",
+      tempel: "Mencoba paste",
+      alat: "Alat pengembang terdeteksi",
+      ganda: "Tes terbuka di tab atau perangkat lain",
+      foto: "Menekan tombol screenshot",
+    } as Record<string, string>,
+    vioFree: "Poin yang dimaafkan",
+    vioStep: "Potongan tiap poin",
+    vioMax: "Potongan paling besar",
+    vioWarn1: "Peringatan pertama di poin",
+    vioWarn2: "Peringatan kuat di poin",
+    vioWarn3: "Peringatan terakhir di poin",
+    vioCap: "Pelanggaran disimpan per bagian",
+    vioNoCut: "Tanpa potongan",
+    vioSummary: (free: number, step: number, max: number, w: number[]) =>
+      (step === 0
+        ? "Potongan nilai mati: pelanggaran hanya dicatat dan diperingatkan. "
+        : `${free} poin pertama dimaafkan. Tiap poin sesudahnya menyarankan potongan ${step}% dari nilai bagian itu, paling banyak ${max}%. `) +
+      `Peserta diperingatkan di poin ${w[0]}, ${w[1]} dan ${w[2]}. Pelanggaran yang dimaafkan panitia tidak dihitung.`,
     cfgScoreSum: (live: number, hand: number) =>
       `Jatah Live Coding ${live} poin, soal yang dibagikan ${hand} poin.`,
     cfgScoreOk: "Pas.",
     cfgScoreOff: "Belum pas. Ubah poin atau jumlah soal.",
     cfgErr: {
+      pelanggaran_salah:
+        "Aturan pelanggarannya belum benar (peringatan harus naik berurutan, potongan terbesar tidak boleh lebih kecil dari potongan tiap poin).",
       denda_salah:
         "Potongannya tidak masuk akal (paling besar tidak boleh lebih kecil dari potongan tiap Submit).",
       bobot_salah: "Jatah harus berjumlah 100.",
@@ -771,11 +801,41 @@ export const BK = dict({
     cfgTotal: "Total",
     cfgTotalNote:
       "The Total row is the highest score in theory: a candidate who gets every question in the pool right, bonus included, with no failed Submit cut. The base score without bonus always equals the share.",
+    vioTitle: "Violation rules",
+    vioBody:
+      "Violations are recorded automatically. Here you set which ones count, how heavy each is, when a candidate is warned and the score cut that is suggested. A cut never applies by itself: the committee decides.",
+    vioKind: "Kind",
+    vioCounts: "Counts",
+    vioWeight: "Weight",
+    vioKinds: {
+      layar: "Left full screen",
+      tab: "Switched tab",
+      fokus: "Window lost focus",
+      tempel: "Tried to paste",
+      alat: "Developer tools detected",
+      ganda: "Test open in another tab or device",
+      foto: "Pressed a screenshot key",
+    } as Record<string, string>,
+    vioFree: "Points forgiven",
+    vioStep: "Cut per point",
+    vioMax: "Biggest cut",
+    vioWarn1: "First warning at point",
+    vioWarn2: "Strong warning at point",
+    vioWarn3: "Final warning at point",
+    vioCap: "Violations stored per part",
+    vioNoCut: "No cut",
+    vioSummary: (free: number, step: number, max: number, w: number[]) =>
+      (step === 0
+        ? "The score cut is off: violations are only recorded and warned about. "
+        : `The first ${free} points are forgiven. Each point after that suggests a ${step}% cut of the part's score, at most ${max}%. `) +
+      `The candidate is warned at points ${w[0]}, ${w[1]} and ${w[2]}. A violation the committee excuses does not count.`,
     cfgScoreSum: (live: number, hand: number) =>
       `Live Coding share is ${live} points, the dealt problems add up to ${hand}.`,
     cfgScoreOk: "It matches.",
     cfgScoreOff: "It does not match yet. Change the points or the number of problems.",
     cfgErr: {
+      pelanggaran_salah:
+        "The violation rules are not valid (warnings must rise in order, the biggest cut cannot be under the cut per point).",
       denda_salah:
         "The cut is not valid (the biggest cut cannot be smaller than the cut per Submit).",
       bobot_salah: "The shares must add up to 100.",
@@ -1147,11 +1207,40 @@ export const BK = dict({
     cfgTotal: "合计",
     cfgTotalNote:
       "合计行是理论上的最高分：考生答对题库中的所有题目（含加分题），且没有失败提交扣分。不含加分题的基础分始终等于占比。",
+    vioTitle: "违规规则",
+    vioBody:
+      "违规会自动记录。在这里设置哪些违规计入、每项的分量、何时警告考生，以及建议的扣分。扣分不会自动生效，由委员会决定。",
+    vioKind: "类型",
+    vioCounts: "计入",
+    vioWeight: "分量",
+    vioKinds: {
+      layar: "退出全屏",
+      tab: "切换标签页",
+      fokus: "窗口失去焦点",
+      tempel: "尝试粘贴",
+      alat: "检测到开发者工具",
+      ganda: "考试在其他标签页或设备上打开",
+      foto: "按下截图键",
+    } as Record<string, string>,
+    vioFree: "免扣点数",
+    vioStep: "每点扣分",
+    vioMax: "最大扣分",
+    vioWarn1: "首次警告点数",
+    vioWarn2: "严重警告点数",
+    vioWarn3: "最终警告点数",
+    vioCap: "每部分保存的违规数",
+    vioNoCut: "不扣分",
+    vioSummary: (free: number, step: number, max: number, w: number[]) =>
+      (step === 0
+        ? "扣分已关闭：违规只记录并警告。"
+        : `前 ${free} 点免扣，之后每点建议扣该部分得分的 ${step}%，最多 ${max}%。`) +
+      `考生在 ${w[0]}、${w[1]}、${w[2]} 点时收到警告。委员会免除的违规不计入。`,
     cfgScoreSum: (live: number, hand: number) =>
       `现场编程占比 ${live} 分，发出的题目合计 ${hand} 分。`,
     cfgScoreOk: "吻合。",
     cfgScoreOff: "尚未吻合。请调整分数或题目数量。",
     cfgErr: {
+      pelanggaran_salah: "违规规则无效（警告点数必须递增，最大扣分不能小于每点扣分）。",
       denda_salah: "扣分设置无效（最大扣分不能小于每次扣分）。",
       bobot_salah: "占比之和必须为 100。",
       poin_tidak_cocok: "发出的题目分数之和与现场编程占比不符。",

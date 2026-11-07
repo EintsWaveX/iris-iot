@@ -28,6 +28,7 @@ import {
 } from "../../../../../lib/recruitment/exam-types";
 import { useBelumSimpan } from "../../../../../lib/belum-simpan";
 import { BK } from "./bankStrings";
+import ViolationRulesCard from "./ViolationRulesCard";
 
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 
@@ -447,6 +448,7 @@ export default function BankConfig({
           {t.cfgScoreSum(caps.livecode, handPoints)} {scoreOk ? t.cfgScoreOk : t.cfgScoreOff}
         </p>
       </section>
+      <ViolationRulesCard t={t} cfg={cfg} setCfg={setCfg} lock={lock} />
       <section className="panel r3cfg__foot">
         <div className="stack" style={{ gap: 2 }}>
           <b>{t.cfgBudget}</b>

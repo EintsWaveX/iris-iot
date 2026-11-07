@@ -247,3 +247,52 @@ describe("the failed Submit penalty and the Total row (8 Nov 2026)", () => {
     expect(m.total).toBeGreaterThan(capsOf(DEFAULT_EXAM_CONFIG).total);
   });
 });
+
+describe("the violation rules in the config (9 Nov 2026)", () => {
+  it("the default is valid and counts the page's own kinds", () => {
+    expect(validateConfig(fresh())).toEqual([]);
+    expect(DEFAULT_EXAM_CONFIG.violations.warnAt).toEqual([1, 3, 5]);
+    expect(DEFAULT_EXAM_CONFIG.violations.capPerPart).toBe(50);
+  });
+
+  it("a config saved without them gets the defaults and keeps the rest", () => {
+    const old = fresh() as unknown as Record<string, unknown>;
+    delete old.violations;
+    (old.livecode as Record<string, unknown>).minutes = 45;
+    const up = upgradeConfig(old);
+    expect(up.violations).toEqual(DEFAULT_EXAM_CONFIG.violations);
+    expect(up.livecode.minutes).toBe(45);
+  });
+
+  it("reads stored rules back, and ignores ones that make no sense", () => {
+    const c = fresh();
+    c.violations.free = 0;
+    c.violations.step = 10;
+    c.violations.max = 40;
+    c.violations.warnAt = [2, 4, 8];
+    c.violations.kinds.fokus = { counts: false, weight: 2 };
+    expect(upgradeConfig(c).violations).toEqual(c.violations);
+    const bad = fresh() as unknown as { violations: Record<string, unknown> };
+    bad.violations.warnAt = [5, 3, 1];
+    bad.violations.step = 99;
+    const up = upgradeConfig(bad);
+    expect(up.violations.warnAt).toEqual([1, 3, 5]);
+    expect(up.violations.step).toBe(5);
+  });
+
+  it("refuses a biggest cut under the cut per point, thresholds out of order, and a bad weight", () => {
+    const a = fresh();
+    a.violations.step = 20;
+    a.violations.max = 10;
+    expect(fields(a)).toContain("violations:pelanggaran_salah");
+    const b = fresh();
+    b.violations.warnAt = [3, 3, 5];
+    expect(fields(b)).toContain("violations:pelanggaran_salah");
+    const c = fresh();
+    c.violations.kinds.tab.weight = 6;
+    expect(fields(c)).toContain("violations:pelanggaran_salah");
+    const d = fresh();
+    d.violations.capPerPart = 5;
+    expect(fields(d)).toContain("violations:pelanggaran_salah");
+  });
+});
