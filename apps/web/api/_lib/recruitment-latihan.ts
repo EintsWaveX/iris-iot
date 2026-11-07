@@ -64,6 +64,7 @@ import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { SETTING_PREFIX } from "../../src/lib/recruitment/settings.js";
 import { muatOrang } from "./hak.js";
 import { pasangBawaanKe } from "./recruitment-bank.js";
+import { kosongkanRuang } from "./recruitment-hapus.js";
 import { jalankanLatihan, konteksLatihan } from "./recruitment-latihan-ctx.js";
 import { bacaSetup, tulisSetup } from "./recruitment-latihan-salin.js";
 import { pastikanHasil } from "./recruitment-latihan-contoh.js";
@@ -205,6 +206,10 @@ async function bangunEdisi(
     // Read the setup BEFORE the old edition goes: its rows go with it.
     const setup = await bacaSetup(t, lanjutan ? lama[0]!.id : live.id, lanjutan);
     for (const e of lama) {
+      // What hangs off an exam room has no cascade on the room, and one DELETE of the edition reaches the room
+      // before it reaches the seats, so with a strike or a judge job in the room the whole delete fails
+      // (7 Nov 2026: Mulai Ulang and Lompat Tahap answered 500 once a practice room had a strike). Clear it first.
+      await kosongkanRuang(t, { editionId: e.id });
       // The log has no foreign key (it outlives a deleted event), so it goes by hand.
       await tx.delete(recEventLog).where(eq(recEventLog.editionId, e.id));
       await tx.delete(recEdition).where(eq(recEdition.id, e.id));
