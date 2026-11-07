@@ -125,6 +125,7 @@ import { bungkus } from "./rahasia.js";
 import { muatOrang } from "./hak.js";
 import { muatKolam as muatDaftarAsisten, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { poinKursi } from "./recruitment-violations.js";
+import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { seatViolations } from "../../src/lib/recruitment/violations.js";
 import { muatPelaku, type PelakuServer } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
@@ -283,8 +284,12 @@ const slotInfo = (r: RecSlotRow): RoomSlotInfo => ({
   capacity: r.capacity,
 });
 
+/**
+ * Whether the room may be opened now: its slot is today, or it is a practice room, or the request is
+ * in Mode Latihan, where no time gate blocks anything (free mode, 6 Nov 2026).
+ */
 const isHariIni = (slot: RecSlotRow | null, rehearsal: boolean, now: number): boolean =>
-  rehearsal || !slot
+  rehearsal || !slot || bebas()
     ? true
     : tanggalWib(slot.startsAt).tanggal === tanggalWib(new Date(now)).tanggal;
 
