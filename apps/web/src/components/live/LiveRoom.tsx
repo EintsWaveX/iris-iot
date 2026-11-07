@@ -498,6 +498,7 @@ export default function LiveRoom({
           k: `b${i}`,
           label: t.board(slotState[i]?.role ?? s.role),
           lines: boardLines[i] ?? [],
+          open: slotState[i]?.status === "open",
         }),
       );
     if (modul === 2 || modul === 3) {
