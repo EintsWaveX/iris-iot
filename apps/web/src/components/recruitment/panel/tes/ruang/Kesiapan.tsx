@@ -30,6 +30,7 @@ import { useRecRoom } from "../../../../../lib/recruitment/room-client";
 import { bukaBagian } from "../../../../../lib/recruitment/panel-tab";
 import { RG } from "./ruangStrings";
 import { KS } from "./malamStrings";
+import { useCekJudge } from "./useCekJudge";
 import Skeleton from "../../../../ui/Skeleton";
 
 /** WIB clock of an instant: "18.30" in Indonesian, "18:30" elsewhere. */
@@ -79,6 +80,7 @@ export default function Kesiapan({
     300,
   );
   const [open, setOpen] = useState<null | "slot" | "soal" | "juri" | "mulai">(null);
+  const cek = useCekJudge(lang, juri.refresh);
   if (!v) return <Skeleton height={300} />;
 
   const tertulis = v.config.order.filter((p) => p !== "livecode");
@@ -317,9 +319,21 @@ export default function Kesiapan({
               <span className="hint">{t.queueLabel}</span>
               <b>{juri.data ? t.queue(juri.data.queue.waiting, juri.data.queue.running) : "-"}</b>
             </div>
+            {cek.hasil && (
+              <div className="stack" style={{ gap: 2 }} role="status">
+                <span className="hint">{cek.sinyal}</span>
+                <span className="hint">{cek.terakhirMenilai}</span>
+              </div>
+            )}
             <div className="row row--end">
-              <button type="button" className="btn btn--inverse" onClick={() => juri.refresh()}>
-                <span className="btn__label">{t.checkJudge}</span>
+              <button
+                type="button"
+                className="btn btn--inverse"
+                disabled={cek.busy}
+                aria-busy={cek.busy}
+                onClick={() => void cek.jalankan()}
+              >
+                <span className="btn__label">{cek.busy ? t.checking : t.checkJudge}</span>
               </button>
             </div>
           </section>

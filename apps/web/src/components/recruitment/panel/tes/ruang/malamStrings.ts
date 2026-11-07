@@ -148,6 +148,15 @@ export const KS = dict({
     queueLabel: "Queue",
     queue: (w: number, r: number) => `${w} menunggu · ${r} sedang dinilai`,
     checkJudge: "Cek Judge",
+    checking: "Mengecek",
+    judgeUp: (beat: string) => `Judge menjawab. Sinyal terakhir PC Lab ${beat}.`,
+    judgeDown: (beat: string | null) =>
+      beat
+        ? `Judge tidak menjawab. Sinyal terakhir PC Lab ${beat}. Cek PC Lab menyala dan agent jalan.`
+        : "Judge belum pernah menjawab. Cek PC Lab menyala dan agent terpasang.",
+    judgeFail: "Belum bisa mengecek Judge. Coba lagi.",
+    lastJudged: (when: string | null) =>
+      when ? `Terakhir menilai kode ${when}.` : "Belum pernah menilai kode.",
     startAnyway: "Mulai Walau Belum Siap?",
     startMissing: (n: number, names: string[]) => `${n} hal belum siap: ${names.join(", ")}.`,
     backToSetup: "Kembali Mengatur",
@@ -203,6 +212,15 @@ export const KS = dict({
     queueLabel: "Queue",
     queue: (w: number, r: number) => `${w} waiting · ${r} being graded`,
     checkJudge: "Check the Judge",
+    checking: "Checking",
+    judgeUp: (beat: string) => `The judge answers. The lab PC's last signal was ${beat}.`,
+    judgeDown: (beat: string | null) =>
+      beat
+        ? `The judge is not answering. The lab PC's last signal was ${beat}. Check that the lab PC is on and the agent is running.`
+        : "The judge has never answered. Check that the lab PC is on and the agent is installed.",
+    judgeFail: "Couldn't check the judge. Try again.",
+    lastJudged: (when: string | null) =>
+      when ? `It last graded code ${when}.` : "It has never graded code yet.",
     startAnyway: "Start Before Everything Is Ready?",
     startMissing: (n: number, names: string[]) => `${n} not ready: ${names.join(", ")}.`,
     backToSetup: "Back to Setup",
@@ -257,6 +275,14 @@ export const KS = dict({
     queueLabel: "队列",
     queue: (w: number, r: number) => `${w} 个等待 · ${r} 个评分中`,
     checkJudge: "检查评测",
+    checking: "检查中",
+    judgeUp: (beat: string) => `评测有响应。实验室电脑最后一次信号：${beat}。`,
+    judgeDown: (beat: string | null) =>
+      beat
+        ? `评测没有响应。实验室电脑最后一次信号：${beat}。请确认电脑已开机且 agent 在运行。`
+        : "评测从未响应。请确认实验室电脑已开机且已安装 agent。",
+    judgeFail: "暂时无法检查评测，请重试。",
+    lastJudged: (when: string | null) => (when ? `上次评分代码：${when}。` : "尚未评过任何代码。"),
     startAnyway: "尚未就绪，仍要开始吗？",
     startMissing: (n: number, names: string[]) => `${n} 项未就绪：${names.join("、")}。`,
     backToSetup: "返回设置",

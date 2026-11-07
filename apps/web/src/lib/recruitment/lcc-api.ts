@@ -206,4 +206,6 @@ export interface LccJudge {
   judgeReady: boolean;
   /** Seconds since the judge's newest heartbeat, null when it never reported */
   ageSec: number | null;
+  /** Seconds since the judge last finished a job (a Run, a Submit or a check), null when it never did */
+  lastJudgedSec: number | null;
 }

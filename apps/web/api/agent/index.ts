@@ -79,7 +79,9 @@ import { bacaBilaPerlu } from "../_lib/seelabs-baca.js";
 import {
   ambilJudge,
   judgeSiaga,
+  kapJudgeConfig,
   terimaHasilJudge,
+  tesTulisJalan,
   ujianBuka,
 } from "../_lib/recruitment-lc-judge.js";
 import { kirimRelay } from "../_lib/aliran.js";
@@ -105,6 +107,7 @@ import {
   INTERVAL_MALAM_SEC,
   INTERVAL_SIAGA_SEC,
   INTERVAL_TELEMETRI_SEC,
+  INTERVAL_TES_TULIS_SEC,
   INTERVAL_UJIAN_SEC,
   MODUL_TELEMETRI_PC,
   adaPerintahBaru,
@@ -289,9 +292,13 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // many it can run at once (judge.workers) and how many it holds (judge.held).
     await terimaHasilJudge(db, serverId, body.hasilJudge);
     const kapJudge = isPlainObject(body.judge) ? (body.judge as Record<string, unknown>) : {};
+    // The exam settings' "workers" can lower what the lab PC offers, never raise it (B7.3, 7 Nov 2026).
+    const kapAgen = numOrNull(kapJudge.workers) ?? 2;
+    const kapConfig = await kapJudgeConfig(db);
     const bebasJudge = Math.max(
       0,
-      (numOrNull(kapJudge.workers) ?? 2) - (numOrNull(kapJudge.held) ?? 0),
+      (kapConfig === null ? kapAgen : Math.min(kapAgen, kapConfig)) -
+        (numOrNull(kapJudge.held) ?? 0),
     );
     const kerjaJudge = await ambilJudge(db, serverId, bebasJudge);
     const judgeJalan = kerjaJudge.length > 0 || (await judgeSiaga(db));
@@ -370,9 +377,13 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
               // claimed at once instead of waiting out the idle beat (2026-11-07).
               (await ujianBuka(db))
               ? INTERVAL_UJIAN_SEC
-              : jamSepi() && !(await adaAsistenOnline())
-                ? INTERVAL_MALAM_SEC
-                : INTERVAL_IDLE_SEC;
+              : // Inside a Tes Tulis slot's own window (before the room opens, the quiet hours too):
+                // the quick beat. Any other time, a day of other tests included, the lazy one.
+                (await tesTulisJalan(db))
+                ? INTERVAL_TES_TULIS_SEC
+                : jamSepi() && !(await adaAsistenOnline())
+                  ? INTERVAL_MALAM_SEC
+                  : INTERVAL_IDLE_SEC;
 
     await pruneOldTelemetryOccasionally();
 

@@ -6,6 +6,8 @@ import {
   telemetriBaris,
   INTERVAL_IDLE_SEC,
   INTERVAL_MALAM_SEC,
+  INTERVAL_TES_TULIS_SEC,
+  dalamJendelaTesTulis,
   downsample,
   detectReboots,
   detectGaps,
@@ -52,6 +54,34 @@ describe("batasLuringDetik", () => {
     // legitimately be that far away even though a session runs now.
     const pada = new Date("2026-09-24T02:25:00Z");
     expect(batasLuringDetik(pada, mulai)).toBeGreaterThan(INTERVAL_IDLE_SEC);
+  });
+});
+
+describe("the day's beat", () => {
+  it("is quick only inside a Tes Tulis window and lazy otherwise", () => {
+    expect(INTERVAL_TES_TULIS_SEC).toBe(30);
+    expect(INTERVAL_IDLE_SEC).toBe(60);
+    expect(INTERVAL_IDLE_SEC).toBeGreaterThan(INTERVAL_TES_TULIS_SEC);
+  });
+
+  it("never marks a healthy PC offline between lazy beats", () => {
+    const pada = new Date("2026-09-24T01:00:00Z");
+    expect(batasLuringDetik(pada, null)).toBeGreaterThan(INTERVAL_IDLE_SEC * 1.5);
+  });
+
+  it("finds the window from each slot's own times, 30 minutes either side", () => {
+    const slots = [
+      {
+        startsAt: new Date("2026-11-10T18:30:00+07:00"),
+        endsAt: new Date("2026-11-10T21:00:00+07:00"),
+      },
+    ];
+    const at = (iso: string) => new Date(iso).getTime();
+    expect(dalamJendelaTesTulis(slots, at("2026-11-10T18:00:00+07:00"))).toBe(true);
+    expect(dalamJendelaTesTulis(slots, at("2026-11-10T21:30:00+07:00"))).toBe(true);
+    expect(dalamJendelaTesTulis(slots, at("2026-11-10T17:59:00+07:00"))).toBe(false);
+    expect(dalamJendelaTesTulis(slots, at("2026-11-10T21:31:00+07:00"))).toBe(false);
+    expect(dalamJendelaTesTulis([], at("2026-11-10T19:00:00+07:00"))).toBe(false);
   });
 });
 

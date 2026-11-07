@@ -9,10 +9,12 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 import {
   JUDGE_TUNGGU_USAI_MS,
+  kapJudgeConfig,
   kirimKode,
   sapuJudgeMati,
   sapuKlaim,
   terimaHasilJudge,
+  tesTulisJalan,
 } from "../recruitment-lc-judge";
 import type { Db } from "../recruitment-data";
 
@@ -256,5 +258,52 @@ describe("sapuJudgeMati and sapuKlaim: a judge that never comes back", () => {
     expect(dilihat[0].text).toContain("'antre'");
     expect(dilihat[1].text).toContain("retried = true");
     expect(dilihat[1].text).toContain("'agen_diam'");
+  });
+});
+
+describe("tesTulisJalan", () => {
+  const jam = (iso: string) => new Date(iso);
+  const slot = {
+    startsAt: jam("2026-11-10T18:30:00+07:00"),
+    endsAt: jam("2026-11-10T21:00:00+07:00"),
+  };
+  const at = (iso: string) => jam(iso).getTime();
+
+  it("is on inside the slot and in the 30 minutes either side", async () => {
+    for (const t of [
+      "2026-11-10T18:00:00+07:00",
+      "2026-11-10T19:45:00+07:00",
+      "2026-11-10T21:30:00+07:00",
+    ]) {
+      const { db } = scripted([[slot]]);
+      expect(await tesTulisJalan(db, at(t))).toBe(true);
+    }
+  });
+
+  it("is off before the lead and after the tail", async () => {
+    for (const t of ["2026-11-10T17:59:00+07:00", "2026-11-10T21:31:00+07:00"]) {
+      const { db } = scripted([[slot]]);
+      expect(await tesTulisJalan(db, at(t))).toBe(false);
+    }
+  });
+
+  it("is off when the day has no Tes Tulis slot (other tests never count)", async () => {
+    const { db } = scripted([[]]);
+    expect(await tesTulisJalan(db, at("2026-11-10T19:00:00+07:00"))).toBe(false);
+  });
+});
+
+describe("kapJudgeConfig", () => {
+  it("reads the workers of the edition whose job waited longest", async () => {
+    const { db } = scripted([[{ w: 3 }]]);
+    expect(await kapJudgeConfig(db)).toBe(3);
+  });
+
+  it("is null when nothing waits or the job has no room, so the lab PC's own number rules", async () => {
+    expect(await kapJudgeConfig(scripted([[]]).db)).toBeNull();
+    expect(await kapJudgeConfig(scripted([[{ w: null }]]).db)).toBeNull();
+    expect(
+      await kapJudgeConfig(scripted([{ rows: [{ w: 0 }] } as unknown as unknown[]]).db),
+    ).toBeNull();
   });
 });
