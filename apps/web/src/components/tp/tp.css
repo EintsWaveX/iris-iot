@@ -670,11 +670,12 @@
   gap: 20px;
   grid-template-columns: minmax(0, 1fr);
 }
-.tpmodpick {
+/* .modpick.tpmodpick: console.css loads after this file and its 520px rule has the same weight as a bare .tpmodpick, so the four across at a laptop width never applied (practicum pass, 2026-11-07). */
+.modpick.tpmodpick {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 @media (min-width: 1024px) {
-  .tpmodpick {
+  .modpick.tpmodpick {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
