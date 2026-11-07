@@ -481,8 +481,7 @@
 }
 .r8bar {
   align-items: center;
-  backdrop-filter: blur(6px);
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
   bottom: 12px;

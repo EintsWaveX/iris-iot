@@ -264,8 +264,7 @@
 /* ------------------------------------------------------------ the bottom bar */
 .r3nav {
   align-items: center;
-  backdrop-filter: blur(14px);
-  background: var(--nav-bg-scrolled);
+  background: var(--surface-1);
   border-top: 1px solid var(--hairline);
   bottom: auto;
   display: grid;
@@ -692,8 +691,7 @@ body:has(.r3top) .toast[data-shown="yes"] {
 }
 .lcc-bar {
   align-items: center;
-  backdrop-filter: blur(14px);
-  background: var(--nav-bg-scrolled);
+  background: var(--surface-1);
   border-top: 1px solid var(--hairline);
   bottom: 0;
   display: flex;

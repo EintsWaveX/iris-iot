@@ -213,8 +213,8 @@ export default function AturRuang({
       title={t.title}
       description={v?.room.title}
       storeKey="rec-aturruang"
-      minWidth={420}
-      compact
+      minWidth={460}
+      size="half"
       closeLabel={t.close}
       resizeLabel={t.resize}
       foot={

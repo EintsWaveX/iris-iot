@@ -43,10 +43,13 @@
     width: var(--drawer-w, max(66.7vw, 720px));
   }
 }
-/* A compact drawer (the Cutting candidate) takes a third and leaves the page it was opened from readable beside it (user, 2026-11-04). */
+/* A third (a look or one simple control; the Cutting candidate, the seat list) and a half (a form or a list that needs room but still sits beside the page) leave the page it was opened from readable (user, 2026-11-04 and 2026-11-07). */
 @media (min-width: 1024px) {
-  .drawer[data-compact="yes"] {
+  .drawer[data-size="third"] {
     width: var(--drawer-w, max(33.4vw, 460px));
+  }
+  .drawer[data-size="half"] {
+    width: var(--drawer-w, max(50vw, 560px));
   }
 }
 

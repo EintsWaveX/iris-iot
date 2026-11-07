@@ -991,6 +991,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             title={l.sumTitle}
             description={l.sumDesc}
             lang={lang}
+            size="lg"
             actions={
               <>
                 <button type="button" className="btn btn--ghost" onClick={() => setRingkas(false)}>

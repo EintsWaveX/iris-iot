@@ -457,6 +457,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
         title={t.finalizeTitle}
         description={t.finalizeBody}
         lang={lang}
+        size="sm"
         actions={
           <>
             <button type="button" className="btn btn--ghost" disabled={busy} onClick={tutup}>
@@ -493,6 +494,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
         title={t.unfreezeTitle}
         description={t.unfreezeBody}
         lang={lang}
+        size="sm"
         actions={
           <>
             <button type="button" className="btn btn--ghost" disabled={busy} onClick={tutup}>
@@ -527,6 +529,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
         title={voidRow?.voided ? t.unvoidTitle : t.voidTitle}
         description={voidRow?.voided ? t.unvoidBody : t.voidBody}
         lang={lang}
+        size="sm"
         actions={
           <>
             <button type="button" className="btn btn--ghost" disabled={busy} onClick={tutup}>
