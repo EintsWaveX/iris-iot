@@ -950,6 +950,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
         title={t.editH}
         description={sel ? slotLabel(sel.hari, sel.slot) : undefined}
         storeKey="jadwal-p9"
+        size="half"
         minWidth={360}
         closeLabel={t.close}
         resizeLabel={t.resize}

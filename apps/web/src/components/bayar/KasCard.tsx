@@ -226,7 +226,7 @@ export default function KasCard({
         open={exc}
         onOpenChange={setExc}
         title={t.excAddTitle}
-        size="sm"
+        size="md"
         lang={lang}
         actions={
           <>

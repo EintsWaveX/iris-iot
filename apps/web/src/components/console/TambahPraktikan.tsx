@@ -165,7 +165,7 @@ export default function TambahPraktikan({
       onOpenChange={onOpenChange}
       title={t.title}
       description={t.desc}
-      size="sm"
+      size="md"
       lang={lang}
       actions={
         <>
