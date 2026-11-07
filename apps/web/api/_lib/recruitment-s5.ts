@@ -124,7 +124,7 @@ export interface TutupInfo {
   autoClose: boolean;
 }
 
-async function muatTutup(db: Db, edisiId: number, now: Date): Promise<TutupInfo> {
+export async function muatTutup(db: Db, edisiId: number, now: Date): Promise<TutupInfo> {
   const cfg = await bacaSetting(db, "penerimaan");
   const [e] = await db
     .select({ closedAt: recEdition.closedAt, closedBy: recEdition.closedBy })
@@ -203,6 +203,16 @@ export async function guardTutup(res: ApiResponse): Promise<boolean> {
   return true;
 }
 
+/**
+ * The Asisten whose codes count as taken for this list. A CaAs on the list who already holds an Asisten
+ * account (the account kept after Batalkan Jadikan Asisten, or one that existed before) owns that code:
+ * it is theirs, not a clash.
+ */
+async function kolamLain(db: Db, nimDalam: Iterable<string>) {
+  const sendiri = new Set(nimDalam);
+  return (await muatKolam(db)).filter((a) => !sendiri.has(a.nim));
+}
+
 /* ---------------------------------------------------------------- list */
 
 async function handleList(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
@@ -216,7 +226,10 @@ async function handleList(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const acc = ids.length
     ? await db.select().from(recAcceptance).where(inArray(recAcceptance.candidateId, ids))
     : [];
-  const kolam = await muatKolam(db);
+  const kolam = await kolamLain(
+    db,
+    pool.map((r) => r.nim),
+  );
   const dipakai = new Set(kolam.map((a) => a.kode));
   const tes = (await muatNilaiCutting(db, edisi.id)).byCandidate;
   const waw = new Map((await muatNilaiTahap(db, edisi.id, "wawancara")).map((x) => [x.id, x]));
@@ -267,7 +280,7 @@ async function handleList(_req: ApiRequest, res: ApiResponse, s: SessionPayload)
     taken: [...dipakai],
     takenNames: kolam.map((a) => ({ kode: a.kode, nama: a.nama })),
     quota: cfg.quota,
-    canConfirm: p?.penuh === true || p?.kursi?.division === "ketua",
+    canConfirm: p?.hak.accept === true,
     done: rows.length > 0 && rows.every((r) => r.decision === "tolak" || r.promotedNim !== null),
     locked: akhir?.locked === true,
     revealAt: akhir?.at?.toISOString() ?? null,
@@ -317,7 +330,14 @@ async function handleCodes(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     .where(inArray(recAcceptance.candidateId, ids));
   // Free mode (Mode Latihan): the list can still be edited after Jadikan Asisten.
   if (sudah.some((a) => a.promotedNim) && !bebas()) return void tolak(res, "sudah_dijadikan", 409);
-  const kolam = new Set((await muatKolam(db)).map((a) => a.kode));
+  const kolam = new Set(
+    (
+      await kolamLain(
+        db,
+        kolamAkhir.map((r) => r.nim),
+      )
+    ).map((a) => a.kode),
+  );
   // The other rows' saved codes count as taken too.
   const lain = await db
     .select({ id: recAcceptance.candidateId, code: recAcceptance.code })
@@ -393,7 +413,14 @@ async function handleConfirm(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
   if (!pool.length) return void tolak(res, "tanpa_kandidat", 409);
   const ids = pool.map((r) => r.id);
   const acc = await db.select().from(recAcceptance).where(inArray(recAcceptance.candidateId, ids));
-  const kolam = new Set((await muatKolam(db)).map((a) => a.kode));
+  const kolam = new Set(
+    (
+      await kolamLain(
+        db,
+        pool.map((r) => r.nim),
+      )
+    ).map((a) => a.kode),
+  );
   const ambil = new Set(kolam);
   for (const a of acc) if (a.code) ambil.add(a.code);
   // Every CaAs gets a decision and, when accepted, a code (the proposal when none was saved).
@@ -569,7 +596,7 @@ async function handleState(_req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!anggotaPanitia(p)) return void tolak(res, "tanpa_hak", 403);
   return void res.status(200).json({
     ok: true,
-    canConfirm: p?.penuh === true || p?.kursi?.division === "ketua",
+    canConfirm: p?.hak.accept === true,
     close: await muatTutup(db, edisi.id, new Date()),
   });
 }

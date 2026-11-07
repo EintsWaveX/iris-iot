@@ -24,8 +24,10 @@ import {
   SkipForwardIcon,
   type IconProps,
 } from "@phosphor-icons/react";
+import Confirm from "../../../../ui/Confirm";
 import Dialog from "../../../../ui/Dialog";
 import Disclose from "../../../../ui/Disclose";
+import { RB } from "../../rollback/rollbackStrings";
 import Drawer from "../../../../ui/Drawer";
 import HoldButton from "../../../../ui/HoldButton";
 import Pill from "../../../../ui/Pill";
@@ -885,6 +887,12 @@ function SeatDrawer({
   const rv = roomView(v.state, now).view;
   const bisaWaktu =
     v.me.isMaster && s.seatId !== null && rv !== "setup" && rv !== "persiapan" && rv !== "finished";
+  // Rollback: take this seat back to nothing (never while a part runs; the server refuses that too).
+  const [reset, setReset] = useState(false);
+  const bisaReset =
+    v.me.canReset &&
+    s.seatId !== null &&
+    (rv === "setup" || rv === "persiapan" || rv === "finished");
 
   async function waktu(m: number) {
     if (s.seatId === null) return;
@@ -1156,8 +1164,43 @@ function SeatDrawer({
             </button>
           </div>
         </section>
+        {bisaReset && (
+          <section className="stack stack--sm">
+            <h3 className="label-caps">{RB[lang].drawerTitle}</h3>
+            <div className="row">
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => setReset(true)}
+              >
+                {RB[lang].seat.button}
+              </button>
+            </div>
+          </section>
+        )}
         <span className="hint">{d.moveHint}</span>
       </div>
+      <Confirm
+        open={reset}
+        onOpenChange={setReset}
+        title={RB[lang].seat.title}
+        body={RB[lang].seat.body}
+        confirmLabel={RB[lang].seat.run}
+        lang={lang}
+        onConfirm={async () => {
+          const r = await recPost<{ ok: true }>("room-seat-reset", {
+            id: v.room.id,
+            candidateId: s.candidateId,
+          });
+          if (isFail(r)) {
+            toast(r.kode === "ruang_berjalan" ? t.fail : RB[lang].failed, "danger");
+            return false;
+          }
+          toast(RB[lang].seat.done);
+          await jalan("room", {});
+          onClose();
+        }}
+      />
     </Drawer>
   );
 }

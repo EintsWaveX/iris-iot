@@ -116,6 +116,7 @@ const RUTE: Record<string, string[]> = {
     "api/_lib/recruitment-s7.ts",
     "api/_lib/recruitment-s7-panel.ts",
     "api/_lib/recruitment-latihan.ts",
+    "api/_lib/recruitment-rollback.ts",
   ],
 };
 

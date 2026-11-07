@@ -3,7 +3,8 @@
  * an attended event runs, for the attendance right (Ketua, Acara, Admin). A
  * centered dialog with search, Belum, Hadir and Semua, the QR time or who marked it by
  * hand, and Tandai Hadir with three quick reasons. A hand mark can be taken
- * back; a QR scan cannot (it is the candidate's own word).
+ * back; a QR scan cannot (it is the candidate's own word), except by the seats
+ * that hold rollback (Ketua, Akademik, Admin), who may take any mark back (5 Nov 2026).
  */
 import { useState, type CSSProperties } from "react";
 import { DownloadSimpleIcon, MagnifyingGlassIcon, QrCodeIcon } from "@phosphor-icons/react";
@@ -13,7 +14,7 @@ import SegmentedControl from "../../ui/SegmentedControl";
 import type { Lang } from "../../../lib/kelas";
 import { href } from "../../../lib/app";
 import { unduhXlsx } from "../../../lib/xlsx";
-import { isFail, recPost, useRecAttendance } from "../../../lib/recruitment/client";
+import { isFail, recPost, useRecAttendance, useRecEdition } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import type { AttendanceRow, EventLite } from "../../../lib/recruitment/types";
 import { judulAcara } from "../judul";
@@ -34,6 +35,8 @@ export default function AttendanceDrawer({
 }) {
   const t = S2[lang].attend;
   const att = useRecAttendance(event.id, true);
+  // Whoever holds rollback may also take back a scan.
+  const kendali = useRecEdition(true).data?.rights?.cuttingLock === true;
   const [q, setQ] = useState("");
   const [f, setF] = useState<"belum" | "hadir" | "semua">("belum");
   const [mark, setMark] = useState<number | null>(null);
@@ -64,6 +67,7 @@ export default function AttendanceDrawer({
       id: r.id,
       event: event.id,
       undo: true,
+      ...(r.via !== "manual" ? { force: true } : {}),
     });
     if (isFail(res))
       return void window.Toast?.show(
@@ -192,7 +196,7 @@ export default function AttendanceDrawer({
                 ) : (
                   <span className="hint">{t.notYet}</span>
                 )}
-                {r.present && r.via === "manual" ? (
+                {r.present && (r.via === "manual" || kendali) ? (
                   <button
                     type="button"
                     className="btn btn--ghost btn--sm"

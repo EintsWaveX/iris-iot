@@ -268,6 +268,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:room-note": [],
   "recruitment:room-kit": [],
   "recruitment:room-move": ["recroom"],
+  // Rollback (2026-11-05): one CaAs's seat in a room taken back to nothing.
+  "recruitment:room-seat-reset": ["recroom"],
   "recruitment:question-void": ["recscore", "reccutting"],
   "recruitment:question-unvoid": ["recscore", "reccutting"],
   "recruitment:score-finalize": ["recscore", "reccutting"],
@@ -286,6 +288,22 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:pn-codes": ["recpn"],
   "recruitment:pn-confirm": ["recpn", "reccandidates", "reccutting", "recedition"],
   "recruitment:pn-close": ["recpn", "recedition"],
+  // Rollback (2026-11-05): a stage unlocked after its reveal or emptied, an envelope sealed again,
+  // Batalkan Jadikan Asisten, Buka Kembali Edisi, a CaAs brought back or reset to a stage.
+  "recruitment:cut-unlock-force": [
+    "reccutting",
+    "reccandidates",
+    "recplotting",
+    "recroom",
+    "recpn",
+    "recedition",
+  ],
+  "recruitment:cut-clear": ["reccutting"],
+  "recruitment:envelope-reset": ["reccutting", "reccandidates"],
+  "recruitment:pn-undo": ["recpn", "reccandidates", "reccutting", "recedition"],
+  "recruitment:pn-reopen": ["recpn", "recedition"],
+  "recruitment:candidate-reinstate": ["reccandidates", "reccutting"],
+  "recruitment:candidate-reset": ["reccandidates", "reccutting", "recplotting", "recroom", "recpn"],
   // Oprec accounts (2026-10-24): a sign-up, sign-in or sign-out changes no
   // page but the candidate's own; Reset Akun answers its code to the one asking.
   "recruitment:account-signup": [],

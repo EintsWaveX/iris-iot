@@ -295,6 +295,7 @@ export default function PenerimaanTab({ lang }: { lang: Lang }) {
             onAgain={() => void jalankan()}
             onReplay={() => setPesta(true)}
             onClose={() => setFasaPilih("tutup")}
+            refresh={pn.refresh}
           />
         ) : (
           <Tutup

@@ -318,7 +318,11 @@ describe("a Praktikan never reaches the Panitia's side", () => {
     const ketua = await panggil("GET", "committee");
     expect(ketua.code).toBe(200);
     expect(ketua.body.pool).toBeDefined();
-    rows.committee = [KURSI("akademik")];
+    for (const seat of ["akademik", "admin"] as const) {
+      rows.committee = [KURSI(seat)];
+      expect((await panggil("GET", "committee")).body, seat).toHaveProperty("pool");
+    }
+    rows.committee = [KURSI("acara")];
     const biasa = await panggil("GET", "committee");
     expect(biasa.code).toBe(200);
     expect(biasa.body).not.toHaveProperty("pool");
@@ -730,17 +734,20 @@ describe("the calendar editor", () => {
     endsOn: "2026-12-31",
   };
 
-  it("belongs to the Ketua and Acara", async () => {
+  it("belongs to the Ketua, Akademik, Admin and Acara", async () => {
     sebagaiAsisten();
     rows.asisten = [ORANG("101022300900")];
-    for (const d of ["akademik", "admin", "logistik", "pdd", "wakil"]) {
+    for (const d of ["logistik", "pdd", "wakil"]) {
       rows.committee = [KURSI(d)];
       expect((await panggil("POST", "event-save", { body: EDIT })).code, d).toBe(403);
     }
-    rows.committee = [KURSI("acara")];
-    expect(
-      (await panggil("POST", "event-save", { body: { ...EDIT, kind: "party" } })).body,
-    ).toMatchObject({ kode: "data_salah", field: "kind" });
+    for (const d of ["ketua", "akademik", "admin", "acara"]) {
+      rows.committee = [KURSI(d)];
+      expect(
+        (await panggil("POST", "event-save", { body: { ...EDIT, kind: "party" } })).body,
+        d,
+      ).toMatchObject({ kode: "data_salah", field: "kind" });
+    }
   });
   it("saves a new event in a stage that has not started without asking", async () => {
     sebagaiAsisten();
@@ -825,13 +832,22 @@ describe("seating the Panitia", () => {
     expect(r.code).toBe(403);
     expect(r.body).toMatchObject({ hak: "seatKetua" });
   });
-  it("refuses everyone but the Ketua the board, and Admin tier may seat the Ketua", async () => {
+  it("refuses the board to every seat but Ketua, Akademik and Admin, and Admin tier may seat the Ketua", async () => {
     sebagaiAsisten();
     rows.asisten = [ORANG("101022300900")];
-    rows.committee = [KURSI("akademik", true)];
+    rows.committee = [KURSI("logistik", true)];
     expect(
       (await panggil("POST", "seat", { body: { nim: "101022300111", division: "acara" } })).code,
     ).toBe(403);
+    // Akademik and Admin hold the board like the Ketua, but still never seat the Ketua.
+    for (const seat of ["akademik", "admin"] as const) {
+      rows.committee = [KURSI(seat, true)];
+      const r = await panggil("POST", "seat", {
+        body: { nim: "101022300111", division: "ketua" },
+      });
+      expect(r.code, seat).toBe(403);
+      expect(r.body, seat).toMatchObject({ hak: "seatKetua" });
+    }
     rows.asisten = [ORANG("101022300900", { tier: "admin", divisi: null })];
     rows.committee = [];
     // The target is looked up in the same fake table: an active Asisten.
@@ -934,11 +950,17 @@ describe("Sembunyikan Oprec", () => {
     rows.pengaturan = [];
     expect((await panggil("GET", "banner")).body.kind).toBe("visitor");
   });
-  it("only the Ketua and the full rights flip it", async () => {
+  it("only the Ketua, Akademik, Admin and the full rights flip it", async () => {
     sebagaiAsisten();
     rows.asisten = [ORANG("101022300900")];
     rows.committee = [KURSI("acara")];
     expect((await panggil("POST", "visibility", { body: { hidden: false } })).code).toBe(403);
+    for (const seat of ["akademik", "admin"] as const) {
+      rows.committee = [KURSI(seat)];
+      expect((await panggil("POST", "visibility", { body: { hidden: "ya" } })).code, seat).toBe(
+        400,
+      );
+    }
     rows.committee = [KURSI("ketua")];
     expect((await panggil("POST", "visibility", { body: { hidden: "ya" } })).code).toBe(400);
     const r = await panggil("POST", "visibility", { body: { hidden: false } });

@@ -21,6 +21,7 @@ import type {
 import { S2 } from "../../s2Strings";
 import { tgl } from "../../shared";
 import { CW } from "./cutWhyStrings";
+import { RB } from "../rollback/rollbackStrings";
 import Skeleton from "../../../ui/Skeleton";
 
 const stamp = (iso: string, lang: Lang) => {
@@ -85,6 +86,8 @@ export default function CuttingDrawer({
   onPropose,
   onNote,
   onKandidat,
+  rollback = false,
+  onRolled,
 }: {
   lang: Lang;
   stage: CutStage;
@@ -107,6 +110,9 @@ export default function CuttingDrawer({
   onNote: (c: CutRowView, note: string) => void;
   /** Set when the viewer may review documents: opens this CaAs in Kandidat, with a way back here. */
   onKandidat?: () => void;
+  /** Holds the rollback right (cuttingLock): may seal this CaAs's opened envelope again */
+  rollback?: boolean;
+  onRolled?: () => void;
 }) {
   const t = CW[lang];
   const s2 = S2[lang];
@@ -148,6 +154,21 @@ export default function CuttingDrawer({
     if (isFail(r)) return void window.Toast?.show(t.saveFail, "danger");
     window.Toast?.show(t.saved, "ok");
     det.refresh();
+  }
+
+  /** Seal this CaAs's envelope again (rollback), so they can open it once more. */
+  async function segelUlang() {
+    if (!c) return;
+    setBusy(true);
+    const r = await recPost<{ ok: true; sealed: number }>("envelope-reset", {
+      stage,
+      candidateId: c.id,
+    });
+    setBusy(false);
+    if (isFail(r)) return void window.Toast?.show(RB[lang].failed, "danger");
+    window.Toast?.show(RB[lang].seal.done(r.sealed), "ok");
+    det.refresh();
+    onRolled?.();
   }
 
   const reasons = c ? reasonsOf(c, { stage, ivStage, rank, passN: passN }) : [];
@@ -455,6 +476,21 @@ export default function CuttingDrawer({
                   </div>
                 )}
               </Sec>
+
+              {rollback && c.opened && (
+                <Sec title={RB[lang].drawerTitle} hint={RB[lang].drawerHint}>
+                  <div className="row">
+                    <button
+                      type="button"
+                      className="btn btn--inverse btn--sm"
+                      disabled={busy}
+                      onClick={() => void segelUlang()}
+                    >
+                      {RB[lang].candidate.sealButton}
+                    </button>
+                  </div>
+                </Sec>
+              )}
             </>
           )}
         </div>

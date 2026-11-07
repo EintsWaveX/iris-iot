@@ -15,6 +15,7 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import type { getDb } from "../../src/lib/db.js";
+import { KURSI_KENDALI } from "../../src/lib/recruitment/rights.js";
 import { pengaturan } from "../../src/lib/schema.js";
 import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 import { muatPelaku } from "./recruitment-rights.js";
@@ -62,7 +63,9 @@ export function jawabTersembunyi(aksi: unknown, res: ApiResponse) {
 
 export const bolehSembunyikan = (
   p: { penuh: boolean; kursi: { division: string } | null } | null,
-) => !!p && (p.penuh || p.kursi?.division === "ketua");
+) =>
+  !!p &&
+  (p.penuh || (!!p.kursi && (KURSI_KENDALI as readonly string[]).includes(p.kursi.division)));
 
 export async function handleTampil(
   req: ApiRequest,

@@ -148,6 +148,8 @@ export interface ConsoleView {
     canSetup: boolean;
     canKit: boolean;
     canMove: boolean;
+    /** Holds rollback (Ketua, Akademik, Admin): may reset one CaAs's seat */
+    canReset: boolean;
   };
 }
 

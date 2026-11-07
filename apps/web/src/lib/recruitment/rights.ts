@@ -37,10 +37,19 @@ const SEMUA: readonly CommitteeDivision[] = [
   "pdd",
 ];
 
+/**
+ * The seats that run the edition (5 Nov 2026): the Ketua, and the Akademik
+ * and Admin seats with the same control rules (lock, unlock and roll back a
+ * stage, Penerimaan, hide Oprec, calendar, kit loans, seat the committee).
+ * The Admin tier (hakPenuh) already holds everything; seating the Ketua
+ * stays with hakPenuh alone.
+ */
+export const KURSI_KENDALI: readonly CommitteeDivision[] = ["ketua", "akademik", "admin"];
+
 /** Each right and the committee divisions that hold it (PRD 4). */
 const TABEL: Record<keyof RecRights, readonly CommitteeDivision[]> = {
-  calendar: ["ketua", "acara"],
-  board: ["ketua"],
+  calendar: [...KURSI_KENDALI, "acara"],
+  board: KURSI_KENDALI,
   // Only hakPenuh seats the Ketua.
   seatKetua: [],
   candidates: SEMUA,
@@ -50,10 +59,10 @@ const TABEL: Record<keyof RecRights, readonly CommitteeDivision[]> = {
   plotting: ["ketua", "akademik", "admin"],
   plotPengawas: ["ketua", "akademik"],
   cuttingPropose: ["ketua", "acara", "akademik", "admin", "logistik", "pdd"],
-  cuttingLock: ["ketua"],
+  cuttingLock: KURSI_KENDALI,
   attendance: ["ketua", "acara", "admin"],
-  kitLoans: ["ketua", "logistik"],
-  accept: ["ketua"],
+  kitLoans: [...KURSI_KENDALI, "logistik"],
+  accept: KURSI_KENDALI,
 };
 
 export function hakRekrutmen(p: Pelaku): RecRights {
