@@ -60,6 +60,12 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* The summary's score card holds three numbers; it keeps its own height
+   instead of stretching to the longer log beside it. */
+.dash__pair--top {
+  align-items: start;
+}
+
 @media (min-width: 720px) {
   .dash__pair {
     grid-template-columns: repeat(2, minmax(0, 1fr));
