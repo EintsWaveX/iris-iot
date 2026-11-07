@@ -274,6 +274,36 @@ describe("the seat's violation state in the test view", () => {
   });
 });
 
+describe("a held seat (9 Nov 2026)", () => {
+  it("cannot answer, hand in or ask for the bonus while the Master holds it", async () => {
+    rows.seat = [seat({ heldAt: new Date() })];
+    const ans = await jalan("test-answer", {
+      part: "logika",
+      q: 101,
+      value: { pick: "aa" },
+      rev: 0,
+      tab: "tab-aaaa",
+    });
+    expect(ans.status).toBe(409);
+    expect(ans.body.kode).toBe("bagian_ditahan");
+    const sub = await jalan("test-submit", { part: "logika" });
+    expect(sub.body.kode).toBe("bagian_ditahan");
+    const bon = await jalan("test-bonus", { part: "logika" });
+    expect(bon.body.kode).toBe("bagian_ditahan");
+    expect(tulis.some((x) => x.tabel === "answer")).toBe(false);
+  });
+  it("tells the page it is held, with since when", async () => {
+    const t = new Date(Date.now() - 5000);
+    rows.seat = [seat({ heldAt: t })];
+    const r = await jalan("test", null);
+    expect((r.body.seat as { heldAt: number }).heldAt).toBe(t.getTime());
+  });
+  it("a seat that is not held says null", async () => {
+    const r = await jalan("test", null);
+    expect((r.body.seat as { heldAt: number | null }).heldAt).toBeNull();
+  });
+});
+
 describe("test-warning (the seat saw it)", () => {
   it("marks a warning of this seat as seen", async () => {
     rows["w:warning"] = [{ id: 3 }];

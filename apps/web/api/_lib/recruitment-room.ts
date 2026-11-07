@@ -14,6 +14,9 @@
  * POST room-master  { id, act: claim | ask | give | decline | release | ping, to? }
  * POST room-note    { id, candidateId, text }  a pengawas' note on a seat
  * POST room-strike  { id, seatId, strikeId, excuse, reason? }  forgive a violation (or take it back); it stops counting
+ * POST room-warn    { id, seatId, text }  a message to one seat, shown until it acknowledges
+ * POST room-hold    { id, seatId, hold }  the Master holds a seat (answers refused) or releases it, giving the time back
+ * POST room-penalty { id, seatId, part, state | clear, pct?, note? }  decide a seat's suggested cut (the board right)
  * POST room-kit     { id, candidateId, kit, boards, returned? }  (kitLoans)
  * POST room-move    { candidateId, toRoomId }  (plotting)
  * POST room-seat-reset { id, candidateId }  one CaAs's seat back to nothing, not while a part runs  (cuttingLock)
@@ -47,6 +50,8 @@ import {
   recQuestion,
   recAttendance,
   recSeatNote,
+  recSeatPenalty,
+  recSeatWarning,
   recSlot,
   recSlotAssignment,
   recSlotExaminer,
@@ -74,6 +79,7 @@ import {
   act,
   budget,
   newRoomState,
+  normalize,
   roomView,
   type Action,
   type Effect,
@@ -524,6 +530,12 @@ export async function handleRoom(req: ApiRequest, res: ApiResponse, s: SessionPa
       return catat(ctx);
     case "room-strike":
       return maafkan(ctx);
+    case "room-warn":
+      return peringatkan(ctx);
+    case "room-hold":
+      return tahanKursi(ctx);
+    case "room-penalty":
+      return putuskanPotongan(ctx);
     case "room-kit":
       return pinjamKit(ctx);
     case "room-move":
@@ -732,8 +744,18 @@ async function susunKonsol(
             ),
           )
       : [];
-  const [strikes, kits, notes, jawab, protokol] = await Promise.all([
+  const [strikes, warns, decisions, kits, notes, jawab, protokol] = await Promise.all([
     db.select().from(recStrike).where(eq(recStrike.roomId, room.id)).orderBy(asc(recStrike.at)),
+    seatIds.length
+      ? db
+          .select()
+          .from(recSeatWarning)
+          .where(inArray(recSeatWarning.seatId, seatIds))
+          .orderBy(asc(recSeatWarning.at))
+      : Promise.resolve([] as (typeof recSeatWarning.$inferSelect)[]),
+    seatIds.length
+      ? db.select().from(recSeatPenalty).where(inArray(recSeatPenalty.seatId, seatIds))
+      : Promise.resolve([] as (typeof recSeatPenalty.$inferSelect)[]),
     db.select().from(recKitLoan).where(eq(recKitLoan.roomId, room.id)),
     db
       .select()
@@ -805,6 +827,31 @@ async function susunKonsol(
           )
         : {},
       overflow: seat?.strikeOverflow ?? {},
+      heldAt: ms(seat?.heldAt),
+      warnings: seat
+        ? warns
+            .filter((w) => w.seatId === seat.id)
+            .map((w) => ({
+              id: w.id,
+              part: w.part,
+              source: w.source,
+              level: w.level,
+              text: w.text,
+              by: w.byNim,
+              at: w.at.getTime(),
+              seen: !!w.seenAt,
+            }))
+        : [],
+      penalties: seat
+        ? Object.fromEntries(
+            decisions
+              .filter((d) => d.seatId === seat.id)
+              .map((d) => [
+                d.part,
+                { state: d.state, pct: d.pct, by: d.byNim, note: d.note, at: d.at.getTime() },
+              ]),
+          )
+        : {},
       kit: kit ? { code: kit.kitCode, boards: kit.boards, returnedAt: ms(kit.returnedAt) } : null,
       lastSeenAt: ms(seat?.lastSeenAt),
       present: hadir.find((h) => h.candidateId === c.id) ?? null,
@@ -896,6 +943,7 @@ async function susunKonsol(
       canSetup: bisaSetup(p),
       canKit: p.penuh || p.hak.kitLoans,
       canMove: p.penuh || p.hak.plotting,
+      canPenalty: p.penuh || p.hak.board,
       canReset: p.hak.cuttingLock,
     },
   };
@@ -1821,6 +1869,189 @@ async function maafkan({ req, res, s, db, edisi, p }: Ctx) {
     },
   ]);
   res.status(200).json({ ok: true, part: row.part, ...tally });
+}
+
+/** The seat of this room, or null */
+async function kursiRuang(db: Db, id: number, seatId: number) {
+  const [seat] = await db
+    .select({
+      id: recExamSeat.id,
+      heldAt: recExamSeat.heldAt,
+      strikeOverflow: recExamSeat.strikeOverflow,
+    })
+    .from(recExamSeat)
+    .where(and(eq(recExamSeat.id, seatId), eq(recExamSeat.roomId, id)))
+    .limit(1);
+  return seat ?? null;
+}
+
+/**
+ * `room-warn`: a pengawas sends one seat a message (9 Nov 2026). It is kept as a staff warning, the
+ * seat sees it as a dialog it must acknowledge, and it comes back with the view until it does.
+ */
+async function peringatkan({ req, res, s, db, edisi, p }: Ctx) {
+  const b = jsonBody(req);
+  const id = Number(b.id);
+  const seatId = Number(b.seatId);
+  if (!idOk(id) || !idOk(seatId)) return void tolak(res, "data_salah", 400);
+  const text = typeof b.text === "string" ? b.text.trim() : "";
+  if (!text || text.length > 300) return void tolak(res, "data_salah", 400, { field: "text" });
+  const r = await muatRuang(db, edisi.id, id);
+  if (!r) return void tolak(res, "tidak_ditemukan", 404);
+  const pengawas = await muatPengawas(db, r.room);
+  if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
+  if (!(await kursiRuang(db, id, seatId))) return void tolak(res, "tidak_ditemukan", 404);
+  await db.insert(recSeatWarning).values({
+    seatId,
+    part: r.room.state.cur,
+    source: "staff",
+    level: 0,
+    text,
+    byNim: s.nim,
+  });
+  antreUjian(res, id, [{ j: "kursi", s: seatId, d: { warn: { staff: true } } }]);
+  res.status(200).json({ ok: true });
+}
+
+/**
+ * `room-hold`: the Master holds a seat, so its answers are refused and the page shows a hold card,
+ * then releases it (9 Nov 2026). On release the held time goes back as extra time through the same
+ * rule as a time gift (whole minutes, 1 to 30, rounded up), but only while the part still runs: a
+ * part that ended is never reopened by a release.
+ */
+async function tahanKursi({ req, res, s, db, edisi, p }: Ctx) {
+  const b = jsonBody(req);
+  const id = Number(b.id);
+  const seatId = Number(b.seatId);
+  if (!idOk(id) || !idOk(seatId) || typeof b.hold !== "boolean")
+    return void tolak(res, "data_salah", 400);
+  const r = await muatRuang(db, edisi.id, id);
+  if (!r) return void tolak(res, "tidak_ditemukan", 404);
+  const pengawas = await muatPengawas(db, r.room);
+  if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
+  if (r.room.state.master?.nim !== s.nim) return void tolak(res, "bukan_master", 403);
+  const seat = await kursiRuang(db, id, seatId);
+  if (!seat) return void tolak(res, "tidak_ditemukan", 404);
+  const now = Date.now();
+  if (b.hold) {
+    if (!seat.heldAt)
+      await db
+        .update(recExamSeat)
+        .set({ heldAt: new Date(now) })
+        .where(eq(recExamSeat.id, seatId));
+    antreUjian(res, id, [{ j: "kursi", s: seatId, d: { held: true } }]);
+    return void res.status(200).json({ ok: true });
+  }
+  if (!seat.heldAt) return void res.status(200).json({ ok: true, creditedMs: 0 });
+  await db.update(recExamSeat).set({ heldAt: null }).where(eq(recExamSeat.id, seatId));
+  const state = normalize(r.room.state, now);
+  const run = state.cur ? state.runs[state.cur] : undefined;
+  let creditedMs = 0;
+  let next: RoomState | null = null;
+  if (state.stage === "parts" && run && run.state !== "ended") {
+    const mnt = Math.min(30, Math.max(1, Math.ceil((now - seat.heldAt.getTime()) / 60_000)));
+    const ctx = await konteksAksi(db, edisi.id, r.room, r.slot, pengawas, s.nim, null, now);
+    const hasil = act(
+      r.room.state,
+      { act: "seat-time", seatId, deltaMs: mnt * 60_000, seq: r.room.state.seq },
+      ctx,
+    );
+    if (hasil.ok) {
+      try {
+        await simpanAksi(
+          db,
+          r.room,
+          hasil.state,
+          s.nim,
+          "seat-time",
+          { seatId, deltaMs: mnt * 60_000, held: true },
+          { reopenPart: null, lockConfig: false },
+          now,
+        );
+        creditedMs = mnt * 60_000;
+        next = hasil.state;
+      } catch (e) {
+        if (!(e instanceof Kalah)) throw e;
+      }
+    }
+  }
+  const pesan: PesanUjian[] = [];
+  const cur = next?.cur ? next.runs[next.cur] : undefined;
+  if (next) pesan.push(pesanRuang(id, next, now));
+  pesan.push({
+    j: "kursi",
+    s: seatId,
+    d: {
+      held: false,
+      ...(next ? { seq: next.seq, extraMs: cur?.extra[String(seatId)] ?? 0 } : {}),
+    },
+  });
+  antreUjian(res, id, pesan);
+  res.status(200).json({ ok: true, creditedMs });
+}
+
+/**
+ * `room-penalty`: decide a seat's suggested score cut for one part (9 Nov 2026). Applied cuts that
+ * many percent off the part's score, waived leaves it whole, clear puts it back to pending. This
+ * is for the people who run the edition (the board right), never for a pengawas alone.
+ */
+async function putuskanPotongan({ req, res, s, db, edisi, p }: Ctx) {
+  const b = jsonBody(req);
+  const id = Number(b.id);
+  const seatId = Number(b.seatId);
+  if (!idOk(id) || !idOk(seatId)) return void tolak(res, "data_salah", 400);
+  if (!p.penuh && !p.hak.board) return void tolak(res, "tanpa_hak", 403);
+  if (!(PART_KEYS as readonly string[]).includes(String(b.part)))
+    return void tolak(res, "data_salah", 400, { field: "part" });
+  const part = b.part as PartKey;
+  const clear = b.clear === true;
+  const state = String(b.state);
+  if (!clear && state !== "applied" && state !== "waived")
+    return void tolak(res, "data_salah", 400, { field: "state" });
+  const pct = state === "waived" ? 0 : Number(b.pct);
+  if (!clear && (!Number.isInteger(pct) || pct < 0 || pct > 100))
+    return void tolak(res, "data_salah", 400, { field: "pct" });
+  const note = typeof b.note === "string" ? b.note.trim().slice(0, 300) : "";
+  const r = await muatRuang(db, edisi.id, id);
+  if (!r) return void tolak(res, "tidak_ditemukan", 404);
+  if (!(await kursiRuang(db, id, seatId))) return void tolak(res, "tidak_ditemukan", 404);
+  if (clear) {
+    await db
+      .delete(recSeatPenalty)
+      .where(and(eq(recSeatPenalty.seatId, seatId), eq(recSeatPenalty.part, part)));
+  } else {
+    await db
+      .insert(recSeatPenalty)
+      .values({
+        seatId,
+        part,
+        state: state as "applied" | "waived",
+        pct,
+        byNim: s.nim,
+        note: note || null,
+      })
+      .onConflictDoUpdate({
+        target: [recSeatPenalty.seatId, recSeatPenalty.part],
+        set: {
+          state: state as "applied" | "waived",
+          pct,
+          byNim: s.nim,
+          note: note || null,
+          at: new Date(),
+        },
+      });
+  }
+  antreUjian(res, id, [
+    {
+      j: "pelanggaran",
+      s: seatId,
+      d: {
+        s: seatId,
+        penalty: clear ? { part, state: null, pct: 0 } : { part, state, pct },
+      },
+    },
+  ]);
+  res.status(200).json({ ok: true });
 }
 
 const CHIPS = ["esp32", "esp32s3"] as const;

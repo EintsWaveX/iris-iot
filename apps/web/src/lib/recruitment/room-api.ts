@@ -59,6 +59,29 @@ export interface ConsoleKejadian {
   excused: { by: string; reason: string | null; at: number } | null;
 }
 
+/** A warning a seat was given: its own rising level, or a message from a pengawas (9 Nov 2026) */
+export interface ConsoleWarning {
+  id: number;
+  part: PartKey | null;
+  source: "auto" | "staff";
+  level: number;
+  text: string;
+  /** NIM of the pengawas who sent a staff message */
+  by: string | null;
+  at: number;
+  /** The seat acknowledged it */
+  seen: boolean;
+}
+
+/** The decision on a seat's suggested cut for one part; no entry means still pending */
+export interface ConsolePenalty {
+  state: "applied" | "waived";
+  pct: number;
+  by: string;
+  note: string | null;
+  at: number;
+}
+
 export interface ConsoleSeat {
   candidateId: number;
   /** null until the candidate's first check-in step */
@@ -87,6 +110,10 @@ export interface ConsoleSeat {
   violations: Partial<Record<PartKey, PartViolations>>;
   /** Strikes past the per-part cap: counted, not stored */
   overflow: Partial<Record<PartKey, number>>;
+  /** The Master holds this seat: since when (server ms), or null */
+  heldAt: number | null;
+  warnings: ConsoleWarning[];
+  penalties: Partial<Record<PartKey, ConsolePenalty>>;
   kit: { code: string; boards: KitBoard[]; returnedAt: number | null } | null;
   lastSeenAt: number | null;
   /** Signed in for the evening (QR or by hand); null when the room has no event to count against */
@@ -157,6 +184,8 @@ export interface ConsoleView {
     canSetup: boolean;
     canKit: boolean;
     canMove: boolean;
+    /** Holds the board right (Ketua, Akademik, Admin): decides a seat's suggested score cut */
+    canPenalty: boolean;
     /** Holds rollback (Ketua, Akademik, Admin): may reset one CaAs's seat */
     canReset: boolean;
   };

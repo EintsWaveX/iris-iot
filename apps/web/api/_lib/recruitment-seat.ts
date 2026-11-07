@@ -94,6 +94,7 @@ const STATUS: Record<string, number> = {
   ruang_selesai: 409,
   langkah_belum: 409,
   waktu_habis: 409,
+  bagian_ditahan: 409,
   sudah_kumpul: 409,
   bagian_ruang_lain: 409,
   soal_tak_dikenal: 404,
@@ -251,6 +252,7 @@ function selfOf(seat: RecExamSeatRow, state: RoomState): SeatSelf {
     done: seat.done,
     extraMs: extra,
     started,
+    heldAt: seat.heldAt ? seat.heldAt.getTime() : null,
   };
 }
 
@@ -691,6 +693,7 @@ async function jawab(k: Konteks) {
   const sd = await soalKursi(k, part, q);
   if ("kode" in sd) return void tolakKursi(res, sd.kode);
   if (!seat || !room) return void tolakKursi(res, "belum_masuk");
+  if (seat.heldAt) return void tolakKursi(res, "bagian_ditahan");
   const now = Date.now();
   if (seat.done[part] != null) return void tolakKursi(res, "sudah_kumpul");
   if (!answerOpen(room.state, seat.id, part, now)) return void tolakKursi(res, "waktu_habis");
@@ -977,6 +980,7 @@ async function mintaBonus(k: Konteks) {
   if (!(PHASE1_PARTS as readonly string[]).includes(part))
     return void tolakKursi(res, "data_salah");
   if (!seat || !room || !sudahMasuk(seat.checkin)) return void tolakKursi(res, "belum_masuk");
+  if (seat.heldAt) return void tolakKursi(res, "bagian_ditahan");
   const draw = seat.draw[part];
   if (!draw) return void tolakKursi(res, "soal_tak_dikenal");
   if (draw.room !== seat.roomId) return void tolakKursi(res, "bagian_ruang_lain");
@@ -1097,6 +1101,7 @@ async function kumpulkan(k: Konteks) {
   if (!(PHASE1_PARTS as readonly string[]).includes(part))
     return void tolakKursi(res, "data_salah");
   if (!seat || !room || !sudahMasuk(seat.checkin)) return void tolakKursi(res, "belum_masuk");
+  if (seat.heldAt) return void tolakKursi(res, "bagian_ditahan");
   const draw = seat.draw[part];
   if (!draw) return void tolakKursi(res, "soal_tak_dikenal");
   if (draw.room !== seat.roomId) return void tolakKursi(res, "bagian_ruang_lain");

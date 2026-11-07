@@ -21,6 +21,8 @@ export interface SeatSelf {
   extraMs: number;
   /** Parts this seat started, with the room each was started in (Susulan) */
   started: Partial<Record<Phase1Part, number>>;
+  /** The Master holds this seat (9 Nov 2026): since when, or null. Answers are refused meanwhile. */
+  heldAt: number | null;
 }
 
 /** The room as a seat may know it: the evening, never the roster or the Panitia */

@@ -460,6 +460,7 @@ async function kirim(c: KonteksLc, fase: "spin" | "kerja", req: ApiRequest, res:
   if (!ids?.concat(bonusKursi(c)).includes(problemId))
     return void tolak(res, "soal_bukan_milikmu", 403);
   if (c.seat.done.livecode != null) return void tolak(res, "sudah_kumpul", 409);
+  if (c.seat.heldAt) return void tolak(res, "bagian_ditahan", 409);
   const r = await kirimKode(c.db, {
     kind: kind as "run" | "submit",
     seatId: c.seat.id,
