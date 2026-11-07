@@ -32,6 +32,8 @@ export const PN = dict({
       total: "Total",
     },
     sortBy: (c: string) => `Urutkan menurut ${c}`,
+    cutPending: "potongan pelanggaran belum diputuskan",
+    cutOf: (pct: number, was: number) => `dipotong ${pct}% dari ${was} karena pelanggaran`,
     flags: {
       absent: "tidak membuka bagian ini",
       empty: "semua soalnya dibatalkan",
@@ -158,6 +160,8 @@ export const PN = dict({
       total: "Total",
     },
     sortBy: (c: string) => `Sort by ${c}`,
+    cutPending: "violation cut not decided yet",
+    cutOf: (pct: number, was: number) => `cut ${pct}% from ${was} for violations`,
     flags: {
       absent: "never opened this part",
       empty: "every question was withdrawn",
@@ -276,6 +280,8 @@ export const PN = dict({
       total: "总分",
     },
     sortBy: (c: string) => `按${c}排序`,
+    cutPending: "违规扣分尚未决定",
+    cutOf: (pct: number, was: number) => `因违规从 ${was} 扣了 ${pct}%`,
     flags: {
       absent: "没有打开这个部分",
       empty: "所有题目都已作废",

@@ -4,7 +4,7 @@
  * settings and its kit loans. A room is chosen in the address (?ruang=7), so
  * the back button and a shared link both work.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeftIcon,
   BroadcastIcon,
@@ -27,6 +27,7 @@ import Fade from "../../../../ui/Fade";
 import Pill from "../../../../ui/Pill";
 import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
+import type { PesanUjian } from "../../../../../lib/recruitment/room-relay";
 import { isFail, recPost, useRecCalendar } from "../../../../../lib/recruitment/client";
 import { roomView } from "../../../../../lib/recruitment/room";
 import type { RoomRow } from "../../../../../lib/recruitment/room-api";
@@ -741,7 +742,27 @@ function Ruang({
     room.refresh();
     log.refresh();
   }, [room, log]);
-  const live = useRuangLangsung(id, true, () => refresh(), refresh);
+  // A burst of violations (someone spamming alt-tab) must not become a burst of full reloads: they
+  // are coalesced into one read every 600 ms, everything else still reads at once (9 Nov 2026)
+  const burst = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heard = useCallback(
+    (m: PesanUjian) => {
+      if (m.j !== "pelanggaran") return refresh();
+      if (burst.current) return;
+      burst.current = setTimeout(() => {
+        burst.current = null;
+        refresh();
+      }, 600);
+    },
+    [refresh],
+  );
+  useEffect(
+    () => () => {
+      if (burst.current) clearTimeout(burst.current);
+    },
+    [],
+  );
+  const live = useRuangLangsung(id, true, heard, refresh);
   useCadanganRuang(refresh, live.status !== "live");
   const motion = useRevealMotion();
   const [bagian, setBagian] = useState<Bagian>(bacaBagianRuang);

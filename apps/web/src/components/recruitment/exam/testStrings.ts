@@ -188,6 +188,10 @@ export const TS = dict({
       titles: ["Pelanggaran tercatat", "Peringatan keras", "Peringatan terakhir"],
       staffTitle: "Pesan dari pengawas",
       ok: "Mengerti",
+      held: {
+        title: "Kursimu ditahan pengawas",
+        body: "Pengawas menahan kursimu sebentar. Jawabanmu yang sudah tersimpan aman. Tunggu di layar ini dan jangan tutup halamannya; waktu yang tertahan akan dikembalikan.",
+      },
       body: (
         level: number,
         points: number,
@@ -408,6 +412,10 @@ export const TS = dict({
       titles: ["Violation recorded", "Strong warning", "Final warning"],
       staffTitle: "Message from the pengawas",
       ok: "Understood",
+      held: {
+        title: "Your seat is on hold",
+        body: "The pengawas is holding your seat for a moment. Your saved answers are safe. Wait on this screen and do not close the page; the time that was held will be given back.",
+      },
       body: (
         level: number,
         points: number,
@@ -617,6 +625,10 @@ export const TS = dict({
       titles: ["已记录违规", "严重警告", "最终警告"],
       staffTitle: "监考老师的消息",
       ok: "我知道了",
+      held: {
+        title: "你的座位已被监考暂停",
+        body: "监考老师暂时暂停了你的座位。已保存的答案是安全的。请留在此页面，不要关闭；被暂停的时间会补回给你。",
+      },
       body: (
         level: number,
         points: number,

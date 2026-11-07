@@ -52,7 +52,7 @@ export function kejadianPerSeat(
   return out;
 }
 
-export const FILTERS = ["semua", "keluar", "kejadian", "terputus", "belum"] as const;
+export const FILTERS = ["semua", "keluar", "kejadian", "keputusan", "terputus", "belum"] as const;
 export type Filter = (typeof FILTERS)[number];
 
 /** A seat tile reduced to what the chips look at. */
@@ -62,6 +62,8 @@ export interface Tile {
   connected: boolean | null;
   count: number;
   open: boolean;
+  /** A suggested violation cut nobody has decided yet (9 Nov 2026) */
+  pending: boolean;
 }
 
 export function matchFilter(f: Filter, t: Tile): boolean {
@@ -72,6 +74,8 @@ export function matchFilter(f: Filter, t: Tile): boolean {
       return t.open;
     case "kejadian":
       return t.count > 0;
+    case "keputusan":
+      return t.pending;
     case "terputus":
       return t.checkedIn && t.connected === false;
     case "belum":

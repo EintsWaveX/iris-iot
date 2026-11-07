@@ -60,6 +60,7 @@ describe("the console's filters", () => {
     connected: true,
     count: 0,
     open: false,
+    pending: false,
     ...o,
   });
 
@@ -92,7 +93,7 @@ describe("the console's filters", () => {
       tile({ connected: false }),
       tile({ checkedIn: false, connected: null }),
     ]);
-    expect(c).toEqual({ semua: 5, keluar: 1, kejadian: 2, terputus: 1, belum: 1 });
+    expect(c).toEqual({ semua: 5, keluar: 1, kejadian: 2, keputusan: 0, terputus: 1, belum: 1 });
   });
 });
 
@@ -125,5 +126,25 @@ describe("a strike left open after its part ended (9 Nov 2026)", () => {
     const s = kejadianPerSeat([ex, row(1, 5000, 6000)], 9000);
     expect(s[1]).toMatchObject({ count: 2, excused: 1 });
     expect(s[1].list).toHaveLength(2);
+  });
+});
+
+describe("the filter for decisions still to make (9 Nov 2026)", () => {
+  const tile = (o: Partial<Tile>): Tile => ({
+    checkedIn: true,
+    connected: true,
+    count: 0,
+    open: false,
+    pending: false,
+    ...o,
+  });
+  it("shows only the seats with an undecided suggested cut", () => {
+    expect(matchFilter("keputusan", tile({ pending: true, count: 4 }))).toBe(true);
+    expect(matchFilter("keputusan", tile({ count: 4 }))).toBe(false);
+  });
+  it("is counted with the others", () => {
+    const n = countFilters([tile({ pending: true }), tile({}), tile({ pending: true })]);
+    expect(n.keputusan).toBe(2);
+    expect(n.semua).toBe(3);
   });
 });

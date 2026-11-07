@@ -25,7 +25,7 @@ import type { TestView } from "../../../lib/recruitment/seat-types";
 import { useRevealMotion } from "../reveal/fx";
 import CheckIn from "./CheckIn";
 import { useLockdown } from "./lockdown/useLockdown";
-import { Gate } from "./parts";
+import { BigIcon, Gate } from "./parts";
 import Runner from "./Runner";
 import { Finished, Lobby, NotOpen, Notice } from "./Screens";
 import LccPage from "../livecode/LccPage";
@@ -300,6 +300,17 @@ export default function TestPage({ lang: routeLang }: { lang: Lang }) {
         {/* The room that is not open yet keeps the recruitment navbar, which has its own Tampilan */}
         {!shell && <TestDisplay />}
         {working && <ViolationChip lang={lang} v={tv?.violation ?? null} />}
+        {working && seat?.heldAt != null && (
+          <div className="r3over r3over--pause" role="alertdialog" aria-labelledby="r3hold-h">
+            <div className="r3over__card">
+              <BigIcon kind="pause" />
+              <h2 className="r3h2" id="r3hold-h">
+                {t.viol.held.title}
+              </h2>
+              <p className="lede">{t.viol.held.body}</p>
+            </div>
+          </div>
+        )}
         <ViolationWarning
           lang={lang}
           warning={working ? pendingWarning : null}
