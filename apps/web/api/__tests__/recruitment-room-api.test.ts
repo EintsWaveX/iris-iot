@@ -487,7 +487,7 @@ describe("the console", () => {
     expect(v.seats[0]).toMatchObject({ count: 2, excused: 1, overflow: { fitb: 2 } });
     expect(v.seats[0].violations.logika).toMatchObject({ points: 1, level: 1 });
     expect(v.seats[0].violations.fitb).toMatchObject({ points: 2, level: 1 });
-    expect(v.seats[0].kejadian[1].excused).toMatchObject({ by: "N1", reason: "Colokan lepas" });
+    expect(v.seats[0].kejadian[1].excused).toMatchObject({ by: "Ani", reason: "Colokan lepas" });
   });
 
   it("lists a seat's hold, warnings and penalty decisions, and says who may decide", async () => {
@@ -533,7 +533,7 @@ describe("the console", () => {
     expect(v.seats[0].heldAt).toBe(t.getTime());
     expect(v.seats[0].warnings.map((w) => [w.id, w.seen, w.by])).toEqual([
       [1, true, null],
-      [2, false, "N1"],
+      [2, false, "Ani"],
     ]);
     expect(v.seats[0].penalties.logika).toMatchObject({ state: "applied", pct: 10, by: "KTU" });
     expect(v.me.canPenalty).toBe(true);

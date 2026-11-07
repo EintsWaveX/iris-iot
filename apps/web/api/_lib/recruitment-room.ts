@@ -795,6 +795,13 @@ async function susunKonsol(
     else if (room.state.finishedAt != null) ends[part] = room.state.finishedAt;
   }
   const kej = kejadianPerSeat(rows, now, ends);
+  // Who excused, warned or decided is shown by name, not by NIM (9 Nov 2026)
+  const siapa = await namaAsisten(db, [
+    ...strikes.flatMap((x) => (x.excusedBy ? [x.excusedBy] : [])),
+    ...warns.flatMap((w) => (w.byNim ? [w.byNim] : [])),
+    ...decisions.map((d) => d.byNim),
+  ]);
+  const who = (nim: string) => siapa.get(nim)?.nama ?? nim;
   const tiles: ConsoleSeat[] = kand.map((c, i) => {
     const seat = seats.find((x) => x.candidateId === c.id) ?? null;
     const k = seat ? kej[seat.id] : undefined;
@@ -822,7 +829,7 @@ async function susunKonsol(
         kinds: x.kinds,
         at: x.at,
         backAt: x.backAt,
-        excused: x.excused ?? null,
+        excused: x.excused ? { ...x.excused, by: who(x.excused.by) } : null,
       })),
       violations: seat
         ? seatViolations(
@@ -842,7 +849,7 @@ async function susunKonsol(
               source: w.source,
               level: w.level,
               text: w.text,
-              by: w.byNim,
+              by: w.byNim ? who(w.byNim) : null,
               at: w.at.getTime(),
               seen: !!w.seenAt,
             }))
@@ -853,7 +860,7 @@ async function susunKonsol(
               .filter((d) => d.seatId === seat.id)
               .map((d) => [
                 d.part,
-                { state: d.state, pct: d.pct, by: d.byNim, note: d.note, at: d.at.getTime() },
+                { state: d.state, pct: d.pct, by: who(d.byNim), note: d.note, at: d.at.getTime() },
               ]),
           )
         : {},
