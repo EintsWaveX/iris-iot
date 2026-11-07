@@ -5,6 +5,8 @@ import {
   FS_QUIET_MS,
   PageWatch,
   StrikeTracker,
+  reopened,
+  STRIKE_KINDS,
   devtoolsLikelyOpen,
   isDevtoolsKey,
 } from "../recruitment/seat-lockdown";
@@ -199,5 +201,95 @@ describe("devtools heuristic", () => {
     expect(isDevtoolsKey(k("i", { metaKey: true, altKey: true }))).toBe(true);
     expect(isDevtoolsKey(k("i", { ctrlKey: true }))).toBe(false);
     expect(isDevtoolsKey(k("a"))).toBe(false);
+  });
+});
+
+describe("the kinds added on 9 Nov 2026", () => {
+  it("lists them, with ganda still the API's own", () => {
+    for (const k of ["layar2", "muat", "otomatis", "salin", "putus"])
+      expect(STRIKE_KINDS).toContain(k);
+  });
+
+  describe("PageWatch.edges: a second screen and an automated browser count once per change", () => {
+    it("a second screen counts when it appears, not on every look", () => {
+      const w = new PageWatch();
+      expect(w.edges({ extended: false })).toEqual([]);
+      expect(w.edges({ extended: true })).toEqual(["layar2"]);
+      expect(w.edges({ extended: true })).toEqual([]);
+      expect(w.edges({ extended: true })).toEqual([]);
+    });
+    it("one that was already there when the part began counts at once", () => {
+      expect(new PageWatch().edges({ extended: true })).toEqual(["layar2"]);
+    });
+    it("unplugging and plugging in again counts again", () => {
+      const w = new PageWatch();
+      w.edges({ extended: true });
+      expect(w.edges({ extended: false })).toEqual([]);
+      expect(w.edges({ extended: true })).toEqual(["layar2"]);
+    });
+    it("an automated browser counts once per page, and a browser that cannot say counts nothing", () => {
+      const w = new PageWatch();
+      expect(w.edges({ automated: true })).toEqual(["otomatis"]);
+      expect(w.edges({ automated: true })).toEqual([]);
+      expect(new PageWatch().edges({})).toEqual([]);
+    });
+    it("both at once", () => {
+      expect(new PageWatch().edges({ extended: true, automated: true })).toEqual([
+        "layar2",
+        "otomatis",
+      ]);
+    });
+  });
+
+  describe("a lost connection is an absence that ends when the line is back", () => {
+    it("PageWatch calls for putus while offline, and not when the state does not say", () => {
+      const w = new PageWatch();
+      expect(w.read({ ...ok, online: false }, 0)).toEqual(["putus"]);
+      expect(w.read({ ...ok, online: true }, 10)).toEqual([]);
+      expect(w.read(ok, 20)).toEqual([]);
+    });
+    it("does not close while the line is down, closes once it is back", () => {
+      const t = new StrikeTracker(() => "s1");
+      t.signal("putus", 0);
+      expect(t.settle({ ...ok, online: false }, 100)).toBeNull();
+      expect(t.settle({ ...ok, online: true }, 200)?.type).toBe("close");
+    });
+    it("a state without `online` is as before", () => {
+      const t = new StrikeTracker(() => "s1");
+      t.signal("tab", 0);
+      expect(t.settle(ok, 100)?.type).toBe("close");
+    });
+  });
+
+  describe("reopened: the page came back to a part it was already in", () => {
+    const store = () => {
+      const m = new Map<string, string>();
+      return {
+        getItem: (k: string) => m.get(k) ?? null,
+        setItem: (k: string, v: string) => void m.set(k, v),
+      };
+    };
+    it("is false the first time, false again in the same page life, true in a new one", () => {
+      const st = store();
+      expect(reopened(st, "k", "life-1")).toBe(false);
+      expect(reopened(st, "k", "life-1")).toBe(false);
+      expect(reopened(st, "k", "life-2")).toBe(true);
+      expect(reopened(st, "k", "life-2")).toBe(false);
+    });
+    it("keeps seats and parts apart", () => {
+      const st = store();
+      reopened(st, "seat1.logika", "a");
+      expect(reopened(st, "seat1.fitb", "b")).toBe(false);
+    });
+    it("is false where storage is blocked", () => {
+      expect(reopened(null, "k", "a")).toBe(false);
+      const broken = {
+        getItem: () => {
+          throw new Error("blocked");
+        },
+        setItem: () => undefined,
+      };
+      expect(reopened(broken, "k", "a")).toBe(false);
+    });
   });
 });

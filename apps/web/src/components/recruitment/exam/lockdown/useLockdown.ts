@@ -22,6 +22,7 @@ import {
   StrikeTracker,
   WATCH_MS,
   devtoolsLikelyOpen,
+  reopened,
   isDevtoolsKey,
   isScreenshotKey,
   type Strike,
@@ -29,6 +30,22 @@ import {
 } from "../../../../lib/recruitment/seat-lockdown";
 
 const rid = () => `k${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/** This page's own id: a different one for the same seat and part means the page came back (a reload, a reopened tab) */
+const LIFE = rid();
+
+/** A second screen is attached: Chromium says so, other browsers do not (they give nothing, which counts nothing) */
+const secondScreen = () =>
+  (window.screen as unknown as { isExtended?: boolean }).isExtended === true;
+/** The browser is driven by a script (Selenium, Playwright) */
+const automated = () => navigator.webdriver === true;
+const storage = () => {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
 
 const isField = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
@@ -128,6 +145,7 @@ export function useLockdown(o: {
     fullscreen: !!document.fullscreenElement,
     visible: document.visibilityState === "visible",
     focused: document.hasFocus(),
+    online: navigator.onLine,
   });
   const settle = useCallback(() => report(tracker.current.settle(state(), jamServer())), [report]);
 
@@ -178,6 +196,9 @@ export function useLockdown(o: {
       .catch(() => undefined)
       .then(() => {
         if (!document.fullscreenElement) signal("layar");
+        // The page is back in a part it was already in: a reload, a reopened tab, a return from another page
+        if (reopened(storage(), `iris.lock.${seatId}.${partRef.current ?? "-"}`, LIFE))
+          signal("muat", true);
       });
     // What the page state calls for, on every event and on a timer (8 Nov 2026). Events alone are not
     // enough: Linux and Firefox blur the window around every fullscreen change and tab switch (so each
@@ -185,6 +206,9 @@ export function useLockdown(o: {
     // stayed open and swallowed every later signal, which froze the count). The state is the truth.
     const watch = new PageWatch();
     const check = () => {
+      // Once per change, as instant strikes: a second screen appearing, a script driving the browser
+      for (const k of watch.edges({ extended: secondScreen(), automated: automated() }))
+        signal(k, true);
       for (const k of watch.read(state(), Date.now())) signal(k);
       settle();
     };
@@ -218,7 +242,11 @@ export function useLockdown(o: {
       signal("tempel", true);
     };
     const onCopy = (e: Event) => {
-      if (!coding()) return e.preventDefault();
+      // Outside Live Coding copy and cut are blocked and now noted (weight 0 unless staff raise it)
+      if (!coding()) {
+        e.preventDefault();
+        return signal("salin", true);
+      }
       const sel = document.getSelection()?.toString() ?? "";
       if (sel) copied.current = sel;
     };
@@ -244,8 +272,10 @@ export function useLockdown(o: {
         return;
       }
       const k = e.key.toLowerCase();
-      if ((e.ctrlKey || e.metaKey) && (k === "p" || (k === "a" && !isField(e.target))))
+      if ((e.ctrlKey || e.metaKey) && (k === "p" || (k === "a" && !isField(e.target)))) {
         e.preventDefault();
+        signal("salin", true);
+      }
     };
     const onResize = () => {
       if (document.fullscreenElement && devtoolsLikelyOpen(window)) signal("alat");
@@ -262,8 +292,16 @@ export function useLockdown(o: {
     // PrintScreen often fires only on key up
     document.addEventListener("keyup", onShotKey, true);
     window.addEventListener("resize", onResize);
-    const online = () => void flush();
+    const online = () => {
+      void flush();
+      check();
+    };
     window.addEventListener("online", online);
+    // A lost connection opens a strike that the line coming back closes (check reads navigator.onLine)
+    window.addEventListener("offline", check);
+    // Printing from the browser's menu, which no key handler sees
+    const onPrint = () => signal("salin", true);
+    window.addEventListener("beforeprint", onPrint);
     return () => {
       clearInterval(watchTimer);
       document.removeEventListener("fullscreenchange", onFs);
@@ -278,6 +316,8 @@ export function useLockdown(o: {
       document.removeEventListener("keyup", onShotKey, true);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("online", online);
+      window.removeEventListener("offline", check);
+      window.removeEventListener("beforeprint", onPrint);
       // The part is over: whatever was open ends now, so no kejadian runs on into the lobby.
       report(t.settle({ fullscreen: true, visible: true, focused: true }, jamServer()));
     };

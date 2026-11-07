@@ -572,6 +572,26 @@ describe("test-strike", () => {
     expect(JSON.stringify(r.antre)).toContain("overflow");
   });
 
+  it("accepts the kinds added on 9 Nov 2026 from a page", async () => {
+    rows.strike = [];
+    rows["w:strike"] = [{ id: 5 }];
+    for (const kind of ["layar2", "muat", "otomatis", "salin", "putus"]) {
+      tulis.length = 0;
+      const r = await jalan("test-strike", { id: `stk-${kind}`, kinds: [kind], at: Date.now() });
+      expect(r.status).toBe(200);
+      expect(tulis.some((x) => x.op === "insert" && x.tabel === "strike")).toBe(true);
+    }
+  });
+
+  it("past the cap, a strike of weight 0 (a copy attempt) adds nothing to the overflow", async () => {
+    let n = 0;
+    rows.strike = () => (n++ === 0 ? [] : n === 2 ? [{ n: 50 }] : []);
+    rows.warning = [];
+    const r = await jalan("test-strike", { id: "stk-0200", kinds: ["salin"], at: Date.now() });
+    expect(r.body).toMatchObject({ capped: true, points: 0 });
+    expect(tulis.some((x) => x.op === "update" && x.tabel === "seat")).toBe(false);
+  });
+
   it("a reload closes what was left open", async () => {
     rows["w:strike"] = [{ id: 1, clientId: "a" }];
     const r = await jalan("test-strike", { resume: true });
