@@ -828,7 +828,7 @@ function Summary({
           )}
         </div>
       </div>
-      <div className="dash__pair">
+      <div className="dash__pair dash__pair--top">
         <section
           className="panel panel--raised"
           style={{ "--m": `var(--mod-${modul})` } as CSSProperties}
