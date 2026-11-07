@@ -228,9 +228,19 @@ const BULAN: Record<string, number> = {
   oktober: 10,
   november: 11,
   desember: 12,
+  // Rekap BAP writes its dates in English since 2026-11-03 ("21 October 2026").
+  january: 1,
+  february: 2,
+  march: 3,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  october: 10,
+  december: 12,
 };
 
-/** Rekap BAP's date cell ("20 Oktober 2026", "Jumat, 23 Oktober 2026") as YYYY-MM-DD. */
+/** Rekap BAP's date cell ("20 Oktober 2026", "Jumat, 23 Oktober 2026", "21 October 2026") as YYYY-MM-DD. */
 export function bacaTanggalBap(teks: string): string | null {
   const iso = teks.match(/(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
