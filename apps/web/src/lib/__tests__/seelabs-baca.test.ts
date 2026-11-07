@@ -176,6 +176,9 @@ describe("Rekap BAP cells", () => {
     expect(bacaTanggalBap("20 Oktober 2026")).toBe("2026-10-20");
     expect(bacaTanggalBap("Jumat, 23 Oktober 2026")).toBe("2026-10-23");
     expect(bacaTanggalBap("2026-10-23")).toBe("2026-10-23");
+    expect(bacaTanggalBap("21 October 2026")).toBe("2026-10-21");
+    expect(bacaTanggalBap("5 December 2026")).toBe("2026-12-05");
+    expect(bacaTanggalBap("30 November 2026")).toBe("2026-11-30");
     expect(bacaTanggalBap("kemarin")).toBeNull();
   });
 });
