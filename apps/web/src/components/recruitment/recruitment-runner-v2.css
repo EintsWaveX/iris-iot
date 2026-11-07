@@ -388,9 +388,11 @@ body:has(.r3top) .toast[data-shown="yes"] {
 /* Two layers crossfade, so the colour drifts between two close tones; --g (0..1) is how far the glow
    reaches, and the level (calm, warm, hot, crit) sets the tones, the strength and the speed. */
 .r3glow {
-  --a: 0.16;
-  --c1: #38bdf8;
-  --c2: #2dd4bf;
+  /* Green with plenty of time, yellow, orange, then red as it runs out. A steady base strength keeps it
+     visible at every level; the pulse only dips to about half, so it never flashes (user, 2026-11-07). */
+  --a: 0.34;
+  --c1: #4ade80;
+  --c2: #22c55e;
   --dur: 8s;
   inset: 0;
   pointer-events: none;
@@ -398,22 +400,22 @@ body:has(.r3top) .toast[data-shown="yes"] {
   z-index: 4;
 }
 .r3glow[data-lv="warm"] {
-  --a: 0.24;
-  --c1: #f5b942;
-  --c2: #f59e0b;
-  --dur: 5s;
+  --a: 0.38;
+  --c1: #facc15;
+  --c2: #eab308;
+  --dur: 6s;
 }
 .r3glow[data-lv="hot"] {
-  --a: 0.34;
+  --a: 0.42;
   --c1: #fb923c;
-  --c2: #ef4444;
-  --dur: 2.8s;
+  --c2: #f97316;
+  --dur: 3.4s;
 }
 .r3glow[data-lv="crit"] {
   --a: 0.5;
   --c1: #ef4444;
-  --c2: #f43f5e;
-  --dur: 1.3s;
+  --c2: #dc2626;
+  --dur: 1.8s;
 }
 .r3glow::before,
 .r3glow::after {
@@ -437,13 +439,13 @@ body:has(.r3top) .toast[data-shown="yes"] {
     opacity: var(--a);
   }
   50% {
-    opacity: calc(var(--a) * 0.2);
+    opacity: calc(var(--a) * 0.5);
   }
 }
 @keyframes r3-glow-b {
   0%,
   100% {
-    opacity: calc(var(--a) * 0.2);
+    opacity: calc(var(--a) * 0.5);
   }
   50% {
     opacity: var(--a);

@@ -1729,14 +1729,68 @@ html:has(.r3page:not(.r3page--shell)) {
   font-size: 1.7rem;
 }
 
-/* The seat's watermark: over everything, never in the way (4 Nov 2026) */
+/* The seat's watermark: over everything, never in the way (4 Nov 2026). Since 7 Nov 2026 its lines
+   slide along their slant, line 1 up, line 2 down, line 3 up (Watermark.tsx has the two layers). */
 .r3wm {
-  background-repeat: repeat;
   inset: 0;
+  overflow: hidden;
   pointer-events: none;
   position: fixed;
   user-select: none;
   z-index: 60;
+}
+.r3wm__sheet {
+  /* A square at least as long as the screen's diagonal (1.42 x the long side is the worst case), so
+     the tilted sheet always covers every corner */
+  --wm-s: 150vmax;
+  height: var(--wm-s);
+  left: 50%;
+  margin: calc(var(--wm-s) / -2) 0 0 calc(var(--wm-s) / -2);
+  position: absolute;
+  top: 50%;
+  transform: rotate(-24deg);
+  width: var(--wm-s);
+}
+.r3wm__lane {
+  background-position: 0 0;
+  background-repeat: repeat;
+  display: block;
+  height: 100%;
+  /* one tile wider on the left, so the slide never shows a bare edge */
+  left: calc(var(--wm-w) * -1);
+  position: absolute;
+  top: 0;
+  width: calc(100% + var(--wm-w));
+  will-change: transform;
+}
+/* Line 2, 4, 6...: half a row lower and half a tile along, between the lines of the first layer */
+.r3wm__lane--down {
+  background-position: calc(var(--wm-w) / 2) var(--wm-h);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .r3page:not([data-m="reduce"]) .r3wm__lane--up {
+    animation: r3wm-up 26s linear infinite;
+  }
+  .r3page:not([data-m="reduce"]) .r3wm__lane--down {
+    animation: r3wm-down 26s linear infinite;
+  }
+}
+/* Up is along the sheet's own +x (the slant rises to the right); down is back along it */
+@keyframes r3wm-up {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(var(--wm-w));
+  }
+}
+@keyframes r3wm-down {
+  from {
+    transform: translateX(var(--wm-w));
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 @media print {
   .r3wm {

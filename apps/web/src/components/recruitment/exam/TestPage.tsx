@@ -13,8 +13,9 @@
  * (the kit's useFullscreenEl), which is this page's root.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Lang } from "../../../lib/kelas";
-import { usePoll } from "../../../lib/hooks";
+import { pathForLang, type Lang } from "../../../lib/kelas";
+import { saveLangPref, usePoll } from "../../../lib/hooks";
+import { tri } from "../../../lib/labels";
 import { isFail, recGet } from "../../../lib/recruitment/client";
 import type { PesanUjian, RoomPublic } from "../../../lib/recruitment/room-relay";
 import { useCadanganRuang, useJamRuang } from "../../../lib/recruitment/room-client";
@@ -28,6 +29,7 @@ import { Gate } from "./parts";
 import Runner from "./Runner";
 import { Finished, Lobby, NotOpen, Notice } from "./Screens";
 import LccPage from "../livecode/LccPage";
+import TestDisplay, { TestLangProvider } from "./TestDisplay";
 import Watermark from "./Watermark";
 import { toast as seatToast } from "./seatApi";
 import { TS } from "./testStrings";
@@ -38,6 +40,7 @@ import "../recruitment-checkin.css";
 import "../recruitment-runner-look.css";
 import "../recruitment-lcc-draw.css";
 import "../recruitment-runner-v2.css";
+import "../recruitment-runner-fs.css";
 
 type Fetched = { tv: TestView } | { err: string };
 
@@ -54,7 +57,31 @@ const newer = (a: RoomPublic | null, b: RoomPublic | null) =>
 
 const TIME_UP_MS = 1500;
 
-export default function TestPage({ lang }: { lang: Lang }) {
+export default function TestPage({ lang: routeLang }: { lang: Lang }) {
+  // The language the page is in. Tampilan changes it in place (a reload would leave full screen and
+  // count as a strike), so the route's language is only where it starts.
+  const [lang, setLangState] = useState<Lang>(routeLang);
+  const setLang = useCallback(
+    (to: Lang) => {
+      if (to === lang) return;
+      saveLangPref(to);
+      setLangState(to);
+      try {
+        history.replaceState(
+          history.state,
+          "",
+          pathForLang(location.pathname + location.search + location.hash, to),
+        );
+      } catch {
+        /* the address bar is cosmetic */
+      }
+    },
+    [lang],
+  );
+  useEffect(() => {
+    document.documentElement.lang = lang === "zh" ? "zh-Hans" : lang;
+    document.title = `${tri(lang, "Tes Tulis dan Koding", "Written and Coding Test", "笔试与编程")} · IRIS IoT`;
+  }, [lang]);
   const t = TS[lang];
   const root = useRef<HTMLDivElement | null>(null);
   const motion = useRevealMotion();
@@ -255,7 +282,11 @@ export default function TestPage({ lang }: { lang: Lang }) {
 
   return (
     <div ref={root} className={"r3page" + (shell ? " r3page--shell" : "")} data-m={motion}>
-      {screen}
+      <TestLangProvider lang={lang} setLang={setLang}>
+        {screen}
+        {/* The room that is not open yet keeps the recruitment navbar, which has its own Tampilan */}
+        {!shell && <TestDisplay />}
+      </TestLangProvider>
       {working && tv?.me && <Watermark text={`${tv.me.nim} · ${tv.me.nama.split(" ")[0]}`} />}
     </div>
   );

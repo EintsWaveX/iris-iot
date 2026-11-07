@@ -2,10 +2,10 @@
  * The screen-edge glow on the exam pages (2026-11-07): how loud it is follows the time the seat has
  * left, so a candidate feels the clock without staring at it. Pure and browser safe.
  *
- *   more than half left   calm   cool blue and teal, slow
- *   down to a quarter     warm   amber, a little faster
- *   down to a tenth       hot    orange to red, quick
- *   under a tenth         crit   red to rose, urgent
+ *   more than half left   calm   green, slow
+ *   down to a quarter     warm   yellow, a little faster
+ *   down to a tenth       hot    orange, quick
+ *   under a tenth         crit   red, urgent
  */
 export type GlowLevel = "calm" | "warm" | "hot" | "crit";
 

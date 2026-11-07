@@ -298,6 +298,11 @@
   min-height: 44px;
   padding: 0 12px 0 10px;
 }
+/* A line break inside the wrapping button group: what follows starts a new row */
+.r3tp__break {
+  flex-basis: 100%;
+  height: 0;
+}
 .r3tp__custom {
   align-items: center;
   background: var(--surface-2);
