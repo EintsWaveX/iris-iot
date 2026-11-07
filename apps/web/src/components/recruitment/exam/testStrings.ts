@@ -73,6 +73,10 @@ export const TS = dict({
       judgeOk: "PC Lab siap menilai programmu",
       judgeBad:
         "PC Lab belum siap menilai. Tes tertulis tetap jalan, dan Asisten mengurusnya sebelum Live Coding.",
+      screens: "Layar",
+      screensOk: "Hanya satu layar yang tersambung",
+      screensBad:
+        "Ada layar kedua yang tersambung. Lepas kabelnya atau matikan tampilan yang diperluas sebelum tes dimulai, karena ini dicatat sebagai pelanggaran.",
       browser: "Browser",
       browserBad:
         "Kamu memakai browser yang belum diuji. Tes paling lancar di Chrome, tapi kamu tetap bisa masuk.",
@@ -296,6 +300,10 @@ export const TS = dict({
       judgeOk: "The lab PC is ready to judge your programs",
       judgeBad:
         "The lab PC is not ready to judge yet. The written parts still run, and an Asisten sorts it out before Live Coding.",
+      screens: "Screen",
+      screensOk: "Only one screen is connected",
+      screensBad:
+        "A second screen is connected. Unplug it or turn off the extended display before the test starts, because it is recorded as a violation.",
       browser: "Browser",
       browserBad:
         "This browser has not been tested. The test runs best in Chrome, but you can still go in.",
@@ -517,6 +525,9 @@ export const TS = dict({
       judge: "C 评测",
       judgeOk: "实验室电脑已准备好评测你的程序",
       judgeBad: "实验室电脑暂时无法评测。笔试仍可进行，助教会在现场编程前处理。",
+      screens: "屏幕",
+      screensOk: "只连接了一块屏幕",
+      screensBad: "已连接第二块屏幕。请在考试开始前拔掉它或关闭扩展显示，否则会被记为违规。",
       browser: "浏览器",
       browserBad: "此浏览器尚未测试。Chrome 最流畅，但你仍然可以进入。",
       fsFail: "浏览器不允许全屏，请重试，或改用 Chrome 或 Edge。",

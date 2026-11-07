@@ -6,6 +6,7 @@ import {
   PageWatch,
   StrikeTracker,
   reopened,
+  screenCount,
   STRIKE_KINDS,
   devtoolsLikelyOpen,
   isDevtoolsKey,
@@ -291,5 +292,15 @@ describe("the kinds added on 9 Nov 2026", () => {
       };
       expect(reopened(broken, "k", "a")).toBe(false);
     });
+  });
+});
+
+describe("screenCount (the check-in row and the part's second-screen strike agree)", () => {
+  it("says one, more, or that the browser cannot tell", () => {
+    expect(screenCount({ isExtended: false })).toBe("one");
+    expect(screenCount({ isExtended: true })).toBe("more");
+    expect(screenCount({})).toBe("unknown");
+    expect(screenCount(null)).toBe("unknown");
+    expect(screenCount({ isExtended: undefined })).toBe("unknown");
   });
 });
