@@ -3,7 +3,6 @@ import {
   DEBOUNCE_MS,
   FOKUS_GRACE_MS,
   FS_QUIET_MS,
-  MAX_STRIKES_PER_PART,
   PageWatch,
   StrikeTracker,
   devtoolsLikelyOpen,
@@ -75,16 +74,13 @@ describe("StrikeTracker", () => {
     expect(e).toMatchObject({ type: "close", strike: { kinds: ["tempel"], at: 500, back: 500 } });
   });
 
-  it("stops recording past the cap per part and says so", () => {
+  it("never stops reporting: the server owns the cap and counts what is past it (9 Nov 2026)", () => {
     let n = 0;
     const t = new StrikeTracker(() => `s${++n}`);
     let last = null;
-    for (let i = 0; i < MAX_STRIKES_PER_PART + 3; i++) {
-      last = t.signal("tempel", i * 10_000, { instant: true });
-    }
-    expect(t.all().length).toBe(MAX_STRIKES_PER_PART);
-    expect(last).toBeNull();
-    expect(t.capped).toBe(true);
+    for (let i = 0; i < 120; i++) last = t.signal("tempel", i * 10_000, { instant: true });
+    expect(t.all()).toHaveLength(120);
+    expect(last).toMatchObject({ type: "close" });
   });
 
   it("settle with nothing open does nothing", () => {

@@ -31,7 +31,8 @@ import { Finished, Lobby, NotOpen, Notice } from "./Screens";
 import LccPage from "../livecode/LccPage";
 import TestDisplay, { TestLangProvider } from "./TestDisplay";
 import Watermark from "./Watermark";
-import { toast as seatToast } from "./seatApi";
+import { ackWarning, toast as seatToast } from "./seatApi";
+import { ViolationChip, ViolationWarning } from "./ViolationWarning";
 import { TS } from "./testStrings";
 import Skeleton from "../../ui/Skeleton";
 
@@ -144,7 +145,19 @@ export default function TestPage({ lang: routeLang }: { lang: Lang }) {
     part: phase.k === "work" ? phase.part : phase.k === "spin" ? "livecode" : null,
     rootRef: root,
     onScreenshot: () => seatToast(TS[lang].over.shot, "warn"),
+    // A strike was answered with the seat's points: ask again, the view carries any new warning
+    onTally: refresh,
   });
+  // A warning stays until the seat says it saw it; the ones acknowledged here are hidden at once
+  const [acked, setAcked] = useState<ReadonlySet<number>>(new Set());
+  const pendingWarning = (tv?.warnings ?? []).find((w) => !acked.has(w.id)) ?? null;
+  const ackWarn = useCallback(
+    (id: number) => {
+      setAcked((s) => new Set(s).add(id));
+      void ackWarning(id).then(refresh);
+    },
+    [refresh],
+  );
 
   // The part stays on screen under the time-up card even after the API stops handing it out.
   const lastPart = useRef<NonNullable<TestView["part"]> | null>(null);
@@ -286,6 +299,13 @@ export default function TestPage({ lang: routeLang }: { lang: Lang }) {
         {screen}
         {/* The room that is not open yet keeps the recruitment navbar, which has its own Tampilan */}
         {!shell && <TestDisplay />}
+        {working && <ViolationChip lang={lang} v={tv?.violation ?? null} />}
+        <ViolationWarning
+          lang={lang}
+          warning={working ? pendingWarning : null}
+          rule={tv?.violation?.rule}
+          onAck={ackWarn}
+        />
       </TestLangProvider>
       {working && tv?.me && <Watermark text={`${tv.me.nim} · ${tv.me.nama.split(" ")[0]}`} />}
     </div>

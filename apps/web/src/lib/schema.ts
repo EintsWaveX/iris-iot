@@ -2785,6 +2785,9 @@ export const recSeatWarning = pgTable(
     source: text("source", { enum: ["auto", "staff"] }).notNull(),
     /** 1 notice, 2 strong, 3 final for an automatic one; 0 for a staff message */
     level: integer("level").notNull().default(0),
+    /** The seat's counted points and the suggested cut (percent) when it was issued; 0 for a staff message */
+    points: integer("points").notNull().default(0),
+    cut: integer("cut").notNull().default(0),
     text: text("text").notNull(),
     byNim: text("by_nim"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),

@@ -69,6 +69,28 @@ export interface PartView {
   answers: Record<number, { value: Value; rev: number }>;
 }
 
+/** The seat's violations in the part it is working (9 Nov 2026): points, level, and the rule behind them */
+export interface SeatViolationView {
+  part: PartKey;
+  points: number;
+  /** 0 none, 1 notice, 2 strong, 3 final */
+  level: number;
+  /** The score cut these points suggest, percent; staff decide whether it applies */
+  cut: number;
+  rule: { free: number; step: number; max: number; warnAt: [number, number, number] };
+}
+
+/** A warning the seat has not acknowledged yet: its own rising level, or a message from a pengawas */
+export interface PendingWarning {
+  id: number;
+  part: PartKey | null;
+  source: "auto" | "staff";
+  level: number;
+  points: number;
+  cut: number;
+  text: string;
+}
+
 export interface TestView {
   ok: true;
   /** The server clock when this was made */
@@ -86,6 +108,9 @@ export interface TestView {
   closedElsewhere: Phase1Part[];
   /** The lab PC says it can judge C programs (Live Coding); a check-in row, never a blocker */
   judge: boolean;
+  /** Null when no part is running for this seat */
+  violation: SeatViolationView | null;
+  warnings: PendingWarning[];
 }
 
 export interface CheckinBody {

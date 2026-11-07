@@ -24,9 +24,6 @@ export type StrikeKind = (typeof STRIKE_KINDS)[number];
 
 /** A signal within this long of a strike joins it (7: Debounce) */
 export const DEBOUNCE_MS = 1500;
-/** Records kept per seat and part; after that only the page's count grows */
-export const MAX_STRIKES_PER_PART = 50;
-
 export interface Strike {
   id: string;
   kinds: StrikeKind[];
@@ -46,7 +43,6 @@ export interface PageState {
 
 export class StrikeTracker {
   private list: Strike[] = [];
-  capped = false;
   private readonly newId: () => string;
 
   constructor(newId: () => string) {
@@ -76,10 +72,6 @@ export class StrikeTracker {
       // A signal after the strike closed puts the seat back out, unless it has no away time.
       if (last.back !== null && !o.instant) last.back = null;
       return { type: "update", strike: { ...last } };
-    }
-    if (this.list.length >= MAX_STRIKES_PER_PART) {
-      this.capped = true;
-      return null;
     }
     const s: Strike = { id: this.newId(), kinds: [kind], at, back: o.instant ? at : null };
     this.list.push(s);

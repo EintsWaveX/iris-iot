@@ -64,10 +64,14 @@ export function useLockdown(o: {
   rootRef: RefObject<HTMLElement | null>;
   /** A screenshot key was pressed: the page tells the seat it was recorded */
   onScreenshot?: () => void;
+  /** The server answered a strike with the seat's points: the page asks for its view again, which carries any warning */
+  onTally?: () => void;
 }): Lockdown {
   const { active, seatId, part, rootRef } = o;
   const shotRef = useRef(o.onScreenshot);
   shotRef.current = o.onScreenshot;
+  const tallyRef = useRef(o.onTally);
+  tallyRef.current = o.onTally;
   const [fullscreen, setFullscreen] = useState(false);
   const [away, setAway] = useState(false);
   const tracker = useRef(new StrikeTracker(rid));
@@ -92,6 +96,10 @@ export function useLockdown(o: {
         // is tried again, so a strike never vanishes just because the line was busy.
         if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429))
           queue.current.delete(id);
+        if (r.ok) {
+          const j = (await r.json().catch(() => null)) as { points?: unknown } | null;
+          if (typeof j?.points === "number") tallyRef.current?.();
+        }
       } catch {
         /* offline: it stays queued */
       }

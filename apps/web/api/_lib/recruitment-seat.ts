@@ -148,6 +148,8 @@ export async function handleSeat(req: ApiRequest, res: ApiResponse, s: SessionPa
       return mintaBonus(k);
     case "test-submit":
       return kumpulkan(k);
+    case "test-warning":
+      return lihatPeringatan(k);
     case "test-hotspot":
       return hotspot(k);
   }
@@ -281,6 +283,8 @@ async function bacaTes(k: Konteks) {
       hotspot: null,
       closedElsewhere: [],
       judge: false,
+      violation: null,
+      warnings: [],
     };
     return void res.status(200).json(v);
   }
@@ -306,7 +310,34 @@ async function bacaTes(k: Konteks) {
     hotspot: mine ? { ssid: mine.ssid } : null,
     closedElsewhere,
     judge: await judgeSiap(db, now),
+    violation: null,
+    warnings: [],
   };
+  if (seat && state.cur && (state.stage === "parts" || state.stage === "spin")) {
+    const rules = config.violations;
+    const t = await poinKursi(db, seat.id, state.cur, seat.strikeOverflow?.[state.cur] ?? 0, rules);
+    v.violation = {
+      part: state.cur,
+      ...t,
+      rule: { free: rules.free, step: rules.step, max: rules.max, warnAt: rules.warnAt },
+    };
+  }
+  if (seat) {
+    const w = await db
+      .select({
+        id: recSeatWarning.id,
+        part: recSeatWarning.part,
+        source: recSeatWarning.source,
+        level: recSeatWarning.level,
+        points: recSeatWarning.points,
+        cut: recSeatWarning.cut,
+        text: recSeatWarning.text,
+      })
+      .from(recSeatWarning)
+      .where(and(eq(recSeatWarning.seatId, seat.id), isNull(recSeatWarning.seenAt)))
+      .orderBy(recSeatWarning.at);
+    v.warnings = w;
+  }
   res.status(200).json(v);
 }
 
@@ -857,7 +888,14 @@ interface Tally {
   points: number;
   level: number;
   warned: boolean;
-  body: { points: number; level: number; cut: number; warned: boolean };
+  body: {
+    points: number;
+    level: number;
+    cut: number;
+    warned: boolean;
+    /** The recorded warning's id, so the page can say it saw it */
+    warningId: number | null;
+  };
 }
 
 /**
@@ -884,15 +922,44 @@ async function tallyKursi(
       ),
     );
   const warned = level > (prev?.level ?? 0);
-  if (warned)
-    await db.insert(recSeatWarning).values({
-      seatId: seat!.id,
-      part,
-      source: "auto",
-      level,
-      text: `Peringatan ${level}: ${points} poin pelanggaran di ${part}`,
-    });
-  return { points, level, warned, body: { points, level, cut, warned } };
+  let warningId: number | null = null;
+  if (warned) {
+    const [ins] = await db
+      .insert(recSeatWarning)
+      .values({
+        seatId: seat!.id,
+        part,
+        source: "auto",
+        level,
+        points,
+        cut,
+        text: `Peringatan ${level}: ${points} poin pelanggaran di ${part}`,
+      })
+      .returning({ id: recSeatWarning.id });
+    warningId = ins?.id ?? null;
+  }
+  return { points, level, warned, body: { points, level, cut, warned, warningId } };
+}
+
+/** `test-warning { id }`: the seat acknowledged a warning, so it stops coming back with the view. */
+async function lihatPeringatan(k: Konteks) {
+  const { req, res, db, seat } = k;
+  const id = jsonBody(req).id;
+  if (typeof id !== "number" || !Number.isInteger(id) || id < 1)
+    return void tolakKursi(res, "data_salah");
+  if (!seat) return void tolakKursi(res, "belum_masuk");
+  const seen = await db
+    .update(recSeatWarning)
+    .set({ seenAt: new Date() })
+    .where(
+      and(
+        eq(recSeatWarning.id, id),
+        eq(recSeatWarning.seatId, seat.id),
+        isNull(recSeatWarning.seenAt),
+      ),
+    )
+    .returning({ id: recSeatWarning.id });
+  res.status(200).json({ ok: true, seen: seen.length });
 }
 
 /* ------------------------------------------------------------ bonus round */

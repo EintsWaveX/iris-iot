@@ -67,6 +67,11 @@ export async function askBonus(
     : { ok: true, count: r.count, quote: r.quote };
 }
 
+/** The seat saw a warning: it stops coming back with the view (9 Nov 2026) */
+export async function ackWarning(id: number): Promise<void> {
+  await recPost("test-warning", { id });
+}
+
 export async function saveHotspot(
   b: { ssid: string; pass: string } | { clear: true },
 ): Promise<{ ok: boolean; ssid?: string; kode?: string }> {

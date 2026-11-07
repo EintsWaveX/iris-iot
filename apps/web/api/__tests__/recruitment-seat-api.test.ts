@@ -243,6 +243,57 @@ describe("who reaches the runner", () => {
   });
 });
 
+describe("the seat's violation state in the test view", () => {
+  it("carries the points, level and rule for the running part, and the warnings not yet seen", async () => {
+    rows.strike = [
+      { kinds: ["tab"], excusedAt: null },
+      { kinds: ["layar"], excusedAt: null },
+      { kinds: ["fokus"], excusedAt: new Date() },
+    ];
+    rows.warning = [
+      { id: 3, part: "logika", source: "auto", level: 1, points: 1, cut: 0, text: "x" },
+    ];
+    const r = await jalan("test", null);
+    expect(r.status).toBe(200);
+    expect(r.body.violation).toMatchObject({
+      part: "logika",
+      points: 2,
+      level: 1,
+      cut: 0,
+      rule: { free: 2, step: 5, max: 30, warnAt: [1, 3, 5] },
+    });
+    expect(r.body.warnings).toEqual([
+      { id: 3, part: "logika", source: "auto", level: 1, points: 1, cut: 0, text: "x" },
+    ]);
+  });
+  it("says nothing about violations when the seat has no part running", async () => {
+    state = { ...state, cur: null, stage: "prep" };
+    rows.room = [kamar()];
+    const r = await jalan("test", null);
+    expect(r.body.violation).toBeNull();
+  });
+});
+
+describe("test-warning (the seat saw it)", () => {
+  it("marks a warning of this seat as seen", async () => {
+    rows["w:warning"] = [{ id: 3 }];
+    const r = await jalan("test-warning", { id: 3 });
+    expect(r.status).toBe(200);
+    const w = tulis.find((x) => x.op === "update" && x.tabel === "warning");
+    expect((w?.nilai as { seenAt: unknown }).seenAt).toBeInstanceOf(Date);
+  });
+  it("a warning id of someone else's changes nothing", async () => {
+    rows["w:warning"] = [];
+    const r = await jalan("test-warning", { id: 3 });
+    expect(r.status).toBe(200);
+    expect(r.body.seen).toBe(0);
+  });
+  it("wants a whole number", async () => {
+    const r = await jalan("test-warning", { id: "x" });
+    expect(r.status).toBe(400);
+  });
+});
+
 describe("test-answer", () => {
   const body = (o: Record<string, unknown> = {}) => ({
     part: "logika",
@@ -453,6 +504,7 @@ describe("test-strike", () => {
     expect(r.status).toBe(200);
     // default thresholds are 1, 3, 5: two points is the notice
     expect(r.body).toMatchObject({ ok: true, points: 2, level: 1, warned: true });
+    expect(r.body).toHaveProperty("warningId");
     const w = tulis.find((x) => x.op === "insert" && x.tabel === "warning");
     expect(w?.nilai).toMatchObject({ seatId: 5, part: "logika", source: "auto", level: 1 });
     expect(JSON.stringify(r.antre)).toContain('"warn"');

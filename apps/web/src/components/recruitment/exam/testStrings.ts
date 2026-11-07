@@ -183,6 +183,28 @@ export const TS = dict({
         "Kalau ada kesempatan soal bonus buatmu, jawaban bagian ini dikunci begitu kamu menekan Kumpulkan, lalu kamu ditanya mau coba atau tidak.",
       tally: "bonus terjawab",
     },
+    viol: {
+      chip: (n: number) => `Pelanggaran: ${n} poin`,
+      titles: ["Pelanggaran tercatat", "Peringatan keras", "Peringatan terakhir"],
+      staffTitle: "Pesan dari pengawas",
+      ok: "Mengerti",
+      body: (
+        level: number,
+        points: number,
+        cut: number,
+        part: string,
+        rule: { free: number; step: number; max: number } | null,
+      ) =>
+        (level === 1
+          ? `Ada pelanggaran yang tercatat di bagian ${part}, dan pengawas bisa melihatnya.`
+          : level === 2
+            ? `Pelanggaranmu di bagian ${part} sudah ${points} poin. Kalau terus begini, panitia bisa memotong nilai bagian ini.`
+            : `Ini peringatan terakhir. Pelanggaranmu di bagian ${part} sudah ${points} poin dan panitia akan meninjaunya.`) +
+        (rule && rule.step > 0
+          ? ` ${rule.free} poin pertama dimaafkan; tiap poin sesudahnya menyarankan potongan ${rule.step}% (paling banyak ${rule.max}%).${cut > 0 ? ` Saat ini disarankan potongan ${cut}%.` : ""} Panitia yang memutuskan.`
+          : "") +
+        (level === 3 ? " Tetap di layar penuh dan jangan pindah-pindah." : ""),
+    },
     over: {
       shot: "Tombol screenshot tercatat dan dilihat pengawas.",
       pausedTitle: "Dijeda",
@@ -381,6 +403,28 @@ export const TS = dict({
         "If a bonus chance comes up for you, this part's answers lock as soon as you press Hand In, then you are asked whether you want to try.",
       tally: "bonus answered",
     },
+    viol: {
+      chip: (n: number) => `Violations: ${n} points`,
+      titles: ["Violation recorded", "Strong warning", "Final warning"],
+      staffTitle: "Message from the pengawas",
+      ok: "Understood",
+      body: (
+        level: number,
+        points: number,
+        cut: number,
+        part: string,
+        rule: { free: number; step: number; max: number } | null,
+      ) =>
+        (level === 1
+          ? `A violation was recorded in ${part}, and the pengawas can see it.`
+          : level === 2
+            ? `Your violations in ${part} are now ${points} points. If this goes on, the committee can cut this part's score.`
+            : `This is the final warning. Your violations in ${part} are now ${points} points and the committee will review them.`) +
+        (rule && rule.step > 0
+          ? ` The first ${rule.free} points are forgiven; each point after that suggests a ${rule.step}% cut (at most ${rule.max}%).${cut > 0 ? ` A ${cut}% cut is suggested right now.` : ""} The committee decides.`
+          : "") +
+        (level === 3 ? " Stay in full screen and do not switch around." : ""),
+    },
     over: {
       shot: "The screenshot key was recorded and the pengawas can see it.",
       pausedTitle: "Paused",
@@ -567,6 +611,28 @@ export const TS = dict({
       locked: "普通题的答案已锁定。你仍可作答加分题或提交。",
       lockWarn: "如果有加分题的机会，按下提交后本部分的答案会被锁定，然后会问你要不要试试。",
       tally: "加分题已答",
+    },
+    viol: {
+      chip: (n: number) => `违规：${n} 点`,
+      titles: ["已记录违规", "严重警告", "最终警告"],
+      staffTitle: "监考老师的消息",
+      ok: "我知道了",
+      body: (
+        level: number,
+        points: number,
+        cut: number,
+        part: string,
+        rule: { free: number; step: number; max: number } | null,
+      ) =>
+        (level === 1
+          ? `在${part}中记录了一次违规，监考老师可以看到。`
+          : level === 2
+            ? `你在${part}中的违规已有 ${points} 点。如果继续，委员会可能会扣减本部分的得分。`
+            : `这是最后一次警告。你在${part}中的违规已有 ${points} 点，委员会将会审查。`) +
+        (rule && rule.step > 0
+          ? ` 前 ${rule.free} 点免扣；之后每点建议扣 ${rule.step}%（最多 ${rule.max}%）。${cut > 0 ? `目前建议扣 ${cut}%。` : ""}由委员会决定。`
+          : "") +
+        (level === 3 ? " 请保持全屏，不要来回切换。" : ""),
     },
     over: {
       shot: "截图键已被记录，监考老师可以看到。",

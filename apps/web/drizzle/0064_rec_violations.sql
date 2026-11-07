@@ -16,6 +16,8 @@ CREATE TABLE "rec_seat_warning" (
 	"part" text,
 	"source" text NOT NULL,
 	"level" integer DEFAULT 0 NOT NULL,
+	"points" integer DEFAULT 0 NOT NULL,
+	"cut" integer DEFAULT 0 NOT NULL,
 	"text" text NOT NULL,
 	"by_nim" text,
 	"at" timestamp with time zone DEFAULT now() NOT NULL,

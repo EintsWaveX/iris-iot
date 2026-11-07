@@ -1,5 +1,5 @@
 {
-  "id": "5cfa2340-5257-47ce-ab9a-0abc1900a849",
+  "id": "3e05fc85-925b-468f-8730-8a58ef0293f0",
   "prevId": "7a4351ed-16de-4e84-8c7b-ac20ba251410",
   "version": "7",
   "dialect": "postgresql",
@@ -7864,6 +7864,20 @@
         },
         "level": {
           "name": "level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "points": {
+          "name": "points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cut": {
+          "name": "cut",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
