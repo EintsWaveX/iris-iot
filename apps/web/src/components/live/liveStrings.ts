@@ -30,7 +30,7 @@ export const LV = dict({
     step1: "Colok papan ke laptop pakai kabel USB data.",
     step2: (m: number) =>
       m === 3
-        ? "Tutup Thonny dulu. Satu port cuma bisa dipakai satu aplikasi."
+        ? "Tutup Thonny atau VS Code dulu. Satu port cuma bisa dipakai satu aplikasi."
         : "Tutup Serial Monitor di Arduino IDE dulu. Satu port cuma bisa dipakai satu aplikasi.",
     step3: "Tekan Hubungkan, lalu pilih port papannya di jendela Chrome.",
     connect: "Hubungkan",
@@ -101,8 +101,13 @@ export const LV = dict({
     plugTitle: "Colok papan ke laptop lewat USB",
     plugBody: (m: number) =>
       m === 3
-        ? "Tutup Thonny dulu (atau Run › Disconnect), lalu tekan Hubungkan di kartu Sambungkan Papan."
+        ? "Tutup Thonny atau VS Code dulu (Thonny: Run › Disconnect), lalu tekan Hubungkan di kartu Sambungkan Papan."
         : "Tekan Hubungkan di kartu Sambungkan Papan, lalu pilih port papannya.",
+    connectedTitle: "Tersambung, tapi belum ada baris",
+    connectedBody: (m: number) =>
+      m === 3
+        ? "Pico hanya mencetak selagi programnya berjalan, dan Publisher baru mencetak saat tuas potensiometer digeser. Program yang dijalankan dari Thonny atau VS Code berhenti begitu IDE-nya ditutup. Simpan ke papan sebagai main.py, lalu tekan Mulai Ulang."
+        : "Papan sudah tersambung. Tekan Mulai Ulang, lalu tunggu baris pertama.",
     ownOnly: "Serial hanya untuk papan kelompokmu",
     ownOnlyBody: "Pilih kelompokmu untuk melihatnya.",
     pcOnlyAsisten:
@@ -163,7 +168,7 @@ export const LV = dict({
     step1: "Plug the board into your laptop with a USB data cable.",
     step2: (m: number) =>
       m === 3
-        ? "Close Thonny first. Only one app can use a port at a time."
+        ? "Close Thonny or VS Code first. Only one app can use a port at a time."
         : "Close the Arduino IDE Serial Monitor first. Only one app can use a port at a time.",
     step3: "Press Connect, then pick the board's port in the Chrome window.",
     connect: "Connect",
@@ -231,8 +236,13 @@ export const LV = dict({
     plugTitle: "Plug the board into the laptop over USB",
     plugBody: (m: number) =>
       m === 3
-        ? "Close Thonny first (or Run › Disconnect), then press Connect on the Connect Your Boards card."
+        ? "Close Thonny or VS Code first (Thonny: Run › Disconnect), then press Connect on the Connect Your Boards card."
         : "Press Connect on the Connect Your Boards card, then pick the board's port.",
+    connectedTitle: "Connected, but nothing has printed yet",
+    connectedBody: (m: number) =>
+      m === 3
+        ? "The Pico only prints while its program runs, and the Publisher prints only when you move the potentiometer. A program run from Thonny or VS Code stops once the IDE closes. Save it on the board as main.py, then press Restart."
+        : "The board is connected. Press Restart, then wait for the first line.",
     ownOnly: "Serial only shows your own group's boards",
     ownOnlyBody: "Pick your own group to see it.",
     pcOnlyAsisten: "Board lines show on the group's laptop only. The PC Server's lines show here.",
@@ -290,7 +300,7 @@ export const LV = dict({
     step1: "用 USB 数据线把板子插到笔记本电脑上。",
     step2: (m: number) =>
       m === 3
-        ? "先关闭 Thonny。一个端口同时只能被一个应用使用。"
+        ? "先关闭 Thonny 或 VS Code。一个端口同时只能被一个应用使用。"
         : "先关闭 Arduino IDE 的 Serial Monitor。一个端口同时只能被一个应用使用。",
     step3: "按“连接”，然后在 Chrome 弹出的窗口里选择板子的端口。",
     connect: "连接",
@@ -357,8 +367,13 @@ export const LV = dict({
     plugTitle: "用 USB 把板子插到笔记本电脑上",
     plugBody: (m: number) =>
       m === 3
-        ? "先关闭 Thonny（或 Run › Disconnect），然后在“连接板子”卡片上按“连接”。"
+        ? "先关闭 Thonny 或 VS Code（Thonny：Run › Disconnect），然后在“连接板子”卡片上按“连接”。"
         : "在“连接板子”卡片上按“连接”，然后选择板子的端口。",
+    connectedTitle: "已连接，但还没有输出",
+    connectedBody: (m: number) =>
+      m === 3
+        ? "Pico 只有在程序运行时才会输出，Publisher 只在拨动电位器时才输出。从 Thonny 或 VS Code 运行的程序在关闭 IDE 后就会停止。请把它作为 main.py 保存到板子上，然后按“重启”。"
+        : "板子已连接。按“重启”，然后等待第一行。",
     ownOnly: "Serial 只显示你自己小组的板子",
     ownOnlyBody: "选择你的小组就能看到。",
     pcOnlyAsisten: "板子的输出只显示在小组的笔记本电脑上。这里显示 PC 服务器的输出。",
@@ -441,7 +456,7 @@ const HELP_ID: Record<number, string[]> = {
   2: ESP_ID,
   3: [
     "Simpan programnya ke papan sebagai main.py.",
-    "Tutup Thonny, atau pilih Run › Disconnect. Thonny memegang port selama Shell-nya terbuka.",
+    "Tutup Thonny atau VS Code, atau pilih Run › Disconnect di Thonny. IDE memegang port selama Shell atau terminalnya terbuka.",
     "Tekan Mulai Ulang. Halaman mengirim Ctrl C lalu Ctrl D (soft reset), main.py berjalan dan print-nya muncul.",
   ],
   4: [
@@ -455,7 +470,7 @@ const HELP_EN: Record<number, string[]> = {
   2: ESP_EN,
   3: [
     "Save the program on the board as main.py.",
-    "Close Thonny, or pick Run › Disconnect. Thonny holds the port while its Shell is open.",
+    "Close Thonny or VS Code, or pick Run › Disconnect in Thonny. The IDE holds the port while its Shell or terminal is open.",
     "Press Restart. The page sends Ctrl C then Ctrl D (a soft reset), main.py runs and its prints show up.",
   ],
   4: [
@@ -469,7 +484,7 @@ const HELP_ZH: Record<number, string[]> = {
   2: ESP_ZH,
   3: [
     "把程序以 main.py 的名字保存到板子上。",
-    "关闭 Thonny，或选择 Run › Disconnect。Thonny 的 Shell 打开时会一直占用端口。",
+    "关闭 Thonny 或 VS Code，或在 Thonny 中选择 Run › Disconnect。IDE 的 Shell 或终端打开时会一直占用端口。",
     "按“重启”。页面会发送 Ctrl C 再发送 Ctrl D（软重启），main.py 运行后就能看到它的输出。",
   ],
   4: [

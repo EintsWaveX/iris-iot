@@ -97,7 +97,9 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
     if (!p) return;
     setSynced(false);
     if (modul === 3) {
-      await writeRaw("\x03");
+      // Two Ctrl C, as Thonny sends them: the first can land inside the
+      // sketch's own try block and only break out of one call.
+      await writeRaw("\x03\x03");
       await new Promise((r) => setTimeout(r, 150));
       await writeRaw("\x04");
       return;
