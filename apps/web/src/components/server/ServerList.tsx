@@ -249,7 +249,8 @@ export default function ServerList({
               </button>
             );
           })}
-          {bisa.full && (
+          {/* With servers listed the header button is the one way in; the tile is the empty state's. */}
+          {bisa.full && list.length === 0 && (
             <button type="button" className="panel enroll sweep-live" onClick={open}>
               <PlusIcon size={28} aria-hidden="true" />
               <b>{t.newCard}</b>

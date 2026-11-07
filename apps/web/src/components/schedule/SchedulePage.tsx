@@ -24,6 +24,7 @@ import {
   CaretDownIcon,
   CaretUpIcon,
   GearSixIcon,
+  InfoIcon,
   LockSimpleIcon,
   UploadSimpleIcon,
 } from "@phosphor-icons/react";
@@ -32,6 +33,7 @@ import Drawer from "../ui/Drawer";
 import Dropdown from "../ui/Dropdown";
 import IconButton from "../ui/IconButton";
 import Pill from "../ui/Pill";
+import Popover from "../ui/Popover";
 import Tooltip from "../ui/Tooltip";
 import { StateView } from "../ui/Display";
 import { Stepper, Switch } from "../ui/Controls";
@@ -790,54 +792,6 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
         </div>
       </div>
 
-      <div className="jlegend">
-        {[1, 2, 3, 4, 5].map((g) => (
-          <Pill key={g} group={g}>
-            {kelompokLabel(g, lang)}
-          </Pill>
-        ))}
-        <Pill tone="violet">{t.inter}</Pill>
-        <span className="pill jswatch" data-c="segera">
-          {t.soon}
-        </span>
-        {/* One chip for both colours (2026-10-06): two identical labels
-            read as two different states. */}
-        <Tooltip label={t.statusHint.kosong}>
-          <span className="pill jswatch" data-c="kosong" tabIndex={0}>
-            {t.none}
-          </span>
-        </Tooltip>
-        <Tooltip label={t.fitTip}>
-          <span tabIndex={0}>
-            <Pill tone="fit">{t.fit}</Pill>
-          </span>
-        </Tooltip>
-        <Tooltip label={t.a24Tip}>
-          <span tabIndex={0}>
-            <Pill tone="a24">{t.a24}</Pill>
-          </span>
-        </Tooltip>
-        <span className="row jlegend__izin">
-          <span className="acode acode--izin">ABC</span>
-          <span className="hint">{t.onLeave}</span>
-        </span>
-        <span className="row jlegend__izin">
-          <span className="acode acode--lepas">ABC</span>
-          <span className="hint">{t.handedOver}</span>
-        </span>
-        <span className="row jlegend__izin">
-          <span className="acode acode--pengganti">ABC</span>
-          <span className="hint">{t.asSub}</span>
-        </span>
-        <span className="row jlegend__izin">
-          <span className="acode acode--sukarela">ABC</span>
-          <span className="hint">{t.asVol}</span>
-        </span>
-        <span className="pill jswatch" data-c="libur">
-          {t.holiday}
-        </span>
-      </div>
-
       {/* A postponed week, this one or one ahead, for everyone to see. */}
       {kini === semester &&
         (data?.tunda ?? [])
@@ -855,7 +809,67 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
           ))}
 
       {/* The cells open the slot editor; nothing on them said so. */}
-      <p className="hint">{bolehJadwal ? t.gridHint : t.gridHintRo}</p>
+      <div className="jhintrow">
+        <p className="hint">{bolehJadwal ? t.gridHint : t.gridHintRo}</p>
+        <Popover
+          align="end"
+          label={t.legend}
+          trigger={
+            <button type="button" className="btn btn--ghost btn--sm">
+              <InfoIcon size={16} aria-hidden="true" />
+              <span className="btn__label">{t.legend}</span>
+            </button>
+          }
+        >
+          <div className="jlegend">
+            {[1, 2, 3, 4, 5].map((g) => (
+              <Pill key={g} group={g}>
+                {kelompokLabel(g, lang)}
+              </Pill>
+            ))}
+            <Pill tone="violet">{t.inter}</Pill>
+            <span className="pill jswatch" data-c="segera">
+              {t.soon}
+            </span>
+            {/* One chip for both colours (2026-10-06): two identical labels
+                  read as two different states. */}
+            <Tooltip label={t.statusHint.kosong}>
+              <span className="pill jswatch" data-c="kosong" tabIndex={0}>
+                {t.none}
+              </span>
+            </Tooltip>
+            <Tooltip label={t.fitTip}>
+              <span tabIndex={0}>
+                <Pill tone="fit">{t.fit}</Pill>
+              </span>
+            </Tooltip>
+            <Tooltip label={t.a24Tip}>
+              <span tabIndex={0}>
+                <Pill tone="a24">{t.a24}</Pill>
+              </span>
+            </Tooltip>
+            <span className="row jlegend__izin">
+              <span className="acode acode--izin">ABC</span>
+              <span className="hint">{t.onLeave}</span>
+            </span>
+            <span className="row jlegend__izin">
+              <span className="acode acode--lepas">ABC</span>
+              <span className="hint">{t.handedOver}</span>
+            </span>
+            <span className="row jlegend__izin">
+              <span className="acode acode--pengganti">ABC</span>
+              <span className="hint">{t.asSub}</span>
+            </span>
+            <span className="row jlegend__izin">
+              <span className="acode acode--sukarela">ABC</span>
+              <span className="hint">{t.asVol}</span>
+            </span>
+            <span className="pill jswatch" data-c="libur">
+              {t.holiday}
+            </span>
+          </div>
+        </Popover>
+      </div>
 
       <div className="jlayout" data-wide={wide ? "yes" : undefined}>
         <div className="jlayout__main">
