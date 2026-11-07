@@ -17,6 +17,8 @@ import type { LccRoom } from "../../../../../lib/recruitment/lcc-api";
 import { useRecRoom } from "../../../../../lib/recruitment/room-client";
 import Skeleton from "../../../../ui/Skeleton";
 import { RG } from "./ruangStrings";
+import { KS } from "./malamStrings";
+import { useCekJudge } from "./useCekJudge";
 
 const W = dict({
   id: {
@@ -44,6 +46,8 @@ const W = dict({
       [host, gcc, sandbox && `sandbox ${sandbox}`].filter(Boolean).join(" · "),
     workers: "Judge berjalan bersamaan",
     workersWho: "Akademik dan Ketua",
+    workersNote:
+      "Batas atas. PC Lab menjalankan sebanyak yang ia sanggup, tidak lebih dari angka ini.",
     workersSet: (n: number) => `Judge worker jadi ${n}. Tercatat di log.`,
     typical: "Waktu rata-rata",
     perSub: (s: string) => `${s} detik per submission`,
@@ -78,6 +82,8 @@ const W = dict({
       [host, gcc, sandbox && `${sandbox} sandbox`].filter(Boolean).join(" · "),
     workers: "Parallel workers",
     workersWho: "Akademik and Ketua",
+    workersNote:
+      "An upper limit. The lab PC runs as many as it can handle, never more than this number.",
     workersSet: (n: number) => `Judge workers set to ${n}. Logged.`,
     typical: "Typical time",
     perSub: (s: string) => `${s} seconds per submission`,
@@ -112,6 +118,7 @@ const W = dict({
       [host, gcc, sandbox && `沙箱 ${sandbox}`].filter(Boolean).join(" · "),
     workers: "并行线程",
     workersWho: "学术组和主席",
+    workersNote: "这是上限。实验室电脑按自身能力运行，不会超过这个数字。",
     workersSet: (n: number) => `评测线程已设为 ${n}，已记录。`,
     typical: "平均耗时",
     perSub: (s: string) => `每次提交 ${s} 秒`,
@@ -156,6 +163,7 @@ export default function AturRuang({
     ["recroom", "recjudge"],
     300,
   );
+  const cek = useCekJudge(lang, juri.refresh);
   const pilih = v?.pengawas.map((p) => p.nim) ?? [];
   const selesai = v?.view === "finished";
 
@@ -290,6 +298,9 @@ export default function AturRuang({
                     <b className="num">{juri.data?.info.workers ?? "-"}</b>
                   )}
                   <span className="hint">{t.workersWho}</span>
+                  <span className="hint" style={{ flexBasis: "100%" }}>
+                    {t.workersNote}
+                  </span>
                 </span>
                 <span className="hint">{t.typical}</span>
                 <b className="num">
@@ -314,9 +325,21 @@ export default function AturRuang({
                     : "-"}
                 </b>
               </div>
+              {cek.hasil && (
+                <div className="stack" style={{ gap: 2 }} role="status">
+                  <span className="hint">{cek.sinyal}</span>
+                  <span className="hint">{cek.terakhirMenilai}</span>
+                </div>
+              )}
               <div className="row row--end">
-                <button type="button" className="btn btn--inverse" onClick={() => juri.refresh()}>
-                  <span className="btn__label">{t.check}</span>
+                <button
+                  type="button"
+                  className="btn btn--inverse"
+                  disabled={cek.busy}
+                  aria-busy={cek.busy}
+                  onClick={() => void cek.jalankan()}
+                >
+                  <span className="btn__label">{cek.busy ? KS[lang].checking : t.check}</span>
                 </button>
               </div>
             </section>

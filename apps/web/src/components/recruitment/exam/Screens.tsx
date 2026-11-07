@@ -122,96 +122,100 @@ export function Lobby({
   return (
     <div className="r3gate r3lobby" data-m={motion}>
       <div className="r3lobby__in">
-        <div className="stack" style={{ gap: 6 }}>
-          <span className="eyebrow rec-eyebrow">{elsewhere.size ? l.susulan : t.eyebrow}</span>
-          <h1 className="r3title">
-            {doneKey ? l.done(t.part[doneKey].l) : elsewhere.size ? l.susulanTitle : l.checkedIn}
-          </h1>
-          <div className="r3wait">
-            <i className="r3wait__dot" aria-hidden="true" />
-            <b>{l.waiting}</b>
-            {next && (
-              <span className="hint">
-                · {l.next} {t.part[next.key].l}, {t.minutes(next.minutes)}
+        <div className="r3lobby__l">
+          <div className="stack" style={{ gap: 6 }}>
+            <span className="eyebrow rec-eyebrow">{elsewhere.size ? l.susulan : t.eyebrow}</span>
+            <h1 className="r3title">
+              {doneKey ? l.done(t.part[doneKey].l) : elsewhere.size ? l.susulanTitle : l.checkedIn}
+            </h1>
+            <div className="r3wait">
+              <i className="r3wait__dot" aria-hidden="true" />
+              <b>{l.waiting}</b>
+              {next && (
+                <span className="hint">
+                  · {l.next} {t.part[next.key].l}, {t.minutes(next.minutes)}
+                </span>
+              )}
+            </div>
+          </div>
+          {elsewhere.size > 0 && <p className="lede">{l.susulanBody}</p>}
+          <div className="r3seat" aria-label={l.seat}>
+            <span className="r3seat__c">
+              <UserIcon size={16} aria-hidden="true" />
+              {tv.me.nama}
+            </span>
+            {tv.info?.title && (
+              <span className="r3seat__c">
+                <MonitorIcon size={16} aria-hidden="true" />
+                {tv.info.title}
+              </span>
+            )}
+            {when && (
+              <span className="r3seat__c">
+                <ClockIcon size={16} aria-hidden="true" />
+                {tgl(tanggalWib(when).tanggal, lang)}
               </span>
             )}
           </div>
         </div>
-        {elsewhere.size > 0 && <p className="lede">{l.susulanBody}</p>}
-        <div className="r3seat" aria-label={l.seat}>
-          <span className="r3seat__c">
-            <UserIcon size={16} aria-hidden="true" />
-            {tv.me.nama}
-          </span>
-          {tv.info?.title && (
-            <span className="r3seat__c">
-              <MonitorIcon size={16} aria-hidden="true" />
-              {tv.info.title}
-            </span>
-          )}
-          {when && (
-            <span className="r3seat__c">
-              <ClockIcon size={16} aria-hidden="true" />
-              {tgl(tanggalWib(when).tanggal, lang)}
-            </span>
-          )}
-        </div>
-        <div className="panel r3tl">
-          <div className="panel__head">
-            <h2 className="panel__title">{l.tonight}</h2>
-            <span className="hint">{l.tonightHint(tot)}</span>
-          </div>
-          <ol className="r3tl__bar">
-            {plan.map((p, i) => (
-              <li
-                key={p.key}
-                style={{ flexGrow: p.minutes }}
-                data-st={
-                  elsewhere.has(p.key as never) || i <= di
-                    ? "done"
-                    : next && p.key === next.key
-                      ? "next"
-                      : "later"
-                }
-              >
-                <i />
-                <b>{t.part[p.key].l}</b>
-                <span className="hint num">
-                  {p.minutes} {t.minShort} · {t.questions(p.count ?? 0)}
-                </span>
-              </li>
-            ))}
-          </ol>
-          <ul className="r3rules r3rules--grid">
-            {[ArrowsOutIcon, FloppyDiskIcon, TimerIcon].map((Ic, i) => (
-              <li key={i}>
-                <span className="r3rules__ic">
-                  <Ic />
-                </span>
-                <span>{l.rule[i]}</span>
-              </li>
-            ))}
-          </ul>
-          {!doneKey && <span className="hint">{l.lcBoard}</span>}
-        </div>
-        {elsewhere.size > 0 && (
-          <div className="panel">
-            <ul className="r3chks">
-              {plan.map((p) =>
-                elsewhere.has(p.key as never) ? (
-                  <CheckRow key={p.key} st="ok" title={t.part[p.key].l} sub={l.doneElsewhere} />
-                ) : (
-                  <CheckRow
-                    key={p.key}
-                    st="todo"
-                    title={t.part[p.key].l}
-                    sub={l.tonightOnly(p.minutes)}
-                  />
-                ),
-              )}
+        <div className="r3lobby__r">
+          <div className="panel r3tl">
+            <div className="panel__head">
+              <h2 className="panel__title">{l.tonight}</h2>
+              <span className="hint">{l.tonightHint(tot)}</span>
+            </div>
+            <ol className="r3tl__bar">
+              {plan.map((p, i) => (
+                <li
+                  key={p.key}
+                  style={{ flexGrow: p.minutes }}
+                  data-st={
+                    elsewhere.has(p.key as never) || i <= di
+                      ? "done"
+                      : next && p.key === next.key
+                        ? "next"
+                        : "later"
+                  }
+                >
+                  <i />
+                  <b>{t.part[p.key].l}</b>
+                  <span className="hint num">
+                    {p.minutes} {t.minShort} · {t.questions(p.count ?? 0)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <ul className="r3rules r3rules--grid">
+              {[ArrowsOutIcon, FloppyDiskIcon, TimerIcon].map((Ic, i) => (
+                <li key={i}>
+                  <span className="r3rules__ic">
+                    <Ic />
+                  </span>
+                  <span>{l.rule[i]}</span>
+                </li>
+              ))}
             </ul>
+            {!doneKey && <span className="hint">{l.lcBoard}</span>}
           </div>
-        )}
+          {elsewhere.size > 0 && (
+            <div className="panel">
+              <ul className="r3chks">
+                {plan.map((p) =>
+                  elsewhere.has(p.key as never) ? (
+                    <CheckRow key={p.key} st="ok" title={t.part[p.key].l} sub={l.doneElsewhere} />
+                  ) : (
+                    <CheckRow
+                      key={p.key}
+                      st="todo"
+                      title={t.part[p.key].l}
+                      sub={l.tonightOnly(p.minutes)}
+                    />
+                  ),
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

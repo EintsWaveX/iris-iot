@@ -501,6 +501,8 @@ function Transport({
               onDone={() => void kirim({ act: "time", deltaMs: d * 1000 })}
             />
           ))}
+          {/* Atur sendiri sits on the next row, right under the four fixed steps (user, 2026-11-07) */}
+          <span className="r3tp__break" aria-hidden="true" />
           <label className="r3tp__custom">
             <span className="hint">{c.customHint}</span>
             <input
@@ -965,8 +967,9 @@ function SeatDrawer({
       onOpenChange={(o) => !o && onClose()}
       title={s.nama}
       description={d.sub(s.nim, s.no, s.kit?.code ?? null)}
-      storeKey="rec-ruang"
+      storeKey="rec-ruang-seat"
       minWidth={420}
+      compact
       closeLabel={d.close}
       resizeLabel={d.resize}
     >

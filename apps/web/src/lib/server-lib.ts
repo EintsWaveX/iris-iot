@@ -47,12 +47,21 @@ const ENROLL_TOKEN_TTL_MIN = 30;
 // In the quiet hours (jamSepi) an idle beat waits a while longer while no
 // Asisten is online, so the database can sleep between beats (2026-10-21: a
 // beat every minute or less kept Neon awake all night and spent its quota).
-// 2026-11-07: the server plan is bought now, so the day's idle beat is twice
-// as quick (user): 60 s -> 30 s. The quiet hours' beat stays at 600 s, since
-// nobody tests at midnight.
+// 2026-11-07: the server plan is bought now, so the beat can be quicker, but only
+// where Oprec needs it (user): the lab PC judges Tes Tulis and nothing else, so the
+// quick 30 s beat runs only inside a Tes Tulis slot's own time window (a little before
+// and after it). Any other time of day, including a day whose sessions are all some
+// other test (Wawancara, Tubes, ...), is the lazy 60 s beat. The quiet hours' beat
+// stays at 600 s, since nobody tests at midnight, unless a Tes Tulis window is on.
 export const INTERVAL_AKTIF_SEC = 15;
-export const INTERVAL_IDLE_SEC = 30;
+/** The day's lazy beat: nothing on the lab PC is needed for Oprec right now. */
+export const INTERVAL_IDLE_SEC = 60;
+/** Inside a Tes Tulis slot's window: the lab PC stays close, so Cek Judge and the first Submit are quick. */
+export const INTERVAL_TES_TULIS_SEC = 30;
 export const INTERVAL_MALAM_SEC = 600;
+/** How long before a Tes Tulis slot starts, and after it ends, its window counts (set-up, Cek Judge, the judge's tail). */
+export const JENDELA_TES_TULIS_AWAL_MENIT = 30;
+export const JENDELA_TES_TULIS_AKHIR_MENIT = 30;
 /** While a Tes Tulis room is open: a Run or Submit is claimed within seconds, at any hour. */
 export const INTERVAL_UJIAN_SEC = 5;
 export const INTERVAL_SIAGA_SEC = 5;
@@ -75,6 +84,19 @@ export function batasLuringDetik(denyutPada: Date | null, sesiMulaiPada: Date | 
   if (cepat) return INTERVAL_AKTIF_SEC + TENGGANG_LURING_SEC;
   if (denyutPada !== null && jamSepi(denyutPada)) return INTERVAL_MALAM_SEC + TENGGANG_LURING_SEC;
   return INTERVAL_IDLE_SEC + TENGGANG_LURING_SEC;
+}
+
+/**
+ * Is `now` inside a Tes Tulis slot's window (its own start and end, widened by the margins above)?
+ * The window follows each slot by itself: nothing is switched on or off by hand.
+ */
+export function dalamJendelaTesTulis(
+  slots: ReadonlyArray<{ startsAt: Date; endsAt: Date }>,
+  now: number,
+): boolean {
+  const awal = JENDELA_TES_TULIS_AWAL_MENIT * 60_000;
+  const akhir = JENDELA_TES_TULIS_AKHIR_MENIT * 60_000;
+  return slots.some((s) => now >= s.startsAt.getTime() - awal && now <= s.endsAt.getTime() + akhir);
 }
 
 export function sha256(value: string): string {

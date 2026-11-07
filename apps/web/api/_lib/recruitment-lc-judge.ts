@@ -11,14 +11,16 @@
  * same compare the unit tests pin (c-problem.ts). A broken or lying agent can only
  * lower a score, never raise one.
  */
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gt, lt, sql } from "drizzle-orm";
 import {
   recCProblem,
   recCSubmission,
   recExamRoom,
+  recSlot,
   server,
   type RecCSubmissionRow,
 } from "../../src/lib/schema.js";
+import { dalamJendelaTesTulis } from "../../src/lib/server-lib.js";
 import {
   CODE_MAX_BYTES,
   outcomeOf,
@@ -71,6 +73,48 @@ export async function ujianBuka(db: Db): Promise<boolean> {
     .from(recExamRoom)
     .where(sql`${recExamRoom.state}->>'stage' in ('prep', 'parts', 'spin')`);
   return (r?.n ?? 0) > 0;
+}
+
+/**
+ * Is a Tes Tulis slot's window on right now? The window is the slot's own start and end with a margin
+ * either side (server-lib.ts), found by itself from the slot times, so a day whose sessions are all
+ * another test (Wawancara, Tubes, ...) never counts. Only the lab PC's judge needs the quick beat.
+ */
+export async function tesTulisJalan(db: Db, now = Date.now()): Promise<boolean> {
+  // One day either way is a cheap pre-filter; the margins themselves are checked in dalamJendelaTesTulis.
+  const hari = 24 * 3600_000;
+  const slots = await db
+    .select({ startsAt: recSlot.startsAt, endsAt: recSlot.endsAt })
+    .from(recSlot)
+    .where(
+      and(
+        eq(recSlot.stage, "tes_tulis"),
+        gt(recSlot.endsAt, new Date(now - hari)),
+        lt(recSlot.startsAt, new Date(now + hari)),
+      ),
+    );
+  return dalamJendelaTesTulis(slots, now);
+}
+
+/**
+ * The most tests at once the exam settings allow the judge: the `workers` of the edition whose job has
+ * waited longest. Null when that job belongs to no room (a reference check) or nothing waits, then the
+ * lab PC's own number rules. It can only lower what the lab PC offers, never raise it.
+ */
+export async function kapJudgeConfig(db: Db): Promise<number | null> {
+  const hasil = await db.execute(sql`
+    SELECT (ec.config -> 'livecode' ->> 'workers')::int AS w
+    FROM rec_c_submission s
+    JOIN rec_exam_room r ON r.id = s.room_id
+    JOIN rec_exam_config ec ON ec.edition_id = r.edition_id
+    WHERE s.status = 'antre'
+    ORDER BY s.requested_at, s.id
+    LIMIT 1
+  `);
+  // The driver hands back either { rows } or the bare array (the real one and the test fake differ)
+  const raw = hasil as unknown as { rows?: { w: number | null }[] } | { w: number | null }[];
+  const w = (Array.isArray(raw) ? raw : (raw.rows ?? []))[0]?.w;
+  return typeof w === "number" && Number.isInteger(w) && w >= 1 ? w : null;
 }
 
 /** Is anything waiting or running? The heartbeat shortens while it is. */

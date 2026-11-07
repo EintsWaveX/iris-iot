@@ -163,11 +163,24 @@ async function bacaJudge(res: ApiResponse, s: SessionPayload) {
     .where(sql`${server.infoSistem} -> 'judge' = 'true'::jsonb`)
     .orderBy(desc(server.kondisiPada))
     .limit(1);
+  // The newest judged job is the proof the compiler and the sandbox really worked, not just that the PC is on.
+  const [j] = await db
+    .select({ at: sql<Date | null>`max(${recCSubmission.finishedAt})` })
+    .from(recCSubmission)
+    .where(eq(recCSubmission.status, "selesai"));
   const now = Date.now();
   const ageSec = r?.at ? Math.max(0, Math.round((now - r.at.getTime()) / 1000)) : null;
-  res
-    .status(200)
-    .json({ ok: true, judgeReady: ageSec !== null && ageSec < JUDGE_BATAS_DETIK, ageSec });
+  const lastAt = j?.at ? new Date(j.at).getTime() : null;
+  const lastJudgedSec =
+    lastAt !== null && Number.isFinite(lastAt)
+      ? Math.max(0, Math.round((now - lastAt) / 1000))
+      : null;
+  res.status(200).json({
+    ok: true,
+    judgeReady: ageSec !== null && ageSec < JUDGE_BATAS_DETIK,
+    ageSec,
+    lastJudgedSec,
+  });
 }
 
 /**
