@@ -3,8 +3,10 @@
  * Radix Dialog like Dialog.tsx (focus trap, Esc, focus return), but docked
  * to the right edge with a draggable left edge:
  *
- * - the width: at least two thirds of the screen from 1024 (user, 2026-11-03),
- *   min(720px, 92%) from 640, full screen below that
+ * - the width, by `size`, from 1024: "wide" (default) two thirds of the screen (user, 2026-11-03),
+ *   "half" a half, "third" a third (user, 2026-11-07); min(720px, 92%) from 640, full screen below
+ *   that. Pick by the job: wide for a big control or a table, half for a form or a list that needs
+ *   room but sits beside the page, third for something to look at or one simple control
  * - drag the edge, or focus it and use Left/Right, to resize; double click
  *   resets; the width is remembered per `storeKey` (localStorage, guarded)
  */
@@ -38,22 +40,26 @@ interface Props {
   minWidth?: number;
   closeLabel: string;
   resizeLabel: string;
-  /** A third of the screen instead of two thirds: for a drawer that sits beside the page it came from. */
+  /** How much of the screen from 1024 up: "wide" two thirds (default), "half", or "third" for a drawer
+   *  that sits beside the page it came from. */
+  size?: DrawerSize;
+  /** Same as size="third" (older callers). */
   compact?: boolean;
 }
 
+export type DrawerSize = "third" | "half" | "wide";
+const SHARE: Record<DrawerSize, number> = { third: 0.334, half: 0.5, wide: 0.667 };
+
 /** The narrowest a drawer may be on a desktop screen: two thirds of it. */
-const floorWidth = (min: number, compact = false): number =>
-  window.innerWidth >= 1024
-    ? Math.max(min, Math.round(window.innerWidth * (compact ? 0.334 : 0.667)))
-    : min;
+const floorWidth = (min: number, size: DrawerSize = "wide"): number =>
+  window.innerWidth >= 1024 ? Math.max(min, Math.round(window.innerWidth * SHARE[size])) : min;
 
 /** A width the person dragged to, or null for the CSS default. */
-function readWidth(key: string, compact: boolean): number | null {
+function readWidth(key: string, size: DrawerSize): number | null {
   try {
     const v = Number(localStorage.getItem(`iris-drawer-${key}`));
     // A width saved before the two thirds rule would make the drawer narrower than it now may be.
-    return Number.isFinite(v) && v > 0 && v >= floorWidth(0, compact) ? v : null;
+    return Number.isFinite(v) && v > 0 && v >= floorWidth(0, size) ? v : null;
   } catch {
     return null;
   }
@@ -71,8 +77,10 @@ export default function Drawer({
   minWidth = 360,
   closeLabel,
   resizeLabel,
+  size: sizeProp,
   compact = false,
 }: Props) {
+  const size: DrawerSize = sizeProp ?? (compact ? "third" : "wide");
   const [width, setWidth] = useState<number | null>(null);
   const panel = useRef<HTMLDivElement | null>(null);
   const openedFrom = useRef<HTMLElement | null>(null);
@@ -80,10 +88,10 @@ export default function Drawer({
   if (open && !wasOpen.current) openedFrom.current = document.activeElement as HTMLElement | null;
   wasOpen.current = open;
 
-  useEffect(() => setWidth(readWidth(storeKey, compact)), [storeKey, compact]);
+  useEffect(() => setWidth(readWidth(storeKey, size)), [storeKey, size]);
 
   const save = (w: number) => {
-    const low = floorWidth(minWidth, compact);
+    const low = floorWidth(minWidth, size);
     const max = Math.max(low, window.innerWidth - 240);
     const next = Math.round(Math.min(max, Math.max(low, w)));
     setWidth(next);
@@ -131,7 +139,7 @@ export default function Drawer({
           className="drawer"
           ref={panel}
           tabIndex={-1}
-          data-compact={compact ? "yes" : undefined}
+          data-size={size === "wide" ? undefined : size}
           style={width ? ({ "--drawer-w": `${width}px` } as CSSProperties) : undefined}
           onOpenAutoFocus={(e) => {
             // Land on the panel itself: not the resize grip (its focus ring

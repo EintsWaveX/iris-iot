@@ -2499,7 +2499,7 @@ li.r2cutline {
   padding-inline: 0;
 }
 .r2proj__lobbylist li {
-  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  background: var(--surface-2);
 }
 .r2proj__qrbox:has(.r2proj__qr--wait) {
   background: transparent;

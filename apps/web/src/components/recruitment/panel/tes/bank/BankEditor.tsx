@@ -662,6 +662,7 @@ export default function BankEditor({
         title={t.keyTitle}
         description={t.keyDesc}
         lang={lang}
+        size="sm"
         actions={
           <>
             <button
@@ -710,6 +711,7 @@ export default function BankEditor({
         title={t.voidTitle}
         description={t.voidDesc}
         lang={lang}
+        size="sm"
         actions={
           <>
             <button type="button" className="btn btn--ghost" onClick={() => setVoidDlg(false)}>
