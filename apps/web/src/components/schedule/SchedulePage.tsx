@@ -792,9 +792,27 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
         </div>
       </div>
 
-      <div className="jkey">
+      {/* A postponed week, this one or one ahead, for everyone to see. */}
+      {kini === semester &&
+        (data?.tunda ?? [])
+          .filter((senin) => senin >= seninKini())
+          .map((senin) => (
+            <div key={senin} className="banner banner--warn" role="status">
+              <CalendarBlankIcon size={20} aria-hidden="true" />
+              <span className="grow">
+                {t.tm.notice(
+                  rentang(lang, senin, tambahHari(senin, 5)),
+                  hariTanggal(lang, tambahHari(senin, 7)),
+                )}
+              </span>
+            </div>
+          ))}
+
+      {/* The cells open the slot editor; nothing on them said so. */}
+      <div className="jhintrow">
+        <p className="hint">{bolehJadwal ? t.gridHint : t.gridHintRo}</p>
         <Popover
-          align="start"
+          align="end"
           label={t.legend}
           trigger={
             <button type="button" className="btn btn--ghost btn--sm">
@@ -814,7 +832,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
               {t.soon}
             </span>
             {/* One chip for both colours (2026-10-06): two identical labels
-                read as two different states. */}
+                  read as two different states. */}
             <Tooltip label={t.statusHint.kosong}>
               <span className="pill jswatch" data-c="kosong" tabIndex={0}>
                 {t.none}
@@ -852,25 +870,6 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
           </div>
         </Popover>
       </div>
-
-      {/* A postponed week, this one or one ahead, for everyone to see. */}
-      {kini === semester &&
-        (data?.tunda ?? [])
-          .filter((senin) => senin >= seninKini())
-          .map((senin) => (
-            <div key={senin} className="banner banner--warn" role="status">
-              <CalendarBlankIcon size={20} aria-hidden="true" />
-              <span className="grow">
-                {t.tm.notice(
-                  rentang(lang, senin, tambahHari(senin, 5)),
-                  hariTanggal(lang, tambahHari(senin, 7)),
-                )}
-              </span>
-            </div>
-          ))}
-
-      {/* The cells open the slot editor; nothing on them said so. */}
-      <p className="hint">{bolehJadwal ? t.gridHint : t.gridHintRo}</p>
 
       <div className="jlayout" data-wide={wide ? "yes" : undefined}>
         <div className="jlayout__main">

@@ -66,8 +66,12 @@
 }
 
 /* The key sits behind one button: thirteen chips above the grid made the page loud (practicum pass, 2026-11-07). */
-.jkey {
+.jhintrow {
+  align-items: center;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
 }
 
 .jlegend__izin {
