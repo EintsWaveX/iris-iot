@@ -46,10 +46,10 @@ export default function ViolationsSection({
     (p) => s.violations[p] || s.kejadian.some((k) => k.part === p) || s.penalties[p],
   );
 
-  async function post(aksi: string, body: Record<string, unknown>, ok: string) {
+  async function post(aksi: string, body: Record<string, unknown>, ok: string | null) {
     const r = await recPost<{ ok: true; creditedMs?: number }>(aksi, { id: v.room.id, ...body });
     if (isFail(r)) toast(T.con.fail, "danger");
-    else toast(ok);
+    else if (ok) toast(ok);
     await jalan("room", {});
     return r;
   }
@@ -76,9 +76,9 @@ export default function ViolationsSection({
   }
   async function hold(on: boolean) {
     if (seatId === null) return;
-    const r = await post("room-hold", { seatId, hold: on }, on ? t.hold.held : t.hold.released(0));
-    if (!on && !isFail(r) && r.creditedMs)
-      toast(t.hold.released(Math.round(r.creditedMs / 60_000)));
+    // One toast: on release it says how much time was given back
+    const r = await post("room-hold", { seatId, hold: on }, on ? t.hold.held : null);
+    if (!on && !isFail(r)) toast(t.hold.released(Math.round((r.creditedMs ?? 0) / 60_000)));
   }
 
   const canWarn = seatId !== null && s.checkedIn;
