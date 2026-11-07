@@ -772,6 +772,7 @@ export default function HelpDrawer({
       title={h.title}
       description={h.sub}
       storeKey="console-help"
+      size="half"
       minWidth={420}
       closeLabel={h.close}
       resizeLabel={h.resize}

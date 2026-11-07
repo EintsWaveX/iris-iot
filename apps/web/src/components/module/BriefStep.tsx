@@ -274,6 +274,7 @@ function BriefDrawer({
       title={t.drawerTitle(modul)}
       description={t.langNames[lg]}
       storeKey="modul-brief"
+      size="half"
       closeLabel={t.close}
       resizeLabel={t.resize}
       foot={

@@ -59,6 +59,7 @@ export default function ServerDrawer({
       title={t.drawerTitle}
       description={t.drawerSub}
       storeKey="console-server"
+      size="half"
       closeLabel={t.close}
       resizeLabel={tri(lang, "Ubah lebar laci", "Resize the drawer", "调整侧栏宽度")}
     >

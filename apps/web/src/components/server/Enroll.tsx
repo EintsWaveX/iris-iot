@@ -172,6 +172,7 @@ export default function Enroll({
       title={server ? t.wizTitleAgain : t.wizTitle}
       description={t.wizStep(step + 1, t.wizSteps[step])}
       lang={lang}
+      size="lg"
       alt={
         step > 0 ? (
           <button type="button" className="btn btn--ghost" onClick={() => setStep(0)}>

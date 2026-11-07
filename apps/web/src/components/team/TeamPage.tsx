@@ -937,6 +937,7 @@ function PersonDrawer({
       title={w.who(p.nim)}
       description={jabatanLabel(kat0, p.divisi, lang)}
       storeKey="tim-orang"
+      size="half"
       closeLabel={t.closeDrawer}
       resizeLabel={t.resize}
       foot={foot}
@@ -1301,6 +1302,7 @@ function ImportButton({ t, lang, reload }: { t: Tx; lang: Lang; reload: () => Pr
           onOpenChange={(o) => !o && setLap(null)}
           title={t.imporTitle}
           lang={lang}
+          size="lg"
           actions={
             <>
               <button type="button" className="btn btn--ghost" onClick={() => setLap(null)}>

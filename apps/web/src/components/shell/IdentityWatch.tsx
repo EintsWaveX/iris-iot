@@ -179,6 +179,7 @@ export default function IdentityWatch({
       required={k.jenis !== "baru"}
       title={title}
       lang={lang}
+      size="sm"
       actions={
         <>
           {k.jenis === "baru" && (
