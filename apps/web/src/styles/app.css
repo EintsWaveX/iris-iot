@@ -149,14 +149,6 @@ summary,
   top: var(--space-3);
 }
 
-/* The widest container: the console at 1680 uses three panes. */
-.page-full {
-  margin-inline: auto;
-  max-width: 1760px;
-  padding-inline: var(--page-margin);
-  width: 100%;
-}
-
 .page-main {
   padding-bottom: var(--space-9);
 }
