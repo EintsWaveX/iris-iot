@@ -23,6 +23,7 @@ import {
   WATCH_MS,
   devtoolsLikelyOpen,
   reopened,
+  screenCount,
   isDevtoolsKey,
   isScreenshotKey,
   type Strike,
@@ -35,8 +36,7 @@ const rid = () => `k${Date.now().toString(36)}${Math.random().toString(36).slice
 const LIFE = rid();
 
 /** A second screen is attached: Chromium says so, other browsers do not (they give nothing, which counts nothing) */
-const secondScreen = () =>
-  (window.screen as unknown as { isExtended?: boolean }).isExtended === true;
+const secondScreen = () => screenCount(window.screen as { isExtended?: boolean }) === "more";
 /** The browser is driven by a script (Selenium, Playwright) */
 const automated = () => navigator.webdriver === true;
 const storage = () => {

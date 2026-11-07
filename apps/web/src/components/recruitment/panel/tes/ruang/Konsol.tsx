@@ -38,8 +38,10 @@ import { PART_KEYS } from "../../../../../lib/recruitment/exam-types";
 import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import {
   FILTERS,
+  attentionReasons,
   countFilters,
   matchFilter,
+  summarize,
   type Filter,
   type Tile,
 } from "../../../../../lib/recruitment/kejadian";
@@ -778,6 +780,7 @@ function SeatTile({
 }) {
   const t = RG[lang].con.grid;
   const cur = v.state.cur;
+  const run = cur ? v.state.runs[cur] : undefined;
   const handed = cur ? s.done[cur] !== undefined : false;
   const prep = v.view === "persiapan" || v.view === "setup";
   const st = !s.checkedIn
@@ -802,18 +805,39 @@ function SeatTile({
   const here = cur ? s.violations[cur] : undefined;
   const points = here?.points ?? Math.max(0, ...vios.map((x) => x?.points ?? 0));
   const level = here?.level ?? Math.max(0, ...vios.map((x) => x?.level ?? 0));
+  const left =
+    run && run.state !== "ended" && s.seatId !== null && s.checkedIn && !handed
+      ? seatLeft(run, s.seatId, now)
+      : null;
   return (
     <button
       type="button"
       className="r3tile"
       data-st={st}
+      data-vl={level > 0 ? level : undefined}
       data-held={s.heldAt !== null ? "yes" : undefined}
       onClick={onOpen}
-      aria-label={`${s.nama}, ${t.seat(s.no)}`}
+      aria-label={`${s.nama}, ${t.seat(s.no)}, ${t.status[st]}`}
     >
       <span className="r3tile__top">
         <span className="r3tile__no num">{String(s.no).padStart(2, "0")}</span>
         <b className="r3tile__n">{s.nama}</b>
+        {s.checkedIn && (
+          <span
+            className="r3dot"
+            data-on={online === false ? "no" : online ? "yes" : undefined}
+            title={online === false ? t.offline : online ? t.online : undefined}
+          />
+        )}
+      </span>
+      <span className={"r3tile__status" + (st === "away" ? " r3tile__away" : "")} data-st={st}>
+        {t.status[st]}
+        {st === "away" && s.outSince !== null ? (
+          <>
+            {" "}
+            <Jauh since={s.outSince} now={now} />
+          </>
+        ) : null}
       </span>
       {!s.checkedIn && !s.checkin.fullscreen ? (
         <span className="r3tile__absent">{t.notIn}</span>
@@ -832,26 +856,18 @@ function SeatTile({
         </span>
       )}
       <span className="r3tile__foot">
-        {s.checkedIn && (
-          <span
-            className="r3dot"
-            data-on={online === false ? "no" : online ? "yes" : undefined}
-            title={online === false ? t.offline : online ? t.online : undefined}
-          />
-        )}
-        {s.outSince !== null ? (
-          <span className="r3tile__away">
-            {t.away} <Jauh since={s.outSince} now={now} />
+        {left !== null && <span className="r3tile__left num">{t.left(hms(left))}</span>}
+        {points > 0 && (
+          <span className="r3tile__vio" data-level={level}>
+            {langs.vio.points(points)}
           </span>
-        ) : s.count ? (
+        )}
+        {s.count > 0 && (
           <span className="r3tile__strike" data-level={level}>
             {t.events(s.count)} · {mmss(s.awayMs)}
-            {points > 0 ? ` · ${RG[lang].con.vio.points(points)}` : ""}
           </span>
-        ) : (
-          <span />
         )}
-        {s.heldAt !== null && <span className="r3tile__held">{RG[lang].con.vio.tile.held}</span>}
+        {s.heldAt !== null && <span className="r3tile__held">{langs.vio.tile.held}</span>}
         {s.extraMs > 0 && (
           <span className="r3tile__extra">
             +{Math.round(s.extraMs / MIN)} {langs.ctl.min}
@@ -978,7 +994,7 @@ function SeatDrawer({
       description={d.sub(s.nim, s.no, s.kit?.code ?? null)}
       storeKey="rec-ruang-seat"
       minWidth={420}
-      compact
+      size="half"
       closeLabel={d.close}
       resizeLabel={d.resize}
     >
@@ -1218,21 +1234,105 @@ function SeatGrid({
   const tahu = hadir !== null && live === "live";
   const online = (s: ConsoleSeat) =>
     !tahu || s.seatId === null ? null : hadir!.kursi.includes(s.seatId);
+  const cur = v.state.cur;
   const tiles: Tile[] = v.seats.map((s) => ({
     checkedIn: s.checkedIn,
     connected: online(s),
     count: s.count,
     open: s.outSince !== null,
+    held: s.heldAt !== null,
+    handed: cur ? s.done[cur] !== undefined : false,
+    level: Math.max(0, ...Object.values(s.violations).map((x) => x?.level ?? 0)),
     pending: Object.entries(s.violations).some(
       ([p, x]) => (x?.cut ?? 0) > 0 && !s.penalties[p as PartKey],
     ),
   }));
+  const sum = summarize(tiles);
+  // Most reasons first, so the seat in the worst shape is at the front
+  const attention = v.seats
+    .map((s, i) => ({ s, why: attentionReasons(tiles[i]) }))
+    .filter((x) => x.why.length > 0)
+    .sort((a, b) => b.why.length - a.why.length);
+
   const n = countFilters(tiles);
   const seats = v.seats.filter((_, i) => matchFilter(f, tiles[i]));
   const terbuka = v.seats.find((s) => s.candidateId === pilih) ?? null;
   const terhubung = v.seats.filter((s) => online(s) === true).length;
+  const cs = RG[lang].con.sum;
+  const at = RG[lang].con.attn;
+  const cards: [keyof typeof sum, Filter | null, string][] = [
+    ["masuk", null, "ok"],
+    ["mengerjakan", null, "ok"],
+    ["kumpul", null, "ok"],
+    ["keluar", "keluar", "danger"],
+    ["terputus", "terputus", "warn"],
+    ["keputusan", "keputusan", "warn"],
+    ["ditahan", "ditahan", "warn"],
+  ];
   return (
     <section className="stack r3grid">
+      <div className="r3sum" role="group" aria-label={cs.aria}>
+        {cards.map(([k, filter, tone]) => {
+          if (k === "total") return null;
+          const n = sum[k];
+          const body = (
+            <>
+              <b className="num">{n}</b>
+              <span>{cs[k]}</span>
+              {k === "masuk" && <small className="hint">{cs.of(sum.total)}</small>}
+            </>
+          );
+          return filter ? (
+            <button
+              key={k}
+              type="button"
+              className="r3sum__card"
+              data-tone={n > 0 ? tone : "none"}
+              aria-pressed={f === filter}
+              onClick={() => setF(f === filter ? "semua" : filter)}
+            >
+              {body}
+            </button>
+          ) : (
+            <div key={k} className="r3sum__card" data-tone={n > 0 ? tone : "none"}>
+              {body}
+            </div>
+          );
+        })}
+      </div>
+      <section
+        className="r3attn"
+        aria-label={at.title}
+        data-empty={attention.length ? "no" : "yes"}
+      >
+        <b className="label-caps">{at.title}</b>
+        {attention.length === 0 ? (
+          <span className="hint">{at.none}</span>
+        ) : (
+          <ul className="r3attn__list">
+            {attention.slice(0, 8).map(({ s, why }) => (
+              <li key={s.candidateId}>
+                <button
+                  type="button"
+                  className="r3attn__item"
+                  onClick={() => setPilih(s.candidateId)}
+                >
+                  <span className="r3tile__no num">{String(s.no).padStart(2, "0")}</span>
+                  <b>{depan(s.nama)}</b>
+                  <span className="r3attn__why">
+                    {why.map((w) => (
+                      <i key={w} data-r={w}>
+                        {at.reasons[w]}
+                      </i>
+                    ))}
+                  </span>
+                </button>
+              </li>
+            ))}
+            {attention.length > 8 && <li className="hint">{at.more(attention.length - 8)}</li>}
+          </ul>
+        )}
+      </section>
       <div className="row r3grid__tools">
         <div className="rec-chips" role="group" aria-label={t.aria}>
           {FILTERS.map((k) => (
@@ -1295,39 +1395,67 @@ function SeatGrid({
 
 function Feed({ lang, v, log }: { lang: Lang; v: ConsoleView; log: RoomLogLine[] }) {
   const t = RG[lang].con.feed;
-  const name = (nim: string) => v.seats.find((s) => s.nim === nim)?.nama ?? nim;
+  const kinds = RG[lang].con.drawer.kinds;
+  // What was there when the pengawas opened the room counts as read; what comes after is marked new
+  // until they press Tandai dibaca.
+  const [readAt, setReadAt] = useState(() => Date.now());
   const rows = [
     ...log.map((l) => ({
       at: l.at,
       tone: "",
       text: `${l.nama} ${t.acts[l.act] ?? l.act}${l.act === "start" && v.state.cur ? ` ${RG[lang].part[v.state.cur].l}` : ""}`,
     })),
-    ...v.seats.flatMap((s) =>
-      s.kejadian.map((x) => ({
-        at: x.at,
-        tone: "warn",
-        text: t.strike(
-          depan(s.nama),
-          x.kinds.map((q) => RG[lang].con.drawer.kinds[q] ?? q).join(", "),
-        ),
+    ...v.seats.flatMap((s) => [
+      ...s.kejadian.flatMap((x) => [
+        {
+          at: x.at,
+          tone: "warn",
+          text: t.strike(depan(s.nama), x.kinds.map((q) => kinds[q] ?? q).join(", ")),
+        },
+        ...(x.backAt !== null
+          ? [{ at: x.backAt, tone: "", text: t.back(depan(s.nama), mmss(x.backAt - x.at)) }]
+          : []),
+        ...(x.excused
+          ? [{ at: x.excused.at, tone: "ok", text: t.excused(depan(s.nama), x.excused.by) }]
+          : []),
+      ]),
+      ...s.warnings.map((w) => ({
+        at: w.at,
+        tone: w.source === "auto" ? "warn" : "",
+        text:
+          w.source === "auto"
+            ? t.warnedAuto(depan(s.nama), w.level)
+            : t.warnedStaff(depan(s.nama), w.by ?? ""),
       })),
-    ),
+    ]),
   ]
     .sort((a, b) => b.at - a.at)
-    .slice(0, 30);
-  void name;
+    .slice(0, 40);
+  const fresh = rows.filter((r) => r.at > readAt).length;
   return (
     <section className="panel r3feed">
       <div className="panel__head">
         <h2 className="panel__title">{t.title}</h2>
-        <span className="hint">{t.live}</span>
+        {fresh > 0 ? (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => setReadAt(Date.now())}
+          >
+            {t.markRead} ({fresh})
+          </button>
+        ) : (
+          <span className="hint">{t.live}</span>
+        )}
       </div>
       {rows.length ? (
         <ol className="r3tline">
           {rows.map((r, i) => (
-            <li key={i} data-tone={r.tone}>
+            <li key={i} data-tone={r.tone} data-new={r.at > readAt ? "yes" : undefined}>
               <span className="num hint">{hm(r.at)}</span>
-              <span>{r.text}</span>
+              <span>
+                {r.at > readAt && <em className="r3feed__new">{t.unread}</em>} {r.text}
+              </span>
             </li>
           ))}
         </ol>

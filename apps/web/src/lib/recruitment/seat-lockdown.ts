@@ -187,6 +187,15 @@ export function isDevtoolsKey(e: {
 }
 
 /**
+ * How many screens the browser says are attached (9 Nov 2026): Chromium tells (`screen.isExtended`),
+ * other browsers do not. The check-in row and the second-screen strike both read it.
+ */
+export function screenCount(s: { isExtended?: boolean } | null): "one" | "more" | "unknown" {
+  if (!s || typeof s.isExtended !== "boolean") return "unknown";
+  return s.isExtended ? "more" : "one";
+}
+
+/**
  * Whether the page came back to a part it was already in (9 Nov 2026): a reload, a reopened tab or a
  * return from another page. `life` is this page's own id; the same id seen again is the same page
  * life (an effect running twice), a different one is a new page. Best effort: false where storage is

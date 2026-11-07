@@ -379,7 +379,13 @@ export default function Runner({
       data-enter={entering ? "yes" : undefined}
     >
       <CalmStars motion={motion} />
-      <EdgeGlow left={left} total={totalMs} frozen={paused || timeUp} motion={motion} />
+      <EdgeGlow
+        left={left}
+        total={totalMs}
+        frozen={paused || timeUp}
+        motion={motion}
+        tint={tv.violation?.level ?? 0}
+      />
       <header className="r3top" data-chips={linkDown ? "2" : "1"}>
         <div className="r3top__id">
           <img

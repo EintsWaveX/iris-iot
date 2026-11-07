@@ -186,6 +186,7 @@ export default function LccPage({
         total={lcc.minutes * 60_000}
         frozen={!working || phase.paused}
         motion={motion}
+        tint={tv.violation?.level ?? 0}
       />
       <LccTop
         lang={lang}
