@@ -314,6 +314,12 @@ export const DEFAULT_EXAM_CONFIG: ExamConfig = {
       // The second tab or device is made by the API from where answers come from, not by the page
       ganda: { counts: false, weight: 0 },
       foto: { counts: true, weight: 1 },
+      layar2: { counts: true, weight: 1 },
+      muat: { counts: true, weight: 1 },
+      otomatis: { counts: true, weight: 1 },
+      // Seen by staff, counted for nothing until someone turns the weight up (9 Nov 2026)
+      salin: { counts: true, weight: 0 },
+      putus: { counts: true, weight: 0 },
     },
     free: 2,
     step: 5,

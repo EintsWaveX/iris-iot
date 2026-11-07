@@ -61,6 +61,7 @@ import {
 } from "../../src/lib/recruitment/room-relay.js";
 import { seatHotspotId, validHotspot } from "../../src/lib/recruitment/hotspot.js";
 import { STRIKE_KINDS } from "../../src/lib/recruitment/seat-lockdown.js";
+import { strikeWeight } from "../../src/lib/recruitment/violations.js";
 import { poinKursi } from "./recruitment-violations.js";
 import { pickSeat } from "../../src/lib/recruitment/seat-pick.js";
 import type {
@@ -816,13 +817,19 @@ async function kejadian(k: Konteks) {
       .where(and(eq(recStrike.seatId, seat.id), eq(recStrike.part, part)));
     // Past the cap the records stop but the strike still counts: the overflow goes up (9 Nov 2026)
     if ((n?.n ?? 0) >= rules.capPerPart) {
-      await db
-        .update(recExamSeat)
-        .set({
-          strikeOverflow: sql`jsonb_set(${recExamSeat.strikeOverflow}, ARRAY[${part}]::text[], to_jsonb(coalesce((${recExamSeat.strikeOverflow}->>${part})::int, 0) + 1), true)`,
-        })
-        .where(eq(recExamSeat.id, seat.id));
-      const over = { ...seat.strikeOverflow, [part]: (seat.strikeOverflow?.[part] ?? 0) + 1 };
+      // Only a strike that would have counted adds to the overflow: a copy attempt (weight 0) is just dropped
+      const adds = strikeWeight(kinds, rules) > 0 ? 1 : 0;
+      if (adds)
+        await db
+          .update(recExamSeat)
+          .set({
+            strikeOverflow: sql`jsonb_set(${recExamSeat.strikeOverflow}, ARRAY[${part}]::text[], to_jsonb(coalesce((${recExamSeat.strikeOverflow}->>${part})::int, 0) + 1), true)`,
+          })
+          .where(eq(recExamSeat.id, seat.id));
+      const over = {
+        ...seat.strikeOverflow,
+        [part]: (seat.strikeOverflow?.[part] ?? 0) + adds,
+      };
       const tally = await tallyKursi(k, rules, part, over[part] ?? 0);
       antreUjian(res, seat.roomId, [
         {

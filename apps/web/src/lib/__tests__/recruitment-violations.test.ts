@@ -106,3 +106,17 @@ describe("seatViolations", () => {
     expect(seatViolations([], {}, rules())).toEqual({});
   });
 });
+
+describe("the kinds added on 9 Nov 2026", () => {
+  it("a second screen, a reload and an automated browser count 1 each by default", () => {
+    for (const k of ["layar2", "muat", "otomatis"] as const)
+      expect(R.kinds[k]).toEqual({ counts: true, weight: 1 });
+  });
+  it("copy attempts and a lost connection are recorded at weight 0: seen, never counted", () => {
+    for (const k of ["salin", "putus"] as const) {
+      expect(R.kinds[k]).toEqual({ counts: true, weight: 0 });
+      expect(strikeWeight([k], R)).toBe(0);
+    }
+    expect(countedPoints([s(["salin"]), s(["putus"]), s(["salin", "tab"])], 0, R)).toBe(1);
+  });
+});

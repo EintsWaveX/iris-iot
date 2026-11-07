@@ -5,7 +5,22 @@
  * Nothing fails a candidate automatically: the Master decides.
  */
 
-export const STRIKE_KINDS = ["layar", "tab", "fokus", "tempel", "alat", "ganda", "foto"] as const;
+export const STRIKE_KINDS = [
+  "layar",
+  "tab",
+  "fokus",
+  "tempel",
+  "alat",
+  "ganda",
+  "foto",
+  // Added 9 Nov 2026: a second screen, the page reloaded or reopened inside a part, an automated
+  // browser, a copy / cut / print / select-all attempt (seen, weight 0) and a lost connection (weight 0)
+  "layar2",
+  "muat",
+  "otomatis",
+  "salin",
+  "putus",
+] as const;
 
 /**
  * A screenshot key (4 Nov 2026). A page cannot stop a screenshot, only notice the keys that ask for
@@ -39,6 +54,8 @@ export interface PageState {
   fullscreen: boolean;
   visible: boolean;
   focused: boolean;
+  /** The browser says the line is up; left out when unknown (a strike for `putus` closes only when this is not false) */
+  online?: boolean;
 }
 
 export class StrikeTracker {
@@ -81,7 +98,7 @@ export class StrikeTracker {
   /** The page's state changed: close the open strike once everything is right again */
   settle(p: PageState, at: number): StrikeEvent {
     const s = this.open();
-    if (!s || !p.fullscreen || !p.visible || !p.focused) return null;
+    if (!s || !p.fullscreen || !p.visible || !p.focused || p.online === false) return null;
     s.back = at;
     return { type: "close", strike: { ...s } };
   }
@@ -114,8 +131,24 @@ export class PageWatch {
     this.since = null;
   }
 
+  /**
+   * Things that count once when they begin, not while they last (9 Nov 2026): a second screen
+   * appearing (or already there when the part began) and an automated browser. The caller sends them
+   * as instant strikes. A browser that cannot say gives `undefined`, which counts nothing.
+   */
+  private seen = { extended: false, automated: false };
+  edges(p: { extended?: boolean; automated?: boolean }): StrikeKind[] {
+    const out: StrikeKind[] = [];
+    if (p.extended && !this.seen.extended) out.push("layar2");
+    this.seen.extended = !!p.extended;
+    if (p.automated && !this.seen.automated) out.push("otomatis");
+    this.seen.automated = !!p.automated;
+    return out;
+  }
+
   read(p: PageState, now: number): StrikeKind[] {
     const out: StrikeKind[] = [];
+    if (p.online === false) out.push("putus");
     if (!p.visible) out.push("tab");
     if (!p.fullscreen) out.push("layar");
     if (p.focused || !p.visible || !p.fullscreen || now < this.quietUntil) {
@@ -151,4 +184,24 @@ export function isDevtoolsKey(e: {
   if (e.ctrlKey && e.shiftKey && (k === "i" || k === "j" || k === "c")) return true;
   if (e.metaKey && e.altKey && (k === "i" || k === "j")) return true;
   return false;
+}
+
+/**
+ * Whether the page came back to a part it was already in (9 Nov 2026): a reload, a reopened tab or a
+ * return from another page. `life` is this page's own id; the same id seen again is the same page
+ * life (an effect running twice), a different one is a new page. Best effort: false where storage is
+ * blocked.
+ */
+export function reopened(
+  store: { getItem(k: string): string | null; setItem(k: string, v: string): void } | null,
+  key: string,
+  life: string,
+): boolean {
+  try {
+    const old = store?.getItem(key) ?? null;
+    store?.setItem(key, life);
+    return old !== null && old !== life;
+  } catch {
+    return false;
+  }
 }
