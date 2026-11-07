@@ -244,10 +244,29 @@ export default function BankConfig({
                   )}
                 </td>
               </tr>
+              <tr style={{ cursor: "default" }} className="r3cfg__total">
+                <td>
+                  <b>{t.cfgTotal}</b>
+                </td>
+                <td className="num" data-l={t.cfgMinutes}>
+                  <b>{t.minutes(total)}</b>
+                </td>
+                <td className="num" data-l={t.cfgShownTarget}>
+                  <b>{PHASE1_PARTS.reduce((a, p) => a + cfg.parts[p].shown, dealtCount(cfg))}</b>
+                  <span className="hint"> / </span>
+                  <b>{PHASE1_PARTS.reduce((a, p) => a + cfg.parts[p].pool, cfg.livecode.pool)}</b>
+                </td>
+                <td className="num r3cfg__max" data-l={t.cfgMax}>
+                  <b>{max.total}</b>
+                  <span className="hint r3cfg__base">{t.cfgMaxBase(caps.total)}</span>
+                </td>
+                <td />
+              </tr>
             </tbody>
           </table>
         </div>
         <p className="hint r3cfg__note">{t.cfgMaxNote}</p>
+        <p className="hint r3cfg__note">{t.cfgTotalNote}</p>
       </section>
       <section className="panel r3cfg__score" data-ok={scoreOk ? "yes" : "no"}>
         <div className="stack" style={{ gap: 2 }}>
@@ -356,6 +375,54 @@ export default function BankConfig({
             />
           </label>
           <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgPenaltyFree}</span>
+            <Stepper
+              value={cfg.livecode.penaltyFree}
+              min={0}
+              max={20}
+              label={t.cfgPenaltyFree}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) => !lock && setLive({ penaltyFree: v })}
+            />
+          </label>
+          <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgPenaltyStep}</span>
+            <Stepper
+              value={cfg.livecode.penaltyStep}
+              min={0}
+              max={50}
+              label={t.cfgPenaltyStep}
+              fmt={(n) => (n === 0 ? t.cfgPenaltyNone : `${n}%`)}
+              disabled={lock}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) =>
+                !lock &&
+                setLive({
+                  penaltyStep: v,
+                  penaltyMax: Math.max(cfg.livecode.penaltyMax, v),
+                })
+              }
+            />
+          </label>
+          <label className="stack stack--sm">
+            <span className="label-caps">{t.cfgPenaltyMax}</span>
+            <Stepper
+              value={cfg.livecode.penaltyMax}
+              min={cfg.livecode.penaltyStep}
+              max={100}
+              step={5}
+              label={t.cfgPenaltyMax}
+              fmt={(n) => `${n}%`}
+              disabled={lock || cfg.livecode.penaltyStep === 0}
+              lessLabel={t.stepLess}
+              moreLabel={t.stepMore}
+              onChange={(v) => !lock && setLive({ penaltyMax: v })}
+            />
+          </label>
+          <label className="stack stack--sm">
             <span className="label-caps">{t.cfgWorkers}</span>
             <Stepper
               value={cfg.livecode.workers}
@@ -369,6 +436,13 @@ export default function BankConfig({
             />
           </label>
         </div>
+        <p className="hint r3cfg__penalty">
+          {t.cfgPenaltyBody(
+            cfg.livecode.penaltyFree,
+            cfg.livecode.penaltyStep,
+            cfg.livecode.penaltyMax,
+          )}
+        </p>
         <p className="hint r3cfg__sum" role="status" data-ok={scoreOk ? "yes" : "no"}>
           {t.cfgScoreSum(caps.livecode, handPoints)} {scoreOk ? t.cfgScoreOk : t.cfgScoreOff}
         </p>

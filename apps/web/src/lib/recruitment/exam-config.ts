@@ -9,6 +9,7 @@
  * written share between the three written parts (default 40 / 40 / 20).
  */
 import { BONUS_SHARE } from "./bonus.js";
+import type { Penalty } from "./c-problem.js";
 import {
   DEFAULT_EXAM_CONFIG,
   PART_KEYS,
@@ -47,6 +48,13 @@ export function capsOf(c: ExamConfig): Caps {
   });
   return { parts, written, livecode, total: TOTAL_SCORE };
 }
+
+/** The penalty for failed Submits, from the settings (c-problem.ts has the formula). */
+export const penaltyOf = (c: ExamConfig): Penalty => ({
+  free: c.livecode.penaltyFree,
+  step: c.livecode.penaltyStep,
+  max: c.livecode.penaltyMax,
+});
 
 /** What a seat can earn in Live Coding if every dealt problem passes every test. */
 export const dealtPoints = (c: ExamConfig) =>
@@ -165,6 +173,12 @@ export function upgradeConfig(raw: unknown): ExamConfig {
     if (rl !== null) out.livecode.runLimit = rl;
     const w = whole(lc.workers, 1, 16);
     if (w !== null) out.livecode.workers = w;
+    const pf = whole(lc.penaltyFree, 0, 20);
+    if (pf !== null) out.livecode.penaltyFree = pf;
+    const ps = whole(lc.penaltyStep, 0, 50);
+    if (ps !== null) out.livecode.penaltyStep = ps;
+    const pm = whole(lc.penaltyMax, 0, 100);
+    if (pm !== null) out.livecode.penaltyMax = pm;
     // A config saved before the Susah tier has no `hard`: it keeps dealing what it dealt, none of it.
     if (isObj(lc.draw) && lc.draw.hard === undefined) out.livecode.draw.hard = 0;
     for (const t of TIERS) {
@@ -246,6 +260,17 @@ export function validateConfig(c: ExamConfig): FieldError[] {
     errs.push({ field: "livecode.runLimit", kode: "batas_salah" });
   if (!Number.isInteger(lc?.workers) || lc.workers < 1 || lc.workers > 16)
     errs.push({ field: "livecode.workers", kode: "jumlah_salah" });
+  if (!Number.isInteger(lc?.penaltyFree) || lc.penaltyFree < 0 || lc.penaltyFree > 20)
+    errs.push({ field: "livecode.penaltyFree", kode: "denda_salah" });
+  if (!Number.isInteger(lc?.penaltyStep) || lc.penaltyStep < 0 || lc.penaltyStep > 50)
+    errs.push({ field: "livecode.penaltyStep", kode: "denda_salah" });
+  if (
+    !Number.isInteger(lc?.penaltyMax) ||
+    lc.penaltyMax < 0 ||
+    lc.penaltyMax > 100 ||
+    lc.penaltyMax < lc.penaltyStep
+  )
+    errs.push({ field: "livecode.penaltyMax", kode: "denda_salah" });
   for (const t of TIERS) {
     if (!Number.isInteger(lc?.draw?.[t]) || lc.draw[t] < 0 || lc.draw[t] > 10)
       errs.push({ field: `livecode.draw.${t}`, kode: "jumlah_salah" });

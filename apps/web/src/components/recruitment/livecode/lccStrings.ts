@@ -6,6 +6,7 @@
  */
 import type { BonusQuote } from "../../../lib/recruitment/bonus";
 import { dict } from "../../../lib/app";
+import { offerWords } from "../exam/bonusWords";
 
 type Tier = Record<"easy" | "medium" | "hard", string>;
 
@@ -51,20 +52,14 @@ export const LCC = dict({
     bonus: {
       badge: "Bonus",
       tab: "Bonus",
-      title: "Masih ada waktu. Mau coba soal bonus?",
-      counting: "Menghitung jatah bonusmu...",
-      desc: (q: BonusQuote) =>
-        `Kamu dapat ${q.quota} soal bonus dari ${q.rest} soal Live Coding lain di bank (diacak). Jumlahnya dari sisa waktumu, ditambah soal yang lolos semua test, dikurangi soal yang sudah di-Submit tapi belum lolos semua, dan soal yang belum pernah di-Submit. Tiap soal bonus bernilai setengah soal biasa. Soal kosong atau gagal tidak mengurangi nilai soalnya sendiri, tapi mengurangi jatah bonusmu.`,
-      calc: {
-        time: "Sisa waktu",
-        right: "Lolos semua test",
-        wrong: "Submit belum lolos",
-        blank: "Belum di-Submit",
-        total: "Soal bonus",
-      },
-      max: (n: number) => `paling banyak ${n}`,
-      yes: "Ya, Ambil Soal Bonus",
-      no: "Tidak, Lanjut Selesai",
+      title: "Mau coba soal bonus?",
+      title2: "Yakin tidak mau coba soal bonus?",
+      counting: "Melihat hasil kerjamu...",
+      desc: (q: BonusQuote, round: 1 | 2) => offerWords("id", q, round),
+      yes: "Ya, Coba Soal Bonus",
+      yes2: "Oke, Aku Coba",
+      no: "Tidak, Lewati",
+      no2: "Tetap Lewati",
       taking: "Menyiapkan soal bonus",
       added: (n: number) => `${n} soal bonus ditambahkan di daftar soal.`,
       fail: "Soal bonus belum bisa diambil. Coba lagi.",
@@ -115,6 +110,9 @@ export const LCC = dict({
     failedTitle: "Judge gagal menilai",
     failedLede: "Bukan salahmu. Submit lagi, atau panggil pengawas kalau terus begini.",
     best: (got: number, points: number) => `Terbaikmu: ${got} dari ${points} poin`,
+    penaltyRule: (free: number, step: number, max: number) =>
+      `Submit yang gagal bisa memotong nilai soal: ${free} kali pertama gratis, setelah itu tiap Submit gagal memotong ${step}% dari nilai yang kamu dapat di soal itu, paling banyak ${max}%. Kalau soalnya sudah lolos semua test, Submit sesudahnya tidak dihitung.`,
+    cut: (fails: number, lost: number) => `Dipotong ${lost}% karena ${fails} Submit gagal`,
     verdict: {
       ac: "Lolos",
       wa: "Jawaban salah",
@@ -183,20 +181,14 @@ export const LCC = dict({
     bonus: {
       badge: "Bonus",
       tab: "Bonus",
-      title: "There is still time. Try the bonus problems?",
-      counting: "Counting your bonus...",
-      desc: (q: BonusQuote) =>
-        `You get ${q.quota} bonus problems out of the ${q.rest} other Live Coding problems in the bank (shuffled). The number comes from your time left, plus problems that passed every test, minus problems you Submitted that did not, and problems you never Submitted. Each bonus problem is worth half a normal one. A blank or failing problem takes nothing from its own score, but it does cut your bonus.`,
-      calc: {
-        time: "Time left",
-        right: "Passed every test",
-        wrong: "Submitted, not passing",
-        blank: "Never Submitted",
-        total: "Bonus problems",
-      },
-      max: (n: number) => `at most ${n}`,
-      yes: "Yes, Take the Bonus",
-      no: "No, Just Finish",
+      title: "Want to try the bonus problems?",
+      title2: "Sure you do not want the bonus problems?",
+      counting: "Looking at how you did...",
+      desc: (q: BonusQuote, round: 1 | 2) => offerWords("en", q, round),
+      yes: "Yes, Try the Bonus",
+      yes2: "Okay, I will Try",
+      no: "No, Skip",
+      no2: "Skip Anyway",
       taking: "Getting the bonus problems ready",
       added: (n: number) => `${n} bonus problems were added to the problem list.`,
       fail: "The bonus problems could not be taken. Try again.",
@@ -247,6 +239,9 @@ export const LCC = dict({
     failedTitle: "The judge could not finish",
     failedLede: "Not your fault. Submit again, or call the proctor if it keeps happening.",
     best: (got: number, points: number) => `Your best: ${got} of ${points} points`,
+    penaltyRule: (free: number, step: number, max: number) =>
+      `Failed Submits can cut a problem's score: the first ${free} are free, then each failed Submit takes ${step}% off what you earned on that problem, at most ${max}%. Once a problem passes every test, later Submits do not count.`,
+    cut: (fails: number, lost: number) => `${lost}% cut for ${fails} failed Submits`,
     verdict: {
       ac: "Passed",
       wa: "Wrong answer",
@@ -314,20 +309,14 @@ export const LCC = dict({
     bonus: {
       badge: "加分",
       tab: "加分",
-      title: "还有时间，要试试加分题吗？",
-      counting: "正在计算你的加分题数量...",
-      desc: (q: BonusQuote) =>
-        `你可获得 ${q.quota} 道加分题，来自题库中另外 ${q.rest} 道实时编程题（随机）。数量由剩余时间、通过全部测试的题数、已提交但未通过的题数和从未提交的题数决定。每道加分题的分值是普通题的一半；空白或未通过不扣该题本身的分，但会减少加分题数量。`,
-      calc: {
-        time: "剩余时间",
-        right: "通过全部测试",
-        wrong: "已提交未通过",
-        blank: "未提交",
-        total: "加分题",
-      },
-      max: (n: number) => `最多 ${n} 道`,
-      yes: "是，领取加分题",
-      no: "不用，直接结束",
+      title: "要试试加分题吗？",
+      title2: "真的不想试加分题吗？",
+      counting: "正在查看你的表现...",
+      desc: (q: BonusQuote, round: 1 | 2) => offerWords("zh", q, round),
+      yes: "是，试试加分题",
+      yes2: "好，我来试试",
+      no: "不用，跳过",
+      no2: "还是跳过",
       taking: "正在准备加分题",
       added: (n: number) => `已在题目列表中加入 ${n} 道加分题。`,
       fail: "暂时无法领取加分题，请重试。",
@@ -376,6 +365,9 @@ export const LCC = dict({
     failedTitle: "评测未能完成",
     failedLede: "不是你的问题。再提交一次，如果一直这样请叫监考。",
     best: (got: number, points: number) => `你的最好成绩：${got} / ${points} 分`,
+    penaltyRule: (free: number, step: number, max: number) =>
+      `失败的提交会扣该题得分：前 ${free} 次免扣，之后每次失败提交扣掉你在该题所得分的 ${step}%，最多扣 ${max}%。题目通过全部测试后，之后的提交不计入。`,
+    cut: (fails: number, lost: number) => `因 ${fails} 次失败提交扣了 ${lost}%`,
     verdict: {
       ac: "通过",
       wa: "答案错误",

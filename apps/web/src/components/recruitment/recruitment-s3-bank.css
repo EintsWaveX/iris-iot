@@ -1005,3 +1005,12 @@
   margin: 0;
   padding: 10px 14px;
 }
+
+/* Pengaturan: the Total row and the failed Submit formula (8 Nov 2026) */
+.r3cfg .r3cfg__total td {
+  border-top: 2px solid var(--accent);
+  font-weight: 700;
+}
+.r3cfg__penalty {
+  margin: 0;
+}

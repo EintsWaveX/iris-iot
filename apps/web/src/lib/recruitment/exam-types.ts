@@ -234,6 +234,14 @@ export interface LivecodePlan {
   runLimit: number;
   /** Tests the judge runs at once on the lab PC. */
   workers: number;
+  /**
+   * The penalty for failed Submits (8 Nov 2026), per problem: the first `penaltyFree` failures are
+   * forgiven, each one after takes `penaltyStep` percent off what the problem earned, never more
+   * than `penaltyMax` percent in all. `penaltyStep` 0 turns it off. See c-problem.ts Penalty.
+   */
+  penaltyFree: number;
+  penaltyStep: number;
+  penaltyMax: number;
 }
 export interface ExamConfig {
   v: 2;
@@ -266,6 +274,9 @@ export const DEFAULT_EXAM_CONFIG: ExamConfig = {
     bonusMin: 15,
     runLimit: 0,
     workers: 4,
+    penaltyFree: 1,
+    penaltyStep: 5,
+    penaltyMax: 30,
   },
   weights: { written: 40, livecode: 60 },
   shares: { logika: 40, fitb: 40, kodingan: 20 },

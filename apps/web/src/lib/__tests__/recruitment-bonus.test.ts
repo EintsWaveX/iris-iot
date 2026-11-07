@@ -20,7 +20,14 @@ import {
 } from "../recruitment/exam-config";
 import { drawBonus, drawBonusProblems, drawSeed } from "../recruitment/draw";
 import { ONE, ZERO, frac } from "../recruitment/frac";
-import { BONUS_SHARE, bonusQuota, bonusWorth } from "../recruitment/bonus";
+import {
+  BONUS_SHARE,
+  bonusQuota,
+  bonusWorth,
+  declinesLeft,
+  performanceWords,
+  BONUS_ASKS,
+} from "../recruitment/bonus";
 import { StrikeTracker, isScreenshotKey, STRIKE_KINDS } from "../recruitment/seat-lockdown";
 import { scorePart, type SeatPart } from "../recruitment/scoring";
 
@@ -332,5 +339,40 @@ describe("handing in is never blocked by blanks", () => {
       new Set(),
     );
     expect(blank.seats.get(1)!.score).toBe(wrong.seats.get(1)!.score);
+  });
+});
+
+describe("how the offer talks about a seat (words, never numbers)", () => {
+  const q = (correct: number, wrong: number, blank: number, time: number) => ({
+    rest: 20,
+    time,
+    correct,
+    wrong,
+    blank,
+    quota: 5,
+  });
+
+  it("grades the share of dealt questions answered right", () => {
+    expect(performanceWords(q(19, 1, 0, 4)).mood).toBe("top");
+    expect(performanceWords(q(14, 6, 0, 4)).mood).toBe("good");
+    expect(performanceWords(q(8, 12, 0, 4)).mood).toBe("ok");
+    expect(performanceWords(q(2, 10, 8, 4)).mood).toBe("low");
+  });
+
+  it("says the time is roomy only when a good part of the part is still left", () => {
+    expect(performanceWords(q(10, 10, 0, 12)).roomy).toBe(true);
+    expect(performanceWords(q(10, 10, 0, 1)).roomy).toBe(false);
+  });
+
+  it("an empty seat does not divide by zero", () => {
+    expect(performanceWords(q(0, 0, 0, 0))).toEqual({ mood: "low", roomy: false });
+  });
+
+  it("asks twice at most, then stops", () => {
+    expect(BONUS_ASKS).toBe(2);
+    expect(declinesLeft(0)).toBe(true);
+    expect(declinesLeft(1)).toBe(true);
+    expect(declinesLeft(2)).toBe(false);
+    expect(declinesLeft(7)).toBe(false);
   });
 });

@@ -38,12 +38,19 @@ import type { Lang } from "../../../lib/kelas";
 import { usePoll } from "../../../lib/hooks";
 import type { Verdict } from "../../../lib/recruitment/c-problem";
 import { isFail, recGet, recPost } from "../../../lib/recruitment/client";
-import type { LccProblem, LccSelf, LccSendReply, LccSub } from "../../../lib/recruitment/lcc-api";
+import type {
+  LccProblem,
+  LccProblemState,
+  LccSelf,
+  LccSendReply,
+  LccSub,
+} from "../../../lib/recruitment/lcc-api";
 import type { SeatPhase } from "../../../lib/recruitment/seat-state";
 import type { TestView } from "../../../lib/recruitment/seat-types";
 import Dialog from "../../ui/Dialog";
-import type { BonusQuote } from "../../../lib/recruitment/bonus";
+import { BONUS_ASKS, declinesLeft, type BonusQuote } from "../../../lib/recruitment/bonus";
 import BonusOffer from "../exam/BonusOffer";
+import { readDeclines, writeDeclines } from "../exam/bonusDecline";
 import { Gate, Timer, type Motion } from "../exam/parts";
 import { CalmStars, EdgeGlow } from "../exam/ScreenFx";
 import { TS } from "../exam/testStrings";
@@ -462,7 +469,17 @@ function Workbench({
   const [asking, setAsking] = useState(false);
   // Selesai, and the bonus round offered once before it (4 Nov 2026)
   const [fin, setFin] = useState(false);
-  const [declined, setDeclined] = useState(false);
+  // How many times the seat said No to the offer (kept across a reload): asked twice at most (8 Nov 2026)
+  const declineId = `lc.${nim}.${lcc.hand
+    .filter((h) => !h.bonus)
+    .map((h) => h.id)
+    .join("-")}`;
+  const [declines, setDeclines] = useState(() => readDeclines(declineId));
+  const declined = !declinesLeft(declines);
+  const sayNo = (n: number) => {
+    setDeclines(n);
+    writeDeclines(declineId, n);
+  };
   const [quote, setQuote] = useState<BonusQuote | null>(null);
   const [finBusy, setFinBusy] = useState(false);
   const jumpToBonus = useRef(false);
@@ -511,7 +528,7 @@ function Workbench({
       const r = await recPost<{ ok: true; quote: BonusQuote }>("lcc-bonus", { dry: true });
       if (dead) return;
       if (!isFail(r) && r.quote.quota >= 1) setQuote(r.quote);
-      else setDeclined(true);
+      else sayNo(BONUS_ASKS);
     })();
     return () => {
       dead = true;
@@ -536,7 +553,7 @@ function Workbench({
         tone: "warn",
         text: (r.kode as string) === "bonus_telat" ? t.bonus.late : t.bonus.fail,
       });
-      setDeclined(true);
+      sayNo(BONUS_ASKS);
       return;
     }
     jumpToBonus.current = true;
@@ -562,6 +579,39 @@ function Workbench({
     return a ?? b;
   }, [st.run, st.submit]);
 
+  const tab = (h: LccProblem, i: number, mini = false) => {
+    const s = lcc.state[h.id];
+    const full = !!s.best && s.best.passed === s.best.total;
+    const sub = busy(s.submit)
+      ? t.waiting
+      : s.best
+        ? t.tests(s.best.passed, s.best.total)
+        : t.notSent;
+    return (
+      <button
+        key={h.id}
+        type="button"
+        role="tab"
+        aria-selected={i === at}
+        className={mini ? "lcc-tab lcc-tab--mini" : "lcc-tab"}
+        data-b={h.bonus ? "yes" : undefined}
+        data-st={full ? "full" : s.best ? "part" : "none"}
+        onClick={() => setAt(i)}
+      >
+        <span className="lcc-num">{full ? <CheckIcon size={14} weight="bold" /> : i + 1}</span>
+        <span className="lcc-tab__t">
+          <b title={h.title}>{h.title}</b>
+          <span className="hint">{sub}</span>
+        </span>
+      </button>
+    );
+  };
+  const bonusAt = lcc.hand.flatMap((h, i) => (h.bonus ? [i] : []));
+  const bonusDone = bonusAt.filter((i) => {
+    const b = lcc.state[lcc.hand[i].id].best;
+    return !!b && b.passed === b.total;
+  }).length;
+
   return (
     <div className="lcc-work">
       {!lcc.judgeReady && (
@@ -575,46 +625,35 @@ function Workbench({
       )}
 
       <div className="lcc-rail" role="tablist" aria-label={t.problemList}>
-        {lcc.hand.map((h, i) => {
-          const s = lcc.state[h.id];
-          const full = !!s.best && s.best.passed === s.best.total;
-          const sub = busy(s.submit)
-            ? t.waiting
-            : s.best
-              ? t.tests(s.best.passed, s.best.total)
-              : t.notSent;
-          return (
-            <button
-              key={h.id}
-              type="button"
-              role="tab"
-              aria-selected={i === at}
-              className="lcc-tab"
-              data-b={h.bonus ? "yes" : undefined}
-              data-st={full ? "full" : s.best ? "part" : "none"}
-              onClick={() => setAt(i)}
-            >
-              <span className="lcc-num">
-                {full ? <CheckIcon size={14} weight="bold" /> : i + 1}
-              </span>
-              <span className="lcc-tab__t">
-                <b title={h.title}>{h.title}</b>
-                <span className="hint">{sub}</span>
-              </span>
-            </button>
-          );
-        })}
+        {lcc.hand.map((h, i) => (h.bonus ? null : tab(h, i)))}
       </div>
+      {bonusAt.length > 0 && (
+        // Bonus problems can be many (a seat that did well is offered most of the pool), so they get
+        // their own compact group that scrolls inside itself instead of pushing the work down.
+        <div className="lcc-bonusrail">
+          <div className="lcc-bonusrail__head">
+            <SparkleIcon size={14} weight="fill" aria-hidden="true" />
+            <b>{t.bonus.tab}</b>
+            <span className="hint num">
+              {bonusDone} / {bonusAt.length}
+            </span>
+          </div>
+          <div className="lcc-rail lcc-rail--bonus" role="tablist" aria-label={t.bonus.tab}>
+            {bonusAt.map((i) => tab(lcc.hand[i], i, true))}
+          </div>
+        </div>
+      )}
 
       <BonusOffer
         lang={lang}
         open={fin && canOffer}
+        round={declines >= 1 ? 2 : 1}
         onOpenChange={setFin}
         quote={quote}
         busy={finBusy}
         t={t.bonus}
         onYes={() => void takeBonus()}
-        onNo={() => setDeclined(true)}
+        onNo={() => sayNo(declines + 1)}
       />
       <Dialog
         open={fin && !canOffer}
@@ -747,6 +786,12 @@ function Workbench({
             <InfoIcon size={18} aria-hidden="true" />
             <span>{t.lineHint}</span>
           </p>
+          {lcc.penalty && lcc.penalty.step > 0 && (
+            <p className="lcc-note">
+              <InfoIcon size={18} aria-hidden="true" />
+              <span>{t.penaltyRule(lcc.penalty.free, lcc.penalty.step, lcc.penalty.max)}</span>
+            </p>
+          )}
           <Result lang={lang} sub={shown} p={p} best={st.best} position={st.position} />
         </section>
       </div>
@@ -821,7 +866,7 @@ function Result({
   lang: Lang;
   sub: LccSub | null;
   p: LccProblem;
-  best: { passed: number; total: number; got: number } | null;
+  best: LccProblemState["best"];
   position: number | null;
 }) {
   const t = LCC[lang];
@@ -893,7 +938,12 @@ function Result({
       )}
       {best && sub.kind === "submit" && (
         <div className="lcc-best" data-full={best.passed === best.total ? "yes" : undefined}>
-          <span className="lcc-best__t">{t.best(best.got, p.points)}</span>
+          <span className="lcc-best__t">
+            {t.best(best.got, p.points)}
+            {best.lost > 0 && (
+              <small className="lcc-best__cut"> · {t.cut(best.fails, best.lost)}</small>
+            )}
+          </span>
           <span className="lcc-best__bar" aria-hidden="true">
             <i style={{ width: `${Math.round((best.got / Math.max(1, p.points)) * 100)}%` }} />
           </span>

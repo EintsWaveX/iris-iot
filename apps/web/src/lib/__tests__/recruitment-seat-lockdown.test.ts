@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   DEBOUNCE_MS,
+  FOKUS_GRACE_MS,
+  FS_QUIET_MS,
   MAX_STRIKES_PER_PART,
+  PageWatch,
   StrikeTracker,
   devtoolsLikelyOpen,
   isDevtoolsKey,
@@ -86,6 +89,72 @@ describe("StrikeTracker", () => {
 
   it("settle with nothing open does nothing", () => {
     expect(new StrikeTracker(() => "x").settle(ok, 0)).toBeNull();
+  });
+});
+
+describe("PageWatch (what the page state calls for, whatever events arrive)", () => {
+  const T = FOKUS_GRACE_MS;
+
+  it("calls for nothing while the page is fine", () => {
+    const w = new PageWatch();
+    expect(w.read(ok, 0)).toEqual([]);
+    expect(w.read(ok, 10_000)).toEqual([]);
+  });
+
+  it("calls for tab when the page is hidden, and not for fokus on top of it", () => {
+    const w = new PageWatch();
+    expect(w.read({ fullscreen: true, visible: false, focused: false }, 0)).toEqual(["tab"]);
+    expect(w.read({ fullscreen: true, visible: false, focused: false }, 5000)).toEqual(["tab"]);
+  });
+
+  it("calls for layar when fullscreen is gone, and not for fokus on top of it (Linux blurs on exit)", () => {
+    const w = new PageWatch();
+    expect(w.read({ fullscreen: false, visible: true, focused: false }, 0)).toEqual(["layar"]);
+    expect(w.read({ fullscreen: false, visible: true, focused: false }, 5000)).toEqual(["layar"]);
+  });
+
+  it("waits out a short blur before calling for fokus, then calls for it", () => {
+    const w = new PageWatch();
+    const out = { fullscreen: true, visible: true, focused: false };
+    expect(w.read(out, 0)).toEqual([]);
+    expect(w.read(out, T - 1)).toEqual([]);
+    expect(w.read(out, T)).toEqual(["fokus"]);
+  });
+
+  it("a blur that ends within the grace never counts, and the clock starts over", () => {
+    const w = new PageWatch();
+    const out = { fullscreen: true, visible: true, focused: false };
+    w.read(out, 0);
+    w.read(ok, T - 100);
+    expect(w.read(out, T + 100)).toEqual([]);
+    expect(w.read(out, T + 100 + T)).toEqual(["fokus"]);
+  });
+
+  it("keeps fokus quiet right after a fullscreen change (the window manager blurs and refocuses)", () => {
+    const w = new PageWatch();
+    const out = { fullscreen: true, visible: true, focused: false };
+    w.quiet(0);
+    expect(w.read(out, 100)).toEqual([]);
+    expect(w.read(out, FS_QUIET_MS - 1)).toEqual([]);
+    // the grace counts from when the quiet ends
+    expect(w.read(out, FS_QUIET_MS)).toEqual([]);
+    expect(w.read(out, FS_QUIET_MS + T - 1)).toEqual([]);
+    expect(w.read(out, FS_QUIET_MS + T)).toEqual(["fokus"]);
+  });
+});
+
+describe("StrikeTracker with a missed event", () => {
+  it("a strike left open by a lost focus event closes on the next look at the page", () => {
+    let n = 0;
+    const t = new StrikeTracker(() => `s${++n}`);
+    t.signal("fokus", 0);
+    // the `focus` event never came, a later look finds the page fine
+    expect(t.settle(ok, 700)).toMatchObject({ type: "close", strike: { id: "s1", back: 700 } });
+    // and the next violation is a new record, not swallowed by the old one
+    expect(t.signal("fokus", 700 + DEBOUNCE_MS + 1)).toMatchObject({
+      type: "open",
+      strike: { id: "s2" },
+    });
   });
 });
 

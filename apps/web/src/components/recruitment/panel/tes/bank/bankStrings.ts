@@ -378,11 +378,24 @@ export const BK = dict({
     cfgRunLimit: "Batas kiriman per soal",
     cfgRunLimitNone: "Tanpa batas",
     cfgWorkers: "Judge berjalan bersamaan",
+    cfgPenaltyFree: "Submit gagal yang dimaafkan",
+    cfgPenaltyStep: "Potongan tiap Submit gagal",
+    cfgPenaltyMax: "Potongan paling besar",
+    cfgPenaltyNone: "Tanpa potongan",
+    cfgPenaltyBody: (free: number, step: number, max: number) =>
+      step === 0
+        ? "Potongan Submit gagal mati: Submit yang gagal tidak mengurangi nilai soal."
+        : `Rumus per soal: ${free} Submit gagal pertama gratis. Tiap Submit gagal sesudahnya memotong ${step}% dari nilai yang didapat soal itu, paling banyak ${max}%. Submit yang dikirim setelah soal lolos semua test tidak dihitung. Contoh: ${free + 3} Submit gagal lalu lolos = potong ${Math.min(max, step * 3)}%.`,
+    cfgTotal: "Total",
+    cfgTotalNote:
+      "Baris Total adalah nilai tertinggi secara teori: kalau peserta mengerjakan semua soal di pool dengan benar, bonus ikut, tanpa potongan Submit gagal. Nilai dasar tanpa bonus selalu sama dengan jatahnya.",
     cfgScoreSum: (live: number, hand: number) =>
       `Jatah Live Coding ${live} poin, soal yang dibagikan ${hand} poin.`,
     cfgScoreOk: "Pas.",
     cfgScoreOff: "Belum pas. Ubah poin atau jumlah soal.",
     cfgErr: {
+      denda_salah:
+        "Potongannya tidak masuk akal (paling besar tidak boleh lebih kecil dari potongan tiap Submit).",
       bobot_salah: "Jatah harus berjumlah 100.",
       poin_tidak_cocok: "Poin soal yang dibagikan belum pas dengan jatah Live Coding.",
       poin_salah: "Poin harus bilangan bulat di atas 0.",
@@ -747,11 +760,24 @@ export const BK = dict({
     cfgRunLimit: "Sends allowed per problem",
     cfgRunLimitNone: "No limit",
     cfgWorkers: "Judge runs in parallel",
+    cfgPenaltyFree: "Failed Submits forgiven",
+    cfgPenaltyStep: "Cut per failed Submit",
+    cfgPenaltyMax: "Biggest cut",
+    cfgPenaltyNone: "No cut",
+    cfgPenaltyBody: (free: number, step: number, max: number) =>
+      step === 0
+        ? "The failed Submit cut is off: a failed Submit takes nothing off a problem's score."
+        : `Per problem: the first ${free} failed Submits are free. Each failed Submit after that takes ${step}% off what the problem earned, at most ${max}% in all. Submits sent after the problem passed every test do not count. Example: ${free + 3} failed Submits then a pass = ${Math.min(max, step * 3)}% cut.`,
+    cfgTotal: "Total",
+    cfgTotalNote:
+      "The Total row is the highest score in theory: a candidate who gets every question in the pool right, bonus included, with no failed Submit cut. The base score without bonus always equals the share.",
     cfgScoreSum: (live: number, hand: number) =>
       `Live Coding share is ${live} points, the dealt problems add up to ${hand}.`,
     cfgScoreOk: "It matches.",
     cfgScoreOff: "It does not match yet. Change the points or the number of problems.",
     cfgErr: {
+      denda_salah:
+        "The cut is not valid (the biggest cut cannot be smaller than the cut per Submit).",
       bobot_salah: "The shares must add up to 100.",
       poin_tidak_cocok: "The dealt problems do not add up to the Live Coding share.",
       poin_salah: "Points must be a whole number above 0.",
@@ -1110,11 +1136,23 @@ export const BK = dict({
     cfgRunLimit: "每题提交次数上限",
     cfgRunLimitNone: "不限",
     cfgWorkers: "评测并行数",
+    cfgPenaltyFree: "免扣的失败提交次数",
+    cfgPenaltyStep: "每次失败提交的扣分",
+    cfgPenaltyMax: "最大扣分",
+    cfgPenaltyNone: "不扣分",
+    cfgPenaltyBody: (free: number, step: number, max: number) =>
+      step === 0
+        ? "失败提交扣分已关闭：失败的提交不会减少该题得分。"
+        : `每题规则：前 ${free} 次失败提交免扣。之后每次失败提交扣掉该题所得分的 ${step}%，最多扣 ${max}%。题目通过全部测试后再提交不计入。例：失败 ${free + 3} 次后通过 = 扣 ${Math.min(max, step * 3)}%。`,
+    cfgTotal: "合计",
+    cfgTotalNote:
+      "合计行是理论上的最高分：考生答对题库中的所有题目（含加分题），且没有失败提交扣分。不含加分题的基础分始终等于占比。",
     cfgScoreSum: (live: number, hand: number) =>
       `现场编程占比 ${live} 分，发出的题目合计 ${hand} 分。`,
     cfgScoreOk: "吻合。",
     cfgScoreOff: "尚未吻合。请调整分数或题目数量。",
     cfgErr: {
+      denda_salah: "扣分设置无效（最大扣分不能小于每次扣分）。",
       bobot_salah: "占比之和必须为 100。",
       poin_tidak_cocok: "发出的题目分数之和与现场编程占比不符。",
       poin_salah: "分数必须是大于 0 的整数。",

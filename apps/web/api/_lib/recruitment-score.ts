@@ -43,6 +43,7 @@ import type { Run } from "../../src/lib/recruitment/c-problem.js";
 import {
   capsOf,
   defaultQuestionPoints,
+  penaltyOf,
   problemWorth,
 } from "../../src/lib/recruitment/exam-config.js";
 import { bonusWorth } from "../../src/lib/recruitment/bonus.js";
@@ -255,7 +256,7 @@ async function muatMasukan(db: Db, edisiId: number) {
       runs.set(r.seatId, l);
     }
   }
-  return { kursi, bank, live: { hand, runs, waiting } };
+  return { kursi, bank, live: { hand, runs, waiting, penalty: penaltyOf(config) } };
 }
 
 /** The scores right now, from the answers and the keys as they stand. */

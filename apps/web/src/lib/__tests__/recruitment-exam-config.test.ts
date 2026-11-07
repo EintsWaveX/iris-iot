@@ -8,7 +8,9 @@ import {
   capsOf,
   dealtCount,
   dealtPoints,
+  maxWithBonus,
   minutesOf,
+  penaltyOf,
   upgradeConfig,
   validateConfig,
 } from "../recruitment/exam-config";
@@ -187,5 +189,61 @@ describe("validateConfig agrees with what upgradeConfig reads back", () => {
         "parts.logika.counts:jumlah_salah",
       ]),
     );
+  });
+});
+
+describe("the failed Submit penalty and the Total row (8 Nov 2026)", () => {
+  it("the default forgives 1, takes 5% per failure after, never more than 30%", () => {
+    expect(penaltyOf(DEFAULT_EXAM_CONFIG)).toEqual({ free: 1, step: 5, max: 30 });
+    expect(validateConfig(fresh())).toEqual([]);
+  });
+
+  it("a config saved before the penalty gets the defaults for it, and keeps the rest", () => {
+    const old = fresh() as unknown as { livecode: Record<string, unknown> };
+    delete old.livecode.penaltyFree;
+    delete old.livecode.penaltyStep;
+    delete old.livecode.penaltyMax;
+    old.livecode.minutes = 45;
+    const up = upgradeConfig(old);
+    expect(penaltyOf(up)).toEqual({ free: 1, step: 5, max: 30 });
+    expect(up.livecode.minutes).toBe(45);
+  });
+
+  it("reads a stored penalty back and ignores nonsense", () => {
+    const c = fresh();
+    c.livecode.penaltyStep = 10;
+    c.livecode.penaltyMax = 50;
+    c.livecode.penaltyFree = 2;
+    expect(penaltyOf(upgradeConfig(c))).toEqual({ free: 2, step: 10, max: 50 });
+    const bad = fresh() as unknown as { livecode: Record<string, unknown> };
+    bad.livecode.penaltyStep = 99;
+    bad.livecode.penaltyFree = -1;
+    expect(penaltyOf(upgradeConfig(bad))).toEqual({ free: 1, step: 5, max: 30 });
+  });
+
+  it("refuses a biggest cut smaller than the cut per failure, and out-of-range numbers", () => {
+    const c = fresh();
+    c.livecode.penaltyStep = 20;
+    c.livecode.penaltyMax = 10;
+    expect(fields(c)).toContain("livecode.penaltyMax:denda_salah");
+    const d = fresh();
+    d.livecode.penaltyFree = 21;
+    d.livecode.penaltyStep = 51;
+    expect(fields(d)).toEqual(
+      expect.arrayContaining([
+        "livecode.penaltyFree:denda_salah",
+        "livecode.penaltyStep:denda_salah",
+      ]),
+    );
+    const off = fresh();
+    off.livecode.penaltyStep = 0;
+    off.livecode.penaltyMax = 0;
+    expect(validateConfig(off)).toEqual([]);
+  });
+
+  it("the Total row is the written parts and Live Coding at their most, bonus included", () => {
+    const m = maxWithBonus(DEFAULT_EXAM_CONFIG);
+    expect(m.total).toBe(m.written + m.livecode);
+    expect(m.total).toBeGreaterThan(capsOf(DEFAULT_EXAM_CONFIG).total);
   });
 });

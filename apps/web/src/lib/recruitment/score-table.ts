@@ -17,7 +17,7 @@ import { credit } from "./formats.js";
 import { fracText, type Frac } from "./frac.js";
 import type { LiveFlag, PartScore, ScoreRow, StatRow, WrongPick } from "./score-api.js";
 import { scorePart, totals, type SeatPart } from "./scoring.js";
-import { livecodeResult, type Run } from "./c-problem.js";
+import { livecodeResult, type Penalty, type Run } from "./c-problem.js";
 
 export interface SeatIn {
   seatId: number;
@@ -51,6 +51,8 @@ export interface LiveIn {
   runs: ReadonlyMap<number, readonly (Run & { problemId: number })[]>;
   /** Seats with a Submit still waiting at the judge */
   waiting: ReadonlySet<number>;
+  /** The penalty for failed Submits from the settings; none when left out */
+  penalty?: Penalty;
 }
 
 export interface Assembled {
@@ -139,6 +141,7 @@ export function assemble(
           points: h.points,
           runs: runs.filter((r) => r.problemId === h.problemId),
         })),
+        live.penalty,
       );
       // The dealt problems make the cap; bonus problems add on top of it (4 Nov 2026). With
       // the settings' own points the dealt problems add up to the cap already; with a
