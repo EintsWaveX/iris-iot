@@ -4,6 +4,7 @@
  */
 import type { ExamConfig, Lang, PartKey, RoomState, RoomViewName } from "./exam-types.js";
 import type { HotspotPlan } from "./hotspot.js";
+import type { PartViolations } from "./violations.js";
 import type { HotspotView, KitBoard, SeatCheckin } from "./room-types.js";
 
 export interface RoomSlotInfo {
@@ -54,6 +55,8 @@ export interface ConsoleKejadian {
   kinds: string[];
   at: number;
   backAt: number | null;
+  /** Staff forgave it (9 Nov 2026): it counts for nothing */
+  excused: { by: string; reason: string | null; at: number } | null;
 }
 
 export interface ConsoleSeat {
@@ -74,10 +77,16 @@ export interface ConsoleSeat {
   /** Extra time on the running part, ms */
   extraMs: number;
   count: number;
+  /** Strikes staff forgave, already in `count` */
+  excused: number;
   awayMs: number;
   /** The seat is out now: since when (server ms) */
   outSince: number | null;
   kejadian: ConsoleKejadian[];
+  /** Counted points, warning level and suggested cut per part (violations.ts) */
+  violations: Partial<Record<PartKey, PartViolations>>;
+  /** Strikes past the per-part cap: counted, not stored */
+  overflow: Partial<Record<PartKey, number>>;
   kit: { code: string; boards: KitBoard[]; returnedAt: number | null } | null;
   lastSeenAt: number | null;
   /** Signed in for the evening (QR or by hand); null when the room has no event to count against */

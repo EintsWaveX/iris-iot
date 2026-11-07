@@ -13,6 +13,7 @@
  * POST room-act     { id, seq, act, ...params }  the Master's controls
  * POST room-master  { id, act: claim | ask | give | decline | release | ping, to? }
  * POST room-note    { id, candidateId, text }  a pengawas' note on a seat
+ * POST room-strike  { id, seatId, strikeId, excuse, reason? }  forgive a violation (or take it back); it stops counting
  * POST room-kit     { id, candidateId, kit, boards, returned? }  (kitLoans)
  * POST room-move    { candidateId, toRoomId }  (plotting)
  * POST room-seat-reset { id, candidateId }  one CaAs's seat back to nothing, not while a part runs  (cuttingLock)
@@ -61,6 +62,7 @@ import { konteksLatihan } from "./recruitment-latihan-ctx.js";
 import {
   DEFAULT_EXAM_CONFIG,
   LANG_OF_PART,
+  PART_KEYS,
   PHASE1_PARTS,
   type ExamConfig,
   type PartKey,
@@ -116,6 +118,8 @@ import { konsolEnv } from "./konsol.js";
 import { bungkus } from "./rahasia.js";
 import { muatOrang } from "./hak.js";
 import { muatKolam as muatDaftarAsisten, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
+import { poinKursi } from "./recruitment-violations.js";
+import { seatViolations } from "../../src/lib/recruitment/violations.js";
 import { muatPelaku, type PelakuServer } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 
@@ -518,6 +522,8 @@ export async function handleRoom(req: ApiRequest, res: ApiResponse, s: SessionPa
       return aksiMaster(ctx);
     case "room-note":
       return catat(ctx);
+    case "room-strike":
+      return maafkan(ctx);
     case "room-kit":
       return pinjamKit(ctx);
     case "room-move":
@@ -750,8 +756,18 @@ async function susunKonsol(
     kinds: x.kinds,
     at: x.at.getTime(),
     backAt: ms(x.backAt),
+    excused: x.excusedAt
+      ? { by: x.excusedBy ?? "", reason: x.excuseReason ?? null, at: x.excusedAt.getTime() }
+      : null,
   }));
-  const kej = kejadianPerSeat(rows, now);
+  // A strike still open after its part's run ended was left by a page that closed: its time stops there
+  const ends: Partial<Record<PartKey, number>> = {};
+  for (const part of PART_KEYS) {
+    const r = room.state.runs[part];
+    if (r?.state === "ended" && r.endedAt != null) ends[part] = r.endedAt;
+    else if (room.state.finishedAt != null) ends[part] = room.state.finishedAt;
+  }
+  const kej = kejadianPerSeat(rows, now, ends);
   const tiles: ConsoleSeat[] = kand.map((c, i) => {
     const seat = seats.find((x) => x.candidateId === c.id) ?? null;
     const k = seat ? kej[seat.id] : undefined;
@@ -770,6 +786,7 @@ async function susunKonsol(
       total: items,
       extraMs: seat && run ? (run.extra[String(seat.id)] ?? 0) : 0,
       count: k?.count ?? 0,
+      excused: k?.excused ?? 0,
       awayMs: k?.awayMs ?? 0,
       outSince: k?.open?.at ?? null,
       kejadian: (k?.list ?? []).map((x) => ({
@@ -778,7 +795,16 @@ async function susunKonsol(
         kinds: x.kinds,
         at: x.at,
         backAt: x.backAt,
+        excused: x.excused ?? null,
       })),
+      violations: seat
+        ? seatViolations(
+            (k?.list ?? []).map((x) => ({ part: x.part, kinds: x.kinds, excused: !!x.excused })),
+            seat.strikeOverflow ?? {},
+            config.violations,
+          )
+        : {},
+      overflow: seat?.strikeOverflow ?? {},
       kit: kit ? { code: kit.kitCode, boards: kit.boards, returnedAt: ms(kit.returnedAt) } : null,
       lastSeenAt: ms(seat?.lastSeenAt),
       present: hadir.find((h) => h.candidateId === c.id) ?? null,
@@ -1735,6 +1761,66 @@ async function catat({ req, res, s, db, edisi, p }: Ctx) {
       mine: n.authorNim === s.nim,
     })),
   });
+}
+
+/**
+ * `room-strike`: staff forgive one violation, with a reason, or take the forgiveness back (9 Nov
+ * 2026). A forgiven strike stays in the list but counts for no points, no warning and no cut. The
+ * answer carries the seat's new points in that part, and the room hears it.
+ */
+async function maafkan({ req, res, s, db, edisi, p }: Ctx) {
+  const b = jsonBody(req);
+  const id = Number(b.id);
+  const seatId = Number(b.seatId);
+  if (!idOk(id) || !idOk(seatId) || typeof b.strikeId !== "string" || !b.strikeId)
+    return void tolak(res, "data_salah", 400);
+  const excuse = b.excuse === true;
+  const reason = typeof b.reason === "string" ? b.reason.trim() : "";
+  if (excuse && (reason.length < 3 || reason.length > 300))
+    return void tolak(res, "data_salah", 400, { field: "reason" });
+  const r = await muatRuang(db, edisi.id, id);
+  if (!r) return void tolak(res, "tidak_ditemukan", 404);
+  const pengawas = await muatPengawas(db, r.room);
+  if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
+  const [seat] = await db
+    .select({ id: recExamSeat.id, strikeOverflow: recExamSeat.strikeOverflow })
+    .from(recExamSeat)
+    .where(and(eq(recExamSeat.id, seatId), eq(recExamSeat.roomId, id)))
+    .limit(1);
+  if (!seat) return void tolak(res, "tidak_ditemukan", 404);
+  const [row] = await db
+    .update(recStrike)
+    .set(
+      excuse
+        ? { excusedBy: s.nim, excusedAt: new Date(), excuseReason: reason }
+        : { excusedBy: null, excusedAt: null, excuseReason: null },
+    )
+    .where(
+      and(
+        eq(recStrike.seatId, seatId),
+        eq(recStrike.roomId, id),
+        eq(recStrike.clientId, b.strikeId),
+      ),
+    )
+    .returning({ part: recStrike.part });
+  if (!row) return void tolak(res, "tidak_ditemukan", 404);
+  const rules = (await muatConfig(db, edisi.id)).violations;
+  const tally = await poinKursi(db, seatId, row.part, seat.strikeOverflow?.[row.part] ?? 0, rules);
+  antreUjian(res, id, [
+    {
+      j: "pelanggaran",
+      s: seatId,
+      d: {
+        s: seatId,
+        id: b.strikeId,
+        excused: excuse,
+        part: row.part,
+        points: tally.points,
+        level: tally.level,
+      },
+    },
+  ]);
+  res.status(200).json({ ok: true, part: row.part, ...tally });
 }
 
 const CHIPS = ["esp32", "esp32s3"] as const;

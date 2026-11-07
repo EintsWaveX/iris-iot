@@ -11,7 +11,7 @@
  *
  * Excused strikes (staff forgave them) count for nothing, so a level can fall back.
  */
-import { DEFAULT_EXAM_CONFIG, type ViolationRules } from "./exam-types.js";
+import { DEFAULT_EXAM_CONFIG, type PartKey, type ViolationRules } from "./exam-types.js";
 import { STRIKE_KINDS } from "./seat-lockdown.js";
 
 export type { ViolationRules };
@@ -53,4 +53,36 @@ export const suggestedCut = (points: number, rules: ViolationRules): number =>
 
 export function warnLevel(points: number, rules: ViolationRules): WarnLevel {
   return rules.warnAt.filter((t) => points >= t).length as WarnLevel;
+}
+
+export interface PartViolations {
+  points: number;
+  level: WarnLevel;
+  /** The suggested score cut, percent */
+  cut: number;
+}
+
+/**
+ * A seat's points, level and suggested cut in each part it has a strike or an overflow in.
+ * Parts with nothing to count are left out.
+ */
+export function seatViolations(
+  strikes: readonly (StrikeLite & { part: PartKey })[],
+  overflow: Partial<Record<PartKey, number>>,
+  rules: ViolationRules,
+): Partial<Record<PartKey, PartViolations>> {
+  const parts = new Set<PartKey>([
+    ...strikes.map((x) => x.part),
+    ...(Object.keys(overflow) as PartKey[]).filter((p) => (overflow[p] ?? 0) > 0),
+  ]);
+  const out: Partial<Record<PartKey, PartViolations>> = {};
+  for (const part of parts) {
+    const points = countedPoints(
+      strikes.filter((x) => x.part === part),
+      overflow[part] ?? 0,
+      rules,
+    );
+    out[part] = { points, level: warnLevel(points, rules), cut: suggestedCut(points, rules) };
+  }
+  return out;
 }

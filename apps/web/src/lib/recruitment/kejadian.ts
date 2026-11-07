@@ -14,28 +14,40 @@ export interface StrikeRow {
   at: number;
   /** When the seat was back; null while it is out */
   backAt: number | null;
+  /** Staff forgave it: it counts for nothing (9 Nov 2026) */
+  excused?: { by: string; reason: string | null; at: number } | null;
 }
 
 export interface SeatKejadian {
   count: number;
+  /** Strikes staff forgave, already in `count` */
+  excused: number;
   awayMs: number;
   /** The one still open: the seat is out right now */
   open: StrikeRow | null;
   list: StrikeRow[];
 }
 
-/** Per seat with at least one kejadian, an open one counted up to `now`. */
+/**
+ * Per seat with at least one kejadian, an open one counted up to `now`. `ends` is when each part's
+ * run ended (9 Nov 2026): a strike still open after its part ended was left open by a page that
+ * closed or crashed, so its time stops at the part's end and the seat is not shown as out now.
+ */
 export function kejadianPerSeat(
   rows: readonly StrikeRow[],
   now: number,
+  ends: Partial<Record<PartKey, number>> = {},
 ): Record<number, SeatKejadian> {
   const out: Record<number, SeatKejadian> = {};
   for (const r of [...rows].sort((a, b) => a.at - b.at)) {
-    const s = (out[r.seatId] ??= { count: 0, awayMs: 0, open: null, list: [] });
+    const s = (out[r.seatId] ??= { count: 0, excused: 0, awayMs: 0, open: null, list: [] });
     s.count++;
+    if (r.excused) s.excused++;
     s.list.push(r);
-    s.awayMs += Math.max(0, (r.backAt ?? now) - r.at);
-    if (r.backAt === null) s.open = r;
+    const end = ends[r.part];
+    const stale = r.backAt === null && end !== undefined && end <= now;
+    s.awayMs += Math.max(0, (r.backAt ?? (stale ? Math.max(r.at, end) : now)) - r.at);
+    if (r.backAt === null && !stale) s.open = r;
   }
   return out;
 }

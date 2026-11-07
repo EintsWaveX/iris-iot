@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_VIOLATION_RULES as R,
   countedPoints,
+  seatViolations,
   strikeWeight,
   suggestedCut,
   warnLevel,
@@ -79,5 +80,29 @@ describe("the defaults", () => {
     expect(R.kinds.ganda.counts).toBe(false);
     for (const k of ["layar", "tab", "fokus", "tempel", "alat", "foto"] as const)
       expect(R.kinds[k]).toEqual({ counts: true, weight: 1 });
+  });
+});
+
+describe("seatViolations", () => {
+  it("gives each part its own points, level and suggested cut", () => {
+    const r = rules({ free: 1, step: 10, max: 30, warnAt: [1, 3, 5] });
+    const v = seatViolations(
+      [
+        { part: "logika", kinds: ["tab"], excused: false },
+        { part: "logika", kinds: ["layar"], excused: false },
+        { part: "logika", kinds: ["fokus"], excused: false },
+        { part: "fitb", kinds: ["tab"], excused: true },
+      ],
+      { kodingan: 4 },
+      r,
+    );
+    expect(v.logika).toEqual({ points: 3, level: 2, cut: 20 });
+    expect(v.fitb).toEqual({ points: 0, level: 0, cut: 0 });
+    expect(v.kodingan).toEqual({ points: 4, level: 2, cut: 30 });
+    expect(v.livecode).toBeUndefined();
+  });
+
+  it("nothing recorded, nothing listed", () => {
+    expect(seatViolations([], {}, rules())).toEqual({});
   });
 });

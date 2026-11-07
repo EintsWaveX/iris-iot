@@ -442,6 +442,90 @@ describe("the console", () => {
     expect(v.view).toBe("persiapan");
   });
 
+  it("gives each seat its violation points per part, forgiven strikes aside", async () => {
+    const t0 = Date.now() - 60_000;
+    rows.strike = [
+      {
+        clientId: "a1",
+        seatId: 11,
+        part: "logika",
+        kinds: ["tab"],
+        at: new Date(t0),
+        backAt: new Date(t0 + 5000),
+        excusedAt: null,
+        excusedBy: null,
+        excuseReason: null,
+      },
+      {
+        clientId: "a2",
+        seatId: 11,
+        part: "logika",
+        kinds: ["layar"],
+        at: new Date(t0 + 10_000),
+        backAt: new Date(t0 + 12_000),
+        excusedAt: new Date(t0 + 30_000),
+        excusedBy: "N1",
+        excuseReason: "Colokan lepas",
+      },
+    ];
+    rows.seat = [{ ...SEAT_MASUK(11, 101), strikeOverflow: { fitb: 2 } }];
+    const r = await jalan("room", "N1", null, { id: "7" });
+    const v = r.body as never as {
+      seats: {
+        count: number;
+        excused: number;
+        violations: Record<string, { points: number; level: number }>;
+        overflow: Record<string, number>;
+        kejadian: { excused: { by: string; reason: string } | null }[];
+      }[];
+    };
+    expect(v.seats[0]).toMatchObject({ count: 2, excused: 1, overflow: { fitb: 2 } });
+    expect(v.seats[0].violations.logika).toMatchObject({ points: 1, level: 1 });
+    expect(v.seats[0].violations.fitb).toMatchObject({ points: 2, level: 1 });
+    expect(v.seats[0].kejadian[1].excused).toMatchObject({ by: "N1", reason: "Colokan lepas" });
+  });
+
+  it("stops the clock of a strike left open when its part ended", async () => {
+    const t0 = Date.now() - 600_000;
+    state = {
+      ...state,
+      stage: "parts",
+      cur: "logika",
+      runs: {
+        logika: {
+          durMs: 900_000,
+          usedMs: 900_000,
+          mark: null,
+          state: "ended",
+          pausedAt: null,
+          extra: {},
+          startedAt: t0,
+          endedAt: t0 + 60_000,
+          endedBy: "time",
+          leftAtSkip: 0,
+          reopened: 0,
+        },
+      },
+    };
+    rows.strike = [
+      {
+        clientId: "a1",
+        seatId: 11,
+        part: "logika",
+        kinds: ["tab"],
+        at: new Date(t0 + 10_000),
+        backAt: null,
+        excusedAt: null,
+        excusedBy: null,
+        excuseReason: null,
+      },
+    ];
+    const r = await jalan("room", "N1", null, { id: "7" });
+    const v = r.body as never as { seats: { awayMs: number; outSince: number | null }[] };
+    expect(v.seats[0].outSince).toBeNull();
+    expect(v.seats[0].awayMs).toBe(50_000);
+  });
+
   it("never carries a hotspot password", async () => {
     rows.room = (sel) => [
       sel
@@ -859,6 +943,89 @@ describe("notes", () => {
     pelakuNim.X = pelaku();
     const r = await jalan("room-note", "X", { id: 7, candidateId: 101, text: "x" });
     expect(r.status).toBe(403);
+  });
+});
+
+describe("room-strike (forgive a violation)", () => {
+  beforeEach(() => {
+    rows.seat = [{ id: 5, roomId: 7, strikeOverflow: {} }];
+    rows.strike = [{ part: "logika", kinds: ["tab"], excusedAt: null }];
+  });
+  it("needs someone who watches the room", async () => {
+    pelakuNim.X = pelaku();
+    const r = await jalan("room-strike", "X", {
+      id: 7,
+      seatId: 5,
+      strikeId: "stk-0001",
+      excuse: true,
+      reason: "Colokan lepas",
+    });
+    expect(r.status).toBe(403);
+    expect(tulis.some((x) => x.tabel === "strike")).toBe(false);
+  });
+  it("wants a reason to forgive one", async () => {
+    const r = await jalan("room-strike", "N1", {
+      id: 7,
+      seatId: 5,
+      strikeId: "stk-0001",
+      excuse: true,
+      reason: " ",
+    });
+    expect(r.status).toBe(400);
+    expect(tulis.some((x) => x.tabel === "strike")).toBe(false);
+  });
+  it("refuses a seat that is not in this room", async () => {
+    rows.seat = [];
+    const r = await jalan("room-strike", "N1", {
+      id: 7,
+      seatId: 99,
+      strikeId: "stk-0001",
+      excuse: true,
+      reason: "Colokan lepas",
+    });
+    expect(r.status).toBe(404);
+  });
+  it("forgives under the writer's name, tells the room and answers with the new points", async () => {
+    rows.strike = [{ part: "logika", kinds: ["tab"], excusedAt: new Date() }];
+    const r = await jalan("room-strike", "N1", {
+      id: 7,
+      seatId: 5,
+      strikeId: "stk-0001",
+      excuse: true,
+      reason: "  Colokan lepas  ",
+    });
+    expect(r.status).toBe(200);
+    const w = tulis.find((x) => x.op === "update" && x.tabel === "strike");
+    expect(w?.nilai).toMatchObject({ excusedBy: "N1", excuseReason: "Colokan lepas" });
+    expect((w?.nilai as { excusedAt: unknown }).excusedAt).toBeInstanceOf(Date);
+    expect(r.body).toMatchObject({ ok: true, part: "logika", points: 0, level: 0 });
+    const m = r.antre["rec-7"] as unknown as { j: string; d: { excused?: boolean } }[];
+    expect(m[0].j).toBe("pelanggaran");
+    expect(m[0].d.excused).toBe(true);
+  });
+  it("takes the forgiveness back", async () => {
+    const r = await jalan("room-strike", "N1", {
+      id: 7,
+      seatId: 5,
+      strikeId: "stk-0001",
+      excuse: false,
+    });
+    expect(r.status).toBe(200);
+    const w = tulis.find((x) => x.op === "update" && x.tabel === "strike");
+    expect(w?.nilai).toMatchObject({ excusedBy: null, excusedAt: null, excuseReason: null });
+    expect(r.body).toMatchObject({ points: 1, level: 1 });
+  });
+  it("404 when the strike is not that seat's", async () => {
+    rows["w:strike"] = [];
+    // the fake answers update().returning() from the same rows as select, so ask for none
+    rows.strike = [];
+    const r = await jalan("room-strike", "N1", {
+      id: 7,
+      seatId: 5,
+      strikeId: "stk-0001",
+      excuse: false,
+    });
+    expect(r.status).toBe(404);
   });
 });
 

@@ -19,6 +19,7 @@ import {
   recReference,
   recSlot,
   recSlotAssignment,
+  recSeatWarning,
   recStrike,
 } from "../../src/lib/schema";
 import { newRoomState } from "../../src/lib/recruitment/room";
@@ -44,6 +45,7 @@ const nama = new Map<unknown, string>([
   [recSlot, "slot"],
   [recSlotAssignment, "assignment"],
   [recStrike, "strike"],
+  [recSeatWarning, "warning"],
 ]);
 
 let rows: Rows = {};
@@ -434,6 +436,60 @@ describe("test-strike", () => {
     expect(r.body.capped).toBe(true);
     expect(tulis.some((w) => w.tabel === "strike")).toBe(false);
   });
+  it("tells the page the seat's points and warning level, and records a warning when it rises", async () => {
+    // two earlier strikes in this part, one of them forgiven, plus this new one: 2 points
+    let n = 0;
+    rows.strike = () =>
+      n++ === 0
+        ? []
+        : [
+            { kinds: ["tab"], excusedAt: null },
+            { kinds: ["layar"], excusedAt: new Date() },
+            { kinds: ["fokus"], excusedAt: null },
+          ];
+    rows["w:strike"] = [{ id: 5 }];
+    rows.warning = [{ level: 0 }];
+    const r = await jalan("test-strike", { id: "stk-0100", kinds: ["fokus"], at: Date.now() });
+    expect(r.status).toBe(200);
+    // default thresholds are 1, 3, 5: two points is the notice
+    expect(r.body).toMatchObject({ ok: true, points: 2, level: 1, warned: true });
+    const w = tulis.find((x) => x.op === "insert" && x.tabel === "warning");
+    expect(w?.nilai).toMatchObject({ seatId: 5, part: "logika", source: "auto", level: 1 });
+    expect(JSON.stringify(r.antre)).toContain('"warn"');
+  });
+
+  it("does not warn again for a level the seat was already warned at", async () => {
+    let n = 0;
+    rows.strike = () => (n++ === 0 ? [] : [{ kinds: ["tab"], excusedAt: null }]);
+    rows["w:strike"] = [{ id: 5 }];
+    rows.warning = [{ level: 1 }];
+    const r = await jalan("test-strike", { id: "stk-0101", kinds: ["tab"], at: Date.now() });
+    expect(r.body).toMatchObject({ points: 1, level: 1, warned: false });
+    expect(tulis.some((x) => x.op === "insert" && x.tabel === "warning")).toBe(false);
+  });
+
+  it("a kind that does not count (the second tab) adds no points", async () => {
+    let n = 0;
+    rows.strike = () => (n++ === 0 ? [] : [{ kinds: ["ganda"], excusedAt: null }]);
+    rows["w:strike"] = [{ id: 5 }];
+    rows.warning = [];
+    const r = await jalan("test-strike", { id: "stk-0102", kinds: ["tab"], at: Date.now() });
+    expect(r.body).toMatchObject({ points: 0, level: 0, warned: false });
+  });
+
+  it("past the cap it still counts: the overflow goes up and the points include it", async () => {
+    let n = 0;
+    rows.strike = () =>
+      n++ === 0 ? [] : n === 2 ? [{ n: 50 }] : [{ kinds: ["tab"], excusedAt: null }];
+    rows.seat = [seat({ strikeOverflow: { logika: 2 } })];
+    rows.warning = [];
+    const r = await jalan("test-strike", { id: "stk-0103", kinds: ["tab"], at: Date.now() });
+    expect(r.body).toMatchObject({ capped: true, points: 1 + 3 });
+    expect(tulis.some((x) => x.op === "update" && x.tabel === "seat")).toBe(true);
+    expect(tulis.some((x) => x.op === "insert" && x.tabel === "strike")).toBe(false);
+    expect(JSON.stringify(r.antre)).toContain("overflow");
+  });
+
   it("a reload closes what was left open", async () => {
     rows["w:strike"] = [{ id: 1, clientId: "a" }];
     const r = await jalan("test-strike", { resume: true });
@@ -464,6 +520,20 @@ describe("test-submit and test-checkin", () => {
     rows.room = [kamar()];
     const r = await jalan("test-submit", { part: "logika" });
     expect(r.body.kode).toBe("waktu_habis");
+  });
+  it("Kumpulkan ends an absence still open in that part and tells the pengawas", async () => {
+    rows["w:strike"] = [{ id: 9 }];
+    const r = await jalan("test-submit", { part: "logika" });
+    expect(r.status).toBe(200);
+    const w = tulis.find((x) => x.op === "update" && x.tabel === "strike");
+    expect(w?.nilai).toHaveProperty("backAt");
+    expect(JSON.stringify(r.antre)).toContain("resume");
+  });
+  it("Kumpulkan with nothing open says nothing about strikes", async () => {
+    rows["w:strike"] = [];
+    const r = await jalan("test-submit", { part: "logika" });
+    expect(r.status).toBe(200);
+    expect(JSON.stringify(r.antre)).not.toContain("resume");
   });
   it("check-in before the room opens: ruang_belum_dibuka", async () => {
     state = newRoomState();
