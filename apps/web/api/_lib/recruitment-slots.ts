@@ -64,6 +64,7 @@ import {
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 import { sinkronKursi } from "./recruitment-room.js";
+import { kosongkanRuang, type RuangDb } from "./recruitment-hapus.js";
 
 const tahap = (v: unknown): StageKey | null =>
   typeof v === "string" && (STAGES as readonly string[]).includes(v) ? (v as StageKey) : null;
@@ -696,7 +697,12 @@ export async function handleAtur(req: ApiRequest, res: ApiResponse, s: SessionPa
     const terisi = await hitungKursi(db, r.id);
     if (b.op === "delete") {
       if (terisi > 0 && !bebas()) return void tolak(res, "slot_terisi", 409);
-      await db.delete(recSlot).where(eq(recSlot.id, r.id));
+      // A room made from this slot goes with it (cascade), but what hangs off the room does not: clear it first,
+      // or a strike or a judge job in the room makes the delete fail (Latihan's free mode skips the seats check above).
+      await db.transaction(async (tx) => {
+        await kosongkanRuang(tx as unknown as RuangDb, { slotIds: [r.id] });
+        await tx.delete(recSlot).where(eq(recSlot.id, r.id));
+      });
       await writeAudit(s.nim, "rec_slot_hapus", { id: r.id });
       return void res.status(200).json({ ok: true });
     }
