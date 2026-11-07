@@ -266,6 +266,11 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:room-act": ["recroom"],
   "recruitment:room-master": [],
   "recruitment:room-note": [],
+  "recruitment:room-strike": [],
+  "recruitment:room-warn": [],
+  "recruitment:room-hold": [],
+  "recruitment:room-penalty": [],
+  "recruitment:test-warning": [],
   "recruitment:room-kit": [],
   "recruitment:room-move": ["recroom"],
   // Rollback (2026-11-05): one CaAs's seat in a room taken back to nothing.
