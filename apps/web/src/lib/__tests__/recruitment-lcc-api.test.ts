@@ -33,7 +33,7 @@ describe("stateOf", () => {
       row({ id: 2, passed: 1, total: 8 }),
     ];
     const { state, total } = stateOf(hand, rows, () => null);
-    expect(state[1].best).toEqual({ passed: 8, total: 8, got: 400 });
+    expect(state[1].best).toEqual({ passed: 8, total: 8, got: 400, fails: 1, lost: 0 });
     expect(state[2].best).toBeNull();
     expect(total).toBe(400);
   });
@@ -46,8 +46,20 @@ describe("stateOf", () => {
     const { state, total } = stateOf(hand, rows, (id) => (id === 9 ? 3 : null));
     expect(state[1].submit?.status).toBe("antre");
     expect(state[1].position).toBe(3);
-    expect(state[1].best).toEqual({ passed: 2, total: 8, got: 100 });
+    expect(state[1].best).toEqual({ passed: 2, total: 8, got: 100, fails: 1, lost: 0 });
     expect(total).toBe(100);
+  });
+
+  it("takes the settings' penalty for failed Submits off what a problem earned", () => {
+    // two failed Submits before the pass, one of them free: 5% off 400
+    const rows = [
+      row({ id: 5, passed: 8, total: 8 }),
+      row({ id: 3, passed: 4, total: 8 }),
+      row({ id: 2, passed: 1, total: 8 }),
+    ];
+    const { state, total } = stateOf(hand, rows, () => null, { free: 1, step: 5, max: 30 });
+    expect(state[1].best).toEqual({ passed: 8, total: 8, got: 380, fails: 2, lost: 5 });
+    expect(total).toBe(380);
   });
 
   it("keeps Run Sample apart from Submit, and never scores a Run", () => {

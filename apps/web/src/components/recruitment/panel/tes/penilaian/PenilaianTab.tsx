@@ -55,6 +55,9 @@ const nilaiDari = (r: ScoreRow, k: SortKey): number | string =>
         ? (r.livecode ?? -1)
         : r[k];
 
+const cutOf = (p: { cut?: number; was?: number }) =>
+  p.cut && p.was !== undefined ? { pct: p.cut, was: p.was } : undefined;
+
 function flagText(lang: Lang, r: ScoreRow): string[] {
   const t = PN[lang];
   const out: string[] = [];
@@ -63,14 +66,27 @@ function flagText(lang: Lang, r: ScoreRow): string[] {
     if (f) out.push(`${t.part[p]}: ${t.flags[f]}`);
   });
   if (r.liveFlag) out.push(`${t.col.livecode}: ${t.flags[r.liveFlag]}`);
+  if (r.penalty?.pending.length) out.push(t.cutPending);
   return out;
 }
 
-function Angka({ v, cap, lang }: { v: number | null; cap: number; lang: Lang }) {
+function Angka({
+  v,
+  cap,
+  lang,
+  cut,
+}: {
+  v: number | null;
+  cap: number;
+  lang: Lang;
+  /** A violation cut that came off this score (9 Nov 2026) */
+  cut?: { pct: number; was: number };
+}) {
   if (v === null) return <span className="hint">-</span>;
   return (
-    <span className="sc-num" title={PN[lang].outOf(cap)}>
+    <span className="sc-num" title={cut ? PN[lang].cutOf(cut.pct, cut.was) : PN[lang].outOf(cap)}>
       <b className="num">{v}</b>
+      {cut && <small className="sc-cut">-{cut.pct}%</small>}
       <i style={{ width: `${Math.min(100, (v / cap) * 100)}%` }} />
     </span>
   );
@@ -179,16 +195,31 @@ function TabelNilai({
                       </span>
                     </td>
                     <td className="num">
-                      <Angka v={r.parts.logika.score} cap={caps.parts.logika} lang={lang} />
+                      <Angka
+                        v={r.parts.logika.score}
+                        cap={caps.parts.logika}
+                        lang={lang}
+                        cut={cutOf(r.parts.logika)}
+                      />
                     </td>
                     <td className="num">
-                      <Angka v={r.parts.fitb.score} cap={caps.parts.fitb} lang={lang} />
+                      <Angka
+                        v={r.parts.fitb.score}
+                        cap={caps.parts.fitb}
+                        lang={lang}
+                        cut={cutOf(r.parts.fitb)}
+                      />
                     </td>
                     <td className="num">
-                      <Angka v={r.parts.kodingan.score} cap={caps.parts.kodingan} lang={lang} />
+                      <Angka
+                        v={r.parts.kodingan.score}
+                        cap={caps.parts.kodingan}
+                        lang={lang}
+                        cut={cutOf(r.parts.kodingan)}
+                      />
                     </td>
                     <td className="num">
-                      <Angka v={r.livecode} cap={caps.livecode} lang={lang} />
+                      <Angka v={r.livecode} cap={caps.livecode} lang={lang} cut={r.liveCut} />
                     </td>
                     <td className="num">
                       <Angka v={r.phase1} cap={caps.written} lang={lang} />

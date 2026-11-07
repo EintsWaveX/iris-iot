@@ -26,8 +26,10 @@ import {
   recQuestionLog,
   recRubricScore,
   recScoreFreeze,
+  recSeatPenalty,
   recSlot,
   recSlotAssignment,
+  recStrike,
 } from "../../src/lib/schema";
 
 process.env.SESSION_SECRET = "x".repeat(40);
@@ -49,6 +51,8 @@ const nama = new Map<unknown, string>([
   [recScoreFreeze, "freeze"],
   [recSlot, "slot"],
   [recSlotAssignment, "assignment"],
+  [recSeatPenalty, "penalty"],
+  [recStrike, "strike"],
 ]);
 
 let rows: Record<string, Row[]> = {};
@@ -547,6 +551,35 @@ describe("score-finalize and score-unfreeze", () => {
     Object.assign((rows.csub as Row[])[0], { status: "selesai", passed: 5, total: 10 });
     const ok = await jalan("score-finalize", sesi("AKD"), {});
     expect(ok.status).toBe(200);
+  });
+
+  it("is refused while a seat's suggested violation cut is undecided, and goes through once it is", async () => {
+    // Four counted violations in logika: past the 2 free points, a cut is suggested
+    rows.strike = [1, 2, 3, 4].map((n) => ({
+      seatId: 3,
+      part: "logika",
+      kinds: ["tab"],
+      excusedAt: null,
+      n,
+    }));
+    const r = await jalan("score-finalize", sesi("AKD"), {});
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("potongan_menunggu");
+    expect(r.body.blockers).toEqual([{ kode: "potongan_menunggu", seats: 1 }]);
+    // waived is a decision too
+    rows.penalty = [{ seatId: 3, part: "logika", state: "waived", pct: 0 }];
+    const ok = await jalan("score-finalize", sesi("AKD"), {});
+    expect(ok.status).toBe(200);
+  });
+
+  it("forgiven strikes suggest no cut, so they do not hold Finalkan", async () => {
+    rows.strike = [1, 2, 3, 4].map(() => ({
+      seatId: 3,
+      part: "logika",
+      kinds: ["tab"],
+      excusedAt: new Date(),
+    }));
+    expect((await jalan("score-finalize", sesi("AKD"), {})).status).toBe(200);
   });
 
   it("is refused on a partial cohort: an evening with candidates and no room, or a candidate with no seat", async () => {

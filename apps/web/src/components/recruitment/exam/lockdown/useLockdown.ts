@@ -17,7 +17,10 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import { jamServer } from "../../../../lib/jam";
 import type { PartKey } from "../../../../lib/recruitment/exam-types";
 import {
+  FOKUS_GRACE_MS,
+  PageWatch,
   StrikeTracker,
+  WATCH_MS,
   devtoolsLikelyOpen,
   isDevtoolsKey,
   isScreenshotKey,
@@ -61,10 +64,14 @@ export function useLockdown(o: {
   rootRef: RefObject<HTMLElement | null>;
   /** A screenshot key was pressed: the page tells the seat it was recorded */
   onScreenshot?: () => void;
+  /** The server answered a strike with the seat's points: the page asks for its view again, which carries any warning */
+  onTally?: () => void;
 }): Lockdown {
   const { active, seatId, part, rootRef } = o;
   const shotRef = useRef(o.onScreenshot);
   shotRef.current = o.onScreenshot;
+  const tallyRef = useRef(o.onTally);
+  tallyRef.current = o.onTally;
   const [fullscreen, setFullscreen] = useState(false);
   const [away, setAway] = useState(false);
   const tracker = useRef(new StrikeTracker(rid));
@@ -89,6 +96,10 @@ export function useLockdown(o: {
         // is tried again, so a strike never vanishes just because the line was busy.
         if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429))
           queue.current.delete(id);
+        if (r.ok) {
+          const j = (await r.json().catch(() => null)) as { points?: unknown } | null;
+          if (typeof j?.points === "number") tallyRef.current?.();
+        }
       } catch {
         /* offline: it stays queued */
       }
@@ -168,7 +179,17 @@ export function useLockdown(o: {
       .then(() => {
         if (!document.fullscreenElement) signal("layar");
       });
+    // What the page state calls for, on every event and on a timer (8 Nov 2026). Events alone are not
+    // enough: Linux and Firefox blur the window around every fullscreen change and tab switch (so each
+    // strike got `fokus` added) and sometimes never send `focus` or `fullscreenchange` back (so a strike
+    // stayed open and swallowed every later signal, which froze the count). The state is the truth.
+    const watch = new PageWatch();
+    const check = () => {
+      for (const k of watch.read(state(), Date.now())) signal(k);
+      settle();
+    };
     const onFs = () => {
+      watch.quiet(Date.now());
       if (!document.fullscreenElement) signal("layar");
       else settle();
     };
@@ -176,12 +197,15 @@ export function useLockdown(o: {
       if (document.visibilityState === "hidden") signal("tab");
       else settle();
     };
-    // Focus leaving the window (another app, a devtools panel) blurs it without hiding the tab.
-    const onBlur = () =>
-      setTimeout(() => {
-        if (!document.hasFocus()) signal("fokus");
-      }, 0);
-    const onFocus = () => settle();
+    // Focus leaving the window (another app, a devtools panel) blurs it without hiding the tab. A blur
+    // only starts the clock: it counts when the focus is still gone after FOKUS_GRACE_MS and nothing
+    // else (tab hidden, full screen left, a fullscreen change just now) explains it.
+    const onBlur = () => {
+      setTimeout(check, 0);
+      setTimeout(check, FOKUS_GRACE_MS + 20);
+    };
+    const onFocus = () => check();
+    const watchTimer = setInterval(check, WATCH_MS);
     // Live Coding is written in the page, so copy and cut work there, and a paste is allowed only
     // when it is the very text last copied in this page (EXAM-ENGINE 7, ruling 2026-10-24).
     const coding = () => partRef.current === "livecode";
@@ -241,6 +265,7 @@ export function useLockdown(o: {
     const online = () => void flush();
     window.addEventListener("online", online);
     return () => {
+      clearInterval(watchTimer);
       document.removeEventListener("fullscreenchange", onFs);
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);

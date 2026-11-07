@@ -6,7 +6,7 @@
  * server builds these from the problem's public part and the judge's verdicts.
  */
 import type { CSample, CProblemText, TestVerdict, Verdict } from "./c-problem.js";
-import { livecodeResult, passedOf } from "./c-problem.js";
+import { NO_PENALTY, livecodeResult, passedOf, type Penalty } from "./c-problem.js";
 import type { Tier } from "./exam-types.js";
 
 export interface LccProblem {
@@ -46,8 +46,11 @@ export interface LccProblemState {
   /** The newest Run Sample and the newest Submit, whatever their state */
   run: LccSub | null;
   submit: LccSub | null;
-  /** The best finished Submit's tests passed, and what that is worth */
-  best: { passed: number; total: number; got: number } | null;
+  /**
+   * The best finished Submit's tests passed, and what that is worth after the penalty: `fails`
+   * failed Submits counted, `lost` percent taken off (c-problem.ts Penalty)
+   */
+  best: { passed: number; total: number; got: number; fails: number; lost: number } | null;
   /** Where a waiting job stands in the room's queue, counting from 1 */
   position: number | null;
 }
@@ -73,6 +76,8 @@ export interface LccSelf {
   cap: number;
   /** The Live Coding minutes from the exam settings */
   minutes: number;
+  /** What a failed Submit costs, from the exam settings, so the page can say so */
+  penalty: Penalty;
   /** False when the PC agent has not said it can judge: a banner, the code is still kept */
   judgeReady: boolean;
 }
@@ -91,6 +96,9 @@ export interface LccRoomProblem {
   got: number;
   passed: number | null;
   total: number | null;
+  /** Failed Submits counted and the percent they took off */
+  fails: number;
+  lost: number;
 }
 
 export interface LccRoomSeat {
@@ -167,6 +175,7 @@ export function stateOf(
   hand: readonly { id: number; points: number }[],
   rows: readonly SubRow[],
   position: (subId: number) => number | null,
+  penalty: Penalty = NO_PENALTY,
 ): { state: Record<number, LccProblemState>; total: number } {
   const state: Record<number, LccProblemState> = {};
   const live = livecodeResult(
@@ -180,6 +189,7 @@ export function stateOf(
         .filter((r) => r.problemId === h.id)
         .map((r) => ({ passed: r.passed ?? 0, total: r.total ?? 0, at: r.requestedAt.getTime() })),
     })),
+    penalty,
   );
   for (const h of hand) {
     const mine = rows.filter((r) => r.problemId === h.id);
@@ -192,7 +202,15 @@ export function stateOf(
     state[h.id] = {
       run: run ? toSub(run) : null,
       submit: submit ? toSub(submit) : null,
-      best: best?.best ? { passed: best.best.passed, total: best.best.total, got: best.got } : null,
+      best: best?.best
+        ? {
+            passed: best.best.passed,
+            total: best.best.total,
+            got: best.got,
+            fails: best.fails,
+            lost: best.lost,
+          }
+        : null,
       position: waiting ? position(waiting.id) : null,
     };
   }

@@ -276,7 +276,7 @@ export default function JudgeTab({
                                   data-full={
                                     p.passed !== null && p.passed === p.total ? "yes" : "no"
                                   }
-                                  title={`${p.title}: ${p.got} / ${p.points}`}
+                                  title={`${p.title}: ${p.got} / ${p.points}${p.lost > 0 ? ` (-${p.lost}%, ${p.fails}x)` : ""}`}
                                 >
                                   {t.pass(p.passed, p.total)}
                                 </span>

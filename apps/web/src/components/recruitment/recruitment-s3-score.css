@@ -158,3 +158,11 @@
 .sc-chart__read {
   min-height: 1.3em;
 }
+
+/* A violation cut that came off a score (9 Nov 2026) */
+.sc-cut {
+  color: var(--danger);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 6px;
+}

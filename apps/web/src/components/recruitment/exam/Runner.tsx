@@ -29,8 +29,9 @@ import type { PartView, TestView } from "../../../lib/recruitment/seat-types";
 import { QuestionCard } from "./render";
 import { BigIcon, LiveChip, PartsMini, SaveChip, Timer, type Motion } from "./parts";
 import { CalmStars, EdgeGlow } from "./ScreenFx";
-import type { BonusQuote } from "../../../lib/recruitment/bonus";
+import { BONUS_ASKS, declinesLeft, type BonusQuote } from "../../../lib/recruitment/bonus";
 import BonusOffer from "./BonusOffer";
+import { readDeclines, writeDeclines } from "./bonusDecline";
 import { TAB, askBonus, sendAnswer, submitPart, toast } from "./seatApi";
 import { TS } from "./testStrings";
 
@@ -93,7 +94,10 @@ export default function Runner({
   const [ask, setAsk] = useState(false);
   const [busy, setBusy] = useState(false);
   // The bonus round: offered once at hand-in, when enough time is left (4 Nov 2026)
-  const [declined, setDeclined] = useState(false);
+  // How many times the seat said No to it (kept across a reload): asked twice at most (8 Nov 2026)
+  const declineId = `${seat.id}.${key}`;
+  const [declines, setDeclines] = useState(() => readDeclines(declineId));
+  const declined = !declinesLeft(declines);
   const [quote, setQuote] = useState<BonusQuote | null>(null);
   const jumpToBonus = useRef(false);
   // The part's entrance plays once, when it starts; moving between questions has its own slide.
@@ -271,7 +275,7 @@ export default function Runner({
 
   // The page was reloaded after the count was made but before the seat chose: put the offer back
   useEffect(() => {
-    if (reopened.current || !bi?.quoted || bi.taken || bi.count < 1 || timeUp) return;
+    if (reopened.current || !bi?.quoted || bi.taken || bi.count < 1 || timeUp || declined) return;
     reopened.current = true;
     void (async () => {
       const r = await askBonus(key, true);
@@ -280,7 +284,16 @@ export default function Runner({
         setOffer(true);
       }
     })();
-  }, [bi?.quoted, bi?.taken, bi?.count, key, timeUp]);
+  }, [bi?.quoted, bi?.taken, bi?.count, key, timeUp, declined]);
+
+  /** A No: the first asks once more, the second ends the offer and shows the plain hand-in confirm */
+  function saySkip(n: number) {
+    setDeclines(n);
+    writeDeclines(declineId, n);
+    if (declinesLeft(n)) return;
+    setOffer(false);
+    setAsk(true);
+  }
 
   async function takeBonus() {
     setBusy(true);
@@ -290,7 +303,7 @@ export default function Runner({
     setBusy(false);
     if (!r.ok) {
       toast(r.kode === "bonus_telat" ? t.bonus.late : t.bonus.fail, "warn");
-      setDeclined(true);
+      saySkip(BONUS_ASKS);
       return;
     }
     jumpToBonus.current = true;
@@ -601,16 +614,13 @@ export default function Runner({
 
       <BonusOffer
         lang={lang}
-        open={offer && !timeUp}
+        open={offer && !timeUp && !declined}
+        round={declines >= 1 ? 2 : 1}
         quote={quote}
         busy={busy}
         t={t.bonus}
         onYes={() => void takeBonus()}
-        onNo={() => {
-          setOffer(false);
-          setDeclined(true);
-          void handIn();
-        }}
+        onNo={() => saySkip(declines + 1)}
       />
 
       <Dialog

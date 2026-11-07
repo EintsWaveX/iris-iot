@@ -5,7 +5,7 @@
  * candidate: every score action needs an Asisten session.
  */
 import type { Caps } from "./exam-config.js";
-import type { Phase1Part } from "./exam-types.js";
+import type { PartKey, Phase1Part } from "./exam-types.js";
 
 /** `absent`: the seat never opened the part. `empty`: it did, but every question it drew was voided. */
 export type PartFlag = "absent" | "empty";
@@ -13,6 +13,9 @@ export type PartFlag = "absent" | "empty";
 export interface PartScore {
   score: number;
   flag?: PartFlag;
+  /** A violation cut a pengawas applied (9 Nov 2026): the percent, and the score before it */
+  cut?: number;
+  was?: number;
 }
 
 /**
@@ -35,6 +38,10 @@ export interface ScoreRow {
   /** Out of the Live Coding share (2400 by default); null until it is scored */
   livecode: number | null;
   liveFlag?: LiveFlag;
+  /** Live Coding's violation cut: the percent and the score before it */
+  liveCut?: { pct: number; was: number };
+  /** Violation decisions: the cuts applied per part, and the parts whose suggested cut is still undecided */
+  penalty?: { applied: Partial<Record<PartKey, number>>; pending: PartKey[] };
   /** Out of 4000; a pending Live Coding counts as 0 and says so in liveFlag */
   total: number;
 }
@@ -96,6 +103,7 @@ export type FinalBlocker =
   | { kode: "ruang_terbuka"; rooms: number }
   | { kode: "ruang_belum_selesai"; rooms: number }
   | { kode: "nilai_lc_kurang"; seats: number }
+  | { kode: "potongan_menunggu"; seats: number }
   | { kode: "slot_tanpa_ruang"; slots: number }
   | { kode: "peserta_tanpa_kursi"; candidates: number }
   | { kode: "tanpa_kursi" };

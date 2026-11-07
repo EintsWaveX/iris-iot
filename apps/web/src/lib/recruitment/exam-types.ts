@@ -8,6 +8,8 @@
 /* ------------------------------------------------------------ vocabulary */
 
 /** The written parts. Mikro (IoT) was dropped on 29 Oct 2026: the test is formal C only. */
+import type { StrikeKind } from "./seat-lockdown.js";
+
 export const PHASE1_PARTS = ["logika", "fitb", "kodingan"] as const;
 export type Phase1Part = (typeof PHASE1_PARTS)[number];
 export const PART_KEYS = [...PHASE1_PARTS, "livecode"] as const;
@@ -234,6 +236,34 @@ export interface LivecodePlan {
   runLimit: number;
   /** Tests the judge runs at once on the lab PC. */
   workers: number;
+  /**
+   * The penalty for failed Submits (8 Nov 2026), per problem: the first `penaltyFree` failures are
+   * forgiven, each one after takes `penaltyStep` percent off what the problem earned, never more
+   * than `penaltyMax` percent in all. `penaltyStep` 0 turns it off. See c-problem.ts Penalty.
+   */
+  penaltyFree: number;
+  penaltyStep: number;
+  penaltyMax: number;
+}
+/** How one kind of violation counts: whether it counts at all, and how heavy one strike of it is. */
+export interface KindRule {
+  counts: boolean;
+  /** 0 to 5 */
+  weight: number;
+}
+/**
+ * The violation rules (9 Nov 2026), see violations.ts: which kinds count and how much, how many
+ * points are forgiven, the percent a point past that suggests as a score cut (never above `max`),
+ * the points at which the candidate sees a notice, a strong and a final warning, and how many
+ * strikes are stored per part before the rest are only counted.
+ */
+export interface ViolationRules {
+  kinds: Record<StrikeKind, KindRule>;
+  free: number;
+  step: number;
+  max: number;
+  warnAt: [number, number, number];
+  capPerPart: number;
 }
 export interface ExamConfig {
   v: 2;
@@ -247,6 +277,8 @@ export interface ExamConfig {
   weights: { written: number; livecode: number };
   /** Percent of the written share each written part carries. They add up to 100. */
   shares: Record<Phase1Part, number>;
+  /** What counts as a violation and what it costs (9 Nov 2026) */
+  violations: ViolationRules;
 }
 
 export const DEFAULT_EXAM_CONFIG: ExamConfig = {
@@ -266,9 +298,29 @@ export const DEFAULT_EXAM_CONFIG: ExamConfig = {
     bonusMin: 15,
     runLimit: 0,
     workers: 4,
+    penaltyFree: 1,
+    penaltyStep: 5,
+    penaltyMax: 30,
   },
   weights: { written: 40, livecode: 60 },
   shares: { logika: 40, fitb: 40, kodingan: 20 },
+  violations: {
+    kinds: {
+      layar: { counts: true, weight: 1 },
+      tab: { counts: true, weight: 1 },
+      fokus: { counts: true, weight: 1 },
+      tempel: { counts: true, weight: 1 },
+      alat: { counts: true, weight: 1 },
+      // The second tab or device is made by the API from where answers come from, not by the page
+      ganda: { counts: false, weight: 0 },
+      foto: { counts: true, weight: 1 },
+    },
+    free: 2,
+    step: 5,
+    max: 30,
+    warnAt: [1, 3, 5],
+    capPerPart: 50,
+  },
 };
 
 /* ------------------------------------------------------------------ draw */

@@ -60,6 +60,7 @@ describe("the console's filters", () => {
     connected: true,
     count: 0,
     open: false,
+    pending: false,
     ...o,
   });
 
@@ -92,6 +93,58 @@ describe("the console's filters", () => {
       tile({ connected: false }),
       tile({ checkedIn: false, connected: null }),
     ]);
-    expect(c).toEqual({ semua: 5, keluar: 1, kejadian: 2, terputus: 1, belum: 1 });
+    expect(c).toEqual({ semua: 5, keluar: 1, kejadian: 2, keputusan: 0, terputus: 1, belum: 1 });
+  });
+});
+
+describe("a strike left open after its part ended (9 Nov 2026)", () => {
+  it("stops counting at the part's end and is not shown as out now", () => {
+    const s = kejadianPerSeat([row(1, 1000, null)], 100_000, { logika: 6000 });
+    expect(s[1].awayMs).toBe(5000);
+    expect(s[1].open).toBeNull();
+    expect(s[1].count).toBe(1);
+  });
+
+  it("still counts up to now while its part is running", () => {
+    const s = kejadianPerSeat([row(1, 1000, null)], 8000, { fitb: 6000 });
+    expect(s[1].awayMs).toBe(7000);
+    expect(s[1].open?.id).toBe("c1000");
+    // an end in the future (a part not over yet) changes nothing
+    expect(kejadianPerSeat([row(1, 1000, null)], 8000, { logika: 9000 })[1].open).not.toBeNull();
+  });
+
+  it("a strike that began after the end counts nothing", () => {
+    const s = kejadianPerSeat([row(1, 9000, null)], 100_000, { logika: 6000 });
+    expect(s[1].awayMs).toBe(0);
+  });
+
+  it("counts the forgiven ones apart but keeps them in the list", () => {
+    const ex = {
+      ...row(1, 1000, 2000),
+      excused: { by: "13500001", reason: "Colokan lepas", at: 3000 },
+    };
+    const s = kejadianPerSeat([ex, row(1, 5000, 6000)], 9000);
+    expect(s[1]).toMatchObject({ count: 2, excused: 1 });
+    expect(s[1].list).toHaveLength(2);
+  });
+});
+
+describe("the filter for decisions still to make (9 Nov 2026)", () => {
+  const tile = (o: Partial<Tile>): Tile => ({
+    checkedIn: true,
+    connected: true,
+    count: 0,
+    open: false,
+    pending: false,
+    ...o,
+  });
+  it("shows only the seats with an undecided suggested cut", () => {
+    expect(matchFilter("keputusan", tile({ pending: true, count: 4 }))).toBe(true);
+    expect(matchFilter("keputusan", tile({ count: 4 }))).toBe(false);
+  });
+  it("is counted with the others", () => {
+    const n = countFilters([tile({ pending: true }), tile({}), tile({ pending: true })]);
+    expect(n.keputusan).toBe(2);
+    expect(n.semua).toBe(3);
   });
 });

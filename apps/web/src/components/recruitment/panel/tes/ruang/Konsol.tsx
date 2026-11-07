@@ -62,6 +62,7 @@ import {
 } from "../../../../../lib/recruitment/room";
 import { tgl } from "../../../shared";
 import { RG } from "./ruangStrings";
+import ViolationsSection from "./ViolationsSection";
 
 const MIN = 60_000;
 
@@ -796,11 +797,17 @@ function SeatTile({
   const pct = jumlah ? Math.round((100 * jawab) / jumlah) : 0;
   const langs = RG[lang].con;
   const steps = [!!s.checkin.fullscreen, !!s.checkin.connection, !!s.checkin.name];
+  // The running part's points if it has some, else the worst part's: what the pengawas should look at
+  const vios = Object.values(s.violations);
+  const here = cur ? s.violations[cur] : undefined;
+  const points = here?.points ?? Math.max(0, ...vios.map((x) => x?.points ?? 0));
+  const level = here?.level ?? Math.max(0, ...vios.map((x) => x?.level ?? 0));
   return (
     <button
       type="button"
       className="r3tile"
       data-st={st}
+      data-held={s.heldAt !== null ? "yes" : undefined}
       onClick={onOpen}
       aria-label={`${s.nama}, ${t.seat(s.no)}`}
     >
@@ -837,12 +844,14 @@ function SeatTile({
             {t.away} <Jauh since={s.outSince} now={now} />
           </span>
         ) : s.count ? (
-          <span className="r3tile__strike">
+          <span className="r3tile__strike" data-level={level}>
             {t.events(s.count)} · {mmss(s.awayMs)}
+            {points > 0 ? ` · ${RG[lang].con.vio.points(points)}` : ""}
           </span>
         ) : (
           <span />
         )}
+        {s.heldAt !== null && <span className="r3tile__held">{RG[lang].con.vio.tile.held}</span>}
         {s.extraMs > 0 && (
           <span className="r3tile__extra">
             +{Math.round(s.extraMs / MIN)} {langs.ctl.min}
@@ -1045,26 +1054,7 @@ function SeatDrawer({
             )}
           </section>
         )}
-        <section className="stack stack--sm">
-          <h3 className="label-caps">{d.events}</h3>
-          {s.kejadian.length ? (
-            <ol className="r3tline">
-              {s.kejadian.map((x) => (
-                <li key={x.id} data-open={x.backAt === null ? "yes" : "no"}>
-                  <span className="num hint">{hm(x.at)}</span>
-                  <span className="stack" style={{ gap: 0 }}>
-                    <b>{x.kinds.map((q) => d.kinds[q] ?? q).join(", ")}</b>
-                    <span className="hint">
-                      {x.backAt === null ? d.stillAway : d.away(mmss(x.backAt - x.at))}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="empty-note empty-note--sm">{d.noEvents}</p>
-          )}
-        </section>
+        <ViolationsSection lang={lang} s={s} v={v} jalan={jalan} />
         {bisaWaktu && (
           <section className="stack stack--sm">
             <h3 className="label-caps">{d.timeFor}</h3>
@@ -1233,6 +1223,9 @@ function SeatGrid({
     connected: online(s),
     count: s.count,
     open: s.outSince !== null,
+    pending: Object.entries(s.violations).some(
+      ([p, x]) => (x?.cut ?? 0) > 0 && !s.penalties[p as PartKey],
+    ),
   }));
   const n = countFilters(tiles);
   const seats = v.seats.filter((_, i) => matchFilter(f, tiles[i]));

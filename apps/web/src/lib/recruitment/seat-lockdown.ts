@@ -24,9 +24,6 @@ export type StrikeKind = (typeof STRIKE_KINDS)[number];
 
 /** A signal within this long of a strike joins it (7: Debounce) */
 export const DEBOUNCE_MS = 1500;
-/** Records kept per seat and part; after that only the page's count grows */
-export const MAX_STRIKES_PER_PART = 50;
-
 export interface Strike {
   id: string;
   kinds: StrikeKind[];
@@ -46,7 +43,6 @@ export interface PageState {
 
 export class StrikeTracker {
   private list: Strike[] = [];
-  capped = false;
   private readonly newId: () => string;
 
   constructor(newId: () => string) {
@@ -77,10 +73,6 @@ export class StrikeTracker {
       if (last.back !== null && !o.instant) last.back = null;
       return { type: "update", strike: { ...last } };
     }
-    if (this.list.length >= MAX_STRIKES_PER_PART) {
-      this.capped = true;
-      return null;
-    }
     const s: Strike = { id: this.newId(), kinds: [kind], at, back: o.instant ? at : null };
     this.list.push(s);
     return { type: o.instant ? "close" : "open", strike: { ...s } };
@@ -92,6 +84,47 @@ export class StrikeTracker {
     if (!s || !p.fullscreen || !p.visible || !p.focused) return null;
     s.back = at;
     return { type: "close", strike: { ...s } };
+  }
+}
+
+/** How long the window must stay out of focus before it counts (8 Nov 2026) */
+export const FOKUS_GRACE_MS = 600;
+/** After a fullscreen change the window manager may blur and refocus the window; this long, blur is not news */
+export const FS_QUIET_MS = 800;
+/** How often the page looks at its own state, so a browser that drops an event cannot leave a strike stuck */
+export const WATCH_MS = 500;
+
+/**
+ * What the page's state calls for right now, whichever events did or did not arrive (8 Nov 2026).
+ * Linux and Firefox blur and refocus the window around fullscreen changes and tab switches, and some
+ * window managers never send `focus` back, so the events alone mislabel every strike as `fokus` and
+ * can leave one open for good (an open strike swallows every later signal, so nothing counts again).
+ * The hook asks this on every event and on a timer, and the strike follows the state.
+ *
+ * `fokus` is only asked for when nothing else explains it: the page is visible and full screen, the
+ * focus has been gone for FOKUS_GRACE_MS and no fullscreen change just happened.
+ */
+export class PageWatch {
+  private since: number | null = null;
+  private quietUntil = 0;
+
+  /** A fullscreen change happened at `now`: blur around it is the window manager's, not the seat's */
+  quiet(now: number): void {
+    this.quietUntil = now + FS_QUIET_MS;
+    this.since = null;
+  }
+
+  read(p: PageState, now: number): StrikeKind[] {
+    const out: StrikeKind[] = [];
+    if (!p.visible) out.push("tab");
+    if (!p.fullscreen) out.push("layar");
+    if (p.focused || !p.visible || !p.fullscreen || now < this.quietUntil) {
+      this.since = null;
+    } else {
+      this.since ??= now;
+      if (now - this.since >= FOKUS_GRACE_MS) out.push("fokus");
+    }
+    return out;
   }
 }
 

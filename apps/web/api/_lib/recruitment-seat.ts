@@ -31,6 +31,7 @@ import {
   recExamSeat,
   recQuestion,
   recSlot,
+  recSeatWarning,
   recSlotAssignment,
   recStrike,
   type RecExamRoomRow,
@@ -59,7 +60,8 @@ import {
   tandaTiketUjian,
 } from "../../src/lib/recruitment/room-relay.js";
 import { seatHotspotId, validHotspot } from "../../src/lib/recruitment/hotspot.js";
-import { STRIKE_KINDS, MAX_STRIKES_PER_PART } from "../../src/lib/recruitment/seat-lockdown.js";
+import { STRIKE_KINDS } from "../../src/lib/recruitment/seat-lockdown.js";
+import { poinKursi } from "./recruitment-violations.js";
 import { pickSeat } from "../../src/lib/recruitment/seat-pick.js";
 import type {
   PartView,
@@ -92,6 +94,7 @@ const STATUS: Record<string, number> = {
   ruang_selesai: 409,
   langkah_belum: 409,
   waktu_habis: 409,
+  bagian_ditahan: 409,
   sudah_kumpul: 409,
   bagian_ruang_lain: 409,
   soal_tak_dikenal: 404,
@@ -146,6 +149,8 @@ export async function handleSeat(req: ApiRequest, res: ApiResponse, s: SessionPa
       return mintaBonus(k);
     case "test-submit":
       return kumpulkan(k);
+    case "test-warning":
+      return lihatPeringatan(k);
     case "test-hotspot":
       return hotspot(k);
   }
@@ -247,6 +252,7 @@ function selfOf(seat: RecExamSeatRow, state: RoomState): SeatSelf {
     done: seat.done,
     extraMs: extra,
     started,
+    heldAt: seat.heldAt ? seat.heldAt.getTime() : null,
   };
 }
 
@@ -279,6 +285,8 @@ async function bacaTes(k: Konteks) {
       hotspot: null,
       closedElsewhere: [],
       judge: false,
+      violation: null,
+      warnings: [],
     };
     return void res.status(200).json(v);
   }
@@ -304,7 +312,34 @@ async function bacaTes(k: Konteks) {
     hotspot: mine ? { ssid: mine.ssid } : null,
     closedElsewhere,
     judge: await judgeSiap(db, now),
+    violation: null,
+    warnings: [],
   };
+  if (seat && state.cur && (state.stage === "parts" || state.stage === "spin")) {
+    const rules = config.violations;
+    const t = await poinKursi(db, seat.id, state.cur, seat.strikeOverflow?.[state.cur] ?? 0, rules);
+    v.violation = {
+      part: state.cur,
+      ...t,
+      rule: { free: rules.free, step: rules.step, max: rules.max, warnAt: rules.warnAt },
+    };
+  }
+  if (seat) {
+    const w = await db
+      .select({
+        id: recSeatWarning.id,
+        part: recSeatWarning.part,
+        source: recSeatWarning.source,
+        level: recSeatWarning.level,
+        points: recSeatWarning.points,
+        cut: recSeatWarning.cut,
+        text: recSeatWarning.text,
+      })
+      .from(recSeatWarning)
+      .where(and(eq(recSeatWarning.seatId, seat.id), isNull(recSeatWarning.seenAt)))
+      .orderBy(recSeatWarning.at);
+    v.warnings = w;
+  }
   res.status(200).json(v);
 }
 
@@ -658,6 +693,7 @@ async function jawab(k: Konteks) {
   const sd = await soalKursi(k, part, q);
   if ("kode" in sd) return void tolakKursi(res, sd.kode);
   if (!seat || !room) return void tolakKursi(res, "belum_masuk");
+  if (seat.heldAt) return void tolakKursi(res, "bagian_ditahan");
   const now = Date.now();
   if (seat.done[part] != null) return void tolakKursi(res, "sudah_kumpul");
   if (!answerOpen(room.state, seat.id, part, now)) return void tolakKursi(res, "waktu_habis");
@@ -761,6 +797,9 @@ async function kejadian(k: Konteks) {
   const balik = num(b.back);
   const back = balik === undefined ? null : Math.min(Math.max(balik, mulai), now);
 
+  // The rules (which kinds count, the cap, the warning levels) are the edition's settings
+  const rules = (await muatConfig(db, k.edisiId)).violations;
+
   const lihat = async () =>
     (
       await db
@@ -775,9 +814,25 @@ async function kejadian(k: Konteks) {
       .select({ n: sql<number>`count(*)::int` })
       .from(recStrike)
       .where(and(eq(recStrike.seatId, seat.id), eq(recStrike.part, part)));
-    // Past the cap the page's count grows and the records stop (08's call).
-    if ((n?.n ?? 0) >= MAX_STRIKES_PER_PART)
-      return void res.status(200).json({ ok: true, capped: true });
+    // Past the cap the records stop but the strike still counts: the overflow goes up (9 Nov 2026)
+    if ((n?.n ?? 0) >= rules.capPerPart) {
+      await db
+        .update(recExamSeat)
+        .set({
+          strikeOverflow: sql`jsonb_set(${recExamSeat.strikeOverflow}, ARRAY[${part}]::text[], to_jsonb(coalesce((${recExamSeat.strikeOverflow}->>${part})::int, 0) + 1), true)`,
+        })
+        .where(eq(recExamSeat.id, seat.id));
+      const over = { ...seat.strikeOverflow, [part]: (seat.strikeOverflow?.[part] ?? 0) + 1 };
+      const tally = await tallyKursi(k, rules, part, over[part] ?? 0);
+      antreUjian(res, seat.roomId, [
+        {
+          j: "pelanggaran",
+          s: seat.id,
+          d: { s: seat.id, overflow: true, part, points: tally.points, level: tally.level },
+        },
+      ]);
+      return void res.status(200).json({ ok: true, capped: true, ...tally.body });
+    }
     const [baru] = await db
       .insert(recStrike)
       .values({
@@ -808,14 +863,106 @@ async function kejadian(k: Konteks) {
       })
       .where(eq(recStrike.id, ada.id));
   }
+  const tally = await tallyKursi(k, rules, part, seat.strikeOverflow?.[part] ?? 0);
   antreUjian(res, seat.roomId, [
     {
       j: "pelanggaran",
       s: seat.id,
-      d: { s: seat.id, id: b.id, kinds: kindsOut, at: mulai, back: backOut },
+      d: {
+        s: seat.id,
+        id: b.id,
+        kinds: kindsOut,
+        at: mulai,
+        back: backOut,
+        part,
+        points: tally.points,
+        level: tally.level,
+      },
     },
+    ...(tally.warned
+      ? [{ j: "kursi" as const, s: seat.id, d: { warn: { part, ...tally.body } } }]
+      : []),
   ]);
-  res.status(200).json({ ok: true });
+  res.status(200).json({ ok: true, ...tally.body });
+}
+
+/** What the page is told after a strike: the seat's points in the part and the warning level (9 Nov 2026). */
+interface Tally {
+  points: number;
+  level: number;
+  warned: boolean;
+  body: {
+    points: number;
+    level: number;
+    cut: number;
+    warned: boolean;
+    /** The recorded warning's id, so the page can say it saw it */
+    warningId: number | null;
+  };
+}
+
+/**
+ * The seat's counted points in a part from what is stored (forgiven strikes count for nothing) plus
+ * the strikes past the cap. When the level has risen past every automatic warning this seat already
+ * got in the part, one is recorded, so a level is shown once however many strikes arrive.
+ */
+async function tallyKursi(
+  k: Konteks,
+  rules: ExamConfig["violations"],
+  part: PartKey,
+  overflow: number,
+): Promise<Tally> {
+  const { db, seat } = k;
+  const { points, level, cut } = await poinKursi(db, seat!.id, part, overflow, rules);
+  const [prev] = await db
+    .select({ level: sql<number>`coalesce(max(${recSeatWarning.level}), 0)::int` })
+    .from(recSeatWarning)
+    .where(
+      and(
+        eq(recSeatWarning.seatId, seat!.id),
+        eq(recSeatWarning.part, part),
+        eq(recSeatWarning.source, "auto"),
+      ),
+    );
+  const warned = level > (prev?.level ?? 0);
+  let warningId: number | null = null;
+  if (warned) {
+    const [ins] = await db
+      .insert(recSeatWarning)
+      .values({
+        seatId: seat!.id,
+        part,
+        source: "auto",
+        level,
+        points,
+        cut,
+        text: `Peringatan ${level}: ${points} poin pelanggaran di ${part}`,
+      })
+      .returning({ id: recSeatWarning.id });
+    warningId = ins?.id ?? null;
+  }
+  return { points, level, warned, body: { points, level, cut, warned, warningId } };
+}
+
+/** `test-warning { id }`: the seat acknowledged a warning, so it stops coming back with the view. */
+async function lihatPeringatan(k: Konteks) {
+  const { req, res, db, seat } = k;
+  const id = jsonBody(req).id;
+  if (typeof id !== "number" || !Number.isInteger(id) || id < 1)
+    return void tolakKursi(res, "data_salah");
+  if (!seat) return void tolakKursi(res, "belum_masuk");
+  const seen = await db
+    .update(recSeatWarning)
+    .set({ seenAt: new Date() })
+    .where(
+      and(
+        eq(recSeatWarning.id, id),
+        eq(recSeatWarning.seatId, seat.id),
+        isNull(recSeatWarning.seenAt),
+      ),
+    )
+    .returning({ id: recSeatWarning.id });
+  res.status(200).json({ ok: true, seen: seen.length });
 }
 
 /* ------------------------------------------------------------ bonus round */
@@ -833,6 +980,7 @@ async function mintaBonus(k: Konteks) {
   if (!(PHASE1_PARTS as readonly string[]).includes(part))
     return void tolakKursi(res, "data_salah");
   if (!seat || !room || !sudahMasuk(seat.checkin)) return void tolakKursi(res, "belum_masuk");
+  if (seat.heldAt) return void tolakKursi(res, "bagian_ditahan");
   const draw = seat.draw[part];
   if (!draw) return void tolakKursi(res, "soal_tak_dikenal");
   if (draw.room !== seat.roomId) return void tolakKursi(res, "bagian_ruang_lain");
@@ -953,6 +1101,7 @@ async function kumpulkan(k: Konteks) {
   if (!(PHASE1_PARTS as readonly string[]).includes(part))
     return void tolakKursi(res, "data_salah");
   if (!seat || !room || !sudahMasuk(seat.checkin)) return void tolakKursi(res, "belum_masuk");
+  if (seat.heldAt) return void tolakKursi(res, "bagian_ditahan");
   const draw = seat.draw[part];
   if (!draw) return void tolakKursi(res, "soal_tak_dikenal");
   if (draw.room !== seat.roomId) return void tolakKursi(res, "bagian_ruang_lain");
@@ -967,8 +1116,17 @@ async function kumpulkan(k: Konteks) {
       lastSeenAt: new Date(now),
     })
     .where(eq(recExamSeat.id, seat.id));
+  // Handing the part in ends any absence still open in it: nothing after this is the seat's to answer for
+  const closed = await db
+    .update(recStrike)
+    .set({ backAt: new Date(now) })
+    .where(and(eq(recStrike.seatId, seat.id), eq(recStrike.part, part), isNull(recStrike.backAt)))
+    .returning({ id: recStrike.id });
   antreUjian(res, seat.roomId, [
     { j: "kursi", s: seat.id, d: { seq: room.state.seq, done: { ...seat.done, [part]: now } } },
+    ...(closed.length
+      ? [{ j: "pelanggaran" as const, s: seat.id, d: { s: seat.id, resume: true, back: now } }]
+      : []),
   ]);
   res.status(200).json({ ok: true, done: now });
 }

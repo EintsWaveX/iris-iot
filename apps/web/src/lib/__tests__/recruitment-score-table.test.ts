@@ -380,3 +380,55 @@ describe("histogram", () => {
     expect(histogram([-5, 1200], 1000, 4).map((b) => b.n)).toEqual([1, 0, 0, 1]);
   });
 });
+
+describe("the violation cut a pengawas applied (9 Nov 2026)", () => {
+  const withPenalty = (n: number, penalty: SeatIn["penalty"]) =>
+    SEATS.map((s) => (s.seatId === n ? { ...s, penalty } : s));
+  const hand = [{ problemId: 1, points: 400 }];
+  const live = {
+    hand: new Map([[3, hand]]),
+    runs: new Map([[3, [{ problemId: 1, passed: 8, total: 8, at: 1 }]]]),
+    waiting: new Set<number>(),
+  };
+
+  it("takes the percent off the part's score, whole points, and the totals follow", () => {
+    const out = asm(withPenalty(3, { applied: { logika: 10 }, pending: [] }), BANK, live);
+    const r = out.rows.find((x) => x.seatId === 3)!;
+    // 783 less 10% is 704.7, half up 705
+    expect(r.parts.logika).toMatchObject({ score: 705, cut: 10, was: 783 });
+    expect(r.phase1).toBe(705);
+    expect(r.livecode).toBe(400);
+    expect(r.total).toBe(705 + 400);
+    expect(r.penalty).toEqual({ applied: { logika: 10 }, pending: [] });
+  });
+
+  it("cuts Live Coding too, and says how much it was before", () => {
+    const out = asm(withPenalty(3, { applied: { livecode: 25 }, pending: [] }), BANK, live);
+    const r = out.rows.find((x) => x.seatId === 3)!;
+    expect(r.livecode).toBe(300);
+    expect(r.liveCut).toEqual({ pct: 25, was: 400 });
+    expect(r.total).toBe(783 + 300);
+  });
+
+  it("a decision still pending changes no score but is listed", () => {
+    const out = asm(withPenalty(3, { applied: {}, pending: ["logika", "livecode"] }), BANK, live);
+    const r = out.rows.find((x) => x.seatId === 3)!;
+    expect(r.parts.logika.score).toBe(783);
+    expect(r.penalty?.pending).toEqual(["logika", "livecode"]);
+  });
+
+  it("a seat with no penalty carries none, and a zero percent is no cut", () => {
+    const out = asm(SEATS, BANK, NO_LIVE);
+    expect(out.rows.every((r) => r.penalty === undefined)).toBe(true);
+    const z = asm(withPenalty(3, { applied: { logika: 0 }, pending: [] }), BANK, NO_LIVE);
+    expect(z.rows.find((x) => x.seatId === 3)!.parts.logika).toEqual({ score: 783 });
+  });
+
+  it("never cuts a seat that did not take the part", () => {
+    const out = asm(withPenalty(5, { applied: { logika: 50 }, pending: [] }), BANK, NO_LIVE);
+    expect(out.rows.find((x) => x.seatId === 5)!.parts.logika).toEqual({
+      score: 0,
+      flag: "absent",
+    });
+  });
+});

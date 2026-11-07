@@ -5,7 +5,7 @@
  * reference solution are plain strings here, and the API never sends them to a
  * candidate (EXAM-ENGINE 2).
  */
-import { ZERO, cmp, frac, maxFrac, roundHalfUp, type Frac } from "./frac.js";
+import { ZERO, cmp, frac, maxFrac, mul, roundHalfUp, type Frac } from "./frac.js";
 import { TIERS, type FieldError, type Tier } from "./exam-types.js";
 
 /** What the judge says about one test. `ole` is output over the cap. */
@@ -362,9 +362,41 @@ export function bestRun<R extends Run>(runs: readonly R[]): R | null {
   return best;
 }
 
-/** round(points × passed / total), a half going up. */
-export const problemPoints = (points: number, r: { passed: number; total: number }) =>
-  roundHalfUp(points, ratioOf(r));
+/**
+ * The penalty for failed Submits (8 Nov 2026), set in Bank Soal > Pengaturan. A failed Submit is a
+ * finished Submit that passed fewer than all its tests; one sent after the problem was already
+ * solved costs nothing (the seat is done with it). The first `free` failures are forgiven, every
+ * one after that takes `step` percent off what the problem earned, and never more than `max`
+ * percent in all. A problem that earned nothing stays at nothing. `step` 0 turns it off.
+ *
+ *   lost% = min(max, step × max(0, failures − free))
+ *   got   = round(points × passed / total × (100 − lost%) / 100)
+ */
+export interface Penalty {
+  /** Failed Submits forgiven per problem */
+  free: number;
+  /** Percent lost for each failed Submit after the free ones */
+  step: number;
+  /** The most percent a problem can lose */
+  max: number;
+}
+
+export const NO_PENALTY: Penalty = { free: 0, step: 0, max: 0 };
+
+/** Failed Submits that count: those that did not pass every test, sent before the first full pass. */
+export function failedSubmits(runs: readonly Run[]): number {
+  const solved = runs.filter((r) => r.total > 0 && r.passed >= r.total).map((r) => r.at);
+  const until = solved.length ? Math.min(...solved) : Infinity;
+  return runs.filter((r) => r.at < until && !(r.total > 0 && r.passed >= r.total)).length;
+}
+
+/** The percent a problem loses for `fails` failed Submits. */
+export const lostPercent = (fails: number, p: Penalty) =>
+  Math.max(0, Math.min(p.max, p.step * Math.max(0, fails - p.free)));
+
+/** round(points × passed / total × (100 − lost) / 100), a half going up. */
+export const problemPoints = (points: number, r: { passed: number; total: number }, lost = 0) =>
+  roundHalfUp(points, mul(ratioOf(r), frac(100 - lost, 100)));
 
 /** One dealt problem with what it is worth, and the runs the seat sent for it. */
 export interface HandEntry {
@@ -374,22 +406,36 @@ export interface HandEntry {
 }
 
 export interface LiveResult {
-  /** Each problem: its best run and the points it gave */
-  problems: { problemId: number; points: number; best: Run | null; got: number }[];
+  /** Each problem: its best run, the failed Submits and percent lost, and the points it gave */
+  problems: {
+    problemId: number;
+    points: number;
+    best: Run | null;
+    fails: number;
+    lost: number;
+    got: number;
+  }[];
   /** All the problems added up */
   total: number;
   /** True when the seat sent nothing at all */
   empty: boolean;
 }
 
-export function livecodeResult(hand: readonly HandEntry[]): LiveResult {
+export function livecodeResult(
+  hand: readonly HandEntry[],
+  penalty: Penalty = NO_PENALTY,
+): LiveResult {
   const problems = hand.map((h) => {
     const best = bestRun(h.runs);
+    const fails = failedSubmits(h.runs);
+    const lost = lostPercent(fails, penalty);
     return {
       problemId: h.problemId,
       points: h.points,
       best,
-      got: best ? problemPoints(h.points, best) : 0,
+      fails,
+      lost,
+      got: best ? problemPoints(h.points, best, lost) : 0,
     };
   });
   return {

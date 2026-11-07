@@ -32,6 +32,8 @@ export const PN = dict({
       total: "Total",
     },
     sortBy: (c: string) => `Urutkan menurut ${c}`,
+    cutPending: "potongan pelanggaran belum diputuskan",
+    cutOf: (pct: number, was: number) => `dipotong ${pct}% dari ${was} karena pelanggaran`,
     flags: {
       absent: "tidak membuka bagian ini",
       empty: "semua soalnya dibatalkan",
@@ -62,13 +64,15 @@ export const PN = dict({
         ? `${b.rooms} ruang masih berjalan. Tunggu sampai selesai.`
         : b.kode === "ruang_belum_selesai"
           ? `${b.rooms} ruang belum ditutup dengan Selesai.`
-          : b.kode === "nilai_lc_kurang"
-            ? `${b.seats} peserta masih menunggu judge untuk Live Coding. Tunggu judge hidup, atau buka ruangnya, tab Penilaian, lalu Tutup Antrean.`
-            : b.kode === "slot_tanpa_ruang"
-              ? `${b.slots} malam Tes Tulis punya peserta tapi belum punya ruang.`
-              : b.kode === "peserta_tanpa_kursi"
-                ? `${b.candidates} peserta di jadwal Tes Tulis belum duduk di ruang tes.`
-                : "Belum ada peserta yang duduk di ruang tes.",
+          : b.kode === "potongan_menunggu"
+            ? `${b.seats} peserta punya potongan nilai pelanggaran yang belum diputuskan. Buka ruangnya, kursi pesertanya, lalu Terapkan atau Bebaskan.`
+            : b.kode === "nilai_lc_kurang"
+              ? `${b.seats} peserta masih menunggu judge untuk Live Coding. Tunggu judge hidup, atau buka ruangnya, tab Penilaian, lalu Tutup Antrean.`
+              : b.kode === "slot_tanpa_ruang"
+                ? `${b.slots} malam Tes Tulis punya peserta tapi belum punya ruang.`
+                : b.kode === "peserta_tanpa_kursi"
+                  ? `${b.candidates} peserta di jadwal Tes Tulis belum duduk di ruang tes.`
+                  : "Belum ada peserta yang duduk di ruang tes.",
     errors: {
       nilai_final: "Nilai sudah dibekukan. Buka beku dulu.",
       sudah_final: "Nilai sudah difinalkan.",
@@ -156,6 +160,8 @@ export const PN = dict({
       total: "Total",
     },
     sortBy: (c: string) => `Sort by ${c}`,
+    cutPending: "violation cut not decided yet",
+    cutOf: (pct: number, was: number) => `cut ${pct}% from ${was} for violations`,
     flags: {
       absent: "never opened this part",
       empty: "every question was withdrawn",
@@ -185,13 +191,15 @@ export const PN = dict({
         ? `${b.rooms} room(s) still running. Wait for them to finish.`
         : b.kode === "ruang_belum_selesai"
           ? `${b.rooms} room(s) not closed with Finish yet.`
-          : b.kode === "nilai_lc_kurang"
-            ? `${b.seats} candidate(s) still wait for the judge on Live Coding. Wait for the judge, or open the room, its Grading tab, and press Close Queue.`
-            : b.kode === "slot_tanpa_ruang"
-              ? `${b.slots} Written Test evening(s) have candidates but no room yet.`
-              : b.kode === "peserta_tanpa_kursi"
-                ? `${b.candidates} candidate(s) on a Written Test slot have not sat in a test room.`
-                : "No candidate has sat in a test room yet.",
+          : b.kode === "potongan_menunggu"
+            ? `${b.seats} candidate(s) have a violation cut nobody has decided yet. Open the room, the candidate's seat, then Apply or Waive.`
+            : b.kode === "nilai_lc_kurang"
+              ? `${b.seats} candidate(s) still wait for the judge on Live Coding. Wait for the judge, or open the room, its Grading tab, and press Close Queue.`
+              : b.kode === "slot_tanpa_ruang"
+                ? `${b.slots} Written Test evening(s) have candidates but no room yet.`
+                : b.kode === "peserta_tanpa_kursi"
+                  ? `${b.candidates} candidate(s) on a Written Test slot have not sat in a test room.`
+                  : "No candidate has sat in a test room yet.",
     errors: {
       nilai_final: "The scores are frozen. Unfreeze first.",
       sudah_final: "The scores are already final.",
@@ -272,6 +280,8 @@ export const PN = dict({
       total: "总分",
     },
     sortBy: (c: string) => `按${c}排序`,
+    cutPending: "违规扣分尚未决定",
+    cutOf: (pct: number, was: number) => `因违规从 ${was} 扣了 ${pct}%`,
     flags: {
       absent: "没有打开这个部分",
       empty: "所有题目都已作废",
@@ -300,13 +310,15 @@ export const PN = dict({
         ? `还有 ${b.rooms} 个考场在进行，请等它们结束。`
         : b.kode === "ruang_belum_selesai"
           ? `还有 ${b.rooms} 个考场没有点击结束。`
-          : b.kode === "nilai_lc_kurang"
-            ? `还有 ${b.seats} 位候选人的现场编程仍在等待评测机。请等评测机恢复，或打开该考场的“评分”页并点击“关闭队列”。`
-            : b.kode === "slot_tanpa_ruang"
-              ? `还有 ${b.slots} 个笔试场次有候选人却还没有考场。`
-              : b.kode === "peserta_tanpa_kursi"
-                ? `还有 ${b.candidates} 位已排入笔试场次的候选人没有坐进考场。`
-                : "还没有候选人坐进考场。",
+          : b.kode === "potongan_menunggu"
+            ? `还有 ${b.seats} 位候选人的违规扣分尚未决定。请打开考场和该考生的座位，然后选择“执行”或“免除”。`
+            : b.kode === "nilai_lc_kurang"
+              ? `还有 ${b.seats} 位候选人的现场编程仍在等待评测机。请等评测机恢复，或打开该考场的“评分”页并点击“关闭队列”。`
+              : b.kode === "slot_tanpa_ruang"
+                ? `还有 ${b.slots} 个笔试场次有候选人却还没有考场。`
+                : b.kode === "peserta_tanpa_kursi"
+                  ? `还有 ${b.candidates} 位已排入笔试场次的候选人没有坐进考场。`
+                  : "还没有候选人坐进考场。",
     errors: {
       nilai_final: "分数已冻结，请先解冻。",
       sudah_final: "分数已经最终确定。",

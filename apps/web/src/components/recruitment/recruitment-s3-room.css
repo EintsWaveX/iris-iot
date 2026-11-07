@@ -1078,3 +1078,43 @@
   font-size: 1rem;
   line-height: 1.55;
 }
+
+/* Violations in the seat drawer and on the tile (9 Nov 2026). Opaque surfaces, level by border and text. */
+.r3vio {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+}
+.r3vio[data-level="1"] {
+  border-color: var(--warn);
+}
+.r3vio[data-level="2"],
+.r3vio[data-level="3"] {
+  border-color: var(--danger);
+}
+.r3vio[data-open="yes"] {
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+.r3tline li[data-excused="yes"] b {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.r3tile__strike[data-level="1"] {
+  color: var(--warn);
+}
+.r3tile__strike[data-level="2"],
+.r3tile__strike[data-level="3"] {
+  color: var(--danger);
+  font-weight: 700;
+}
+.r3tile__held {
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface-1));
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 1px 8px;
+}

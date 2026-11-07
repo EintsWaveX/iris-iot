@@ -6,8 +6,11 @@ import { describe, expect, it } from "vitest";
 import {
   C_LIMITS,
   DEFAULT_STARTER,
+  NO_PENALTY,
   bestRun,
+  failedSubmits,
   judgeRuns,
+  lostPercent,
   outcomeOf,
   livecodeResult,
   normalizeOutput,
@@ -363,5 +366,74 @@ describe("repairHiddenTests", () => {
 
   it("every default problem is already sound, so installing the bank never mends anything", () => {
     for (const p of SEED_PROBLEMS) expect(repairHiddenTests(p).dropped, p.title).toBe(0);
+  });
+});
+
+describe("the penalty for failed Submits (8 Nov 2026)", () => {
+  const pen = { free: 1, step: 5, max: 30 };
+  const run = (passed: number, at: number, total = 8) => ({ passed, total, at });
+
+  it("counts Submits that did not pass every test, up to the first full pass", () => {
+    expect(failedSubmits([])).toBe(0);
+    expect(failedSubmits([run(2, 1), run(5, 2), run(8, 3)])).toBe(2);
+    // sent after the problem was solved: free
+    expect(failedSubmits([run(8, 1), run(0, 2), run(3, 3)])).toBe(0);
+    // never solved: every one counts
+    expect(failedSubmits([run(2, 1), run(5, 2), run(7, 3)])).toBe(3);
+    // the order of the list does not matter, the time does
+    expect(failedSubmits([run(8, 3), run(2, 1), run(5, 2)])).toBe(2);
+  });
+
+  it("loses `step` percent for each failure past the free ones, never more than `max`", () => {
+    expect(lostPercent(0, pen)).toBe(0);
+    expect(lostPercent(1, pen)).toBe(0);
+    expect(lostPercent(2, pen)).toBe(5);
+    expect(lostPercent(4, pen)).toBe(15);
+    expect(lostPercent(7, pen)).toBe(30);
+    expect(lostPercent(50, pen)).toBe(30);
+    expect(lostPercent(9, NO_PENALTY)).toBe(0);
+    expect(lostPercent(9, { free: 0, step: 0, max: 30 })).toBe(0);
+  });
+
+  it("takes the percentage off what the problem earned, not off its full worth", () => {
+    // 3 failures before the pass: 2 past the free one, 10% off 400
+    const solved = livecodeResult(
+      [{ problemId: 1, points: 400, runs: [run(1, 1), run(4, 2), run(2, 3), run(8, 4)] }],
+      pen,
+    );
+    expect(solved.problems[0]).toMatchObject({ got: 360, fails: 3, lost: 10 });
+    // never solved: 4 of 8 is 200, 3 failures is 10% off that
+    const part = livecodeResult(
+      [{ problemId: 1, points: 400, runs: [run(1, 1), run(4, 2), run(2, 3)] }],
+      pen,
+    );
+    expect(part.problems[0]).toMatchObject({ got: 180, fails: 3, lost: 10 });
+    expect(part.total).toBe(180);
+  });
+
+  it("a problem that earned nothing stays at zero, and no penalty is the old result", () => {
+    const zero = livecodeResult(
+      [{ problemId: 1, points: 400, runs: [run(0, 1), run(0, 2), run(0, 3)] }],
+      pen,
+    );
+    expect(zero.problems[0].got).toBe(0);
+    const runs = [run(1, 1), run(4, 2), run(2, 3), run(8, 4)];
+    const old = livecodeResult([{ problemId: 1, points: 400, runs }]);
+    expect(old.problems[0]).toMatchObject({ got: 400, fails: 3, lost: 0 });
+  });
+
+  it("rounds half up", () => {
+    // 5 points, 8 of 8, 30% off: 3.5 -> 4
+    const r = livecodeResult(
+      [
+        {
+          problemId: 1,
+          points: 5,
+          runs: [...Array.from({ length: 7 }, (_, i) => run(0, i + 1)), run(8, 9)],
+        },
+      ],
+      pen,
+    );
+    expect(r.problems[0]).toMatchObject({ lost: 30, got: 4 });
   });
 });

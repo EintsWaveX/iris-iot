@@ -33,16 +33,20 @@ import {
   recQuestion,
   recQuestionLog,
   recScoreFreeze,
+  recSeatPenalty,
+  recStrike,
   recSlot,
   recSlotAssignment,
   praktikan,
   type RecScoreFreezeRow,
 } from "../../src/lib/schema.js";
-import type { Question, Value } from "../../src/lib/recruitment/exam-types.js";
+import type { PartKey, Question, Value } from "../../src/lib/recruitment/exam-types.js";
+import { seatViolations } from "../../src/lib/recruitment/violations.js";
 import type { Run } from "../../src/lib/recruitment/c-problem.js";
 import {
   capsOf,
   defaultQuestionPoints,
+  penaltyOf,
   problemWorth,
 } from "../../src/lib/recruitment/exam-config.js";
 import { bonusWorth } from "../../src/lib/recruitment/bonus.js";
@@ -74,6 +78,7 @@ const STATUS: Record<string, number> = {
   ruang_terbuka: 409,
   ruang_belum_selesai: 409,
   nilai_lc_kurang: 409,
+  potongan_menunggu: 409,
   tanpa_kursi: 409,
   slot_tanpa_ruang: 409,
   peserta_tanpa_kursi: 409,
@@ -137,6 +142,7 @@ async function muatMasukan(db: Db, edisiId: number) {
       candidateId: recExamSeat.candidateId,
       roomId: recExamSeat.roomId,
       draw: recExamSeat.draw,
+      strikeOverflow: recExamSeat.strikeOverflow,
     })
     .from(recExamSeat)
     .where(and(eq(recExamSeat.editionId, edisiId), eq(recExamSeat.rehearsal, false)));
@@ -183,18 +189,53 @@ async function muatMasukan(db: Db, edisiId: number) {
     : [];
   const peta = new Map(kandidat.map((k) => [k.id, k]));
 
-  const kursi: SeatIn[] = seatRows.map((r) => ({
-    seatId: r.id,
-    candidateId: r.candidateId,
-    roomId: r.roomId,
-    nim: peta.get(r.candidateId)?.nim ?? "",
-    nama: peta.get(r.candidateId)?.nama ?? "",
-    draw: r.draw,
-    values: nilaiPerKursi.get(r.id) ?? new Map(),
-  }));
+  // Violations (9 Nov 2026): what the rules suggest per part, and what a pengawas decided about it.
+  // A part whose suggested cut is above 0 with no decision is pending; an applied cut comes off the score.
+  const config = await bacaConfig(db, edisiId);
+  const [pelanggaran, putusan] = seatIds.length
+    ? await Promise.all([
+        db
+          .select({
+            seatId: recStrike.seatId,
+            part: recStrike.part,
+            kinds: recStrike.kinds,
+            excusedAt: recStrike.excusedAt,
+          })
+          .from(recStrike)
+          .where(inArray(recStrike.seatId, seatIds)),
+        db.select().from(recSeatPenalty).where(inArray(recSeatPenalty.seatId, seatIds)),
+      ])
+    : [[], []];
+  const kursi: SeatIn[] = seatRows.map((r) => {
+    const sarankan = seatViolations(
+      pelanggaran
+        .filter((x) => x.seatId === r.id)
+        .map((x) => ({ part: x.part, kinds: x.kinds, excused: !!x.excusedAt })),
+      r.strikeOverflow ?? {},
+      config.violations,
+    );
+    const applied: Partial<Record<PartKey, number>> = {};
+    const decided = new Set<PartKey>();
+    for (const d of putusan.filter((x) => x.seatId === r.id)) {
+      decided.add(d.part);
+      if (d.state === "applied" && d.pct > 0) applied[d.part] = d.pct;
+    }
+    const pending = (Object.keys(sarankan) as PartKey[]).filter(
+      (part) => (sarankan[part]?.cut ?? 0) > 0 && !decided.has(part),
+    );
+    return {
+      seatId: r.id,
+      candidateId: r.candidateId,
+      roomId: r.roomId,
+      nim: peta.get(r.candidateId)?.nim ?? "",
+      nama: peta.get(r.candidateId)?.nama ?? "",
+      draw: r.draw,
+      values: nilaiPerKursi.get(r.id) ?? new Map(),
+      ...(pending.length || Object.keys(applied).length ? { penalty: { applied, pending } } : {}),
+    };
+  });
 
   // Live Coding in C: the hand each seat was dealt, the Submits the judge finished, and who still waits.
-  const config = await bacaConfig(db, edisiId);
   const tier = new Map(
     (
       await db
@@ -255,7 +296,7 @@ async function muatMasukan(db: Db, edisiId: number) {
       runs.set(r.seatId, l);
     }
   }
-  return { kursi, bank, live: { hand, runs, waiting } };
+  return { kursi, bank, live: { hand, runs, waiting, penalty: penaltyOf(config) } };
 }
 
 /** The scores right now, from the answers and the keys as they stand. */
@@ -330,6 +371,9 @@ async function halangan(
   if (belum) out.push({ kode: "ruang_belum_selesai", rooms: belum });
   const lc = hitung.rows.filter((r) => r.liveFlag === "belum" || r.liveFlag === "rubrik").length;
   if (lc) out.push({ kode: "nilai_lc_kurang", seats: lc });
+  // A suggested violation cut nobody decided: applied or waived, but not left hanging (9 Nov 2026)
+  const potongan = hitung.rows.filter((r) => (r.penalty?.pending.length ?? 0) > 0).length;
+  if (potongan) out.push({ kode: "potongan_menunggu", seats: potongan });
   // The whole cohort: everyone plotted to a Tes Tulis evening, not only those who got a seat.
   const plotRows = await db
     .select({

@@ -440,3 +440,52 @@
 .lcc-score .btn {
   margin-left: 8px;
 }
+
+/* Bonus problems in their own compact group (8 Nov 2026). A seat that did well is offered most of the
+   pool, so the bonus cards sit in a small grid that scrolls inside itself: two rows show at once and
+   the rest are a scroll away, and the work below never moves down. */
+.lcc-bonusrail {
+  display: grid;
+  gap: 6px;
+}
+.lcc-bonusrail__head {
+  align-items: center;
+  color: var(--accent);
+  display: flex;
+  gap: 8px;
+}
+.lcc-bonusrail__head b {
+  color: var(--text);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.lcc-rail--bonus {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  /* two rows of mini cards, then it scrolls */
+  max-height: calc(2 * 48px + 6px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+.lcc-rail--bonus .lcc-tab {
+  flex: none;
+  gap: 8px;
+  min-height: 48px;
+  padding: 5px 10px;
+}
+.lcc-rail--bonus .lcc-tab__t b {
+  -webkit-line-clamp: 1;
+  font-size: 0.85rem;
+}
+.lcc-rail--bonus .lcc-tab__t .hint {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.lcc-rail--bonus .lcc-num {
+  height: 22px;
+  width: 22px;
+}
