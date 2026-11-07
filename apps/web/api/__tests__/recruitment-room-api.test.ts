@@ -28,6 +28,7 @@ import { newRoomState } from "../../src/lib/recruitment/room";
 import type { RoomState } from "../../src/lib/recruitment/exam-types";
 import { DEFAULT_EXAM_CONFIG } from "../../src/lib/recruitment/exam-types";
 import { cekTiketUjian } from "../../src/lib/recruitment/room-relay";
+import { setBebasHook } from "../../src/lib/recruitment/bebas";
 
 process.env.SESSION_SECRET = "x".repeat(40);
 
@@ -579,6 +580,25 @@ describe("the console", () => {
     const v = r.body as never as { seats: { awayMs: number; outSince: number | null }[] };
     expect(v.seats[0].outSince).toBeNull();
     expect(v.seats[0].awayMs).toBe(50_000);
+  });
+
+  it("a room of another day cannot be opened today, except in Mode Latihan (free mode)", async () => {
+    const lusa = () => ({ ...SLOT(), startsAt: new Date(Date.now() + 2 * 86_400_000) });
+    rows.room = (sel) => (sel ? [{ room: kamar(), slot: lusa() }] : [kamar()]);
+    rows.slot = [lusa()];
+    const isToday = async () =>
+      (
+        (await jalan("room", "N1", null, { id: "7" })).body as never as {
+          room: { isToday: boolean };
+        }
+      ).room.isToday;
+    expect(await isToday()).toBe(false);
+    setBebasHook(() => true);
+    try {
+      expect(await isToday()).toBe(true);
+    } finally {
+      setBebasHook(() => false);
+    }
   });
 
   it("never carries a hotspot password", async () => {
