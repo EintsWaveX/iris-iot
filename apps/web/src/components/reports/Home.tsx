@@ -243,6 +243,14 @@ function ExportMenu({ t, onExport }: { t: Ctx["t"]; onExport: (fmt: Format) => v
 function FilterBar({ f, setF, c }: { f: Filter; setF: (f: Filter) => void; c: Ctx }) {
   const { t, lang, dir, me } = c;
   const aktif = jumlahSaringan(f);
+  // Slot, class, assistant and source sit behind one button; they open by themselves when one is set.
+  const lain =
+    (f.slot !== "all" ? 1 : 0) +
+    (f.kelas !== "all" ? 1 : 0) +
+    (f.asisten !== "all" ? 1 : 0) +
+    (f.tot ? 1 : 0);
+  const [more, setMore] = useState(false);
+  const terbuka = more || lain > 0;
   const orang = [...dir.byNim.values()].sort((a, b) => a.nama.localeCompare(b.nama));
   return (
     <div className="rp-fbar">
@@ -259,40 +267,6 @@ function FilterBar({ f, setF, c }: { f: Filter; setF: (f: Filter) => void; c: Ct
         ]}
       />
       <Dropdown
-        id="rp-slot"
-        label={t.slot}
-        hideLabel
-        value={String(f.slot)}
-        onChange={(v) => setF({ ...f, slot: v === "all" ? "all" : Number(v) })}
-        options={[
-          { value: "all", label: t.allSlot },
-          ...[1, 2, 3, 4].map((s) => ({ value: String(s), label: t.slotN(s, SLOT_MULAI[s]) })),
-        ]}
-      />
-      <Dropdown
-        id="rp-kelas"
-        label={t.kelas}
-        hideLabel
-        value={f.kelas}
-        onChange={(v) => setF({ ...f, kelas: v as Kelas | "all" })}
-        options={[
-          { value: "all", label: t.allKelas },
-          { value: "reguler", label: kelasLabel("reguler", lang) },
-          { value: "internasional", label: kelasLabel("internasional", lang) },
-        ]}
-      />
-      <Dropdown
-        id="rp-asisten"
-        label={t.asisten}
-        hideLabel
-        value={f.asisten}
-        onChange={(v) => setF({ ...f, asisten: v })}
-        options={[
-          { value: "all", label: t.allAsisten },
-          ...orang.map((o) => ({ value: o.nim, label: dir.nama(o.nim) })),
-        ]}
-      />
-      <Dropdown
         id="rp-status"
         label={t.status}
         hideLabel
@@ -303,17 +277,6 @@ function FilterBar({ f, setF, c }: { f: Filter; setF: (f: Filter) => void; c: Ct
           { value: "kurang", label: t.st.kurang },
           { value: "lengkap", label: t.st.lengkap },
           { value: "jalan", label: t.st.jalan },
-        ]}
-      />
-      <Dropdown
-        id="rp-sumber"
-        label={t.sumber}
-        hideLabel
-        value={f.tot ? "tot" : "asli"}
-        onChange={(v) => setF({ ...f, tot: v === "tot" })}
-        options={[
-          { value: "asli", label: t.sumberAsli },
-          { value: "tot", label: t.sumberTot },
         ]}
       />
       <Dropdown
@@ -335,8 +298,18 @@ function FilterBar({ f, setF, c }: { f: Filter; setF: (f: Filter) => void; c: Ct
           { value: "saya", label: t.view.saya },
         ]}
       />
-      {aktif > 0 && (
-        <span className="rp-fbar__clear">
+      <span className="rp-fbar__clear">
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          aria-expanded={terbuka}
+          aria-controls="rp-fmore"
+          onClick={() => setMore(!terbuka)}
+        >
+          <span className="btn__label">{t.moreFilters(lain)}</span>
+          <CaretDownIcon size={16} aria-hidden="true" data-open={terbuka ? "yes" : undefined} />
+        </button>
+        {aktif > 0 && (
           <IconButton
             icon={XIcon}
             kind="ghost"
@@ -345,7 +318,56 @@ function FilterBar({ f, setF, c }: { f: Filter; setF: (f: Filter) => void; c: Ct
               setF({ ...f, modul: "all", slot: "all", kelas: "all", asisten: "all", status: "all" })
             }
           />
-        </span>
+        )}
+      </span>
+      {terbuka && (
+        <div className="rp-fbar__more" id="rp-fmore">
+          <Dropdown
+            id="rp-slot"
+            label={t.slot}
+            hideLabel
+            value={String(f.slot)}
+            onChange={(v) => setF({ ...f, slot: v === "all" ? "all" : Number(v) })}
+            options={[
+              { value: "all", label: t.allSlot },
+              ...[1, 2, 3, 4].map((s) => ({ value: String(s), label: t.slotN(s, SLOT_MULAI[s]) })),
+            ]}
+          />
+          <Dropdown
+            id="rp-kelas"
+            label={t.kelas}
+            hideLabel
+            value={f.kelas}
+            onChange={(v) => setF({ ...f, kelas: v as Kelas | "all" })}
+            options={[
+              { value: "all", label: t.allKelas },
+              { value: "reguler", label: kelasLabel("reguler", lang) },
+              { value: "internasional", label: kelasLabel("internasional", lang) },
+            ]}
+          />
+          <Dropdown
+            id="rp-asisten"
+            label={t.asisten}
+            hideLabel
+            value={f.asisten}
+            onChange={(v) => setF({ ...f, asisten: v })}
+            options={[
+              { value: "all", label: t.allAsisten },
+              ...orang.map((o) => ({ value: o.nim, label: dir.nama(o.nim) })),
+            ]}
+          />
+          <Dropdown
+            id="rp-sumber"
+            label={t.sumber}
+            hideLabel
+            value={f.tot ? "tot" : "asli"}
+            onChange={(v) => setF({ ...f, tot: v === "tot" })}
+            options={[
+              { value: "asli", label: t.sumberAsli },
+              { value: "tot", label: t.sumberTot },
+            ]}
+          />
+        </div>
       )}
     </div>
   );

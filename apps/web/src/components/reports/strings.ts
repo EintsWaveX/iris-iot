@@ -36,6 +36,7 @@ const id = {
   allAsisten: "Semua Asisten",
   status: "Status",
   allStatus: "Semua Status",
+  moreFilters: (n: number) => (n > 0 ? `Filter Lainnya (${n})` : "Filter Lainnya"),
   st: { kurang: "Nilai Belum Lengkap", lengkap: "Lengkap", jalan: "Berjalan" },
   views: "Tampilan Tersimpan",
   view: {
@@ -388,6 +389,7 @@ const en: Strings = {
   allAsisten: "All Assistants",
   status: "Status",
   allStatus: "Any Status",
+  moreFilters: (n) => (n > 0 ? `More Filters (${n})` : "More Filters"),
   st: { kurang: "Scores Incomplete", lengkap: "Complete", jalan: "Running" },
   views: "Saved Views",
   view: {
@@ -725,6 +727,7 @@ const zh: Strings = {
   allAsisten: "全部助教",
   status: "状态",
   allStatus: "任何状态",
+  moreFilters: (n) => (n > 0 ? `更多筛选 (${n})` : "更多筛选"),
   st: { kurang: "分数没填完", lengkap: "完整", jalan: "进行中" },
   views: "保存的视图",
   view: {
