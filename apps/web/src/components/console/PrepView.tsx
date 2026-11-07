@@ -465,7 +465,9 @@ export default function PrepView({
 
   return (
     <div className="prep">
-      {onBack && <BackButton lang={lang} label={p.back} onClick={onBack} />}
+      {onBack && (
+        <BackButton lang={lang} label={sesi ? pn.backKonsol : pn.backStart} onClick={onBack} />
+      )}
       <div className="prep__head">
         {onBack && (
           <div className="page-header__heading">
@@ -474,11 +476,6 @@ export default function PrepView({
           </div>
         )}
         <div className="prep__tools">
-          {onBack && (
-            <button type="button" className="btn btn--primary" onClick={onBack}>
-              {sesi ? pn.backKonsol : pn.backStart}
-            </button>
-          )}
           {tab === "roster" && (
             <div className="prep__for">
               {options.length > 1 ? (

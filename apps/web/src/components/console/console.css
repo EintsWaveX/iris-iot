@@ -1471,6 +1471,13 @@ thead .ntable__name {
   flex: 0 1 16rem;
 }
 
+/* On a laptop or a lab monitor the row is wide: room for a full name, not "Mochammad Rifky ..." */
+@media (min-width: 1100px) {
+  .assign__row .picker__trigger {
+    flex-basis: 24rem;
+  }
+}
+
 .assign__group {
   align-items: center;
   display: flex;
