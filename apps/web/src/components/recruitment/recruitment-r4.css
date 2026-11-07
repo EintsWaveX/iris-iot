@@ -2269,10 +2269,10 @@
   gap: 22px;
   padding: 4px 2px 14px;
 }
-.r2colgrp {
+.r2board .r2colgrp {
   gap: 10px;
 }
-.r2colgrp__h {
+.r2board .r2colgrp__h {
   align-items: center;
   color: var(--text-muted);
   display: flex;
@@ -2282,16 +2282,16 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.r2colgrp__h::after {
+.r2board .r2colgrp__h::after {
   background: var(--hairline-strong);
   content: "";
   flex: 1;
   height: 1px;
 }
-.r2colgrp__cols {
+.r2board .r2colgrp__cols {
   gap: 12px;
 }
-.r2col {
+.r2board .r2col {
   background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
@@ -2307,57 +2307,57 @@
 .r2board[data-stage="wawancara"] .r2col {
   width: 260px;
 }
-.r2col[data-full] {
+.r2board .r2col[data-full] {
   box-shadow: inset 0 3px 0 var(--ok);
 }
-.r2col[data-over] {
+.r2board .r2col[data-over] {
   box-shadow: inset 0 3px 0 var(--warn);
 }
-.r2col[data-drop="yes"] {
+.r2board .r2col[data-drop="yes"] {
   background: color-mix(in srgb, var(--accent) 9%, var(--surface-1));
   border-color: var(--accent);
   box-shadow:
     inset 0 3px 0 var(--accent),
     0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
 }
-.r2col__head b {
+.r2board .r2col__head b {
   font-size: 1.02rem;
   line-height: 1.2;
 }
-.r2col__n {
+.r2board .r2col__n {
   background: var(--surface-3);
   border-radius: 999px;
   color: var(--text);
   font-size: 0.82rem;
   padding: 1px 10px;
 }
-.r2col[data-full] .r2col__n {
+.r2board .r2col[data-full] .r2col__n {
   background: color-mix(in srgb, var(--ok) 20%, var(--surface-1));
   color: var(--ok);
 }
-.r2col[data-over] .r2col__n {
+.r2board .r2col[data-over] .r2col__n {
   background: color-mix(in srgb, var(--warn) 20%, var(--surface-1));
   color: var(--warn);
 }
-.r2col .r2cap__bar {
+.r2board .r2col .r2cap__bar {
   height: 8px;
 }
-.r2col[data-full] .r2cap__bar i {
+.r2board .r2col[data-full] .r2cap__bar i {
   background: var(--ok);
 }
-.r2col__t {
+.r2board .r2col__t {
   margin-top: -4px;
 }
-.r2col__list {
+.r2board .r2col__list {
   gap: 8px;
   min-height: 72px;
 }
 /* An empty column is a dashed landing zone, not a blank hole */
-.r2col__list:empty {
+.r2board .r2col__list:empty {
   border: 1.5px dashed var(--hairline-strong);
   border-radius: var(--radius-md);
 }
-.r2col--pool {
+.r2board .r2col--pool {
   background: var(--surface-2);
   border-style: dashed;
   box-shadow: 10px 0 16px -12px rgb(0 0 0 / 0.35);
@@ -2366,7 +2366,7 @@
   position: sticky;
   z-index: 2;
 }
-.r2chip {
+.r2board .r2chip {
   border-radius: var(--radius-md);
   font-size: 0.88rem;
   gap: 8px;
@@ -2376,16 +2376,16 @@
     border-color 140ms ease,
     transform 140ms ease;
 }
-.r2chip:active {
+.r2board .r2chip:active {
   cursor: grabbing;
 }
 @media (hover: hover) and (pointer: fine) {
-  .r2chip:not([data-static]):hover {
+  .r2board .r2chip:not([data-static]):hover {
     border-color: var(--accent);
     transform: translateY(-1px);
   }
 }
-.r2chip__av {
+.r2board .r2chip__av {
   align-items: center;
   background: var(--accent-soft);
   border-radius: 50%;
@@ -2398,22 +2398,22 @@
   justify-content: center;
   width: 26px;
 }
-.r2chip[data-flag] .r2chip__av {
+.r2board .r2chip[data-flag] .r2chip__av {
   background: var(--danger);
   color: var(--accent-ink);
 }
-[data-motion="reduce"] .r2col,
-[data-motion="reduce"] .r2chip {
+[data-motion="reduce"] .r2board .r2col,
+[data-motion="reduce"] .r2board .r2chip {
   transition: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .r2col,
-  .r2chip {
+  .r2board .r2col,
+  .r2board .r2chip {
     transition: none;
   }
 }
 @media (prefers-reduced-motion: reduce) and (hover: hover) {
-  .r2chip:not([data-static]):hover {
+  .r2board .r2chip:not([data-static]):hover {
     transform: none;
   }
 }
@@ -2423,13 +2423,13 @@
 .r2board {
   gap: 28px;
 }
-.r2colgrp__cols {
+.r2board .r2colgrp__cols {
   gap: 16px;
 }
-.r2colgrp__h {
+.r2board .r2colgrp__h {
   font-size: 0.9rem;
 }
-.r2col {
+.r2board .r2col {
   gap: 12px;
   padding: 18px 16px 16px;
   width: 320px;
@@ -2437,39 +2437,39 @@
 .r2board[data-stage="wawancara"] .r2col {
   width: 340px;
 }
-.r2col--pool {
+.r2board .r2col--pool {
   margin-top: 34px;
   width: 300px;
 }
-.r2col__head b {
+.r2board .r2col__head b {
   font-size: 1.2rem;
 }
-.r2col__n {
+.r2board .r2col__n {
   font-size: 0.95rem;
   padding: 2px 12px;
 }
-.r2col .r2cap__bar {
+.r2board .r2col .r2cap__bar {
   height: 10px;
 }
-.r2col__t {
+.r2board .r2col__t {
   font-size: 0.9rem;
 }
-.r2col__list {
+.r2board .r2col__list {
   gap: 10px;
   min-height: 96px;
 }
-.r2chip {
+.r2board .r2chip {
   font-size: 1rem;
   gap: 12px;
   min-height: 56px;
   padding: 10px 14px 10px 10px;
 }
-.r2chip__av {
+.r2board .r2chip__av {
   font-size: 0.95rem;
   height: 36px;
   width: 36px;
 }
-.r2chip__via {
+.r2board .r2chip__via {
   font-size: 0.8rem;
   padding: 3px 9px;
 }
