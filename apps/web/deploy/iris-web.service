@@ -4,7 +4,8 @@
 
 [Unit]
 Description=IRIS web (site and API)
-After=network-online.target
+# postgresql.service is the local database after the move; before it, the line is ignored.
+After=network-online.target postgresql.service
 Wants=network-online.target
 
 [Service]
