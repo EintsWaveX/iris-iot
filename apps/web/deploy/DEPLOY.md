@@ -21,7 +21,12 @@ It compares every page, redirect, rewrite and header; the last run against the l
 ## 1. The PC (once)
 
 ```sh
-node --version                      # needs 24.x (engines in package.json)
+# Node 24 (package.json wants 24.x; the PC has none and its dnf state file is unhappy, so use the
+# official tarball, checked against nodejs.org's checksum). x86_64 Fedora 44.
+cd /tmp && curl -fsSLO https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz
+curl -fsSL https://nodejs.org/dist/v24.19.0/SHASUMS256.txt | grep node-v24.19.0-linux-x64.tar.xz | sha256sum -c -
+sudo tar -xJf node-v24.19.0-linux-x64.tar.xz -C /opt && sudo ln -sfn /opt/node-v24.19.0-linux-x64 /opt/node24
+/opt/node24/bin/node --version      # v24.19.0
 
 # A user that owns the code and runs the server, with a read-only deploy key for GitHub.
 sudo useradd --system --create-home --home-dir /var/lib/iris-web --shell /sbin/nologin iris-web
@@ -51,13 +56,16 @@ Until the branch is merged, clone it with `git clone -b part-b-self-host ...` an
 `deploy.sh origin/part-b-self-host`. Run these on the PC itself, over SSH on the lab network or in a
 terminal from the Konsol in the Server tab.
 
-If the service will not start and SELinux is on, `sudo ausearch -m avc -ts recent` shows what it denied.
+SELinux is enforcing on this PC. If the service will not start, `sudo ausearch -m avc -ts recent` shows what it denied.
 Do this on a day with no practicum session; it does not touch the live site.
 
 ## 2. The tunnel (once)
 
 ```sh
-cloudflared tunnel login                      # opens a browser: pick irisiotlab.com
+# cloudflared is not installed; one binary is enough.
+sudo curl -fsSL -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+sudo chmod 755 /usr/local/bin/cloudflared && cloudflared --version
+cloudflared tunnel login                      # prints a link: open it in a browser that is signed in to Cloudflare and pick irisiotlab.com
 cloudflared tunnel create iris-pc
 cloudflared tunnel route dns iris-pc pc.irisiotlab.com
 ```

@@ -19,7 +19,8 @@ Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=8787
 Environment=IRIS_PERCAYA_CF=1
-ExecStart=/usr/bin/node --import tsx server/main.ts
+# Node 24 from the tarball in DEPLOY.md step 1 (the PC has no packaged Node 24).
+ExecStart=/opt/node24/bin/node --import tsx server/main.ts
 Restart=always
 RestartSec=3
 # The server drains background jobs for up to 60 s after SIGTERM.

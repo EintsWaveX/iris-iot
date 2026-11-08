@@ -10,6 +10,9 @@
 # without touching the running site. Roll back by deploying the previous ref.
 set -euo pipefail
 
+# Node 24 lives in /opt/node24 on the PC (DEPLOY.md step 1); npm comes with it.
+[ -d /opt/node24/bin ] && export PATH="/opt/node24/bin:$PATH"
+
 REF="${1:-origin/main}"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$ROOT"
