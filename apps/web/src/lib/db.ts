@@ -1,16 +1,26 @@
 /**
- * The one Neon connection. Every API route imports `db`/`getDb` from here
+ * The one database connection. Every API route imports `db`/`getDb` from here
  * rather than constructing its own client — same reasoning as the Button
  * component: one place owns the contract, everything else calls it.
  *
- * Uses the WebSocket Pool driver (drizzle-orm/neon-serverless), not the
- * lighter HTTP driver (drizzle-orm/neon-http), for one specific reason:
- * the HTTP driver's own type definitions say plainly that it "does not
- * support transactions". The roster-replace operation in api/session/roster
- * deletes a session's groups and members and re-inserts them from a fresh
- * paste; a failure partway through that without a transaction would leave
- * a session with half a roster, silently. That risk is worth the slightly
- * heavier Pool connection.
+ * Two drivers, chosen by where DATABASE_URL points (`pakaiNeon`):
+ *
+ *  - Neon (a *.neon.tech host): the WebSocket Pool driver
+ *    (drizzle-orm/neon-serverless), not the lighter HTTP driver
+ *    (drizzle-orm/neon-http), for one specific reason: the HTTP driver's own
+ *    type definitions say plainly that it "does not support transactions".
+ *    The roster-replace operation in api/session/roster deletes a session's
+ *    groups and members and re-inserts them from a fresh paste; a failure
+ *    partway through that without a transaction would leave a session with
+ *    half a roster, silently. That risk is worth the slightly heavier Pool
+ *    connection.
+ *  - Any other host (the Postgres on the PC Server, 127.0.0.1): plain
+ *    node-postgres over TCP (drizzle-orm/node-postgres). Neon's WebSocket
+ *    proxy only exists on Neon, so this is the only driver that can talk to
+ *    a Postgres of our own. Both are pg Pools underneath, so every query,
+ *    transaction and error code reads the same.
+ *
+ * IRIS_DB_DRIVER=neon|pg forces one (a Neon URL behind a plain TCP route, say).
  *
  * DATABASE_URL is read lazily inside getDb() rather than at module load,
  * so importing this file never throws in a context where the env var
@@ -18,8 +28,10 @@
  * unit test that stubs the whole module). The throw happens at the first
  * real query, with a message that says exactly what to do.
  */
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
+import { drizzle as drizzleNeon, type NeonDatabase } from "drizzle-orm/neon-serverless";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
+import pg from "pg";
 import ws from "ws";
 import * as schema from "./schema.js";
 
@@ -31,10 +43,26 @@ import * as schema from "./schema.js";
 // silently break this connection.
 neonConfig.webSocketConstructor = ws;
 
-let cachedPool: InstanceType<typeof Pool> | null = null;
-let cachedDb: ReturnType<typeof drizzle<typeof schema>> | null = null;
+/** True when this URL must be reached through Neon's WebSocket driver. */
+export function pakaiNeon(
+  url: string,
+  paksa: string | undefined = process.env.IRIS_DB_DRIVER,
+): boolean {
+  if (paksa === "neon") return true;
+  if (paksa === "pg") return false;
+  try {
+    return new URL(url).hostname.endsWith(".neon.tech");
+  } catch {
+    return false;
+  }
+}
 
-export function getDb() {
+/** The shape every caller sees. node-postgres answers the same calls, so one type serves both. */
+export type Db = NeonDatabase<typeof schema>;
+
+let cachedDb: Db | null = null;
+
+export function getDb(): Db {
   if (cachedDb) return cachedDb;
 
   const url = process.env.DATABASE_URL;
@@ -46,7 +74,18 @@ export function getDb() {
     );
   }
 
-  cachedPool = new Pool({ connectionString: url });
-  cachedDb = drizzle(cachedPool, { schema });
+  if (pakaiNeon(url)) {
+    cachedDb = drizzleNeon(new NeonPool({ connectionString: url }), { schema });
+  } else {
+    const pool = new pg.Pool({
+      connectionString: url,
+      max: 10,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000,
+    });
+    // An idle client the server dropped (a restart of Postgres) must not crash the process.
+    pool.on("error", (err) => console.error("[db] idle client error:", err.message));
+    cachedDb = drizzlePg(pool, { schema }) as unknown as Db;
+  }
   return cachedDb;
 }

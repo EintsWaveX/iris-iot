@@ -14,7 +14,7 @@
  *
  * PC heartbeats (api/agent) send only when something a page shows changed.
  */
-import { waitUntil } from "@vercel/functions";
+import { waitUntil } from "./tunggu.js";
 import type { ApiHandler, ApiRequest, ApiResponse } from "./http.js";
 import { ambilAntre, kirimRelay } from "./aliran.js";
 import { denganGalat } from "./galat.js";

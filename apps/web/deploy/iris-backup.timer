@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly IRIS database backup at 02:00 WIB, after the last session
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 Asia/Jakarta
+# If the PC was off at 02:00, run once when it comes back.
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

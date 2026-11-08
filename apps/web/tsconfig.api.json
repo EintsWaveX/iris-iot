@@ -18,6 +18,6 @@
     "isolatedModules": true,
     "types": ["node"]
   },
-  "include": ["api/**/*.ts"],
-  "exclude": ["api/**/__tests__/**"]
+  "include": ["api/**/*.ts", "server/**/*.ts"],
+  "exclude": ["api/**/__tests__/**", "server/**/__tests__/**"]
 }
