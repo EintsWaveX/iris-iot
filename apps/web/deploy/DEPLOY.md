@@ -62,27 +62,36 @@ Do this on a day with no practicum session; it does not touch the live site.
 
 ## 2. The tunnel (once)
 
+`cloudflared` is not installed on the PC; one binary is enough. The login prints a link: open it in a
+browser that is signed in to Cloudflare and pick `irisiotlab.com`.
+
 ```sh
-# cloudflared is not installed; one binary is enough.
 sudo curl -fsSL -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
 sudo chmod 755 /usr/local/bin/cloudflared && cloudflared --version
-cloudflared tunnel login                      # prints a link: open it in a browser that is signed in to Cloudflare and pick irisiotlab.com
-cloudflared tunnel create iris-pc
-cloudflared tunnel route dns iris-pc pc.irisiotlab.com
+cloudflared tunnel login
 ```
 
-`/etc/cloudflared/config.yml`:
+Then, as one paste (it computes the tunnel id itself):
 
-```yaml
-tunnel: iris-pc
-credentials-file: /etc/cloudflared/<tunnel-id>.json
+```sh
+cloudflared tunnel create iris-pc
+cloudflared tunnel route dns iris-pc pc.irisiotlab.com
+ID=$(cloudflared tunnel list -o json | python3 -c 'import sys,json; print([t["id"] for t in json.load(sys.stdin) if t["name"]=="iris-pc"][0])')
+sudo install -d /etc/cloudflared
+sudo cp ~/.cloudflared/$ID.json /etc/cloudflared/
+sudo tee /etc/cloudflared/config.yml >/dev/null <<EOF
+tunnel: $ID
+credentials-file: /etc/cloudflared/$ID.json
 ingress:
   - hostname: pc.irisiotlab.com
     service: http://127.0.0.1:8787
   - service: http_status:404
+EOF
+sudo cloudflared service install
+sudo systemctl enable --now cloudflared
 ```
 
-Then `sudo cloudflared service install && sudo systemctl enable --now cloudflared`.
+Check from anywhere: `curl -s https://pc.irisiotlab.com/api/sehat` names the PC (`"host":"fedora"`).
 
 ## 3. Gates before the cutover
 
@@ -92,9 +101,11 @@ All against `https://pc.irisiotlab.com`, while the real site is still on Vercel:
 2. Sign in as an Asisten and as a Praktikan, open a live page: the live-update socket reaches
    `konsol.irisiotlab.com`, no CSP errors in the console. (Sign-in cookies are tied to the host, so test
    on `pc.irisiotlab.com` itself.)
-3. **Speed.** The database is in Singapore and the PC in Bandung, so each query costs about 20 to 30 ms
-   instead of about 1 ms on Vercel. Time the busy endpoints (session view, Dasbor, live session, sign-in)
-   on both and compare; if a page does many queries one after the other, batch them first.
+3. **Speed.** The database is in Singapore and the PC in Bandung. Measured on the PC on 8 Nov 2026, one
+   `select 1` to Neon takes about 75 to 90 ms (the first connection 0.3 s), against about 1 ms from Vercel.
+   A page that runs ten queries one after the other therefore costs about a second more than on Vercel. Count
+   the queries of the busy endpoints (session view, Dasbor, live session, sign-in) and either batch them or
+   move Postgres onto the PC with the site, where a query costs well under a millisecond.
 4. The PC agent's heartbeat and the relay's minute call both go to `irisiotlab.com`, so they follow the
    record you move in step 6. Nothing to change on the agent.
 5. Re-run the leak audit (`leak_api`, `idor_probe`, `leak_pages`, the bundle scan) on this commit.
