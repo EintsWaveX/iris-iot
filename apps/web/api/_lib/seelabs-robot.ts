@@ -29,6 +29,7 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, pgErrorCode } from "./http.js";
 import { muatOrang } from "./hak.js";
 import { buka, bungkus } from "./rahasia.js";
+import { LABEL_SEGEL } from "./rahasia-putar.js";
 import { muatSeelabs, sesiTot } from "./seelabs.js";
 import { sidikPayload } from "../../src/lib/seelabs.js";
 import { tulisSet } from "./tp.js";
@@ -93,7 +94,6 @@ type Db = ReturnType<typeof getDb>;
  *  site goes in front of every student through the LMS). */
 export const SUFIKS_BAWAAN = "1715";
 
-const LABEL_SEGEL = "seelabs-segel";
 const KLAIM_PER_DENYUT = 5;
 
 /* ------------------------------------------------------------ settings */
