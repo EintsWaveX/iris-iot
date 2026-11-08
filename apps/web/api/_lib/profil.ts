@@ -25,7 +25,7 @@
  * (unggah token in the route), or null to remove the photo; left out, the
  * photo stays. A replaced or removed photo's blobs are deleted, best effort.
  */
-import { del } from "@vercel/blob";
+import { hapusBerkas, urlBerkasValid } from "./berkas.js";
 import { and, asc, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -64,20 +64,8 @@ import {
   type TeksTiga,
 } from "../../src/lib/profil.js";
 
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
-
 function tolak(res: ApiResponse, kode: string, extra: Record<string, unknown> = {}) {
   res.status(200).json({ ok: false, kode, ...extra });
-}
-
-function blobUrlValid(url: unknown): url is string {
-  if (typeof url !== "string") return false;
-  try {
-    const u = new URL(url);
-    return u.protocol === "https:" && u.hostname.endsWith(BLOB_HOST_SUFFIX);
-  } catch {
-    return false;
-  }
 }
 
 /** undefined: not sent (keep); null: remove; a Foto: set; false: invalid. */
@@ -85,7 +73,8 @@ function bacaFoto(v: unknown): Foto | null | undefined | false {
   if (v === undefined) return undefined;
   if (v === null) return null;
   const o = v as { besar?: unknown; kecil?: unknown };
-  if (!o || typeof o !== "object" || !blobUrlValid(o.besar) || !blobUrlValid(o.kecil)) return false;
+  if (!o || typeof o !== "object" || !urlBerkasValid(o.besar) || !urlBerkasValid(o.kecil))
+    return false;
   return { besar: o.besar, kecil: o.kecil };
 }
 
@@ -93,16 +82,9 @@ function fotoDari(besar: string | null, kecil: string | null): Foto | null {
   return besar && kecil ? { besar, kecil } : null;
 }
 
-/** Best effort: a blob already gone must not fail the save. */
+/** Best effort: a file already gone must not fail the save. */
 async function hapusBlob(urls: (string | null | undefined)[], asal: string): Promise<void> {
-  for (const url of urls) {
-    if (!url || !blobUrlValid(url)) continue;
-    try {
-      await del(url);
-    } catch (err) {
-      console.warn(`[WARN] profil/${asal}: blob delete failed, row changed anyway`, err);
-    }
-  }
+  await hapusBerkas(urls, `profil/${asal}`);
 }
 
 type Teks<K extends FieldTeks> = Record<K, TeksTiga>;
@@ -414,7 +396,7 @@ export const handleAcaraSimpan: Post = async (req, res, s) => {
     const o = (f ?? {}) as Record<string, unknown>;
     const fid = o.id == null ? null : idValid(o.id);
     if (o.id != null && !fid) return tolak(res, "format_salah");
-    if (!blobUrlValid(o.besar) || !blobUrlValid(o.kecil)) return tolak(res, "foto_salah");
+    if (!urlBerkasValid(o.besar) || !urlBerkasValid(o.kecil)) return tolak(res, "foto_salah");
     const alt = bacaTeksOpsional(o.alt, TEKS_MAKS.alt);
     if (!alt.ok)
       return tolak(res, alt.kode === "kurang" ? "teks_kurang" : "teks_panjang", {

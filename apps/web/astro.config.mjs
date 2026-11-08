@@ -22,7 +22,6 @@ export default defineConfig({
         "@radix-ui/react-tabs",
         "@radix-ui/react-toggle-group",
         "@radix-ui/react-tooltip",
-        "@vercel/blob/client",
         "cmdk",
         "date-fns",
         "@phosphor-icons/react",

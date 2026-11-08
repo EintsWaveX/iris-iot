@@ -11,7 +11,7 @@
  * module's pin table (PinEditor.tsx).
  */
 import { useEffect, useState, type CSSProperties } from "react";
-import { upload } from "@vercel/blob/client";
+import { unggahBerkas } from "../../../lib/unggah";
 import { ArrowSquareOutIcon, CircuitryIcon, TrashIcon } from "@phosphor-icons/react";
 import { FileDrop } from "../../ui/Controls";
 import Confirm from "../../ui/Confirm";
@@ -320,10 +320,11 @@ function SchemCard({
   async function onFile(f: File) {
     setBusy(true);
     try {
-      const blob = await upload(`skema-m${modul}-${f.name}`, f, {
-        access: "public",
-        handleUploadUrl: "/api/presentasi/schematic-token",
-      });
+      const blob = await unggahBerkas(
+        "/api/presentasi/schematic-unggah",
+        f,
+        `skema-m${modul}-${f.name}`,
+      );
       const r = await postJson<{ ok: boolean }>("/api/presentasi/schematic-save", {
         url: blob.url,
         namaBerkas: f.name,

@@ -26,7 +26,7 @@ import {
   UsersThreeIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
-import { upload } from "@vercel/blob/client";
+import { unggahBerkas } from "../../lib/unggah";
 import { getJson, namaKelompok, tanggalPanjang } from "../../lib/app";
 import { useSegar } from "../../lib/siaran";
 import { namaPeriode, rupiah } from "../../lib/bayar";
@@ -430,10 +430,11 @@ function FotoPick({
   const kirim = async (f: File) => {
     setBusy(true);
     try {
-      const blob = await upload(`laporan-${laporanId}-${f.name}`, f, {
-        access: "public",
-        handleUploadUrl: "/api/presentasi/lampiran-token",
-      });
+      const blob = await unggahBerkas(
+        "/api/presentasi/lampiran-unggah",
+        f,
+        `laporan-${laporanId}-${f.name}`,
+      );
       const r = await fetch("/api/session/dokumen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
