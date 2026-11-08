@@ -13,6 +13,7 @@
  */
 import { and, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { mulaiSesi } from "./mulai-sesi.js";
+import { putarSegel } from "./rahasia-putar.js";
 import { kunciSlot, kunciSusulan, modulHari, tanggalWib } from "./hadir-mengajar.js";
 import { siarkan } from "./siaran.js";
 import type { getDb } from "../../src/lib/db.js";
@@ -473,8 +474,22 @@ async function tandaiMenyusul(db: Db, berubah: Set<Topik>): Promise<void> {
   }
 }
 
+/** The one-time re-keying (rahasia-putar.ts) has run in this process. */
+let sudahPutar = false;
+
 /** Everything the lab clock does in one minute. Never throws. */
 export async function jamLab(db: Db, now: Date): Promise<void> {
+  // Re-key the SeeLabs seals from the session secret to DATA_KUNCI, once per
+  // process; with no DATA_KUNCI set it does nothing and costs no query.
+  if (!sudahPutar) {
+    try {
+      const r = await putarSegel(db);
+      sudahPutar = true;
+      if (r.putar || r.gagal) console.warn("[INFO] rahasia: seals re-keyed:", JSON.stringify(r));
+    } catch (err) {
+      console.error("[jam-lab] re-keying failed:", err);
+    }
+  }
   // First, a session past its cap ends at the cap (currentSesi does it), so it
   // ends on time with no page open and the PC Server off.
   try {
