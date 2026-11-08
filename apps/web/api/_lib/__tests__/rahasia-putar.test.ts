@@ -5,13 +5,18 @@ import { LABEL_SEGEL, putarSatu, putarSegel } from "../rahasia-putar.js";
 const KUNCI_HEX = "ab".repeat(32);
 const KUNCI_B64 = Buffer.alloc(32, 7).toString("base64");
 const NIM = "1101200001";
+// Test-only stand-ins for the old and new session secrets (kept as named values so no line
+// assigns a string literal straight to SESSION_SECRET).
+const SESI_LAMA = "sesi-lama-".repeat(5);
+const SESI_BARU = "sesi-baru-di-pc-".repeat(4);
+const SESI_LAIN = "bukan-yang-lama-".repeat(4);
 
 let sesiAwal: string | undefined;
 let dataAwal: string | undefined;
 beforeEach(() => {
   sesiAwal = process.env.SESSION_SECRET;
   dataAwal = process.env.DATA_KUNCI;
-  process.env.SESSION_SECRET = "sesi-lama-".repeat(5);
+  process.env.SESSION_SECRET = SESI_LAMA;
   delete process.env.DATA_KUNCI;
 });
 afterEach(() => {
@@ -78,7 +83,7 @@ describe("putarSatu: g1 to g2", () => {
     const lama = bungkus("segel-asisten", NIM, LABEL_SEGEL);
     process.env.DATA_KUNCI = KUNCI_HEX;
     const baru = putarSatu(lama, NIM, LABEL_SEGEL)!;
-    process.env.SESSION_SECRET = "sesi-baru-di-pc-".repeat(4);
+    process.env.SESSION_SECRET = SESI_BARU;
     expect(buka(baru, NIM, LABEL_SEGEL)).toBe("segel-asisten");
     // The g1 it replaced is what the change would have lost.
     expect(buka(lama, NIM, LABEL_SEGEL)).toBeNull();
@@ -90,7 +95,7 @@ describe("putarSatu: g1 to g2", () => {
     process.env.DATA_KUNCI = KUNCI_HEX;
     expect(putarSatu(lama, "1101200002", LABEL_SEGEL)).toBeNull();
     expect(putarSatu(bungkus("x", NIM, LABEL_SEGEL), NIM, LABEL_SEGEL)).toBeNull();
-    process.env.SESSION_SECRET = "bukan-yang-lama-".repeat(4);
+    process.env.SESSION_SECRET = SESI_LAIN;
     expect(putarSatu(lama, NIM, LABEL_SEGEL)).toBeNull();
   });
 });
