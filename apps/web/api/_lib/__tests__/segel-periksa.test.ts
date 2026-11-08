@@ -6,6 +6,7 @@ import { periksaSegel } from "../segel-periksa.js";
 const KUNCI_A = "ab".repeat(32);
 const KUNCI_B = "cd".repeat(32);
 const SESI = "sesi-uji-".repeat(6);
+const SESI_LAIN = "sesi-lain-".repeat(6);
 
 let sesiAwal: string | undefined;
 let dataAwal: string | undefined;
@@ -43,7 +44,7 @@ describe("periksaSegel", () => {
     process.env.DATA_KUNCI = KUNCI_A;
     const baru = seg("n2");
     expect(periksaSegel([lama, baru])).toEqual({ total: 2, g1: 1, g2: 1, terbuka: 2, tertutup: 0 });
-    process.env.SESSION_SECRET = "sesi-lain-".repeat(6);
+    process.env.SESSION_SECRET = SESI_LAIN;
     expect(periksaSegel([lama, baru])).toEqual({ total: 2, g1: 1, g2: 1, terbuka: 1, tertutup: 1 });
   });
 
