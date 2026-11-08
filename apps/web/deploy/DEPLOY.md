@@ -84,6 +84,8 @@ sudo tee /etc/cloudflared/config.yml >/dev/null <<EOF
 tunnel: $ID
 credentials-file: /etc/cloudflared/$ID.json
 ingress:
+  - hostname: irisiotlab.com
+    service: http://127.0.0.1:8787
   - hostname: pc.irisiotlab.com
     service: http://127.0.0.1:8787
   - service: http_status:404
@@ -195,33 +197,44 @@ deploying the previous ref. A restart lets background jobs finish for up to 60 s
 - A restart or a crash takes the site down until systemd brings it back (about 3 s). A PC outage takes
   the site and the robot down together; the laptop standby (not built yet) covers the site only.
 
-## 6. Cutover (a quiet window, no session running, about five minutes of downtime)
+## 6. Cutover (done 9 Nov 2026 02:12 WIB; kept for a redo or a second site)
 
-Before: gates 1 to 5 pass; one backup has reached R2; PR #127 is deployed, `DATA_KUNCI` is set on Vercel and
-the SeeLabs seals read `g1 0 | g2 23`; `/etc/iris-web/env` on the PC holds the same `DATA_KUNCI`, a **new**
-`SESSION_SECRET` (everyone signs in once), and the real `KONSOL_RELAY_SECRET` and `BUNDEL_TERBIT`.
+State before: gates 1 to 5 pass; one backup has reached R2; PR #127 is deployed and the SeeLabs seals read
+`g1 0 | g2 23`. `/etc/iris-web/env` on the PC holds the same `DATA_KUNCI`, its own `SESSION_SECRET` (everyone
+signs in once), `KONSOL_RELAY_SECRET`, `BUNDEL_TERBIT`, and a `DATABASE_URL` that points at the **local**
+database. The Neon address is kept in `/etc/iris-web/env.neon`; check which is which before copying anything:
+`sudo sed -n 's/^DATABASE_URL=.*@\([^/:?]*\).*/\1/p' /etc/iris-web/env /etc/iris-web/env.neon` prints only host names.
 
-1. **Move the address.** In the Cloudflare dashboard, change the `irisiotlab.com` and `www` records to a
-   **proxied** CNAME to `<tunnel-id>.cfargotunnel.com` (or `cloudflared tunnel route dns --overwrite-dns iris-pc irisiotlab.com`).
-   The PC, still on Neon, now serves everything; check `https://irisiotlab.com/api/sehat` names it.
-2. **Stop the site:** `sudo systemctl stop iris-web`. The relay's minute call and the PC agent just retry.
-3. **Take a fresh copy** into an empty database:
-   ```sh
-   NEON=$(sudo grep '^DATABASE_URL=' /etc/iris-web/env | cut -d= -f2- | sed 's/-pooler//')
-   sudo -u postgres dropdb iris && sudo -u postgres createdb -O iris iris
-   pg_dump -Fc --no-owner --no-acl "$NEON" -f /tmp/iris.dump
-   sudo -u postgres pg_restore --no-owner --no-acl --role=iris -d iris < /tmp/iris.dump
-   rm -f /tmp/iris.dump
-   ```
-4. **Point the server at it:**
-   `sudo sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$(sudo cat /etc/iris-web/database-url.local)|" /etc/iris-web/env`
-5. **Start and check:** `sudo systemctl start iris-web`, then `curl -s 'https://irisiotlab.com/api/sehat?db=1'`,
-   `node scripts/parity.mjs <reference> https://irisiotlab.com`, sign in, and watch one lab-clock minute in
-   `sudo journalctl -u iris-web -f`.
+What the first attempt (8 Nov, rolled back) taught:
 
-**Rolling back.** Before step 2, put the old DNS records back; nothing else changed. After step 5, writes go to
-the local database, so a rollback means copying it back first: `pg_dump -Fc` the local `iris`, `pg_restore
---clean --if-exists` into Neon, put the Neon `DATABASE_URL` back, then move DNS. Leave Neon untouched for a week.
+- Until the data copy is fresh, the PC answers from its own old snapshot, while the agent keeps talking to
+  whatever the apex points at. Konsol commands queued on the PC's copy never reach the agent.
+- The Konsol stores a transcript of everything it shows (up to 64 KB). Never print a secret there; set one with
+  a silent paste (`read -rs`) and compare fingerprints (`sha256sum | cut -c1-12`) instead.
+- The Konsol drops whenever `cloudflared` restarts and closes after 10 idle minutes. Run multi-step PC work as
+  a detached `systemd-run` job and read it with `journalctl -u <unit>`.
+- The tunnel's `ingress` must list the apex (section 2), or the apex answers 404.
 
-After a clean week, in this order: disable `.github/workflows/backup.yml` (it dumps Neon) and delete the Neon
-project, move Blob files to R2, build the laptop standby, stop Vercel deploying on push, cancel Vercel Pro.
+The order that worked:
+
+1. **Share the secrets while the old host still serves.** Make each value on the laptop straight into the
+   clipboard (PowerShell: `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); $K = ($b | % { $_.ToString('x2') }) -join ''; Set-Clipboard $K`).
+   `KONSOL_RELAY_SECRET`: the `iris-konsol` Worker (Rotate, Deploy), Vercel (edit, redeploy; needs the owner's
+   2FA), then the PC. `BUNDEL_TERBIT`: both GitHub repos and the PC (Vercel only if you may roll back to it).
+   The PC step is silent: `sudo bash -c 'read -rsp "paste: " S; echo; [ "${#S}" -eq 64 ] && sed -i "s|^NAME=.*|NAME=$S|" /etc/iris-web/env && systemctl restart iris-web'`.
+2. **Take a fresh copy** as a detached job: stop the site, `pg_dump -Fc` Neon (address from `env.neon`, minus
+   `-pooler`), restore into a new database `iris_new`, compare the table count and `select count(*) from audit`
+   with Neon, and only then rename `iris` to `iris_old` and `iris_new` to `iris`; start the site. A failure at
+   any step leaves the old local copy in place.
+3. **Move the address.** Edit the `irisiotlab.com` record from A to a **proxied** CNAME to
+   `<tunnel-id>.cfargotunnel.com`. Leave `www` until a Cloudflare redirect rule replaces Vercel's.
+4. **Check:** `curl https://irisiotlab.com/api/sehat?db=1` names the PC; the agent's heartbeat in
+   `/api/server/<id>` is seconds old; the PC Server Console opens; `scripts/check-seals.ts` reads 23 of 23.
+
+**Rolling back.** Writes now go to the local database, so first `pg_dump -Fc` the local `iris`, `pg_restore
+--clean --if-exists` into Neon, put the Neon `DATABASE_URL` back in the env of whatever serves, then edit the
+apex record back to A `76.76.21.21` (DNS only). Leave Neon untouched until after the first real test day.
+
+After a clean week: delete the Neon project, drop `iris_old`, delete `env.neon` and `env.before-secrets`, move
+Blob files to R2, stop Vercel deploying on push, cancel Vercel Pro. `.github/workflows/backup.yml` (it dumps
+Neon) is disabled since 9 Nov. From now on a merge to `main` does not update the site: run `deploy.sh` (section 4).
