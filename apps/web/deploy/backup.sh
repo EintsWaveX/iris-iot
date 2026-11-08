@@ -2,8 +2,9 @@
 # Nightly dump of the IRIS database: a local copy, then the same dump encrypted with age
 # and uploaded to Cloudflare R2, so losing the PC's disk loses at most one night.
 #
-# Runs as the postgres user from iris-backup.service (02:00 WIB). By hand:
-#   sudo -u postgres /opt/iris-web/apps/web/deploy/backup.sh
+# Runs as the iris-web user from iris-backup.service (02:00 WIB), which passes the local database's
+# address in IRIS_BACKUP_DB. By hand:
+#   sudo -u iris-web bash -c 'IRIS_BACKUP_DB="$(cat /etc/iris-web/database-url.local)" /opt/iris-web/apps/web/deploy/backup.sh'
 #
 # Needs for the upload (/etc/iris-web/backup.env, see backup.env.example): R2_ACCOUNT_ID,
 # R2_BUCKET, R2_KEY_ID, R2_SECRET. The age recipient is a public key; the private key lives off

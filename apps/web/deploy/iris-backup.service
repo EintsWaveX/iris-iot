@@ -9,15 +9,18 @@ Requires=postgresql.service
 
 [Service]
 Type=oneshot
-User=postgres
-Group=postgres
+# The same user as the site: it can read the code under /opt/iris-web and the database URL,
+# and needs no database superuser (the app's role owns every table).
+User=iris-web
+Group=iris-web
 # R2 keys for the offsite copy (backup.env.example). systemd reads it as root, so the
 # root-only file works.
 EnvironmentFile=-/etc/iris-web/backup.env
-# Local copies go to /var/lib/iris-backup, created for the postgres user.
+# Local copies go to /var/lib/iris-backup, created for that user.
 StateDirectory=iris-backup
 StateDirectoryMode=0700
-ExecStart=/opt/iris-web/apps/web/deploy/backup.sh
+# Dumps the database the site is configured for locally (the address in database-url.local).
+ExecStart=/bin/bash -c 'IRIS_BACKUP_DB="$(cat /etc/iris-web/database-url.local)" exec /opt/iris-web/apps/web/deploy/backup.sh'
 TimeoutStartSec=30min
 
 NoNewPrivileges=true
