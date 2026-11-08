@@ -22,17 +22,34 @@ It compares every page, redirect, rewrite and header; the last run against the l
 
 ```sh
 node --version                      # needs 24.x (engines in package.json)
-sudo useradd --system --create-home --home-dir /opt/iris-web iris-web
-sudo -u iris-web git clone https://github.com/EintsWaveX/iris-iot.git /opt/iris-web   # deploy key or token, your call
+
+# A user that owns the code and runs the server, with a read-only deploy key for GitHub.
+sudo useradd --system --create-home --home-dir /var/lib/iris-web --shell /sbin/nologin iris-web
+sudo install -d -o iris-web -g iris-web /opt/iris-web
+sudo -u iris-web ssh-keygen -t ed25519 -N '' -C iris-web@pc -f /var/lib/iris-web/.ssh/id_ed25519
+sudo -u iris-web sh -c 'ssh-keyscan github.com >> /var/lib/iris-web/.ssh/known_hosts'
+sudo cat /var/lib/iris-web/.ssh/id_ed25519.pub
+#   -> GitHub, EintsWaveX/iris-iot, Settings, Deploy keys, Add deploy key (leave "write access" off)
+sudo -u iris-web git clone git@github.com:EintsWaveX/iris-iot.git /opt/iris-web
+
+# The secrets file. Fill every value from Vercel's Production env (Settings, Environment Variables).
 sudo install -d -m 750 -o root -g iris-web /etc/iris-web
-sudo cp /opt/iris-web/apps/web/deploy/iris-web.env.example /etc/iris-web/env
-sudo $EDITOR /etc/iris-web/env      # fill every value from Vercel's Production env; chmod root:iris-web 0640
+sudo install -m 640 -o root -g iris-web /opt/iris-web/apps/web/deploy/iris-web.env.example /etc/iris-web/env
+sudo $EDITOR /etc/iris-web/env
+
+# The service, and the one command the deploy script may run as root.
 sudo cp /opt/iris-web/apps/web/deploy/iris-web.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable iris-web
 echo 'iris-web ALL=(root) NOPASSWD: /usr/bin/systemctl restart iris-web' | sudo tee /etc/sudoers.d/iris-web
+sudo visudo -cf /etc/sudoers.d/iris-web
+
 sudo -u iris-web /opt/iris-web/apps/web/deploy/deploy.sh
 curl -s 'http://127.0.0.1:8787/api/sehat?db=1'
 ```
+
+Until the branch is merged, clone it with `git clone -b part-b-self-host ...` and deploy with
+`deploy.sh origin/part-b-self-host`. Run these on the PC itself, over SSH on the lab network or in a
+terminal from the Konsol in the Server tab.
 
 If the service will not start and SELinux is on, `sudo ausearch -m avc -ts recent` shows what it denied.
 Do this on a day with no practicum session; it does not touch the live site.
