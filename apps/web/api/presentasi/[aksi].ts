@@ -4,19 +4,12 @@
  * consolidation reasoning as api/session/[aksi].ts and api/modul/[aksi].ts:
  * the Vercel Hobby plan's serverless function ceiling.
  *
- * Storage is Vercel Blob (BLOB_READ_WRITE_TOKEN, set once a Blob store is
- * created on the project's Storage tab and pulled with `vercel env pull`,
- * the same manual provisioning step DATABASE_URL already needed). File
- * bytes never pass through this function: the token handlers only broker a
- * short-lived, content-type- and size-restricted client token, and the
- * browser then PUTs the file straight to Vercel Blob's own API. That is
- * what lets a slide deck exceed Vercel's ~4.5 MB request body ceiling at
- * all, which a plain multipart upload through this route could not. The
- * save actions then record the blob's URL (deliberately not
- * onUploadCompleted: that callback is a webhook Vercel calls back on a
- * publicly reachable deployment URL, which doesn't exist during local
- * development, and upload() on the client already resolves with the blob's
- * URL the moment the direct PUT finishes).
+ * Files are kept in the database (table `berkas`, _lib/berkas.ts) and served
+ * at /f/<id>/<name>; before 9 Nov 2026 they were Vercel Blob objects. The
+ * upload actions take the file's bytes as the request body (a binary content
+ * type, up to 21 MB, see server/app.ts), check who may and the type, size and
+ * first bytes, and answer with the file's address. The save actions then
+ * record that address.
  *
  * Both kinds work the same way (2026-10-08): per module, one uploaded file
  * (berkas) and one link (tautan) may be active, and a new one of a kind
@@ -31,7 +24,7 @@
  * GET  /api/presentasi/slides-list     — asisten. Every deck, including
  *                                        those from before decks went per
  *                                        module (modul null).
- * POST /api/presentasi/slides-token    — asisten. Upload handshake, PDF only.
+ * POST /api/presentasi/slides-unggah   — asisten. The upload: the PDF as the body.
  * POST /api/presentasi/slides-save     { url, namaBerkas, modul } — asisten.
  * POST /api/presentasi/slides-link     { url, modul, nama?, bahasa? } —
  *                                        asisten. A Canva view link, turned
@@ -50,8 +43,8 @@
  * GET  /api/presentasi/skema-bawaan?modul= — signed in, as schematics: the
  *                                            bundled PNG (Modules 1 to 3).
  * GET  /api/presentasi/schematic-list     — asisten. Every upload.
- * POST /api/presentasi/schematic-token    — asisten. Upload handshake,
- *                                            PNG/JPEG/WebP only.
+ * POST /api/presentasi/schematic-unggah   — asisten. The upload, PNG/JPEG/WebP
+ *                                            as the body.
  * POST /api/presentasi/schematic-save     { url, namaBerkas, modul } —
  *                                            asisten.
  * POST /api/presentasi/schematic-link     { url, modul } (Phase 9) —
@@ -68,9 +61,8 @@
  * POST /api/presentasi/pin-simpan         { modul, baris | null } —
  *                                            asisten. The code follows.
  */
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { cekHak } from "../_lib/hak.js";
-import { del } from "@vercel/blob";
+import { hapusBerkas, terimaUnggah, urlBerkasValid } from "../_lib/berkas.js";
 import { LAMPIRAN_MAKS, LAMPIRAN_TIPE } from "../_lib/dokumen.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -96,21 +88,12 @@ import { handlePinGet, handlePinGrupGet, handlePinGrupPost, handlePinSimpan } fr
 
 // Comfortably above a slide deck; well under what Blob itself allows.
 const MAX_BYTES = 20 * 1024 * 1024;
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 const MAX_NAMA_LEN = 200;
 const SKEMA_MAX_BYTES = 8 * 1024 * 1024;
 const SKEMA_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 type Jenis = "berkas" | "tautan";
 type Bahasa = "id" | "en";
-
-function blobUrlValid(url: string): boolean {
-  try {
-    return new URL(url).hostname.endsWith(BLOB_HOST_SUFFIX);
-  } catch {
-    return false;
-  }
-}
 
 function modulValid(v: unknown): number | null {
   const n = Number(v);
@@ -122,17 +105,12 @@ function idValid(v: unknown): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-/** Best effort: a blob that is already gone (removed in the Vercel
- *  dashboard, or a recreated store) must not strand its row. */
+/** Best effort: a file that is already gone must not strand its row. */
 async function hapusBlob(list: { url: string; jenis: Jenis }[], asal: string) {
-  for (const o of list) {
-    if (o.jenis !== "berkas") continue;
-    try {
-      await del(o.url);
-    } catch (err) {
-      console.error(`[api/presentasi/${asal}] blob delete failed, row removed anyway:`, err);
-    }
-  }
+  await hapusBerkas(
+    list.filter((o) => o.jenis === "berkas").map((o) => o.url),
+    `api/presentasi/${asal}`,
+  );
 }
 
 /** The modules whose slides and schematics this caller may see: all four
@@ -188,13 +166,8 @@ function perModul(
   return aktif;
 }
 
-/** The client-upload handshake. Vercel's own SDK dictates this response
- *  shape (not this project's usual {ok, kode} contract) since
- *  @vercel/blob's browser-side upload() parses it directly. No
- *  onUploadCompleted, deliberately: even an empty one made @vercel/blob
- *  register the route as a webhook, and Blob's callback, carrying no
- *  session cookie, always failed the asisten check with 401. */
-async function beriToken(
+/** An upload: the file's bytes in the request body (see _lib/berkas.ts). */
+async function terimaBerkas(
   req: ApiRequest,
   res: ApiResponse,
   session: SessionPayload,
@@ -202,22 +175,11 @@ async function beriToken(
   maks: number,
   asal: string,
 ) {
-  const body = jsonBody(req) as unknown as HandleUploadBody;
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request: req as unknown as Request,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: tipe,
-        maximumSizeInBytes: maks,
-        addRandomSuffix: true,
-        tokenPayload: JSON.stringify({ nim: session.nim }),
-      }),
-    });
-    res.status(200).json(jsonResponse);
+    await terimaUnggah(req, res, session.nim, { tipe, maks, asal });
   } catch (err) {
     console.error(`[api/presentasi/${asal}] unexpected error:`, err);
-    res.status(400).json({ error: err instanceof Error ? err.message : "unggah gagal" });
+    res.status(500).json({ ok: false, kode: "unggah_gagal" });
   }
 }
 
@@ -323,7 +285,7 @@ async function handleSlidesSave(req: ApiRequest, res: ApiResponse, session: Sess
   const url = typeof body.url === "string" ? body.url : "";
   const namaBerkas = typeof body.namaBerkas === "string" ? body.namaBerkas : "";
   const modul = modulValid(body.modul);
-  if (!blobUrlValid(url) || !modul || !namaBerkas || namaBerkas.length > MAX_NAMA_LEN) {
+  if (!urlBerkasValid(url) || !modul || !namaBerkas || namaBerkas.length > MAX_NAMA_LEN) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
@@ -466,7 +428,7 @@ async function handleSchematicSave(req: ApiRequest, res: ApiResponse, session: S
   const url = typeof body.url === "string" ? body.url : "";
   const namaBerkas = typeof body.namaBerkas === "string" ? body.namaBerkas : "";
   const modul = modulValid(body.modul);
-  if (!blobUrlValid(url) || !modul || !namaBerkas || namaBerkas.length > MAX_NAMA_LEN) {
+  if (!urlBerkasValid(url) || !modul || !namaBerkas || namaBerkas.length > MAX_NAMA_LEN) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
@@ -564,18 +526,18 @@ async function handleSchematicDelete(req: ApiRequest, res: ApiResponse, session:
 
 type Post = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => Promise<void>;
 
-const handleToken: Post = (req, res, s) =>
-  beriToken(req, res, s, ["application/pdf"], MAX_BYTES, "slides-token");
-const handleSchematicToken: Post = (req, res, s) =>
-  beriToken(req, res, s, SKEMA_TYPES, SKEMA_MAX_BYTES, "schematic-token");
+const handleUnggahSlides: Post = (req, res, s) =>
+  terimaBerkas(req, res, s, ["application/pdf"], MAX_BYTES, "slides-unggah");
+const handleUnggahSkema: Post = (req, res, s) =>
+  terimaBerkas(req, res, s, SKEMA_TYPES, SKEMA_MAX_BYTES, "schematic-unggah");
 
 const POST: Record<string, Post> = {
-  "slides-token": handleToken,
+  "slides-unggah": handleUnggahSlides,
   "slides-save": handleSlidesSave,
   "slides-link": handleSlidesLink,
   "slides-assign": handleSlidesAssign,
   "slides-delete": handleSlidesDelete,
-  "schematic-token": handleSchematicToken,
+  "schematic-unggah": handleUnggahSkema,
   "schematic-save": handleSchematicSave,
   "schematic-link": handleSchematicLink,
   "schematic-activate": handleSchematicActivate,
@@ -633,9 +595,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   // Phase 9: a written report's photo or file (Reports › Written report ›
   // Photo or file); any Asisten may attach one, images and PDFs up to
   // 10 MB. The report row itself is written by /api/session/dokumen.
-  if (aksi === "lampiran-token") {
+  if (aksi === "lampiran-unggah") {
     if (!requireMethod(req, res, "POST")) return;
-    return beriToken(req, res, session, LAMPIRAN_TIPE, LAMPIRAN_MAKS, "lampiran-token");
+    return terimaBerkas(req, res, session, LAMPIRAN_TIPE, LAMPIRAN_MAKS, "lampiran-unggah");
   }
 
   if (aksi === "slides-list" || aksi === "schematic-list") {

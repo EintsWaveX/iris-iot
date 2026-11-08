@@ -11,7 +11,7 @@
  * an Asisten gives each one a module or deletes it.
  */
 import { useEffect, useState, type CSSProperties } from "react";
-import { upload } from "@vercel/blob/client";
+import { unggahBerkas } from "../../../lib/unggah";
 import {
   EyeIcon,
   FilePdfIcon,
@@ -433,10 +433,7 @@ function DeckCard({
   async function onFile(f: File) {
     setBusy(true);
     try {
-      const blob = await upload(f.name, f, {
-        access: "public",
-        handleUploadUrl: "/api/presentasi/slides-token",
-      });
+      const blob = await unggahBerkas("/api/presentasi/slides-unggah", f, f.name);
       const r = await postJson<{ ok: boolean }>("/api/presentasi/slides-save", {
         url: blob.url,
         namaBerkas: f.name,

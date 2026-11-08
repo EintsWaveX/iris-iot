@@ -24,6 +24,7 @@ import {
   jsonb,
   primaryKey,
   check,
+  customType,
   real,
   date,
   type AnyPgColumn,
@@ -3413,3 +3414,27 @@ export const recScoreFreeze = pgTable(
 );
 
 export type RecScoreFreezeRow = typeof recScoreFreeze.$inferSelect;
+
+/**
+ * Uploaded files (photos, slides, schematics, report attachments), kept in the
+ * database since the move off Vercel Blob (9 Nov 2026): the whole store was
+ * 7 MB, and a row travels with the nightly encrypted backup and every restore.
+ * The file is served at /f/<id>/<name> (server/app.ts); the id is random, so
+ * the address is the capability, as a Blob URL was. Never `select()` the whole
+ * row in a list: name the columns, `isi` is the file.
+ */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
+
+export const berkas = pgTable("berkas", {
+  id: text("id").primaryKey(),
+  nama: text("nama").notNull(),
+  tipe: text("tipe").notNull(),
+  ukuran: integer("ukuran").notNull(),
+  isi: bytea("isi").notNull(),
+  pemilik: text("pemilik"),
+  dibuat: timestamp("dibuat", { withTimezone: true }).notNull().defaultNow(),
+});

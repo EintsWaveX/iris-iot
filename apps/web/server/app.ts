@@ -17,10 +17,13 @@ import type { ApiHandler, ApiRequest, ApiResponse } from "../api/_lib/http.js";
 import { jumlahLatar } from "../api/_lib/tunggu.js";
 import { compileRules, type VercelConfig } from "./rules.js";
 import { cocokkanRute, petaRute, type Rute } from "./routes.js";
+import { sajikanBerkas } from "./berkas.js";
 import { cariBerkas, sajikan } from "./static.js";
 
-/** Vercel's own body limit, kept so a handler sees what it sees there. */
+/** Vercel's own body limit, kept so a handler sees what it sees there (JSON and forms). */
 export const BATAS_BADAN = 4.5 * 1024 * 1024;
+/** A binary body is an uploaded file (api/_lib/berkas.ts); its actions cap it lower themselves. */
+export const BATAS_BERKAS = 21 * 1024 * 1024;
 /** Vercel's default function time; vercel.json's `maxDuration` narrows it per route. */
 export const DURASI_BAWAAN_DETIK = 300;
 
@@ -36,6 +39,10 @@ export interface OpsiApp {
   muat?: (rute: Rute) => Promise<ApiHandler>;
   /** Ran by /api/sehat?db=1; it rejects when the database does not answer. */
   periksaDb?: () => Promise<void>;
+  /** Reads an uploaded file for /f/<id>/<name>; null when there is none. */
+  bacaBerkas?: (
+    id: string,
+  ) => Promise<{ nama: string; tipe: string; ukuran: number; isi: Buffer } | null>;
 }
 
 const tak = (res: http.ServerResponse, status: number, badan: unknown) => {
@@ -56,16 +63,28 @@ function ambilQuery(url: URL, param: Record<string, string>): ApiRequest["query"
 }
 
 /** Reads the body up to the limit; null when it is over. */
-async function bacaBadan(req: http.IncomingMessage): Promise<Buffer | null> {
+async function bacaBadan(req: http.IncomingMessage, batas: number): Promise<Buffer | null> {
   const potong: Buffer[] = [];
   let jumlah = 0;
   for await (const c of req) {
     const b = c as Buffer;
     jumlah += b.length;
-    if (jumlah > BATAS_BADAN) return null;
+    if (jumlah > batas) return null;
     potong.push(b);
   }
   return Buffer.concat(potong);
+}
+
+/** The body limit for a content type: files may be big, everything else keeps Vercel's. */
+export function batasBadan(jenis: string): number {
+  const t = jenis.toLowerCase();
+  const teks =
+    t === "" ||
+    t.includes("json") ||
+    t.includes("x-www-form-urlencoded") ||
+    t.startsWith("text/") ||
+    t.startsWith("multipart/");
+  return teks ? BATAS_BADAN : BATAS_BERKAS;
 }
 
 /** What Vercel puts in `req.body` for a content type. `undefined` means invalid JSON. */
@@ -114,7 +133,7 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
     const baca = req.method !== "GET" && req.method !== "HEAD";
     let badan: unknown;
     if (baca) {
-      const mentah = await bacaBadan(req);
+      const mentah = await bacaBadan(req, batasBadan(String(req.headers["content-type"] ?? "")));
       if (mentah === null) {
         res.setHeader("Connection", "close");
         return tak(res, 413, { ok: false, kode: "badan_terlalu_besar" });
@@ -202,6 +221,8 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
         }
         return tak(res, badan.ok ? 200 : 503, badan);
       }
+
+      if (asli.startsWith("/f/")) return sajikanBerkas(req, res, asli, opsi.bacaBerkas);
 
       const path = aturan.tulisUlang(asli);
       if (path === "/api" || path.startsWith("/api/")) {
