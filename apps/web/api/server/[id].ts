@@ -155,8 +155,10 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number, full: b
     // 2026-10-08: the one-line install's progress, for the wizard.
     pasang: await bacaRekamPasang(id),
     // Stage 5: what the Updates card compares the PC's bundle with. Set on
-    // Vercel; null in local runs, where the card shows the SHA only.
-    situsIot: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    // Vercel (VERCEL_GIT_COMMIT_SHA) or the self-hosted server's deploy
+    // script (IRIS_BUILD_SHA); null in local runs, where the card shows the
+    // SHA only.
+    situsIot: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.IRIS_BUILD_SHA ?? null,
     // 2026-10-07: the newest bundle CI published, what Update installs.
     bundelTerbit: await bundelTerbaru(),
     denyutTerakhir: denyutTerakhir ?? null,

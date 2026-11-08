@@ -9,6 +9,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "server": "node --import tsx server/main.ts",
     "astro": "astro",
     "check": "astro check && tsc -p tsconfig.api.json",
     "lint": "eslint .",

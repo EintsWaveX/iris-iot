@@ -40,6 +40,18 @@ export function clientIp(req: ApiRequest): string {
   // x-forwarded-for a client (or a proxy that appends) can fill in.
   const vercel = req.headers["x-vercel-forwarded-for"];
   if (typeof vercel === "string" && vercel.length > 0) return vercel.split(",")[0].trim();
+  // Self-hosted behind a Cloudflare Tunnel: the server listens on 127.0.0.1
+  // only, so the one thing that can reach it is cloudflared, and the header
+  // is Cloudflare's own. Off unless the deploy asks for it, since anywhere
+  // else a client could write it.
+  const cloudflare = req.headers["cf-connecting-ip"];
+  if (
+    process.env.IRIS_PERCAYA_CF === "1" &&
+    typeof cloudflare === "string" &&
+    cloudflare.length > 0
+  ) {
+    return cloudflare.trim();
+  }
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.length > 0) {
     return forwarded.split(",")[0].trim();

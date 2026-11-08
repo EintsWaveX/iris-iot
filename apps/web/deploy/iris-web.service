@@ -1,0 +1,39 @@
+# IRIS web (the site and the API) on the PC Server or the laptop standby.
+# Install: sudo cp iris-web.service /etc/systemd/system/ && sudo systemctl daemon-reload
+# See DEPLOY.md. Listens on 127.0.0.1 only; the Cloudflare Tunnel is the way in.
+
+[Unit]
+Description=IRIS web (site and API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=iris-web
+Group=iris-web
+WorkingDirectory=/opt/iris-web/apps/web
+# DATABASE_URL, SESSION_SECRET and the rest (deploy/iris-web.env.example), root:iris-web 0640.
+EnvironmentFile=/etc/iris-web/env
+# Written by deploy.sh: IRIS_BUILD_SHA=<commit>. The dash makes it optional.
+EnvironmentFile=-/opt/iris-web/apps/web/.build-sha
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=8787
+Environment=IRIS_PERCAYA_CF=1
+ExecStart=/usr/bin/node --import tsx server/main.ts
+Restart=always
+RestartSec=3
+# The server drains background jobs for up to 60 s after SIGTERM.
+KillSignal=SIGTERM
+TimeoutStopSec=70
+
+# The server writes nothing under the checkout and needs no privileges.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

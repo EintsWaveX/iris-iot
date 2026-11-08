@@ -35,3 +35,8 @@ __pycache__/
 # Editor / OS noise
 .DS_Store
 Thumbs.db
+
+# Self-hosted server deploy (apps/web/deploy/deploy.sh)
+apps/web/.build-sha
+apps/web/dist.new/
+apps/web/dist.old/
