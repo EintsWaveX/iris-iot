@@ -48,7 +48,8 @@ sudo systemctl daemon-reload && sudo systemctl enable iris-web
 echo 'iris-web ALL=(root) NOPASSWD: /usr/bin/systemctl restart iris-web' | sudo tee /etc/sudoers.d/iris-web
 sudo visudo -cf /etc/sudoers.d/iris-web
 
-sudo -u iris-web /opt/iris-web/apps/web/deploy/deploy.sh
+# Until the branch is merged, name it; the default (origin/main) has no server yet.
+sudo -u iris-web /opt/iris-web/apps/web/deploy/deploy.sh origin/part-b-self-host
 curl -s 'http://127.0.0.1:8787/api/sehat?db=1'
 ```
 
