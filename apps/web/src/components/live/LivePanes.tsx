@@ -393,9 +393,7 @@ export function SerialMonitor({
         <div className="serial__empty">
           <UsbIcon size={28} aria-hidden="true" />
           <b>{cur?.open ? t.connectedTitle : t.plugTitle}</b>
-          <span className="hint">
-            {cur?.open ? t.connectedBody(modul) : t.plugBody(modul)}
-          </span>
+          <span className="hint">{cur?.open ? t.connectedBody(modul) : t.plugBody(modul)}</span>
         </div>
       ) : (
         <div
