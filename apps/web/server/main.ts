@@ -17,8 +17,9 @@ import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
 import { bacaBerkas } from "../api/_lib/berkas.js";
 import { tungguLatar } from "../api/_lib/tunggu.js";
-import { getDb } from "../src/lib/db.js";
+import { getDb, statusKolam } from "../src/lib/db.js";
 import { buatApp } from "./app.js";
+import { pantauJeda } from "./jeda.js";
 
 const akar = fileURLToPath(new URL("..", import.meta.url));
 const dist = process.env.IRIS_DIST ?? join(akar, "dist");
@@ -43,6 +44,10 @@ const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
 server.listen(port, host, () => {
   console.warn(`[server] IRIS on http://${host}:${port} (${rute.length} API routes, dist ${dist})`);
+});
+
+pantauJeda({
+  lapor: (ms) => console.warn(`[server] the process was stalled for ${ms} ms, db pool ${JSON.stringify(statusKolam())}`),
 });
 
 process.on("unhandledRejection", (err) => console.error("[server] unhandled rejection:", err));

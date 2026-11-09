@@ -96,3 +96,32 @@ describe("extending a running session", () => {
     expect(bacaDurasiBaru(50, 40)).toBe(null);
   });
 });
+
+describe("menitSekarangWib", () => {
+  // The Intl version it replaced (a new formatter per call, about 0.2 ms), kept here as the reference.
+  const lama = (now: Date) => {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Jakarta",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(now);
+    const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+    return get("hour") * 60 + get("minute");
+  };
+
+  it("matches the Jakarta clock at every kind of instant", () => {
+    const tepi = [
+      "2026-11-08T16:59:59.999Z", // 23:59:59 WIB
+      "2026-11-08T17:00:00.000Z", // 00:00 WIB
+      "2026-11-08T21:59:59.999Z", // 04:59 WIB, last quiet minute
+      "2026-11-08T22:00:00.000Z", // 05:00 WIB
+      "1969-12-31T23:59:59.000Z",
+      "1970-01-01T00:00:00.000Z",
+    ].map((t) => new Date(t));
+    let a = 12345;
+    const acak = () => ((a = (a * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const banyak = Array.from({ length: 2000 }, () => new Date(Date.UTC(2020, 0, 1) + acak() * 8 * 365 * 86400_000));
+    for (const t of [...tepi, ...banyak]) expect(menitSekarangWib(t)).toBe(lama(t));
+  });
+});
