@@ -18,13 +18,19 @@ import { saveLangPref, usePoll } from "../../../lib/hooks";
 import { tri } from "../../../lib/labels";
 import { isFail, recGet } from "../../../lib/recruitment/client";
 import type { PesanUjian, RoomPublic } from "../../../lib/recruitment/room-relay";
-import { useCadanganRuang, useJamRuang } from "../../../lib/recruitment/room-client";
+import {
+  CADANGAN_HIDUP_MS,
+  CADANGAN_MS,
+  useCadanganRuang,
+  useJamRuang,
+} from "../../../lib/recruitment/room-client";
 import { useSeatLive } from "../../../lib/recruitment/seat-client";
 import { seatPhase, type SeatPhase } from "../../../lib/recruitment/seat-state";
 import type { TestView } from "../../../lib/recruitment/seat-types";
 import { useRevealMotion } from "../reveal/fx";
 import CheckIn from "./CheckIn";
 import { useLockdown } from "./lockdown/useLockdown";
+import { useUnstick } from "./lockdown/useUnstick";
 import { BigIcon, Gate } from "./parts";
 import Runner from "./Runner";
 import { Finished, Lobby, NotOpen, Notice } from "./Screens";
@@ -115,8 +121,12 @@ export default function TestPage({ lang: routeLang }: { lang: Lang }) {
       if (m.j === "antrean" || m.j === "judge" || m.j === "kompilasi") setLcSignal((n) => n + 1);
     },
   );
-  useCadanganRuang(refresh, !!seat && live.status !== "live");
+  // Asks again every 15 s while the socket is down and every 20 s while it is up, so a message lost on
+  // the way (a hold released, a part resumed) never leaves the seat on a card until a refresh.
+  useCadanganRuang(refresh, !!seat, live.status === "live" ? CADANGAN_HIDUP_MS : CADANGAN_MS);
   const now = useJamRuang();
+  // A click lock left on <body> by a dialog would make the whole test dead until a refresh
+  useUnstick();
 
   const room = newer(tv?.room ?? null, live.room);
   const phase: SeatPhase = useMemo(
