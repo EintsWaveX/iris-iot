@@ -156,12 +156,17 @@ sudo systemctl start iris-backup.service && sudo journalctl -u iris-backup -n 5 
 `backup.sh` refuses a dump with fewer than 50 tables of data or under 50 KB (the service then shows as
 failed), writes under a `.partial` name and renames only when it checks out, and keeps the newest 14.
 Tested locally (success, refusal on an empty database, retention, restore matching row for row); the R2
-upload itself is untested until the keys exist. To restore, on any machine with the age key:
+upload works (a dump every night since 8 Nov). To restore, on any machine with the age key:
 
 ```sh
 age -d -i ~/.iris-backup/age-key.txt iris-2026-11-09T1900Z.dump.age > iris.dump
 createdb iris_restored && pg_restore --no-owner --no-acl -d iris_restored iris.dump
 ```
+
+`restore-drill.sh` does the same into a throwaway database, prints what came back (tables, indexes, foreign keys,
+row counts, the audit sequence) and deletes everything it made: `bash restore-drill.sh iris-<stamp>.dump.age`.
+Run it on a machine that has the key, not on the PC. First run on 9 Nov 2026 with the 02:01 backup: restored with
+no errors, 119 tables, 261 indexes, 132 foreign keys, 14,336 audit rows. Run it again before deleting Neon.
 
 ## 3. Gates before the cutover
 
