@@ -604,6 +604,52 @@ body:has(.r3top) .toast[data-shown="yes"] {
   font-size: 1rem;
   font-weight: 650;
 }
+/* The judge's queue as a row of squares (queue-lane.ts, QueueLane.tsx): the front on the left, our own
+   job a marker in the card's tone (amber while it waits) that slides left as the jobs ahead finish.
+   The squares are sized like the result card's own tiles: 12 px corners, 1.5 px borders. */
+.lcc-lane {
+  --lane-size: 40px;
+  --lane-gap: 8px;
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+.lcc-lane__more {
+  color: var(--rc);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.lcc-lane__track {
+  display: flex;
+  gap: var(--lane-gap);
+  position: relative;
+}
+.lcc-lane__slot,
+.lcc-lane__me {
+  border-radius: 12px;
+  box-sizing: border-box; /* the border counts inside the size, so a step is exactly size + gap */
+  display: grid;
+  height: var(--lane-size);
+  place-items: center;
+  width: var(--lane-size);
+}
+.lcc-lane__slot {
+  background: var(--surface-1);
+  border: 1.5px solid color-mix(in srgb, var(--rc) 45%, transparent);
+  color: var(--text-muted);
+}
+.lcc-lane__slot[data-front="yes"] {
+  border-color: var(--rc);
+}
+.lcc-lane__me {
+  background: var(--rc);
+  color: var(--surface-1);
+  left: 0;
+  position: absolute;
+  top: 0;
+  transform: translateX(calc(var(--lane-me, 0) * (var(--lane-size) + var(--lane-gap))));
+  transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
+}
 .lcc-result__state {
   color: var(--rc);
   font-size: 1.4rem;
@@ -692,7 +738,8 @@ body:has(.r3top) .toast[data-shown="yes"] {
   .lcc-result__ic[data-spin="yes"] svg {
     animation: none;
   }
-  .lcc-best__bar i {
+  .lcc-best__bar i,
+  .lcc-lane__me {
     transition: none;
   }
 }

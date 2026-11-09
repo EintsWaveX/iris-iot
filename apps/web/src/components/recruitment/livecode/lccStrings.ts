@@ -101,7 +101,12 @@ export const LCC = dict({
     runResult: "Hasil pada contoh",
     submitResult: "Hasil Submit",
     noResult: "Belum ada hasil. Tekan Run Sample untuk mencoba contohnya.",
-    queued: (n: number | null) => (n ? `Di queue, urutan ke-${n}` : "Di queue"),
+    queued: (n: number | null, of?: number | null) =>
+      n
+        ? of && of >= n
+          ? `Di queue, urutan ke-${n} dari ${of}`
+          : `Di queue, urutan ke-${n}`
+        : "Di queue",
     judging: "Judge sedang menilai kodemu",
     allPassed: "Semua test lolos",
     somePassed: (p: number, t: number) => `${p} dari ${t} test lolos`,
@@ -230,7 +235,12 @@ export const LCC = dict({
     runResult: "Result on the samples",
     submitResult: "Submit result",
     noResult: "No result yet. Press Run Sample to try the samples.",
-    queued: (n: number | null) => (n ? `In the queue, number ${n}` : "In the queue"),
+    queued: (n: number | null, of?: number | null) =>
+      n
+        ? of && of >= n
+          ? `In the queue, number ${n} of ${of}`
+          : `In the queue, number ${n}`
+        : "In the queue",
     judging: "The judge is checking your code",
     allPassed: "Every test passed",
     somePassed: (p: number, t: number) => `${p} of ${t} tests passed`,
@@ -356,7 +366,8 @@ export const LCC = dict({
     runResult: "样例结果",
     submitResult: "提交结果",
     noResult: "还没有结果。点击运行样例试试。",
-    queued: (n: number | null) => (n ? `排队中，第 ${n} 位` : "排队中"),
+    queued: (n: number | null, of?: number | null) =>
+      n ? (of && of >= n ? `排队中，第 ${n} 位，共 ${of} 位` : `排队中，第 ${n} 位`) : "排队中",
     judging: "评测机正在检查你的代码",
     allPassed: "全部测试通过",
     somePassed: (p: number, t: number) => `${t} 个测试通过 ${p} 个`,

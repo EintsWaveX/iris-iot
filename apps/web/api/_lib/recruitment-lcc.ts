@@ -309,6 +309,8 @@ async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
     judgeReady: await judgeSiap(c.db, c.now),
     bonus: await infoBonus(c, ids),
     done: c.seat.done.livecode != null,
+    // The same list the places above come from, so "number 3 of 7" always adds up
+    queueTotal: waiting.length,
   };
   res.status(200).json({ ok: true, ...body });
 }

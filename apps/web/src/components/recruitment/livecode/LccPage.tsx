@@ -58,6 +58,7 @@ import type { PlanPart } from "../../../lib/recruitment/seat-types";
 import { Md } from "../exam/render/text";
 import { Notice } from "../exam/Screens";
 import { LCC } from "./lccStrings";
+import { QueueLane } from "./QueueLane";
 import Skeleton from "../../ui/Skeleton";
 
 import "../recruitment-s3-lc.css";
@@ -793,7 +794,14 @@ function Workbench({
               <span>{t.penaltyRule(lcc.penalty.free, lcc.penalty.step, lcc.penalty.max)}</span>
             </p>
           )}
-          <Result lang={lang} sub={shown} p={p} best={st.best} position={st.position} />
+          <Result
+            lang={lang}
+            sub={shown}
+            p={p}
+            best={st.best}
+            position={st.position}
+            queueTotal={lcc.queueTotal ?? null}
+          />
         </section>
       </div>
       {/* Pinned to the bottom edge like the written parts' bar: the score on the left, Selesai at the right */}
@@ -863,12 +871,15 @@ function Result({
   p,
   best,
   position,
+  queueTotal,
 }: {
   lang: Lang;
   sub: LccSub | null;
   p: LccProblem;
   best: LccProblemState["best"];
   position: number | null;
+  /** Every job waiting or being judged, for "number 3 of 7" and the row of squares */
+  queueTotal: number | null;
 }) {
   const t = LCC[lang];
   if (!sub) {
@@ -900,7 +911,7 @@ function Result({
           <b className="lcc-result__title">{title}</b>
           <span className="lcc-result__state">
             {waiting
-              ? t.queued(position)
+              ? t.queued(position, queueTotal)
               : running
                 ? t.judging
                 : failed
@@ -913,6 +924,9 @@ function Result({
           </span>
         </div>
       </div>
+      {waiting && (
+        <QueueLane position={position} total={queueTotal} label={t.queued(position, queueTotal)} />
+      )}
       {failed && <span className="lcc-result__note">{t.failedLede}</span>}
       {ce && (
         <>
