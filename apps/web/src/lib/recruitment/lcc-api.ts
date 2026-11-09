@@ -80,6 +80,8 @@ export interface LccSelf {
   penalty: Penalty;
   /** False when the PC agent has not said it can judge: a banner, the code is still kept */
   judgeReady: boolean;
+  /** Every job waiting or being judged, in all rooms: with a job's `position`, "number 3 of 7" */
+  queueTotal: number;
 }
 
 export interface LccSendReply {
