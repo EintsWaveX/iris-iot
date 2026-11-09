@@ -52,18 +52,13 @@ import {
   batasLuringDetik,
   rentangValid,
   RENTANG_DETIK,
-  RIWAYAT_MAX_POINTS,
-  downsample,
-  detectReboots,
-  detectGaps,
-  hitungKetersediaan,
-  bangunTimelineLayanan,
   sweepPerintahKedaluwarsa,
 } from "../../src/lib/server-lib.js";
 import { currentSesi } from "../../src/lib/sesi.js";
-import { desc, asc, and, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { desc, and, eq, inArray, lt, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 import { bundelTerbaru } from "../_lib/bundel.js";
+import { ringkasRiwayat } from "../_lib/server-riwayat.js";
 
 const MAX_TEXT_LEN = 500;
 const AKSI_TERAKHIR = [
@@ -155,8 +150,10 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number, full: b
     // 2026-10-08: the one-line install's progress, for the wizard.
     pasang: await bacaRekamPasang(id),
     // Stage 5: what the Updates card compares the PC's bundle with. Set on
-    // Vercel; null in local runs, where the card shows the SHA only.
-    situsIot: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    // Vercel (VERCEL_GIT_COMMIT_SHA) or the self-hosted server's deploy
+    // script (IRIS_BUILD_SHA); null in local runs, where the card shows the
+    // SHA only.
+    situsIot: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.IRIS_BUILD_SHA ?? null,
     // 2026-10-07: the newest bundle CI published, what Update installs.
     bundelTerbit: await bundelTerbaru(),
     denyutTerakhir: denyutTerakhir ?? null,
@@ -200,12 +197,11 @@ async function handlePerintah(
 
 /**
  * P6.7: GET /api/server/:id?aksi=riwayat&rentang=1h|24h|7d -- the server
- * centre's Ringkasan tab. Everything is computed here from `denyut` rows
- * rather than a second query per chart: one range fetch, downsampled once
- * for the chart series, and the SAME (undownsampled) rows fed to
- * detectReboots/detectGaps/hitungKetersediaan/bangunTimelineLayanan --
- * downsampling before those would blur exactly the short reboot/gap
- * signals they exist to catch.
+ * centre's Ringkasan tab. Postgres reads every `denyut` row of the range and
+ * hands back the chart points, the reboots, the gaps, the availability and
+ * the service timeline (api/_lib/server-riwayat.ts); reboots, gaps and the
+ * timeline come from ALL rows, not the downsampled series, so a short
+ * reboot or gap is never blurred away.
  */
 async function handleRiwayat(_req: ApiRequest, res: ApiResponse, id: number, rentang: string) {
   if (!rentangValid(rentang)) {
@@ -224,33 +220,19 @@ async function handleRiwayat(_req: ApiRequest, res: ApiResponse, id: number, ren
   // chart series and availability still use every row.
   const sejak = srv?.sejak?.toISOString() ?? "";
 
-  const rows = await db
-    .select({
-      pada: denyut.pada,
-      cpu: denyut.cpu,
-      memori: denyut.memori,
-      disk: denyut.disk,
-      suhu: denyut.suhu,
-      jaringan: denyut.jaringan,
-      uptimeSec: denyut.uptimeSec,
-      layanan: denyut.layanan,
-    })
-    .from(denyut)
-    .where(and(eq(denyut.serverId, id), gte(denyut.pada, mulai)))
-    .orderBy(asc(denyut.pada));
-
-  const withIso = rows.map((r) => ({ ...r, pada: r.pada.toISOString() }));
+  // Postgres scans the heartbeats; Node only gets what the page draws (api/_lib/server-riwayat.ts).
+  const r = await ringkasRiwayat(db, id, mulai, akhir);
 
   res.status(200).json({
     ok: true,
     rentang,
     mulai: mulai.toISOString(),
     akhir: akhir.toISOString(),
-    seri: downsample(withIso, RIWAYAT_MAX_POINTS),
-    reboot: detectReboots(withIso).filter((r) => r.pada >= sejak),
-    gap: detectGaps(withIso).filter((g) => g.sampai >= sejak),
-    ketersediaan: hitungKetersediaan(withIso, mulai, akhir),
-    timelineLayanan: bangunTimelineLayanan(withIso).filter((x) => x.dari >= sejak),
+    seri: r.seri,
+    reboot: r.reboot.filter((x) => x.pada >= sejak),
+    gap: r.gap.filter((g) => g.sampai >= sejak),
+    ketersediaan: r.ketersediaan,
+    timelineLayanan: r.timelineLayanan.filter((x) => x.dari >= sejak),
   });
 }
 

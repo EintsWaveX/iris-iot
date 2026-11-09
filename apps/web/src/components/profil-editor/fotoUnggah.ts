@@ -1,10 +1,9 @@
 /**
  * A Lab Profile photo goes up in two sizes the browser makes itself: long
  * edge 1600 and 480, WebP where the browser can write it (JPEG otherwise),
- * each uploaded straight to Vercel Blob through the /api/profil/unggah
- * handshake. Nothing larger than FOTO_MAKS_MASUK is read at all.
+ * each sent to /api/profil/unggah (stored in the database, api/_lib/berkas.ts). Nothing larger than FOTO_MAKS_MASUK is read at all.
  */
-import { upload } from "@vercel/blob/client";
+import { unggahBerkas } from "../../lib/unggah";
 import {
   FOTO_MAKS_MASUK,
   FOTO_SISI_BESAR,
@@ -60,16 +59,8 @@ export async function unggahFoto(file: File, nama: string): Promise<Foto> {
     const ext = besar.type === "image/webp" ? "webp" : "jpg";
     const dasar = nama.replace(/[^a-z0-9-]+/gi, "-").toLowerCase() || "foto";
     const [b, k] = await Promise.all([
-      upload(`profil/${dasar}.${ext}`, besar, {
-        access: "public",
-        handleUploadUrl: "/api/profil/unggah",
-        contentType: besar.type,
-      }),
-      upload(`profil/${dasar}-kecil.${ext}`, kecil, {
-        access: "public",
-        handleUploadUrl: "/api/profil/unggah",
-        contentType: kecil.type,
-      }),
+      unggahBerkas("/api/profil/unggah", besar, `${dasar}.${ext}`),
+      unggahBerkas("/api/profil/unggah", kecil, `${dasar}-kecil.${ext}`),
     ]);
     return { besar: b.url, kecil: k.url };
   } catch (err) {

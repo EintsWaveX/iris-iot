@@ -17,8 +17,13 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import { jamServer } from "../../../../lib/jam";
 import type { PartKey } from "../../../../lib/recruitment/exam-types";
 import {
+  FOKUS_GRACE_MS,
+  PageWatch,
   StrikeTracker,
+  WATCH_MS,
   devtoolsLikelyOpen,
+  reopened,
+  screenCount,
   isDevtoolsKey,
   isScreenshotKey,
   type Strike,
@@ -26,6 +31,21 @@ import {
 } from "../../../../lib/recruitment/seat-lockdown";
 
 const rid = () => `k${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/** This page's own id: a different one for the same seat and part means the page came back (a reload, a reopened tab) */
+const LIFE = rid();
+
+/** A second screen is attached: Chromium says so, other browsers do not (they give nothing, which counts nothing) */
+const secondScreen = () => screenCount(window.screen as { isExtended?: boolean }) === "more";
+/** The browser is driven by a script (Selenium, Playwright) */
+const automated = () => navigator.webdriver === true;
+const storage = () => {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
 
 const isField = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
@@ -61,10 +81,14 @@ export function useLockdown(o: {
   rootRef: RefObject<HTMLElement | null>;
   /** A screenshot key was pressed: the page tells the seat it was recorded */
   onScreenshot?: () => void;
+  /** The server answered a strike with the seat's points: the page asks for its view again, which carries any warning */
+  onTally?: () => void;
 }): Lockdown {
   const { active, seatId, part, rootRef } = o;
   const shotRef = useRef(o.onScreenshot);
   shotRef.current = o.onScreenshot;
+  const tallyRef = useRef(o.onTally);
+  tallyRef.current = o.onTally;
   const [fullscreen, setFullscreen] = useState(false);
   const [away, setAway] = useState(false);
   const tracker = useRef(new StrikeTracker(rid));
@@ -89,6 +113,10 @@ export function useLockdown(o: {
         // is tried again, so a strike never vanishes just because the line was busy.
         if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429))
           queue.current.delete(id);
+        if (r.ok) {
+          const j = (await r.json().catch(() => null)) as { points?: unknown } | null;
+          if (typeof j?.points === "number") tallyRef.current?.();
+        }
       } catch {
         /* offline: it stays queued */
       }
@@ -117,6 +145,7 @@ export function useLockdown(o: {
     fullscreen: !!document.fullscreenElement,
     visible: document.visibilityState === "visible",
     focused: document.hasFocus(),
+    online: navigator.onLine,
   });
   const settle = useCallback(() => report(tracker.current.settle(state(), jamServer())), [report]);
 
@@ -167,8 +196,24 @@ export function useLockdown(o: {
       .catch(() => undefined)
       .then(() => {
         if (!document.fullscreenElement) signal("layar");
+        // The page is back in a part it was already in: a reload, a reopened tab, a return from another page
+        if (reopened(storage(), `iris.lock.${seatId}.${partRef.current ?? "-"}`, LIFE))
+          signal("muat", true);
       });
+    // What the page state calls for, on every event and on a timer (8 Nov 2026). Events alone are not
+    // enough: Linux and Firefox blur the window around every fullscreen change and tab switch (so each
+    // strike got `fokus` added) and sometimes never send `focus` or `fullscreenchange` back (so a strike
+    // stayed open and swallowed every later signal, which froze the count). The state is the truth.
+    const watch = new PageWatch();
+    const check = () => {
+      // Once per change, as instant strikes: a second screen appearing, a script driving the browser
+      for (const k of watch.edges({ extended: secondScreen(), automated: automated() }))
+        signal(k, true);
+      for (const k of watch.read(state(), Date.now())) signal(k);
+      settle();
+    };
     const onFs = () => {
+      watch.quiet(Date.now());
       if (!document.fullscreenElement) signal("layar");
       else settle();
     };
@@ -176,12 +221,15 @@ export function useLockdown(o: {
       if (document.visibilityState === "hidden") signal("tab");
       else settle();
     };
-    // Focus leaving the window (another app, a devtools panel) blurs it without hiding the tab.
-    const onBlur = () =>
-      setTimeout(() => {
-        if (!document.hasFocus()) signal("fokus");
-      }, 0);
-    const onFocus = () => settle();
+    // Focus leaving the window (another app, a devtools panel) blurs it without hiding the tab. A blur
+    // only starts the clock: it counts when the focus is still gone after FOKUS_GRACE_MS and nothing
+    // else (tab hidden, full screen left, a fullscreen change just now) explains it.
+    const onBlur = () => {
+      setTimeout(check, 0);
+      setTimeout(check, FOKUS_GRACE_MS + 20);
+    };
+    const onFocus = () => check();
+    const watchTimer = setInterval(check, WATCH_MS);
     // Live Coding is written in the page, so copy and cut work there, and a paste is allowed only
     // when it is the very text last copied in this page (EXAM-ENGINE 7, ruling 2026-10-24).
     const coding = () => partRef.current === "livecode";
@@ -194,7 +242,11 @@ export function useLockdown(o: {
       signal("tempel", true);
     };
     const onCopy = (e: Event) => {
-      if (!coding()) return e.preventDefault();
+      // Outside Live Coding copy and cut are blocked and now noted (weight 0 unless staff raise it)
+      if (!coding()) {
+        e.preventDefault();
+        return signal("salin", true);
+      }
       const sel = document.getSelection()?.toString() ?? "";
       if (sel) copied.current = sel;
     };
@@ -220,8 +272,10 @@ export function useLockdown(o: {
         return;
       }
       const k = e.key.toLowerCase();
-      if ((e.ctrlKey || e.metaKey) && (k === "p" || (k === "a" && !isField(e.target))))
+      if ((e.ctrlKey || e.metaKey) && (k === "p" || (k === "a" && !isField(e.target)))) {
         e.preventDefault();
+        signal("salin", true);
+      }
     };
     const onResize = () => {
       if (document.fullscreenElement && devtoolsLikelyOpen(window)) signal("alat");
@@ -238,9 +292,18 @@ export function useLockdown(o: {
     // PrintScreen often fires only on key up
     document.addEventListener("keyup", onShotKey, true);
     window.addEventListener("resize", onResize);
-    const online = () => void flush();
+    const online = () => {
+      void flush();
+      check();
+    };
     window.addEventListener("online", online);
+    // A lost connection opens a strike that the line coming back closes (check reads navigator.onLine)
+    window.addEventListener("offline", check);
+    // Printing from the browser's menu, which no key handler sees
+    const onPrint = () => signal("salin", true);
+    window.addEventListener("beforeprint", onPrint);
     return () => {
+      clearInterval(watchTimer);
       document.removeEventListener("fullscreenchange", onFs);
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
@@ -253,6 +316,8 @@ export function useLockdown(o: {
       document.removeEventListener("keyup", onShotKey, true);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("online", online);
+      window.removeEventListener("offline", check);
+      window.removeEventListener("beforeprint", onPrint);
       // The part is over: whatever was open ends now, so no kejadian runs on into the lobby.
       report(t.settle({ fullscreen: true, visible: true, focused: true }, jamServer()));
     };

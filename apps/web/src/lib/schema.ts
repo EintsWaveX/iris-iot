@@ -24,6 +24,7 @@ import {
   jsonb,
   primaryKey,
   check,
+  customType,
   real,
   date,
   type AnyPgColumn,
@@ -2712,6 +2713,13 @@ export const recExamSeat = pgTable(
     tabAt: timestamp("tab_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    /** A pengawas held this seat (9 Nov 2026): answers are refused until it is released, and the held time goes back as extra time */
+    heldAt: timestamp("held_at", { withTimezone: true }),
+    /** Strikes past the per-part cap, counted but not stored: { logika: 3 } */
+    strikeOverflow: jsonb("strike_overflow")
+      .$type<Partial<Record<PartKey, number>>>()
+      .notNull()
+      .default({}),
   },
   (t) => [
     unique("rec_exam_seat_unik").on(t.editionId, t.candidateId, t.rehearsal),
@@ -2755,11 +2763,59 @@ export const recStrike = pgTable(
     kinds: text("kinds").array().notNull(),
     at: timestamp("at", { withTimezone: true }).notNull(),
     backAt: timestamp("back_at", { withTimezone: true }),
+    /** Staff forgave it (9 Nov 2026): it stops counting toward warnings and the suggested cut */
+    excusedBy: text("excused_by"),
+    excusedAt: timestamp("excused_at", { withTimezone: true }),
+    excuseReason: text("excuse_reason"),
   },
   (t) => [
     unique("rec_strike_unik").on(t.seatId, t.clientId),
     index("rec_strike_room_idx").on(t.roomId, t.at),
   ],
+);
+
+/** A warning shown to a seat (9 Nov 2026): the rising level from its violations, or one a pengawas sent. */
+export const recSeatWarning = pgTable(
+  "rec_seat_warning",
+  {
+    id: serial("id").primaryKey(),
+    seatId: integer("seat_id")
+      .notNull()
+      .references(() => recExamSeat.id, { onDelete: "cascade" }),
+    part: text("part", { enum: PART_KEYS }),
+    source: text("source", { enum: ["auto", "staff"] }).notNull(),
+    /** 1 notice, 2 strong, 3 final for an automatic one; 0 for a staff message */
+    level: integer("level").notNull().default(0),
+    /** The seat's counted points and the suggested cut (percent) when it was issued; 0 for a staff message */
+    points: integer("points").notNull().default(0),
+    cut: integer("cut").notNull().default(0),
+    text: text("text").notNull(),
+    byNim: text("by_nim"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (t) => [index("rec_seat_warning_seat_idx").on(t.seatId, t.at)],
+);
+
+/**
+ * The decision on a seat's suggested score cut for one part (9 Nov 2026). No row means it is still
+ * pending; `applied` cuts `pct` percent off the part's score, `waived` leaves it whole.
+ */
+export const recSeatPenalty = pgTable(
+  "rec_seat_penalty",
+  {
+    id: serial("id").primaryKey(),
+    seatId: integer("seat_id")
+      .notNull()
+      .references(() => recExamSeat.id, { onDelete: "cascade" }),
+    part: text("part", { enum: PART_KEYS }).notNull(),
+    state: text("state", { enum: ["applied", "waived"] }).notNull(),
+    pct: integer("pct").notNull().default(0),
+    byNim: text("by_nim").notNull(),
+    note: text("note"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("rec_seat_penalty_unik").on(t.seatId, t.part)],
 );
 
 export type RecExamRoomRow = typeof recExamRoom.$inferSelect;
@@ -3358,3 +3414,27 @@ export const recScoreFreeze = pgTable(
 );
 
 export type RecScoreFreezeRow = typeof recScoreFreeze.$inferSelect;
+
+/**
+ * Uploaded files (photos, slides, schematics, report attachments), kept in the
+ * database since the move off Vercel Blob (9 Nov 2026): the whole store was
+ * 7 MB, and a row travels with the nightly encrypted backup and every restore.
+ * The file is served at /f/<id>/<name> (server/app.ts); the id is random, so
+ * the address is the capability, as a Blob URL was. Never `select()` the whole
+ * row in a list: name the columns, `isi` is the file.
+ */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
+
+export const berkas = pgTable("berkas", {
+  id: text("id").primaryKey(),
+  nama: text("nama").notNull(),
+  tipe: text("tipe").notNull(),
+  ukuran: integer("ukuran").notNull(),
+  isi: bytea("isi").notNull(),
+  pemilik: text("pemilik"),
+  dibuat: timestamp("dibuat", { withTimezone: true }).notNull().defaultNow(),
+});

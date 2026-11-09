@@ -64,7 +64,7 @@ import { ambilBundel, bundelUntukPasang, terbitkan } from "../_lib/bundel.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
-import { waitUntil } from "@vercel/functions";
+import { waitUntil } from "../_lib/tunggu.js";
 import { Readable } from "node:stream";
 import { aliranR2, ambilIsiTp } from "../_lib/tp-unggah.js";
 import {

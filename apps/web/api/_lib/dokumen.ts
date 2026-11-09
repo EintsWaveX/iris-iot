@@ -47,8 +47,8 @@ import {
   blokValid,
   type JenisDokumen,
 } from "../../src/lib/laporan.js";
+import { urlBerkasValid } from "./berkas.js";
 
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 export const LAMPIRAN_TIPE = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
 export const LAMPIRAN_MAKS = 10 * 1024 * 1024;
 
@@ -303,15 +303,9 @@ export async function handleDokumenPost(
     const url = typeof body.url === "string" ? body.url : "";
     const tipe = typeof body.tipe === "string" ? body.tipe : "";
     const ukuran = Number(body.ukuran);
-    let host = "";
-    try {
-      host = new URL(url).hostname;
-    } catch {
-      // rejected below
-    }
     if (
       !nama ||
-      !host.endsWith(BLOB_HOST_SUFFIX) ||
+      !urlBerkasValid(url) ||
       !LAMPIRAN_TIPE.includes(tipe) ||
       !Number.isInteger(ukuran) ||
       ukuran <= 0 ||

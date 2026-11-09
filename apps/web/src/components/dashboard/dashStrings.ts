@@ -120,8 +120,7 @@ export const DS = dict({
       jarak: "Tabel jarak disimpan",
       selesai: "Sesi diakhiri asisten",
     },
-    nantiRiwayat:
-      "Nanti, buka lagi dari Modul: praktikum yang sudah selesai tampil sebagai Riwayat.",
+    nantiRiwayat: "Praktikum yang sudah selesai bisa dibuka lagi kapan saja dari menu Modul.",
     kembali: "Kembali ke Dasbor",
     // Feedback (p-feedback)
     fbEyebrow: (m: string) => `Umpan Balik · ${m}`,
@@ -257,7 +256,7 @@ export const DS = dict({
       jarak: "Distance table saved",
       selesai: "Session ended by the assistant",
     },
-    nantiRiwayat: "Later, open it again from Modules: a finished practicum shows as History.",
+    nantiRiwayat: "A finished practicum can be reopened any time from the Modules menu.",
     kembali: "Back to the Dashboard",
     fbEyebrow: (m: string) => `Feedback · ${m}`,
     fbH: "How Was the Practicum?",
@@ -389,7 +388,7 @@ export const DS = dict({
       jarak: "距离表已保存",
       selesai: "助教结束了这节课",
     },
-    nantiRiwayat: "之后可以从模块里再打开：做完的实验会显示为记录。",
+    nantiRiwayat: "做完的实验随时可以从“模块”菜单再打开。",
     kembali: "回到仪表盘",
     fbEyebrow: (m: string) => `反馈 · ${m}`,
     fbH: "这次实验怎么样？",

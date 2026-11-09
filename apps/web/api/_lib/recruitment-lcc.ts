@@ -31,7 +31,12 @@ import {
   drawSeed,
 } from "../../src/lib/recruitment/draw.js";
 import { livecodeResult } from "../../src/lib/recruitment/c-problem.js";
-import { capsOf, dealtCount, problemWorth } from "../../src/lib/recruitment/exam-config.js";
+import {
+  capsOf,
+  dealtCount,
+  penaltyOf,
+  problemWorth,
+} from "../../src/lib/recruitment/exam-config.js";
 import { bonusQuota, bonusWorth, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
 import { normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
@@ -291,6 +296,7 @@ async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
     hand.map((h) => ({ id: h.id, points: h.points })),
     subs as SubRow[],
     (id) => place.get(id) ?? null,
+    penaltyOf(c.config),
   );
   const body: LccSelf = {
     fase,
@@ -299,9 +305,12 @@ async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
     total,
     cap: capsOf(c.config).livecode,
     minutes: c.config.livecode.minutes,
+    penalty: penaltyOf(c.config),
     judgeReady: await judgeSiap(c.db, c.now),
     bonus: await infoBonus(c, ids),
     done: c.seat.done.livecode != null,
+    // The same list the places above come from, so "number 3 of 7" always adds up
+    queueTotal: waiting.length,
   };
   res.status(200).json({ ok: true, ...body });
 }
@@ -453,6 +462,7 @@ async function kirim(c: KonteksLc, fase: "spin" | "kerja", req: ApiRequest, res:
   if (!ids?.concat(bonusKursi(c)).includes(problemId))
     return void tolak(res, "soal_bukan_milikmu", 403);
   if (c.seat.done.livecode != null) return void tolak(res, "sudah_kumpul", 409);
+  if (c.seat.heldAt) return void tolak(res, "bagian_ditahan", 409);
   const r = await kirimKode(c.db, {
     kind: kind as "run" | "submit",
     seatId: c.seat.id,
@@ -582,6 +592,7 @@ async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
             at: x.requestedAt.getTime(),
           })),
       })),
+      penaltyOf(config),
     );
     return {
       seatId: seat.id,
@@ -595,6 +606,8 @@ async function bacaRuang(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
         got: pr.got,
         passed: pr.best?.passed ?? null,
         total: pr.best?.total ?? null,
+        fails: pr.fails,
+        lost: pr.lost,
       })),
       got: live.total,
       waiting: mine.filter((x) => x.status === "antre" || x.status === "diambil").length,

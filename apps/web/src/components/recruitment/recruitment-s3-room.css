@@ -454,7 +454,7 @@
 }
 .r3tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(264px, 1fr));
   gap: 10px;
 }
 .r3tile {
@@ -1077,4 +1077,217 @@
 .r3done__details ul.hint {
   font-size: 1rem;
   line-height: 1.55;
+}
+
+/* Violations in the seat drawer and on the tile (9 Nov 2026). Opaque surfaces, level by border and text. */
+.r3vio {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+}
+.r3vio[data-level="1"] {
+  border-color: var(--warn);
+}
+.r3vio[data-level="2"],
+.r3vio[data-level="3"] {
+  border-color: var(--danger);
+}
+.r3vio[data-open="yes"] {
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+.r3tline li[data-excused="yes"] b {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.r3tile__strike[data-level="1"] {
+  color: var(--warn);
+}
+.r3tile__strike[data-level="2"],
+.r3tile__strike[data-level="3"] {
+  color: var(--danger);
+  font-weight: 700;
+}
+.r3tile__held {
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface-1));
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 1px 8px;
+}
+
+/* ---- The room console, upgraded (9 Nov 2026): counters, the attention list, richer tiles, a feed that marks what is new.
+   Opaque surfaces throughout; state is always in words as well as colour. */
+.r3sum {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+.r3sum__card {
+  align-content: start;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  display: grid;
+  font: inherit;
+  gap: 2px;
+  padding: 10px 12px;
+  text-align: left;
+}
+button.r3sum__card {
+  cursor: pointer;
+}
+.r3sum__card b {
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+.r3sum__card span {
+  font-size: 0.85rem;
+}
+.r3sum__card[data-tone="none"] {
+  color: var(--text-muted);
+}
+.r3sum__card[data-tone="danger"] {
+  border-color: var(--danger);
+}
+.r3sum__card[data-tone="danger"] b {
+  color: var(--danger);
+}
+.r3sum__card[data-tone="warn"] {
+  border-color: var(--warn);
+}
+.r3sum__card[data-tone="warn"] b {
+  color: var(--warn);
+}
+.r3sum__card[aria-pressed="true"] {
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.r3attn {
+  background: var(--surface-1);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.r3attn[data-empty="yes"] {
+  border-color: var(--hairline);
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+  gap: 12px;
+}
+.r3attn__list {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.r3attn__item {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 8px;
+  padding: 6px 10px;
+}
+.r3attn__why {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.r3attn__why i {
+  background: var(--surface-3);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 650;
+  padding: 1px 8px;
+}
+.r3attn__why i[data-r="keluar"],
+.r3attn__why i[data-r="peringatan"] {
+  background: color-mix(in srgb, var(--danger) 18%, var(--surface-1));
+  color: var(--danger);
+}
+.r3attn__why i[data-r="keputusan"],
+.r3attn__why i[data-r="ditahan"],
+.r3attn__why i[data-r="terputus"] {
+  background: color-mix(in srgb, var(--warn) 18%, var(--surface-1));
+}
+.r3tile {
+  gap: 8px;
+  padding: 14px;
+}
+.r3tile__top .r3dot {
+  margin-left: auto;
+  margin-top: 4px;
+}
+.r3tile__status {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.r3tile__status[data-st="on"],
+.r3tile__status[data-st="done"] {
+  color: var(--ok);
+}
+.r3tile__status[data-st="off"] {
+  color: var(--warn);
+}
+.r3tile[data-vl="1"] {
+  border-color: var(--warn);
+}
+.r3tile[data-vl="2"],
+.r3tile[data-vl="3"] {
+  border-color: var(--danger);
+}
+.r3tile[data-held="yes"] {
+  box-shadow: inset 4px 0 0 var(--warn);
+}
+.r3tile__left {
+  color: var(--text-muted);
+  font-weight: 650;
+}
+.r3tile__vio {
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface-1));
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.r3tile__vio[data-level="2"],
+.r3tile__vio[data-level="3"] {
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface-1));
+  border-color: var(--danger);
+}
+.r3tline li[data-new="yes"] {
+  box-shadow: inset 3px 0 0 var(--accent);
+  padding-left: 8px;
+}
+.r3feed__new {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent-bright);
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 700;
+  padding: 0 7px;
+  text-transform: uppercase;
+}
+@media (max-width: 519px) {
+  .r3sum {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

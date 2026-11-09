@@ -1804,3 +1804,52 @@ html:has(.r3page:not(.r3page--shell)) {
   animation: none;
   color: var(--text-muted);
 }
+
+/* The seat's violations (9 Nov 2026): a chip with the points in the part, and the icon of the
+   warning dialog. The chip sits at the bottom-left, above the bottom bar so it never covers Sebelumnya, and clear of the timer and the watermark. */
+.r3vio__chip {
+  align-items: center;
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface-1));
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  bottom: 92px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 6px;
+  left: 16px;
+  padding: 5px 12px;
+  position: fixed;
+  z-index: 55;
+}
+.r3vio__chip svg {
+  color: var(--warn);
+}
+.r3vio__chip[data-level="2"],
+.r3vio__chip[data-level="3"] {
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface-1));
+  border-color: var(--danger);
+}
+.r3vio__chip[data-level="2"] svg,
+.r3vio__chip[data-level="3"] svg {
+  color: var(--danger);
+}
+.r3vio__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface-1));
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  color: var(--warn);
+  display: flex;
+  height: 56px;
+  justify-content: center;
+  margin: 8px auto 0;
+  width: 56px;
+}
+.r3vio__icon[data-level="2"],
+.r3vio__icon[data-level="3"] {
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface-1));
+  border-color: var(--danger);
+  color: var(--danger);
+}

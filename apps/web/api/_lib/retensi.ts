@@ -20,7 +20,7 @@
  * content and settings, and the Lab Profile on Home (api/_lib/profil.ts). The newest uang kas rate is carried into the next
  * semester so pay keeps its rate.
  */
-import { del } from "@vercel/blob";
+import { hapusBerkas } from "./berkas.js";
 import { and, eq, inArray, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -308,15 +308,9 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
     return n;
   });
 
-  // Report files live in Blob storage, outside the transaction. A file that
-  // will not delete is left for the next run to retry; the rows are gone.
-  for (const url of lampiran) {
-    try {
-      await del(url);
-    } catch (e) {
-      console.warn("[WARN] retensi: lampiran tetap ada", url, e);
-    }
-  }
+  // Report files live in the berkas table (api/_lib/berkas.ts), outside the
+  // transaction. A file that will not delete is left behind; the rows are gone.
+  await hapusBerkas(lampiran, "retensi lampiran");
   hitung.berkas = lampiran.length;
   // TP files (2026-10-21) live in R2: a whole semester at once.
   hitung.berkasTp = 0;

@@ -3,16 +3,15 @@
  * writes live in api/_lib/profil.ts.
  *
  * GET  /api/profil/baca    — anyone. The whole profile.
- * POST /api/profil/unggah  — the "profil" right. The Vercel Blob client
- *                            upload handshake for one photo the browser
- *                            already shrank (WebP, or JPEG/PNG where the
- *                            browser can't write WebP), same scheme as
- *                            api/presentasi/[aksi].ts.
+ * POST /api/profil/unggah  — the "profil" right. The upload of one photo the
+ *                            browser already shrank (WebP, or JPEG/PNG where
+ *                            the browser can't write WebP): its bytes as the
+ *                            body, stored by api/_lib/berkas.ts.
  * POST /api/profil/<write> — the "profil" right; see api/_lib/profil.ts.
  */
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { terimaUnggah } from "../_lib/berkas.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
-import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
+import { noStore, requireMethod } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { cekHak } from "../_lib/hak.js";
 import { denganSiaran } from "../_lib/siaran.js";
@@ -34,24 +33,17 @@ import { FOTO_TIPE_MASUK } from "../../src/lib/profil.js";
 // A 1600 px WebP is well under 1 MB; this leaves room for a JPEG fallback.
 const UNGGAH_MAKS = 6 * 1024 * 1024;
 
-/** The client-upload handshake (see beriToken in api/presentasi). */
+/** One photo's bytes in the body (see api/_lib/berkas.ts). */
 async function handleUnggah(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const body = jsonBody(req) as unknown as HandleUploadBody;
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request: req as unknown as Request,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: FOTO_TIPE_MASUK,
-        maximumSizeInBytes: UNGGAH_MAKS,
-        addRandomSuffix: true,
-        tokenPayload: JSON.stringify({ nim: session.nim }),
-      }),
+    await terimaUnggah(req, res, session.nim, {
+      tipe: FOTO_TIPE_MASUK,
+      maks: UNGGAH_MAKS,
+      asal: "profil/unggah",
     });
-    res.status(200).json(jsonResponse);
   } catch (err) {
     console.error("[api/profil/unggah] unexpected error:", err);
-    res.status(400).json({ error: err instanceof Error ? err.message : "unggah gagal" });
+    res.status(500).json({ ok: false, kode: "unggah_gagal" });
   }
 }
 

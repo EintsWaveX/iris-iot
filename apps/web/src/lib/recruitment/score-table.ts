@@ -7,6 +7,7 @@
  */
 import {
   PHASE1_PARTS,
+  type PartKey,
   type Phase1Part,
   type Question,
   type SeatDraw,
@@ -17,7 +18,7 @@ import { credit } from "./formats.js";
 import { fracText, type Frac } from "./frac.js";
 import type { LiveFlag, PartScore, ScoreRow, StatRow, WrongPick } from "./score-api.js";
 import { scorePart, totals, type SeatPart } from "./scoring.js";
-import { livecodeResult, type Run } from "./c-problem.js";
+import { livecodeResult, type Penalty, type Run } from "./c-problem.js";
 
 export interface SeatIn {
   seatId: number;
@@ -28,6 +29,11 @@ export interface SeatIn {
   draw: SeatDraw;
   /** What the seat stored, by question id; a missing entry is unanswered */
   values: ReadonlyMap<number, Value>;
+  /**
+   * The violation decisions (9 Nov 2026): the percent cut applied to each part's score, and the
+   * parts whose suggested cut nobody has decided yet. Left out when the seat has neither.
+   */
+  penalty?: { applied: Partial<Record<PartKey, number>>; pending: PartKey[] };
 }
 
 export interface QuestionIn {
@@ -51,6 +57,8 @@ export interface LiveIn {
   runs: ReadonlyMap<number, readonly (Run & { problemId: number })[]>;
   /** Seats with a Submit still waiting at the judge */
   waiting: ReadonlySet<number>;
+  /** The penalty for failed Submits from the settings; none when left out */
+  penalty?: Penalty;
 }
 
 export interface Assembled {
@@ -124,6 +132,14 @@ export function assemble(
     for (const part of PHASE1_PARTS) {
       const r = scored[part].now.seats.get(s.seatId)!;
       parts[part] = r.flag ? { score: r.score, flag: r.flag } : { score: r.score };
+      // A cut a pengawas applied for violations comes off the part's score, whole points (9 Nov 2026)
+      const cut = s.penalty?.applied[part] ?? 0;
+      if (cut > 0 && !r.flag && r.score > 0)
+        parts[part] = {
+          score: Math.round((r.score * (100 - cut)) / 100),
+          cut,
+          was: r.score,
+        };
     }
     let lc: number | null = null;
     let liveFlag: LiveFlag | undefined;
@@ -139,6 +155,7 @@ export function assemble(
           points: h.points,
           runs: runs.filter((r) => r.problemId === h.problemId),
         })),
+        live.penalty,
       );
       // The dealt problems make the cap; bonus problems add on top of it (4 Nov 2026). With
       // the settings' own points the dealt problems add up to the cap already; with a
@@ -153,6 +170,12 @@ export function assemble(
         liveFlag = "belum";
         liveWaiting.push(s.seatId);
       }
+    }
+    let liveCut: { pct: number; was: number } | undefined;
+    const lcCut = s.penalty?.applied.livecode ?? 0;
+    if (lcCut > 0 && lc !== null && lc > 0) {
+      liveCut = { pct: lcCut, was: lc };
+      lc = Math.round((lc * (100 - lcCut)) / 100);
     }
     const t = totals({
       logika: parts.logika.score,
@@ -170,6 +193,11 @@ export function assemble(
       phase1: t.phase1,
       livecode: lc,
       ...(liveFlag ? { liveFlag } : {}),
+      ...(liveCut ? { liveCut } : {}),
+      ...(s.penalty &&
+      (Object.values(s.penalty.applied).some((n) => n > 0) || s.penalty.pending.length)
+        ? { penalty: s.penalty }
+        : {}),
       total: t.total,
     });
   }

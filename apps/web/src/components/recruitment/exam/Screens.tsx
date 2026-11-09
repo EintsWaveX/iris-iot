@@ -118,6 +118,8 @@ export function Lobby({
   // The next part this seat still has to do: the part after the one that ended, skipping those it did in another room.
   const next = plan.slice(di + 1).find((p) => !elsewhere.has(p.key as never)) ?? null;
   const tot = plan.reduce((a, p) => a + p.minutes, 0);
+  // The last part ended and none is left for this seat: say so, instead of "waiting for the pengawas to start".
+  const allDone = doneKey !== null && next === null;
   const when = tv.info?.startsAt ? new Date(tv.info.startsAt) : null;
   return (
     <div className="r3gate r3lobby" data-m={motion}>
@@ -130,7 +132,7 @@ export function Lobby({
             </h1>
             <div className="r3wait">
               <i className="r3wait__dot" aria-hidden="true" />
-              <b>{l.waiting}</b>
+              <b>{allDone ? l.allDone : l.waiting}</b>
               {next && (
                 <span className="hint">
                   · {l.next} {t.part[next.key].l}, {t.minutes(next.minutes)}

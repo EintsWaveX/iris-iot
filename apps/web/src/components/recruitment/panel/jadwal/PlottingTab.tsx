@@ -770,6 +770,9 @@ function Chip({ x, can, hit, lang }: { x: Kartu; can: boolean; hit: boolean; lan
       style={isDragging ? { opacity: 0.4 } : undefined}
       {...(can ? { ...attributes, ...listeners } : {})}
     >
+      <span className="r2chip__av" aria-hidden="true">
+        {(x.nama.trim()[0] ?? "?").toUpperCase()}
+      </span>
       <span className="r2chip__n">{x.nama}</span>
       {x.via === "auto" && <span className="r2chip__via">{t.auto}</span>}
       {x.via === "panitia" && <span className="r2chip__via">{t.panitia}</span>}
@@ -783,6 +786,7 @@ function Lajur({
   className,
   children,
   over,
+  full,
   col,
   flag,
 }: {
@@ -791,6 +795,7 @@ function Lajur({
   className: string;
   children: React.ReactNode;
   over?: boolean;
+  full?: boolean;
   col?: number;
   flag?: "danger" | "warn";
 }) {
@@ -801,6 +806,7 @@ function Lajur({
       className={className}
       data-col={col}
       data-over={over ? "yes" : undefined}
+      data-full={full ? "yes" : undefined}
       data-flag={flag}
       data-drop={isOver && !disabled ? "yes" : undefined}
     >
@@ -1044,6 +1050,7 @@ function Papan({
                         disabled={!can}
                         className="r2col"
                         over={s.taken > s.capacity}
+                        full={s.taken === s.capacity && s.capacity > 0}
                         flag={
                           crew?.flagsOf(s.id).some((f) => f.tone === "danger")
                             ? "danger"
@@ -1056,11 +1063,9 @@ function Papan({
                           <b>{s.room}</b>
                           <span className="num r2col__n">{`${s.taken}/${s.capacity}`}</span>
                         </div>
-                        {crew && (
-                          <span className="hint num r2col__t">
-                            {wib(s.startsAt).jam} {cb.to} {wib(s.endsAt).jam}
-                          </span>
-                        )}
+                        <span className="hint num r2col__t">
+                          {wib(s.startsAt).jam} {cb.to} {wib(s.endsAt).jam}
+                        </span>
                         <Kapasitas s={s} />
                         {crew?.lane(s.id)}
                         {crew && crew.flagsOf(s.id).length > 0 && (

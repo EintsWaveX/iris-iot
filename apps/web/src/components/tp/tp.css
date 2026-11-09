@@ -670,11 +670,12 @@
   gap: 20px;
   grid-template-columns: minmax(0, 1fr);
 }
-.tpmodpick {
+/* .modpick.tpmodpick: console.css loads after this file and its 520px rule has the same weight as a bare .tpmodpick, so the four across at a laptop width never applied (practicum pass, 2026-11-07). */
+.modpick.tpmodpick {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 @media (min-width: 1024px) {
-  .tpmodpick {
+  .modpick.tpmodpick {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
@@ -2673,9 +2674,10 @@
 [data-k="tunda"]:is(i) {
   background: repeating-linear-gradient(
     135deg,
-    var(--warn-soft) 0 6px,
-    color-mix(in srgb, var(--warn) 30%, transparent) 6px 12px
+    color-mix(in srgb, var(--warn) 14%, transparent) 0 6px,
+    color-mix(in srgb, var(--warn) 6%, transparent) 6px 12px
   );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 22%, transparent);
   color: var(--text);
 }
 [data-k="praktikum"]:is(i) {

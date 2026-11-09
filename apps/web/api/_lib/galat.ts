@@ -31,8 +31,16 @@ let hitung = 0;
 let ruteKini = "";
 let terpasang = false;
 
-function teks(v: unknown): string {
-  if (v instanceof Error) return `${v.name}: ${v.message}`;
+/** An error's own line plus the one underneath it. drizzle wraps a driver failure as "Failed query: ..." and
+ *  keeps the real reason ("timeout exceeded when trying to connect") in `cause`, so without it the report
+ *  says which query failed but never why. */
+export function teks(v: unknown): string {
+  if (v instanceof Error) {
+    const sebab =
+      v.cause instanceof Error ? v.cause.message : typeof v.cause === "string" ? v.cause : "";
+    // The cause goes first: the message can be a whole SQL statement and the report is cut at PESAN_MAKS.
+    return sebab ? `${v.name}: [${sebab}] ${v.message}` : `${v.name}: ${v.message}`;
+  }
   if (typeof v === "string") return v;
   try {
     return JSON.stringify(v);

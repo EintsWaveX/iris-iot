@@ -1,0 +1,29 @@
+# Nightly dump of the IRIS database (see backup.sh). Started by iris-backup.timer.
+# Install: sudo cp iris-backup.service iris-backup.timer /etc/systemd/system/ && sudo systemctl daemon-reload
+#          sudo systemctl enable --now iris-backup.timer
+
+[Unit]
+Description=Nightly IRIS database backup
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+# The same user as the site: it can read the code under /opt/iris-web and the database URL,
+# and needs no database superuser (the app's role owns every table).
+User=iris-web
+Group=iris-web
+# R2 keys for the offsite copy (backup.env.example). systemd reads it as root, so the
+# root-only file works.
+EnvironmentFile=-/etc/iris-web/backup.env
+# Local copies go to /var/lib/iris-backup, created for that user.
+StateDirectory=iris-backup
+StateDirectoryMode=0700
+# Dumps the database the site is configured for locally (the address in database-url.local).
+ExecStart=/bin/bash -c 'IRIS_BACKUP_DB="$(cat /etc/iris-web/database-url.local)" exec /opt/iris-web/apps/web/deploy/backup.sh'
+TimeoutStartSec=30min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true

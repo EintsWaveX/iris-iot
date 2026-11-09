@@ -7,6 +7,7 @@
  */
 import type { BonusQuote } from "../../../lib/recruitment/bonus";
 import { dict } from "../../../lib/app";
+import { offerWords } from "./bonusWords";
 import type { PartKey } from "../../../lib/recruitment/exam-types";
 
 type Names = Record<PartKey, { l: string; s: string }>;
@@ -72,6 +73,10 @@ export const TS = dict({
       judgeOk: "PC Lab siap menilai programmu",
       judgeBad:
         "PC Lab belum siap menilai. Tes tertulis tetap jalan, dan Asisten mengurusnya sebelum Live Coding.",
+      screens: "Layar",
+      screensOk: "Hanya satu layar yang tersambung",
+      screensBad:
+        "Ada layar kedua yang tersambung. Lepas kabelnya atau matikan tampilan yang diperluas sebelum tes dimulai, karena ini dicatat sebagai pelanggaran.",
       browser: "Browser",
       browserBad:
         "Kamu memakai browser yang belum diuji. Tes paling lancar di Chrome, tapi kamu tetap bisa masuk.",
@@ -95,6 +100,7 @@ export const TS = dict({
       checkedIn: "Kamu Sudah Masuk",
       done: (p: string) => `${p} selesai`,
       waiting: "Menunggu pengawas memulai",
+      allDone: "Semua bagian sudah selesai. Tunggu pengawas menutup ruangan.",
       next: "berikutnya",
       tonight: "Malam Ini",
       tonightHint: (n: number) => `${n} menit kerja, sekitar 120 menit dengan jeda`,
@@ -161,20 +167,14 @@ export const TS = dict({
     },
     bonus: {
       badge: "Bonus",
-      title: "Masih ada waktu. Mau coba soal bonus?",
-      counting: "Menghitung jatah bonusmu...",
-      desc: (q: BonusQuote) =>
-        `Kamu dapat ${q.quota} soal bonus dari ${q.rest} soal lain di bank (diacak). Jumlahnya dari sisa waktumu, ditambah jawaban benar, dikurangi jawaban salah dan soal yang kamu biarkan kosong. Tiap soal bonus bernilai setengah soal biasa. Soal kosong atau salah tidak mengurangi nilai soalnya sendiri, tapi mengurangi jatah bonusmu.`,
-      calc: {
-        time: "Sisa waktu",
-        right: "Jawaban benar",
-        wrong: "Jawaban salah",
-        blank: "Dibiarkan kosong",
-        total: "Soal bonus",
-      },
-      max: (n: number) => `paling banyak ${n}`,
-      yes: "Ya, Ambil Soal Bonus",
-      no: "Tidak, Lanjut Kumpulkan",
+      title: "Mau coba soal bonus?",
+      title2: "Yakin tidak mau coba soal bonus?",
+      counting: "Melihat hasil kerjamu...",
+      desc: (q: BonusQuote, round: 1 | 2) => offerWords("id", q, round),
+      yes: "Ya, Coba Soal Bonus",
+      yes2: "Oke, Aku Coba",
+      no: "Tidak, Lewati",
+      no2: "Tetap Lewati",
       taking: "Menyiapkan soal bonus",
       added: (n: number) => `${n} soal bonus ditambahkan di daftar soal.`,
       fail: "Soal bonus belum bisa diambil. Coba lagi.",
@@ -185,8 +185,34 @@ export const TS = dict({
       locked:
         "Jawaban soal biasa sudah dikunci. Kamu masih bisa mengerjakan soal bonus atau mengumpulkan.",
       lockWarn:
-        "Kalau ada soal bonus untukmu, jawaban bagian ini dikunci begitu kamu menekan Kumpulkan, lalu kamu dikasih lihat jatah bonusmu.",
+        "Kalau ada kesempatan soal bonus buatmu, jawaban bagian ini dikunci begitu kamu menekan Kumpulkan, lalu kamu ditanya mau coba atau tidak.",
       tally: "bonus terjawab",
+    },
+    viol: {
+      chip: (n: number) => `Pelanggaran: ${n} poin`,
+      titles: ["Pelanggaran tercatat", "Peringatan keras", "Peringatan terakhir"],
+      staffTitle: "Pesan dari pengawas",
+      ok: "Mengerti",
+      held: {
+        title: "Kursimu ditahan pengawas",
+        body: "Pengawas menahan kursimu sebentar. Jawabanmu yang sudah tersimpan aman. Tunggu di layar ini dan jangan tutup halamannya; waktu yang tertahan akan dikembalikan.",
+      },
+      body: (
+        level: number,
+        points: number,
+        cut: number,
+        part: string,
+        rule: { free: number; step: number; max: number } | null,
+      ) =>
+        (level === 1
+          ? `Ada pelanggaran yang tercatat di bagian ${part}, dan pengawas bisa melihatnya.`
+          : level === 2
+            ? `Pelanggaranmu di bagian ${part} sudah ${points} poin. Kalau terus begini, panitia bisa memotong nilai bagian ini.`
+            : `Ini peringatan terakhir. Pelanggaranmu di bagian ${part} sudah ${points} poin dan panitia akan meninjaunya.`) +
+        (rule && rule.step > 0
+          ? ` ${rule.free} poin pertama dimaafkan; tiap poin sesudahnya menyarankan potongan ${rule.step}% (paling banyak ${rule.max}%).${cut > 0 ? ` Saat ini disarankan potongan ${cut}%.` : ""} Panitia yang memutuskan.`
+          : "") +
+        (level === 3 ? " Tetap di layar penuh dan jangan pindah-pindah." : ""),
     },
     over: {
       shot: "Tombol screenshot tercatat dan dilihat pengawas.",
@@ -275,6 +301,10 @@ export const TS = dict({
       judgeOk: "The lab PC is ready to judge your programs",
       judgeBad:
         "The lab PC is not ready to judge yet. The written parts still run, and an Asisten sorts it out before Live Coding.",
+      screens: "Screen",
+      screensOk: "Only one screen is connected",
+      screensBad:
+        "A second screen is connected. Unplug it or turn off the extended display before the test starts, because it is recorded as a violation.",
       browser: "Browser",
       browserBad:
         "This browser has not been tested. The test runs best in Chrome, but you can still go in.",
@@ -299,6 +329,7 @@ export const TS = dict({
       checkedIn: "You're Checked In",
       done: (p: string) => `${p} is done`,
       waiting: "Waiting for the pengawas to start",
+      allDone: "All parts are done. Wait for the pengawas to close the room.",
       next: "next",
       tonight: "Tonight",
       tonightHint: (n: number) => `${n} minutes of work, about 120 with breaks`,
@@ -365,22 +396,19 @@ export const TS = dict({
     },
     bonus: {
       badge: "Bonus",
-      title: "There is still time. Try the bonus questions?",
-      counting: "Counting your bonus...",
-      desc: (q: BonusQuote) =>
-        `You get ${q.quota} bonus questions out of the ${q.rest} other questions in the bank (shuffled). The number comes from your time left, plus right answers, minus wrong ones and questions you left blank. Each bonus question is worth half a normal one. A blank or wrong question takes nothing from its own score, but it does cut your bonus.`,
-      calc: {
-        time: "Time left",
-        right: "Right answers",
-        wrong: "Wrong answers",
-        blank: "Left blank",
-        total: "Bonus questions",
-      },
-      max: (n: number) => `at most ${n}`,
-      yes: "Yes, Take the Bonus",
-      no: "No, Keep Handing In",
+      title: "Want to try the bonus questions?",
+      title2: "Sure you do not want the bonus questions?",
+      counting: "Looking at how you did...",
+      desc: (q: BonusQuote, round: 1 | 2) => offerWords("en", q, round),
+      yes: "Yes, Try the Bonus",
+      yes2: "Okay, I will Try",
+      no: "No, Skip",
+      no2: "Skip Anyway",
       taking: "Getting the bonus questions ready",
-      added: (n: number) => `${n} bonus questions were added to the question list.`,
+      added: (n: number) =>
+        n === 1
+          ? "1 bonus question was added to the question list."
+          : `${n} bonus questions were added to the question list.`,
       fail: "The bonus questions could not be taken. Try again.",
       late: "Your time left is now under the limit for the bonus.",
       cell: "Bonus question",
@@ -389,8 +417,34 @@ export const TS = dict({
       locked:
         "The answers to the normal questions are locked. You can still do the bonus questions or hand in.",
       lockWarn:
-        "If there are bonus questions for you, this part's answers lock as soon as you press Hand In, and you are shown your bonus count.",
+        "If a bonus chance comes up for you, this part's answers lock as soon as you press Hand In, then you are asked whether you want to try.",
       tally: "bonus answered",
+    },
+    viol: {
+      chip: (n: number) => `Violations: ${n} points`,
+      titles: ["Violation recorded", "Strong warning", "Final warning"],
+      staffTitle: "Message from the pengawas",
+      ok: "Understood",
+      held: {
+        title: "Your seat is on hold",
+        body: "The pengawas is holding your seat for a moment. Your saved answers are safe. Wait on this screen and do not close the page; the time that was held will be given back.",
+      },
+      body: (
+        level: number,
+        points: number,
+        cut: number,
+        part: string,
+        rule: { free: number; step: number; max: number } | null,
+      ) =>
+        (level === 1
+          ? `A violation was recorded in ${part}, and the pengawas can see it.`
+          : level === 2
+            ? `Your violations in ${part} are now ${points} points. If this goes on, the committee can cut this part's score.`
+            : `This is the final warning. Your violations in ${part} are now ${points} points and the committee will review them.`) +
+        (rule && rule.step > 0
+          ? ` The first ${rule.free} points are forgiven; each point after that suggests a ${rule.step}% cut (at most ${rule.max}%).${cut > 0 ? ` A ${cut}% cut is suggested right now.` : ""} The committee decides.`
+          : "") +
+        (level === 3 ? " Stay in full screen and do not switch around." : ""),
     },
     over: {
       shot: "The screenshot key was recorded and the pengawas can see it.",
@@ -476,6 +530,9 @@ export const TS = dict({
       judge: "C 评测",
       judgeOk: "实验室电脑已准备好评测你的程序",
       judgeBad: "实验室电脑暂时无法评测。笔试仍可进行，助教会在现场编程前处理。",
+      screens: "屏幕",
+      screensOk: "只连接了一块屏幕",
+      screensBad: "已连接第二块屏幕。请在考试开始前拔掉它或关闭扩展显示，否则会被记为违规。",
       browser: "浏览器",
       browserBad: "此浏览器尚未测试。Chrome 最流畅，但你仍然可以进入。",
       fsFail: "浏览器不允许全屏，请重试，或改用 Chrome 或 Edge。",
@@ -498,6 +555,7 @@ export const TS = dict({
       checkedIn: "你已入场",
       done: (p: string) => `${p}已结束`,
       waiting: "等待监考开始",
+      allDone: "所有部分已结束，请等待监考关闭考场。",
       next: "下一部分",
       tonight: "今晚安排",
       tonightHint: (n: number) => `共 ${n} 分钟作答，含休息约 120 分钟`,
@@ -560,14 +618,14 @@ export const TS = dict({
     },
     bonus: {
       badge: "加分",
-      title: "还有时间，要试试加分题吗？",
-      counting: "正在计算你的加分题数量...",
-      desc: (q: BonusQuote) =>
-        `你可获得 ${q.quota} 道加分题，来自题库中另外 ${q.rest} 道题（随机）。数量由剩余时间、答对题数、答错题数和留空题数决定。每道加分题的分值是普通题的一半；空白或答错不扣该题本身的分，但会减少加分题数量。`,
-      calc: { time: "剩余时间", right: "答对", wrong: "答错", blank: "留空", total: "加分题" },
-      max: (n: number) => `最多 ${n} 道`,
-      yes: "是，领取加分题",
-      no: "不用，继续提交",
+      title: "要试试加分题吗？",
+      title2: "真的不想试加分题吗？",
+      counting: "正在查看你的表现...",
+      desc: (q: BonusQuote, round: 1 | 2) => offerWords("zh", q, round),
+      yes: "是，试试加分题",
+      yes2: "好，我来试试",
+      no: "不用，跳过",
+      no2: "还是跳过",
       taking: "正在准备加分题",
       added: (n: number) => `已在题目列表中加入 ${n} 道加分题。`,
       fail: "暂时无法领取加分题，请重试。",
@@ -576,8 +634,34 @@ export const TS = dict({
       bar: "加分题：分值是普通题的一半，空白或答错不扣分。",
       answered: (a: number, n: number) => `加分题：已答 ${a} / ${n}`,
       locked: "普通题的答案已锁定。你仍可作答加分题或提交。",
-      lockWarn: "如果有适合你的加分题，按下提交后本部分的答案会被锁定，并显示你的加分题数量。",
+      lockWarn: "如果有加分题的机会，按下提交后本部分的答案会被锁定，然后会问你要不要试试。",
       tally: "加分题已答",
+    },
+    viol: {
+      chip: (n: number) => `违规：${n} 点`,
+      titles: ["已记录违规", "严重警告", "最终警告"],
+      staffTitle: "监考老师的消息",
+      ok: "我知道了",
+      held: {
+        title: "你的座位已被监考暂停",
+        body: "监考老师暂时暂停了你的座位。已保存的答案是安全的。请留在此页面，不要关闭；被暂停的时间会补回给你。",
+      },
+      body: (
+        level: number,
+        points: number,
+        cut: number,
+        part: string,
+        rule: { free: number; step: number; max: number } | null,
+      ) =>
+        (level === 1
+          ? `在${part}中记录了一次违规，监考老师可以看到。`
+          : level === 2
+            ? `你在${part}中的违规已有 ${points} 点。如果继续，委员会可能会扣减本部分的得分。`
+            : `这是最后一次警告。你在${part}中的违规已有 ${points} 点，委员会将会审查。`) +
+        (rule && rule.step > 0
+          ? ` 前 ${rule.free} 点免扣；之后每点建议扣 ${rule.step}%（最多 ${rule.max}%）。${cut > 0 ? `目前建议扣 ${cut}%。` : ""}由委员会决定。`
+          : "") +
+        (level === 3 ? " 请保持全屏，不要来回切换。" : ""),
     },
     over: {
       shot: "截图键已被记录，监考老师可以看到。",

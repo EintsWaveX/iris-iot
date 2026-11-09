@@ -16,6 +16,7 @@ import { isFail, recGet } from "../../../lib/recruitment/client";
 import type { SeatLink } from "../../../lib/recruitment/seat-client";
 import type { TestView } from "../../../lib/recruitment/seat-types";
 import { tanggalWib } from "../../../lib/recruitment/gates";
+import { screenCount } from "../../../lib/recruitment/seat-lockdown";
 import { tgl } from "../shared";
 import { CheckRow, type Motion } from "./parts";
 import { postCheckin, toast } from "./seatApi";
@@ -68,6 +69,16 @@ export default function CheckIn({
   const [liveWait, setLiveWait] = useState(true);
   const [round, setRound] = useState(0);
   const okBrowser = useRef(chromium());
+  // A second screen counts as a violation during the test, so say so before it starts. Read in an
+  // effect, not in the first render, so the server's page and the browser's agree; a browser that
+  // cannot tell (Firefox, Safari) gets no row at all.
+  const [screens, setScreens] = useState<"one" | "more" | "unknown">("unknown");
+  useEffect(() => {
+    const read = () => setScreens(screenCount(window.screen as { isExtended?: boolean }));
+    read();
+    const id = setInterval(read, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // One round trip to the API (the faster of two); the live link gets a few seconds.
   useEffect(() => {
@@ -187,6 +198,13 @@ export default function CheckIn({
             sub={rtt === null ? t.waiting : t.clockOk((Math.abs(selisihJam()) / 1000).toFixed(1))}
           />
           {!okBrowser.current && <CheckRow st="warn" title={t.browser} sub={t.browserBad} />}
+          {screens !== "unknown" && (
+            <CheckRow
+              st={screens === "more" ? "warn" : "ok"}
+              title={t.screens}
+              sub={screens === "more" ? t.screensBad : t.screensOk}
+            />
+          )}
           <CheckRow
             st={judgeSt}
             title={t.judge}

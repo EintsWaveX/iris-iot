@@ -69,6 +69,19 @@
   display: block;
 }
 
+/* The hidden "loading" word: Indonesian unless the page is English or Chinese. */
+.skw--en,
+.skw--zh,
+:root:lang(en) .skw--id,
+:root:lang(zh) .skw--id {
+  display: none;
+}
+
+:root:lang(en) .skw--en,
+:root:lang(zh) .skw--zh {
+  display: inline;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-motion-tier="0"]) .skeleton {
     animation: skeleton-shimmer 1.4s linear infinite;

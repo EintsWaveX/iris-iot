@@ -378,11 +378,59 @@ export const BK = dict({
     cfgRunLimit: "Batas kiriman per soal",
     cfgRunLimitNone: "Tanpa batas",
     cfgWorkers: "Judge berjalan bersamaan",
+    cfgPenaltyFree: "Submit gagal yang dimaafkan",
+    cfgPenaltyStep: "Potongan tiap Submit gagal",
+    cfgPenaltyMax: "Potongan paling besar",
+    cfgPenaltyNone: "Tanpa potongan",
+    cfgPenaltyBody: (free: number, step: number, max: number) =>
+      step === 0
+        ? "Potongan Submit gagal mati: Submit yang gagal tidak mengurangi nilai soal."
+        : `Rumus per soal: ${free} Submit gagal pertama gratis. Tiap Submit gagal sesudahnya memotong ${step}% dari nilai yang didapat soal itu, paling banyak ${max}%. Submit yang dikirim setelah soal lolos semua test tidak dihitung. Contoh: ${free + 3} Submit gagal lalu lolos = potong ${Math.min(max, step * 3)}%.`,
+    cfgTotal: "Total",
+    cfgTotalNote:
+      "Baris Total adalah nilai tertinggi secara teori: kalau peserta mengerjakan semua soal di pool dengan benar, bonus ikut, tanpa potongan Submit gagal. Nilai dasar tanpa bonus selalu sama dengan jatahnya.",
+    vioTitle: "Aturan Pelanggaran",
+    vioBody:
+      "Pelanggaran tercatat otomatis. Di sini kamu mengatur mana yang dihitung, seberapa berat, kapan peserta diperingatkan dan potongan nilai yang disarankan. Potongan tidak pernah jalan sendiri: panitia yang memutuskan.",
+    vioKind: "Jenis",
+    vioCounts: "Dihitung",
+    vioWeight: "Bobot",
+    vioKinds: {
+      layar: "Keluar dari layar penuh",
+      tab: "Pindah tab",
+      fokus: "Jendela kehilangan fokus",
+      tempel: "Mencoba paste",
+      alat: "Alat pengembang terdeteksi",
+      ganda: "Tes terbuka di tab atau perangkat lain",
+      foto: "Menekan tombol screenshot",
+      layar2: "Layar kedua terdeteksi",
+      muat: "Halaman dimuat ulang atau dibuka lagi",
+      otomatis: "Browser dijalankan lewat skrip",
+      salin: "Mencoba salin, potong atau cetak",
+      putus: "Koneksi internet terputus",
+    } as Record<string, string>,
+    vioFree: "Poin yang dimaafkan",
+    vioStep: "Potongan tiap poin",
+    vioMax: "Potongan paling besar",
+    vioWarn1: "Peringatan pertama di poin",
+    vioWarn2: "Peringatan kuat di poin",
+    vioWarn3: "Peringatan terakhir di poin",
+    vioCap: "Pelanggaran disimpan per bagian",
+    vioNoCut: "Tanpa potongan",
+    vioSummary: (free: number, step: number, max: number, w: number[]) =>
+      (step === 0
+        ? "Potongan nilai mati: pelanggaran hanya dicatat dan diperingatkan. "
+        : `${free} poin pertama dimaafkan. Tiap poin sesudahnya menyarankan potongan ${step}% dari nilai bagian itu, paling banyak ${max}%. `) +
+      `Peserta diperingatkan di poin ${w[0]}, ${w[1]} dan ${w[2]}. Pelanggaran yang dimaafkan panitia tidak dihitung.`,
     cfgScoreSum: (live: number, hand: number) =>
       `Jatah Live Coding ${live} poin, soal yang dibagikan ${hand} poin.`,
     cfgScoreOk: "Pas.",
     cfgScoreOff: "Belum pas. Ubah poin atau jumlah soal.",
     cfgErr: {
+      pelanggaran_salah:
+        "Aturan pelanggarannya belum benar (peringatan harus naik berurutan, potongan terbesar tidak boleh lebih kecil dari potongan tiap poin).",
+      denda_salah:
+        "Potongannya tidak masuk akal (paling besar tidak boleh lebih kecil dari potongan tiap Submit).",
       bobot_salah: "Jatah harus berjumlah 100.",
       poin_tidak_cocok: "Poin soal yang dibagikan belum pas dengan jatah Live Coding.",
       poin_salah: "Poin harus bilangan bulat di atas 0.",
@@ -747,11 +795,59 @@ export const BK = dict({
     cfgRunLimit: "Sends allowed per problem",
     cfgRunLimitNone: "No limit",
     cfgWorkers: "Judge runs in parallel",
+    cfgPenaltyFree: "Failed Submits forgiven",
+    cfgPenaltyStep: "Cut per failed Submit",
+    cfgPenaltyMax: "Biggest cut",
+    cfgPenaltyNone: "No cut",
+    cfgPenaltyBody: (free: number, step: number, max: number) =>
+      step === 0
+        ? "The failed Submit cut is off: a failed Submit takes nothing off a problem's score."
+        : `Per problem: the first ${free} failed Submits are free. Each failed Submit after that takes ${step}% off what the problem earned, at most ${max}% in all. Submits sent after the problem passed every test do not count. Example: ${free + 3} failed Submits then a pass = ${Math.min(max, step * 3)}% cut.`,
+    cfgTotal: "Total",
+    cfgTotalNote:
+      "The Total row is the highest score in theory: a candidate who gets every question in the pool right, bonus included, with no failed Submit cut. The base score without bonus always equals the share.",
+    vioTitle: "Violation rules",
+    vioBody:
+      "Violations are recorded automatically. Here you set which ones count, how heavy each is, when a candidate is warned and the score cut that is suggested. A cut never applies by itself: the committee decides.",
+    vioKind: "Kind",
+    vioCounts: "Counts",
+    vioWeight: "Weight",
+    vioKinds: {
+      layar: "Left full screen",
+      tab: "Switched tab",
+      fokus: "Window lost focus",
+      tempel: "Tried to paste",
+      alat: "Developer tools detected",
+      ganda: "Test open in another tab or device",
+      foto: "Pressed a screenshot key",
+      layar2: "Second screen detected",
+      muat: "Page reloaded or reopened",
+      otomatis: "Browser driven by a script",
+      salin: "Tried to copy, cut or print",
+      putus: "Internet connection lost",
+    } as Record<string, string>,
+    vioFree: "Points forgiven",
+    vioStep: "Cut per point",
+    vioMax: "Biggest cut",
+    vioWarn1: "First warning at point",
+    vioWarn2: "Strong warning at point",
+    vioWarn3: "Final warning at point",
+    vioCap: "Violations stored per part",
+    vioNoCut: "No cut",
+    vioSummary: (free: number, step: number, max: number, w: number[]) =>
+      (step === 0
+        ? "The score cut is off: violations are only recorded and warned about. "
+        : `The first ${free} points are forgiven. Each point after that suggests a ${step}% cut of the part's score, at most ${max}%. `) +
+      `The candidate is warned at points ${w[0]}, ${w[1]} and ${w[2]}. A violation the committee excuses does not count.`,
     cfgScoreSum: (live: number, hand: number) =>
       `Live Coding share is ${live} points, the dealt problems add up to ${hand}.`,
     cfgScoreOk: "It matches.",
     cfgScoreOff: "It does not match yet. Change the points or the number of problems.",
     cfgErr: {
+      pelanggaran_salah:
+        "The violation rules are not valid (warnings must rise in order, the biggest cut cannot be under the cut per point).",
+      denda_salah:
+        "The cut is not valid (the biggest cut cannot be smaller than the cut per Submit).",
       bobot_salah: "The shares must add up to 100.",
       poin_tidak_cocok: "The dealt problems do not add up to the Live Coding share.",
       poin_salah: "Points must be a whole number above 0.",
@@ -1110,11 +1206,57 @@ export const BK = dict({
     cfgRunLimit: "每题提交次数上限",
     cfgRunLimitNone: "不限",
     cfgWorkers: "评测并行数",
+    cfgPenaltyFree: "免扣的失败提交次数",
+    cfgPenaltyStep: "每次失败提交的扣分",
+    cfgPenaltyMax: "最大扣分",
+    cfgPenaltyNone: "不扣分",
+    cfgPenaltyBody: (free: number, step: number, max: number) =>
+      step === 0
+        ? "失败提交扣分已关闭：失败的提交不会减少该题得分。"
+        : `每题规则：前 ${free} 次失败提交免扣。之后每次失败提交扣掉该题所得分的 ${step}%，最多扣 ${max}%。题目通过全部测试后再提交不计入。例：失败 ${free + 3} 次后通过 = 扣 ${Math.min(max, step * 3)}%。`,
+    cfgTotal: "合计",
+    cfgTotalNote:
+      "合计行是理论上的最高分：考生答对题库中的所有题目（含加分题），且没有失败提交扣分。不含加分题的基础分始终等于占比。",
+    vioTitle: "违规规则",
+    vioBody:
+      "违规会自动记录。在这里设置哪些违规计入、每项的分量、何时警告考生，以及建议的扣分。扣分不会自动生效，由委员会决定。",
+    vioKind: "类型",
+    vioCounts: "计入",
+    vioWeight: "分量",
+    vioKinds: {
+      layar: "退出全屏",
+      tab: "切换标签页",
+      fokus: "窗口失去焦点",
+      tempel: "尝试粘贴",
+      alat: "检测到开发者工具",
+      ganda: "考试在其他标签页或设备上打开",
+      foto: "按下截图键",
+      layar2: "检测到第二块屏幕",
+      muat: "页面被刷新或重新打开",
+      otomatis: "浏览器由脚本控制",
+      salin: "尝试复制、剪切或打印",
+      putus: "网络连接中断",
+    } as Record<string, string>,
+    vioFree: "免扣点数",
+    vioStep: "每点扣分",
+    vioMax: "最大扣分",
+    vioWarn1: "首次警告点数",
+    vioWarn2: "严重警告点数",
+    vioWarn3: "最终警告点数",
+    vioCap: "每部分保存的违规数",
+    vioNoCut: "不扣分",
+    vioSummary: (free: number, step: number, max: number, w: number[]) =>
+      (step === 0
+        ? "扣分已关闭：违规只记录并警告。"
+        : `前 ${free} 点免扣，之后每点建议扣该部分得分的 ${step}%，最多 ${max}%。`) +
+      `考生在 ${w[0]}、${w[1]}、${w[2]} 点时收到警告。委员会免除的违规不计入。`,
     cfgScoreSum: (live: number, hand: number) =>
       `现场编程占比 ${live} 分，发出的题目合计 ${hand} 分。`,
     cfgScoreOk: "吻合。",
     cfgScoreOff: "尚未吻合。请调整分数或题目数量。",
     cfgErr: {
+      pelanggaran_salah: "违规规则无效（警告点数必须递增，最大扣分不能小于每点扣分）。",
+      denda_salah: "扣分设置无效（最大扣分不能小于每次扣分）。",
       bobot_salah: "占比之和必须为 100。",
       poin_tidak_cocok: "发出的题目分数之和与现场编程占比不符。",
       poin_salah: "分数必须是大于 0 的整数。",

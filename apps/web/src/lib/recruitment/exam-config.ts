@@ -9,6 +9,8 @@
  * written share between the three written parts (default 40 / 40 / 20).
  */
 import { BONUS_SHARE } from "./bonus.js";
+import type { Penalty } from "./c-problem.js";
+import { STRIKE_KINDS } from "./seat-lockdown.js";
 import {
   DEFAULT_EXAM_CONFIG,
   PART_KEYS,
@@ -47,6 +49,13 @@ export function capsOf(c: ExamConfig): Caps {
   });
   return { parts, written, livecode, total: TOTAL_SCORE };
 }
+
+/** The penalty for failed Submits, from the settings (c-problem.ts has the formula). */
+export const penaltyOf = (c: ExamConfig): Penalty => ({
+  free: c.livecode.penaltyFree,
+  step: c.livecode.penaltyStep,
+  max: c.livecode.penaltyMax,
+});
 
 /** What a seat can earn in Live Coding if every dealt problem passes every test. */
 export const dealtPoints = (c: ExamConfig) =>
@@ -165,6 +174,12 @@ export function upgradeConfig(raw: unknown): ExamConfig {
     if (rl !== null) out.livecode.runLimit = rl;
     const w = whole(lc.workers, 1, 16);
     if (w !== null) out.livecode.workers = w;
+    const pf = whole(lc.penaltyFree, 0, 20);
+    if (pf !== null) out.livecode.penaltyFree = pf;
+    const ps = whole(lc.penaltyStep, 0, 50);
+    if (ps !== null) out.livecode.penaltyStep = ps;
+    const pm = whole(lc.penaltyMax, 0, 100);
+    if (pm !== null) out.livecode.penaltyMax = pm;
     // A config saved before the Susah tier has no `hard`: it keeps dealing what it dealt, none of it.
     if (isObj(lc.draw) && lc.draw.hard === undefined) out.livecode.draw.hard = 0;
     for (const t of TIERS) {
@@ -183,6 +198,30 @@ export function upgradeConfig(raw: unknown): ExamConfig {
       const wl = whole(raw.weights.livecode, 0, 100);
       if (wr !== null && wl !== null && wr + wl === 100)
         out.weights = { written: wr, livecode: wl };
+    }
+    if (isObj(raw.violations)) {
+      const v = raw.violations;
+      const o = out.violations;
+      if (isObj(v.kinds))
+        for (const k of STRIKE_KINDS) {
+          const r = v.kinds[k];
+          if (!isObj(r)) continue;
+          const wt = whole(r.weight, 0, 5);
+          if (typeof r.counts === "boolean" && wt !== null)
+            o.kinds[k] = { counts: r.counts, weight: wt };
+        }
+      const free = whole(v.free, 0, 50);
+      if (free !== null) o.free = free;
+      const step = whole(v.step, 0, 50);
+      if (step !== null) o.step = step;
+      const max = whole(v.max, 0, 100);
+      if (max !== null && max >= o.step) o.max = max;
+      if (o.max < o.step) o.max = o.step;
+      const w = Array.isArray(v.warnAt) ? v.warnAt.map((n) => whole(n, 1, 200)) : [];
+      if (w.length === 3 && w.every((n) => n !== null) && w[0]! < w[1]! && w[1]! < w[2]!)
+        o.warnAt = w as [number, number, number];
+      const cap = whole(v.capPerPart, 10, 500);
+      if (cap !== null) o.capPerPart = cap;
     }
     if (isObj(raw.shares)) {
       const sh = PHASE1_PARTS.map((p) => whole((raw.shares as Record<string, unknown>)[p], 0, 100));
@@ -246,6 +285,17 @@ export function validateConfig(c: ExamConfig): FieldError[] {
     errs.push({ field: "livecode.runLimit", kode: "batas_salah" });
   if (!Number.isInteger(lc?.workers) || lc.workers < 1 || lc.workers > 16)
     errs.push({ field: "livecode.workers", kode: "jumlah_salah" });
+  if (!Number.isInteger(lc?.penaltyFree) || lc.penaltyFree < 0 || lc.penaltyFree > 20)
+    errs.push({ field: "livecode.penaltyFree", kode: "denda_salah" });
+  if (!Number.isInteger(lc?.penaltyStep) || lc.penaltyStep < 0 || lc.penaltyStep > 50)
+    errs.push({ field: "livecode.penaltyStep", kode: "denda_salah" });
+  if (
+    !Number.isInteger(lc?.penaltyMax) ||
+    lc.penaltyMax < 0 ||
+    lc.penaltyMax > 100 ||
+    lc.penaltyMax < lc.penaltyStep
+  )
+    errs.push({ field: "livecode.penaltyMax", kode: "denda_salah" });
   for (const t of TIERS) {
     if (!Number.isInteger(lc?.draw?.[t]) || lc.draw[t] < 0 || lc.draw[t] > 10)
       errs.push({ field: `livecode.draw.${t}`, kode: "jumlah_salah" });
@@ -267,6 +317,36 @@ export function validateConfig(c: ExamConfig): FieldError[] {
     (sh as number[]).reduce((a, b) => a + b, 0) !== 100
   )
     errs.push({ field: "shares", kode: "bobot_salah" });
+  const v = c.violations;
+  const kindsOk =
+    !!v?.kinds &&
+    STRIKE_KINDS.every(
+      (k) =>
+        typeof v.kinds[k]?.counts === "boolean" &&
+        Number.isInteger(v.kinds[k].weight) &&
+        v.kinds[k].weight >= 0 &&
+        v.kinds[k].weight <= 5,
+    );
+  if (
+    !kindsOk ||
+    !Number.isInteger(v.free) ||
+    v.free < 0 ||
+    v.free > 50 ||
+    !Number.isInteger(v.step) ||
+    v.step < 0 ||
+    v.step > 50 ||
+    !Number.isInteger(v.max) ||
+    v.max < v.step ||
+    v.max > 100 ||
+    !Array.isArray(v.warnAt) ||
+    v.warnAt.length !== 3 ||
+    v.warnAt.some((n) => !Number.isInteger(n) || n < 1 || n > 200) ||
+    !(v.warnAt[0] < v.warnAt[1] && v.warnAt[1] < v.warnAt[2]) ||
+    !Number.isInteger(v.capPerPart) ||
+    v.capPerPart < 10 ||
+    v.capPerPart > 500
+  )
+    errs.push({ field: "violations", kode: "pelanggaran_salah" });
   // The problems a seat is dealt must be worth exactly the Live Coding share.
   if (errs.length === 0 && dealtPoints(c) !== capsOf(c).livecode)
     errs.push({ field: "livecode.points", kode: "poin_tidak_cocok" });

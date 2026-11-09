@@ -43,6 +43,28 @@
   grid-row: 1;
 }
 
+.rp-fbar__clear {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+}
+
+.rp-fbar__clear .btn {
+  white-space: nowrap;
+}
+
+.rp-fbar__clear svg[data-open="yes"] {
+  transform: rotate(180deg);
+}
+
+/* The second row: slot, class, assistant, source */
+.rp-fbar > .rp-fbar__more {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .rp-fbar > * {
   min-width: 0;
 }
@@ -128,6 +150,9 @@
     grid-column: auto;
     grid-row: auto;
     width: 100%;
+  }
+  .rp-fbar > .rp-fbar__more {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
