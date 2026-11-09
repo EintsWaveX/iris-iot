@@ -195,7 +195,10 @@ export const LCC = dict({
       no: "No, Skip",
       no2: "Skip Anyway",
       taking: "Getting the bonus problems ready",
-      added: (n: number) => `${n} bonus problems were added to the problem list.`,
+      added: (n: number) =>
+        n === 1
+          ? "1 bonus problem was added to the problem list."
+          : `${n} bonus problems were added to the problem list.`,
       fail: "The bonus problems could not be taken. Try again.",
       late: "Your time left is now under the limit for the bonus.",
       bar: "Bonus Problem: worth half a normal one. Blank or failing takes nothing away.",
