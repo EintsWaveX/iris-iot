@@ -10,6 +10,8 @@
  * are examples until the Akademik edits them.
  */
 
+import { isObj } from "../guards.js";
+
 export const IV_STAGES = ["wawancara", "mengajar", "tubes"] as const;
 export type IvStage = (typeof IV_STAGES)[number];
 export const isIvStage = (v: unknown): v is IvStage =>
@@ -691,8 +693,6 @@ export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
 
 /* ------------------------------------------------------------ the check of a saved template */
 
-const isObj = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 const str = (v: unknown, max: number): string | null =>
   typeof v === "string" && v.trim().length > 0 && v.length <= max ? v.trim() : null;
 const num = (v: unknown, lo: number, hi: number): number | null =>

@@ -23,6 +23,7 @@ import type {
 } from "./exam-types.js";
 import { FORMATS, LANGS, LANGS_OF_PART, LANG_OF_PART, PHASE1_PARTS } from "./exam-types.js";
 import { structureKey } from "./formats.js";
+import { isObj } from "../guards.js";
 
 /* ----------------------------------------------------------------- clean */
 
@@ -33,8 +34,6 @@ export const MAX_ITEM = 2_000;
 export const MAX_TITLE = 200;
 const CODE_LANGS: readonly string[] = ["c", "text"];
 
-const isObj = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 const str = (v: unknown, max: number): string | null =>
   typeof v === "string" && v.length <= max ? v : null;
 const int = (v: unknown): number | null =>
