@@ -26,16 +26,12 @@ export function jamDariMenit(menit: number): string {
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
-/** Minutes after midnight now, on the lab's clock (WIB). */
+/** Minutes after midnight now, on the lab's clock (WIB, a fixed UTC+7: Indonesia has no daylight saving).
+ *  Plain arithmetic, not Intl.DateTimeFormat: building a formatter costs about 0.2 ms and the server history
+ *  asked this once per heartbeat row, which made a 7-day chart take seconds. */
 export function menitSekarangWib(now = new Date()): number {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Jakarta",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(now);
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
-  return get("hour") * 60 + get("minute");
+  const menit = Math.floor(now.getTime() / 60_000) + 7 * 60;
+  return ((menit % 1440) + 1440) % 1440;
 }
 
 /** The quiet hours (WIB), 00:00 to 04:59: no slot runs, so the relay's

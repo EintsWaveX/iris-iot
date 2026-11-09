@@ -61,6 +61,18 @@ export function pakaiNeon(
 export type Db = NeonDatabase<typeof schema>;
 
 let cachedDb: Db | null = null;
+let kolam: pg.Pool | null = null;
+
+/** A positive whole number from an env value, or the default. */
+export function angka(nilai: string | undefined, bawaan: number): number {
+  const n = Number(nilai);
+  return Number.isInteger(n) && n > 0 ? n : bawaan;
+}
+
+/** How full the local pool is (null on Neon): total connections, idle ones, requests waiting in line. */
+export function statusKolam(): { total: number; menganggur: number; antre: number } | null {
+  return kolam ? { total: kolam.totalCount, menganggur: kolam.idleCount, antre: kolam.waitingCount } : null;
+}
 
 export function getDb(): Db {
   if (cachedDb) return cachedDb;
@@ -77,14 +89,18 @@ export function getDb(): Db {
   if (pakaiNeon(url)) {
     cachedDb = drizzleNeon(new NeonPool({ connectionString: url }), { schema });
   } else {
+    // On Vercel every request had a pool of its own; here one process serves them all, so the pool is the
+    // site's whole database capacity. Postgres allows 100 connections and nothing else uses more than a few.
     const pool = new pg.Pool({
       connectionString: url,
-      max: 10,
+      max: angka(process.env.IRIS_DB_POOL, 30),
       idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 5_000,
+      // A burst waits in line instead of failing: a busy second must not become an error report.
+      connectionTimeoutMillis: angka(process.env.IRIS_DB_TUNGGU_MS, 15_000),
     });
     // An idle client the server dropped (a restart of Postgres) must not crash the process.
     pool.on("error", (err) => console.error("[db] idle client error:", err.message));
+    kolam = pool;
     cachedDb = drizzlePg(pool, { schema }) as unknown as Db;
   }
   return cachedDb;

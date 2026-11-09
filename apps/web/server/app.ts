@@ -27,6 +27,9 @@ export const BATAS_BERKAS = 21 * 1024 * 1024;
 /** Vercel's default function time; vercel.json's `maxDuration` narrows it per route. */
 export const DURASI_BAWAAN_DETIK = 300;
 
+/** An answer slower than this is logged as `[server] slow ...`. */
+export const AMBANG_LAMBAT_MS = 2000;
+
 export interface OpsiApp {
   /** apps/web (holds api/, vercel.json and what handlers read from disk). */
   akar: string;
@@ -175,6 +178,16 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
   };
 
   const server = http.createServer((req, res) => {
+    // An answer that takes long is named in the journal (route and action only, never the query string),
+    // so a slow page can be traced to the request that held the process.
+    const t0 = Date.now();
+    res.on("close", () => {
+      const ms = Date.now() - t0;
+      if (ms < AMBANG_LAMBAT_MS) return;
+      const [jalur = "", kueri = ""] = (req.url ?? "").split("?");
+      const aksi = new URLSearchParams(kueri).get("aksi");
+      console.warn(`[server] slow ${req.method} ${jalur}${aksi ? `?aksi=${aksi.slice(0, 40)}` : ""} ${res.statusCode} ${ms} ms`);
+    });
     void (async () => {
       let url: URL;
       try {
