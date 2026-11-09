@@ -626,17 +626,24 @@ function ambangSejak(dari: string | Date, ambangDetik: number): number {
     : ambangDetik;
 }
 
+/** The gap between two consecutive heartbeats, or null when it is short enough to be normal. */
+export function gapAntara(
+  dari: string,
+  sampai: string,
+  ambangDetik: number = GAP_AMBANG_DETIK,
+): GapEvent | null {
+  const detik = (new Date(sampai).getTime() - new Date(dari).getTime()) / 1000;
+  return detik > ambangSejak(dari, ambangDetik) ? { dari, sampai, detik: Math.round(detik) } : null;
+}
+
 export function detectGaps(
   rows: ReadonlyArray<{ pada: string }>,
   ambangDetik: number = GAP_AMBANG_DETIK,
 ): GapEvent[] {
   const out: GapEvent[] = [];
   for (let i = 1; i < rows.length; i++) {
-    const dari = rows[i - 1].pada;
-    const sampai = rows[i].pada;
-    const detik = (new Date(sampai).getTime() - new Date(dari).getTime()) / 1000;
-    if (detik > ambangSejak(dari, ambangDetik))
-      out.push({ dari, sampai, detik: Math.round(detik) });
+    const g = gapAntara(rows[i - 1].pada, rows[i].pada, ambangDetik);
+    if (g) out.push(g);
   }
   return out;
 }
@@ -652,18 +659,36 @@ export function hitungKetersediaan(
   rentangAkhir: Date,
   ambangDetik: number = GAP_AMBANG_DETIK,
 ): number {
+  return ketersediaanDari(
+    detectGaps(rows, ambangDetik),
+    rows.length ? rows[0].pada : null,
+    rows.length ? rows[rows.length - 1].pada : null,
+    rentangMulai,
+    rentangAkhir,
+    ambangDetik,
+  );
+}
+
+/** The same figure from what a query can hand over without the rows: the gaps already found and the first and
+ *  last heartbeat's time (null for both when there was no heartbeat in the window). */
+export function ketersediaanDari(
+  gaps: ReadonlyArray<GapEvent>,
+  pertama: string | null,
+  terakhir: string | null,
+  rentangMulai: Date,
+  rentangAkhir: Date,
+  ambangDetik: number = GAP_AMBANG_DETIK,
+): number {
   const totalDetik = (rentangAkhir.getTime() - rentangMulai.getTime()) / 1000;
   if (totalDetik <= 0) return 100;
-  if (rows.length === 0) return 0;
+  if (pertama === null || terakhir === null) return 0;
 
-  const gapDetik = detectGaps(rows, ambangDetik).reduce((sum, g) => sum + g.detik, 0);
-  const depanDetik = (new Date(rows[0].pada).getTime() - rentangMulai.getTime()) / 1000;
-  const belakangDetik =
-    (rentangAkhir.getTime() - new Date(rows[rows.length - 1].pada).getTime()) / 1000;
-  const akhir = rows[rows.length - 1].pada;
+  const gapDetik = gaps.reduce((sum, g) => sum + g.detik, 0);
+  const depanDetik = (new Date(pertama).getTime() - rentangMulai.getTime()) / 1000;
+  const belakangDetik = (rentangAkhir.getTime() - new Date(terakhir).getTime()) / 1000;
   const tepiHilang =
     (depanDetik > ambangSejak(rentangMulai, ambangDetik) ? depanDetik : 0) +
-    (belakangDetik > ambangSejak(akhir, ambangDetik) ? belakangDetik : 0);
+    (belakangDetik > ambangSejak(terakhir, ambangDetik) ? belakangDetik : 0);
 
   const tersedia = Math.max(0, totalDetik - gapDetik - tepiHilang);
   return Math.round((tersedia / totalDetik) * 1000) / 10;
