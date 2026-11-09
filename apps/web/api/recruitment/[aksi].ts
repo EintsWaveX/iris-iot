@@ -41,6 +41,7 @@
  * GET  /api/recruitment/settings     editable settings (docs, envelope wording, Cutting start)
  * POST /api/recruitment/setting-save | setting-reset   { key, value? }  by role (api/_lib/recruitment-settings.ts)
  * POST /api/recruitment/account-reset { nim }  forget an oprec password (approve right)
+ * GET  /api/recruitment/rights-config | POST rights-save | rights-reset   Hak Akses, the Ketua and the Pencipta (api/_lib/recruitment-hak.ts)
  *
  * hakPenuh, while the Google Form is the way in (api/_lib/recruitment-tambah.ts):
  * POST /api/recruitment/candidate-add | candidate-ticket | candidate-document | candidate-delete
@@ -55,6 +56,7 @@ import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, pgErrorCode, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
 import { guardTutup } from "../_lib/recruitment-s5.js";
+import { handleHakBaca, handleHakSimpan } from "../_lib/recruitment-hak.js";
 import { denganSiaran } from "../_lib/siaran.js";
 import { muatOrang } from "../_lib/hak.js";
 import { getDb } from "../../src/lib/db.js";
@@ -1228,6 +1230,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       const e = await wajibEdisi(res, getDb());
       return e ? handleSettings(req, res, s, getDb(), e.id) : undefined;
     }
+    if (aksi === "rights-config") {
+      const e = await wajibEdisi(res, getDb());
+      return e ? handleHakBaca(req, res, s, getDb(), e.id) : undefined;
+    }
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
   if (!requireMethod(req, res, "POST")) return;
@@ -1247,9 +1253,19 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "event-delete") return handleAcaraHapus(req, res, s);
   if (aksi === "seat") return handleDuduk(req, res, s);
   if (aksi === "unseat") return handleCabut(req, res, s);
-  // These two change what the live site shows or who may sign in, so practice leaves them alone.
-  if ((aksi === "visibility" || aksi === "account-reset") && konteksLatihan())
+  // These change what the live site shows, who may sign in or who holds which right, so practice leaves them alone.
+  if (
+    (aksi === "visibility" ||
+      aksi === "account-reset" ||
+      aksi === "rights-save" ||
+      aksi === "rights-reset") &&
+    konteksLatihan()
+  )
     return tolak(res, "latihan_tidak_bisa", 403);
+  if (aksi === "rights-save" || aksi === "rights-reset") {
+    const e = await wajibEdisi(res, getDb());
+    return e ? handleHakSimpan(req, res, s, getDb(), e.id, aksi === "rights-reset") : undefined;
+  }
   if (aksi === "visibility") {
     const e = await wajibEdisi(res, getDb());
     return e ? handleTampil(req, res, s, getDb(), e.id) : undefined;
