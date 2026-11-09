@@ -289,6 +289,8 @@ export interface Source {
   note?: string;
   /** Shown in place of "waiting" when this source has no lines. */
   empty?: string;
+  /** A board source whose port is open: with no lines it is silent, not unplugged. */
+  open?: boolean;
 }
 
 function Help({ lang, modul }: { lang: Lang; modul: number }) {
@@ -390,8 +392,8 @@ export function SerialMonitor({
       {boardEmpty ? (
         <div className="serial__empty">
           <UsbIcon size={28} aria-hidden="true" />
-          <b>{t.plugTitle}</b>
-          <span className="hint">{t.plugBody(modul)}</span>
+          <b>{cur?.open ? t.connectedTitle : t.plugTitle}</b>
+          <span className="hint">{cur?.open ? t.connectedBody(modul) : t.plugBody(modul)}</span>
         </div>
       ) : (
         <div
