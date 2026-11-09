@@ -34,8 +34,12 @@ describe("angka", () => {
 
 describe("teks", () => {
   it("puts the driver's reason in front of drizzle's long message", () => {
-    const e = new Error('Failed query: select "id" from "audit"', { cause: new Error("timeout exceeded when trying to connect") });
-    expect(teks(e)).toBe('Error: [timeout exceeded when trying to connect] Failed query: select "id" from "audit"');
+    const e = new Error('Failed query: select "id" from "audit"', {
+      cause: new Error("timeout exceeded when trying to connect"),
+    });
+    expect(teks(e)).toBe(
+      'Error: [timeout exceeded when trying to connect] Failed query: select "id" from "audit"',
+    );
     expect(teks(new Error("plain"))).toBe("Error: plain");
   });
 });

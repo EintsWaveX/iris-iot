@@ -4,7 +4,8 @@ import { jarakPilih } from "../server-riwayat";
 
 /** The test the chart query runs per row, as integer arithmetic: position k stays when i * n < maks * (k + 1)
  *  for i = ceil(maks * k / n). Must pick exactly the positions `jarakPilih` and `downsample` name. */
-const sqlMemilih = (k: number, n: number, maks: number) => n <= maks || Math.floor((k * maks + n - 1) / n) * n < maks * (k + 1);
+const sqlMemilih = (k: number, n: number, maks: number) =>
+  n <= maks || Math.floor((k * maks + n - 1) / n) * n < maks * (k + 1);
 
 describe("which heartbeats the chart keeps", () => {
   it("jarakPilih names the rows downsample picks", () => {

@@ -47,7 +47,10 @@ server.listen(port, host, () => {
 });
 
 pantauJeda({
-  lapor: (ms) => console.warn(`[server] the process was stalled for ${ms} ms, db pool ${JSON.stringify(statusKolam())}`),
+  lapor: (ms) =>
+    console.warn(
+      `[server] the process was stalled for ${ms} ms, db pool ${JSON.stringify(statusKolam())}`,
+    ),
 });
 
 process.on("unhandledRejection", (err) => console.error("[server] unhandled rejection:", err));

@@ -71,7 +71,9 @@ export function angka(nilai: string | undefined, bawaan: number): number {
 
 /** How full the local pool is (null on Neon): total connections, idle ones, requests waiting in line. */
 export function statusKolam(): { total: number; menganggur: number; antre: number } | null {
-  return kolam ? { total: kolam.totalCount, menganggur: kolam.idleCount, antre: kolam.waitingCount } : null;
+  return kolam
+    ? { total: kolam.totalCount, menganggur: kolam.idleCount, antre: kolam.waitingCount }
+    : null;
 }
 
 export function getDb(): Db {

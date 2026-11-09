@@ -186,7 +186,9 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
       if (ms < AMBANG_LAMBAT_MS) return;
       const [jalur = "", kueri = ""] = (req.url ?? "").split("?");
       const aksi = new URLSearchParams(kueri).get("aksi");
-      console.warn(`[server] slow ${req.method} ${jalur}${aksi ? `?aksi=${aksi.slice(0, 40)}` : ""} ${res.statusCode} ${ms} ms`);
+      console.warn(
+        `[server] slow ${req.method} ${jalur}${aksi ? `?aksi=${aksi.slice(0, 40)}` : ""} ${res.statusCode} ${ms} ms`,
+      );
     });
     void (async () => {
       let url: URL;
