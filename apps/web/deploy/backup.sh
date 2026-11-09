@@ -51,6 +51,22 @@ if [ "${IRIS_BACKUP_LOCAL_ONLY:-0}" != "1" ]; then
     -T "$OUT.age" \
     "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com/$R2_BUCKET/db/iris-$STAMP.dump.age"
   rm -f "$OUT.age"
+
+  # The PC's own env (its secrets), encrypted to the same age key, for the laptop standby (STANDBY.md).
+  # The env file is root:iris-web 0640, so this user can read it. One fixed name, overwritten each
+  # night: the standby wants the current secrets, not a history. A failure here never fails the backup.
+  ENV_FILE="${IRIS_ENV_FILE:-/etc/iris-web/env}"
+  if [ -r "$ENV_FILE" ] && age -r "$AGE_RECIPIENT" -o "$DIR/iris-env.age" "$ENV_FILE"; then
+    curl --fail --silent --show-error \
+      --aws-sigv4 "aws:amz:auto:s3" --user "$R2_KEY_ID:$R2_SECRET" \
+      -H "x-amz-content-sha256: UNSIGNED-PAYLOAD" \
+      -T "$DIR/iris-env.age" \
+      "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com/$R2_BUCKET/env/iris-env.age" \
+      || echo "backup: could not upload the env copy (the database backup is fine)" >&2
+    rm -f "$DIR/iris-env.age"
+  else
+    echo "backup: no env copy made (file unreadable or age failed); the database backup is fine" >&2
+  fi
 fi
 
 # Keep the newest $KEEP local dumps.
