@@ -4,19 +4,42 @@
  * their seat on the live edition's committee and applies it. The pages only
  * hide what these checks already refuse.
  */
+import { eq } from "drizzle-orm";
 import { hakPenuh } from "../../src/lib/hak.js";
-import { bolehDuduk, hakRekrutmen, pelakuDari } from "../../src/lib/recruitment/rights.js";
+import {
+  bacaHakConfig,
+  bolehDuduk,
+  hakRekrutmen,
+  pelakuDari,
+  type HakConfig,
+} from "../../src/lib/recruitment/rights.js";
 import type { RecRights } from "../../src/lib/recruitment/types.js";
+import { pengaturan } from "../../src/lib/schema.js";
 import type { ApiResponse } from "./http.js";
 import { muatOrang, type OrangHak } from "./hak.js";
 import { muatKursi, type Db, type Kursi } from "./recruitment-data.js";
+
+/** The `pengaturan` row that holds the rights config (Hak Akses); no row means the PRD table. */
+export const KUNCI_HAK = "rec_hak";
+
+/** The saved rights config, or the default. One value for the live site and for practice. */
+export async function muatHakConfig(db: Db): Promise<HakConfig> {
+  const [r] = await db
+    .select({ nilai: pengaturan.nilai })
+    .from(pengaturan)
+    .where(eq(pengaturan.kunci, KUNCI_HAK))
+    .limit(1);
+  return bacaHakConfig(r?.nilai);
+}
 
 export interface PelakuServer {
   orang: OrangHak;
   kursi: Kursi | null;
   hak: RecRights;
-  /** hakPenuh: the Pencipta or the Admin tier */
+  /** Holds everything: the Pencipta, the Admin tier, or anyone while "all Asisten" is on */
   penuh: boolean;
+  /** The config this person's rights were worked out from */
+  config: HakConfig;
 }
 
 /**
@@ -31,11 +54,13 @@ export async function muatPelaku(
   const orang = await muatOrang(nim);
   if (!orang || !bolehDuduk(orang.status)) return null;
   const kursi = await muatKursi(db, edisiId, nim);
+  const config = await muatHakConfig(db);
   return {
     orang,
     kursi,
-    hak: hakRekrutmen(pelakuDari(orang, kursi)),
-    penuh: hakPenuh(orang),
+    hak: hakRekrutmen(pelakuDari(orang, kursi), config),
+    penuh: hakPenuh(orang) || config.semua,
+    config,
   };
 }
 

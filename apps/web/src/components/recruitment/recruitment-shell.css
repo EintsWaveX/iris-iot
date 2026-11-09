@@ -405,3 +405,72 @@
     display: none;
   }
 }
+
+/* Hak Akses (2026-11-09): the rights matrix under the Panitia board. */
+.rec-hak {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+.rec-hak__all {
+  display: grid;
+  gap: 6px;
+}
+.rec-hak__scroll {
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+.rec-hak__scroll[data-off="yes"] {
+  opacity: 0.55;
+}
+.rec-hak__table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+.rec-hak__table th,
+.rec-hak__table td {
+  padding: 4px 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--hairline);
+}
+.rec-hak__table thead th {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--surface-1);
+}
+.rec-hak__table tbody tr:last-child th,
+.rec-hak__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.rec-hak__table .rec-hak__feat {
+  text-align: left;
+  font-weight: 500;
+  padding-left: 12px;
+  min-width: 240px;
+}
+.rec-hak__table .ctl-check {
+  justify-content: center;
+  min-height: 40px;
+  padding: 0;
+  gap: 0;
+}
+.rec-hak__table .ctl-check__text {
+  display: none;
+}
+.rec-hak__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.rec-hak__gap {
+  flex: 1;
+}
+.rec-hak__lock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
