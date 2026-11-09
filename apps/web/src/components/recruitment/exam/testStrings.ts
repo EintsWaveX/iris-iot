@@ -100,6 +100,7 @@ export const TS = dict({
       checkedIn: "Kamu Sudah Masuk",
       done: (p: string) => `${p} selesai`,
       waiting: "Menunggu pengawas memulai",
+      allDone: "Semua bagian sudah selesai. Tunggu pengawas menutup ruangan.",
       next: "berikutnya",
       tonight: "Malam Ini",
       tonightHint: (n: number) => `${n} menit kerja, sekitar 120 menit dengan jeda`,
@@ -328,6 +329,7 @@ export const TS = dict({
       checkedIn: "You're Checked In",
       done: (p: string) => `${p} is done`,
       waiting: "Waiting for the pengawas to start",
+      allDone: "All parts are done. Wait for the pengawas to close the room.",
       next: "next",
       tonight: "Tonight",
       tonightHint: (n: number) => `${n} minutes of work, about 120 with breaks`,
@@ -403,7 +405,10 @@ export const TS = dict({
       no: "No, Skip",
       no2: "Skip Anyway",
       taking: "Getting the bonus questions ready",
-      added: (n: number) => `${n} bonus questions were added to the question list.`,
+      added: (n: number) =>
+        n === 1
+          ? "1 bonus question was added to the question list."
+          : `${n} bonus questions were added to the question list.`,
       fail: "The bonus questions could not be taken. Try again.",
       late: "Your time left is now under the limit for the bonus.",
       cell: "Bonus question",
@@ -550,6 +555,7 @@ export const TS = dict({
       checkedIn: "你已入场",
       done: (p: string) => `${p}已结束`,
       waiting: "等待监考开始",
+      allDone: "所有部分已结束，请等待监考关闭考场。",
       next: "下一部分",
       tonight: "今晚安排",
       tonightHint: (n: number) => `共 ${n} 分钟作答，含休息约 120 分钟`,
