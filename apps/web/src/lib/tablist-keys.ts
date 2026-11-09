@@ -4,7 +4,7 @@ import type { KeyboardEvent } from "react";
  * Keyboard support for a hand-rolled `role="tablist"` (the ARIA tabs
  * pattern): ArrowLeft/ArrowRight move between tabs and wrap, Home/End jump
  * to the ends. Used by the strips that render one panel from React state and
- * so can't sit on `ui/Tabs.tsx` (which toggles sibling `hidden` panels).
+ * so can't use the old `ui/Tabs.tsx` (which toggled sibling `hidden` panels).
  * Pair it with a roving `tabIndex` (`0` on the selected tab, `-1` on the
  * rest) so Tab enters the strip once and leaves it once.
  *

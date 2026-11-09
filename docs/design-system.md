@@ -255,7 +255,7 @@ cards in a row share one height, and `.panel__actions` pins a card's
 buttons to its bottom edge so neighbouring cards' buttons line up.
 
 **Tabs, one style in two forms.** `.seg`, the pill track, switches views
-inside a card or a form. `Tabs.tsx` (`.tabs`), the underline form with a
+inside a card or a form. `Tabs.css` (`.tabs`), the underline form with a
 rainbow line, switches the main sections of a page. Both scroll sideways
 on phones instead of squeezing.
 

@@ -26,7 +26,7 @@ export interface PollState<T> {
 
 /**
  * Calls `fn` now and then every `ms` while the tab is visible (hidden tabs
- * stop, like src/scripts/polling.ts), and while `enabled`. A thrown or
+ * stop, like the old startPolling), and while `enabled`. A thrown or
  * rejected call counts as an error and keeps the last good data.
  *
  * A failed call is retried after 2 s, then 4 s, 8 s (never later than the
