@@ -120,8 +120,11 @@ describe("menitSekarangWib", () => {
       "1970-01-01T00:00:00.000Z",
     ].map((t) => new Date(t));
     let a = 12345;
-    const acak = () => ((a = (a * 1664525 + 1013904223) >>> 0) / 4294967296);
-    const banyak = Array.from({ length: 2000 }, () => new Date(Date.UTC(2020, 0, 1) + acak() * 8 * 365 * 86400_000));
+    const acak = () => (a = (a * 1664525 + 1013904223) >>> 0) / 4294967296;
+    const banyak = Array.from(
+      { length: 2000 },
+      () => new Date(Date.UTC(2020, 0, 1) + acak() * 8 * 365 * 86400_000),
+    );
     for (const t of [...tepi, ...banyak]) expect(menitSekarangWib(t)).toBe(lama(t));
   });
 });

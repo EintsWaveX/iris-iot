@@ -627,7 +627,11 @@ function ambangSejak(dari: string | Date, ambangDetik: number): number {
 }
 
 /** The gap between two consecutive heartbeats, or null when it is short enough to be normal. */
-export function gapAntara(dari: string, sampai: string, ambangDetik: number = GAP_AMBANG_DETIK): GapEvent | null {
+export function gapAntara(
+  dari: string,
+  sampai: string,
+  ambangDetik: number = GAP_AMBANG_DETIK,
+): GapEvent | null {
   const detik = (new Date(sampai).getTime() - new Date(dari).getTime()) / 1000;
   return detik > ambangSejak(dari, ambangDetik) ? { dari, sampai, detik: Math.round(detik) } : null;
 }

@@ -54,7 +54,8 @@ export function jarakPilih(n: number, maks: number): number[] {
 }
 
 /** Time as the ISO text `Date.toISOString()` gives, made by Postgres so Node never parses 30,000 dates. */
-const ISO = (kolom: string) => sql.raw(`to_char(${kolom} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+const ISO = (kolom: string) =>
+  sql.raw(`to_char(${kolom} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
 
 type Hasil<T> = { rows: T[] };
 

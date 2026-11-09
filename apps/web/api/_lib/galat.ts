@@ -36,7 +36,8 @@ let terpasang = false;
  *  says which query failed but never why. */
 export function teks(v: unknown): string {
   if (v instanceof Error) {
-    const sebab = v.cause instanceof Error ? v.cause.message : typeof v.cause === "string" ? v.cause : "";
+    const sebab =
+      v.cause instanceof Error ? v.cause.message : typeof v.cause === "string" ? v.cause : "";
     // The cause goes first: the message can be a whole SQL statement and the report is cut at PESAN_MAKS.
     return sebab ? `${v.name}: [${sebab}] ${v.message}` : `${v.name}: ${v.message}`;
   }

@@ -4,7 +4,7 @@
  * bangunTimelineLayanan in Node). Builds random heartbeat histories in a scratch table, runs both, compares.
  *
  *   createdb riwayat_test
- *   DATABASE_URL=postgres://user:pw@127.0.0.1/riwayat_test TZ=Asia/Jakarta node --import tsx scripts/riwayat-banding.ts
+ *   DATABASE_URL=<connection URL of that database> TZ=Asia/Jakarta node --import tsx scripts/riwayat-banding.ts
  *
  * It creates and drops its own `denyut` table, so point it at a scratch database only.
  */
@@ -24,7 +24,9 @@ import type { Db } from "../src/lib/db.js";
 
 const url = process.env.DATABASE_URL;
 if (!url || !/(riwayat_test|scratch)/.test(url)) {
-  console.error("Set DATABASE_URL to a scratch database whose name contains riwayat_test or scratch.");
+  console.error(
+    "Set DATABASE_URL to a scratch database whose name contains riwayat_test or scratch.",
+  );
   process.exit(2);
 }
 const pool = new pg.Pool({ connectionString: url, max: 4 });
@@ -52,7 +54,14 @@ async function isi(serverId: number, n: number, seed: number, akhir: number) {
   const status: Record<string, string> = Object.fromEntries(KUNCI.map((k) => [k, "running"]));
   for (let i = 0; i < n; i++) {
     const p = r();
-    const dt = p < 0.85 ? 8_000 + r() * 4_000 : p < 0.95 ? 15_000 + r() * 45_000 : p < 0.99 ? 200_000 + r() * 400_000 : 800_000 + r() * 4_000_000;
+    const dt =
+      p < 0.85
+        ? 8_000 + r() * 4_000
+        : p < 0.95
+          ? 15_000 + r() * 45_000
+          : p < 0.99
+            ? 200_000 + r() * 400_000
+            : 800_000 + r() * 4_000_000;
     t += dt;
     uptime = r() < 0.01 ? Math.floor(r() * 50) : uptime + Math.round(dt / 1000);
     for (const k of KUNCI) if (r() < 0.03) status[k] = STATUS[Math.floor(r() * STATUS.length)];
@@ -60,7 +69,10 @@ async function isi(serverId: number, n: number, seed: number, akhir: number) {
     const q = r();
     if (q < 0.03) layanan = null;
     else if (q < 0.05) layanan = "{}";
-    else layanan = JSON.stringify(Object.fromEntries(KUNCI.filter(() => r() < 0.92).map((k) => [k, status[k]])));
+    else
+      layanan = JSON.stringify(
+        Object.fromEntries(KUNCI.filter(() => r() < 0.92).map((k) => [k, status[k]])),
+      );
     baris.push([
       serverId,
       new Date(Math.round(t)).toISOString(),
@@ -75,7 +87,10 @@ async function isi(serverId: number, n: number, seed: number, akhir: number) {
   }
   for (let i = 0; i < baris.length; i += 500) {
     const lot = baris.slice(i, i + 500);
-    const nilai = lot.map((_, j) => `($${j * 9 + 1},$${j * 9 + 2},$${j * 9 + 3},$${j * 9 + 4},$${j * 9 + 5},$${j * 9 + 6},$${j * 9 + 7},$${j * 9 + 8},$${j * 9 + 9}::jsonb)`);
+    const nilai = lot.map(
+      (_, j) =>
+        `($${j * 9 + 1},$${j * 9 + 2},$${j * 9 + 3},$${j * 9 + 4},$${j * 9 + 5},$${j * 9 + 6},$${j * 9 + 7},$${j * 9 + 8},$${j * 9 + 9}::jsonb)`,
+    );
     await pool.query(
       `insert into denyut (server_id, pada, cpu, memori, disk, suhu, jaringan, uptime_sec, layanan) values ${nilai.join(",")}`,
       lot.flat(),
@@ -118,7 +133,8 @@ for (const n of ukuran) {
     const sekarang = Date.now();
     const akhirData = await isi(id, n, id * 7919 + ulang, sekarang - ulang * 3_000_000);
     const r = acak(id * 31 + 5);
-    const mulaiMs = n === 0 ? sekarang - 3_600_000 : akhirData - n * 12_000 - 60_000 + r() * n * 6_000;
+    const mulaiMs =
+      n === 0 ? sekarang - 3_600_000 : akhirData - n * 12_000 - 60_000 + r() * n * 6_000;
     const mulai = new Date(mulaiMs);
     const akhir = new Date(akhirData + r() * 5_000_000);
     const a = await lama(id, mulai, akhir);
@@ -139,6 +155,8 @@ for (const n of ukuran) {
   }
 }
 console.log(`ok: ${kasus} histories, old and new answers identical`);
-console.log(`what they covered: ${JSON.stringify(isinya)} (chart points, gaps, reboots, timeline entries, histories cut to ${RIWAYAT_MAX_POINTS})`);
+console.log(
+  `what they covered: ${JSON.stringify(isinya)} (chart points, gaps, reboots, timeline entries, histories cut to ${RIWAYAT_MAX_POINTS})`,
+);
 await pool.query("drop table denyut");
 await pool.end();
