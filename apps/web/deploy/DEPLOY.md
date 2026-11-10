@@ -1,7 +1,8 @@
 # Running IRIS web on the PC Server (Part B)
 
-Status: **built and tested, not deployed.** `irisiotlab.com` is still served by Vercel. Nothing here
-changes it until the apex DNS record is moved (step 6), and moving it back undoes everything.
+Status: **live.** `irisiotlab.com` has been served from this PC (one Node process, local Postgres, behind a
+Cloudflare tunnel) since the cutover on 9 Nov 2026 02:12 WIB (section 6). A merge to `main` no longer updates
+the site: run `deploy.sh` (section 4). Rolling back to Vercel and Neon is described in section 6.
 
 What this replaces: Vercel hosting (Pro, $20/mo) and Neon (the database, about $17/mo). The database moves
 onto this PC with the site, because a query to Neon from here costs 75 to 90 ms (see gate 3). What it keeps
