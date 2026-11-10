@@ -1,0 +1,20 @@
+// Tests for api/ and server/, the scripts, and the root config files. They
+// are not part of the app program (tsconfig.json) or the NodeNext program
+// (tsconfig.api.json), so they get their own, which keeps each one small.
+// Same Astro/bundler rules as the app, as vitest and tsx use.
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/test.tsbuildinfo"
+  },
+  "include": [
+    ".astro/types.d.ts",
+    "api/**/__tests__/**/*.ts",
+    "server/**/__tests__/**/*.ts",
+    "scripts/**/*.ts",
+    "drizzle.config.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

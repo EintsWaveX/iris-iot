@@ -1,5 +1,20 @@
+// The app program: src/ (pages, components, lib, and the tests that live
+// beside them) plus the vite plugin. This is what `astro check` and the
+// editor use.
+//
+// Keep `include` narrow. It used to be "**/*", which with `exclude` set
+// (setting it drops TypeScript's built-in node_modules exclusion) and
+// allowJs on, pulled in every .ts/.js file in the project root, tests and
+// scripts for api/ and server/, config files, and the type declarations of
+// the packages those import. `tsc` and `astro check` then ran for 10+ minutes
+// without finishing. api/ and server/ are checked by tsconfig.api.json (their
+// own module rules); their tests and the scripts by tsconfig.test.json.
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"]
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/app.tsbuildinfo"
+  },
+  "include": [".astro/types.d.ts", "src/**/*.ts", "src/**/*.tsx", "vite/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
 }
