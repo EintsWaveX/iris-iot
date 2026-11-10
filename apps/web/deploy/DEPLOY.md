@@ -37,6 +37,16 @@ sudo -u iris-web ssh-keygen -t ed25519 -N '' -C iris-web@pc -f /var/lib/iris-web
 sudo -u iris-web sh -c 'ssh-keyscan github.com >> /var/lib/iris-web/.ssh/known_hosts'
 sudo cat /var/lib/iris-web/.ssh/id_ed25519.pub
 #   -> GitHub, EintsWaveX/iris-iot, Settings, Deploy keys, Add deploy key (leave "write access" off)
+#   If the network blocks outbound port 22 ("ssh: connect to host github.com port 22: Connection refused"),
+#   send GitHub traffic over port 443 instead (same deploy key). Run this before the clone, or any time later to fix a fetch.
+sudo -u iris-web tee -a /var/lib/iris-web/.ssh/config >/dev/null <<'EOF'
+Host github.com
+  Hostname ssh.github.com
+  Port 443
+  User git
+EOF
+sudo -u iris-web chmod 600 /var/lib/iris-web/.ssh/config
+sudo -u iris-web ssh -T -p 443 -o StrictHostKeyChecking=accept-new git@ssh.github.com   # "Hi EintsWaveX/iris-iot!"
 sudo -u iris-web git clone git@github.com:EintsWaveX/iris-iot.git /opt/iris-web
 
 # The secrets file. Fill every value from Vercel's Production env (Settings, Environment Variables).
