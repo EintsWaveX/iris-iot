@@ -5,7 +5,6 @@ import {
   perburuanBerjalan,
   hotspotKelompok,
   penghargaanKelompok,
-  saringHotspot,
   saringPerburuan,
   tautanPerburuan,
 } from "../perburuan";
@@ -119,15 +118,6 @@ describe("penghargaanKelompok", () => {
 });
 
 describe("hotspot", () => {
-  it("keeps only a named network", () => {
-    expect(saringHotspot({ ssid: "LAB-AP", sandi: "contoh" })).toEqual({
-      ssid: "LAB-AP",
-      sandi: "contoh",
-    });
-    expect(saringHotspot({ ssid: "" })).toBeNull();
-    expect(saringHotspot({ ssid: "LAB" })).toEqual({ ssid: "LAB", sandi: null });
-  });
-
   it("names each group's own phone hotspot", () => {
     expect(hotspotKelompok(3).ssid).toBe("IRIS-G3");
     expect(hotspotKelompok(1).ssid).not.toBe(hotspotKelompok(2).ssid);

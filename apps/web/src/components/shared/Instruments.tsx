@@ -18,7 +18,7 @@ import Pill from "../ui/Pill";
 import { IN } from "./instrumentStrings";
 import "./instruments.css";
 
-const IOT_BOARD_URL = "http://192.168.4.1:8080/";
+const IOT_BOARD_URL = "https://hunt.irisiotlab.com/";
 
 /** True when animations may run (motion tier 1 or 2). False on the first
  *  render, so a server-rendered drawing hydrates as the same still one. */

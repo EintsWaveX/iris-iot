@@ -66,6 +66,12 @@ const REWRITES: Record<string, Rewrite[]> = {
   modul3_mqtt_subscribe: [plain(/group_id = \d+/, (n) => `group_id = ${n}`)],
   modul4_hunter: [
     plain(/#define GROUP_ID \d+/, (n) => `#define GROUP_ID ${n}`),
+    // Each group's phone hotspot is named after the group (IRIS-G<n>), so the
+    // template's grup1 name must not reach another group's download.
+    plain(
+      /const char\* WIFI_SSID(\s+)= "IRIS-G\d+";/,
+      (n) => `const char* WIFI_SSID      = "IRIS-G${n}";`,
+    ),
     plain(
       /#define LORA_SYNC_WORD(\s+)0x[0-9A-Fa-f]+/,
       (n) => `#define LORA_SYNC_WORD        ${syncWordFor(4, n)}`,
@@ -96,6 +102,12 @@ const REWRITES: Record<string, Rewrite[]> = {
   ],
   modul4_beacon: [
     plain(/#define GROUP_ID \d+/, (n) => `#define GROUP_ID ${n}`),
+    // Each group's phone hotspot is named after the group (IRIS-G<n>), so the
+    // template's grup1 name must not reach another group's download.
+    plain(
+      /const char\* WIFI_SSID(\s+)= "IRIS-G\d+";/,
+      (n) => `const char* WIFI_SSID      = "IRIS-G${n}";`,
+    ),
     plain(
       /#define LORA_SYNC_WORD(\s+)0x[0-9A-Fa-f]+/,
       (n) => `#define LORA_SYNC_WORD        ${syncWordFor(4, n)}`,

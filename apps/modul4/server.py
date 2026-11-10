@@ -1,6 +1,6 @@
 """
 PERBURUAN LoRa IRIS — papan skor (Modul 4)
-Perangkat: PC Server, dijalankan sebagai access point "IRIS_IOT"
+Perangkat: PC Server, di balik Cloudflare Tunnel (hunt.irisiotlab.com)
 
 Satu proses melayani tiga hal sekaligus pada port yang sama:
 

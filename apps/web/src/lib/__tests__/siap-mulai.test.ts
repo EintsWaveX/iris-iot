@@ -5,7 +5,6 @@ const pcSehat = {
   umurDetik: 10,
   batasLuringDetik: 120,
   layanan: { "modul2-ws": "active", mosquitto: "active", modul4: "active" },
-  modeJaringan: "ap-mandiri",
 };
 const dasar: FaktaMulai = {
   modul: 3,
@@ -47,7 +46,6 @@ describe("cekMulai", () => {
     const s = status({ ...dasar, modul: 1, pc: null });
     expect(s.pc).toBe("lewat");
     expect(s.layanan).toBe("lewat");
-    expect(s.hotspot).toBeUndefined();
   });
 
   it("a closed module and the wrong TOT side are hard", () => {
@@ -61,11 +59,8 @@ describe("cekMulai", () => {
     expect(s.modul).toBe("ok");
   });
 
-  it("Module 4 starts with the hotspot off: no hotspot check", () => {
-    const off = { ...dasar, modul: 4, pc: { ...pcSehat, modeJaringan: "ethernet-router" } };
-    expect(status(off).hotspot).toBeUndefined();
-    expect(gagalMulai(cekMulai({ ...off, butuhAp: true })).lunak.map((c) => c.id)).not.toContain(
-      "hotspot",
-    );
+  it("the PC makes no hotspot, so no check ever mentions one", () => {
+    const m4 = { ...dasar, modul: 4, butuhAp: true };
+    expect(cekMulai(m4).map((c) => c.id)).toEqual(["tot", "modul", "pc", "layanan"]);
   });
 });

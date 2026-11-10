@@ -117,7 +117,6 @@ export interface Penugasan {
 export interface Heartbeat {
   pada: string;
   jamSelaras: boolean;
-  modeJaringan: string | null;
   layanan: Record<string, string> | null;
   cpu?: number | null;
   suhu?: number | null;

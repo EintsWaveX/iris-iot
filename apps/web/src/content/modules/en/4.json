@@ -4,7 +4,7 @@
   "judul": "LoRa",
   "topik": "Long Range Communication (LoRa Peer to Peer)",
   "tagline": "A LoRa P2P signal hunt between ESP32 boards.",
-  "fakta": ["ESP32", "LoRa P2P", "PC Server hotspot"],
+  "fakta": ["ESP32", "LoRa P2P", "Phone hotspot"],
   "ringkasan": [
     "This module uses no external sensor or actuator at all. What is being measured is the radio wave itself: the relationship between signal strength and distance.",
     "Because peer to peer LoRa has no built in channel protocol, every network rule, including the sync word and the transmit interval, is one the participants build themselves."
@@ -38,7 +38,7 @@
     },
     {
       "nama": "PC Server",
-      "jumlah": "1x per class, hotspot and scoreboard"
+      "jumlah": "1x per class, runs the scoreboard"
     },
     {
       "nama": "Power bank or a long USB cable",
@@ -69,8 +69,8 @@
     "Installing the LoRa library by Sandeep Mistry through the Arduino IDE Library Manager",
     "Installing the WebSockets library by Markus Sattler through the Arduino IDE Library Manager",
     "Selecting the ESP32 Dev Module board in the Arduino IDE",
-    "Checking that the PC Server has its IRIS_IOT hotspot and its scoreboard running",
-    "Copying your group's folder, then uploading hunter.ino without editing anything",
+    "Turning on the IRIS-G<n> hotspot on one of your group's phones (name and password are in the website's Hunt step)",
+    "Copying your group's folder, pasting the board key from the website's Hunt step into HUNT_KEY in hunter.ino and beacon.ino (the only line you edit), then uploading hunter.ino",
     "Checking that the Serial Monitor prints an IP address and a synchronised clock",
     "Opening the scoreboard, entering your student ID, and confirming your own group appears",
     "Calibrating the distance reference at 1 metre from the Beacon"

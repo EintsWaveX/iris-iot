@@ -29,7 +29,7 @@ import {
 import { KELOMPOK_MAKS } from "./jadwal.js";
 import { jamSepi } from "./sesi-mulai.js";
 
-export { modulSiapValid, urutkanLayanan, hotspotMenyala } from "./server-shared.js";
+export { modulSiapValid, urutkanLayanan } from "./server-shared.js";
 
 const ENROLL_TOKEN_TTL_MIN = 30;
 
@@ -172,8 +172,6 @@ export const AKSI_PERINTAH = [
   "layanan.mulai",
   "layanan.henti",
   "layanan.mulai_ulang",
-  "ap.nyala",
-  "ap.mati",
   "jam.selaraskan",
   // P6.7: the expert diagnostics layer. Read-only on the PC (no service is
   // started/stopped/restarted by any of these), routed through the agent's
@@ -204,10 +202,6 @@ export const AKSI_PERINTAH = [
   // refused while a session runs.
   "pembaruan.bundel",
   "pembaruan.apt",
-  // 2026-10-08 (agent protocol 5): where IRIS_IOT comes from, a router on
-  // the PC's LAN port (kabel) or the PC's own radio (wifi). One argument,
-  // `sumber`, from AP_SUMBER; the PC refuses it while the hotspot is on.
-  "ap.sumber",
 ] as const;
 export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
 
@@ -232,16 +226,15 @@ export function unitDiagValid(value: unknown): value is string {
 }
 
 /**
- * Auto-queues a whitelisted command for "the" PC, so starting or
- * ending a Module 4 session can turn its hotspot on/off without an
- * assistant ever visiting /servers or touching SSH -- the same delivery path
- * (perintah row, picked up on the agent's next heartbeat) the manual button
- * already uses.
+ * Auto-queues a whitelisted command for "the" PC, so starting or ending a
+ * Module 4 hunt can start or stop its scoreboard without an assistant ever
+ * visiting /servers or touching SSH -- the same delivery path (perintah row,
+ * picked up on the agent's next heartbeat) the manual button already uses.
  *
  * Deliberately declines rather than guesses when zero or more than one
  * enrolled server exists: this project's own registry supports several
  * servers (the Phase 2 design allows more than one PC/MCU), and queuing
- * "turn on the hotspot" at the wrong PC -- or at every PC -- would be worse
+ * "start the scoreboard" at the wrong PC -- or at every PC -- would be worse
  * than not automating it at all. In either case the assistant still has the
  * manual /servers button as a fallback, so returning false here never blocks
  * the session itself from starting or ending.

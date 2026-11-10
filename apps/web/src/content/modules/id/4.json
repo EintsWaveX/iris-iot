@@ -4,7 +4,7 @@
   "judul": "LoRa",
   "topik": "Komunikasi Long Range (LoRa Peer to Peer)",
   "tagline": "Perburuan sinyal LoRa P2P antar papan ESP32.",
-  "fakta": ["ESP32", "LoRa P2P", "Hotspot PC Server"],
+  "fakta": ["ESP32", "LoRa P2P", "Hotspot ponsel"],
   "ringkasan": [
     "Modul ini tidak memakai satu pun sensor maupun aktuator luar. Yang diukur adalah gelombang radionya sendiri: hubungan antara kekuatan sinyal dan jarak.",
     "Karena LoRa peer to peer tidak memiliki protokol kanal bawaan, seluruh aturan jaringannya, termasuk sync word dan jeda pancar, disusun sendiri oleh peserta."
@@ -38,7 +38,7 @@
     },
     {
       "nama": "PC Server",
-      "jumlah": "1x sekelas, hotspot dan papan skor"
+      "jumlah": "1x sekelas, menjalankan papan skor"
     },
     {
       "nama": "Power bank atau kabel USB panjang",
@@ -69,8 +69,8 @@
     "Memasang pustaka LoRa karya Sandeep Mistry melalui Library Manager Arduino IDE",
     "Memasang pustaka WebSockets karya Markus Sattler melalui Library Manager Arduino IDE",
     "Memilih board ESP32 Dev Module pada Arduino IDE",
-    "Memastikan PC Server sudah menyalakan hotspot IRIS_IOT dan papan skornya",
-    "Menyalin folder milik kelompok sendiri, lalu mengunggah hunter.ino tanpa menyunting apa pun",
+    "Menyalakan hotspot IRIS-G<n> pada satu ponsel kelompok kalian (nama dan sandinya ada di langkah Perburuan situs)",
+    "Menyalin folder milik kelompok sendiri, menempelkan kunci papan dari langkah Perburuan situs ke HUNT_KEY di hunter.ino dan beacon.ino (satu-satunya baris yang disunting), lalu mengunggah hunter.ino",
     "Memastikan Serial Monitor mencetak alamat IP dan jam hasil sinkronisasi",
     "Membuka papan skor, memasukkan NIM, dan memastikan nama kelompok yang muncul benar",
     "Mengkalibrasi acuan jarak pada jarak 1 meter dari Beacon"

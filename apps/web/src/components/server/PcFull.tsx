@@ -223,10 +223,6 @@ export default function PcFull({
           </div>
           <div className="tabstops">
             <div className="tabstops__row">
-              <span className={`pill ${r.hotspot.menyala ? "pill--ok" : ""}`}>{t.hotspot}</span>
-              <span>{t.hsLine(r.hotspot.menyala, r.hotspot.klien)}</span>
-            </div>
-            <div className="tabstops__row">
               <span className={`pill ${r.ntp.tersinkron ? "pill--ok" : "pill--warn"}`}>NTP</span>
               <span>
                 {t.ntpLine(

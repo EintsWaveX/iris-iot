@@ -155,20 +155,10 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
   };
 }
 
-/** The hotspot the agent read from the PC's hostapd file, or null. The
- *  Server page still shows it; the hunt itself no longer uses it. */
-export function saringHotspot(raw: unknown): { ssid: string; sandi: string | null } | null {
-  if (!isObj(raw)) return null;
-  const ssid = str(raw.ssid, 32);
-  if (!ssid) return null;
-  return { ssid, sandi: str(raw.sandi, 63) };
-}
-
 /**
  * Where the scoreboard is reached (2026-11-10): the PC's hunt server behind a
  * Cloudflare Tunnel, so phones stay on their own mobile data and can be
- * carried anywhere. The old IRIS_IOT hotspot on the PC is no longer part of
- * the hunt.
+ * carried anywhere. The PC makes no hotspot at all any more.
  */
 export const HOST_PERBURUAN = "hunt.irisiotlab.com";
 

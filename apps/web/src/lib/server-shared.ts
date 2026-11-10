@@ -25,13 +25,6 @@ export function urutkanLayanan(
   });
 }
 
-/** The agent reports "ap-mandiri" (hotspot with no uplink) or "ap+uplink"
- *  (hotspot plus a dongle or wired uplink), and an agent older than Stage 19
- *  sent plain "ap". All three mean the IRIS_IOT hotspot is on. */
-export function hotspotMenyala(mode: string | null | undefined): boolean {
-  return mode === "ap" || mode === "ap-mandiri" || mode === "ap+uplink";
-}
-
 /** diag.siap's `modul` argument: "" checks no particular module. Mirrors
  *  SIAP_MODUL in the agent's commands.py. */
 export const MODUL_SIAP = ["", "2", "3", "4"] as const;
@@ -112,15 +105,6 @@ export function bacaHasilSiap(keluaran: string | null | undefined): HasilSiap | 
 /** The agent protocol this site relies on. Bump with AGEN_PROTOKOL in the
  *  agent's agent.py whenever the site starts needing something new. */
 export const AGEN_PROTOKOL_TERBARU = 9;
-
-/** Where the IRIS_IOT hotspot comes from (agent protocol 5): a router in
- *  Access Point mode on the PC's LAN port, or the PC's own Wi-Fi radio. */
-export const AP_SUMBER = ["kabel", "wifi"] as const;
-export type ApSumber = (typeof AP_SUMBER)[number];
-
-export function apSumberValid(value: unknown): value is ApSumber {
-  return typeof value === "string" && (AP_SUMBER as readonly string[]).includes(value);
-}
 
 /** diag.journal's arguments, mirrored by JOURNAL_UNIT and JOURNAL_TINGKAT
  *  in the agent's commands.py. */
@@ -252,7 +236,6 @@ export interface Rinci {
     keadaan: string;
     uplink: boolean;
   }[];
-  hotspot: { menyala: boolean; klien: number | null };
   ntp: { tersinkron: boolean; stratum: number | null; selisihMs: number | null; sumber: string };
   dns: { server: string; ms: number | null } | null;
   layanan: {
@@ -265,7 +248,6 @@ export interface Rinci {
   proses: { pid: number; cpu: number; memori: number; nama: string }[];
   paket: Record<string, string>;
   galatJurnal24j: number | null;
-  konfigAp: [string, string, boolean][] | null;
   timer: { unit: string; berikut: string }[];
 }
 
@@ -283,7 +265,6 @@ export function bacaRinci(keluaran: string | null | undefined): Rinci | null {
     return null;
   }
   if (!o || o.skema !== 1) return null;
-  const hs = obj(o.hotspot) ?? {};
   const ntp = obj(o.ntp) ?? {};
   const dns = obj(o.dns);
   const paket = obj(o.paket) ?? {};
@@ -305,7 +286,6 @@ export function bacaRinci(keluaran: string | null | undefined): Rinci | null {
       keadaan: str(x.keadaan),
       uplink: x.uplink === true,
     })),
-    hotspot: { menyala: hs.menyala === true, klien: num(hs.klien) },
     ntp: {
       tersinkron: ntp.tersinkron === true,
       stratum: num(ntp.stratum),
@@ -332,15 +312,6 @@ export function bacaRinci(keluaran: string | null | undefined): Rinci | null {
       Object.entries(paket).filter((e): e is [string, string] => typeof e[1] === "string"),
     ),
     galatJurnal24j: num(o.galatJurnal24j),
-    konfigAp: Array.isArray(o.konfigAp)
-      ? o.konfigAp
-          .filter((r): r is unknown[] => Array.isArray(r) && r.length === 3)
-          .map((r): [string, string, boolean] => [
-            str(r[0]),
-            r[2] === true ? "" : str(r[1]),
-            r[2] === true,
-          ])
-      : null,
     timer: rows(o.timer).map((x) => ({ unit: str(x.unit), berikut: str(x.berikut) })),
   };
 }

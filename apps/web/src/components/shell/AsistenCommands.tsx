@@ -66,14 +66,10 @@ const T = dict({
     end: "Akhiri Sesi",
     open: (n: number) => `Buka Modul ${n} · ${MODUL_NAMA[n]}`,
     lock: (n: number) => `Tutup Modul ${n} · ${MODUL_NAMA[n]}`,
-    apOn: "Nyalakan Hotspot",
-    apOff: "Matikan Hotspot",
     opened: (n: number) => `Modul ${n} dibuka untuk praktikan.`,
     locked: (n: number) => `Modul ${n} ditutup.`,
     undo: "Urungkan",
     fail: "Tidak dapat menghubungi server.",
-    apSent: "Perintah dikirim. Berlaku pada denyut berikutnya dari PC Server.",
-    apNone: "Tidak ada satu PC Server tunggal untuk dikirimi perintah. Buka halaman Server.",
     shortcuts: "Pintasan Keyboard",
     groups: {
       anywhere: "Di Mana Saja",
@@ -129,14 +125,10 @@ const T = dict({
     end: "End the Session",
     open: (n: number) => `Unlock Module ${n} · ${MODUL_NAMA[n]}`,
     lock: (n: number) => `Lock Module ${n} · ${MODUL_NAMA[n]}`,
-    apOn: "Turn the Hotspot On",
-    apOff: "Turn the Hotspot Off",
     opened: (n: number) => `Module ${n} unlocked for students.`,
     locked: (n: number) => `Module ${n} locked.`,
     undo: "Undo",
     fail: "Could not reach the server.",
-    apSent: "Command sent. It applies on the PC Server's next heartbeat.",
-    apNone: "There is no single PC Server to send this to. Open the Server page.",
     shortcuts: "Keyboard Shortcuts",
     groups: {
       anywhere: "Anywhere",
@@ -192,14 +184,10 @@ const T = dict({
     end: "结束上课",
     open: (n: number) => `开放模块 ${n} · ${MODUL_NAMA[n]}`,
     lock: (n: number) => `锁定模块 ${n} · ${MODUL_NAMA[n]}`,
-    apOn: "打开热点",
-    apOff: "关闭热点",
     opened: (n: number) => `模块 ${n} 已对学生开放。`,
     locked: (n: number) => `模块 ${n} 已锁定。`,
     undo: "撤销",
     fail: "连不上服务器。",
-    apSent: "命令已发送。会在 PC 服务器下一次心跳时生效。",
-    apNone: "没有唯一的一台 PC 服务器可以发送。请打开服务器页面。",
     shortcuts: "键盘快捷键",
     groups: {
       anywhere: "任何地方",
@@ -299,26 +287,6 @@ export function setModulAkses(n: number, open: boolean, lang: Lang): Promise<voi
   tertunda++;
   antrean = antrean.then(run);
   return antrean;
-}
-
-export async function setHotspot(on: boolean, lang: Lang): Promise<void> {
-  const t = T[lang];
-  try {
-    const d = await getJson<{ ok: boolean; server: { id: number }[] }>("/api/server");
-    if (!d.ok || d.server.length !== 1) {
-      window.Toast?.show(t.apNone, "warn");
-      return;
-    }
-    const r = await postJson<{ ok: boolean }>("/api/action", {
-      tipe: "kirim",
-      serverId: d.server[0].id,
-      aksi: on ? "ap.nyala" : "ap.mati",
-      argumen: {},
-    });
-    window.Toast?.show(r.ok ? t.apSent : t.fail, r.ok ? "ok" : "danger");
-  } catch {
-    window.Toast?.show(t.fail, "danger");
-  }
 }
 
 export default function AsistenCommands({
@@ -520,22 +488,6 @@ export default function AsistenCommands({
         },
       );
     }
-    list.push(
-      {
-        id: "ap-on",
-        group: t.server,
-        label: t.apOn,
-        keywords: ["hotspot", "iris-iot"],
-        run: () => void setHotspot(true, lang),
-      },
-      {
-        id: "ap-off",
-        group: t.server,
-        label: t.apOff,
-        keywords: ["hotspot"],
-        run: () => void setHotspot(false, lang),
-      },
-    );
     return list;
   }, [lang, running, t, bolehAkses]);
 

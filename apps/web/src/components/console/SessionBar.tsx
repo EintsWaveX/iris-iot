@@ -34,7 +34,6 @@ import { getJson, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/a
 import { durasiSesi, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { durasiPalingPendek } from "../../lib/sesi-mulai";
 import { shortcutsOn } from "../../lib/prefs";
-import { hotspotMenyala } from "../../lib/server-shared";
 import { tautanPerburuan } from "../../lib/perburuan";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
@@ -130,7 +129,6 @@ export default function SessionBar({
   const [menu, setMenu] = useState<Menu | null>(null);
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
-  const ap = hotspotMenyala(servers?.detail?.denyutTerakhir?.modeJaringan);
   // The scoreboard is on the internet now (hunt.irisiotlab.com); the Asisten
   // signs in there with the token, which also hands this browser today's join
   // code for the projector.
@@ -274,13 +272,7 @@ export default function SessionBar({
             aria-hidden="true"
           />
           {t.server}
-          <span className="hint sbar__srvhint">
-            {servers?.detail
-              ? ap
-                ? t.apStateOn
-                : t.apStateOff
-              : t.serverChip(online, list.length)}
-          </span>
+          <span className="hint sbar__srvhint">{t.serverChip(online, list.length)}</span>
         </button>
         <Pop
           open={pop === "more"}

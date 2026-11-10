@@ -19,13 +19,13 @@
 
 #define GROUP_ID 1
 
-// PC 同时是接入点、记分板和 NTP 服务器。
-const char* WIFI_SSID      = "IRIS_IOT";
+// 本组手机的热点（IRIS-G<n>）负责联网；记分板在网上。
+const char* WIFI_SSID      = "IRIS-G1";
 const char* WIFI_PASSWORD  = "13015954";
-const char* SERVER_HOST    = "192.168.4.1";
-const uint16_t SERVER_PORT = 8080;
-
-const char* NTP_SERVER      = "192.168.4.1";
+const char* SERVER_HOST    = "hunt.irisiotlab.com";
+const uint16_t SERVER_PORT = 443;
+const char* HUNT_KEY       = "SITE-KEY";  // 来自网站“寻踪”步骤的板子密钥
+const char* NTP_SERVER      = "time.cloudflare.com";
 const long  GMT_OFFSET_SEC  = 25200;
 const int   DST_OFFSET_SEC  = 0;
 
@@ -104,7 +104,7 @@ float smoothRssi(int rssi) {
 }
 
 void connectToWiFi() {
-  Serial.print("Connecting to the PC hotspot");
+  Serial.print("Connecting to the phone hotspot");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, ________);  // (2) Wi-Fi 密码变量
@@ -123,7 +123,7 @@ void connectToWiFi() {
 }
 
 void syncClock() {
-  Serial.print("Synchronising the clock to the PC");
+  Serial.print("Synchronising the clock");
   configTime(GMT_OFFSET_SEC, DST_OFFSET_SEC, NTP_SERVER);
 
   struct tm timeinfo;
@@ -160,7 +160,7 @@ void setup() {
   syncClock();
   startRadio();
 
-  webSocket.begin(SERVER_HOST, SERVER_PORT, "/hunter");
+  webSocket.beginSSL(SERVER_HOST, SERVER_PORT, "/hunter");
   webSocket.setReconnectInterval(2000);
   WiFi.setAutoReconnect(true);
 
@@ -204,9 +204,9 @@ void loop() {
 
   char payload[192];
   snprintf(payload, sizeof(payload),
-           "{\"grup\":%d,\"seq\":%s,\"rssi\":%d,\"halus\":%.1f,\"snr\":%.1f,"
+           "{\"grup\":%d,\"k\":\"%s\",\"seq\":%s,\"rssi\":%d,\"halus\":%.1f,\"snr\":%.1f,"
            "\"tx\":\"%s\",\"rx\":\"%s\",\"ip\":\"%s\"}",
-           GROUP_ID, seq.c_str(), rssi, smoothRssi(rssi), snr,
+           GROUP_ID, HUNT_KEY, seq.c_str(), rssi, smoothRssi(rssi), snr,
            sentAt.c_str(), receivedAt.c_str(),
            WiFi.localIP().toString().c_str());
 

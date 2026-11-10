@@ -22,12 +22,12 @@
 
 #define GROUP_ID 1
 
-const char* WIFI_SSID      = "IRIS_IOT";
+const char* WIFI_SSID      = "IRIS-G1";
 const char* WIFI_PASSWORD  = "13015954";
-const char* SERVER_HOST    = "192.168.4.1";
-const uint16_t SERVER_PORT = 8080;
-
-const char* NTP_SERVER      = "192.168.4.1";
+const char* SERVER_HOST    = "hunt.irisiotlab.com";
+const uint16_t SERVER_PORT = 443;
+const char* HUNT_KEY       = "KUNCI-SITUS";  // Kunci papan dari langkah Perburuan situs
+const char* NTP_SERVER      = "time.cloudflare.com";
 const long  GMT_OFFSET_SEC  = 25200;
 const int   DST_OFFSET_SEC  = 0;
 
@@ -82,7 +82,7 @@ String wallClockTimestamp() {
 }
 
 void connectToWiFi() {
-  Serial.print("Menyambung ke hotspot PC");
+  Serial.print("Menyambung ke hotspot ponsel");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -98,7 +98,7 @@ void connectToWiFi() {
 }
 
 void syncClock() {
-  Serial.print("Menyelaraskan jam ke PC");
+  Serial.print("Menyelaraskan jam");
   configTime(GMT_OFFSET_SEC, DST_OFFSET_SEC, ________);  // (2) Alamat server NTP
 
   struct tm timeinfo;
@@ -140,7 +140,7 @@ void setup() {
   // milidetik sesudahnya, dan seterusnya -- lihat komentar TDMA_* di atas.
   nextFireAt = millis() + (unsigned long)(GROUP_ID - 1) * TDMA_SLOT_MS;
 
-  webSocket.begin(SERVER_HOST, SERVER_PORT, "/beacon");
+  webSocket.beginSSL(SERVER_HOST, SERVER_PORT, "/beacon");
   webSocket.setReconnectInterval(2000);
   WiFi.setAutoReconnect(true);
 
@@ -166,9 +166,9 @@ void loop() {
 
   // Papan skor perlu tahu nomor paket yang benar-benar dipancarkan, supaya
   // paket yang tidak sampai ke sebuah hunter dapat dihitung sebagai hilang.
-  char report[80];
-  snprintf(report, sizeof(report), "{\"grup\":%d,\"seq\":%lu,\"tx\":\"%s\"}",
-           GROUP_ID, (unsigned long)seq, sentAt.c_str());
+  char report[96];
+  snprintf(report, sizeof(report), "{\"grup\":%d,\"k\":\"%s\",\"seq\":%lu,\"tx\":\"%s\"}",
+           GROUP_ID, HUNT_KEY, (unsigned long)seq, sentAt.c_str());
   webSocket.sendTXT(report);
 
   Serial.printf("[%s] Memancar paket #%lu (kelompok %d)\n", sentAt.c_str(),
