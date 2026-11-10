@@ -57,6 +57,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
+import hmac
 import json
 import math
 import os
@@ -166,6 +168,23 @@ MAX_RANGE_M = 2000.0
 TOKEN_ALPHABET = "ACDEFGHJKLMNPQRTUVWXY34679"
 TOKEN_LEN = 6
 MAX_GAGAL_TOKEN = 5      # percobaan token salah per koneksi sebelum ditutup
+
+# Papan ini disajikan lewat internet (hunt.irisiotlab.com, lewat tunnel), bukan
+# lagi hotspot tertutup. Tiga pagar menggantikan "hanya yang ada di hotspot":
+#   kode papan  enam huruf yang ikut di tautan dari situs IRIS; tanpanya NIM
+#               tidak bisa dicoba dan /roster.json tertutup
+#   per IP      kegagalan (token, kode, NIM) dihitung per alamat peramban yang
+#               sebenarnya, bukan per koneksi, jadi menyambung ulang tidak
+#               mengosongkan hitungannya
+#   loopback    rute khusus agent PC hanya dilayani agent itu sendiri
+KODE_LEN = TOKEN_LEN
+GAGAL_IP_MAKS = 15          # kegagalan per alamat dalam jendelanya sebelum diblokir
+GAGAL_IP_JENDELA = 600.0    # detik
+KONEKSI_IP_MAKS = 40        # soket penonton terbuka per alamat
+LOOPBACK = ("127.0.0.1", "::1")
+# Tanda bahwa sebuah permintaan lewat tunnel/proxy, bukan dari agent di PC ini
+HEADER_PROXY = ("cf-connecting-ip", "cf-ray", "x-forwarded-for",
+                "x-real-ip", "forwarded")
 
 PERAN_TAMU = "tamu"
 PERAN_ANGGOTA = "anggota"
@@ -1040,7 +1059,6 @@ class Hunt:
                 "rx": slot["rx"],
                 "delay_ms": slot["delay_ms"],
                 "ip": slot["ip"],
-                "gateway": "192.168.4.1",
                 "online": slot["connected"] and not silent,
                 "uptime": int(now - slot["connected_at"]),
                 "status": slot["status"],
@@ -1302,6 +1320,27 @@ def token_ok(candidate) -> bool:
     if not TOKEN or not isinstance(candidate, str) or not candidate:
         return False
     return secrets.compare_digest(candidate.strip().upper(), TOKEN)
+
+
+def kode_papan() -> str:
+    """Kode masuk papan untuk sesi yang berjalan hari ini.
+
+    Diturunkan dari token, sesi, dan tanggal -- bukan disimpan -- jadi server
+    yang dinyalakan ulang di tengah sesi tetap memberi kode yang sama dan
+    tautan di ponsel praktikan tidak basi. Berganti tiap sesi dan tiap hari.
+    """
+    if not TOKEN:
+        return ""
+    pesan = f"papan|{JADWAL['aktif']}|{datetime.now().date().isoformat()}"
+    mac = hmac.new(TOKEN.encode(), pesan.encode(), hashlib.sha256).digest()
+    return "".join(TOKEN_ALPHABET[b % len(TOKEN_ALPHABET)] for b in mac[:KODE_LEN])
+
+
+def kode_ok(candidate) -> bool:
+    if not isinstance(candidate, str) or not candidate:
+        return False
+    sah = kode_papan()
+    return bool(sah) and secrets.compare_digest(candidate.strip().upper(), sah)
 
 
 # -- rencana hari dan sesi -------------------------------------------------
@@ -1842,15 +1881,22 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         return Response(HTTPStatus.OK, "OK", headers, body)
 
     if path == "/roster.json":
-        # Sengaja tanpa token: papan proyektor menampilkan nama kelompok
-        # tanpa pernah masuk sebagai siapa pun. Konsekuensinya nama praktikan
-        # terbaca oleh siapa saja yang tersambung ke hotspot IRIS_IOT. Itu
-        # keputusan yang diambil sadar untuk jaringan tertutup satu sesi, dan
-        # itulah sebabnya daftarnya berganti tiap sesi.
+        # Papan ini terbuka di internet, jadi nama praktikan tidak lagi boleh
+        # terbaca siapa saja: butuh kode papan (?k=), yang hanya ada di tautan
+        # dari situs IRIS dan di layar asisten. Daftarnya berganti tiap sesi.
         #
         # NIM tidak pernah ikut. jadwal_publik() menyalin tiap anggota bidang
         # demi bidang dan hanya mengambil namanya, jadi kebocoran di sini
         # membutuhkan perubahan sengaja, bukan kelalaian.
+        ip = klien_ip(connection)
+        if terblokir(ip):
+            return connection.respond(HTTPStatus.TOO_MANY_REQUESTS,
+                                      "Terlalu banyak percobaan.\n")
+        kunci = parse_qs(urlsplit(request.path).query).get("k", [""])[0]
+        if not kode_ok(kunci):
+            catat_gagal(ip)
+            return connection.respond(HTTPStatus.FORBIDDEN,
+                                      "Butuh kode papan dari tautan situs IRIS.\n")
         body = json.dumps(jadwal_publik(), ensure_ascii=False).encode("utf-8")
         headers = Headers({
             "Content-Type": "application/json; charset=utf-8",
@@ -1869,10 +1915,9 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         # saja: menolak siapa pun selain 127.0.0.1 memastikan itu tetap begitu
         # meski port ini kebetulan tersambung dari luar PC (mis. lewat dongle
         # uplink Stage 19, yang membuat PC ini terjangkau dari Wi-Fi kampus).
-        ip = peer_ip(connection)
-        if ip not in ("127.0.0.1", "::1"):
+        if not dari_loopback_asli(connection):
             return connection.respond(
-                HTTPStatus.FORBIDDEN, "Hanya diizinkan dari loopback (127.0.0.1).\n",
+                HTTPStatus.FORBIDDEN, "Hanya diizinkan dari agent di PC ini.\n",
             )
 
         ringkas = [
@@ -1905,10 +1950,9 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         # denyut, dan situs menunjukkan tiap praktikan keadaan kelompoknya
         # sendiri. Loopback saja, sama seperti /telemetri.json, karena di
         # sini NIM ikut keluar.
-        ip = peer_ip(connection)
-        if ip not in ("127.0.0.1", "::1"):
+        if not dari_loopback_asli(connection):
             return connection.respond(
-                HTTPStatus.FORBIDDEN, "Hanya diizinkan dari loopback (127.0.0.1).\n",
+                HTTPStatus.FORBIDDEN, "Hanya diizinkan dari agent di PC ini.\n",
             )
         body = json.dumps(ringkasan_perburuan(), ensure_ascii=False).encode("utf-8")
         headers = Headers({
@@ -1960,6 +2004,8 @@ def ringkasan_perburuan() -> dict:
     return {
         "versi": 1,
         "jam": bingkai["jam"],
+        # Kode masuk papan hari ini; situs menaruhnya di tautan praktikan
+        "kode": kode_papan() or None,
         "sesi": JADWAL["aktif"],
         "mulai": HUNT.started_at is not None,
         "selesai": HUNT.round_ended_at is not None,
@@ -2079,6 +2125,75 @@ def peer_ip(connection: ServerConnection) -> str | None:
         return None
 
 
+def _header(connection: ServerConnection, nama: str) -> str | None:
+    try:
+        return connection.request.headers.get(nama)
+    except AttributeError:
+        return None
+
+
+def lewat_proxy(connection: ServerConnection) -> bool:
+    """Datang lewat tunnel/proxy? Dari sisi soket semuanya tampak 127.0.0.1."""
+    return any(_header(connection, h) is not None for h in HEADER_PROXY)
+
+
+def dari_loopback_asli(connection: ServerConnection) -> bool:
+    """Hanya proses di PC ini sendiri (agent), bukan tamu yang lewat tunnel.
+
+    Tunnel menyambung dari 127.0.0.1, jadi alamat soket saja tidak cukup:
+    tanpa pemeriksaan header ini /ringkas.json (membawa NIM) akan terbuka
+    untuk seluruh internet.
+    """
+    return peer_ip(connection) in LOOPBACK and not lewat_proxy(connection)
+
+
+def klien_ip(connection: ServerConnection) -> str | None:
+    """Alamat peramban yang sebenarnya.
+
+    Header tunnel hanya dipercaya bila soketnya sendiri dari loopback; dari
+    alamat lain header itu bisa dipalsukan siapa saja.
+    """
+    ip = peer_ip(connection)
+    if ip in LOOPBACK:
+        asli = _header(connection, "cf-connecting-ip")
+        if asli:
+            return asli.strip()[:64]
+    return ip
+
+
+# -- pagar per alamat -------------------------------------------------------
+
+GAGAL_IP: dict[str, list[float]] = {}
+
+
+def catat_gagal(ip: str | None) -> None:
+    # Alamat loopback tanpa header tunnel adalah proses di PC ini sendiri
+    # (uji, agent): tidak ada yang perlu dibendung, dan satu uji yang sengaja
+    # salah tebak tidak boleh mengunci uji berikutnya.
+    if not ip or ip in LOOPBACK:
+        return
+    kini = time.monotonic()
+    daftar = [t for t in GAGAL_IP.get(ip, []) if kini - t < GAGAL_IP_JENDELA]
+    daftar.append(kini)
+    GAGAL_IP[ip] = daftar
+    # Tabel ini tidak boleh tumbuh tanpa batas oleh alamat yang datang sekali
+    if len(GAGAL_IP) > 5000:
+        for kunci in [k for k, v in GAGAL_IP.items()
+                      if not v or kini - v[-1] >= GAGAL_IP_JENDELA]:
+            GAGAL_IP.pop(kunci, None)
+
+
+def terblokir(ip: str | None) -> bool:
+    if not ip:
+        return False
+    kini = time.monotonic()
+    return sum(1 for t in GAGAL_IP.get(ip, []) if kini - t < GAGAL_IP_JENDELA) >= GAGAL_IP_MAKS
+
+
+def koneksi_ip(ip: str | None) -> int:
+    return sum(1 for m in VIEWERS.values() if m.get("ip") == ip)
+
+
 async def handle(connection: ServerConnection) -> None:
     path = connection.request.path.split("?")[0]
     ip = peer_ip(connection)
@@ -2088,7 +2203,11 @@ async def handle(connection: ServerConnection) -> None:
         return
 
     label = "beacon" if path == "/beacon" else "hunter"
-    print(f"[{timestamp()}] {label} tersambung dari {ip}")
+    # Papan kini datang lewat internet, dari hotspot ponsel tiap kelompok:
+    # alamat soketnya adalah alamat tunnel, dan alamat asli ponsel mahasiswa
+    # tidak boleh ikut tersiar ke papan skor. Alamat yang tampil adalah IP
+    # hotspot yang dilaporkan papan itu sendiri.
+    print(f"[{timestamp()}] {label} tersambung")
 
     owned: int | None = None  # Kelompok yang dilaporkan lewat soket ini
 
@@ -2098,20 +2217,32 @@ async def handle(connection: ServerConnection) -> None:
                 msg = json.loads(raw)
             except (json.JSONDecodeError, TypeError):
                 continue
+            if not isinstance(msg, dict):
+                continue
+
+            # Nomor kelompok dari luar tidak dipercaya: tanpa batas ini satu
+            # pesan saja bisa membuat kelompok 10**9 di memori
+            try:
+                gid = int(msg.get("grup"))
+            except (TypeError, ValueError):
+                continue
+            if not 1 <= gid <= MAX_GRUP_ID:
+                continue
+            for medan in ("tx", "rx", "ip"):
+                if medan in msg:
+                    msg[medan] = str(msg[medan])[:40]
 
             if path == "/beacon":
-                if "grup" not in msg:
-                    continue
-                owned = int(msg["grup"])
-                HUNT.on_beacon(msg, ip)
-            elif "grup" in msg:
-                owned = int(msg["grup"])
-                HUNT.on_hunter(msg, ip)
+                owned = gid
+                HUNT.on_beacon(msg, None)
+            else:
+                owned = gid
+                HUNT.on_hunter(msg, None)
 
     except ConnectionClosed:
         pass
     finally:
-        print(f"[{timestamp()}] {label} terputus ({ip})")
+        print(f"[{timestamp()}] {label} terputus")
         if owned is not None and owned in HUNT.groups:
             if path == "/beacon":
                 HUNT.groups[owned]["beacon_online"] = False
@@ -2304,13 +2435,18 @@ def simpan_sapuan(meta: dict, msg: dict) -> tuple[bool, str]:
 
 
 async def handle_viewer(connection: ServerConnection) -> None:
+    ip = klien_ip(connection)
+    # Pagar per alamat, sebelum soket ini didaftarkan sebagai penonton
+    if terblokir(ip) or koneksi_ip(ip) >= KONEKSI_IP_MAKS:
+        await connection.close(1008, "terlalu banyak percobaan")
+        return
     meta = {
         "id": secrets.token_hex(4),   # untuk log, bukan rahasia
         "peran": PERAN_TAMU,
         "grup": None,
         "nim": None,
         "sesi": None,
-        "ip": peer_ip(connection),
+        "ip": ip,
         "sejak": time.monotonic(),
         "gagal": 0,
         "gagal_masuk": 0,
@@ -2360,9 +2496,13 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
 
     if aksi in AKSI_ASISTEN and not berwenang:
         meta["gagal"] += 1
+        # Hanya token yang dicoba dan salah yang dihitung per alamat; tamu
+        # yang menekan tombol asisten tanpa token membawa token kosong
+        if msg.get("token") is not None:
+            catat_gagal(meta["ip"])
         await kirim(connection, "balas", aksi=aksi, ok=False,
                     alasan="butuh token asisten")
-        if meta["gagal"] >= MAX_GAGAL_TOKEN:
+        if meta["gagal"] >= MAX_GAGAL_TOKEN or terblokir(meta["ip"]):
             await connection.close(1008, "terlalu banyak percobaan")
         return
 
@@ -2383,19 +2523,28 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         return found["grup"], "", ""
 
     if aksi == "masuk":
-        # Pencarian ini memang dapat dicoba berulang oleh siapa pun di
-        # hotspot. Batasnya ada supaya menebak seluruh angkatan tidak
-        # menjadi hal yang murah, dan balasannya tidak pernah memuat lebih
-        # dari catatan orang yang baru saja mengetikkan NIM-nya sendiri.
-        if meta["gagal_masuk"] >= MAX_GAGAL_MASUK:
+        # Pencarian ini terbuka di internet, jadi dua pagar: kode papan dari
+        # tautan situs IRIS (tanpanya NIM tidak dicoba sama sekali), dan
+        # hitungan kegagalan per alamat peramban. Balasannya tidak pernah
+        # memuat lebih dari catatan orang yang baru saja mengetikkan NIM-nya
+        # sendiri.
+        if meta["gagal_masuk"] >= MAX_GAGAL_MASUK or terblokir(meta["ip"]):
             await kirim(connection, "masuk", ok=False,
                         alasan="terlalu banyak percobaan",
                         kode="terlalu_sering")
+            return
+        if not (berwenang or kode_ok(msg.get("kode_papan"))):
+            meta["gagal_masuk"] += 1
+            catat_gagal(meta["ip"])
+            await kirim(connection, "masuk", ok=False,
+                        alasan="buka papan lewat tautan dari situs IRIS",
+                        kode="kode_papan")
             return
         nim = msg.get("nim")
         gid, alasan, kode = terapkan_nim(nim)
         if gid is None:
             meta["gagal_masuk"] += 1
+            catat_gagal(meta["ip"])
             await kirim(connection, "masuk", ok=False, alasan=alasan, kode=kode)
             return
 
@@ -2416,13 +2565,14 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
 
     if aksi == "halo":
         punya_token = msg.get("token") is not None
-        if punya_token and not token_ok(msg.get("token")):
+        if punya_token and (terblokir(meta["ip"]) or not token_ok(msg.get("token"))):
             meta["gagal"] += 1
+            catat_gagal(meta["ip"])
             await kirim(connection, "halo", ok=False, alasan="token salah",
                         peran=meta["peran"], grup=meta["grup"],
                         ronde=HUNT.ronde, sesi=JADWAL["aktif"],
                         roster_rev=JADWAL["rev"])
-            if meta["gagal"] >= MAX_GAGAL_TOKEN:
+            if meta["gagal"] >= MAX_GAGAL_TOKEN or terblokir(meta["ip"]):
                 await connection.close(1008, "terlalu banyak percobaan")
             return
 
@@ -2430,7 +2580,13 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         kode = ""
         gid = None
         if msg.get("nim") is not None:
-            gid, alasan, kode = terapkan_nim(msg.get("nim"))
+            if terblokir(meta["ip"]):
+                alasan, kode = "terlalu banyak percobaan", "terlalu_sering"
+            elif not (punya_token or kode_ok(msg.get("kode_papan"))):
+                catat_gagal(meta["ip"])
+                alasan, kode = "buka papan lewat tautan dari situs IRIS", "kode_papan"
+            else:
+                gid, alasan, kode = terapkan_nim(msg.get("nim"))
         meta["grup"] = gid
         meta["nim"] = msg.get("nim", "").strip().upper() if gid is not None else None
         meta["sesi"] = JADWAL["aktif"] if gid is not None else None
@@ -2451,6 +2607,8 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
                     ronde=HUNT.ronde, sesi=JADWAL["aktif"],
                     roster_rev=JADWAL["rev"],
                     nama=meta["nama"],
+                    # Asisten membawa kode ke proyektor dan ke tautan
+                    kode_papan=kode_papan() if meta["peran"] == PERAN_ASISTEN else None,
                     peran_tim=PERAN.get(meta["nim"]) if meta["nim"] else None)
         await kirim_riwayat_ping(connection, meta)
         return

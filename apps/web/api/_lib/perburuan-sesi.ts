@@ -1,9 +1,10 @@
 /**
  * Mulai and Selesai Perburuan (2026-10-08): the Asisten's switch for the
  * Module 4 hunt in a running session. Starting a Module 4 session no longer
- * touches the network; Mulai turns the IRIS_IOT hotspot and modul4.service
- * on (queued for the one enrolled PC), unlocks the Praktikan's Perburuan
- * step, and Selesai (or ending the session) turns both off again.
+ * touches the network; Mulai turns modul4.service on (queued for the one
+ * enrolled PC) and unlocks the Praktikan's Perburuan step, and Selesai (or
+ * ending the session) turns the scoreboard off again. Since 2026-11-10 the
+ * PC makes no hotspot: each group's own phone does, for its Beacon and Hunter.
  *
  * POST /api/session/perburuan { langkah: "mulai" | "selesai" }  (Asisten)
  *
@@ -42,17 +43,15 @@ async function simpan(sesiId: number, nilai: PerburuanSesi, nim: string): Promis
     });
 }
 
-/** The hotspot and the scoreboard off; true when the PC could be chosen. */
+/** The scoreboard off; true when the PC could be chosen. */
 async function matikan(nim: string): Promise<boolean> {
-  const ap = await queueSoloServerCommand("ap.mati", nim);
-  await queueSoloServerCommand("layanan.henti", nim, { layanan: "modul4" });
-  return ap;
+  return queueSoloServerCommand("layanan.henti", nim, { layanan: "modul4" });
 }
 
 /**
  * A session that ends (or is cancelled, or replaced) closes its hunt and
- * turns the hotspot and the scoreboard off, whether or not Mulai was ever
- * pressed: an old hotspot must never outlive its session.
+ * turns the scoreboard off, whether or not Mulai was ever pressed: an old
+ * scoreboard (and its join code) must never outlive its session.
  */
 export async function tutupPerburuan(sesiId: number, modul: number, nim: string): Promise<void> {
   if (modul !== 4) return;
@@ -96,8 +95,9 @@ export async function handlePerburuanPost(
       oleh: session.nim,
     };
     await simpan(running.id, nilai, session.nim);
-    const diantre = await queueSoloServerCommand("ap.nyala", session.nim);
-    if (diantre) await queueSoloServerCommand("layanan.mulai", session.nim, { layanan: "modul4" });
+    const diantre = await queueSoloServerCommand("layanan.mulai", session.nim, {
+      layanan: "modul4",
+    });
     await writeAudit(session.nim, "perburuan_mulai", { sesiId: running.id, diantre });
     res.status(200).json({ ok: true, perburuan: nilai, diantre });
     return;

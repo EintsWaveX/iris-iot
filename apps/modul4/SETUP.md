@@ -11,17 +11,20 @@
 
 # Perburuan LoRa IRIS — papan skor (Modul 4)
 
-Papan skor web untuk permainan berburu beacon LoRa. Berjalan seluruhnya pada
-PC Server; tidak memerlukan Internet, akun, maupun proses deploy.
+Papan skor web untuk permainan berburu beacon LoRa. Berjalan pada PC Server
+dan dibuka dari internet di **https://hunt.irisiotlab.com** (lewat Cloudflare
+Tunnel; lihat `apps/web/deploy/DEPLOY.md` bagian 2a). Ponsel memakai data
+selulernya sendiri, jadi bisa dibawa berkeliling gedung; hotspot Wi-Fi tidak
+lagi dibuat oleh PC, melainkan oleh **satu ponsel tiap kelompok**.
 
 ```
-Beacon 1 ─┐                             ┌── papan skor (proyektor)
-Hunter 1 ─┤                             ├── ponsel tiap kelompok
-Beacon 2 ─┤                             ├── ponsel/laptop asisten
-Hunter 2 ─┤   LoRa 920 MHz, 5 pasang    │
-   ...    ├── (sync word + slot ────────┼─ Wi-Fi ─→ PC Server
-Beacon 5 ─┤    sendiri per pasangan)    │            (AP + DHCP + NTP + server)
-Hunter 5 ─┘                             └            http://192.168.4.1:8080
+Beacon 1 ─┐  hotspot ponsel     ┌── papan skor (proyektor)
+Hunter 1 ─┤  kelompok 1 (IRIS-G1)│── ponsel tiap kelompok (data seluler)
+Beacon 2 ─┤                      ├── ponsel/laptop asisten
+Hunter 2 ─┤  LoRa 920 MHz,       │
+   ...    ├── 5 pasang ──────────┼─ internet ─→ Cloudflare Tunnel ─→ PC Server
+Beacon 5 ─┤  (sync word + slot   │              https://hunt.irisiotlab.com
+Hunter 5 ─┘   sendiri per pasangan)              (modul4.service, 127.0.0.1:8080)
 ```
 
 Satu alamat untuk semua orang. Peran dibedakan di dalam halamannya, bukan
@@ -30,56 +33,64 @@ mengetikkan token satu kali, proyektor memakai `?stage=1`.
 
 ---
 
-## 1. Menyalakan hotspot pada PC
+## 1. Jaringan: hotspot ponsel tiap kelompok
 
-Modul 2 dan Modul 3 menjalankan PC sebagai *client* Wi-Fi kampus.
-Modul 4 memerlukannya sebagai *access point*. Satu antarmuka `wlan0` tidak
-dapat menjadi keduanya sekaligus, kecuali sebuah **dongle Wi-Fi USB kedua**
-terpasang sebagai uplink terpisah -- lihat `pc/README.md` bagian 7.0.
-Dengan dongle, `wlan0` menjadi access point sementara dongle tetap
-tersambung ke Wi-Fi kampus, dan perburuan tetap terjangkau situs web secara
-langsung. Tanpa dongle, perilaku lama berlaku:
+PC tidak lagi menjadi access point. Alasannya sederhana: ponsel harus bisa
+dibawa berburu di lapangan, dan jangkauan Wi-Fi PC tidak menjangkau arena
+ratusan meter.
 
-> **Tanpa dongle uplink, Modul 4 dan Modul 2/3 tidak dapat dijalankan pada
-> sesi yang sama.** Jadwalkan keduanya terpisah, dan kembalikan mode PC
-> sesudahnya. `opi_ap_on.sh` mendeteksi dongle secara otomatis setiap kali
-> dijalankan -- tidak ada yang perlu diubah pada perintah di bawah ini.
-
-```bash
-sudo ./scripts/opi_ap_on.sh     # menjadi access point IRIS_IOT
-sudo ./scripts/opi_ap_off.sh    # kembali menjadi client Wi-Fi kampus
-```
-
-Nilai bawaannya:
+- Satu ponsel tiap kelompok menyalakan hotspot bernama **`IRIS-G<n>`** (n =
+  nomor kelompok) dengan kata sandi yang tertulis di sketsa dan di langkah
+  Perburuan situs. Nama dan sandinya ditampilkan di langkah itu.
+- **Beacon dan Hunter** kelompok itu menyambung ke hotspot tersebut dan
+  menjangkau `hunt.irisiotlab.com:443` lewat WebSocket aman (`wss://`).
+- **Beacon dinyalakan dan disambungkan dulu selagi dekat ponsel itu**, baru
+  disembunyikan. Di luar jangkauan hotspot, Wi-Fi-nya lepas; radio LoRa-nya
+  tetap memancar, hanya laporan ke papan skor yang berhenti, dan paket yang
+  hilang dihitung dari selisih nomor urut yang dilaporkan Hunter.
+- Ponsel anggota lain **tidak** menyambung ke mana pun; cukup data seluler.
+- Jam papan berasal dari `time.cloudflare.com` (SNTP), bukan lagi dari PC.
+  Beacon dan Hunter satu kelompok memakai sumber dan hotspot yang sama, jadi
+  selisih keduanya tetap sahih; ketelitiannya puluhan milidetik, tidak lagi
+  di bawah satu milidetik seperti NTP lokal, dan jurnal menyebutnya.
 
 | Parameter | Nilai |
 |---|---|
-| SSID | `IRIS_IOT` |
-| Kata sandi | `13015954` |
-| Alamat PC | `192.168.4.1` |
-| Rentang DHCP | `192.168.4.10` – `192.168.4.60` |
-| Server NTP | `192.168.4.1` (PC itu sendiri) |
-| Papan skor | `http://192.168.4.1:8080` |
+| Nama hotspot | `IRIS-G1` sampai `IRIS-G5` |
+| Papan skor | `https://hunt.irisiotlab.com` |
+| Proyektor | `https://hunt.irisiotlab.com/?stage=1` (asisten masuk dengan token) |
+| Soket papan | `wss://hunt.irisiotlab.com/beacon` dan `/hunter` |
 
 Nilai-nilai ini juga tertulis di dalam `hunter.ino` dan `beacon.ino`. Kalau
 salah satunya diubah, ubah pula templatnya di `scripts/gen_modul4.py` lalu
 jalankan ulang generatornya — jangan menyunting berkas hasil bangkitan.
 
-### Jam
+### Pagar karena papan ini terbuka di internet
 
-Hotspot ini tidak memiliki jalur ke Internet, sehingga PC menjadi sumber waktu
-bagi seluruh papan. **Setel jam PC sebelum mode AP dinyalakan**, selagi masih
-ada Internet:
+Dulu papan hanya terjangkau dari hotspot tertutup. Sekarang tiga pagar
+menggantikannya (`server.py`, diuji `tools/uji_protokol.py`):
 
-```bash
-sudo systemctl restart chrony && chronyc tracking
-```
+- **Kode papan**: enam huruf yang diturunkan dari token asisten, sesi, dan
+  tanggal (jadi berganti tiap sesi dan tiap hari, dan tetap sama bila server
+  dinyalakan ulang). Kodenya ikut di tautan yang ditampilkan situs IRIS di
+  langkah Perburuan (`#k=...`, di fragmen, jadi tidak pernah dikirim ke server
+  atau tercatat). Tanpanya NIM tidak dicoba sama sekali dan `/roster.json`
+  menjawab 403. Asisten yang memasukkan token menerima kodenya di jawaban
+  `halo`, untuk proyektor.
+- **Per alamat**: kegagalan (token, kode, NIM) dihitung per alamat peramban
+  sebenarnya (`CF-Connecting-IP`, hanya dipercaya bila soketnya sendiri
+  loopback). Lima belas kegagalan dalam sepuluh menit memblokir alamat itu.
+  Sekitar empat puluh soket terbuka per alamat paling banyak.
+- **Rute khusus agent** (`/ringkas.json`, `/telemetri.json`, yang membawa NIM)
+  hanya dilayani untuk proses di PC ini. Karena tunnel menyambung dari
+  `127.0.0.1`, server memeriksa header tunnel (`CF-Connecting-IP`, `CF-Ray`,
+  `X-Forwarded-For`, ...) dan menolak yang datang lewat tunnel.
 
-Jam mutlak PC boleh saja meleset beberapa detik. Yang penting Beacon dan Hunter
-berangkat dari *satu* sumber waktu, sehingga selisih keduanya tetap sahih —
-dan selisih itulah yang dicatat praktikan.
-
----
+Sisa risiko yang diketahui: `/beacon` dan `/hunter` tidak memakai kunci, jadi
+orang luar yang tahu protokolnya (terbaca di sketsa) bisa menyuntikkan RSSI
+palsu untuk satu kelompok. Nomor kelompok dibatasi 1 sampai 99 dan bidang
+teksnya dipotong, tetapi tidak ada autentikasi papan; kunci per sesi dapat
+ditambahkan bila ini terjadi.
 
 ## 2. Membangun dan menjalankan papan skor
 
@@ -185,8 +196,8 @@ Satu proses melayani semuanya pada port 8080:
 | `WS /hunter` | keenam papan Hunter |
 | `WS /live` | papan skor di peramban |
 
-Buka `http://192.168.4.1:8080` untuk papan skor, dan
-`http://192.168.4.1:8080/?stage=1` untuk mode proyektor.
+Buka `https://hunt.irisiotlab.com` untuk papan skor, dan
+`https://hunt.irisiotlab.com/?stage=1` untuk mode proyektor.
 
 ---
 
@@ -196,15 +207,19 @@ Lima kelompok, lima pasangan Beacon/Hunter, lima beacon tersembunyi. Tiap
 kelompok memburu **beacon-nya sendiri**; pasangan-pasangan itu tidak saling
 mendengar karena kata sinkron radionya berbeda.
 
-1. Nyalakan hotspot, lalu jalankan server. Catat tokennya.
-2. Tiap kelompok mengunggah `beacon.ino` **dan** `hunter.ino` dari foldernya
-   sendiri (`grupN/`). Tidak ada baris yang perlu disunting. Asisten
-   **menyembunyikan** kelima beacon di sekitar gedung.
-3. **Asisten mengisi jadwal sehari.** Buka `http://192.168.4.1:8080`, ketuk
+1. Jalankan server (`modul4.service`, dinyalakan oleh Mulai Perburuan di
+   situs). Catat tokennya.
+2. Tiap kelompok menyalakan hotspot `IRIS-G<n>` di satu ponselnya, lalu
+   mengunggah `beacon.ino` **dan** `hunter.ino` dari foldernya sendiri
+   (`grupN/`). Tidak ada baris yang perlu disunting. Beacon disambungkan ke
+   hotspot dulu, baru asisten **menyembunyikan** kelima beacon di sekitar
+   gedung.
+3. **Asisten mengisi jadwal sehari.** Buka `https://hunt.irisiotlab.com`, ketuk
    lambang di kiri atas tiga kali, masukkan token. Tab **Asisten** (mission
    control) terbuka sendiri. Buka **Jadwal dan kendali**, tempelkan daftar
    tiap sesi (lihat bagian 4), lalu **Mulai sesi ini**.
-4. **Tiap praktikan membuka alamat yang sama di ponselnya** dan mengetikkan
+4. **Tiap praktikan membuka tautan dari situs IRIS** (langkah Perburuan; QR
+   atau salin tautan, karena kode papan ikut di dalamnya) dan mengetikkan
    **NIM**-nya. Papan menampilkan kelompoknya sebagai rasi bintang beserta
    nama anggotanya untuk dipastikan, lalu tiga kartu singkat (tujuan, membaca
    sonar, mengklaim) dan pilihan **peran**.
@@ -212,7 +227,8 @@ mendengar karena kata sinkron radionya berbeda.
    beacon-nya, pilih kelompok itu di **Jadwal dan kendali**, tekan
    **Kalibrasi 1 m**. Kalibrasi berlaku untuk semua kelompok dan bertahan
    melewati **Ronde baru** dan pergantian sesi, jadi cukup sekali per lokasi.
-6. Proyektor membuka `http://192.168.4.1:8080/?stage=1`. Tombol
+6. Proyektor membuka `https://hunt.irisiotlab.com/?stage=1` dan asisten
+   masuk dengan token. Tombol
    **Hitung mundur di proyektor** memutar 3, 2, 1, Buru! di layar besar;
    memulai sesi memutarnya sendiri.
 7. **Perburuan.** Layar **Buru** di tiap ponsel: sonar (cincin terang adalah
@@ -292,20 +308,11 @@ Beberapa hal yang perlu diketahui asisten:
 
 ### Layar yang tertidur di tengah perburuan
 
-Papan mencoba menahan layar tetap menyala lewat **Screen Wake Lock**, tetapi
-peramban hanya mengizinkannya pada *secure context* — `https://` atau
-`localhost`. Papan ini disajikan di `http://192.168.4.1:8080`, yang **bukan**
-secure context, jadi pada hari praktikum penahan itu **tidak aktif**. Ia
-gagal diam-diam: tidak ada galat, tidak ada yang rusak, layarnya hanya tidur
-seperti biasa.
-
-Sampai papan ini disajikan lewat HTTPS, yang bekerja adalah hal yang paling
-sederhana:
-
-> **Sebelum sesi dimulai, minta tiap kelompok menyetel batas tidur layar
-> ponselnya ke 5 menit atau "tidak pernah".**
-
-Satu kalimat di awal sesi, dan masalahnya hilang untuk 150 menit berikutnya.
+Papan kini disajikan lewat `https://`, yang termasuk *secure context*, jadi
+penahan layar (**Screen Wake Lock**) bekerja di peramban yang mendukungnya.
+Untuk jaga-jaga (peramban lama, mode hemat daya), minta tiap kelompok menyetel
+batas tidur layar ponselnya ke 5 menit atau "tidak pernah" sebelum sesi
+dimulai.
 
 ### Kalau kamera atau baterai bermasalah
 
@@ -383,19 +390,18 @@ membuangnya sebelum hari berganti.
 
 NIM dipakai untuk satu hal saja: mencari kelompok seseorang saat ia masuk.
 
-- NIM **tidak pernah** keluar lewat `GET /roster.json`, yang memang tanpa
-  token supaya proyektor dapat menampilkan nama kelompok. Rute itu hanya
-  membawa nama.
+- NIM **tidak pernah** keluar lewat `GET /roster.json`, yang membutuhkan kode
+  papan (`?k=`) dan hanya membawa nama.
 - Satu-satunya NIM yang pernah meninggalkan server adalah NIM yang baru saja
   diketik orangnya sendiri, dikembalikan kepada koneksi yang mengetiknya.
 - Daftar lengkap beserta NIM hanya terbaca lewat perintah `jadwal_baca`, yang
   **memerlukan token asisten**.
-- Nama anggota (bukan NIM) tetap terbaca siapa pun di hotspot `IRIS_IOT`,
-  seperti sebelumnya, karena proyektor membutuhkannya.
-- Pencarian NIM dapat dicoba berulang oleh siapa pun di hotspot. Ada batas
-  percobaan per koneksi supaya menebak seluruh angkatan tidak menjadi murah,
-  tetapi ini **bukan** otentikasi — ini jaringan tertutup untuk satu hari
-  praktikum, dan itulah alasan jadwalnya tidak menginap semalam.
+- Nama anggota (bukan NIM) hanya terbaca oleh yang membawa kode papan: ponsel
+  yang membuka tautan dari situs IRIS, dan asisten yang sudah memasukkan token
+  (untuk proyektor).
+- Pencarian NIM butuh kode papan dan dibatasi per alamat peramban (bagian 1),
+  jadi menebak seluruh angkatan dari luar tidak mungkin dan tidak murah. Tetap
+  **bukan** otentikasi penuh, dan itu alasan jadwalnya tidak menginap semalam.
 
 Rencana tersimpan di `modul4/jadwal.json`, satu-satunya berkas yang sengaja
 selamat dari restart, supaya server yang mati di tengah sesi tidak memaksa
@@ -481,8 +487,18 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
 ## 6. Hal yang paling sering salah
 
 - **Papan skor kosong padahal hunter menyala.** Papan itu belum bergabung ke
-  `IRIS_IOT`, atau PC masih dalam mode client. Serial Monitor hunter akan
-  menggantung pada titik-titik "Menyambung ke hotspot PC".
+  hotspot `IRIS-G<n>` kelompoknya (nama atau sandi beda), atau hotspot
+  ponselnya tidak punya data seluler, sehingga `hunt.irisiotlab.com` tidak
+  terjangkau. Serial Monitor hunter akan menggantung pada titik-titik
+  "Menyambung ke hotspot", atau berulang kali mencoba menyambung soket.
+- **"Buka papan ini dari tautan di langkah Perburuan situs IRIS".** Ponsel itu
+  membuka alamat tanpa kode papan. Kode ikut di tautan/QR dari situs, berganti
+  tiap sesi dan tiap hari; buka ulang tautannya dari situs.
+- **Satu alamat tiba-tiba ditolak ("terlalu banyak percobaan").** Lima belas
+  kegagalan token/kode/NIM dalam sepuluh menit memblokir alamat itu selama
+  sisa jendelanya. Pada jaringan seluler yang berbagi satu alamat, salah ketik
+  banyak orang dapat menjumlah; tunggu sepuluh menit, atau nyalakan ulang
+  `modul4.service` untuk mengosongkan hitungannya.
 - **Semua kelompok terbaca "MEMBARA" sekaligus.** `BEACON_TX_POWER` terisi 20,
   bukan 2. Pada daya penuh gradien sinyalnya rata dan permainannya mustahil.
 - **Beacon "Hening" pada HUD.** Papan Beacon kehilangan Wi-Fi atau mati; radio
@@ -531,10 +547,10 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
 - **Detak jarak diam sama sekali.** Papan kelompok itu sedang tidak
   mengirim, atau beacon-nya sudah ditemukan. Keduanya memang membuatnya
   diam; lihat baris keadaan di atas tombol klaim.
-- **Layar ponsel tertidur di tengah perburuan.** Penahan layar hanya
-  diizinkan pada `https://` atau `localhost`, sedangkan papan ini disajikan
-  di `http://192.168.4.1:8080`. Setel batas tidur layar tiap ponsel ke 5
-  menit sebelum sesi dimulai; lihat bagian 3.
+- **Layar ponsel tertidur di tengah perburuan.** Papan disajikan lewat
+  `https://`, jadi penahan layar semestinya bekerja; peramban yang tidak
+  mendukungnya tetap tidur. Setel batas tidur layar tiap ponsel ke 5 menit
+  sebelum sesi dimulai; lihat bagian 3.
 - **Asisten menekan Sahkan tetapi tidak terjadi apa-apa.** Tokennya sudah
   kedaluwarsa karena server dijalankan ulang, dan token berganti setiap kali.
   Tab Asisten akan mengunci diri sendiri; masukkan token yang baru.
