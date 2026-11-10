@@ -17,6 +17,7 @@ import {
 import HoldButton from "../ui/HoldButton";
 import { dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
+import { samaSha } from "../../../deploy/upgrade-lib.mjs";
 import type { Release, UpgradeLatest, UpgradeStatus } from "../../../deploy/upgrade-lib.mjs";
 
 interface Answer {
@@ -48,6 +49,7 @@ const T = dict({
     checkedAt: (t: string) => `Dicek ${t}`,
     neverChecked: "Belum dicek.",
     upToDate: "Sudah versi terbaru.",
+    checkFirst: "Cek pembaruan dulu.",
     ahead: (n: number) => `${n} perubahan baru di main`,
     check: "Cek Pembaruan",
     upgrade: "Upgrade ke Terbaru",
@@ -92,6 +94,7 @@ const T = dict({
     checkedAt: (t: string) => `Checked ${t}`,
     neverChecked: "Not checked yet.",
     upToDate: "Already the newest version.",
+    checkFirst: "Check for updates first.",
     ahead: (n: number) => `${n} newer change${n === 1 ? "" : "s"} on main`,
     check: "Check for Updates",
     upgrade: "Upgrade to Latest",
@@ -136,6 +139,7 @@ const T = dict({
     checkedAt: (t: string) => `检查于 ${t}`,
     neverChecked: "尚未检查。",
     upToDate: "已是最新版本。",
+    checkFirst: "请先检查更新。",
     ahead: (n: number) => `main 上有 ${n} 项新更改`,
     check: "检查更新",
     upgrade: "升级到最新",
@@ -268,7 +272,12 @@ export default function WebUpgrade({ lang }: { lang: Lang }) {
       : d.sessionLive
         ? t.blockedSession
         : null;
-  const ahead = d.latest?.ahead ?? [];
+  // The last check only counts for the build that runs now; after a manual deploy it is out of date.
+  const fresh = !!d.latest && samaSha(d.latest.current, d.build);
+  const ahead = fresh ? (d.latest?.ahead ?? []) : [];
+  const upToDate = fresh && ahead.length === 0;
+  // Why Upgrade cannot be pressed: a job or an exam first, then nothing new, or nothing checked yet.
+  const reason = blocked ?? (upToDate ? t.upToDate : !fresh ? t.checkFirst : null);
 
   return (
     <section className="panel srv-up" aria-labelledby="srv-up-t">
@@ -308,7 +317,12 @@ export default function WebUpgrade({ lang }: { lang: Lang }) {
             <h3 className="srv-up__h">{t.checkTitle}</h3>
             <span className="hint">
               {d.latest ? t.checkedAt(when(d.latest.fetchedAt, lang)) : t.neverChecked}
-              {d.latest && (ahead.length ? ` · ${t.ahead(ahead.length)}` : ` · ${t.upToDate}`)}
+              {d.latest &&
+                (!fresh
+                  ? ` · ${t.checkFirst}`
+                  : ahead.length
+                    ? ` · ${t.ahead(ahead.length)}`
+                    : ` · ${t.upToDate}`)}
             </span>
             {ahead.length > 0 && (
               <ul className="srv-up__list">
@@ -334,12 +348,12 @@ export default function WebUpgrade({ lang }: { lang: Lang }) {
                 tone="primary"
                 icon={RocketLaunchIcon}
                 size="compact"
-                disabled={sending || !!blocked}
-                title={blocked ?? undefined}
+                disabled={sending || !!reason}
+                title={reason ?? undefined}
                 onDone={() => void ask("deploy")}
               />
             </div>
-            <span className="hint">{blocked ?? t.upgradeHint}</span>
+            <span className="hint">{reason ?? t.upgradeHint}</span>
           </div>
 
           <div className="srv-up__block">
