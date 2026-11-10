@@ -19,6 +19,8 @@
  */
 import {
   forwardRef,
+  lazy,
+  Suspense,
   useEffect,
   useId,
   useLayoutEffect,
@@ -31,9 +33,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { DayPicker } from "react-day-picker";
-import "react-day-picker/style.css";
-import { id as dpId, enGB as dpEnGB, zhCN as dpZhCN } from "react-day-picker/locale";
+import type { Matcher } from "react-day-picker";
 import { format, parseISO, isValid } from "date-fns";
 import {
   CalendarBlankIcon,
@@ -172,9 +172,10 @@ const DP_TEXT = dict({
   },
 });
 
-// The day picker's own locales: date-fns's plus its screen reader labels
-// ("Hari ini, …", "Ke bulan sebelumnya"), which date-fns's alone left English.
-const DP_LOCALE = { id: dpId, en: dpEnGB, zh: dpZhCN } as const;
+// The calendar itself (DayPanel.tsx) is fetched on first use: pointing at,
+// focusing or touching a date field starts the fetch before it is opened.
+const loadDayPanel = () => import("./DayPanel");
+const DayPanel = lazy(loadDayPanel);
 
 interface DateFieldProps {
   value: string;
@@ -209,7 +210,7 @@ export function DateField({
   const date = parsed && isValid(parsed) ? parsed : undefined;
   const today = format(new Date(), "yyyy-MM-dd");
   const todayOk = (!min || today >= min) && (!max || today <= max) && (!boleh || boleh(today));
-  const disabled = [
+  const disabled: Matcher[] = [
     ...(min ? [{ before: parseISO(min) }] : []),
     ...(max ? [{ after: parseISO(max) }] : []),
     ...(boleh ? [(d: Date) => !boleh(format(d, "yyyy-MM-dd"))] : []),
@@ -226,6 +227,9 @@ export function DateField({
           className="ctl-date__trigger"
           aria-label={labelledBy ? undefined : label}
           aria-labelledby={labelledBy && id ? `${labelledBy} ${id}` : labelledBy}
+          onPointerEnter={() => void loadDayPanel()}
+          onFocus={() => void loadDayPanel()}
+          onTouchStart={() => void loadDayPanel()}
         >
           <span>{date ? tanggalPanjang(value, lang) : t.pick}</span>
           <CalendarBlankIcon size={20} aria-hidden="true" />
@@ -233,20 +237,17 @@ export function DateField({
       }
     >
       <div className="ctl-date__panel">
-        <DayPicker
-          mode="single"
-          selected={date}
-          defaultMonth={date}
-          disabled={disabled}
-          onSelect={(d) => {
-            if (!d) return;
-            onChange(format(d, "yyyy-MM-dd"));
-            setOpen(false);
-          }}
-          locale={DP_LOCALE[lang]}
-          weekStartsOn={1}
-          showOutsideDays
-        />
+        <Suspense fallback={null}>
+          <DayPanel
+            date={date}
+            disabled={disabled}
+            lang={lang}
+            onPick={(d) => {
+              onChange(format(d, "yyyy-MM-dd"));
+              setOpen(false);
+            }}
+          />
+        </Suspense>
         {todayOk && (
           <button
             type="button"
