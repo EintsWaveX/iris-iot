@@ -237,7 +237,8 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
         return tak(res, badan.ok ? 200 : 503, badan);
       }
 
-      if (asli.startsWith("/f/")) return sajikanBerkas(req, res, asli, opsi.bacaBerkas, opsi.cekBerkas);
+      if (asli.startsWith("/f/"))
+        return sajikanBerkas(req, res, asli, opsi.bacaBerkas, opsi.cekBerkas);
 
       const path = aturan.tulisUlang(asli);
       if (path === "/api" || path.startsWith("/api/")) {
