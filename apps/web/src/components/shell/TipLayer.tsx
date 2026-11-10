@@ -11,9 +11,12 @@
  * A control that already carries a kit Tooltip (data-tip-own, icon buttons)
  * keeps that one. Renders nothing itself; the panel lives on <body>, or in
  * the full-screen element while one is up.
+ *
+ * The table of explanations (lib/tips-data.ts, about 70 KB) is not part of
+ * the page's scripts: it is fetched when the page is idle on a mouse
+ * device, or at the first hover, focus or long press, whichever is first.
  */
 import { useEffect } from "react";
-import { tipUntuk } from "../../lib/tips";
 import "../ui/Tooltip.css";
 
 const SASARAN =
@@ -25,7 +28,25 @@ function bahasa(): "id" | "en" | "zh" {
   return l.startsWith("en") ? "en" : l.startsWith("zh") ? "zh" : "id";
 }
 
-function teksTip(el: HTMLElement): string | null {
+type TipUntuk = typeof import("../../lib/tips").tipUntuk;
+let tipUntuk: TipUntuk | null = null;
+let muatan: Promise<void> | null = null;
+
+/** Fetches the explanations once. If that fails, no label has one (data-tip and title still show). */
+function muatTips(): Promise<void> {
+  muatan ??= import("../../lib/tips").then(
+    (m) => {
+      tipUntuk = m.tipUntuk;
+    },
+    () => {
+      tipUntuk = () => null;
+    },
+  );
+  return muatan;
+}
+
+/** The tip for a control; `undefined` while the explanations are still on their way. */
+function teksTip(el: HTMLElement): string | null | undefined {
   if (el.closest("[data-tip-own]") || el.dataset.tip === "") return null;
   if (el.dataset.tip) return el.dataset.tip;
   const title = el.getAttribute("title");
@@ -34,6 +55,7 @@ function teksTip(el: HTMLElement): string | null {
     el.removeAttribute("title");
   }
   if (el.dataset.tipTitle) return el.dataset.tipTitle;
+  if (!tipUntuk) return undefined;
   const label = el.getAttribute("aria-label") || el.innerText || "";
   return tipUntuk(label, bahasa(), {
     role: el.getAttribute("role"),
@@ -88,6 +110,15 @@ export default function TipLayer() {
 
     const mulai = (el: HTMLElement, tunda: number) => {
       const teks = teksTip(el);
+      if (teks === undefined) {
+        // The first one only: once the explanations are here, ask again if
+        // the pointer or the focus is still on that control.
+        void muatTips().then(() => {
+          if (el.isConnected && (el.matches(":hover") || el.matches(":focus-visible")))
+            mulai(el, tunda);
+        });
+        return;
+      }
       if (!teks) return sembunyi();
       // Already shown, or already waiting: moving over its icon or words
       // must not start the wait again.
@@ -122,7 +153,19 @@ export default function TipLayer() {
 
     // A long press on a touch screen shows it; the tap itself still acts.
     let tekan: ReturnType<typeof setTimeout> | undefined;
+    let ditekan: HTMLElement | null = null;
     let awal = { x: 0, y: 0 };
+    const tahan = (el: HTMLElement) => {
+      const teks = teksTip(el);
+      if (teks === undefined) {
+        void muatTips().then(() => ditekan === el && el.isConnected && tahan(el));
+        return;
+      }
+      if (!teks) return;
+      target = el;
+      taruh(el, teks);
+      setTimeout(() => target === el && sembunyi(), 2500);
+    };
     const down = (e: PointerEvent) => {
       sembunyi();
       if (e.pointerType === "mouse") return;
@@ -130,19 +173,27 @@ export default function TipLayer() {
       if (!el) return;
       awal = { x: e.clientX, y: e.clientY };
       clearTimeout(tekan);
-      tekan = setTimeout(() => {
-        const teks = teksTip(el);
-        if (!teks) return;
-        target = el;
-        taruh(el, teks);
-        setTimeout(() => target === el && sembunyi(), 2500);
-      }, 550);
+      ditekan = el;
+      tekan = setTimeout(() => tahan(el), 550);
+    };
+    const hentikan = () => {
+      clearTimeout(tekan);
+      ditekan = null;
     };
     const gerak = (e: PointerEvent) => {
-      if (Math.hypot(e.clientX - awal.x, e.clientY - awal.y) > 10) clearTimeout(tekan);
+      if (Math.hypot(e.clientX - awal.x, e.clientY - awal.y) > 10) hentikan();
     };
-    const lepas = () => clearTimeout(tekan);
+    const lepas = () => hentikan();
     const kunci = (e: KeyboardEvent) => e.key === "Escape" && sembunyi();
+
+    // A mouse device will want tips soon: fetch them once the page is quiet.
+    // A phone fetches them at the first long press instead.
+    let siapIdle: number | undefined;
+    let siapTunggu: ReturnType<typeof setTimeout> | undefined;
+    if (window.matchMedia?.("(hover: hover)").matches) {
+      if (window.requestIdleCallback) siapIdle = window.requestIdleCallback(() => void muatTips());
+      else siapTunggu = setTimeout(() => void muatTips(), 1500);
+    }
 
     document.addEventListener("pointerover", over, true);
     document.addEventListener("pointerout", out, true);
@@ -157,6 +208,9 @@ export default function TipLayer() {
     window.addEventListener("resize", sembunyi);
     document.addEventListener("astro:before-swap", sembunyi);
     return () => {
+      if (siapIdle !== undefined) window.cancelIdleCallback?.(siapIdle);
+      clearTimeout(siapTunggu);
+      hentikan();
       sembunyi();
       panel.remove();
       document.removeEventListener("pointerover", over, true);
