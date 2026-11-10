@@ -148,6 +148,20 @@ describe("deploy", () => {
     expect(rilis().map((x: { sha: string }) => x.sha)).toEqual([B, A]);
     expect(rilis()[1]).toMatchObject({ action: "seed" });
   });
+  it("refreshes what the page shows as newer, so a build that now runs is not offered again", async () => {
+    ask({ id: "u1abcd", action: "deploy" });
+    await jalankan(d());
+    expect(JSON.parse(files.get(`${DIR}/latest.json`)!).current).toBe(B);
+  });
+  it("refreshes it after the previous build was put back too", async () => {
+    deployPlan = [
+      { code: 1, sehat: A },
+      { code: 0, sehat: A },
+    ];
+    ask({ id: "u1abcd", action: "deploy" });
+    await jalankan(d());
+    expect(JSON.parse(files.get(`${DIR}/latest.json`)!).current).toBe(A);
+  });
   it("does nothing when main is what already runs", async () => {
     head = A + "0".repeat(28);
     ask({ id: "u1abcd", action: "deploy" });
@@ -155,6 +169,7 @@ describe("deploy", () => {
     expect(r.ok).toBe(true);
     expect(deployed).toEqual([]);
     expect(status().message).toContain("Already running");
+    expect(JSON.parse(files.get(`${DIR}/latest.json`)!).current).toBe(A);
   });
   it("does not seed a running build that has no button", async () => {
     withMarker = new Set([B]);
@@ -226,6 +241,8 @@ describe("rollback", () => {
     expect(r.ok).toBe(true);
     expect(deployed).toEqual([A]);
     expect(rilis()[0]).toMatchObject({ sha: A, action: "rollback" });
+    // The page's "what is newer" is for the build that runs now
+    expect(JSON.parse(files.get(`${DIR}/latest.json`)!).current).toBe(A);
   });
   it("refuses a build that is not in the history, even a real one", async () => {
     prepare();

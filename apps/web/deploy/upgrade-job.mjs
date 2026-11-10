@@ -123,8 +123,10 @@ export async function jalankan(d) {
   if (h.code !== 0) return selesai(false, "Could not read origin/main.");
   const head = h.out.trim();
 
-  if (req.action === "check") {
-    const range = dari ? `${dari}..origin/main` : "origin/main";
+  // What main has on top of `current`, written for the page. Written after every job, not only a check, so
+  // the page never offers an upgrade to a build that already runs (or hides one after a rollback).
+  const catatLatest = async (current) => {
+    const range = current ? `${current}..origin/main` : "origin/main";
     const lg = await git(["log", "--format=%h%x09%ct%x09%s", "-n", "30", range]);
     const ahead = (lg.code === 0 ? lg.out : "")
       .split("\n")
@@ -135,8 +137,13 @@ export async function jalankan(d) {
       });
     await d.tulis(
       P.latest,
-      JSON.stringify({ fetchedAt: d.sekarang(), head: pendek(head), current: dari, ahead }),
+      JSON.stringify({ fetchedAt: d.sekarang(), head: pendek(head), current, ahead }),
     );
+    return ahead;
+  };
+
+  if (req.action === "check") {
+    const ahead = await catatLatest(dari);
     return selesai(
       true,
       ahead.length
@@ -155,7 +162,10 @@ export async function jalankan(d) {
   let target;
   if (req.action === "deploy") {
     target = head;
-    if (samaSha(dari, target)) return selesai(true, `Already running ${pendek(target)}.`);
+    if (samaSha(dari, target)) {
+      await catatLatest(dari);
+      return selesai(true, `Already running ${pendek(target)}.`);
+    }
   } else {
     const v = await git(["rev-parse", "--verify", `${req.ref}^{commit}`]);
     if (v.code !== 0) return selesai(false, `Unknown build ${req.ref}.`);
@@ -188,6 +198,7 @@ export async function jalankan(d) {
         action: req.action,
       }),
     );
+    await catatLatest(pendek(target));
     return selesai(true, `Now running ${pendek(target)}.`);
   }
 
@@ -199,6 +210,7 @@ export async function jalankan(d) {
   );
   const kode2 = await d.deploy(dari);
   const sehat2 = kode2 === 0 && (await menungguSehat(d, dari));
+  await catatLatest(dari);
   return selesai(
     false,
     sehat2
