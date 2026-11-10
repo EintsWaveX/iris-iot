@@ -58,6 +58,7 @@ import { currentSesi } from "../../src/lib/sesi.js";
 import { desc, and, eq, inArray, lt, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 import { bundelTerbaru } from "../_lib/bundel.js";
+import { kolomPerintah } from "../_lib/perintah-kolom.js";
 import { ringkasRiwayat } from "../_lib/server-riwayat.js";
 
 const MAX_TEXT_LEN = 500;
@@ -95,7 +96,7 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number, full: b
   const sesiMulaiPada = running ? (running.mulaiPada ?? running.dibuatPada) : null;
 
   const daftarPerintah = await db
-    .select()
+    .select(kolomPerintah(full))
     .from(perintah)
     .where(eq(perintah.serverId, id))
     .orderBy(desc(perintah.id))
@@ -105,7 +106,7 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number, full: b
   // diag.log), so a busy command list never pushes one off the page.
   const layananArg = sql<string>`coalesce(${perintah.argumen}->>'layanan', '')`;
   const terakhir = await db
-    .selectDistinctOn([perintah.aksi, layananArg])
+    .selectDistinctOn([perintah.aksi, layananArg], kolomPerintah(full))
     .from(perintah)
     .where(
       and(
@@ -183,7 +184,7 @@ async function handlePerintah(
   }
   const db = getDb();
   const rows = await db
-    .select()
+    .select(kolomPerintah(full))
     .from(perintah)
     .where(and(eq(perintah.serverId, id), lt(perintah.id, sebelum)))
     .orderBy(desc(perintah.id))
