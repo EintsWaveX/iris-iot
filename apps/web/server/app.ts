@@ -17,6 +17,7 @@ import type { ApiHandler, ApiRequest, ApiResponse } from "../api/_lib/http.js";
 import { jumlahLatar } from "../api/_lib/tunggu.js";
 import { compileRules, type VercelConfig } from "./rules.js";
 import { cocokkanRute, petaRute, type Rute } from "./routes.js";
+import { akhiriJson } from "./kompres.js";
 import { sajikanBerkas, type BacaBerkas, type CekBerkas } from "./berkas.js";
 import { cariBerkas, sajikan } from "./static.js";
 
@@ -161,7 +162,7 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
     s.json = (b: unknown) => {
       if (!res.getHeader("Content-Type"))
         res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.end(JSON.stringify(b));
+      akhiriJson(req, res, JSON.stringify(b));
     };
     const detik = aturan.durasiMaks(hit.rute.berkas) ?? DURASI_BAWAAN_DETIK;
     const batas = setTimeout(() => {

@@ -5,12 +5,24 @@
  * trailing slash finds the folder's index, and an unknown path answers
  * `404.html` with a 404. Files carry an ETag so a revisit costs a 304.
  * `/_astro/*` is content-hashed, so it is cached for a year; everything else
- * revalidates. There is no compression here on purpose: Cloudflare (or
- * whatever sits in front) compresses at its edge.
+ * revalidates. Text files (HTML, JS, CSS, JSON, SVG) go out brotli or gzip
+ * compressed when the browser takes it (server/kompres.ts): Cloudflare would
+ * compress at its edge, but only after the bytes crossed the home uplink.
  */
 import { createReadStream, statSync, type Stats } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+  BATAS_BERKAS_BYTE,
+  MIN_BYTE,
+  SimpanKompres,
+  bisaDikompres,
+  pilihKode,
+  tambahVary,
+} from "./kompres.js";
+
+const simpan = new SimpanKompres();
 
 const JENIS: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -68,13 +80,13 @@ export function cariBerkas(akar: string, path: string): BerkasStatis | null {
 }
 
 /** Sends the file; `status` is 200, or 404 for the not-found page. */
-export function sajikan(
+export async function sajikan(
   req: IncomingMessage,
   res: ServerResponse,
   f: BerkasStatis,
   path: string,
   status = 200,
-): void {
+): Promise<void> {
   const jenis = JENIS[extname(f.berkas).toLowerCase()] ?? "application/octet-stream";
   res.statusCode = status;
   res.setHeader("Content-Type", jenis);
@@ -100,11 +112,32 @@ export function sajikan(
       return;
     }
   }
-  res.setHeader("Content-Length", String(f.stat.size));
+  const layak = bisaDikompres(jenis) && f.stat.size >= MIN_BYTE && f.stat.size <= BATAS_BERKAS_BYTE;
+  if (layak) tambahVary(res);
   if (req.method === "HEAD") {
+    res.setHeader("Content-Length", String(f.stat.size));
     res.end();
     return;
   }
+  const kode = layak ? pilihKode(req.headers["accept-encoding"]) : null;
+  if (kode) {
+    try {
+      const kecil = await simpan.ambil(
+        `${f.berkas}|${f.stat.size}|${Math.floor(f.stat.mtimeMs)}`,
+        kode,
+        () => readFile(f.berkas),
+      );
+      if (kecil) {
+        res.setHeader("Content-Encoding", kode);
+        res.setHeader("Content-Length", String(kecil.length));
+        res.end(kecil);
+        return;
+      }
+    } catch {
+      /* unreadable, or the client left: fall through to the plain stream */
+    }
+  }
+  res.setHeader("Content-Length", String(f.stat.size));
   const aliran = createReadStream(f.berkas);
   aliran.on("error", () => res.destroy());
   aliran.pipe(res);
