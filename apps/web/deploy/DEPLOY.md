@@ -191,6 +191,9 @@ All against `https://pc.irisiotlab.com`, while the real site is still on Vercel:
 copy, swaps it in and restarts. A failed build stops before touching the running site. Roll back by
 deploying the previous ref. A restart lets background jobs finish for up to 60 s.
 
+Since 10 Nov 2026 the same thing is a button: the Pencipta's **Website Upgrade** card on the Server page
+(section 7). Use it instead of SSH once it is installed.
+
 ## 5. Differences from Vercel to know about
 
 - **No edge caching.** Vercel cached the few API answers that send `s-maxage`; here every request reaches
@@ -243,3 +246,53 @@ apex record back to A `76.76.21.21` (DNS only). Leave Neon untouched until after
 After a clean week: delete the Neon project, drop `iris_old`, delete `env.neon` and `env.before-secrets`, move
 Blob files to R2, stop Vercel deploying on push, cancel Vercel Pro. `.github/workflows/backup.yml` (it dumps
 Neon) is disabled since 9 Nov. From now on a merge to `main` does not update the site: run `deploy.sh` (section 4).
+
+## 7. The Website Upgrade button (once)
+
+The Server page has a card, for the Pencipta only, with **Check for Updates**, **Upgrade to Latest** (hold to
+confirm) and a list of earlier builds to **Go Back to**. It replaces typing section 4 over SSH or in the Konsol.
+
+How it works, and why it is built this way. The web process is sandboxed (`ProtectSystem=strict`,
+`NoNewPrivileges`), so it cannot run git, npm or sudo, and it should not be able to. It only writes one request
+file into `/var/lib/iris-web/upgrade/`. `iris-upgrade.path` sees the file and starts `iris-upgrade.service`, which
+runs `upgrade-job.mjs` as `iris-web` outside the sandbox. The job moves the request away first (so it runs once),
+runs `deploy.sh`, waits for `/api/sehat` to answer with the new commit, and writes `status.json`, `log.txt`,
+`latest.json` and `releases.json` for the card to read. The only privilege involved is the one sudoers line
+section 1 already added (`systemctl restart iris-web`).
+
+- **A bad build undoes itself.** If the new build fails to build, or does not answer with its commit within 40 s,
+  the job deploys the build that was running and says so on the card.
+- **Rollback only goes to builds that ran through the button, and that still have it.** The history starts
+  when the first upgrade through the button seeds the build it replaced, so rolling back can never remove the
+  button or the API it talks to (the check is that `apps/web/deploy/upgrade-job.mjs` exists in that commit).
+  A rollback rebuilds that commit, so it takes the same two to four minutes as an upgrade; the broken build keeps
+  serving until the old one is ready.
+- **No upgrade during an exam or a practicum session.** The build uses the PC hard for a few minutes, so the card
+  refuses while a real exam room is in `prep`, `parts` or `spin`, or a practicum session is running. A rollback and
+  a check are never refused for that reason, because a rollback is needed most when something broke.
+- **Database changes are not rolled back.** A build that came with a migration keeps its migration applied;
+  migrations here are applied by hand and are additive, so the older build runs on the newer schema. Check
+  that before going back across one.
+- Every request is audited (`web_upgrade`: who, which action, which build).
+
+Install once on the PC, in the Konsol or over SSH, after the commit that adds the button has been deployed the old
+way (section 4). It needs a quiet moment because it restarts the site (about 3 s) to apply the new unit:
+
+```sh
+sudo install -d -m 755 -o iris-web -g iris-web /var/lib/iris-web/upgrade
+cd /opt/iris-web/apps/web/deploy
+sudo cp iris-web.service iris-upgrade.service iris-upgrade.path /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now iris-upgrade.path
+sudo systemctl restart iris-web
+systemctl is-active iris-upgrade.path           # active
+curl -s 'http://127.0.0.1:8787/api/sehat'       # the site is back
+```
+
+Then open the Server page, press **Check for Updates** and read the log underneath: `Up to date.` or a list of
+newer commits means the whole chain works (card, request file, path unit, job). The first **Upgrade to Latest**
+adds the running build to the history so there is something to go back to. If the card says it is not set up, the
+folder is missing or the site was not restarted after the new unit was copied (`ReadWritePaths`).
+
+Nothing here needs a new secret. To remove it: `sudo systemctl disable --now iris-upgrade.path`, and delete the
+unit files and `/var/lib/iris-web/upgrade`.

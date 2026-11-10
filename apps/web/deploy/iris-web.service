@@ -33,6 +33,9 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
+# The one place the site may write: the request, status and log of the upgrade button (DEPLOY.md
+# section 7). The dash lets the unit start where that folder does not exist yet.
+ReadWritePaths=-/var/lib/iris-web/upgrade
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
