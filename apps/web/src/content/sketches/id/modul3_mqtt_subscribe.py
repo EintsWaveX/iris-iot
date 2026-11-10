@@ -145,9 +145,21 @@ wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 wlan.connect(wifi_ssid, wifi_password)
 
+# Saat Pico W baru dicolok ke USB (tanpa Thonny), percobaan join Wi-Fi yang
+# pertama bisa gagal, dan connect() tidak mengulang sendiri. Loop ini mencetak
+# status Wi-Fi (1 menyambung, 3 tersambung, -1 gagal, -2 SSID tidak ketemu,
+# -3 kata sandi salah) lalu memanggil connect() lagi bila statusnya negatif
+# atau 15 detik belum tersambung.
+waited = 0
 while not wlan.isconnected():
-    print('Menunggu koneksi...')
+    status = wlan.status()
+    print('Menunggu koneksi... (status {})'.format(status))
+    if status < 0 or waited >= 15:
+        wlan.disconnect()
+        wlan.connect(wifi_ssid, wifi_password)
+        waited = 0
     time.sleep(1)
+    waited += 1
 
 print("Terhubung ke Wi-Fi")
 
