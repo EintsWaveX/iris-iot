@@ -284,8 +284,8 @@ Neon) is disabled since 9 Nov. From now on a merge to `main` does not update the
 
 ## 7. The Website Upgrade button (once)
 
-The Server page has a card, for the Pencipta only, with **Check for Updates**, **Upgrade to Latest** (hold to
-confirm) and a list of earlier builds to **Go Back to**. It replaces typing section 4 over SSH or in the Konsol.
+The Server page has a card, for the Pencipta only, with **Check for Updates**, **Hold to Upgrade**
+and a list of earlier builds to **Go Back to**. It replaces typing section 4 over SSH or in the Konsol.
 
 How it works, and why it is built this way. The web process is sandboxed (`ProtectSystem=strict`,
 `NoNewPrivileges`), so it cannot run git, npm or sudo, and it should not be able to. It only writes one request
@@ -325,7 +325,7 @@ curl -s 'http://127.0.0.1:8787/api/sehat'       # the site is back
 ```
 
 Then open the Server page, press **Check for Updates** and read the log underneath: `Up to date.` or a list of
-newer commits means the whole chain works (card, request file, path unit, job). The first **Upgrade to Latest**
+newer commits means the whole chain works (card, request file, path unit, job). The first **Hold to Upgrade**
 adds the running build to the history so there is something to go back to. If the card says it is not set up, the
 folder is missing or the site was not restarted after the new unit was copied (`ReadWritePaths`).
 

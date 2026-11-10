@@ -52,7 +52,7 @@ const T = dict({
     checkFirst: "Cek pembaruan dulu.",
     ahead: (n: number) => `${n} perubahan baru di main`,
     check: "Cek Pembaruan",
-    upgrade: "Upgrade ke Terbaru",
+    upgrade: "Tahan untuk Upgrade",
     upgradeHint:
       "Membangun versi baru dulu (2 sampai 4 menit), lalu situs mulai ulang sekitar 3 detik. Kalau gagal, versi lama dipasang lagi otomatis.",
     blockedExam: "Ada ruang ujian yang sedang jalan. Upgrade menunggu sampai selesai.",
@@ -63,7 +63,7 @@ const T = dict({
       "Belum ada versi untuk kembali. Daftarnya terisi setelah upgrade pertama lewat tombol ini.",
     rollbackHint:
       "Hanya versi yang pernah jalan lewat tombol ini, supaya tombolnya sendiri tidak hilang.",
-    rollback: "Kembali ke Ini",
+    rollback: "Tahan untuk Kembali",
     seed: "versi saat tombol dipasang",
     viaDeploy: "upgrade",
     viaRollback: "rollback",
@@ -97,7 +97,7 @@ const T = dict({
     checkFirst: "Check for updates first.",
     ahead: (n: number) => `${n} newer change${n === 1 ? "" : "s"} on main`,
     check: "Check for Updates",
-    upgrade: "Upgrade to Latest",
+    upgrade: "Hold to Upgrade",
     upgradeHint:
       "Builds the new version first (2 to 4 minutes), then the site restarts for about 3 seconds. If it fails, the old version is put back by itself.",
     blockedExam: "An exam room is running. The upgrade waits until it is over.",
@@ -108,7 +108,7 @@ const T = dict({
       "Nothing to go back to yet. The list fills in after the first upgrade through this button.",
     rollbackHint:
       "Only versions that ran through this button, so the button itself never goes away.",
-    rollback: "Go Back to This",
+    rollback: "Hold to Go Back",
     seed: "the version when the button was added",
     viaDeploy: "upgrade",
     viaRollback: "rollback",
@@ -142,7 +142,7 @@ const T = dict({
     checkFirst: "请先检查更新。",
     ahead: (n: number) => `main 上有 ${n} 项新更改`,
     check: "检查更新",
-    upgrade: "升级到最新",
+    upgrade: "按住升级",
     upgradeHint: "先构建新版本（2 到 4 分钟），然后网站重启约 3 秒。若失败，会自动恢复旧版本。",
     blockedExam: "有考场正在进行。升级会等到结束后。",
     blockedSession: "有实验课正在进行。升级会等到结束后。",
@@ -150,7 +150,7 @@ const T = dict({
     rollbackTitle: "回到之前的版本",
     rollbackNone: "暂无可回退的版本。通过此按钮完成第一次升级后，列表才会出现。",
     rollbackHint: "只能回到通过此按钮运行过的版本，这样按钮本身不会消失。",
-    rollback: "回到此版本",
+    rollback: "按住回退",
     seed: "添加按钮时的版本",
     viaDeploy: "升级",
     viaRollback: "回退",
