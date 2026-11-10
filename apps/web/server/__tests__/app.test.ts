@@ -98,7 +98,9 @@ describe("the built site", () => {
   it("gives the handbook its own CSP and cache time", async () => {
     const r = await ambil("/handbook/x.pdf");
     expect(r.headers.get("content-security-policy")).toBe("frame-ancestors 'self'");
-    expect(r.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(r.headers.get("cache-control")).toBe(
+      "public, max-age=86400, stale-while-revalidate=604800",
+    );
   });
 
   it("answers HEAD without a body and refuses POST on a page", async () => {

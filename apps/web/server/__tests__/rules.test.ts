@@ -105,7 +105,9 @@ describe("vercel.json headers", () => {
 
   it("gives the handbook its own CSP and cache time instead", () => {
     expect(nilai("/handbook/x.pdf", "Content-Security-Policy")).toBe("frame-ancestors 'self'");
-    expect(nilai("/handbook/x.pdf", "Cache-Control")).toBe("public, max-age=3600");
+    expect(nilai("/handbook/x.pdf", "Cache-Control")).toBe(
+      "public, max-age=86400, stale-while-revalidate=604800",
+    );
     expect(nilai("/handbook/x.pdf", "Content-Security-Policy")).not.toContain("default-src");
   });
 
