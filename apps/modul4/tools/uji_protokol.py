@@ -24,6 +24,7 @@ from websockets.asyncio.client import ClientConnection, connect
 
 MAX_GAGAL_TOKEN = 5      # cermin nilai di server.py
 MAX_GAGAL_MASUK = 12
+MAX_KUNCI_SALAH = 50     # cermin nilai di server.py
 
 LULUS: list[str] = []
 GAGAL: list[str] = []
@@ -34,6 +35,7 @@ GAGAL: list[str] = []
 # mematikannya.
 HTTP_DASAR = ["http://127.0.0.1:8080"]
 TANPA_KODE = [False]
+TANPA_KUNCI = [False]
 
 
 def kode_sekarang() -> str:
@@ -41,19 +43,32 @@ def kode_sekarang() -> str:
         return json.loads(resp.read())["kode"]
 
 
+def kunci_grup(gid: int) -> str:
+    """Kunci papan satu kelompok; kosong untuk nomor di luar yang dilaporkan."""
+    with urllib.request.urlopen(f"{HTTP_DASAR[0]}/ringkas.json") as resp:
+        return json.loads(resp.read())["kunci"].get(str(gid), "")
+
+
 _kirim_asli = ClientConnection.send
 
 
 async def _kirim_dengan_kode(self, pesan, *args, **kw):
-    if isinstance(pesan, str) and not TANPA_KODE[0]:
+    if isinstance(pesan, str):
         try:
             isi = json.loads(pesan)
         except ValueError:
             isi = None
-        if (isinstance(isi, dict) and isi.get("aksi") in ("masuk", "halo")
-                and "nim" in isi and "kode_papan" not in isi):
-            isi["kode_papan"] = kode_sekarang()
-            pesan = json.dumps(isi)
+        if isinstance(isi, dict):
+            if (not TANPA_KODE[0] and isi.get("aksi") in ("masuk", "halo")
+                    and "nim" in isi and "kode_papan" not in isi):
+                isi["kode_papan"] = kode_sekarang()
+                pesan = json.dumps(isi)
+            # Pesan papan (Beacon/Hunter) membawa kunci kelompoknya, seperti
+            # sketsa yang sudah diisi HUNT_KEY
+            elif (not TANPA_KUNCI[0] and "aksi" not in isi and "grup" in isi
+                    and "k" not in isi):
+                isi["k"] = kunci_grup(int(isi["grup"]))
+                pesan = json.dumps(isi)
     return await _kirim_asli(self, pesan, *args, **kw)
 
 
@@ -975,6 +990,62 @@ async def main() -> int:
             r is not None and r.get("peran") == "asisten", str((r or {}).get("peran")))
         cek("halo asisten membawa kode papan",
             bool((r or {}).get("kode_papan")), "kode_papan ada")
+
+    # ---- kunci papan: tiap pesan Beacon/Hunter membawa kunci kelompoknya ----
+    async def kelompok_di_papan() -> tuple[list, list]:
+        async with connect(args.url + "/live") as tamu:
+            isi = await bingkai(tamu)
+        return ([g.get("grup") for g in (isi or {}).get("grup", [])],
+                (isi or {}).get("kunci_salah", []))
+
+    TANPA_KUNCI[0] = True
+    await kirim_hunter(args.url, 7, -60.0, 3)
+    nomor, salah = await kelompok_di_papan()
+    cek("pesan hunter tanpa kunci dibuang", 7 not in nomor, str(nomor))
+    cek("papan skor menyebut kelompok 7 mengirim kunci salah", 7 in salah, str(salah))
+    TANPA_KUNCI[0] = False
+
+    async with connect(args.url + "/hunter") as ws:
+        await ws.send(json.dumps({"grup": 7, "k": "AAAAAAAA", "seq": 1, "rssi": -60,
+                                  "halus": -60, "snr": 8, "tx": "10:00:00:000",
+                                  "rx": "10:00:00:010"}))
+        await ws.send(json.dumps({"grup": 7, "k": kunci_grup(1), "seq": 2, "rssi": -60,
+                                  "halus": -60, "snr": 8, "tx": "10:00:00:000",
+                                  "rx": "10:00:00:010"}))
+        await asyncio.sleep(0.2)
+    nomor, _ = await kelompok_di_papan()
+    cek("kunci salah dan kunci kelompok lain ditolak", 7 not in nomor, str(nomor))
+
+    TANPA_KUNCI[0] = True
+    async with connect(args.url + "/beacon") as ws:
+        await ws.send(json.dumps({"grup": 9, "seq": 1, "tx": "10:00:00:000"}))
+        await asyncio.sleep(0.2)
+    TANPA_KUNCI[0] = False
+    nomor, _ = await kelompok_di_papan()
+    cek("pesan beacon tanpa kunci dibuang", 9 not in nomor, str(nomor))
+
+    await kirim_hunter(args.url, 7, -60.0, 3)
+    nomor, _ = await kelompok_di_papan()
+    cek("pesan hunter dengan kunci kelompoknya diterima", 7 in nomor, str(nomor))
+    cek("kunci tiap kelompok berbeda dan 8 huruf",
+        len({kunci_grup(g) for g in range(1, 11)}) == 10
+        and all(len(kunci_grup(g)) == 8 for g in range(1, 11)),
+        kunci_grup(1))
+
+    # Soket yang terus mengirim kunci salah ditutup
+    TANPA_KUNCI[0] = True
+    tertutup = False
+    async with connect(args.url + "/hunter") as ws:
+        try:
+            for i in range(MAX_KUNCI_SALAH + 20):
+                await ws.send(json.dumps({"grup": 8, "seq": i, "rssi": -60}))
+                await asyncio.sleep(0.005)
+            await asyncio.wait_for(ws.wait_closed(), 2)
+        except Exception:                              # noqa: BLE001
+            pass
+        tertutup = ws.close_code == 1008
+    TANPA_KUNCI[0] = False
+    cek("soket papan berkunci salah terus-menerus ditutup", tertutup, "kode 1008")
 
     # Papan dari luar tidak boleh membuat kelompok liar di memori
     await kirim_hunter(args.url, 10 ** 9, -60.0, 3)

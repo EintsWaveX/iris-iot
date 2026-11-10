@@ -86,11 +86,24 @@ menggantikannya (`server.py`, diuji `tools/uji_protokol.py`):
   `127.0.0.1`, server memeriksa header tunnel (`CF-Connecting-IP`, `CF-Ray`,
   `X-Forwarded-For`, ...) dan menolak yang datang lewat tunnel.
 
-Sisa risiko yang diketahui: `/beacon` dan `/hunter` tidak memakai kunci, jadi
-orang luar yang tahu protokolnya (terbaca di sketsa) bisa menyuntikkan RSSI
-palsu untuk satu kelompok. Nomor kelompok dibatasi 1 sampai 99 dan bidang
-teksnya dipotong, tetapi tidak ada autentikasi papan; kunci per sesi dapat
-ditambahkan bila ini terjadi.
+- **Kunci papan per kelompok**: tiap pesan Beacon dan Hunter membawa kunci
+  delapan huruf (`"k"`) milik kelompoknya, diturunkan dari token, sesi,
+  tanggal, dan nomor kelompok. Situs IRIS menampilkannya di langkah Perburuan
+  (hanya kunci kelompok itu sendiri) dan kelompok menempelkannya ke `HUNT_KEY`
+  di `hunter.ino` dan `beacon.ino` sebelum mengunggah. Pesan tanpa kunci yang
+  benar dibuang; kunci satu kelompok tidak berlaku untuk kelompok lain, dan
+  orang luar tidak bisa menyuntikkan RSSI palsu. Papan skor menunjukkan
+  "Kunci papan kelompokmu salah" selagi papan sebuah kelompok masih
+  mengirim kunci yang salah, dan soket yang terus salah (50 pesan) ditutup.
+  Kunci berganti tiap sesi dan tiap hari, jadi sketsa harus diunggah ulang
+  untuk sesi berikutnya. Kegagalan kunci tidak dihitung ke blokir per alamat,
+  karena alamat itu adalah ponsel hotspot kelompok yang juga dipakai
+  anggotanya membuka papan.
+
+Sisa risiko yang diketahui: kelompok yang menyunting sketsanya sendiri tetap
+bisa memalsukan pembacaan **kelompoknya sendiri** (kuncinya ada di tangan
+mereka); kunci hanya menutup orang luar dan kelompok lain. Nomor kelompok
+dibatasi 1 sampai 99 dan bidang teksnya dipotong.
 
 ## 2. Membangun dan menjalankan papan skor
 

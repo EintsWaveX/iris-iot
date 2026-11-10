@@ -178,6 +178,14 @@ MAX_GAGAL_TOKEN = 5      # percobaan token salah per koneksi sebelum ditutup
 #               mengosongkan hitungannya
 #   loopback    rute khusus agent PC hanya dilayani agent itu sendiri
 KODE_LEN = TOKEN_LEN
+# Papan Beacon dan Hunter membawa kunci per kelompok di tiap pesannya ("k").
+# Kuncinya ditampilkan situs IRIS di langkah Perburuan dan ditempel kelompok ke
+# HUNT_KEY di sketsanya, jadi orang luar (dan kelompok lain) tidak bisa
+# menyuntikkan pembacaan untuk sebuah kelompok.
+KUNCI_LEN = 8
+KUNCI_MAKS_GRUP = 10        # kelompok yang kuncinya dilaporkan ke situs
+MAX_KUNCI_SALAH = 50        # pesan papan berkunci salah per soket sebelum ditutup
+KUNCI_SALAH_DETIK = 10.0    # berapa lama "kunci salah" tampak di papan skor
 GAGAL_IP_MAKS = 15          # kegagalan per alamat dalam jendelanya sebelum diblokir
 GAGAL_IP_JENDELA = 600.0    # detik
 KONEKSI_IP_MAKS = 40        # soket penonton terbuka per alamat
@@ -377,6 +385,9 @@ class Hunt:
         # independent pairs finish independently, at their own times.
         self.round_ended_at: float | None = None
         self.finish_seq = 0
+        # Kelompok yang papannya baru saja mengirim kunci salah (waktu monotonic),
+        # supaya layar "menunggu hunter" bisa menyebut sebabnya
+        self.kunci_salah: dict[int, float] = {}
         self.events: list[dict] = []
         self.rev = 0
 
@@ -1111,6 +1122,10 @@ class Hunt:
             "rev": self.rev,
             "jam": timestamp(),
             "berjalan": self.elapsed(),
+            # Kelompok yang papannya mengirim kunci salah baru-baru ini
+            "kunci_salah": sorted(
+                g for g, t in self.kunci_salah.items()
+                if time.monotonic() - t < KUNCI_SALAH_DETIK),
             # Ringkasan seluruh kelima beacon untuk HUD -- keadaan tiap
             # pasangan sendiri-sendiri ada di baris grup masing-masing di
             # atas (row.beacon), bukan di sini.
@@ -1340,6 +1355,27 @@ def kode_ok(candidate) -> bool:
     if not isinstance(candidate, str) or not candidate:
         return False
     sah = kode_papan()
+    return bool(sah) and secrets.compare_digest(candidate.strip().upper(), sah)
+
+
+def kunci_grup(gid: int) -> str:
+    """Kunci papan satu kelompok untuk sesi yang berjalan hari ini.
+
+    Diturunkan seperti kode papan (token, sesi, tanggal) ditambah nomor
+    kelompok, jadi tetap sama bila server dinyalakan ulang, berganti tiap sesi,
+    dan kunci satu kelompok tidak berlaku untuk kelompok lain.
+    """
+    if not TOKEN:
+        return ""
+    pesan = f"papan-grup|{JADWAL['aktif']}|{datetime.now().date().isoformat()}|{gid}"
+    mac = hmac.new(TOKEN.encode(), pesan.encode(), hashlib.sha256).digest()
+    return "".join(TOKEN_ALPHABET[b % len(TOKEN_ALPHABET)] for b in mac[:KUNCI_LEN])
+
+
+def kunci_ok(gid: int, candidate) -> bool:
+    if not isinstance(candidate, str) or not candidate:
+        return False
+    sah = kunci_grup(gid)
     return bool(sah) and secrets.compare_digest(candidate.strip().upper(), sah)
 
 
@@ -2006,6 +2042,8 @@ def ringkasan_perburuan() -> dict:
         "jam": bingkai["jam"],
         # Kode masuk papan hari ini; situs menaruhnya di tautan praktikan
         "kode": kode_papan() or None,
+        # Kunci papan tiap kelompok, untuk situs: ditempel kelompok ke HUNT_KEY
+        "kunci": {str(g): kunci_grup(g) for g in range(1, KUNCI_MAKS_GRUP + 1)},
         "sesi": JADWAL["aktif"],
         "mulai": HUNT.started_at is not None,
         "selesai": HUNT.round_ended_at is not None,
@@ -2210,6 +2248,7 @@ async def handle(connection: ServerConnection) -> None:
     print(f"[{timestamp()}] {label} tersambung")
 
     owned: int | None = None  # Kelompok yang dilaporkan lewat soket ini
+    salah = 0                 # pesan berkunci salah di soket ini
 
     try:
         async for raw in connection:
@@ -2227,6 +2266,18 @@ async def handle(connection: ServerConnection) -> None:
             except (TypeError, ValueError):
                 continue
             if not 1 <= gid <= MAX_GRUP_ID:
+                continue
+            # Kunci per kelompok: tanpanya pesan dibuang. Kegagalan di sini
+            # sengaja tidak dihitung ke blokir per alamat, karena alamat itu
+            # adalah ponsel hotspot kelompok yang sedang salah menempel kunci,
+            # dan ponsel itu juga dipakai anggotanya membuka papan.
+            if not kunci_ok(gid, msg.get("k")):
+                HUNT.kunci_salah[gid] = time.monotonic()
+                HUNT.rev += 1
+                salah += 1
+                if salah >= MAX_KUNCI_SALAH:
+                    await connection.close(1008, "kunci papan salah")
+                    break
                 continue
             for medan in ("tx", "rx", "ip"):
                 if medan in msg:

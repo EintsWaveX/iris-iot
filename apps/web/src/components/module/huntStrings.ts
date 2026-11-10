@@ -40,6 +40,10 @@ export const H = dict({
     copyFail: "Tautan belum tersalin. Salin manual.",
     copyName: "Salin nama hotspot",
     copyPass: "Salin sandi",
+    copyKey: "Salin kunci papan",
+    boardKey: "Kunci papan",
+    boardKeyHint:
+      "Tempel kunci ini ke HUNT_KEY di hunter.ino dan beacon.ino sebelum mengunggah. Kuncinya khusus kelompokmu dan berganti tiap sesi.",
     notListed:
       "NIM-mu belum ada di daftar perburuan. Minta asisten memperbarui roster di Persiapan.",
     teamTitle: "Kelompokmu di Perburuan",
@@ -121,6 +125,10 @@ export const H = dict({
     copyFail: "The link wasn't copied. Copy it by hand.",
     copyName: "Copy the hotspot name",
     copyPass: "Copy the password",
+    copyKey: "Copy the board key",
+    boardKey: "Board key",
+    boardKeyHint:
+      "Paste this key into HUNT_KEY in hunter.ino and beacon.ino before uploading. It is only for your group and changes every session.",
     notListed:
       "Your NIM isn't on the hunt's list yet. Ask your assistant to update the roster in Preparation.",
     teamTitle: "Your Group in the Hunt",
@@ -201,6 +209,10 @@ export const H = dict({
     copyFail: "链接没有复制成功，请手动复制。",
     copyName: "复制热点名称",
     copyPass: "复制密码",
+    copyKey: "复制板子密钥",
+    boardKey: "板子密钥",
+    boardKeyHint:
+      "上传前，把这个密钥粘贴到 hunter.ino 和 beacon.ino 的 HUNT_KEY 里。它只属于你们组，每节课都会更换。",
     notListed: "你的 NIM 还不在寻踪名单里。请助教在课前准备里更新名单。",
     teamTitle: "你的组在寻踪中",
     inCount: (n: number, of: number) => `${n}/${of} 已加入`,

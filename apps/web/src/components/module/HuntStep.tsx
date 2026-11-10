@@ -33,6 +33,9 @@ export interface PerburuanData {
   url?: string;
   /** The hotspot one phone of the group turns on for the Beacon and Hunter. */
   hotspot?: { ssid: string; sandi: string };
+  /** This group's board key for HUNT_KEY in the sketches; null until the
+   *  hunt's session exists. */
+  kunciPapan?: string | null;
   berjalan?: number;
   jumlahKelompok?: number;
   kelompok?: {
@@ -290,6 +293,21 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
                   onClick={() => salin(hotspot.sandi)}
                 />
               </div>
+              {data.kunciPapan && (
+                <>
+                  <div className="huntjoin__url">
+                    <span className="hint">{t.boardKey}</span>
+                    <span className="mono">{data.kunciPapan}</span>
+                    <IconButton
+                      icon={CopyIcon}
+                      label={t.copyKey}
+                      sm
+                      onClick={() => salin(data.kunciPapan ?? "")}
+                    />
+                  </div>
+                  <span className="hint">{t.boardKeyHint}</span>
+                </>
+              )}
               <span className="hint">{t.hotspotHint}</span>
               <span className="hint">{t.hotspotOthers}</span>
             </div>

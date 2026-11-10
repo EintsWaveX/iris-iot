@@ -59,7 +59,13 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
   // (ruled 22:49). The link carries today's join code, but only while the
   // Asisten's hunt is open: before Mulai and after Selesai nobody needs it,
   // and a code that is never shown cannot leak.
-  const url = tautanPerburuan(perburuanBerjalan(perburuan) ? (ringkas?.kode ?? null) : null);
+  // The code and the keys are tied to the hunt's session, so they are only
+  // shown once that session exists: before it, the hunt would hand out a
+  // value that changes a moment later.
+  const terbuka = perburuanBerjalan(perburuan) && ringkas?.sesi != null;
+  const url = tautanPerburuan(terbuka ? (ringkas?.kode ?? null) : null);
+  // A group is only ever given its own board key
+  const kunciPapan = terbuka ? (ringkas?.kunci[String(nomor)] ?? null) : null;
 
   // The same roster the PC got (sesi.ts's jadwalModul4Hari): the group's
   // members, so names and the hunt's NIMs line up.
@@ -94,6 +100,7 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
     terdaftar: who.role !== "praktikan" || !g || g.anggota.some((a) => a.nim === who.nim),
     url,
     hotspot: hotspotKelompok(nomor),
+    kunciPapan,
     berjalan: ringkas?.berjalan ?? 0,
     jumlahKelompok: ringkas?.grup.length ?? 0,
     kelompok: {
