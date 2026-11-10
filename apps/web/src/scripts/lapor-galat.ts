@@ -34,6 +34,11 @@ function kirim(pesan: string, sumber = "", baris?: number) {
   }
 }
 
+/** A page reporting something it fixed or saw by itself (the exam's unstick guard), under the same caps. */
+export function laporKlien(pesan: string): void {
+  kirim(pesan, "self-report");
+}
+
 const milikSitus = (src: string) => !src || src.startsWith(location.origin);
 
 let pasang = false;
