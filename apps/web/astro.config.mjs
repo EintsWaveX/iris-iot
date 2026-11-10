@@ -51,6 +51,13 @@ export default defineConfig({
                 test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
                 priority: 3,
               },
+              // The QR maker (21 KB) is used by three views and had been folded
+              // into a chunk with the icons that most pages download.
+              {
+                name: "qrcode",
+                test: /node_modules[\\/]qrcode-generator[\\/]/,
+                priority: 4,
+              },
               // The C++ code editor (470 KB) in a chunk of its own, loaded only
               // by the views that open it. The vendor group below folds small
               // groups into a neighbour, and once pako left it (next comment)
