@@ -20,6 +20,7 @@ import { href, useMe } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import ServerDetail from "./ServerDetail";
 import ServerList from "./ServerList";
+import WebUpgrade from "./WebUpgrade";
 import type { Bisa } from "./data";
 import { S } from "./strings";
 import "./server.css";
@@ -122,7 +123,10 @@ export default function ServerCenter({ lang }: { lang: Lang }) {
           dari={dari}
         />
       ) : (
-        <ServerList lang={lang} bisa={bisa} onOpen={open} />
+        <>
+          <ServerList lang={lang} bisa={bisa} onOpen={open} />
+          {bisa.pencipta && <WebUpgrade lang={lang} />}
+        </>
       )}
     </>
   );

@@ -1,0 +1,13 @@
+# Watches for the request file the web app writes when someone presses a button on the Server page
+# and starts iris-upgrade.service. The job moves the file away as its first step, so one request runs
+# once. See DEPLOY.md section 7.
+
+[Unit]
+Description=IRIS web self-upgrade request
+
+[Path]
+PathExists=/var/lib/iris-web/upgrade/request.json
+Unit=iris-upgrade.service
+
+[Install]
+WantedBy=multi-user.target

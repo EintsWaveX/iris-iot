@@ -1,0 +1,21 @@
+# The job behind the "Self-host upgrade" button: deploys or rolls back the site when the web app asks.
+# Started by iris-upgrade.path, never by hand. See DEPLOY.md section 7.
+#
+# It is NOT sandboxed like iris-web.service on purpose: it runs git, npm and the one sudo command
+# deploy.sh needs to restart the site (NoNewPrivileges would block sudo). The web process itself can
+# only write a request file; everything that changes the machine happens here.
+
+[Unit]
+Description=IRIS web self-upgrade job (deploy or roll back, asked for from the web)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=iris-web
+Group=iris-web
+WorkingDirectory=/opt/iris-web
+Environment=UPGRADE_DIR=/var/lib/iris-web/upgrade
+Environment=IRIS_ROOT=/opt/iris-web
+ExecStart=/opt/node24/bin/node /opt/iris-web/apps/web/deploy/upgrade-job.mjs
+# npm ci and the build take a few minutes on the PC; a stuck job is stopped after twenty.
+TimeoutStartSec=20min
