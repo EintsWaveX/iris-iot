@@ -1,4 +1,4 @@
-import { getTableColumns } from "drizzle-orm";
+import { getTableColumns, type SQL } from "drizzle-orm";
 import { PgDialect, QueryBuilder } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 import { perintah } from "../../../src/lib/schema";
@@ -17,7 +17,7 @@ describe("kolomPerintah", () => {
     expect(rest).toEqual(
       (({ keluaran: _omit, ...r }) => r)(getTableColumns(perintah) as Record<string, unknown>),
     );
-    const q = new PgDialect().sqlToQuery(keluaran);
+    const q = new PgDialect().sqlToQuery(keluaran as SQL);
     expect(q.sql).toBe(
       'case when "perintah"."aksi" in ($1, $2) then "perintah"."keluaran" else null end',
     );
