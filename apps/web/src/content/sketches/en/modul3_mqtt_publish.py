@@ -157,9 +157,21 @@ wlan = network.WLAN(network.________)  # (1) Station (client) mode constant
 wlan.active(True)
 wlan.connect(wifi_ssid, ________)  # (2) Wi-Fi password variable
 
+# When a Pico W has just been plugged into USB (no Thonny), the first Wi-Fi
+# join attempt can fail, and connect() never retries on its own. This loop
+# prints the Wi-Fi status (1 joining, 3 connected, -1 failed, -2 SSID not
+# found, -3 wrong password) and calls connect() again when the status is
+# negative or 15 seconds pass without a connection.
+waited = 0
 while not wlan.isconnected():
-    print('Waiting for connection...')
+    status = wlan.status()
+    print('Waiting for connection... (status {})'.format(status))
+    if status < 0 or waited >= 15:
+        wlan.disconnect()
+        wlan.connect(wifi_ssid, wifi_password)
+        waited = 0
     time.sleep(1)
+    waited += 1
 
 print("Connected to Wi-Fi")
 
