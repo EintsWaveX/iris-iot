@@ -465,6 +465,19 @@ export interface SettingsResponse {
   settings: SettingView[];
 }
 
+/** GET rights-config: Hak Akses, what the server applies now (any Panitia) */
+export interface HakConfigResponse {
+  ok: true;
+  config: import("./rights.js").HakConfig;
+  defaults: import("./rights.js").HakConfig;
+  /** false while it is the PRD table */
+  custom: boolean;
+  by: string | null;
+  at: string | null;
+  /** The Ketua and the Pencipta only */
+  canManage: boolean;
+}
+
 export interface MeResponse {
   ok: true;
   edition: EditionInfo | null;

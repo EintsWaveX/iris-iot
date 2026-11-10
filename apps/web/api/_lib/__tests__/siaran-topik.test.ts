@@ -69,6 +69,7 @@ const BACA: Record<string, string[]> = {
     "results",
     "cutting-detail",
     "settings",
+    "rights-config",
     "slots",
     // S3 (2026-10-24), the reads of api/_lib/recruitment-s3.ts
     "test-ticket",

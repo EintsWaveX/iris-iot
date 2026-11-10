@@ -76,6 +76,13 @@ const PONG_MS = 8_000;
 const ULANG = [1000, 2000, 5000, 10_000, 15_000];
 /** While the socket is down the console asks the API again this often */
 export const CADANGAN_MS = 15_000;
+/**
+ * While the socket looks fine, a seat's page and the console still ask now and then (10 Nov 2026).
+ * A message lost on the way (a hold released, a part resumed, a warning cleared) otherwise left a
+ * seat on a full-screen card until siaran.ts's 5 minute safety net, and a refresh was the only way
+ * out. The site runs on the lab PC now, so the extra requests cost nothing.
+ */
+export const CADANGAN_HIDUP_MS = 20_000;
 
 /**
  * The room's socket for the Panitia. `onKabar` hears every message that is
@@ -238,17 +245,17 @@ export function useRuangLangsung(
   return { status, hadir, ruang, kemajuan };
 }
 
-/** Runs `fn` every CADANGAN_MS, only while the live room is down and the page is in view. */
-export function useCadanganRuang(fn: () => void, aktif: boolean) {
+/** Runs `fn` every `ms` (CADANGAN_MS by default) while `aktif` and the page is in view. */
+export function useCadanganRuang(fn: () => void, aktif: boolean, ms: number = CADANGAN_MS) {
   const ref = useRef(fn);
   ref.current = fn;
   useEffect(() => {
     if (!aktif) return;
     const t = setInterval(() => {
       if (!document.hidden) ref.current();
-    }, CADANGAN_MS);
+    }, ms);
     return () => clearInterval(t);
-  }, [aktif]);
+  }, [aktif, ms]);
 }
 
 /** Server now, redrawn once a second (the room's clocks), from jamServer() and nothing on the laptop. */

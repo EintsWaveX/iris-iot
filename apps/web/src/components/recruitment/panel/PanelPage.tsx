@@ -56,6 +56,7 @@ const BankTab = lazy(() => import("./tes/bank/BankTab"));
 const TesTab = lazy(() => import("./tes/ruang/TesTab"));
 const KalenderTab = lazy(() => import("./KalenderTab"));
 const PanitiaBoard = lazy(() => import("./PanitiaBoard"));
+const HakAkses = lazy(() => import("./HakAkses"));
 
 /** Which way a tab swap slides: toward the side the new tab sits on. */
 let lastTab: PanelTab | null = null;
@@ -300,7 +301,10 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             ) : shownTab === "bank" && rights?.bank ? (
               <BankTab lang={lang} />
             ) : (
-              <PanitiaBoard lang={lang} rights={rights} />
+              <>
+                <PanitiaBoard lang={lang} rights={rights} />
+                {panitia && <HakAkses lang={lang} />}
+              </>
             )}
           </Suspense>
         </Swap>

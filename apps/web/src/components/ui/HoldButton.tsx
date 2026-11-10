@@ -68,7 +68,10 @@ export default function HoldButton({
       data-hold={tahan ? "yes" : undefined}
       style={{ "--hold-ms": `${ms}ms` } as CSSProperties}
       disabled={disabled}
-      title={title}
+      // data-tip, not title: the tooltip layer (shell/TipLayer.tsx) moves a title aside the first time it
+      // is hovered and never reads it again, so a reason that changed (a job that finished) kept showing.
+      // It reads data-tip fresh on every hover.
+      data-tip={title}
       aria-label={disabled && title ? `${label}. ${title}` : undefined}
       onPointerDown={(e) => {
         if (e.button !== 0) return;

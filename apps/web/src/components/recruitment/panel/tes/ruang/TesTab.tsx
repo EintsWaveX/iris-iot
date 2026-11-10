@@ -32,6 +32,8 @@ import { coalesce } from "../../../../../lib/recruitment/coalesce";
 import { roomView } from "../../../../../lib/recruitment/room";
 import type { RoomRow } from "../../../../../lib/recruitment/room-api";
 import {
+  CADANGAN_HIDUP_MS,
+  CADANGAN_MS,
   useCadanganRuang,
   useJamRuang,
   useRecRoom,
@@ -752,7 +754,7 @@ function Ruang({
   const heard = useCallback(() => burst.call(), [burst]);
   useEffect(() => () => burst.cancel(), [burst]);
   const live = useRuangLangsung(id, true, heard, refresh);
-  useCadanganRuang(refresh, live.status !== "live");
+  useCadanganRuang(refresh, true, live.status === "live" ? CADANGAN_HIDUP_MS : CADANGAN_MS);
   const motion = useRevealMotion();
   const [bagian, setBagian] = useState<Bagian>(bacaBagianRuang);
   const v = room.data;

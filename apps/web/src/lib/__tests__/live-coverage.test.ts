@@ -35,6 +35,8 @@ const SEKALI: Record<string, string> = {
   "components/schedule/ImportView.tsx": "reads the file the person drops in",
   "components/schedule/SlotEditor.tsx": "a dialog that only writes",
   "components/server/Settings.tsx": "a form that only writes",
+  "components/server/WebUpgrade.tsx":
+    "the upgrade job's state is files on the PC, so no topic can announce it; the card asks itself every 3 s while a job runs and every 20 s otherwise",
   "components/server/data.ts": "the commands a button sends",
   "components/server/ops.tsx": "the commands a button sends",
   "components/server/konsol/data.ts": "Konsol PC has its own relay room",

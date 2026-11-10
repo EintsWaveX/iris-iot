@@ -14,6 +14,7 @@ import { setBebasHook } from "./bebas";
 import { modeDariCookie } from "./latihan";
 import type {
   AccountResponse,
+  HakConfigResponse,
   SettingsResponse,
   AttendanceResponse,
   BannerResponse,
@@ -145,6 +146,16 @@ export function useRecEdition(enabled = true) {
 /** The editable settings (Panitia only); refresh() after saving one. */
 export function useRecSettings(enabled = true) {
   return usePoll(() => leaf(recGet<SettingsResponse>("settings")), 300_000, enabled, TOPIK_EDISI);
+}
+
+/** Hak Akses (Panitia only): who holds which right; refresh() after saving. */
+export function useRecHak(enabled = true) {
+  return usePoll(
+    () => leaf(recGet<HakConfigResponse>("rights-config")),
+    300_000,
+    enabled,
+    TOPIK_EDISI,
+  );
 }
 
 export function useRecCalendar(enabled = true) {
