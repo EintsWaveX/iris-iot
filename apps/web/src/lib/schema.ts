@@ -295,6 +295,10 @@ export const sesi = pgTable(
       .on(t.tanggal, t.modul, t.mulai)
       .where(sql`${t.status} <> 'batal'`),
     index("sesi_tanggal_idx").on(t.tanggal),
+    // currentSesi() asks for the one running session on almost every request.
+    index("sesi_berjalan_idx")
+      .on(t.dibuatPada)
+      .where(sql`${t.status} = 'berjalan'`),
   ],
 );
 
@@ -906,7 +910,12 @@ export const percobaanMasuk = pgTable(
     // session should never erase the fact that a login attempt happened.
     sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "set null" }),
   },
-  (t) => [index("percobaan_nim_idx").on(t.nim, t.pada), index("percobaan_ip_idx").on(t.ip, t.pada)],
+  (t) => [
+    index("percobaan_nim_idx").on(t.nim, t.pada),
+    index("percobaan_ip_idx").on(t.ip, t.pada),
+    // Per-session counts (waspada, lab, beranda, reports); also the FK's set-null scan.
+    index("percobaan_sesi_idx").on(t.sesiId),
+  ],
 );
 
 /**
@@ -926,7 +935,11 @@ export const audit = pgTable(
     aksi: text("aksi").notNull(),
     detail: text("detail"), // free-form JSON string; no fixed shape needed yet
   },
-  (t) => [index("audit_pada_idx").on(t.pada)],
+  (t) => [
+    index("audit_pada_idx").on(t.pada),
+    // "latest row of this action" (handleWaspada and the report lookups).
+    index("audit_aksi_id_idx").on(t.aksi, t.id),
+  ],
 );
 
 /**

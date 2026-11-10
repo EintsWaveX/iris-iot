@@ -60,7 +60,6 @@ const TIMER_BOLEH: Record<string, string> = {
   "lib/siaran.ts": "the 60 s safety net and the 30 s net while the socket is down",
   "lib/hooks.ts": "usePoll's own interval, held to 60 s by the test below",
   "components/shell/AppNav.tsx": "an Asisten's presence stamp, once a minute while in view",
-  "scripts/polling.ts": "startPolling itself",
   "lib/aliran-ruang.ts": "useCadangan, the poll that stands in only while a room is down",
   "components/recruitment/panel/tes/bank/ProblemsTab.tsx":
     "a 2.5 s wait for the judge's answer to one reference check, only while that check is queued or running",

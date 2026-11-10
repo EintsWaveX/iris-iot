@@ -91,6 +91,17 @@ export async function bacaBerkas(id: string): Promise<BerkasIsi | null> {
   return r ?? null;
 }
 
+/** The same without the bytes (the column is not selected), for a 304 or a HEAD. */
+export async function cekBerkas(id: string): Promise<Omit<BerkasIsi, "isi"> | null> {
+  if (!ID_BERKAS.test(id)) return null;
+  const [r] = await getDb()
+    .select({ nama: berkas.nama, tipe: berkas.tipe, ukuran: berkas.ukuran })
+    .from(berkas)
+    .where(eq(berkas.id, id))
+    .limit(1);
+  return r ?? null;
+}
+
 /** Stores a file; returns its id and address. */
 export async function simpanBerkas(f: {
   nama: string;

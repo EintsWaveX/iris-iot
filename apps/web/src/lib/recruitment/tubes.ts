@@ -19,6 +19,7 @@
 import { bebas } from "./bebas.js";
 import type { Bi } from "./interview.js";
 import type { RecEvent } from "./types.js";
+import { isObj } from "../guards.js";
 
 /**
  * Whether the Tubes tile on the CaAs page opens: they are at Tubes and the first day of its window came.
@@ -147,8 +148,6 @@ export const TUBES_DEFAULT: TubesSetting = {
   ],
 };
 
-const isObj = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 const int = (v: unknown, lo: number, hi: number): number | null =>
   typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi ? v : null;
 const txt = (v: unknown, max: number): string | null =>

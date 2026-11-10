@@ -90,7 +90,7 @@
   --nav-bg-scrolled: rgba(10, 12, 20, 0.9);
   --logo-filter: none;
 
-  /* Chart strokes, read by chartColors() in src/lib/chart-colors.ts. */
+  /* Chart strokes, read by var(--chart-N) in the reports and gauges. */
   --chart-1: #7dd3fc;
   --chart-2: #c4b5fd;
   --chart-3: #fca5a5;

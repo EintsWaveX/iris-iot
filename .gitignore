@@ -40,3 +40,8 @@ Thumbs.db
 apps/web/.build-sha
 apps/web/dist.new/
 apps/web/dist.old/
+
+# Local tool state (agent memory / design tooling) and incremental TS caches
+.remember/
+.impeccable/
+*.tsbuildinfo

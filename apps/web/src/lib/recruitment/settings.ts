@@ -14,6 +14,7 @@ import { IV_DEFAULT, checkTemplate, type IvTemplate } from "./interview.js";
 import { TUBES_DEFAULT, checkTubes, type TubesSetting } from "./tubes.js";
 import { QR_DEFAULT, cekQrMap, type QrMap } from "./qr-luar.js";
 import type { CommitteeDivision, DocKind } from "./types.js";
+import { isObj } from "../guards.js";
 
 export const SETTING_PREFIX = "rec_cfg_";
 
@@ -135,8 +136,6 @@ export interface SettingDef<K extends SettingKey> {
   check: (v: unknown) => SettingMap[K] | null;
 }
 
-const isObj = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 const txt = (v: unknown, max: number): string | null => {
   if (typeof v !== "string") return null;
   const t = v.trim();

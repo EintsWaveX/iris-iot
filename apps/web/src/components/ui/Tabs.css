@@ -1,9 +1,9 @@
-/* Tabs.tsx's styling, as a plain CSS import rather than an Astro <style>
+/* The tabs' styling, as a plain CSS import rather than an Astro <style>
    block -- a .tsx file has no template to attach one to.
 
    P7.1: `.tabs-scroll` wraps the scrollable `.tabs` list and paints a
    `mask-image` edge fade on whichever side still has more tabs to scroll
-   to (`data-edge` is set by Tabs.tsx from the list's own scroll position),
+   to (`data-edge` is set by the tab strips from the list's own scroll position),
    never wrapping into multiple rows -- the direct fix for F10 wherever a
    caller adopts this component. */
 .tabs-root {

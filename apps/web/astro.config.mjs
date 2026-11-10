@@ -16,18 +16,13 @@ export default defineConfig({
     optimizeDeps: {
       include: [
         "@radix-ui/react-dialog",
-        "@radix-ui/react-hover-card",
         "@radix-ui/react-popover",
-        "@radix-ui/react-scroll-area",
-        "@radix-ui/react-tabs",
         "@radix-ui/react-toggle-group",
         "@radix-ui/react-tooltip",
         "cmdk",
         "date-fns",
         "@phosphor-icons/react",
         "react-day-picker",
-        "react-resizable-panels",
-        "uplot",
         "@xterm/xterm",
         "@xterm/addon-fit",
         "pdfjs-dist",
@@ -60,7 +55,7 @@ export default defineConfig({
                 name: "vendor",
                 test: (id) =>
                   /node_modules/.test(id) &&
-                  !/node_modules[\\/](pdfjs-dist|fontkit|@pdf-lib|pdf-lib|@xterm|@novnc|xlsx|write-excel-file|read-excel-file|uplot)[\\/]/.test(
+                  !/node_modules[\\/](pdfjs-dist|fontkit|@pdf-lib|pdf-lib|@xterm|@novnc|write-excel-file|read-excel-file)[\\/]/.test(
                     id,
                   ),
                 minShareCount: 2,

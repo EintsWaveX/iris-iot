@@ -20,6 +20,7 @@ import type {
   BlankKey,
 } from "./exam-types.js";
 import { ONE, ZERO, frac, type Frac } from "./frac.js";
+import { isObj } from "../guards.js";
 
 /* ------------------------------------------------------------ randomness */
 
@@ -216,8 +217,7 @@ export function toView(q: Question, perm: Perm): View {
 /* ---------------------------------------------------------------- credit */
 
 /** How right a value is, 0 to 1. Fully correct is exactly 1 (what M counts). */
-const isRecord = (x: unknown): x is Record<string, unknown> =>
-  typeof x === "object" && x !== null && !Array.isArray(x);
+const isRecord = isObj;
 
 /** The field each format's value carries. */
 const VALUE_KEY = {

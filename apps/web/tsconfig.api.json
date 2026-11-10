@@ -16,7 +16,9 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["node"]
+    "types": ["node"],
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/api.tsbuildinfo"
   },
   "include": ["api/**/*.ts", "server/**/*.ts"],
   "exclude": ["api/**/__tests__/**", "server/**/__tests__/**"]

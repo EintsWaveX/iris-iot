@@ -4,7 +4,7 @@
  * settings and its kit loans. A room is chosen in the address (?ruang=7), so
  * the back button and a shared link both work.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeftIcon,
   BroadcastIcon,
@@ -27,8 +27,8 @@ import Fade from "../../../../ui/Fade";
 import Pill from "../../../../ui/Pill";
 import TabLine from "../../../../ui/TabLine";
 import type { Lang } from "../../../../../lib/kelas";
-import type { PesanUjian } from "../../../../../lib/recruitment/room-relay";
 import { isFail, recPost, useRecCalendar } from "../../../../../lib/recruitment/client";
+import { coalesce } from "../../../../../lib/recruitment/coalesce";
 import { roomView } from "../../../../../lib/recruitment/room";
 import type { RoomRow } from "../../../../../lib/recruitment/room-api";
 import {
@@ -744,26 +744,15 @@ function Ruang({
     room.refresh();
     log.refresh();
   }, [room, log]);
-  // A burst of violations (someone spamming alt-tab) must not become a burst of full reloads: they
-  // are coalesced into one read every 600 ms, everything else still reads at once (9 Nov 2026)
-  const burst = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const heard = useCallback(
-    (m: PesanUjian) => {
-      if (m.j !== "pelanggaran") return refresh();
-      if (burst.current) return;
-      burst.current = setTimeout(() => {
-        burst.current = null;
-        refresh();
-      }, 600);
-    },
-    [refresh],
-  );
-  useEffect(
-    () => () => {
-      if (burst.current) clearTimeout(burst.current);
-    },
-    [],
-  );
+  // Every relay message ends in a full reload (about 15 queries and up to 200 log rows), and a busy
+  // room sends many: answers, check-ins, violations. They are coalesced to one read per 600 ms for
+  // all kinds. The first message after a quiet spell still reads at once, and the last one in a
+  // burst always gets its read when the window closes (10 Nov 2026; violations only, 9 Nov 2026)
+  const latest = useRef(refresh);
+  latest.current = refresh;
+  const burst = useMemo(() => coalesce(() => latest.current(), 600), []);
+  const heard = useCallback(() => burst.call(), [burst]);
+  useEffect(() => () => burst.cancel(), [burst]);
   const live = useRuangLangsung(id, true, heard, refresh);
   useCadanganRuang(refresh, true, live.status === "live" ? CADANGAN_HIDUP_MS : CADANGAN_MS);
   const motion = useRevealMotion();

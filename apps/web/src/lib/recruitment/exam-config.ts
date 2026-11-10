@@ -22,6 +22,7 @@ import {
   type PartKey,
   type Phase1Part,
 } from "./exam-types.js";
+import { isObj } from "../guards.js";
 
 export interface Caps {
   /** Each written part's score ceiling. */
@@ -127,8 +128,6 @@ export const minutesOf = (c: ExamConfig, part: PartKey) =>
 
 /* --------------------------------------------------------------- upgrading */
 
-const isObj = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 const whole = (v: unknown, min: number, max: number): number | null =>
   typeof v === "number" && Number.isInteger(v) && v >= min && v <= max ? v : null;
 

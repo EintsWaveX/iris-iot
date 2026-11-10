@@ -6,6 +6,8 @@
  * (keadaanPerburuan), so both sides agree on the shape.
  */
 
+import { isObj } from "./guards.js";
+
 /** "belum": the Asisten hasn't pressed Mulai Perburuan yet (2026-10-08). */
 export type KeadaanHunt = "belum" | "tunggu" | "buka" | "main" | "selesai";
 
@@ -76,8 +78,6 @@ const str = (v: unknown, max: number): string | null =>
   typeof v === "string" && v.length > 0 ? v.slice(0, max) : null;
 const int = (v: unknown, lo: number, hi: number): number | null =>
   typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi ? Math.round(v) : null;
-const isObj = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** A trimmed, known-keys-only copy of the hunt's /ringkas.json, or null. */
 export function saringPerburuan(raw: unknown): Ringkas | null {
