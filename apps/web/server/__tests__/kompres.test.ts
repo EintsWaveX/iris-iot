@@ -125,6 +125,23 @@ describe("static files", () => {
     expect(c.body.length).toBe(0);
   });
 
+  it("answers 304 to If-Modified-Since too, since Cloudflare hides the ETag from browsers", async () => {
+    const a = await minta("/", "br");
+    const lm = String(a.headers["last-modified"]);
+    const same = await minta("/", "br", { "If-Modified-Since": lm });
+    expect(same.status).toBe(304);
+    expect(same.body.length).toBe(0);
+    const old = await minta("/", "br", {
+      "If-Modified-Since": new Date(Date.parse(lm) - 60_000).toUTCString(),
+    });
+    expect(old.status).toBe(200);
+    const junk = await minta("/", "br", { "If-Modified-Since": "not a date" });
+    expect(junk.status).toBe(200);
+    // If-None-Match wins: a stale ETag is not rescued by a fresh date.
+    const both = await minta("/", "br", { "If-None-Match": 'W/"nope"', "If-Modified-Since": lm });
+    expect(both.status).toBe(200);
+  });
+
   it("leaves tiny files and already-compressed types alone", async () => {
     const k = await minta("/kecil.html", "br");
     expect(k.headers["content-encoding"]).toBeUndefined();

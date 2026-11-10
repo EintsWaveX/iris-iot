@@ -105,8 +105,16 @@ export async function sajikan(
     const etag = `W/"${f.stat.size.toString(16)}-${Math.floor(f.stat.mtimeMs).toString(16)}"`;
     res.setHeader("ETag", etag);
     res.setHeader("Last-Modified", f.stat.mtime.toUTCString());
+    // Behind Cloudflare the browser never sees our ETag (the edge drops weak ones), only
+    // Last-Modified, so a revisit asks with If-Modified-Since. If-None-Match wins when sent.
     const cocok = req.headers["if-none-match"];
-    if (typeof cocok === "string" && cocok.split(",").some((t) => t.trim() === etag)) {
+    const sejak = req.headers["if-modified-since"];
+    const belumBerubah =
+      typeof cocok === "string"
+        ? cocok.split(",").some((t) => t.trim() === etag)
+        : typeof sejak === "string" &&
+          Math.floor(f.stat.mtimeMs / 1000) <= Math.floor(Date.parse(sejak) / 1000);
+    if (belumBerubah) {
       res.statusCode = 304;
       res.end();
       return;
