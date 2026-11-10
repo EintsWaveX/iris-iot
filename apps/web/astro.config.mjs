@@ -51,11 +51,31 @@ export default defineConfig({
                 test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
                 priority: 3,
               },
+              // The QR maker (21 KB) is used by three views and had been folded
+              // into a chunk with the icons that most pages download.
+              {
+                name: "qrcode",
+                test: /node_modules[\\/]qrcode-generator[\\/]/,
+                priority: 4,
+              },
+              // The C++ code editor (470 KB) in a chunk of its own, loaded only
+              // by the views that open it. The vendor group below folds small
+              // groups into a neighbour, and once pako left it (next comment)
+              // the neighbour it picked was this editor, so the Console and the
+              // candidate landing page downloaded it. Only the core the C++
+              // editor needs: the Python, Markdown and JS parsers keep their
+              // own chunks.
+              {
+                name: "codemirror",
+                test: /node_modules[\\/](@codemirror[\\/](view|state|autocomplete|commands|language|lang-cpp)|@lezer[\\/](common|lr|highlight|cpp)|@marijn|style-mod|w3c-keyname)[\\/]/,
+                priority: 4,
+              },
               {
                 name: "vendor",
                 test: (id) =>
                   /node_modules/.test(id) &&
-                  !/node_modules[\\/](pdfjs-dist|fontkit|@pdf-lib|pdf-lib|@xterm|@novnc|write-excel-file|read-excel-file)[\\/]/.test(
+                  // pako is pdf-lib's: it should follow that lazy code, not the pages.
+                  !/node_modules[\\/](pdfjs-dist|fontkit|@pdf-lib|pdf-lib|pako|@xterm|@novnc|write-excel-file|read-excel-file)[\\/]/.test(
                     id,
                   ),
                 minShareCount: 2,

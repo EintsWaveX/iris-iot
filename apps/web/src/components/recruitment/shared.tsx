@@ -6,11 +6,10 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import BackButton from "../ui/BackButton";
 import Pill from "../ui/Pill";
-import { href, tanggalPanjang, useTick } from "../../lib/app";
+import { href } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { PALETTE_KEYS, eventColor, type PaletteKey } from "../../lib/recruitment/calendar";
-import { tanggalWib } from "../../lib/recruitment/gates";
-import type { CandidateStatus, EventLite, RecEvent } from "../../lib/recruitment/types";
+import type { CandidateStatus, RecEvent } from "../../lib/recruitment/types";
 import { REC } from "./recruitmentStrings";
 import "./recruitment.css";
 import "./recruitment-s2.css";
@@ -55,63 +54,7 @@ export function warnaJenis(kind: RecEvent["kind"]): string {
 
 export const cs = (c: string) => ({ "--c": c }) as CSSProperties;
 
-/** "Selasa, 27 Oktober 2026" */
-export const tgl = (iso: string, lang: Lang) => tanggalPanjang(iso, lang);
-
-type Waktu = Pick<EventLite, "dayStart" | "dayEnd">;
-type Rentang = Pick<EventLite, "startsOn" | "endsOn">;
-
-/** The daily window, or "All day". */
-export function jamAcara(e: Waktu, lang: Lang): string {
-  const t = REC[lang].time;
-  if (!e.dayStart) return t.allDay;
-  return e.dayEnd ? t.hours(e.dayStart, e.dayEnd) : t.from(e.dayStart);
-}
-
-/** One date, or "from to" in full. */
-export function rentangAcara(e: Rentang, lang: Lang): string {
-  return e.startsOn === e.endsOn
-    ? tgl(e.startsOn, lang)
-    : REC[lang].time.range(tgl(e.startsOn, lang), tgl(e.endsOn, lang));
-}
-
-/** The date, plus the window when there is one. */
-export function kapanAcara(e: Rentang & Waktu, lang: Lang): string {
-  return e.dayStart ? `${rentangAcara(e, lang)} · ${jamAcara(e, lang)}` : rentangAcara(e, lang);
-}
-
-/** WIB today as "YYYY-MM-DD", ticking over midnight. */
-export function useHariIni(): string {
-  const now = useTick(30_000);
-  return tanggalWib(new Date(now)).tanggal;
-}
-
-const p2 = (n: number) => String(n).padStart(2, "0");
-
-/** The instant a WIB date and time is, as ms. */
-export const wibMs = (tanggal: string, jam = "00:00") => Date.parse(`${tanggal}T${jam}:00+07:00`);
-
-/** Days big, then HH:MM:SS; ticks every second only while it is on screen. */
-export function Countdown({ ke, label, lang }: { ke: number; label: string; lang: Lang }) {
-  const now = useTick(1000);
-  const s = Math.max(0, Math.floor((ke - now) / 1000));
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const x = s % 60;
-  const t = REC[lang].count;
-  return (
-    <span className="rec-count" role="timer" aria-label={label}>
-      {d > 0 && (
-        <span className="rec-count__d">
-          <b className="num">{d}</b>
-          <small>{d === 1 ? t.day : t.days}</small>
-        </span>
-      )}
-      <b className="num rec-count__hms">{`${p2(h)}:${p2(m)}:${p2(x)}`}</b>
-    </span>
-  );
-}
+export { tgl, jamAcara, rentangAcara, kapanAcara, useHariIni, wibMs, Countdown } from "./waktu";
 
 const STATUS_TONE: Record<CandidateStatus, "ok" | "warn" | "danger" | undefined> = {
   applied: "warn",

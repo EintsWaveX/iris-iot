@@ -10,7 +10,7 @@
  *   a toast and pulses the bell on whatever page the student is on.
  * - Time warnings at 30 and 10 minutes left, once each per session.
  */
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { BellIcon, PresentationChartIcon, SignInIcon } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import type { PollState } from "../../lib/hooks";
@@ -30,9 +30,12 @@ import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import SessionStrip from "./SessionStrip";
 import KodeMasuk from "./KodeMasuk";
-import SlidesDialog, { useSlides } from "./SlidesDialog";
+import { useSlides } from "./slidesData";
 import { openSignIn } from "../../lib/signin";
 import "./SessionMiniBar.css";
+
+const loadSlides = () => import("./SlidesDialog");
+const SlidesDialog = lazy(loadSlides);
 
 const T = dict({
   id: {
@@ -128,6 +131,12 @@ export default function SessionMiniBar({
   // The slides, reachable from every page during a session (2026-10-06).
   const slides = useSlides(s?.modul, s !== null);
   const [slidesOpen, setSlidesOpen] = useState(false);
+  // The dialog (and the PDF viewer inside it) is fetched at the first look
+  // at the button, and kept once opened so closing it still animates.
+  const [slidesSeen, setSlidesSeen] = useState(false);
+  useEffect(() => {
+    if (slidesOpen) setSlidesSeen(true);
+  }, [slidesOpen]);
 
   // Sticky things below (the module stepper) sit under this bar.
   const barRef = useRef<HTMLDivElement | null>(null);
@@ -260,6 +269,8 @@ export default function SessionMiniBar({
             aria-label={t.slides}
             title={t.slides}
             onClick={() => setSlidesOpen(true)}
+            onPointerEnter={() => void loadSlides()}
+            onFocus={() => void loadSlides()}
           >
             <PresentationChartIcon size={19} aria-hidden="true" />
           </button>
@@ -308,13 +319,17 @@ export default function SessionMiniBar({
           </RadixPopover.Portal>
         </RadixPopover.Root>
       </div>
-      <SlidesDialog
-        open={slidesOpen}
-        onOpenChange={setSlidesOpen}
-        list={slides.list}
-        modul={s.modul}
-        lang={lang}
-      />
+      {(slidesOpen || slidesSeen) && (
+        <Suspense fallback={null}>
+          <SlidesDialog
+            open={slidesOpen}
+            onOpenChange={setSlidesOpen}
+            list={slides.list}
+            modul={s.modul}
+            lang={lang}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
