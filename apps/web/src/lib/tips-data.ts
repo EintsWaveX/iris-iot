@@ -592,7 +592,8 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
       "Removes this module's TP window; Praktikan can't upload until it's set again.",
     "Final Set and PDF": "Shows the final set and its official PDF.",
     Arrange: "Shows arrows to move items up or down in sections that aren't locked.",
-    "1 Turn On the Hotspot": "Step one: turn on a hotspot on one phone in your group for the Hunter and Beacon.",
+    "1 Turn On the Hotspot":
+      "Step one: turn on a hotspot on one phone in your group for the Hunter and Beacon.",
     "100%": "Sets the zoom back to 100%.",
     "2 Open the Hunt": "Step two: open the Hunt page on the PC Server over that Wi-Fi.",
     Accept: "Accepts this.",

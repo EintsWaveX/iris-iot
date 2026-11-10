@@ -110,8 +110,7 @@ export const H = dict({
     hotspotPass: "Password",
     hotspotHint:
       "Your group's Hunter and Beacon join this hotspot. Connect the Beacon first while it's next to that phone, then hide it. The hotspot phone goes hunting with the Hunter.",
-    hotspotOthers:
-      "Everyone else's phone joins nothing. It just stays on its own mobile data.",
+    hotspotOthers: "Everyone else's phone joins nothing. It just stays on its own mobile data.",
     huntTitle: "Open the Hunt",
     huntQr: "Hunt page QR",
     huntHint:
@@ -194,7 +193,8 @@ export const H = dict({
     hotspotOthers: "其他人的手机不用连任何网络，用自己的移动数据就行。",
     huntTitle: "打开寻踪",
     huntQr: "寻踪页面二维码",
-    huntHint: "在手机上输入你自己的 NIM，服务器会找到你的组。请用二维码或这个链接打开，不要自己输入网址。",
+    huntHint:
+      "在手机上输入你自己的 NIM，服务器会找到你的组。请用二维码或这个链接打开，不要自己输入网址。",
     huntHintAsisten: "助教在那个页面用令牌登录。",
     copy: "复制链接",
     copied: "链接已复制。",

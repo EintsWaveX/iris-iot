@@ -307,12 +307,7 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
           </div>
           <div className="huntjoin__url">
             <span className="mono">{url}</span>
-            <IconButton
-              icon={CopyIcon}
-              label={t.copy}
-              sm
-              onClick={() => salin(url)}
-            />
+            <IconButton icon={CopyIcon} label={t.copy} sm onClick={() => salin(url)} />
           </div>
         </div>
       )}

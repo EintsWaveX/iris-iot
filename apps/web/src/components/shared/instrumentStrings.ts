@@ -177,7 +177,6 @@ export const IN = dict({
     } as Record<number, string>,
     servoAria: (p: number) => `舵机在 ${p}%`,
     radarAria: (r: number) => `信标信号 ${r} dBm`,
-    huntHint:
-      "靠近信标，直到 RSSI 高于 -70 dBm。记分板从寻踪步骤里的链接打开，用手机的移动数据。",
+    huntHint: "靠近信标，直到 RSSI 高于 -70 dBm。记分板从寻踪步骤里的链接打开，用手机的移动数据。",
   },
 });
