@@ -17,7 +17,7 @@ import type { ApiHandler, ApiRequest, ApiResponse } from "../api/_lib/http.js";
 import { jumlahLatar } from "../api/_lib/tunggu.js";
 import { compileRules, type VercelConfig } from "./rules.js";
 import { cocokkanRute, petaRute, type Rute } from "./routes.js";
-import { sajikanBerkas } from "./berkas.js";
+import { sajikanBerkas, type BacaBerkas, type CekBerkas } from "./berkas.js";
 import { cariBerkas, sajikan } from "./static.js";
 
 /** Vercel's own body limit, kept so a handler sees what it sees there (JSON and forms). */
@@ -43,9 +43,9 @@ export interface OpsiApp {
   /** Ran by /api/sehat?db=1; it rejects when the database does not answer. */
   periksaDb?: () => Promise<void>;
   /** Reads an uploaded file for /f/<id>/<name>; null when there is none. */
-  bacaBerkas?: (
-    id: string,
-  ) => Promise<{ nama: string; tipe: string; ukuran: number; isi: Buffer } | null>;
+  bacaBerkas?: BacaBerkas;
+  /** The same without the bytes, for a 304 or a HEAD; falls back to bacaBerkas. */
+  cekBerkas?: CekBerkas;
 }
 
 const tak = (res: http.ServerResponse, status: number, badan: unknown) => {
@@ -237,7 +237,7 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
         return tak(res, badan.ok ? 200 : 503, badan);
       }
 
-      if (asli.startsWith("/f/")) return sajikanBerkas(req, res, asli, opsi.bacaBerkas);
+      if (asli.startsWith("/f/")) return sajikanBerkas(req, res, asli, opsi.bacaBerkas, opsi.cekBerkas);
 
       const path = aturan.tulisUlang(asli);
       if (path === "/api" || path.startsWith("/api/")) {

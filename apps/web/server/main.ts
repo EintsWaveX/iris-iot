@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
-import { bacaBerkas } from "../api/_lib/berkas.js";
+import { bacaBerkas, cekBerkas } from "../api/_lib/berkas.js";
 import { tungguLatar } from "../api/_lib/tunggu.js";
 import { getDb, statusKolam } from "../src/lib/db.js";
 import { buatApp } from "./app.js";
@@ -38,6 +38,7 @@ const { server, rute } = await buatApp({
     await getDb().execute(sql`select 1`);
   },
   bacaBerkas,
+  cekBerkas,
 });
 
 const port = Number(process.env.PORT ?? 8787);

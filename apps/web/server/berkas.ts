@@ -7,9 +7,10 @@
  */
 import type http from "node:http";
 
-export type BacaBerkas = (
-  id: string,
-) => Promise<{ nama: string; tipe: string; ukuran: number; isi: Buffer } | null>;
+export type InfoBerkas = { nama: string; tipe: string; ukuran: number };
+export type BacaBerkas = (id: string) => Promise<(InfoBerkas & { isi: Buffer }) | null>;
+/** The same without the bytes: one small row, so a 304 or a HEAD never reads the blob. */
+export type CekBerkas = (id: string) => Promise<InfoBerkas | null>;
 
 const teks = (res: http.ServerResponse, kode: number, isi: string) => {
   res.statusCode = kode;
@@ -28,37 +29,47 @@ export async function sajikanBerkas(
   res: http.ServerResponse,
   path: string,
   baca: BacaBerkas | undefined,
+  cek?: CekBerkas,
 ): Promise<void> {
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.setHeader("Allow", "GET, HEAD");
     return teks(res, 405, "Method not allowed");
   }
   const id = path.slice("/f/".length).split("/", 1)[0] ?? "";
-  let f: Awaited<ReturnType<BacaBerkas>> = null;
+  const etag = `"${id}"`;
+  const cocok = String(req.headers["if-none-match"] ?? "")
+    .split(/\s*,\s*/)
+    .includes(etag);
+  const tanpaIsi = cocok || req.method === "HEAD";
+  let info: InfoBerkas | null = null;
+  let isi: Buffer | undefined;
   try {
-    f = baca ? await baca(id) : null;
+    if (tanpaIsi && cek) {
+      info = await cek(id);
+    } else if (baca) {
+      const f = await baca(id);
+      info = f;
+      isi = f?.isi;
+    }
   } catch (err) {
     console.error("[server] /f/ read failed:", err);
     return teks(res, 503, "Try again");
   }
-  if (!f) return teks(res, 404, "Not found");
+  if (!info) return teks(res, 404, "Not found");
 
-  const etag = `"${id}"`;
   res.setHeader("ETag", etag);
-  res.setHeader("Cache-Control", "public, max-age=86400");
-  if (
-    String(req.headers["if-none-match"] ?? "")
-      .split(/\s*,\s*/)
-      .includes(etag)
-  ) {
+  // The id is random and a row is never rewritten, so a given address always
+  // gives the same bytes: the browser may keep it for good.
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  if (cocok) {
     res.statusCode = 304;
     res.end();
     return;
   }
   res.statusCode = 200;
-  res.setHeader("Content-Type", f.tipe);
-  res.setHeader("Content-Length", String(f.isi.length));
+  res.setHeader("Content-Type", info.tipe);
+  res.setHeader("Content-Length", String(isi ? isi.length : info.ukuran));
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${namaHeader(f.nama)}`);
-  res.end(req.method === "HEAD" ? undefined : f.isi);
+  res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${namaHeader(info.nama)}`);
+  res.end(req.method === "HEAD" ? undefined : isi);
 }

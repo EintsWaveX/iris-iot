@@ -14,6 +14,8 @@ const PDF = Buffer.from("%PDF-1.4 stand-in");
 
 let dist: string;
 let tutup: () => void;
+/** Which reads reached the "database": the bytes or only the small row. */
+const bacaan: string[] = [];
 let base: string;
 
 const gema: ApiHandler = (req, res) => {
@@ -32,7 +34,15 @@ beforeAll(async () => {
     dist,
     config,
     muat: async () => gema,
+    cekBerkas: async (id) => {
+      bacaan.push(`cek:${id}`);
+      if (id === "rusak") throw new Error("db down");
+      return id === ID
+        ? { nama: "Slide Modul 1 é.pdf", tipe: "application/pdf", ukuran: PDF.length }
+        : null;
+    },
     bacaBerkas: async (id) => {
+      bacaan.push(`isi:${id}`);
       if (id === "rusak") throw new Error("db down");
       return id === ID
         ? { nama: "Slide Modul 1 é.pdf", tipe: "application/pdf", ukuran: PDF.length, isi: PDF }
@@ -59,7 +69,7 @@ describe("GET /f/<id>/<name>", () => {
     expect(r.headers.get("content-type")).toBe("application/pdf");
     expect(r.headers.get("content-length")).toBe(String(PDF.length));
     expect(r.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(r.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(r.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
     expect(r.headers.get("content-disposition")).toContain("filename*=UTF-8''Slide%20Modul%201%20");
     expect(Buffer.from(await r.arrayBuffer()).equals(PDF)).toBe(true);
   });
@@ -76,9 +86,27 @@ describe("GET /f/<id>/<name>", () => {
     const etag = r1.headers.get("etag")!;
     const r2 = await ambil(`/f/${ID}/x.pdf`, { headers: { "If-None-Match": etag } });
     expect(r2.status).toBe(304);
+    expect(r2.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
     const h = await ambil(`/f/${ID}/x.pdf`, { method: "HEAD" });
     expect(h.status).toBe(200);
     expect(await h.text()).toBe("");
+    expect(h.headers.get("content-length")).toBe(String(PDF.length));
+  });
+
+  it("never reads the bytes for a 304 or a HEAD, only for a full answer", async () => {
+    bacaan.length = 0;
+    await ambil(`/f/${ID}/x.pdf`, { headers: { "If-None-Match": `"${ID}"` } });
+    await ambil(`/f/${ID}/x.pdf`, { method: "HEAD" });
+    expect(bacaan).toEqual([`cek:${ID}`, `cek:${ID}`]);
+    const r = await ambil(`/f/${ID}/x.pdf`);
+    expect(r.status).toBe(200);
+    expect(bacaan.slice(2)).toEqual([`isi:${ID}`]);
+  });
+
+  it("still says 404 for an unknown id even when the browser sends a matching ETag", async () => {
+    const other = "BBBBBBBBBBBBBBBBBBBBBB";
+    const r = await ambil(`/f/${other}/x.pdf`, { headers: { "If-None-Match": `"${other}"` } });
+    expect(r.status).toBe(404);
   });
 
   it("is 404 for an unknown id, 503 when the database fails, 405 for a write", async () => {
