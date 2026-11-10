@@ -26,6 +26,12 @@
   const HIST_SEC = 15 * 60;
   const KEY_NIM = "iris_hunt_nim";
   const KEY_TOKEN = "iris_hunt_token";
+  const KEY_KODE = "iris_hunt_kode";
+  const cleanKode = (v) => {
+    if (typeof v !== "string") return null;
+    const s = v.trim().toUpperCase();
+    return /^[A-Z0-9]{4,12}$/.test(s) ? s : null;
+  };
 
   const cleanNim = (v) => {
     if (typeof v !== "string") return null;
@@ -41,6 +47,10 @@
     downSince: null,
     nim: cleanNim(H.read(KEY_NIM)),
     token: H.read(KEY_TOKEN) || null,
+    /* The board is open on the internet, so the IRIS site's link carries a
+       join code (#k=...). Without it the NIM is never tried and the roster
+       stays closed. Kept on this phone for the rest of the session. */
+    kode: cleanKode(H.read(KEY_KODE)),
     role: "tamu",
     grup: null,
     nama: "",
@@ -53,6 +63,19 @@
     pings: [],
   };
   H.net = N;
+  /* The join code arrives in the address fragment, which a browser never
+     sends to a server or a log. Read once, then dropped from the address. */
+  (() => {
+    try {
+      const m = /[#&]k=([A-Za-z0-9]{4,12})/.exec(window.location.hash);
+      if (!m) return;
+      N.kode = cleanKode(m[1]);
+      H.write(KEY_KODE, N.kode);
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    } catch (e) {
+      /* no history API: the stored copy still works */
+    }
+  })();
   /* Phase 9: the web's Perburuan step links here with ?nim=, so a phone
      that scanned the QR signs in without typing. Read once, then dropped
      from the address so a reload doesn't sign in again. */
@@ -213,9 +236,10 @@
   let rosterStamp = null;
   let rosterBusy = false;
   const fetchRoster = (stamp) => {
-    if (rosterBusy) return;
+    /* names are only handed to a phone that holds the join code */
+    if (rosterBusy || !N.kode) return;
     rosterBusy = true;
-    fetch("roster.json", { cache: "no-store" })
+    fetch("roster.json?k=" + encodeURIComponent(N.kode), { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         rosterBusy = false;
@@ -287,6 +311,7 @@
     const msg = { aksi: "halo" };
     if (N.nim) msg.nim = N.nim;
     if (N.token) msg.token = N.token;
+    if (N.kode) msg.kode_papan = N.kode;
     return send(msg);
   };
 
@@ -298,6 +323,13 @@
       H.write(KEY_TOKEN, null);
       halo();
       return;
+    }
+    /* an assistant's hello carries today's join code, for the projector and
+       for the links it hands out */
+    if (m.kode_papan && m.kode_papan !== N.kode) {
+      N.kode = cleanKode(m.kode_papan);
+      H.write(KEY_KODE, N.kode);
+      rosterStamp = null;
     }
     N.role = m.peran || "tamu";
     N.connId = m.id || N.connId;
@@ -440,7 +472,7 @@
   H.masuk = async (nim) => {
     const clean = cleanNim(nim);
     if (!clean) return { ok: false, kode: "nim_cacat" };
-    const r = await request({ aksi: "masuk", nim: clean }, (m) => m.tipe === "masuk");
+    const r = await request({ aksi: "masuk", nim: clean, kode_papan: N.kode || undefined }, (m) => m.tipe === "masuk");
     if (r.ok) {
       N.nim = clean;
       H.write(KEY_NIM, clean);

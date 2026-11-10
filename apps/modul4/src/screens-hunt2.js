@@ -436,7 +436,7 @@
     const N = H.useNet();
     H.useTick(1000);
     const V = {
-      offline: ["wifi-slash", L("Tidak Tersambung ke IRIS_IOT", "Not Connected to IRIS_IOT"), L("Ponselmu keluar dari Wi-Fi hotspot PC. Biasanya karena terlalu jauh dari gedung, atau ponsel pindah ke data seluler.", "Your phone left the PC's hotspot Wi-Fi. Usually you're too far from the building, or the phone switched to mobile data."), L("Mencoba lagi sendiri", "Trying again by itself")],
+      offline: ["wifi-slash", L("Tidak Tersambung", "Not Connected"), L("Ponselmu kehilangan internet. Biasanya sinyal seluler lemah atau data habis; halaman mencoba lagi sendiri.", "Your phone lost its internet. Usually weak signal or no data left; the page tries again by itself."), L("Mencoba lagi sendiri", "Trying again by itself")],
       restart: ["arrows-clockwise", L("Server perburuan dimulai ulang", "The hunt server is restarting"), L("Asisten memulai ulang server. Posisi dan klaim kalian aman.", "An assistant restarted the server. Your progress and claims are safe."), L("Tersambung lagi sendiri", "Reconnects by itself")],
       ended: ["flag-checkered", L("Ronde selesai", "Round over"), L("Semua kelompok sudah menemukan beaconnya, atau asisten menutup ronde.", "Every group found its beacon, or an assistant closed the round."), null],
       rolled: ["calendar-blank", L("Sesi sudah berganti", "The session changed"), L("Sesi ini sudah lewat. Masuk lagi dengan NIM kalau kamu ikut sesi berikutnya.", "This session is over. Sign in again with your NIM if you're in the next one."), null],

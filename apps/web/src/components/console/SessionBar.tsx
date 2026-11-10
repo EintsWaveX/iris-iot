@@ -8,9 +8,9 @@
  *   Lihat Sebagai Praktikan, Persiapan Langsung, Tabel Nilai, SeeLabs and
  *   the Module 4 scoreboard; the first two open their form in place) and
  *   Ada Masalah?, then Perpanjang (E) and Akhiri Sesi on the right.
- * - Module 4 (2026-10-08): Mulai Perburuan turns the IRIS_IOT hotspot and
- *   the scoreboard on and opens the Praktikan's Perburuan step; Selesai
- *   Perburuan turns both off (api/_lib/perburuan-sesi.ts).
+ * - Module 4 (2026-10-08): Mulai Perburuan turns the scoreboard on and
+ *   opens the Praktikan's Perburuan step; Selesai Perburuan turns it off
+ *   (api/_lib/perburuan-sesi.ts). No hotspot on the PC since 2026-11-10.
  */
 import KodeMasuk from "../shell/KodeMasuk";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -35,6 +35,7 @@ import { durasiSesi, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { durasiPalingPendek } from "../../lib/sesi-mulai";
 import { shortcutsOn } from "../../lib/prefs";
 import { hotspotMenyala } from "../../lib/server-shared";
+import { tautanPerburuan } from "../../lib/perburuan";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
 import type { Lang } from "../../lib/kelas";
@@ -130,14 +131,10 @@ export default function SessionBar({
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
   const ap = hotspotMenyala(servers?.detail?.denyutTerakhir?.modeJaringan);
-  // Phones reach the hunt at 192.168.4.1 on IRIS_IOT. This laptop stays on
-  // campus Wi-Fi, so it uses the PC's LAN address whenever the PC still has
-  // its campus link (no hotspot, or the router on the cable); only a PC whose
-  // own radio became the hotspot with no uplink answers on 192.168.4.1 alone.
-  const lan = servers?.detail?.server.alamatLan;
-  const mandiri = servers?.detail?.denyutTerakhir?.modeJaringan === "ap-mandiri";
-  const papanSkor =
-    servers?.detail && lan && !mandiri ? `http://${lan}:8080/` : "http://192.168.4.1:8080/";
+  // The scoreboard is on the internet now (hunt.irisiotlab.com); the Asisten
+  // signs in there with the token, which also hands this browser today's join
+  // code for the projector.
+  const papanSkor = tautanPerburuan(null);
   const buru = sesi.perburuan ?? null;
   const buruJalan = !!buru?.mulai && !buru.selesai;
   const [tanyaBuru, setTanyaBuru] = useState(false);

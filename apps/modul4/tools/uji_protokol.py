@@ -20,13 +20,44 @@ import pathlib
 import sys
 import urllib.request
 
-from websockets.asyncio.client import connect
+from websockets.asyncio.client import ClientConnection, connect
 
 MAX_GAGAL_TOKEN = 5      # cermin nilai di server.py
 MAX_GAGAL_MASUK = 12
 
 LULUS: list[str] = []
 GAGAL: list[str] = []
+
+# Papan ini terbuka di internet: "masuk" dan "halo" dengan NIM butuh kode
+# papan dari tautan situs. Uji ini mengambilnya dari /ringkas.json (rute
+# agent di PC) dan menyisipkannya sendiri, kecuali sebuah uji sengaja
+# mematikannya.
+HTTP_DASAR = ["http://127.0.0.1:8080"]
+TANPA_KODE = [False]
+
+
+def kode_sekarang() -> str:
+    with urllib.request.urlopen(f"{HTTP_DASAR[0]}/ringkas.json") as resp:
+        return json.loads(resp.read())["kode"]
+
+
+_kirim_asli = ClientConnection.send
+
+
+async def _kirim_dengan_kode(self, pesan, *args, **kw):
+    if isinstance(pesan, str) and not TANPA_KODE[0]:
+        try:
+            isi = json.loads(pesan)
+        except ValueError:
+            isi = None
+        if (isinstance(isi, dict) and isi.get("aksi") in ("masuk", "halo")
+                and "nim" in isi and "kode_papan" not in isi):
+            isi["kode_papan"] = kode_sekarang()
+            pesan = json.dumps(isi)
+    return await _kirim_asli(self, pesan, *args, **kw)
+
+
+ClientConnection.send = _kirim_dengan_kode
 
 
 def cek(nama: str, syarat: bool, catatan: str = "") -> None:
@@ -391,6 +422,7 @@ async def main() -> int:
     ap.add_argument("--token", required=True)
     args = ap.parse_args()
     T = args.token
+    HTTP_DASAR[0] = args.http
 
     # Beacon harus hidup, kalau tidak started_at tidak pernah diisi. Kelompok
     # 1 dipakai sebagai satu-satunya pasangan yang diuji di sini -- lihat
@@ -679,7 +711,7 @@ async def main() -> int:
         # /roster.json: yang paling penting di sini bukan apa yang ada,
         # melainkan apa yang TIDAK ada. NIM adalah data pribadi dan rutenya
         # sengaja tanpa token supaya proyektor dapat membacanya.
-        with urllib.request.urlopen(f"{args.http}/roster.json") as resp:
+        with urllib.request.urlopen(f"{args.http}/roster.json?k={kode_sekarang()}") as resp:
             roster = json.loads(resp.read())
         mentah = json.dumps(roster)
         cek("GET /roster.json", roster.get("regu", {}).get("1", {}).get("nama")
@@ -821,7 +853,7 @@ async def main() -> int:
             r is not None and r.get("peran") == "tamu"
             and r.get("grup") is None, str((r or {}).get("alasan")))
 
-    with urllib.request.urlopen(f"{args.http}/roster.json") as resp:
+    with urllib.request.urlopen(f"{args.http}/roster.json?k={kode_sekarang()}") as resp:
         roster = json.loads(resp.read())
     cek("roster ikut berganti sesi", roster.get("regu") == {},
         json.dumps(roster.get("regu"))[:60])
@@ -867,6 +899,89 @@ async def main() -> int:
         cek("jadwal benar-benar kosong",
             "2311102001" not in json.dumps((r or {}).get("jadwal", {})),
             "tidak ada NIM tersisa")
+
+    # ---- papan di internet: kode papan, tunnel, dan blokir per alamat --------
+    # Tanpa kode papan NIM tidak dicoba sama sekali
+    TANPA_KODE[0] = True
+    async with connect(args.url + "/live") as tamu:
+        await tamu.send(json.dumps({"aksi": "masuk", "nim": "2311102001"}))
+        r = await balas(tamu, "masuk")
+        cek("masuk tanpa kode papan ditolak",
+            r is not None and r.get("ok") is False and r.get("kode") == "kode_papan",
+            str(r))
+        await tamu.send(json.dumps({"aksi": "masuk", "nim": "2311102001",
+                                    "kode_papan": "AAAAAA"}))
+        r = await balas(tamu, "masuk")
+        cek("masuk dengan kode papan salah ditolak",
+            r is not None and r.get("ok") is False and r.get("kode") == "kode_papan",
+            str(r))
+        await tamu.send(json.dumps({"aksi": "halo", "nim": "2311102001"}))
+        r = await balas(tamu, "halo")
+        cek("halo ber-NIM tanpa kode papan tetap tamu",
+            r is not None and r.get("peran") == "tamu" and r.get("grup") is None,
+            str(r))
+    TANPA_KODE[0] = False
+
+    # Roster: nama praktikan hanya untuk yang membawa kode
+    for nama, kueri in [("tanpa kode", ""), ("dengan kode salah", "?k=AAAAAA")]:
+        try:
+            with urllib.request.urlopen(f"{args.http}/roster.json{kueri}") as resp:
+                status = resp.status
+        except urllib.error.HTTPError as err:
+            status = err.code
+        cek(f"/roster.json {nama} ditolak", status == 403, str(status))
+
+    # Lewat tunnel semuanya tampak datang dari 127.0.0.1; header tunnel yang
+    # membedakan agent di PC ini dari tamu di internet
+    for rute in ("/ringkas.json", "/telemetri.json"):
+        for header in ("CF-Connecting-IP", "X-Forwarded-For", "CF-Ray"):
+            req = urllib.request.Request(f"{args.http}{rute}",
+                                         headers={header: "203.0.113.5"})
+            try:
+                with urllib.request.urlopen(req) as resp:
+                    status = resp.status
+            except urllib.error.HTTPError as err:
+                status = err.code
+            cek(f"{rute} lewat tunnel ({header}) ditolak", status == 403, str(status))
+        with urllib.request.urlopen(f"{args.http}{rute}") as resp:
+            cek(f"{rute} dari agent lokal tetap terbuka", resp.status == 200,
+                str(resp.status))
+
+    # Gagal diblokir per alamat peramban yang sebenarnya, bukan per koneksi:
+    # menyambung ulang tidak mengosongkan hitungannya
+    penyerang = {"CF-Connecting-IP": "203.0.113.77"}
+    for _ in range(4):
+        async with connect(args.url + "/live", additional_headers=penyerang) as ws:
+            for _ in range(MAX_GAGAL_TOKEN):
+                try:
+                    await ws.send(json.dumps({"aksi": "halo", "token": "SALAHX"}))
+                    await balas(ws, "halo", timeout=1.0)
+                except Exception:                  # noqa: BLE001
+                    break
+    async with connect(args.url + "/live", additional_headers=penyerang) as ws:
+        try:
+            await ws.send(json.dumps({"aksi": "halo", "token": T}))
+            r = await balas(ws, "halo", timeout=1.5)
+            diblokir = r is None or r.get("peran") != "asisten"
+        except Exception:                          # noqa: BLE001
+            diblokir = True
+    cek("alamat yang berulang salah token diblokir, token benar pun",
+        diblokir, "tidak bisa menjadi asisten dari alamat itu")
+    async with connect(args.url + "/live",
+                       additional_headers={"CF-Connecting-IP": "203.0.113.78"}) as ws:
+        await ws.send(json.dumps({"aksi": "halo", "token": T}))
+        r = await balas(ws, "halo")
+        cek("alamat lain tidak ikut terblokir",
+            r is not None and r.get("peran") == "asisten", str((r or {}).get("peran")))
+        cek("halo asisten membawa kode papan",
+            bool((r or {}).get("kode_papan")), "kode_papan ada")
+
+    # Papan dari luar tidak boleh membuat kelompok liar di memori
+    await kirim_hunter(args.url, 10 ** 9, -60.0, 3)
+    async with connect(args.url + "/live") as tamu:
+        isi = await bingkai(tamu)
+    nomor = [g.get("grup") for g in (isi or {}).get("grup", [])]
+    cek("kelompok 10**9 dari papan palsu diabaikan", 10 ** 9 not in nomor, str(nomor))
 
     await beacon.close()
 

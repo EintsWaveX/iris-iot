@@ -62,7 +62,7 @@ export const DS = dict({
     simulasi: "Simulasi",
     bukaLive: "Buka Live",
     papanSkor: "Papan Skor",
-    huntHint: "Papan skor berjalan di PC Server lab. Sambungkan HP ke IRIS_IOT dulu.",
+    huntHint: "Papan skor dibuka lewat tautan dari langkah Perburuan. Pakai data seluler HP-mu.",
     stat: {
       delay: "delay satu arah",
       hilang: "pesan hilang",
@@ -198,7 +198,7 @@ export const DS = dict({
     simulasi: "Simulated",
     bukaLive: "Open Live",
     papanSkor: "Scoreboard",
-    huntHint: "The scoreboard runs on the lab's PC Server. Join IRIS_IOT on your phone first.",
+    huntHint: "The scoreboard opens from the link in the Hunt step. Use your phone's mobile data.",
     stat: {
       delay: "one-way delay",
       hilang: "messages lost",
@@ -332,7 +332,7 @@ export const DS = dict({
     simulasi: "模拟",
     bukaLive: "打开 Live",
     papanSkor: "记分板",
-    huntHint: "记分板在实验室的 PC 服务器上运行。先让手机连上 IRIS_IOT。",
+    huntHint: "记分板从寻踪步骤里的链接打开。用手机的移动数据。",
     stat: {
       delay: "单程延迟",
       hilang: "丢失的消息",

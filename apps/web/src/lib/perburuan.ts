@@ -59,6 +59,9 @@ export interface PeristiwaRingkas {
 export interface Ringkas {
   /** Kept on the stored copy, so reading it back validates the same way. */
   versi: 1;
+  /** Today's join code for the scoreboard; only ever handed to the people
+   *  the session's own group and Asisten, never to a guest. */
+  kode: string | null;
   sesi: number | null;
   mulai: boolean;
   selesai: boolean;
@@ -125,8 +128,10 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
     if (alasan) p.alasan = alasan;
     peristiwa.push(p);
   }
+  const kode = typeof raw.kode === "string" && /^[A-Z0-9]{4,12}$/.test(raw.kode) ? raw.kode : null;
   return {
     versi: 1,
+    kode,
     sesi: int(raw.sesi, 1, 10),
     mulai: raw.mulai === true,
     selesai: raw.selesai === true,
@@ -137,7 +142,8 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
   };
 }
 
-/** The hotspot the agent read from the PC's hostapd file, or null. */
+/** The hotspot the agent read from the PC's hostapd file, or null. The
+ *  Server page still shows it; the hunt itself no longer uses it. */
 export function saringHotspot(raw: unknown): { ssid: string; sandi: string | null } | null {
   if (!isObj(raw)) return null;
   const ssid = str(raw.ssid, 32);
@@ -145,10 +151,28 @@ export function saringHotspot(raw: unknown): { ssid: string; sandi: string | nul
   return { ssid, sandi: str(raw.sandi, 63) };
 }
 
-/** Escapes a value for a WIFI: QR string (backslash before \ ; , : "). */
-export function wifiQr(ssid: string, sandi: string | null): string {
-  const esc = (s: string) => s.replace(/([\\;,:"])/g, "\\$1");
-  return sandi ? `WIFI:S:${esc(ssid)};T:WPA;P:${esc(sandi)};;` : `WIFI:S:${esc(ssid)};T:nopass;;`;
+/**
+ * Where the scoreboard is reached (2026-11-10): the PC's hunt server behind a
+ * Cloudflare Tunnel, so phones stay on their own mobile data and can be
+ * carried anywhere. The old IRIS_IOT hotspot on the PC is no longer part of
+ * the hunt.
+ */
+export const HOST_PERBURUAN = "hunt.irisiotlab.com";
+
+/** The hotspot one group's phone turns on for its Beacon and Hunter. The
+ *  name is per group so the sketches (grupN/) can hold it as a constant; the
+ *  password is the practicum's shared one, printed in the sketches too. */
+export function hotspotKelompok(nomor: number): { ssid: string; sandi: string } {
+  return { ssid: `IRIS-G${nomor}`, sandi: "13015954" };
+}
+
+/**
+ * The link a member opens: the scoreboard plus today's join code in the
+ * fragment (never sent to a server or a log). Without a code the link still
+ * opens the board, which then asks to be opened from the site.
+ */
+export function tautanPerburuan(kode: string | null): string {
+  return `https://${HOST_PERBURUAN}/${kode ? `#k=${encodeURIComponent(kode)}` : ""}`;
 }
 
 export interface Penghargaan {

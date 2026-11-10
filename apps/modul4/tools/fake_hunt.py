@@ -277,12 +277,26 @@ async def siapkan_sesi(url: str, token: str) -> None:
         print(f"sesi {sid} dimulai dengan regu demo (masuk sebagai D0300 untuk Cygnus)")
 
 
-async def bot_anggota(url: str, gid: int, stop: asyncio.Event, tempo: float) -> None:
+async def ambil_kode(url: str, token: str) -> str | None:
+    """Kode masuk papan hari ini: asisten menerimanya di jawaban halo-nya.
+
+    Papan kini terbuka di internet, jadi NIM baru dicoba bila disertai kode
+    ini (di ponsel nyata ia datang lewat tautan dari situs IRIS).
+    """
+    async with connect(url + "/live") as ws:
+        await ws.send(json.dumps({"aksi": "halo", "token": token}))
+        r = await tanya(ws, "halo")
+    return (r or {}).get("kode_papan")
+
+
+async def bot_anggota(url: str, gid: int, stop: asyncio.Event, tempo: float,
+                      token: str) -> None:
     """Satu anggota kelompok: peran, sinyal, sapuan sekali, klaim di Membara."""
     nim = f"D0{gid}01"
     rnd = random.Random(gid * 31)
+    kode = await ambil_kode(url, token)
     async with connect(url + "/live") as ws:
-        await ws.send(json.dumps({"aksi": "halo", "nim": nim}))
+        await ws.send(json.dumps({"aksi": "halo", "nim": nim, "kode_papan": kode}))
         await tanya(ws, "halo")
         await ws.send(json.dumps({"aksi": "tim_peran",
                                   "peran": PERAN_BOT[gid % len(PERAN_BOT)]}))
@@ -410,7 +424,7 @@ async def main() -> None:
     if args.bot:
         for gid in GROUPS:
             tasks.append(asyncio.create_task(
-                bot_anggota(args.url, gid, stop, max(0.1, args.tempo))))
+                bot_anggota(args.url, gid, stop, max(0.1, args.tempo), args.token)))
         tasks.append(asyncio.create_task(
             bot_asisten(args.url, args.token, stop, max(0.1, args.tempo))))
 

@@ -97,6 +97,30 @@ sudo systemctl enable --now cloudflared
 
 Check from anywhere: `curl -s https://pc.irisiotlab.com/api/sehat` names the PC (`"host":"fedora"`).
 
+## 2a. The Module 4 hunt scoreboard (hunt.irisiotlab.com)
+
+Since 2026-11-10 the LoRa hunt runs on the internet instead of the PC's own hotspot: phones use their own
+mobile data, and each group's phone makes the hotspot for its Beacon and Hunter. `modul4.service` listens on
+`127.0.0.1:8080` only; the tunnel is the way in. Add one ingress entry **above** the catch-all and route DNS:
+
+```sh
+cloudflared tunnel route dns iris-pc hunt.irisiotlab.com
+sudo sed -i '/- service: http_status:404/i\  - hostname: hunt.irisiotlab.com\n    service: http://127.0.0.1:8080' /etc/cloudflared/config.yml
+sudo systemctl restart cloudflared
+```
+
+Do this only after the PC runs the bundle with the join-code hardening (`/roster.json` answers 403 without
+`?k=`): the older scoreboard trusted the closed hotspot and would be open to the internet. Check from anywhere:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' https://hunt.irisiotlab.com/roster.json    # 403
+curl -s -o /dev/null -w '%{http_code}\n' https://hunt.irisiotlab.com/ringkas.json   # 403
+curl -s -o /dev/null -w '%{http_code}\n' https://hunt.irisiotlab.com/               # 200
+```
+
+The scoreboard reads the real client address from `CF-Connecting-IP` (only when the socket itself is loopback),
+and refuses the agent-only routes to anything that came through the tunnel.
+
 ## 2b. Postgres on the PC
 
 Fedora 44 ships PostgreSQL 18.6, the version Neon runs, so a plain install is the newest one and a dump

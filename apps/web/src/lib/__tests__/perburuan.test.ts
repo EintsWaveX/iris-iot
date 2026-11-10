@@ -3,10 +3,11 @@ import {
   bacaPerburuanSesi,
   keadaanPerburuan,
   perburuanBerjalan,
+  hotspotKelompok,
   penghargaanKelompok,
   saringHotspot,
   saringPerburuan,
-  wifiQr,
+  tautanPerburuan,
 } from "../perburuan";
 
 const contoh = {
@@ -127,8 +128,24 @@ describe("hotspot", () => {
     expect(saringHotspot({ ssid: "LAB" })).toEqual({ ssid: "LAB", sandi: null });
   });
 
-  it("escapes the Wi-Fi QR string", () => {
-    expect(wifiQr("LAB;AP", "a:b")).toBe("WIFI:S:LAB\\;AP;T:WPA;P:a\\:b;;");
-    expect(wifiQr("LAB", null)).toBe("WIFI:S:LAB;T:nopass;;");
+  it("names each group's own phone hotspot", () => {
+    expect(hotspotKelompok(3).ssid).toBe("IRIS-G3");
+    expect(hotspotKelompok(1).ssid).not.toBe(hotspotKelompok(2).ssid);
+    expect(hotspotKelompok(1).sandi.length).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe("scoreboard link and join code", () => {
+  it("puts the code in the fragment, which a browser never sends", () => {
+    expect(tautanPerburuan("K7QX4M")).toBe("https://hunt.irisiotlab.com/#k=K7QX4M");
+    expect(tautanPerburuan(null)).toBe("https://hunt.irisiotlab.com/");
+    expect(tautanPerburuan("K7QX4M")).not.toContain("?");
+  });
+
+  it("keeps only a well-formed code from the PC's summary", () => {
+    expect(saringPerburuan({ ...contoh, kode: "K7QX4M" })?.kode).toBe("K7QX4M");
+    expect(saringPerburuan({ ...contoh, kode: "k7 qx" })?.kode).toBeNull();
+    expect(saringPerburuan({ ...contoh, kode: 12345 })?.kode).toBeNull();
+    expect(saringPerburuan(contoh)?.kode).toBeNull();
   });
 });

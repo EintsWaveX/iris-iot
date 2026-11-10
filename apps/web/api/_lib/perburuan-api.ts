@@ -4,30 +4,29 @@
  * reads their own group; an Asisten reads the group they view as
  * (?kelompok=, Lihat Sebagai Praktikan).
  *
- * The hunt itself lives on the PC's offline hotspot, so this only reports:
- * the state of the round, where phones join (hotspot or lab LAN address,
- * the same rule as the Console's session bar), the Wi-Fi to join (SSID and
- * passphrase the agent read from the PC at run time; shown only while the
- * hotspot is on), who in the group has joined, and the result.
+ * The hunt itself runs on the PC's scoreboard at hunt.irisiotlab.com
+ * (2026-11-10: phones stay on their own mobile data, and each group's own
+ * phone makes the hotspot for its Beacon and Hunter), so this only reports:
+ * the state of the round, the link phones open (with today's join code, only
+ * while the hunt is open), the hotspot name and password the group sets on
+ * its phone, who in the group has joined, and the result.
  */
 import { and, desc, eq, gte, isNotNull, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
-import { anggota as anggotaT, denyut, kelompok, server } from "../../src/lib/schema.js";
+import { anggota as anggotaT, kelompok, server } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { hotspotMenyala } from "../../src/lib/server-shared.js";
 import { bacaPerburuanSesi } from "./perburuan-sesi.js";
 import {
+  hotspotKelompok,
   keadaanPerburuan,
   penghargaanKelompok,
+  perburuanBerjalan,
   saringPerburuan,
-  wifiQr,
+  tautanPerburuan,
   type Ringkas,
 } from "../../src/lib/perburuan.js";
-
-const PORT_HUNT = 8080;
-const ALAMAT_HOTSPOT = "192.168.4.1";
 
 export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: SessionPayload) {
   res.setHeader("Cache-Control", "no-store");
@@ -42,12 +41,7 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
   // The PC running the hunt is the one that reported a summary lately;
   // there is only ever one hunt at a time.
   const [srv] = await db
-    .select({
-      id: server.id,
-      perburuan: server.perburuan,
-      hotspot: server.hotspot,
-      alamatLan: server.alamatLan,
-    })
+    .select({ perburuan: server.perburuan })
     .from(server)
     .where(
       and(
@@ -61,21 +55,11 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
   const ringkas: Ringkas | null = srv ? saringPerburuan(srv.perburuan) : null;
   // 2026-10-08: the step opens only with the Asisten's Mulai Perburuan
   const perburuan = await bacaPerburuanSesi(running.id);
-  let ap = true;
-  if (srv) {
-    const [d] = await db
-      .select({ modeJaringan: denyut.modeJaringan })
-      .from(denyut)
-      .where(eq(denyut.serverId, srv.id))
-      .orderBy(desc(denyut.pada))
-      .limit(1);
-    ap = hotspotMenyala(d?.modeJaringan);
-  }
-  const host = !ap && srv?.alamatLan ? srv.alamatLan : ALAMAT_HOTSPOT;
-  // One PC per group: every member scans the same screen and types their
-  // own NIM on the phone, so the link is just the address (ruled 22:49).
-  const url = `http://${host}:${PORT_HUNT}/`;
-  const wifi = ap && srv?.hotspot ? srv.hotspot : null;
+  // Every member scans the same screen and types their own NIM on the phone
+  // (ruled 22:49). The link carries today's join code, but only while the
+  // Asisten's hunt is open: before Mulai and after Selesai nobody needs it,
+  // and a code that is never shown cannot leak.
+  const url = tautanPerburuan(perburuanBerjalan(perburuan) ? (ringkas?.kode ?? null) : null);
 
   // The same roster the PC got (sesi.ts's jadwalModul4Hari): the group's
   // members, so names and the hunt's NIMs line up.
@@ -109,8 +93,7 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
     // the step says to ask the Asisten instead of showing a link that fails.
     terdaftar: who.role !== "praktikan" || !g || g.anggota.some((a) => a.nim === who.nim),
     url,
-    lan: !ap,
-    wifi: wifi ? { ssid: wifi.ssid, sandi: wifi.sandi, qr: wifiQr(wifi.ssid, wifi.sandi) } : null,
+    hotspot: hotspotKelompok(nomor),
     berjalan: ringkas?.berjalan ?? 0,
     jumlahKelompok: ringkas?.grup.length ?? 0,
     kelompok: {

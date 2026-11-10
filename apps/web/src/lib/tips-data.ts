@@ -11,8 +11,8 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     "Hapus Jendela":
       "Menghapus jendela TP modul ini; Praktikan belum bisa mengunggah sampai jendelanya diatur lagi.",
     "Soal Akhir dan PDF": "Menampilkan set akhir dan PDF resminya.",
-    "1 Sambung Wi-Fi":
-      "Langkah pertama: sambungkan HP ke Wi-Fi IRIS_IOT supaya bisa membuka papan skor.",
+    "1 Nyalakan Hotspot":
+      "Langkah pertama: nyalakan hotspot di satu HP kelompokmu untuk Hunter dan Beacon.",
     "100%": "Mengembalikan zoom ke 100%.",
     "2 Buka Perburuan": "Langkah kedua: buka halaman Perburuan di PC Server lewat Wi-Fi tadi.",
     "30 Hari Terakhir": "Menampilkan 30 hari terakhir.",
@@ -592,7 +592,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
       "Removes this module's TP window; Praktikan can't upload until it's set again.",
     "Final Set and PDF": "Shows the final set and its official PDF.",
     Arrange: "Shows arrows to move items up or down in sections that aren't locked.",
-    "1 Join the Wi-Fi": "Step one: join your phone to the IRIS_IOT Wi-Fi so the scoreboard opens.",
+    "1 Turn On the Hotspot": "Step one: turn on a hotspot on one phone in your group for the Hunter and Beacon.",
     "100%": "Sets the zoom back to 100%.",
     "2 Open the Hunt": "Step two: open the Hunt page on the PC Server over that Wi-Fi.",
     Accept: "Accepts this.",
@@ -1194,7 +1194,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     删除提交时段: "删除这个模块的预习作业提交时段；重新设置之前学生无法上传。",
     "最终题目和 PDF": "显示最终题目和正式 PDF。",
     调整顺序: "显示箭头，用于在未锁定的章节中上移或下移内容。",
-    "1 连接 Wi-Fi": "第一步：手机连上 IRIS_IOT Wi-Fi，才能打开记分板。",
+    "1 打开热点": "第一步：在你们组的一部手机上打开热点，给 Hunter 和 Beacon 用。",
     "100%": "把缩放恢复到 100%。",
     "2 打开寻踪": "第二步：通过这个 Wi-Fi 打开 PC 服务器上的寻踪页面。",
     CPU: "显示处理器图表。",

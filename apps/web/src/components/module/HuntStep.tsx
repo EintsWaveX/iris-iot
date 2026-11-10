@@ -1,10 +1,11 @@
 /**
- * Module 4's sixth step, Perburuan (ruled 2026-10-04). The hunt runs on the
- * PC's offline hotspot, so the group's one laptop hands phones over with two
- * QR codes, shown one at a time so a camera can't catch the wrong one: first
- * the Wi-Fi, then the hunt's address (each member types their own NIM on
- * the phone). Locked until the hunt session runs on the PC; shows who in the
- * group has joined while it runs, then the result.
+ * Module 4's sixth step, Perburuan (ruled 2026-10-04). Since 2026-11-10 the
+ * scoreboard is at hunt.irisiotlab.com and phones use their own mobile data;
+ * one phone of the group turns on the hotspot (name and password shown here)
+ * for the Beacon and Hunter. The group's one laptop hands the scoreboard to
+ * every phone with a QR code (each member types their own NIM there). Locked
+ * until the hunt session runs on the PC; shows who in the group has joined
+ * while it runs, then the result.
  */
 import { useMemo, useState } from "react";
 import qrcode from "qrcode-generator";
@@ -30,8 +31,8 @@ export interface PerburuanData {
   pcTerhubung?: boolean;
   terdaftar?: boolean;
   url?: string;
-  lan?: boolean;
-  wifi?: { ssid: string; sandi: string | null; qr: string } | null;
+  /** The hotspot one phone of the group turns on for the Beacon and Hunter. */
+  hotspot?: { ssid: string; sandi: string };
   berjalan?: number;
   jumlahKelompok?: number;
   kelompok?: {
@@ -235,9 +236,12 @@ export default function HuntStep({
 function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; asisten: boolean }) {
   const t = H[lang];
   const url = data.url ?? "";
-  const wifi = !data.lan ? (data.wifi ?? null) : null;
-  // The LAN mode has nothing to scan for the network, so it starts on 2.
-  const [step, setStep] = useState<"1" | "2">(wifi ? "1" : "2");
+  const hotspot = data.hotspot ?? null;
+  const [step, setStep] = useState<"1" | "2">(hotspot ? "1" : "2");
+  const salin = async (teks: string) => {
+    const ok = await salinTeks(teks);
+    window.Toast?.show(ok ? t.copied : t.copyFail, ok ? "ok" : "warn");
+  };
   return (
     <section className="panel">
       <div className="panel__head">
@@ -263,32 +267,31 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
       />
       {step === "1" ? (
         <div className="huntjoin__one">
-          {data.lan ? (
+          {hotspot && (
             <div className="stack stack--sm huntjoin__text">
-              <b>{t.lanTitle}</b>
-              <span className="hint">{t.lanHint}</span>
-            </div>
-          ) : wifi ? (
-            <>
-              <Qr text={wifi.qr} label={t.wifiQr(wifi.ssid)} />
-              <div className="stack stack--sm huntjoin__text">
-                <b>{t.wifiTitle(wifi.ssid)}</b>
-                <span className="hint">
-                  {wifi.sandi ? (
-                    <>
-                      {t.wifiHint(wifi.ssid)} <span className="mono">{wifi.sandi}</span>.
-                    </>
-                  ) : (
-                    t.wifiHintOpen(wifi.ssid)
-                  )}
-                </span>
-                <span className="hint">{t.wifiNoNet}</span>
+              <b>{t.hotspotTitle}</b>
+              <div className="huntjoin__url">
+                <span className="hint">{t.hotspotName}</span>
+                <span className="mono">{hotspot.ssid}</span>
+                <IconButton
+                  icon={CopyIcon}
+                  label={t.copyName}
+                  sm
+                  onClick={() => salin(hotspot.ssid)}
+                />
               </div>
-            </>
-          ) : (
-            <div className="stack stack--sm huntjoin__text">
-              <b>{t.wifiTitle("IRIS_IOT")}</b>
-              <span className="hint">{t.wifiUnknown}</span>
+              <div className="huntjoin__url">
+                <span className="hint">{t.hotspotPass}</span>
+                <span className="mono">{hotspot.sandi}</span>
+                <IconButton
+                  icon={CopyIcon}
+                  label={t.copyPass}
+                  sm
+                  onClick={() => salin(hotspot.sandi)}
+                />
+              </div>
+              <span className="hint">{t.hotspotHint}</span>
+              <span className="hint">{t.hotspotOthers}</span>
             </div>
           )}
           <button type="button" className="btn btn--primary" onClick={() => setStep("2")}>
@@ -308,10 +311,7 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
               icon={CopyIcon}
               label={t.copy}
               sm
-              onClick={async () => {
-                const ok = await salinTeks(url);
-                window.Toast?.show(ok ? t.copied : t.copyFail, ok ? "ok" : "warn");
-              }}
+              onClick={() => salin(url)}
             />
           </div>
         </div>
