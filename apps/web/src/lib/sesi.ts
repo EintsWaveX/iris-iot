@@ -28,6 +28,7 @@ import {
 } from "./schema.js";
 import { durasiSesi, hariIniWib, idHuntSusulan, slotToMulai } from "./jadwal.js";
 import { semesterDariTanggal } from "./jadwal-parser.js";
+import { satuSlotPerNim } from "./jadwal-modul4.js";
 import { namaKelompok } from "./kelompok-nama.js";
 import { bacaPerburuanSesi, perburuanBerjalan } from "./perburuan.js";
 
@@ -378,5 +379,8 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
   }
 
   sesiOut.sort((a, b) => a.id - b.id);
-  return { hari: tanggal, sesi: sesiOut };
+  // Every unfinished slot above got the same people; the PC refuses a NIM that
+  // sits in two slots, so each one stays in the slot that is being played.
+  const berjalan = new Set(semua.filter((s) => s.status === "berjalan").map((s) => s.slot));
+  return { hari: tanggal, sesi: satuSlotPerNim(sesiOut, berjalan) };
 }

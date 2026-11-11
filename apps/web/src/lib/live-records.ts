@@ -52,6 +52,37 @@ export function selisihMs(a: string | null, b: string | null): number | null {
 
 const MAX = 120;
 
+/** The scoreboard's own defaults (apps/modul4/server.py RSSI_AT_1M, PATH_LOSS_N and
+ *  MAX_RANGE_M): RSSI at 1 m, path-loss exponent for open ground, the farthest it reports. */
+const RSSI_1M = -40;
+const PATH_LOSS_N = 2;
+const MAX_JARAK_M = 2000;
+
+/** Log-distance estimate in metres from a smoothed RSSI, to one decimal, like the scoreboard's. */
+export function jarakDariRssi(halus: number, rssi1m = RSSI_1M, n = PATH_LOSS_N): number {
+  const d = 10 ** ((rssi1m - halus) / (10 * n));
+  return Math.round(Math.min(MAX_JARAK_M, Math.max(0.1, d)) * 10) / 10;
+}
+
+/**
+ * A Hunter's serial line carries RSSI and smoothed RSSI but no distance or trend,
+ * so a record that came only from this laptop's board left "Estimated Distance"
+ * and the distance table empty. The PC's own figures (they follow the lab's
+ * calibration) are already on the record when the PC has the row; this only fills
+ * what is still missing, from the smoothed RSSI with the scoreboard's defaults.
+ */
+function isiJarakDariRssi(rows: LiveRecord[]) {
+  let sebelum: number | undefined;
+  for (const r of rows) {
+    const halus = r.nilai.rssiHalus;
+    if (halus === undefined) continue;
+    if (r.nilai.jarak === undefined) r.nilai.jarak = jarakDariRssi(halus);
+    if (r.nilai.tren === undefined && sebelum !== undefined)
+      r.nilai.tren = Math.round((halus - sebelum) * 10) / 10;
+    sebelum = halus;
+  }
+}
+
 export class LiveRecords {
   private bySeq = new Map<number, LiveRecord>();
   private m1Seq = 0;
@@ -152,7 +183,9 @@ export class LiveRecords {
       const r = rows[i];
       if (!done(r)) r.lost = r.lost || rows.slice(i + 1).filter(done).length >= 2;
     }
-    return rows.map((r) => ({ ...r, nilai: { ...r.nilai } }));
+    const out = rows.map((r) => ({ ...r, nilai: { ...r.nilai } }));
+    if (this.modul === 4) isiJarakDariRssi(out);
+    return out;
   }
 
   clear() {

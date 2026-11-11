@@ -235,12 +235,29 @@
   /* ------------------------------------------------ roster */
   let rosterStamp = null;
   let rosterBusy = false;
+  let rosterPausedUntil = 0;
   const fetchRoster = (stamp) => {
     /* names are only handed to a phone that holds the join code */
-    if (rosterBusy || !N.kode) return;
+    if (rosterBusy || !N.kode || Date.now() < rosterPausedUntil) return;
     rosterBusy = true;
     fetch("roster.json?k=" + encodeURIComponent(N.kode), { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (r.status === 403) {
+          /* The code on this phone is from an earlier session or day. Asking again
+             with it every frame only fills the PC's failure count for this whole
+             network address, which can lock other phones out; drop it and wait
+             for the link from the site, which carries the current one. */
+          N.kode = null;
+          H.write(KEY_KODE, null);
+          changed();
+          return null;
+        }
+        if (r.status === 429) {
+          rosterPausedUntil = Date.now() + 60000;
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
       .then((data) => {
         rosterBusy = false;
         if (!data) return;
