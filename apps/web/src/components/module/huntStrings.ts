@@ -52,7 +52,7 @@ export const H = dict({
     copyKey: "Salin kunci papan",
     boardKey: "Kunci papan",
     boardKeyHint:
-      "Kunci ini sudah terisi di HUNT_KEY pada file yang kamu unduh dari langkah Kode sekarang. Unduh ulang hunter.ino dan beacon.ino, lalu unggah ke kedua papan. Kalau kamu memakai salinan lama, tempel kunci ini ke HUNT_KEY. Kuncinya khusus kelompokmu dan berganti tiap sesi.",
+      "Kunci ini sudah terisi di HUNT_KEY pada file yang kamu unduh dari langkah Kode. Kuncinya khusus kelompokmu dan tidak berganti antar sesi, jadi papan yang sudah diunggah dengan kunci ini tidak perlu diunggah ulang. Kalau kamu memakai salinan lama, tempel kunci ini ke HUNT_KEY.",
     notListed:
       "NIM-mu belum ada di daftar perburuan. Minta asisten memperbarui roster di Persiapan.",
     teamTitle: "Kelompokmu di Perburuan",
@@ -146,7 +146,7 @@ export const H = dict({
     copyKey: "Copy the board key",
     boardKey: "Board key",
     boardKeyHint:
-      "This key is already filled into HUNT_KEY in the files you download from the Code step now. Download hunter.ino and beacon.ino again and upload them to both boards. If you are using an older copy, paste this key into HUNT_KEY. It is only for your group and changes every session.",
+      "This key is already filled into HUNT_KEY in the files you download from the Code step. It belongs to your group only and does not change between sessions, so a board already uploaded with this key does not need uploading again. If you are using an older copy, paste this key into HUNT_KEY.",
     notListed:
       "Your NIM isn't on the hunt's list yet. Ask your assistant to update the roster in Preparation.",
     teamTitle: "Your Group in the Hunt",
@@ -238,7 +238,7 @@ export const H = dict({
     copyKey: "复制板子密钥",
     boardKey: "板子密钥",
     boardKeyHint:
-      "现在从代码步骤下载的文件里，HUNT_KEY 已经填好这个密钥。请重新下载 hunter.ino 和 beacon.ino，并上传到两块板子上。如果你用的是旧副本，就把这个密钥粘贴到 HUNT_KEY 里。它只属于你们组，每节课都会更换。",
+      "从代码步骤下载的文件里，HUNT_KEY 已经填好这个密钥。它只属于你们组，各节课之间不会更换，所以已经上传过这个密钥的板子不用再上传。如果你用的是旧副本，就把这个密钥粘贴到 HUNT_KEY 里。",
     notListed: "你的 NIM 还不在寻踪名单里。请助教在课前准备里更新名单。",
     teamTitle: "你的组在寻踪中",
     inCount: (n: number, of: number) => `${n}/${of} 已加入`,

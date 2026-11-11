@@ -1371,15 +1371,18 @@ def kode_ok(candidate) -> bool:
 
 
 def kunci_grup(gid: int) -> str:
-    """Kunci papan satu kelompok untuk sesi yang berjalan hari ini.
+    """Kunci papan satu kelompok.
 
-    Diturunkan seperti kode papan (token, sesi, tanggal) ditambah nomor
-    kelompok, jadi tetap sama bila server dinyalakan ulang, berganti tiap sesi,
-    dan kunci satu kelompok tidak berlaku untuk kelompok lain.
+    Diturunkan dari token PC dan nomor kelompok saja, tidak dari sesi atau
+    tanggal. Sebuah papan yang sekali diunggah dengan kunci ini tetap sah di
+    semua sesi dan sesudah server dinyalakan ulang, selama token PC tidak
+    diganti; kelompok tidak perlu mengunggah ulang tiap sesi. Kunci satu
+    kelompok tidak berlaku untuk kelompok lain dan berbeda dari kode papan
+    (pesan yang di-HMAC lain). Kode papan tetap berganti tiap sesi.
     """
     if not TOKEN:
         return ""
-    pesan = f"papan-grup|{JADWAL['aktif']}|{datetime.now().date().isoformat()}|{gid}"
+    pesan = f"papan-grup|{gid}"
     mac = hmac.new(TOKEN.encode(), pesan.encode(), hashlib.sha256).digest()
     return "".join(TOKEN_ALPHABET[b % len(TOKEN_ALPHABET)] for b in mac[:KUNCI_LEN])
 

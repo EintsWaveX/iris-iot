@@ -147,6 +147,30 @@ def main() -> int:
         ok, galat = srv.jadwal_set(2, regu("100000"))
         cek("jadwal_set tetap menolak NIM yang dipegang sesi lain", ok is False and "dua kali" in galat, galat)
 
+        # 9. kunci papan per kelompok tetap: tidak bergantung pada sesi atau hari
+        srv = muat_server(folder)
+        srv.TOKEN = "UJICI"
+        srv.JADWAL["aktif"] = None
+        tanpa_sesi = {g: srv.kunci_grup(g) for g in range(1, 7)}
+        srv.JADWAL["aktif"] = 2
+        sesi_dua = {g: srv.kunci_grup(g) for g in range(1, 7)}
+        srv.JADWAL["aktif"] = 4
+        sesi_empat = {g: srv.kunci_grup(g) for g in range(1, 7)}
+        cek("kunci kelompok sama di semua sesi (papan cukup diunggah sekali)",
+            tanpa_sesi == sesi_dua == sesi_empat, str(sesi_empat[1]))
+        cek("kunci tiap kelompok berbeda, delapan karakter",
+            len(set(sesi_empat.values())) == 6 and all(len(k) == 8 for k in sesi_empat.values()),
+            str(sorted(sesi_empat.values())[:2]))
+        cek("kunci kelompok diterima dan kunci kelompok lain ditolak",
+            srv.kunci_ok(1, sesi_empat[1].lower()) and not srv.kunci_ok(1, sesi_empat[2]),
+            "huruf kecil diterima, kunci kelompok 2 ditolak untuk kelompok 1")
+        srv.JADWAL["aktif"] = 2
+        kode_dua = srv.kode_papan()
+        srv.JADWAL["aktif"] = 4
+        cek("kode papan tetap berganti tiap sesi", kode_dua != srv.kode_papan(), kode_dua)
+        srv.TOKEN = "TOKEN-LAIN"
+        cek("kunci berganti bila token PC diganti", srv.kunci_grup(1) != sesi_empat[1], srv.kunci_grup(1))
+
     print(f"\n{len(LULUS)} lulus, {len(GAGAL)} gagal")
     for nama in GAGAL:
         print(f"  gagal: {nama}")
