@@ -33,11 +33,29 @@ mengetikkan token satu kali, proyektor memakai `?stage=1`.
 
 ---
 
-## 1. Jaringan: hotspot ponsel tiap kelompok
+## 1. Jaringan: dua pilihan, dipilih lab di situs
 
-PC tidak lagi menjadi access point. Alasannya sederhana: ponsel harus bisa
-dibawa berburu di lapangan, dan jangkauan Wi-Fi PC tidak menjangkau arena
-ratusan meter.
+Papan ini bisa berjalan di dua jaringan. Lab memilihnya di situs IRIS
+(Server > Jaringan Modul 4); PC meneruskannya ke `modul4.service` lewat
+`--jaringan` (atau variabel `HUNT_NET`). Server berperilaku sama di keduanya:
+kode papan dan kunci kelompok tetap wajib. Mode itu hanya dikabarkan ke klien
+(`jaringan` di tiap bingkai dan di `/ringkas.json`) supaya kata-katanya cocok.
+
+| | `internet` | `iris_iot` |
+|---|---|---|
+| Wi-Fi papan | hotspot ponsel `IRIS-G<n>` | `IRIS_IOT`, dibuat PC |
+| Papan skor | `https://hunt.irisiotlab.com` (tunnel) | `http://192.168.4.1:8080` |
+| Alamat dengar server | `127.0.0.1` | `0.0.0.0` |
+| Ponsel anggota | data seluler | menyambung ke `IRIS_IOT` |
+| Jam papan | `time.cloudflare.com` | NTP dari PC (chrony) |
+| Layar tetap menyala | Wake Lock | video cadangan (http tidak punya Wake Lock) |
+
+Bagian di bawah menguraikan mode `internet`.
+
+### Mode internet: hotspot ponsel tiap kelompok
+
+Di mode ini PC bukan access point: ponsel harus bisa dibawa berburu di
+lapangan, dan jangkauan Wi-Fi PC tidak menjangkau arena ratusan meter.
 
 - Satu ponsel tiap kelompok menyalakan hotspot bernama **`IRIS-G<n>`** (n =
   nomor kelompok) dengan kata sandi yang tertulis di sketsa dan di langkah
@@ -321,8 +339,13 @@ Beberapa hal yang perlu diketahui asisten:
 
 ### Layar yang tertidur di tengah perburuan
 
-Papan kini disajikan lewat `https://`, yang termasuk *secure context*, jadi
-penahan layar (**Screen Wake Lock**) bekerja di peramban yang mendukungnya.
+Di mode `internet` papan disajikan lewat `https://`, yang termasuk *secure
+context*, jadi penahan layar (**Screen Wake Lock**) bekerja di peramban yang
+mendukungnya. Di mode `iris_iot` papan memakai `http://`, tanpa Wake Lock; di
+sana papan memutar video satu piksel tanpa suara dari kanvas (cara NoSleep)
+begitu anggota mengetuk "Nyalakan suara". Peramban mana yang menghormatinya
+belum teruji di ponsel sungguhan, jadi layar Tampilan menyebutnya cara
+cadangan.
 Untuk jaga-jaga (peramban lama, mode hemat daya), minta tiap kelompok menyetel
 batas tidur layar ponselnya ke 5 menit atau "tidak pernah" sebelum sesi
 dimulai.
@@ -535,7 +558,9 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
   naikkan pula `BEACON_TX_POWER` bila kelompok terjauh memang tidak menerima
   apa pun.
 - **Kolom delay kosong.** Salah satu papan gagal menyelaraskan jam ke PC.
-  Periksa bahwa PC benar-benar melayani NTP dan jamnya sudah disetel.
+  Di mode `iris_iot`, periksa bahwa PC benar-benar melayani NTP (chrony) dan
+  jamnya sudah disetel; di mode `internet`, bahwa Wi-Fi hotspot ponselnya
+  punya data dan menjangkau `time.cloudflare.com`.
 - **Halaman menampilkan "Papan skor belum dibangun".** `modul4/build.py` belum
   dijalankan, sehingga `modul4/public/index.html` belum ada.
 - **"NIM ini tidak terdaftar di sesi yang sedang berjalan".** Tiga sebab, dan

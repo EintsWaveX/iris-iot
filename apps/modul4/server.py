@@ -82,6 +82,15 @@ INDEX_PATH = HERE / "public" / "index.html"
 HOST = "0.0.0.0"
 PORT = 8080
 
+# Jaringan perburuan, dipilih lab di situs IRIS (Server > Jaringan Modul 4):
+#   internet : hotspot tiap ponsel kelompok, papan di hunt.irisiotlab.com lewat
+#              tunnel (server hanya mendengar di 127.0.0.1)
+#   iris_iot : PC membuat Wi-Fi IRIS_IOT, papan di http://192.168.4.1:8080
+# Server tidak berubah perilaku (kode papan dan kunci kelompok tetap wajib di
+# keduanya); mode ini hanya dikabarkan ke klien supaya kata-katanya cocok.
+JARINGAN_PILIHAN = ("internet", "iris_iot")
+JARINGAN = "internet"
+
 # Papan skor digambar ulang pada laju tetap, terlepas dari seberapa sering
 # hunter mengirim. Ingest dan render karena itu tidak saling menyeret.
 BROADCAST_HZ = 10
@@ -1120,6 +1129,7 @@ class Hunt:
         return {
             "tipe": "bingkai",
             "rev": self.rev,
+            "jaringan": JARINGAN,
             "jam": timestamp(),
             "berjalan": self.elapsed(),
             # Kelompok yang papannya mengirim kunci salah baru-baru ini
@@ -2039,6 +2049,7 @@ def ringkasan_perburuan() -> dict:
         })
     return {
         "versi": 1,
+        "jaringan": JARINGAN,
         "jam": bingkai["jam"],
         # Kode masuk papan hari ini; situs menaruhnya di tautan praktikan
         "kode": kode_papan() or None,
@@ -3021,7 +3032,8 @@ async def main(host: str, port: int) -> None:
     async with serve(handle, host, port, process_request=process_request,
                      ping_interval=20, ping_timeout=20,
                      max_size=WS_MAX_SIZE):
-        print(f"[{timestamp()}] Papan skor berjalan pada http://{host}:{port}")
+        print(f"[{timestamp()}] Papan skor berjalan pada http://{host}:{port} "
+              f"(jaringan {JARINGAN})")
         print(f"[{timestamp()}] Arena {HUNT.arena_m:.0f} m: "
               f"membara <= {HUNT.heat_radius(*HEAT_LADDER[0][1:]):.0f} m, "
               f"sejuk <= {HUNT.heat_radius(*HEAT_LADDER[3][1:]):.0f} m "
@@ -3069,7 +3081,15 @@ if __name__ == "__main__":
         "--jadwal-impor", default=None, metavar="PATH", dest="jadwal_impor",
         help="berkas jadwal Modul 4 yang ditulis agent PC "
              f"(bawaan {JADWAL_IMPOR_PATH_BAWAAN})")
+    parser.add_argument(
+        "--jaringan", choices=JARINGAN_PILIHAN,
+        default=os.environ.get("HUNT_NET", "internet"),
+        help="jaringan perburuan: internet (hotspot ponsel, lewat tunnel) atau "
+             "iris_iot (Wi-Fi IRIS_IOT dari PC); bawaan dari HUNT_NET, lalu internet")
     args = parser.parse_args()
+    if args.jaringan not in JARINGAN_PILIHAN:   # nilai HUNT_NET tidak lewat choices
+        parser.error(f"--jaringan/HUNT_NET harus salah satu dari {', '.join(JARINGAN_PILIHAN)}")
+    JARINGAN = args.jaringan
 
     if args.jadwal_impor:
         JADWAL_IMPOR_PATH = pathlib.Path(args.jadwal_impor)

@@ -253,6 +253,15 @@
         /* a dropped request: the next frame tries again */
       });
   };
+  /* The lab picks the network on the IRIS site and the server says which in
+     every frame. Before the first frame, plain http (not localhost) can only
+     be the PC's own IRIS_IOT Wi-Fi, so the sign-in wording is right at once. */
+  H.lokal = () =>
+    N.frame && N.frame.jaringan
+      ? N.frame.jaringan === "iris_iot"
+      : location.protocol === "http:" && !/^(localhost|127\.)/.test(location.hostname);
+  /* H.NET(forInternet, forIrisIot): pick the wording that matches the network */
+  H.NET = (internet, lokal) => (H.lokal() ? lokal : internet);
   const GNAMES = ["Vela", "Lyra", "Cygnus", "Orion", "Carina", "Draco", "Pyxis", "Lepus", "Corvus", "Ara"];
   /* a group's own name from the schedule, or its star name */
   H.gname = (g) => {
