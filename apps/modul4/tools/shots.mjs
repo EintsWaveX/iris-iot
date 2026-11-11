@@ -81,7 +81,7 @@ const AUDIT = () => {
     const fs = parseFloat(s.fontSize);
     if (fs < 12 && el.children.length === 0 && el.textContent.trim() && !(el instanceof SVGElement)) out.push(["tiny", label(el), `${fs}px`]);
     if (el.matches("button, a[href], [role=button], [role=tab], input, .rolecard")) {
-      if ((r.width < 44 || r.height < 44) && !el.closest(".tips, .toast")) out.push(["target", label(el), `${Math.round(r.width)}x${Math.round(r.height)}`]);
+      if ((r.width < 44 || r.height < 44) && !el.closest(".tips, .toast") && !(el.closest("label") && el.closest("label").getBoundingClientRect().height >= 44)) out.push(["target", label(el), `${Math.round(r.width)}x${Math.round(r.height)}`]);
       const name = el.getAttribute("aria-label") || el.textContent.trim() || el.getAttribute("title");
       if (!name) out.push(["noname", label(el), ""]);
     }

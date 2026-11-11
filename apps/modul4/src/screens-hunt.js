@@ -115,7 +115,7 @@
         ${!bare && (member || asisten) && html`<span class=${"hbar__g" + (asisten && !member ? " hbar__g--a" : "")} style=${`--g:var(--group-${asisten && !member ? 0 : g})`}>${asisten && !member ? html`<${Icon} n="shield-check" sm /><span>${L("Asisten", "Assistant")}</span>` : html`<i></i>${W < 640 ? H.gname(g) : H.gfull(g)}`}</span>`}
         <span class="grow"></span>
         <${HClock} compact=${W < 640} />
-        <span class="hbar__link" data-tip=${live ? L("Tersambung ke papan skor", "Connected to the scoreboard") : L("Menyambung ulang ke PC", "Reconnecting to the PC")} tabindex="0"><span class=${"dot " + (live ? "dot--ok dot--pulse" : "dot--warn")}></span></span>
+        <span class="hbar__link" role="status" aria-label=${live ? L("Tersambung ke papan skor", "Connected to the scoreboard") : L("Menyambung ulang ke PC", "Reconnecting to the PC")} data-tip=${live ? L("Tersambung ke papan skor", "Connected to the scoreboard") : L("Menyambung ulang ke PC", "Reconnecting to the PC")} tabindex="0"><span class=${"dot " + (live ? "dot--ok dot--pulse" : "dot--warn")}></span>${!live && html`<span class="hbar__linkt">${L("Menyambung ulang", "Reconnecting")}</span>`}</span>
         <${IconBtn} icon="sliders-horizontal" label=${L("Tampilan", "Display")} onClick=${() => setDisp(true)} />
       </header>
       ${!bare && W >= 900 && html`<nav class="htabs" aria-label=${L("Perburuan", "Hunt")}>${tabs.map((t) => html`<button type="button" aria-current=${tab === t.k ? "page" : undefined} onClick=${() => H.go(t.k)}><${Icon} n=${t.i} />${H.title(L(...t.l))}</button>`)}</nav>`}

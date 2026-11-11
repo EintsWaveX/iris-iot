@@ -272,3 +272,17 @@ button.hphoto--sm { width: 84px; }
   .slane__n span { font-size: max(12px, min(1rem, 2.2vh)); line-height: 1.15; }
   .slane__rank { font-size: min(2.1rem, 4.6vh); }
 }
+
+/* Phone: say it in words when the link drops, a coloured dot is easy to miss outdoors. */
+.hbar__link { display: inline-flex; align-items: center; gap: 6px; }
+.hbar__linkt { font-size: 12px; font-weight: 700; color: var(--warn); white-space: nowrap; }
+
+/* Key/value lists keep two columns on a phone instead of stacking every pair. */
+@container huntapp (min-width: 360px) and (max-width: 459px) {
+  .kv { grid-template-columns: minmax(0, 38%) minmax(0, 1fr); gap: 8px 12px; }
+  .kv > span:nth-child(even) { margin-bottom: 0; }
+}
+
+/* Tab rows and the small labels meet the same floors. */
+.tabs button { min-height: 44px; }
+.huntapp small { font-size: max(12px, .8em); }
