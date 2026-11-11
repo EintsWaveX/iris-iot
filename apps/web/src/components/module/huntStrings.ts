@@ -27,7 +27,7 @@ export const H = dict({
     hotspotName: "Nama hotspot",
     hotspotPass: "Sandi",
     hotspotHint:
-      "Hunter dan Beacon kelompokmu menyambung ke hotspot ini. Sambungkan Beacon dulu selagi dekat HP itu, baru sembunyikan. HP pemilik hotspot dibawa berburu bersama Hunter.",
+      "Hunter dan Beacon kelompokmu menyambung ke hotspot ini. Sambungkan Beacon dulu selagi dekat HP itu, baru sembunyikan. Setelah menyala, Beacon tidak perlu Wi-Fi lagi dan terus memancar sendiri, jadi boleh disembunyikan jauh dari hotspot. Jangan matikan; kalau mati, ia harus kembali dekat hotspot. HP pemilik hotspot dibawa berburu bersama Hunter.",
     hotspotOthers:
       "HP anggota lain tidak perlu menyambung ke mana pun. Cukup pakai data selulernya sendiri.",
     huntTitle: "Buka Perburuan",
@@ -122,7 +122,7 @@ export const H = dict({
     hotspotName: "Hotspot name",
     hotspotPass: "Password",
     hotspotHint:
-      "Your group's Hunter and Beacon join this hotspot. Connect the Beacon first while it's next to that phone, then hide it. The hotspot phone goes hunting with the Hunter.",
+      "Your group's Hunter and Beacon join this hotspot. Connect the Beacon first while it's next to that phone, then hide it. Once it's running, the Beacon doesn't need Wi-Fi any more and keeps transmitting on its own, so you can hide it far from the hotspot. Don't switch it off; if it restarts, it has to come back near the hotspot. The hotspot phone goes hunting with the Hunter.",
     hotspotOthers: "Everyone else's phone joins nothing. It just stays on its own mobile data.",
     huntTitle: "Open the Hunt",
     huntQr: "Hunt page QR",
@@ -215,7 +215,7 @@ export const H = dict({
     hotspotName: "热点名称",
     hotspotPass: "密码",
     hotspotHint:
-      "你们组的 Hunter 和 Beacon 都连这个热点。先在这部手机旁边把 Beacon 连上，再去藏它。开热点的手机和 Hunter 一起去寻踪。",
+      "你们组的 Hunter 和 Beacon 都连这个热点。先在这部手机旁边把 Beacon 连上，再去藏它。Beacon 启动后不再需要 Wi-Fi，会自己继续发射，所以可以藏在离热点很远的地方。不要关掉它；一旦重启，就要回到热点附近。开热点的手机和 Hunter 一起去寻踪。",
     hotspotOthers: "其他人的手机不用连任何网络，用自己的移动数据就行。",
     huntTitle: "打开寻踪",
     huntQr: "寻踪页面二维码",

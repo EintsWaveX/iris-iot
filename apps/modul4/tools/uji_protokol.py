@@ -1062,6 +1062,37 @@ async def main() -> int:
     nomor = [g.get("grup") for g in (isi or {}).get("grup", [])]
     cek("kelompok 10**9 dari papan palsu diabaikan", 10 ** 9 not in nomor, str(nomor))
 
+    # ---- beacon tersembunyi di luar jangkauan Wi-Fi: hanya Hunter yang melapor ----
+    # Beacon hanya butuh Wi-Fi saat menyala; sesudah disembunyikan ia memancar
+    # sendiri dan tidak pernah membuka soket /beacon. Semua yang dipakai
+    # permainan harus tetap datang dari laporan Hunter (nomor urut dan jam
+    # kirim ikut di paket LoRa), dan paket hilang dihitung dari selisih nomor
+    # urut yang terdengar.
+    async with connect(args.url + "/hunter") as ws:
+        for seq in (1, 2, 3, 6):                    # 4 dan 5 tidak pernah terdengar
+            await ws.send(json.dumps({
+                "grup": 5, "seq": seq, "rssi": -50, "halus": -50.0, "snr": 8.0,
+                "tx": "10:00:00:000", "rx": "10:00:00:012",
+            }))
+        await asyncio.sleep(0.2)
+        # dibaca selagi soket Hunter masih terbuka; sesudah ditutup grupnya offline
+        async with connect(args.url + "/live") as tamu:
+            isi = await bingkai(tamu)
+    baris = next((g for g in (isi or {}).get("grup", []) if g.get("grup") == 5), None)
+    cek("grup tanpa beacon tetap muncul dengan sinyal dan jarak dari Hunter",
+        baris is not None and baris.get("rssi") == -50
+        and baris.get("jarak_m") is not None and baris.get("online") is True,
+        str(baris and {k: baris.get(k) for k in ("rssi", "jarak_m", "online")}))
+    cek("jeda dihitung dari jam kirim yang terbawa di paket LoRa",
+        baris is not None and baris.get("delay_ms") == 12, str(baris and baris.get("delay_ms")))
+    cek("paket hilang dihitung dari selisih nomor urut yang didengar Hunter",
+        baris is not None and baris.get("diterima") == 4 and baris.get("hilang") == 2,
+        str(baris and (baris.get("diterima"), baris.get("hilang"))))
+    cek("beacon yang tidak pernah melapor terbaca offline, tanpa mengganggu kelompoknya",
+        baris is not None and (baris.get("beacon") or {}).get("online") is False
+        and baris.get("heat") not in (None, "hilang"),
+        str(baris and (baris.get("beacon"), baris.get("heat"))))
+
     await beacon.close()
 
     print(f"\n{len(LULUS)} lulus, {len(GAGAL)} gagal")
