@@ -28,19 +28,10 @@ import {
   type Ringkas,
 } from "../../src/lib/perburuan.js";
 
-export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: SessionPayload) {
-  res.setHeader("Cache-Control", "no-store");
-  const running = await currentSesi();
-  const nomor = who.kelompokNomor;
-  if (!running || running.modul !== 4 || !nomor) {
-    res.status(200).json({ ok: true, aktif: false });
-    return;
-  }
-
-  const db = getDb();
-  // The PC running the hunt is the one that reported a summary lately;
-  // there is only ever one hunt at a time.
-  const [srv] = await db
+/** The PC running the hunt is the one that reported a summary lately; there
+ *  is only ever one hunt at a time. */
+async function bacaRingkas(): Promise<Ringkas | null> {
+  const [srv] = await getDb()
     .select({ perburuan: server.perburuan })
     .from(server)
     .where(
@@ -51,8 +42,31 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
     )
     .orderBy(desc(server.perburuanPada))
     .limit(1);
+  return srv ? saringPerburuan(srv.perburuan) : null;
+}
 
-  const ringkas: Ringkas | null = srv ? saringPerburuan(srv.perburuan) : null;
+/** One group's board key (HUNT_KEY in the sketches), or null while the hunt
+ *  isn't open: the keys are tied to the hunt's session, which exists only
+ *  after the Asisten's Mulai Perburuan, so before it there is nothing to
+ *  hand out. Used by the Perburuan step and to fill the sketch download. */
+export async function kunciPapanKelompok(sesiId: number, nomor: number): Promise<string | null> {
+  const ringkas = await bacaRingkas();
+  const perburuan = await bacaPerburuanSesi(sesiId);
+  const terbuka = perburuanBerjalan(perburuan) && ringkas?.sesi != null;
+  return terbuka ? (ringkas?.kunci[String(nomor)] ?? null) : null;
+}
+
+export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: SessionPayload) {
+  res.setHeader("Cache-Control", "no-store");
+  const running = await currentSesi();
+  const nomor = who.kelompokNomor;
+  if (!running || running.modul !== 4 || !nomor) {
+    res.status(200).json({ ok: true, aktif: false });
+    return;
+  }
+
+  const db = getDb();
+  const ringkas = await bacaRingkas();
   // 2026-10-08: the step opens only with the Asisten's Mulai Perburuan
   const perburuan = await bacaPerburuanSesi(running.id);
   // Every member scans the same screen and types their own NIM on the phone

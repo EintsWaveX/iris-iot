@@ -52,7 +52,12 @@ import {
 } from "@phosphor-icons/react";
 import type { BlankSegment, Segment } from "../../lib/blanks";
 import { BLANK_MARK, detectLang, tokenize, type Token } from "../../lib/highlight";
-import { needsPersonalization, personalizeSegments } from "../../lib/group-identity";
+import {
+  isiKunciPapanSegments,
+  needsPersonalization,
+  personalizeSegments,
+} from "../../lib/group-identity";
+import { usePerburuan } from "./HuntStep";
 import IconButton from "../ui/IconButton";
 import Pill from "../ui/Pill";
 import { ProgressRing } from "../ui/Display";
@@ -571,12 +576,21 @@ export default function BlankFile(p: Props) {
     return () => ro.disconnect();
   }, []);
 
+  // Module 4: the group's board key fills HUNT_KEY as soon as the Asisten
+  // has opened the hunt (the step's own data, so it follows Mulai at once).
+  const perburuan = usePerburuan(mode === "now" && modul === 4, p.wakil?.nomor);
+  const kunciPapan = perburuan.data?.kunciPapan ?? null;
+  const tampil = useMemo(
+    () => isiKunciPapanSegments(berkas, segments, kunciPapan),
+    [berkas, segments, kunciPapan],
+  );
+
   // Colour the sketch once per template, then cut it into lines, each
   // knowing which blanks it holds.
   const lines = useMemo(() => {
-    const full = segments.map((s) => (s.kind === "text" ? s.text : BLANK_MARK)).join("");
+    const full = tampil.map((s) => (s.kind === "text" ? s.text : BLANK_MARK)).join("");
     const tokens = tokenize(full, detectLang(full));
-    const bl = segments.filter((s): s is BlankSegment => s.kind === "blank");
+    const bl = tampil.filter((s): s is BlankSegment => s.kind === "blank");
     const out: Item[][] = [[]];
     let b = 0;
     for (const tok of tokens) {
@@ -589,7 +603,7 @@ export default function BlankFile(p: Props) {
       });
     }
     return out;
-  }, [segments]);
+  }, [tampil]);
 
   const lineOf = useMemo(() => {
     const m = new Map<number, number>();
@@ -815,6 +829,9 @@ export default function BlankFile(p: Props) {
       style={grup ? ({ "--g": `var(--group-${grup})` } as CSSProperties) : undefined}
     >
       {banner}
+      {modul === 4 && mode === "now" && !locked && (
+        <p className="hint">{kunciPapan ? t.huntKeyFilled : t.huntKeyLater}</p>
+      )}
       <div className={samping ? "codegrid codegrid--side" : "codegrid"}>
         <div className="panel codecard">
           {/* Phase 21 (f6): the file tabs and the Baris chips live inside the

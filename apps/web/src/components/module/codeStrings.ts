@@ -31,6 +31,10 @@ export const C = dict({
     newSession: "Sesimu sedang berjalan. Masuk dengan kode sesi supaya jawabanmu tercatat.",
     signInBtn: "Masuk",
     locked: "Modul ini belum dibuka. Asisten membukanya saat minggunya tiba.",
+    huntKeyLater:
+      "Kelompok, hotspot, dan sync word LoRa sudah terisi otomatis. Kunci papan (HUNT_KEY) baru muncul di sini setelah asisten memulai perburuan. Sampai saat itu, kompilasi dan unggah dulu dengan kunci sementara, lalu unggah ulang saat kuncinya sudah terisi.",
+    huntKeyFilled:
+      "Kunci papan kelompokmu sudah terisi di HUNT_KEY. Unduh filenya sekarang dan unggah ke kedua papan.",
     keyError: "Jawaban belum bisa dimuat. Coba lagi sebentar.",
     progress: (a: number, b: number) => `${a} dari ${b} blank benar`,
     code: "Kode",
@@ -99,6 +103,10 @@ export const C = dict({
     newSession: "Your session is running. Sign in with the session code so your answers count.",
     signInBtn: "Sign In",
     locked: "This module is not open yet. Your assistant opens it when its week arrives.",
+    huntKeyLater:
+      "Your group number, hotspot and LoRa sync word are already filled in. The board key (HUNT_KEY) only appears here once your assistant starts the hunt. Until then, compile and upload with the placeholder, then upload again when the key is filled in.",
+    huntKeyFilled:
+      "Your group's board key is already in HUNT_KEY. Download the file now and upload it to both boards.",
     keyError: "The answers could not load. Try again in a moment.",
     progress: (a: number, b: number) => `${a} of ${b} blanks right`,
     code: "Code",
@@ -168,6 +176,9 @@ export const C = dict({
     newSession: "你的课正在进行。用签到码登录，你的答案才会记上。",
     signInBtn: "登录",
     locked: "这个模块还没开放。到了那一周，助教会开放它。",
+    huntKeyLater:
+      "组号、热点和 LoRa 同步字都已自动填好。板子密钥（HUNT_KEY）要等助教开始寻踪后才会出现在这里。在那之前，先用占位符编译并上传，密钥填好后再上传一次。",
+    huntKeyFilled: "你们组的板子密钥已经填在 HUNT_KEY 里了。现在下载文件，上传到两块板子上。",
     keyError: "答案暂时无法加载，请稍后再试。",
     progress: (a: number, b: number) => `${b} 个填空对了 ${a} 个`,
     code: "代码",

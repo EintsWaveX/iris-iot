@@ -177,6 +177,34 @@ export function personalize(berkas: string, text: string, nomorKelompok: number)
   return out;
 }
 
+/** The two Module 4 boards carry the group's board key in HUNT_KEY. */
+const BERKAS_KUNCI_PAPAN = new Set(["modul4_hunter", "modul4_beacon"]);
+const BARIS_KUNCI_PAPAN = /(const char\* HUNT_KEY(?:\s*)= ")[^"\n]*(";)/;
+const KUNCI_PAPAN_SAH = /^[A-Za-z0-9]{4,40}$/;
+
+/** Puts the group's board key into the HUNT_KEY line. Unlike personalize()
+ *  this never throws: the key only exists once the Asisten has opened the
+ *  hunt, so with no key (or a file without that line) the text stays as it
+ *  is, placeholder and all. */
+export function isiKunciPapan(berkas: string, text: string, kunci: string | null): string {
+  if (!kunci || !BERKAS_KUNCI_PAPAN.has(berkas) || !KUNCI_PAPAN_SAH.test(kunci)) return text;
+  return text.replace(BARIS_KUNCI_PAPAN, (_m, awal: string, akhir: string) => awal + kunci + akhir);
+}
+
+/** The same over the editor's segments; the line lives in one text segment. */
+export function isiKunciPapanSegments(
+  berkas: string,
+  segments: Segment[],
+  kunci: string | null,
+): Segment[] {
+  if (!kunci || !BERKAS_KUNCI_PAPAN.has(berkas)) return segments;
+  return segments.map((s) => {
+    if (s.kind !== "text") return s;
+    const text = isiKunciPapan(berkas, s.text, kunci);
+    return text === s.text ? s : { ...s, text };
+  });
+}
+
 /** Same rewrite, but over the editor's already-split Segment[] (from
  *  blanks.ts) rather than a flat string, so the Code step can show a
  *  logged-in group its own identity without re-parsing blanks client-side.

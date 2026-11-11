@@ -73,7 +73,8 @@ import {
   handleKodeSimpan,
   handleKodeTerbit,
 } from "../_lib/kode-editor.js";
-import { personalize } from "../../src/lib/group-identity.js";
+import { isiKunciPapan, personalize } from "../../src/lib/group-identity.js";
+import { kunciPapanKelompok } from "../_lib/perburuan-api.js";
 import { statusRiwayat } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, asc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
@@ -527,7 +528,18 @@ async function handleUnduh(
   // is what keeps five groups' boards from colliding with each other over
   // the air or on the same BLE UUID / MQTT topic. See group-identity.ts's
   // own header for the concrete failure this fixes.
-  const reconstructed = personalize(parsed.berkas, reconstructedGeneric, nomorKelompok);
+  let reconstructed = personalize(parsed.berkas, reconstructedGeneric, nomorKelompok);
+
+  // Module 4: once the Asisten has opened the hunt, the group's board key is
+  // already in the sketch. Before that the placeholder stays, and the Hunt
+  // step says to paste the key when it appears.
+  if (parsed.modul === 4 && running && running.id === session.sesiId && running.modul === 4) {
+    reconstructed = isiKunciPapan(
+      parsed.berkas,
+      reconstructed,
+      await kunciPapanKelompok(running.id, nomorKelompok),
+    );
+  }
 
   res.status(200);
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
