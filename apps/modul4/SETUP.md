@@ -537,9 +537,19 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
   `modul4.service` untuk mengosongkan hitungannya.
 - **Semua kelompok terbaca "MEMBARA" sekaligus.** `BEACON_TX_POWER` terisi 20,
   bukan 2. Pada daya penuh gradien sinyalnya rata dan permainannya mustahil.
-- **Beacon "Hening" pada HUD.** Papan Beacon kehilangan Wi-Fi atau mati; radio
-  LoRa-nya mungkin masih memancar, tetapi papan skor tidak lagi dapat
-  menghitung paket yang hilang.
+- **Beacon tidak lagi melapor ke papan skor.** Itu wajar setelah Beacon
+  disembunyikan di luar jangkauan hotspot: Wi-Fi hanya dipakai saat Beacon
+  menyala (menyambung dan menyinkronkan jam), sesudahnya ia memancar sendiri
+  dan Hunter-lah yang melapor, termasuk nomor urut dan jam kirim yang terbawa
+  di paket LoRa. Permainannya (panas, jarak, jeda, peringkat, klaim) tidak
+  terpengaruh. Yang berkurang hanya hitungan paket hilang, yang kini berasal
+  dari selisih nomor urut yang didengar Hunter (paket di ujung yang tak pernah
+  terdengar tidak terhitung), dan jam Beacon berjalan sendiri sehingga
+  selisihnya melebar sekitar 40--70 ms per jam. Yang benar-benar merusak:
+  Beacon mati lalu menyala lagi saat sudah tersembunyi. `setup()` menunggu
+  Wi-Fi tanpa batas, jadi ia tidak memancar lagi sampai dibawa mendekati
+  hotspot. Pakai power bank yang cukup dan periksa Beacon sudah memancar
+  sebelum meninggalkannya.
 - **Perkiraan meter jelas meleset.** Itu memang sifatnya, bukan kerusakan.
   Angka meter dihitung dari RSSI dengan model log-distance
   (`d = 10^((P_1m - RSSI) / (10n))`), dan modelnya mengandaikan sinyal
