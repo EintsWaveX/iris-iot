@@ -140,4 +140,41 @@ describe("LiveRecords", () => {
       nilai: { rssiHalus: -69.4, jarak: 6.2 },
     });
   });
+
+  it("Module 4: a Hunter's own serial line gets a distance and a trend from its smoothed RSSI", () => {
+    const s = new LiveRecords(4);
+    for (const [seq, halus] of [
+      [1, -60],
+      [2, -50],
+    ] as const) {
+      const e = parseSerialLine(
+        4,
+        `[10:00:00:090] Packet #${seq} | RSSI ${halus} dBm (smoothed ${halus}) | SNR 7.5 dB`,
+      );
+      if (e) s.board(e);
+    }
+    const [a, b] = s.list();
+    // -40 dBm at 1 m and n = 2: -60 dBm is 10 m, -50 dBm about 3.2 m
+    expect(a.nilai.jarak).toBe(10);
+    expect(b.nilai.jarak).toBe(3.2);
+    expect(a.nilai.tren).toBeUndefined();
+    expect(b.nilai.tren).toBe(10);
+  });
+
+  it("Module 4: the PC's calibrated distance wins over the default estimate", () => {
+    const s = new LiveRecords(4);
+    const e = parseSerialLine(
+      4,
+      "[10:00:00:090] Packet #7 | RSSI -60 dBm (smoothed -60) | SNR 7 dB",
+    );
+    if (e) s.board(e);
+    s.pc(pc({ modul: 4, seq: 7, nilai: { rssiHalus: -60, jarak: 4.2 } }));
+    expect(s.list()[0].nilai.jarak).toBe(4.2);
+  });
+
+  it("other modules get no distance", () => {
+    const s = new LiveRecords(2);
+    s.pc(pc({ seq: 1, nilai: { rssiHalus: -60 } }));
+    expect(s.list()[0].nilai.jarak).toBeUndefined();
+  });
 });
