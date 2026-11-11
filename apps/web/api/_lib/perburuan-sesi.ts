@@ -3,8 +3,10 @@
  * Module 4 hunt in a running session. Starting a Module 4 session no longer
  * touches the network; Mulai turns modul4.service on (queued for the one
  * enrolled PC) and unlocks the Praktikan's Perburuan step, and Selesai (or
- * ending the session) turns the scoreboard off again. Since 2026-11-10 the
- * PC makes no hotspot: each group's own phone does, for its Beacon and Hunter.
+ * ending the session) turns the scoreboard off again. On the "iris_iot"
+ * network (src/lib/jaringan.ts) Mulai first turns the PC's IRIS_IOT hotspot
+ * on and Selesai turns it off; on "internet" the PC makes no hotspot, each
+ * group's own phone does, for its Beacon and Hunter.
  *
  * POST /api/session/perburuan { langkah: "mulai" | "selesai" }  (Asisten)
  *
@@ -17,6 +19,7 @@ import { getDb } from "../../src/lib/db.js";
 import { pengaturan } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
+import { bacaJaringanHunt } from "../../src/lib/jaringan-hunt.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { bacaPerburuanSesi as baca, type PerburuanSesi } from "../../src/lib/perburuan.js";
 
@@ -43,9 +46,13 @@ async function simpan(sesiId: number, nilai: PerburuanSesi, nim: string): Promis
     });
 }
 
-/** The scoreboard off; true when the PC could be chosen. */
+/** The scoreboard off, and the IRIS_IOT hotspot with it on that network; true
+ *  when the PC could be chosen. */
 async function matikan(nim: string): Promise<boolean> {
-  return queueSoloServerCommand("layanan.henti", nim, { layanan: "modul4" });
+  const ap =
+    (await bacaJaringanHunt()) === "iris_iot" ? await queueSoloServerCommand("ap.mati", nim) : true;
+  const henti = await queueSoloServerCommand("layanan.henti", nim, { layanan: "modul4" });
+  return ap && henti;
 }
 
 /**
@@ -95,9 +102,12 @@ export async function handlePerburuanPost(
       oleh: session.nim,
     };
     await simpan(running.id, nilai, session.nim);
-    const diantre = await queueSoloServerCommand("layanan.mulai", session.nim, {
-      layanan: "modul4",
-    });
+    // IRIS_IOT: the hotspot first, and the scoreboard only once it could be queued.
+    const lokal = (await bacaJaringanHunt()) === "iris_iot";
+    const apDiantre = lokal ? await queueSoloServerCommand("ap.nyala", session.nim) : true;
+    const diantre =
+      apDiantre &&
+      (await queueSoloServerCommand("layanan.mulai", session.nim, { layanan: "modul4" }));
     await writeAudit(session.nim, "perburuan_mulai", { sesiId: running.id, diantre });
     res.status(200).json({ ok: true, perburuan: nilai, diantre });
     return;

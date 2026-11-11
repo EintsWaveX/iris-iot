@@ -7,6 +7,7 @@
  */
 
 import { isObj } from "./guards.js";
+import { ALAMAT_IRIS_IOT, PORT_IRIS_IOT, SSID_IRIS_IOT, type Jaringan } from "./jaringan.js";
 
 /** "belum": the Asisten hasn't pressed Mulai Perburuan yet (2026-10-08). */
 export type KeadaanHunt = "belum" | "tunggu" | "buka" | "main" | "selesai";
@@ -172,10 +173,34 @@ export function hotspotKelompok(nomor: number): { ssid: string; sandi: string } 
 /**
  * The link a member opens: the scoreboard plus today's join code in the
  * fragment (never sent to a server or a log). Without a code the link still
- * opens the board, which then asks to be opened from the site.
+ * opens the board, which then asks to be opened from the site. On the
+ * "iris_iot" network (src/lib/jaringan.ts) the board is the PC's own address
+ * on its hotspot, over plain http.
  */
-export function tautanPerburuan(kode: string | null): string {
-  return `https://${HOST_PERBURUAN}/${kode ? `#k=${encodeURIComponent(kode)}` : ""}`;
+export function tautanPerburuan(kode: string | null, jaringan: Jaringan = "internet"): string {
+  const penutup = kode ? `#k=${encodeURIComponent(kode)}` : "";
+  return jaringan === "iris_iot"
+    ? `http://${ALAMAT_IRIS_IOT}:${PORT_IRIS_IOT}/${penutup}`
+    : `https://${HOST_PERBURUAN}/${penutup}`;
+}
+
+/** Escapes a value for a WIFI: QR string (backslash before \ ; , : "). */
+export function wifiQr(ssid: string, sandi: string | null): string {
+  const esc = (s: string) => s.replace(/([\\;,:"])/g, "\\$1");
+  return sandi ? `WIFI:S:${esc(ssid)};T:WPA;P:${esc(sandi)};;` : `WIFI:S:${esc(ssid)};T:nopass;;`;
+}
+
+/** The IRIS_IOT Wi-Fi the PC makes: the name the PC reported (its hostapd
+ *  file) or the standard one, with the practicum's shared password when the
+ *  PC didn't report one (older agents never send it back). */
+export function wifiIrisIot(lapor: { ssid: string; sandi: string | null } | null): {
+  ssid: string;
+  sandi: string;
+  qr: string;
+} {
+  const ssid = lapor?.ssid || SSID_IRIS_IOT;
+  const sandi = lapor?.sandi || hotspotKelompok(1).sandi;
+  return { ssid, sandi, qr: wifiQr(ssid, sandi) };
 }
 
 export interface Penghargaan {

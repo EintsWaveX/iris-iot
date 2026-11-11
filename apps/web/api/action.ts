@@ -42,7 +42,7 @@ import {
   RENTANG_DETIK,
   unitDiagValid,
 } from "../src/lib/server-lib.js";
-import { CATATAN_BATAL, journalArgValid } from "../src/lib/server-shared.js";
+import { apSumberValid, CATATAN_BATAL, journalArgValid } from "../src/lib/server-shared.js";
 import { handleKonsolAksi } from "./_lib/konsol.js";
 import { bundelTerbaru } from "./_lib/bundel.js";
 import { currentSesi } from "../src/lib/sesi.js";
@@ -81,6 +81,13 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
   if (aksi === "diag.journal" && !journalArgValid(argumen)) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
+  }
+  if (aksi === "ap.sumber") {
+    if (!apSumberValid(argumen.sumber)) {
+      res.status(200).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    argumen = { sumber: argumen.sumber };
   }
   // The Updates card: services restart while it installs, so never during
   // a session, and the bundle is always the one CI published last.
@@ -291,9 +298,9 @@ async function handleRiwayatHapus(req: ApiRequest, res: ApiResponse, session: Se
 /** Commands any Asisten may send while running a slot. */
 // layanan.mulai (2026-10-05): the start check offers it for a stopped
 // practicum service; stopping and restarting still need the Server right.
-const AKSI_SLOT = new Set(["jam.selaraskan", "diag.siap", "layanan.mulai"]);
+const AKSI_SLOT = new Set(["ap.nyala", "ap.mati", "jam.selaraskan", "diag.siap", "layanan.mulai"]);
 /** Commands that belong to the Full view (DEV, Admin, Pencipta). */
-const AKSI_FULL = new Set(["diag.rinci", "diag.journal"]);
+const AKSI_FULL = new Set(["diag.rinci", "diag.journal", "ap.sumber"]);
 
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
@@ -307,7 +314,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (typeof body.tipe === "string" && body.tipe.startsWith("konsol_"))
     return handleKonsolAksi(req, res, session, body.tipe);
   // Phase 9: commands need the Server right, except the few an Asisten
-  // needs to run their own slot (clock, Ready check, starting a service).
+  // needs to run their own slot (hotspot, clock, Ready check).
   // Stage 5: the Full view's reads and clearing a log need the full right.
   const kunci =
     body.tipe === "kirim" && AKSI_SLOT.has(String(body.aksi))

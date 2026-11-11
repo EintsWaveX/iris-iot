@@ -43,6 +43,7 @@
 import { handleUbahSesi } from "../_lib/sesi-ubah.js";
 import { bisaJawab, handlePanggil, panggilanTerbuka } from "../_lib/panggil.js";
 import { handlePerburuan } from "../_lib/perburuan-api.js";
+import { handleJaringanGet, handleJaringanPost } from "../_lib/jaringan-api.js";
 import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak, muatOrang } from "../_lib/hak.js";
@@ -1670,6 +1671,19 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       return;
     }
     return handleTelemetry(req, res);
+  }
+
+  // The network Module 4's hunt runs on (2026-11-11): any Asisten reads and
+  // switches it, until the hunt starts (checked inside).
+  if (aksi === "jaringan") {
+    const session = requireRole(req, res, "asisten");
+    if (!session) return;
+    if (req.method === "POST") {
+      if (!(await cekHak(res, session.nim, "own"))) return;
+      return handleJaringanPost(req, res, session);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    return handleJaringanGet(req, res);
   }
 
   // Phase 9: the Module 4 Perburuan step (the hunt on the PC, as one group

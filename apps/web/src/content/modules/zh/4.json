@@ -4,7 +4,7 @@
   "judul": "LoRa",
   "topik": "远距离通信（LoRa 点对点）",
   "tagline": "ESP32 板之间的 LoRa P2P 寻踪游戏。",
-  "fakta": ["ESP32", "LoRa P2P", "手机热点"],
+  "fakta": ["ESP32", "LoRa P2P", "Wi-Fi"],
   "ringkasan": [
     "这个模块完全不用外接传感器或执行器。要测的就是无线电波本身：信号强度和距离之间的关系。",
     "点对点 LoRa 没有自带的信道协议，所以每条网络规则，包括 sync word 和发送间隔，都由参与者自己定。"
@@ -69,8 +69,8 @@
     "在 Arduino IDE 的库管理器里安装 Sandeep Mistry 的 LoRa 库",
     "在 Arduino IDE 的库管理器里安装 Markus Sattler 的 WebSockets 库",
     "在 Arduino IDE 里选择 ESP32 Dev Module 板",
-    "在你们组的一部手机上打开 IRIS-G<n> 热点（名称和密码在网站的寻踪步骤里）",
-    "复制你们组的文件夹，把网站寻踪步骤里的板子密钥粘贴到 hunter.ino 和 beacon.ino 的 HUNT_KEY 里（唯一要改的一行），然后上传 hunter.ino",
+    "连接助教选定的寻踪网络：PC 的 IRIS_IOT Wi-Fi，或你们组一部手机上的 IRIS-G<n> 热点（名称和密码在网站的寻踪步骤里）",
+    "从代码步骤下载你们组的代码（助教开始寻踪后，板子密钥会自动填进 HUNT_KEY），然后把 hunter.ino 和 beacon.ino 上传到各自的板子上",
     "确认 Serial Monitor 打印出 IP 地址和已同步的时钟",
     "打开记分板，输入你的学号，确认自己的组出现了",
     "在离 Beacon 1 米处校准距离基准"

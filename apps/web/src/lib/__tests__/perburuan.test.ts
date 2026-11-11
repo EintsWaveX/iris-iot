@@ -7,6 +7,8 @@ import {
   penghargaanKelompok,
   saringPerburuan,
   tautanPerburuan,
+  wifiIrisIot,
+  wifiQr,
 } from "../perburuan";
 
 const contoh = {
@@ -130,6 +132,31 @@ describe("scoreboard link and join code", () => {
     expect(tautanPerburuan("K7QX4M")).toBe("https://hunt.irisiotlab.com/#k=K7QX4M");
     expect(tautanPerburuan(null)).toBe("https://hunt.irisiotlab.com/");
     expect(tautanPerburuan("K7QX4M")).not.toContain("?");
+  });
+
+  it("points at the PC's own address on the IRIS_IOT network, over plain http", () => {
+    expect(tautanPerburuan("K7QX4M", "iris_iot")).toBe("http://192.168.4.1:8080/#k=K7QX4M");
+    expect(tautanPerburuan(null, "iris_iot")).toBe("http://192.168.4.1:8080/");
+    expect(tautanPerburuan("K7QX4M", "internet")).toBe(tautanPerburuan("K7QX4M"));
+  });
+
+  it("makes a WIFI: QR text that escapes what the format reserves", () => {
+    expect(wifiQr("IRIS_IOT", "13015954")).toBe("WIFI:S:IRIS_IOT;T:WPA;P:13015954;;");
+    expect(wifiQr("a;b", "p:w")).toBe("WIFI:S:a\\;b;T:WPA;P:p\\:w;;");
+    expect(wifiQr("open", null)).toBe("WIFI:S:open;T:nopass;;");
+  });
+
+  it("shows the Wi-Fi the PC reported, or the standard one with the shared password", () => {
+    expect(wifiIrisIot({ ssid: "LabNet", sandi: "abcd1234" })).toMatchObject({
+      ssid: "LabNet",
+      sandi: "abcd1234",
+    });
+    const baku = wifiIrisIot(null);
+    expect(baku.ssid).toBe("IRIS_IOT");
+    expect(baku.sandi).toBe(hotspotKelompok(1).sandi);
+    expect(baku.qr).toContain("S:IRIS_IOT;");
+    // an agent that reported the name but not the password
+    expect(wifiIrisIot({ ssid: "IRIS_IOT", sandi: null }).sandi).toBe(hotspotKelompok(1).sandi);
   });
 
   it("keeps only a well-formed code from the PC's summary", () => {

@@ -1,10 +1,10 @@
 /**
  * POST /api/agent   { kode, token }                                (enroll)
  *                | { serverId, agenKunci, cpu, memori, disk, suhu,
- *                    uptimeSec, jamSelaras, layanan,
+ *                    uptimeSec, jamSelaras, modeJaringan, layanan,
  *                    telemetri, hasilPerintah,
  *                    agenVersi?, infoSistem?, alamatLan?,
- *                    perburuan?, jamPc?, hasilSeelabs? } (heartbeat)
+ *                    perburuan?, hotspot?, jamPc?, hasilSeelabs? } (heartbeat)
  *                | { serverId, agenKunci, bundel: sha256 }       (fetch, 2026-10-07)
  *                | { serverId, agenKunci, tpDaftar: true }       (TP mirror list)
  *                | { serverId, agenKunci, tpUnduh: { id, i } }   (one TP file, bytes)
@@ -38,13 +38,13 @@
  * server, not just this one), and -- only on a day with a Module 4
  * session -- today's schedule (`jadwal`, see sesi.ts's jadwalModul4Hari())
  * so the scoreboard's roster reaches the PC before the hotspot ever has to
- * go up. `agenVersi`/`infoSistem` (P6.2, sent by an agent built from P6.1
+ * go up, and `jaringanHunt` (2026-11-11: "iris_iot" or "internet", see
+ * src/lib/jaringan.ts) beside it. `agenVersi`/`infoSistem` (P6.2, sent by an agent built from P6.1
  * onward) are stored on the server row when present and simply omitted
  * otherwise, so an older agent's heartbeat needs no special casing here.
  * `alamatLan` (Phase 9) works the same way, and so do `perburuan` (the
- * Module 4 hunt's /ringkas.json), for the Perburuan step. (The PC no longer
- * makes a hotspot since 2026-11-10; an older agent may still send `hotspot`
- * and `modeJaringan`, which are ignored.)
+ * Module 4 hunt's /ringkas.json) and `hotspot` (the SSID and passphrase the
+ * agent reads from the PC's own hostapd file), both for the Perburuan step.
  * No inbound port on the PC is ever needed -- the agent always calls out,
  * and commands ride the response of the call it was always going to make
  * anyway. Each reply carries the site's clock (`waktu`), and `jamPc` (the
@@ -118,8 +118,9 @@ import { jamSepi } from "../../src/lib/sesi-mulai.js";
 import { adaAsistenOnline } from "../_lib/kehadiran.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
+import { bacaJaringanHunt } from "../../src/lib/jaringan-hunt.js";
 import { bacaKondisi, saringKondisi } from "../../src/lib/server-shared.js";
-import { saringPerburuan } from "../../src/lib/perburuan.js";
+import { saringHotspot, saringPerburuan } from "../../src/lib/perburuan.js";
 import { eq, and } from "drizzle-orm";
 
 /** The pace while a Live Coding run waits for the judge */
@@ -217,6 +218,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         suhu: numOrNull(body.suhu),
         uptimeSec: numOrNull(body.uptimeSec),
         jamSelaras: body.jamSelaras === true,
+        modeJaringan: typeof body.modeJaringan === "string" ? body.modeJaringan : null,
         layanan: isPlainObject(body.layanan) ? body.layanan : null,
       })
       .returning();
@@ -316,9 +318,10 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       typeof body.alamatLan === "string" && ALAMAT_LAN_RE.test(body.alamatLan)
         ? body.alamatLan
         : null;
-    // Phase 9: the Module 4 hunt's summary, for the Praktikan's Perburuan
-    // step. Only the newest is kept.
+    // Phase 9: the Module 4 hunt's summary and the PC's hotspot, for the
+    // Praktikan's Perburuan step. Only the newest of each is kept.
     const perburuanMasuk = saringPerburuan(body.perburuan);
+    const hotspot = saringHotspot(body.hotspot);
     const serverSet = {
       ...(typeof body.agenVersi === "string" ? { agenVersi: body.agenVersi } : {}),
       ...(isPlainObject(body.infoSistem)
@@ -333,18 +336,20 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
             perburuanPada: new Date(),
           }
         : {}),
+      ...(hotspot ? { hotspot } : {}),
     };
     if (Object.keys(serverSet).length) {
       await db.update(server).set(serverSet).where(eq(server.id, serverId));
     }
     if ("alamatLan" in serverSet || (serverSet.agenVersi && serverSet.agenVersi !== row.agenVersi))
       berubah.add("server");
-    // The hunt's scoreboard, for the Perburuan step: only when it differs
-    // from what was kept, so at most one per beat. (The stored copy goes
-    // through the same filter, so key order matches.)
+    // The hunt's scoreboard and hotspot, for the Perburuan step: only when
+    // they differ from what was kept, so at most one per beat.
+    // (The stored copies go through the same filter, so key order matches.)
     if (
-      perburuanMasuk &&
-      JSON.stringify(perburuanMasuk) !== JSON.stringify(saringPerburuan(row.perburuan))
+      (perburuanMasuk &&
+        JSON.stringify(perburuanMasuk) !== JSON.stringify(saringPerburuan(row.perburuan))) ||
+      (hotspot && JSON.stringify(hotspot) !== JSON.stringify(saringHotspot(row.hotspot)))
     )
       berubah.add("buru");
 
@@ -388,6 +393,10 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // returns null otherwise) -- an idle day never pays for this extra query,
     // and the field is simply omitted rather than sent as an empty schedule.
     const jadwal = await jadwalModul4Hari(hariIniWib());
+    // The network the hunt runs on (iris_iot or internet), told to the PC on the
+    // same days as the schedule: it writes it for modul4.service and the Ready
+    // check. An older agent ignores the field.
+    const jaringanHunt = jadwal ? await bacaJaringanHunt() : null;
 
     // A command handed out now changes its status on the Server pages too.
     if (pending.length) berubah.add("server");
@@ -398,6 +407,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       intervalDetik,
       waktu: Date.now() / 1000,
       ...(jadwal ? { jadwal } : {}),
+      ...(jaringanHunt ? { jaringanHunt } : {}),
       ...(tugasSeelabs.length ? { seelabs: tugasSeelabs } : {}),
       ...(kerjaJudge.length ? { judge: kerjaJudge } : {}),
       ...(cermin ? { tpCermin: { segarkan: cerminSegarkan } } : {}),

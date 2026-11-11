@@ -29,7 +29,7 @@ import { FileDrop, Stepper, Switch } from "../../ui/Controls";
 import { getJson, jamMenit, postJson, tanggalPanjang } from "../../../lib/app";
 import { modulLabel } from "../../../lib/labels";
 import { detectLang, tokenize } from "../../../lib/highlight";
-import { personalize } from "../../../lib/group-identity";
+import { personalize, personalizeJaringan } from "../../../lib/group-identity";
 import {
   BAHASA_KODE,
   BLANK_TOKEN,
@@ -113,6 +113,8 @@ function masalahSemua(berkas: KodeBerkas[]): MasalahBerkas[] {
       try {
         personalize(b.slug, b.sumber[bahasa], 2);
         personalize(b.slug, buatTemplat(b, bahasa), 2);
+        personalizeJaringan(b.slug, personalize(b.slug, b.sumber[bahasa], 2), "iris_iot");
+        personalizeJaringan(b.slug, personalize(b.slug, buatTemplat(b, bahasa), 2), "iris_iot");
       } catch {
         out.push({ kode: "identitas", berat: true, bahasa, berkas: b.slug });
       }

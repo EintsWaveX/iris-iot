@@ -578,6 +578,11 @@ button.qa__b[aria-disabled="true"] {
   min-width: 0;
 }
 
+.qa__b--hot[data-on="yes"] {
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface-3));
+  border-color: var(--ok);
+}
+
 .qa__title {
   align-items: center;
   display: flex;

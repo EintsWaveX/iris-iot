@@ -622,9 +622,9 @@ const DASAR: Record<string, Dasar> = {
   "m4.modul4_beacon.2": {
     jawaban: "NTP_SERVER",
     kenapa: t(
-      "Server waktu bersama (time.cloudflare.com), dijangkau lewat hotspot ponsel kelompok. Beacon dan Hunter harus memakai server yang sama supaya selisih jamnya sahih.",
-      "The shared time server (time.cloudflare.com), reached through the group phone's hotspot. Beacon and Hunter must use the same one so the difference between their clocks is valid.",
-      "共用的时间服务器（time.cloudflare.com），通过本组手机的热点访问。Beacon 和 Hunter 必须用同一个，这样两边时钟的差才有意义。",
+      "Server waktu bersama (alamatnya sudah ada di konstanta atas berkas): time.cloudflare.com lewat hotspot ponsel kelompok, atau PC lab di jaringan IRIS_IOT. Beacon dan Hunter harus memakai server yang sama supaya selisih jamnya sahih.",
+      "The shared time server (its address is already in the constant near the top): time.cloudflare.com through the group phone's hotspot, or the lab PC on the IRIS_IOT network. Beacon and Hunter must use the same one so the difference between their clocks is valid.",
+      "共用的时间服务器（地址已经在文件上方的常量里）：通过本组手机的热点访问 time.cloudflare.com，或在 IRIS_IOT 网络里用实验室 PC。Beacon 和 Hunter 必须用同一个，这样两边时钟的差才有意义。",
     ),
     bantuan: t(
       "Jangan tulis alamatnya langsung. Pakai konstanta alamat server waktu yang didefinisikan di bagian atas berkas.",

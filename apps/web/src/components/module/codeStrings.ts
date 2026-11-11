@@ -31,8 +31,12 @@ export const C = dict({
     newSession: "Sesimu sedang berjalan. Masuk dengan kode sesi supaya jawabanmu tercatat.",
     signInBtn: "Masuk",
     locked: "Modul ini belum dibuka. Asisten membukanya saat minggunya tiba.",
+    huntNetIrisIot:
+      "Sketsa ini untuk Wi-Fi IRIS_IOT milik PC lab (papan skor di 192.168.4.1, tanpa internet).",
+    huntNetInternet:
+      "Sketsa ini untuk hotspot ponsel kelompokmu (IRIS-G<n>) dan papan skor di hunt.irisiotlab.com.",
     huntKeyLater:
-      "Kelompok, hotspot, dan sync word LoRa sudah terisi otomatis. Kunci papan (HUNT_KEY) baru muncul di sini setelah asisten memulai perburuan. Sampai saat itu, kompilasi dan unggah dulu dengan kunci sementara, lalu unggah ulang saat kuncinya sudah terisi.",
+      "Nomor kelompok, nama Wi-Fi, dan sync word LoRa sudah terisi otomatis. Kunci papan (HUNT_KEY) baru muncul di sini setelah asisten memulai perburuan. Sampai saat itu, kompilasi dan unggah dulu dengan kunci sementara, lalu unggah ulang saat kuncinya sudah terisi.",
     huntKeyFilled:
       "Kunci papan kelompokmu sudah terisi di HUNT_KEY. Unduh filenya sekarang dan unggah ke kedua papan.",
     keyError: "Jawaban belum bisa dimuat. Coba lagi sebentar.",
@@ -103,8 +107,12 @@ export const C = dict({
     newSession: "Your session is running. Sign in with the session code so your answers count.",
     signInBtn: "Sign In",
     locked: "This module is not open yet. Your assistant opens it when its week arrives.",
+    huntNetIrisIot:
+      "This sketch is for the lab PC's IRIS_IOT Wi-Fi (scoreboard at 192.168.4.1, no internet).",
+    huntNetInternet:
+      "This sketch is for your group phone's hotspot (IRIS-G<n>) and the scoreboard at hunt.irisiotlab.com.",
     huntKeyLater:
-      "Your group number, hotspot and LoRa sync word are already filled in. The board key (HUNT_KEY) only appears here once your assistant starts the hunt. Until then, compile and upload with the placeholder, then upload again when the key is filled in.",
+      "Your group number, Wi-Fi name and LoRa sync word are already filled in. The board key (HUNT_KEY) only appears here once your assistant starts the hunt. Until then, compile and upload with the placeholder, then upload again when the key is filled in.",
     huntKeyFilled:
       "Your group's board key is already in HUNT_KEY. Download the file now and upload it to both boards.",
     keyError: "The answers could not load. Try again in a moment.",
@@ -176,8 +184,10 @@ export const C = dict({
     newSession: "你的课正在进行。用签到码登录，你的答案才会记上。",
     signInBtn: "登录",
     locked: "这个模块还没开放。到了那一周，助教会开放它。",
+    huntNetIrisIot: "这份代码用于实验室 PC 的 IRIS_IOT Wi-Fi（记分板在 192.168.4.1，不需要网络）。",
+    huntNetInternet: "这份代码用于你们组手机的热点（IRIS-G<n>）和 hunt.irisiotlab.com 上的记分板。",
     huntKeyLater:
-      "组号、热点和 LoRa 同步字都已自动填好。板子密钥（HUNT_KEY）要等助教开始寻踪后才会出现在这里。在那之前，先用占位符编译并上传，密钥填好后再上传一次。",
+      "组号、Wi-Fi 名称和 LoRa 同步字都已自动填好。板子密钥（HUNT_KEY）要等助教开始寻踪后才会出现在这里。在那之前，先用占位符编译并上传，密钥填好后再上传一次。",
     huntKeyFilled: "你们组的板子密钥已经填在 HUNT_KEY 里了。现在下载文件，上传到两块板子上。",
     keyError: "答案暂时无法加载，请稍后再试。",
     progress: (a: number, b: number) => `${b} 个填空对了 ${a} 个`,

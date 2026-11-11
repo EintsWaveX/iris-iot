@@ -40,6 +40,15 @@ export const H = dict({
     copyFail: "Tautan belum tersalin. Salin manual.",
     copyName: "Salin nama hotspot",
     copyPass: "Salin sandi",
+    // Jaringan IRIS_IOT: PC lab membuat Wi-Fi, HP anggota tanpa internet.
+    joinLedeLokal:
+      "Satu orang satu HP. Pindai dari layar laptop ini: langkah 1 menyambungkan HP ke Wi-Fi IRIS_IOT, langkah 2 membuka papan skor.",
+    stepWifiLokal: "1 Sambung Wi-Fi",
+    wifiTitle: (ssid: string) => `Sambung ke Wi-Fi ${ssid}`,
+    wifiQr: (ssid: string) => `QR Wi-Fi ${ssid}`,
+    wifiHint:
+      "Pindai dengan kamera. Kalau tidak bisa, pilih Wi-Fi itu di pengaturan HP, lalu masukkan sandi di bawah.",
+    wifiNoNet: "Wi-Fi ini tanpa internet. Biarkan HP tetap tersambung selama perburuan.",
     copyKey: "Salin kunci papan",
     boardKey: "Kunci papan",
     boardKeyHint:
@@ -125,6 +134,15 @@ export const H = dict({
     copyFail: "The link wasn't copied. Copy it by hand.",
     copyName: "Copy the hotspot name",
     copyPass: "Copy the password",
+    // IRIS_IOT network: the lab PC makes the Wi-Fi, members' phones have no internet.
+    joinLedeLokal:
+      "One phone each. Scan from this laptop screen: step 1 joins the phone to the IRIS_IOT Wi-Fi, step 2 opens the scoreboard.",
+    stepWifiLokal: "1 Join the Wi-Fi",
+    wifiTitle: (ssid: string) => `Join the ${ssid} Wi-Fi`,
+    wifiQr: (ssid: string) => `${ssid} Wi-Fi QR`,
+    wifiHint:
+      "Scan with the camera. If that fails, pick the Wi-Fi in the phone's settings and type the password below.",
+    wifiNoNet: "This Wi-Fi has no internet. Keep the phone connected during the hunt.",
     copyKey: "Copy the board key",
     boardKey: "Board key",
     boardKeyHint:
@@ -209,6 +227,14 @@ export const H = dict({
     copyFail: "链接没有复制成功，请手动复制。",
     copyName: "复制热点名称",
     copyPass: "复制密码",
+    // IRIS_IOT 网络：实验室 PC 提供 Wi-Fi，成员的手机没有网络。
+    joinLedeLokal:
+      "每人一部手机。扫描这台笔记本屏幕上的码：第 1 步让手机连上 IRIS_IOT Wi-Fi，第 2 步打开记分板。",
+    stepWifiLokal: "1 连接 Wi-Fi",
+    wifiTitle: (ssid: string) => `连接 ${ssid} Wi-Fi`,
+    wifiQr: (ssid: string) => `${ssid} Wi-Fi 二维码`,
+    wifiHint: "用相机扫描。扫不了就在手机的 Wi-Fi 设置里选这个网络，再输入下面的密码。",
+    wifiNoNet: "这个 Wi-Fi 没有网络，整个寻踪期间也请保持连接。",
     copyKey: "复制板子密钥",
     boardKey: "板子密钥",
     boardKeyHint:

@@ -85,6 +85,10 @@ const RINCI = JSON.stringify({
   proses: [{ pid: 812, cpu: 6.1, memori: 38912000, nama: "python3 agent.py" }],
   paket: { kernel: "6.6.98", os: "PC 1.1.0", angka: 3 },
   galatJurnal24j: 104,
+  konfigAp: [
+    ["SSID", "IRIS_IOT", false],
+    ["PSK", "bocor", true],
+  ],
   timer: [{ unit: "logrotate.timer", berikut: "Sun 2026-10-04 00:10:37" }],
 });
 
@@ -99,9 +103,12 @@ describe("bacaRinci", () => {
     expect(r.galatJurnal24j).toBe(104);
   });
 
-  it("no longer reads any hotspot settings, even if an older agent sends them", () => {
+  it("never shows a secret value even if the agent sent one", () => {
     const r = bacaRinci(RINCI)!;
-    expect(r).not.toHaveProperty("konfigAp");
+    expect(r.konfigAp).toEqual([
+      ["SSID", "IRIS_IOT", false],
+      ["PSK", "", true],
+    ]);
   });
 
   it("is null for an agent error or another document", () => {

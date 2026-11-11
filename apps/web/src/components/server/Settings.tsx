@@ -12,23 +12,30 @@ import {
   CircleNotchIcon,
   LockSimpleIcon,
   PlayIcon,
+  PlugsConnectedIcon,
   PulseIcon,
   TerminalWindowIcon,
   WifiHighIcon,
 } from "@phosphor-icons/react";
 import Confirm from "../ui/Confirm";
 import Dropdown from "../ui/Dropdown";
+import Tooltip from "../ui/Tooltip";
 import { useTick } from "../../lib/app";
 import { durasiLabel, nil } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import {
+  AP_SUMBER,
+  apSumberValid,
   bacaRinci,
+  hotspotMenyala,
   JOURNAL_UNIT,
   LANGKAH_PASANG,
   posisiPasang,
   tanpaKeluaran,
+  type ApSumber,
 } from "../../lib/server-shared";
 import Enroll, { bacaPerintah } from "./Enroll";
+import JaringanHunt from "./JaringanHunt";
 import {
   kirim,
   sedangBerjalan,
@@ -173,7 +180,33 @@ function NetConf({ lang, data, onCommands }: { lang: Lang; data: Detail; onComma
   };
   return (
     <section className="panel">
-      <h2 className="panel__title">{t.timers}</h2>
+      <h2 className="panel__title">{t.netConf}</h2>
+      <span className="hint mono">/etc/default/iris-ap</span>
+      {r?.konfigAp ? (
+        <div className="tabstops tabstops--3">
+          {r.konfigAp.map(([k, v, rahasia]) => (
+            <div key={k} className="tabstops__row">
+              <span className="kbd">{k}</span>
+              <span className="mono">{rahasia ? "••••••••" : v || "·"}</span>
+              {rahasia ? (
+                <Tooltip label={t.secretTip}>
+                  <span className="pill" tabIndex={0}>
+                    <LockSimpleIcon size={13} aria-hidden="true" />
+                    {t.secret}
+                  </span>
+                </Tooltip>
+              ) : (
+                <span />
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="hint">{t.fullWait}</p>
+      )}
+      <h3 className="panel__title" style={{ fontSize: "1rem" }}>
+        {t.timers}
+      </h3>
       {r?.timer.length ? (
         <div className="tabstops">
           {r.timer.slice(0, 8).map((x) => (
@@ -442,6 +475,16 @@ export default function Settings({
         </>
       )}
 
+      <div className="s12span6">
+        <JaringanHunt lang={lang} kartu />
+      </div>
+
+      {bisa.full && (
+        <div className="s12span6">
+          <HotspotSource lang={lang} id={id} data={data} refresh={refresh} />
+        </div>
+      )}
+
       {bisa.full && (
         <section className="panel s12span6">
           <div className="panel__head">
@@ -502,6 +545,72 @@ export default function Settings({
         }}
       />
     </div>
+  );
+}
+
+/** Where IRIS_IOT comes from (agent protocol 5): the kit's router on the
+ *  PC's LAN port, or the PC's own Wi-Fi radio. */
+function HotspotSource({
+  lang,
+  id,
+  data,
+  refresh,
+}: {
+  lang: Lang;
+  id: number;
+  data: Detail;
+  refresh: () => void;
+}) {
+  const t = S[lang];
+  const [busy, setBusy] = useState(false);
+  const info = data.server.infoSistem ?? {};
+  const protokol = typeof info.protokol === "number" ? info.protokol : 0;
+  const sekarang = apSumberValid(info.apSumber) ? info.apSumber : null;
+  const menyala = hotspotMenyala(data.denyutTerakhir?.modeJaringan);
+  const jalan = data.perintah.some(
+    (p) => p.aksi === "ap.sumber" && (p.status === "menunggu" || p.status === "terkirim"),
+  );
+  const kunci = protokol < 5 ? t.apSrcOld : menyala ? t.apSrcBusy : null;
+
+  async function pilih(sumber: ApSumber) {
+    if (sumber === sekarang || kunci) return;
+    setBusy(true);
+    await kirim(id, "ap.sumber", { sumber }, lang, t.apSrcSent);
+    setBusy(false);
+    refresh();
+  }
+
+  return (
+    <section className="panel">
+      <div className="stack stack--sm">
+        <h2 className="panel__title">{t.apSrcTitle}</h2>
+        <span className="hint">{t.apSrcSub}</span>
+      </div>
+      <div className="srv-diagbtns" role="group" aria-label={t.apSrcTitle}>
+        {AP_SUMBER.map((s) => (
+          <button
+            key={s}
+            type="button"
+            className="btn"
+            aria-pressed={sekarang === s}
+            disabled={busy || jalan || !!kunci}
+            onClick={() => void pilih(s)}
+          >
+            {s === "kabel" ? (
+              <PlugsConnectedIcon size={18} aria-hidden="true" />
+            ) : (
+              <WifiHighIcon size={18} aria-hidden="true" />
+            )}
+            {s === "kabel" ? t.apSrcKabel : t.apSrcWifi}
+          </button>
+        ))}
+      </div>
+      <p className="hint" aria-live="polite">
+        {jalan
+          ? t.apSrcWait
+          : (kunci ?? (sekarang === "kabel" ? t.apSrcKabelHint : t.apSrcWifiHint))}
+      </p>
+    </section>
   );
 }
 

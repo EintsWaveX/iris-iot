@@ -6,6 +6,8 @@ import {
   isiKunciPapan,
   isiKunciPapanSegments,
   personalize,
+  personalizeJaringan,
+  personalizeJaringanSegments,
   needsPersonalization,
 } from "../group-identity";
 import identitas from "../../content/sketches/identitas.json";
@@ -166,6 +168,88 @@ describe("isiKunciPapan() fills HUNT_KEY with the group's board key", () => {
     const out = isiKunciPapanSegments("modul4_beacon", segs, "ABCD1234");
     expect(out[0]).toMatchObject({ text: 'const char* HUNT_KEY       = "ABCD1234";\n' });
     expect(out[1]).toBe(segs[1]);
+  });
+});
+
+describe("personalizeJaringan() points the Module 4 sketch at the chosen network", () => {
+  const BERKAS = ["modul4_hunter", "modul4_beacon"];
+
+  it("leaves the internet template exactly as it is", () => {
+    for (const bahasa of LANGUAGES) {
+      for (const berkas of BERKAS) {
+        const source = personalize(berkas, readSketch(bahasa, berkas), 3);
+        expect(personalizeJaringan(berkas, source, "internet")).toBe(source);
+      }
+    }
+  });
+
+  it("rewrites the five network lines for IRIS_IOT, same line count, every group", () => {
+    for (const bahasa of LANGUAGES) {
+      for (const berkas of BERKAS) {
+        for (const n of GROUPS) {
+          const base = personalize(berkas, readSketch(bahasa, berkas), n);
+          const out = personalizeJaringan(berkas, base, "iris_iot");
+          expect(out).toMatch(/const char\* WIFI_SSID\s+= "IRIS_IOT";/);
+          expect(out).toMatch(/const char\* SERVER_HOST\s+= "192\.168\.4\.1";/);
+          expect(out).toMatch(/const uint16_t SERVER_PORT = 8080;/);
+          expect(out).toMatch(/const char\* NTP_SERVER\s+= "192\.168\.4\.1";/);
+          expect(out).toContain("webSocket.begin(");
+          expect(out).not.toContain("beginSSL");
+          expect(out).not.toContain("hunt.irisiotlab.com");
+          expect(out).not.toContain("time.cloudflare.com");
+          expect(out).not.toMatch(/IRIS-G\d/);
+          expect(out.split("\n").length).toBe(base.split("\n").length);
+        }
+      }
+    }
+  });
+
+  it("keeps the group's own identity and the board key when both are applied", () => {
+    for (const berkas of BERKAS) {
+      const base = personalize(berkas, readSketch("en", berkas), 4);
+      const out = isiKunciPapan(berkas, personalizeJaringan(berkas, base, "iris_iot"), "K7M2QX9A");
+      expect(out).toContain("#define GROUP_ID 4");
+      expect(out).toMatch(/const char\* HUNT_KEY\s*= "K7M2QX9A";/);
+    }
+  });
+
+  it("works over the editor's segments the same way", () => {
+    for (const berkas of BERKAS) {
+      const text = personalize(berkas, readSketch("id", berkas), 2);
+      const segs = [{ kind: "text" as const, text }];
+      const out = personalizeJaringanSegments(berkas, segs, "iris_iot");
+      expect(out[0]).toMatchObject({ text: personalizeJaringan(berkas, text, "iris_iot") });
+      expect(personalizeJaringanSegments(berkas, segs, "internet")).toBe(segs);
+    }
+  });
+
+  it("says Wi-Fi, not phone hotspot, in the comments and serial text", () => {
+    for (const [bahasa, berkas, nenek] of [
+      ["en", "modul4_hunter", "Connecting to the IRIS_IOT Wi-Fi"],
+      ["id", "modul4_beacon", "Menyambung ke Wi-Fi IRIS_IOT"],
+    ] as const) {
+      const out = personalizeJaringan(
+        berkas,
+        personalize(berkas, readSketch(bahasa, berkas), 1),
+        "iris_iot",
+      );
+      expect(out).toContain(nenek);
+    }
+  });
+
+  it("throws if a line it must change is missing, instead of shipping the wrong network", () => {
+    const rusak = readSketch("en", "modul4_hunter").replace(
+      /webSocket\.beginSSL\(/g,
+      "ws.beginSSL(",
+    );
+    expect(() => personalizeJaringan("modul4_hunter", rusak, "iris_iot")).toThrow(
+      /expected exactly 1/,
+    );
+  });
+
+  it("does nothing to another module's file", () => {
+    const source = readSketch("en", "modul1_ble_central");
+    expect(personalizeJaringan("modul1_ble_central", source, "iris_iot")).toBe(source);
   });
 });
 

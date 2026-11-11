@@ -5,6 +5,7 @@ import {
   jamServer,
   JAM_TOLERANSI_DETIK,
   modulCek,
+  hotspotMenyala,
   LAYANAN_URUT,
   modulSiapValid,
   urutkanLayanan,
@@ -45,6 +46,24 @@ describe("urutkanLayanan", () => {
 
   it("is the same list the API validates layanan.* against", () => {
     expect(LAYANAN_DIKENAL).toEqual(LAYANAN_URUT);
+  });
+});
+
+describe("hotspotMenyala", () => {
+  it("reads both hotspot modes the agent sends as on", () => {
+    expect(hotspotMenyala("ap-mandiri")).toBe(true);
+    expect(hotspotMenyala("ap+uplink")).toBe(true);
+  });
+
+  it("still reads an older agent's plain ap as on", () => {
+    expect(hotspotMenyala("ap")).toBe(true);
+  });
+
+  it("reads the router mode and unknown values as off", () => {
+    expect(hotspotMenyala("ethernet-router")).toBe(false);
+    expect(hotspotMenyala("apple")).toBe(false);
+    expect(hotspotMenyala(null)).toBe(false);
+    expect(hotspotMenyala(undefined)).toBe(false);
   });
 });
 

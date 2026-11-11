@@ -73,7 +73,8 @@ import {
   handleKodeSimpan,
   handleKodeTerbit,
 } from "../_lib/kode-editor.js";
-import { isiKunciPapan, personalize } from "../../src/lib/group-identity.js";
+import { isiKunciPapan, personalize, personalizeJaringan } from "../../src/lib/group-identity.js";
+import { bacaJaringanHunt } from "../../src/lib/jaringan-hunt.js";
 import { kunciPapanKelompok } from "../_lib/perburuan-api.js";
 import { statusRiwayat } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
@@ -299,6 +300,8 @@ async function handleDraft(
     ok: true,
     jawaban: out,
     nomorKelompok: session.kelompokNomor ?? null,
+    // Module 4: which network the sketch shown is for (Wi-Fi name, scoreboard)
+    ...(parsed.modul === 4 ? { jaringan: await bacaJaringanHunt() } : {}),
   });
 }
 
@@ -529,6 +532,10 @@ async function handleUnduh(
   // the air or on the same BLE UUID / MQTT topic. See group-identity.ts's
   // own header for the concrete failure this fixes.
   let reconstructed = personalize(parsed.berkas, reconstructedGeneric, nomorKelompok);
+  // Module 4: the sketch for the network the lab picked (IRIS_IOT or internet)
+  if (parsed.modul === 4) {
+    reconstructed = personalizeJaringan(parsed.berkas, reconstructed, await bacaJaringanHunt());
+  }
 
   // Module 4: once the Asisten has opened the hunt, the group's board key is
   // already in the sketch. Before that the placeholder stays, and the Hunt
@@ -593,7 +600,15 @@ async function handleKunci(req: ApiRequest, res: ApiResponse) {
   res.status(200);
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  res.end(personalize(parsed.berkas, generic, nomorKelompok));
+  const untukJaringan =
+    parsed.modul === 4
+      ? personalizeJaringan(
+          parsed.berkas,
+          personalize(parsed.berkas, generic, nomorKelompok),
+          await bacaJaringanHunt(),
+        )
+      : personalize(parsed.berkas, generic, nomorKelompok);
+  res.end(untukJaringan);
 }
 
 /** The module's Praktikan files as published: blanks only, no answers. */
