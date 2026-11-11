@@ -111,7 +111,7 @@
       const r = bar.current.getBoundingClientRect();
       setT(Math.max(0, Math.min(end, Math.round(((e.clientX - r.left) / r.width) * end))));
     };
-    const X = (s) => 30 + (s / end) * 560;
+    const X = (s) => 44 + (s / end) * 546;
     const Y = (v) => 210 - v * 190;
     const marks = (jejak.peristiwa || []).filter((e) => e.kind === "salip" || e.kind === "ditemukan");
     const at = (pts, s) => {
@@ -123,7 +123,7 @@
     return html`<div class="stack">
       <div class="row" style="gap:6px">${ids.map((n) => html`<button type="button" class="chipbtn gchip" style=${`--g:var(--group-${n})`} aria-pressed=${String(show[n] !== false)} onClick=${() => setShow({ ...show, [n]: show[n] === false })}><i></i>${H.gname(n)}</button>`)}</div>
       <svg class="replay" viewBox="0 0 620 230" role="img" aria-label=${L("Jarak tertutup tiap kelompok sepanjang waktu", "Distance closed per group over time")}>
-        ${[0, 0.25, 0.5, 0.75, 1].map((v) => html`<line x1="30" x2="590" y1=${Y(v)} y2=${Y(v)} class="chart__grid" /><text x="24" y=${Y(v) + 4} class="chart__tick" text-anchor="end">${Math.round(v * 100)}%</text>`)}
+        ${[0, 0.25, 0.5, 0.75, 1].map((v) => html`<line x1="44" x2="590" y1=${Y(v)} y2=${Y(v)} class="chart__grid" /><text x="38" y=${Y(v) + 4} class="chart__tick" text-anchor="end">${Math.round(v * 100)}%</text>`)}
         ${ticks.map((s) => html`<text x=${X(s)} y="226" class="chart__tick" text-anchor="middle">${H.ms(s)}</text>`)}
         ${ids.filter((n) => show[n] !== false).map((n) => {
           const pts = jejak.grup[String(n)].s.filter((p) => p[0] <= t);
@@ -307,7 +307,7 @@
               : html`<p class="hint">${L("Belum ada klaim yang menunggu.", "No claims waiting.")}</p>`}
             <span class="hint">${L("Paksa Konfirmasi ada di menu kelompok, untuk beacon yang terbukti ketemu tapi sinyalnya jatuh.", "Force Confirm is in the group menu, for a beacon that was clearly found but whose signal dropped.")}</span></section>
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Pengumuman dan hitung mundur", "Announcements and countdown")}</h2></div>
-            <label class="field"><span class="label">${L("Pengumuman ke semua ponsel", "Announcement to every phone")}</span><input class="input" id="m-ann" maxlength="140" value=${ann} onInput=${(e) => setAnn(e.target.value)} placeholder=${L("contoh: 10 menit lagi, kumpul di lobi", "e.g. 10 minutes left, meet at the lobby")} /></label>
+            <label class="field"><span class="label">${L("Pengumuman ke semua ponsel", "Announcement to every phone")}</span><input class="input" id="m-ann" aria-label=${L("Pengumuman ke semua ponsel", "Announcement to every phone")} maxlength="140" value=${ann} onInput=${(e) => setAnn(e.target.value)} placeholder=${L("contoh: 10 menit lagi, kumpul di lobi", "e.g. 10 minutes left, meet at the lobby")} /></label>
             ${f.pengumuman && html`<span class="hint">${L(`Tampil sekarang: ${f.pengumuman.teks}`, `Showing now: ${f.pengumuman.teks}`)}</span>`}
             <div class="r5act r5act--alt">
               ${f.pengumuman ? html`<${Btn} kind="ghost" icon="x" onClick=${() => act("pengumuman", { teks: "" }, L("Pengumuman dihapus.", "Announcement cleared."))}>${L("Hapus Pengumuman", "Clear It")}</${Btn}>` : html`<span></span>`}
