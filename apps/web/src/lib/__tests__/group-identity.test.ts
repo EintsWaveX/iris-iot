@@ -2,7 +2,12 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { personalize, needsPersonalization } from "../group-identity";
+import {
+  isiKunciPapan,
+  isiKunciPapanSegments,
+  personalize,
+  needsPersonalization,
+} from "../group-identity";
 import identitas from "../../content/sketches/identitas.json";
 
 // Stage 16: exists because src/content/sketches/'s Module 4 files were once
@@ -116,6 +121,51 @@ describe("Module 4 sync words", () => {
     const words = Object.values(table).map((entry) => entry.syncWord);
     expect(new Set(words).size).toBe(words.length);
     expect(words.length).toBe(5);
+  });
+});
+
+describe("isiKunciPapan() fills HUNT_KEY with the group's board key", () => {
+  const BERKAS = ["modul4_hunter", "modul4_beacon"];
+
+  it("puts the key into the one HUNT_KEY line, in every language and both boards", () => {
+    for (const bahasa of LANGUAGES) {
+      for (const berkas of BERKAS) {
+        const source = readSketch(bahasa, berkas);
+        const out = isiKunciPapan(berkas, personalize(berkas, source, 3), "K7M2QX9A");
+        expect(out).toMatch(/const char\* HUNT_KEY\s*= "K7M2QX9A";/);
+        // nothing else changed
+        expect(out.split("\n").length).toBe(source.split("\n").length);
+      }
+    }
+  });
+
+  it("leaves the placeholder alone while the hunt has no key yet", () => {
+    for (const berkas of BERKAS) {
+      const source = readSketch("en", berkas);
+      expect(isiKunciPapan(berkas, source, null)).toBe(source);
+    }
+  });
+
+  it("refuses a key that is not plain letters and digits", () => {
+    const source = readSketch("en", "modul4_hunter");
+    for (const bad of ['AB"; evil("', "AB CD", "ab", "$&$&$&$&"]) {
+      expect(isiKunciPapan("modul4_hunter", source, bad)).toBe(source);
+    }
+  });
+
+  it("never touches another module's file", () => {
+    const source = readSketch("en", "modul1_ble_central");
+    expect(isiKunciPapan("modul1_ble_central", source, "K7M2QX9A")).toBe(source);
+  });
+
+  it("works over the editor's segments too", () => {
+    const segs = [
+      { kind: "text" as const, text: 'const char* HUNT_KEY       = "SITE-KEY";\n' },
+      { kind: "text" as const, text: "int x;" },
+    ];
+    const out = isiKunciPapanSegments("modul4_beacon", segs, "ABCD1234");
+    expect(out[0]).toMatchObject({ text: 'const char* HUNT_KEY       = "ABCD1234";\n' });
+    expect(out[1]).toBe(segs[1]);
   });
 });
 
