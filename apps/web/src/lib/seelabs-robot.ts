@@ -31,6 +31,7 @@ export type StatusAkses = "menunggu_uji" | "aktif" | "ditolak" | "kunci_lain";
 export const GALAT_ROBOT = [
   "tak_terjangkau", // the PC can't reach SeeLabs (not on TelU-Connect, or SeeLabs is down)
   "seelabs_galat", // SeeLabs answered with a server error or an expired page
+  "halaman_tertutup", // SeeLabs signed the account in, then answered 403 on a page (not retried)
   "ditolak", // SeeLabs refused the username or password
   "bentuk_berubah", // a page looked unfamiliar, so nothing was saved
   "butuh_token", // the group isn't on today's list: needs a Token Khusus

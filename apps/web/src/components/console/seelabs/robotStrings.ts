@@ -116,6 +116,8 @@ export const RB = dict({
       tak_terjangkau:
         "PC Server tidak bisa menjangkau SeeLabs, biasanya karena PC Server tidak tersambung ke TelU-Connect. Akunmu tidak bermasalah; robot mencoba lagi sendiri.",
       seelabs_galat: "SeeLabs sedang bermasalah. Robot mencoba lagi sendiri.",
+      halaman_tertutup:
+        "SeeLabs menutup halaman ini untuk akun ini (403), padahal masuknya berhasil. Pakai akun lain yang masih bisa membukanya di SeeLabs. Mencoba lagi tidak membantu.",
       bentuk_berubah:
         "Halaman SeeLabs terlihat berbeda dari biasanya, jadi robot tidak menyimpan apa pun. Kabari DEV.",
       butuh_token:
@@ -319,6 +321,8 @@ export const RB = dict({
       tak_terjangkau:
         "The PC Server can't reach SeeLabs, usually because the PC Server isn't on TelU-Connect. Your account is fine; the robot tries again by itself.",
       seelabs_galat: "SeeLabs is having trouble. The robot tries again by itself.",
+      halaman_tertutup:
+        "SeeLabs closed this page to this account (403), though the sign-in worked. Use another account that can still open it in SeeLabs. Trying again won't help.",
       bentuk_berubah:
         "A SeeLabs page looked different from usual, so the robot saved nothing. Tell DEV.",
       butuh_token: "This group isn't on today's duty list. Enter a Token Khusus from SeeLabs.",
@@ -511,6 +515,8 @@ export const RB = dict({
       tak_terjangkau:
         "PC 服务器连不上 SeeLabs，通常是 PC 服务器没有连上 TelU-Connect。你的账号没有问题，机器人会自己再试。",
       seelabs_galat: "SeeLabs 出了问题。机器人会自己再试。",
+      halaman_tertutup:
+        "SeeLabs 对这个账号关闭了该页面（403），虽然登录成功。请改用仍能在 SeeLabs 打开它的其他账号。重试没有用。",
       bentuk_berubah: "SeeLabs 页面看起来和平常不同，所以机器人什么都没保存。请告知 DEV。",
       butuh_token: "这个小组不在今天的值班名单里。请输入 SeeLabs 的 Token Khusus。",
       token_salah: "这个 Token Khusus 打不开该小组。请检查令牌。",
