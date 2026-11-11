@@ -251,3 +251,24 @@ button.hphoto--sm { width: 84px; }
 /* The replay chart is one SVG: past about 860px its axis text grows with it.
    Capped and centred, with room on the left for "100%". */
 .stack:has(> .replay) { max-width: 860px; margin-inline: auto; width: 100%; }
+
+/* ---- Hunt polish, phase 4/5: Mission control and the projector ---- */
+
+/* Mission control: the claim queue sits beside the lanes on a laptop, so a
+   photo to review is on screen without scrolling. */
+.hmtop { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@container huntapp (min-width: 1100px) { .hmtop { grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); } }
+.r5act--alt { flex-wrap: wrap; }
+
+/* The projector. The announcement is a pill only while it is one line. */
+@container huntapp (max-width: 719px) {
+  .hstage__ann { display: flex; max-width: 100%; border-radius: 18px; }
+  .hstage__top { align-items: flex-start; }
+}
+/* Lanes shrink with the screen's height, so a 720p projector keeps both lines of a lane inside it. */
+@media (max-height: 860px) {
+  .hstage__lanes > .slane { padding-block: 6px; }
+  .slane__n b { font-size: min(1.45rem, 3.2vh); line-height: 1.15; }
+  .slane__n span { font-size: max(12px, min(1rem, 2.2vh)); line-height: 1.15; }
+  .slane__rank { font-size: min(2.1rem, 4.6vh); }
+}
