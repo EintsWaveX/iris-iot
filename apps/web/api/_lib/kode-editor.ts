@@ -11,6 +11,9 @@
  *                              a session of the module runs, or with problems).
  * POST kode-buang   { modul }                  drop the draft.
  * POST kode-pulihkan { modul, id, dasar }      an older version becomes the draft.
+ *                     { modul, bawaan: true, dasar }  the files bundled with the site
+ *                              (src/content/sketches, version 1's source) become the
+ *                              draft: for when the repo's sketches moved on.
  *
  * `dasar` is the draft's diubahPada the editor started from (null: none):
  * a draft someone else saved since answers draf_berubah, never overwrites.
@@ -401,17 +404,20 @@ export async function handleKodePulihkan(
   const body = jsonBody(req);
   const modul = modulDari(body.modul);
   const id = Number(body.id);
-  if (!modul || !Number.isInteger(id)) {
+  const bawaan = body.bawaan === true;
+  if (!modul || (!bawaan && !Number.isInteger(id))) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
   const db = getDb();
-  const [asal] = await db
-    .select({ berkas: kodeVersi.berkas, nomor: kodeVersi.nomor })
-    .from(kodeVersi)
-    .where(
-      and(eq(kodeVersi.id, id), eq(kodeVersi.modul, modul), sql`${kodeVersi.status} <> 'draf'`),
-    );
+  const [asal] = bawaan
+    ? [{ berkas: kodeV1(modul), nomor: 0 }]
+    : await db
+        .select({ berkas: kodeVersi.berkas, nomor: kodeVersi.nomor })
+        .from(kodeVersi)
+        .where(
+          and(eq(kodeVersi.id, id), eq(kodeVersi.modul, modul), sql`${kodeVersi.status} <> 'draf'`),
+        );
   if (!asal) {
     res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
     return;
