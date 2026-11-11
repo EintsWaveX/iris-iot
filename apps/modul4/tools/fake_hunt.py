@@ -42,7 +42,41 @@ import math
 import random
 from datetime import datetime
 
-from websockets.asyncio.client import connect
+import time
+import urllib.request
+
+from websockets.asyncio.client import ClientConnection, connect
+
+# Papan sungguhan membawa kunci kelompoknya (HUNT_KEY) di tiap pesan; papan
+# palsu mengambilnya dari /ringkas.json server yang sama (rute agent, hanya
+# dari mesin ini) dan menyisipkannya ke pesan Beacon/Hunter.
+_KUNCI = {"http": "http://127.0.0.1:8080", "at": 0.0, "isi": {}}
+
+
+def _kunci_kelompok(gid: int) -> str:
+    if time.monotonic() - _KUNCI["at"] > 2.0:
+        with urllib.request.urlopen(_KUNCI["http"] + "/ringkas.json", timeout=5) as resp:
+            _KUNCI["isi"] = json.loads(resp.read()).get("kunci", {})
+        _KUNCI["at"] = time.monotonic()
+    return _KUNCI["isi"].get(str(gid), "")
+
+
+_kirim_asli = ClientConnection.send
+
+
+async def _kirim_dengan_kunci(self, pesan, *args, **kw):
+    if isinstance(pesan, str):
+        try:
+            isi = json.loads(pesan)
+        except ValueError:
+            isi = None
+        if isinstance(isi, dict) and "aksi" not in isi and "grup" in isi and "k" not in isi:
+            isi["k"] = _kunci_kelompok(int(isi["grup"]))
+            pesan = json.dumps(isi)
+    return await _kirim_asli(self, pesan, *args, **kw)
+
+
+ClientConnection.send = _kirim_dengan_kunci
 
 # Titik berangkat (meter) dan detik temu tiap kelompok untuk --jalur, pada
 # tempo 1. Sama dengan simulasi prototipe, supaya yang disetujui di sana
@@ -397,6 +431,7 @@ async def main() -> None:
     parser.add_argument("--token", default=None,
                         help="token asisten server, untuk --bot")
     args = parser.parse_args()
+    _KUNCI["http"] = args.url.replace("ws://", "http://", 1).replace("wss://", "https://", 1)
 
     if args.bot and not args.token:
         parser.error("--bot butuh --token")

@@ -157,10 +157,11 @@ wlan = network.WLAN(network.________)  # (1) station（client）模式常量
 wlan.active(True)
 wlan.connect(wifi_ssid, ________)  # (2) Wi-Fi 密码变量
 
-# 刚把 Pico W 插上 USB（没有 Thonny）时，第一次加入 Wi-Fi 可能失败，
-# 而 connect() 不会自己重试。这个循环会打印 Wi-Fi 状态（1 正在加入，
-# 3 已连接，-1 失败，-2 找不到 SSID，-3 密码错误），状态为负数或
-# 15 秒还没连上时，会再次调用 connect()。
+# When a Pico W has just been plugged into USB (no Thonny), the first Wi-Fi
+# join attempt can fail, and connect() never retries on its own. This loop
+# prints the Wi-Fi status (1 joining, 3 connected, -1 failed, -2 SSID not
+# found, -3 wrong password) and calls connect() again when the status is
+# negative or 15 seconds pass without a connection.
 waited = 0
 while not wlan.isconnected():
     status = wlan.status()

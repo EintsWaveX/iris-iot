@@ -944,8 +944,8 @@ export const audit = pgTable(
 
 /**
  * Phase 2 — one row per registered PC. `alamatLan` is the fixed LAN
- * address boards and phones use to reach it (192.168.4.1 under the router
- * topology the Phase 2 plan settled on) — distinct from whatever public IP
+ * address boards and phones used to reach it (the PC no longer makes a
+ * hotspot; the hunt runs at hunt.irisiotlab.com) — distinct from whatever public IP
  * the router happens to have, which is irrelevant to anyone on the practicum
  * network. `agenKunciHash` is null until the agent completes enrollment;
  * `daftarTokenHash`/`daftarTokenExp` exist only during that window and are

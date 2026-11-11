@@ -622,9 +622,9 @@ const DASAR: Record<string, Dasar> = {
   "m4.modul4_beacon.2": {
     jawaban: "NTP_SERVER",
     kenapa: t(
-      "Alamat PC Server itu sendiri (192.168.4.1). Hotspot tidak punya jalur ke Internet, jadi pool.ntp.org tidak akan pernah menjawab.",
-      "The PC Server's own address (192.168.4.1). The hotspot has no route to the Internet, so pool.ntp.org would never answer.",
-      "就是 PC 服务器自己的地址（192.168.4.1）。热点不通互联网，所以 pool.ntp.org 永远不会回应。",
+      "Server waktu bersama (time.cloudflare.com), dijangkau lewat hotspot ponsel kelompok. Beacon dan Hunter harus memakai server yang sama supaya selisih jamnya sahih.",
+      "The shared time server (time.cloudflare.com), reached through the group phone's hotspot. Beacon and Hunter must use the same one so the difference between their clocks is valid.",
+      "共用的时间服务器（time.cloudflare.com），通过本组手机的热点访问。Beacon 和 Hunter 必须用同一个，这样两边时钟的差才有意义。",
     ),
     bantuan: t(
       "Jangan tulis alamatnya langsung. Pakai konstanta alamat server waktu yang didefinisikan di bagian atas berkas.",

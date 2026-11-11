@@ -199,7 +199,6 @@ export default function EndFlow({
       ),
       onJump: keTabel,
     },
-    ...(sesi.modul === 4 && sesi.butuhAp ? [{ key: "ap", ok: true, title: t.chkAp }] : []),
   ];
   const terbuka = cek.filter((c) => !c.ok);
   const beres = cek.filter((c) => c.ok);

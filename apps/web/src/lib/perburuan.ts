@@ -62,6 +62,10 @@ export interface Ringkas {
   /** Today's join code for the scoreboard; only ever handed to the people
    *  the session's own group and Asisten, never to a guest. */
   kode: string | null;
+  /** Each group's board key (group number to 8 letters): pasted into HUNT_KEY
+   *  in that group's sketches, so only its own boards can feed its hunt. A
+   *  group is only ever handed its own. */
+  kunci: Record<string, string>;
   sesi: number | null;
   mulai: boolean;
   selesai: boolean;
@@ -129,9 +133,18 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
     peristiwa.push(p);
   }
   const kode = typeof raw.kode === "string" && /^[A-Z0-9]{4,12}$/.test(raw.kode) ? raw.kode : null;
+  const kunci: Record<string, string> = {};
+  if (isObj(raw.kunci)) {
+    for (const [nomor, nilai] of Object.entries(raw.kunci).slice(0, MAKS_GRUP)) {
+      if (/^[0-9]{1,2}$/.test(nomor) && typeof nilai === "string" && /^[A-Z0-9]{8}$/.test(nilai)) {
+        kunci[nomor] = nilai;
+      }
+    }
+  }
   return {
     versi: 1,
     kode,
+    kunci,
     sesi: int(raw.sesi, 1, 10),
     mulai: raw.mulai === true,
     selesai: raw.selesai === true,
@@ -142,20 +155,10 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
   };
 }
 
-/** The hotspot the agent read from the PC's hostapd file, or null. The
- *  Server page still shows it; the hunt itself no longer uses it. */
-export function saringHotspot(raw: unknown): { ssid: string; sandi: string | null } | null {
-  if (!isObj(raw)) return null;
-  const ssid = str(raw.ssid, 32);
-  if (!ssid) return null;
-  return { ssid, sandi: str(raw.sandi, 63) };
-}
-
 /**
  * Where the scoreboard is reached (2026-11-10): the PC's hunt server behind a
  * Cloudflare Tunnel, so phones stay on their own mobile data and can be
- * carried anywhere. The old IRIS_IOT hotspot on the PC is no longer part of
- * the hunt.
+ * carried anywhere. The PC makes no hotspot at all any more.
  */
 export const HOST_PERBURUAN = "hunt.irisiotlab.com";
 

@@ -10,7 +10,7 @@
  * stay so. The rest the Asisten fixes, or forces with a reason.
  */
 
-export type IdCekMulai = "tot" | "modul" | "pc" | "layanan" | "hotspot";
+export type IdCekMulai = "tot" | "modul" | "pc" | "layanan";
 
 export interface CekMulai {
   id: IdCekMulai;
@@ -22,8 +22,6 @@ export interface CekMulai {
   keadaan?: string;
   /** Seconds since the PC's last heartbeat (pc only). */
   umurDetik?: number | null;
-  /** Hotspot: on now, or queued with this start. */
-  diantre?: boolean;
 }
 
 /** The service each module needs on the PC. Module 1 is Bluetooth between
@@ -47,7 +45,6 @@ export interface FaktaMulai {
     umurDetik: number | null;
     batasLuringDetik: number;
     layanan: Record<string, string> | null;
-    modeJaringan: string | null;
   } | null;
 }
 
@@ -82,8 +79,6 @@ export function cekMulai(f: FaktaMulai): CekMulai[] {
     keadaan: keadaan ?? (unit && online ? "tidak dilaporkan" : undefined),
   });
 
-  // No hotspot check (2026-10-08): Module 4 starts with the hotspot off, and
-  // the Asisten's Mulai Perburuan turns it on later in the session.
   return out;
 }
 

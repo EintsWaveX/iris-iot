@@ -5,7 +5,6 @@ import {
   perburuanBerjalan,
   hotspotKelompok,
   penghargaanKelompok,
-  saringHotspot,
   saringPerburuan,
   tautanPerburuan,
 } from "../perburuan";
@@ -119,15 +118,6 @@ describe("penghargaanKelompok", () => {
 });
 
 describe("hotspot", () => {
-  it("keeps only a named network", () => {
-    expect(saringHotspot({ ssid: "LAB-AP", sandi: "contoh" })).toEqual({
-      ssid: "LAB-AP",
-      sandi: "contoh",
-    });
-    expect(saringHotspot({ ssid: "" })).toBeNull();
-    expect(saringHotspot({ ssid: "LAB" })).toEqual({ ssid: "LAB", sandi: null });
-  });
-
   it("names each group's own phone hotspot", () => {
     expect(hotspotKelompok(3).ssid).toBe("IRIS-G3");
     expect(hotspotKelompok(1).ssid).not.toBe(hotspotKelompok(2).ssid);
@@ -147,5 +137,15 @@ describe("scoreboard link and join code", () => {
     expect(saringPerburuan({ ...contoh, kode: "k7 qx" })?.kode).toBeNull();
     expect(saringPerburuan({ ...contoh, kode: 12345 })?.kode).toBeNull();
     expect(saringPerburuan(contoh)?.kode).toBeNull();
+  });
+
+  it("keeps only well-formed per-group board keys", () => {
+    const kunci = saringPerburuan({
+      ...contoh,
+      kunci: { "1": "MPLLTH9L", "2": "short", "3": "lowercase", x: "ABCDEFGH", "4": 12345678 },
+    })?.kunci;
+    expect(kunci).toEqual({ "1": "MPLLTH9L" });
+    expect(saringPerburuan(contoh)?.kunci).toEqual({});
+    expect(saringPerburuan({ ...contoh, kunci: "MPLLTH9L" })?.kunci).toEqual({});
   });
 });

@@ -28,7 +28,6 @@ export async function faktaPc(): Promise<(NonNullable<FaktaMulai["pc"]> & { id: 
         serverId: denyut.serverId,
         pada: denyut.pada,
         layanan: denyut.layanan,
-        modeJaringan: denyut.modeJaringan,
       })
       .from(denyut)
       .where(inArray(denyut.serverId, ids))
@@ -42,7 +41,6 @@ export async function faktaPc(): Promise<(NonNullable<FaktaMulai["pc"]> & { id: 
     umurDetik: pada ? Math.max(0, Math.round((Date.now() - pada.getTime()) / 1000)) : null,
     batasLuringDetik: batasLuringDetik(pada, running?.mulaiPada ?? null),
     layanan: beat?.layanan ?? null,
-    modeJaringan: beat?.modeJaringan ?? null,
   };
 }
 

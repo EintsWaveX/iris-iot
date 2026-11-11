@@ -22,12 +22,12 @@
 
 #define GROUP_ID 1
 
-const char* WIFI_SSID      = "IRIS_IOT";
+const char* WIFI_SSID      = "IRIS-G1";
 const char* WIFI_PASSWORD  = "13015954";
-const char* SERVER_HOST    = "192.168.4.1";
-const uint16_t SERVER_PORT = 8080;
-
-const char* NTP_SERVER      = "192.168.4.1";
+const char* SERVER_HOST    = "hunt.irisiotlab.com";
+const uint16_t SERVER_PORT = 443;
+const char* HUNT_KEY       = "SITE-KEY";  // Board key from the website's Hunt step
+const char* NTP_SERVER      = "time.cloudflare.com";
 const long  GMT_OFFSET_SEC  = 25200;
 const int   DST_OFFSET_SEC  = 0;
 
@@ -82,7 +82,7 @@ String wallClockTimestamp() {
 }
 
 void connectToWiFi() {
-  Serial.print("Connecting to the PC hotspot");
+  Serial.print("Connecting to the phone hotspot");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -98,7 +98,7 @@ void connectToWiFi() {
 }
 
 void syncClock() {
-  Serial.print("Synchronising the clock to the PC");
+  Serial.print("Synchronising the clock");
   configTime(GMT_OFFSET_SEC, DST_OFFSET_SEC, ________);  // (2) NTP server address
 
   struct tm timeinfo;
@@ -140,7 +140,7 @@ void setup() {
   // milliseconds after that, and so on -- see the TDMA_* comment above.
   nextFireAt = millis() + (unsigned long)(GROUP_ID - 1) * TDMA_SLOT_MS;
 
-  webSocket.begin(SERVER_HOST, SERVER_PORT, "/beacon");
+  webSocket.beginSSL(SERVER_HOST, SERVER_PORT, "/beacon");
   webSocket.setReconnectInterval(2000);
   WiFi.setAutoReconnect(true);
 
@@ -166,9 +166,9 @@ void loop() {
 
   // The scoreboard needs to know which packet numbers were actually sent, so
   // that a packet which never reached a hunter can be counted as lost.
-  char report[80];
-  snprintf(report, sizeof(report), "{\"grup\":%d,\"seq\":%lu,\"tx\":\"%s\"}",
-           GROUP_ID, (unsigned long)seq, sentAt.c_str());
+  char report[96];
+  snprintf(report, sizeof(report), "{\"grup\":%d,\"k\":\"%s\",\"seq\":%lu,\"tx\":\"%s\"}",
+           GROUP_ID, HUNT_KEY, (unsigned long)seq, sentAt.c_str());
   webSocket.sendTXT(report);
 
   Serial.printf("[%s] Transmitted packet #%lu (group %d)\n", sentAt.c_str(),

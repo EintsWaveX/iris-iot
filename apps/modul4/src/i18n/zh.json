@@ -326,6 +326,8 @@
  "You're leading, {0} is {1}% behind": "你们领先，{0} 落后 {1}%",
  "Your body is the antenna: face one way, stand still 4 seconds, turn 45 degrees.": "你的身体就是天线：面向一个方向，站着不动 4 秒，再转 45 度。",
  "Your group comes from this session's list. You don't pick it.": "你的组来自这节课的名单，不用自己选。",
+ "Your group's board is sending the wrong key, so its messages are dropped. Paste the key from the site's Hunt step into HUNT_KEY in hunter.ino and beacon.ino, then upload again.": "你们组的板子发来的码不对，数据没有被收下。把网站寻踪那一步里的码，填到 hunter.ino 和 beacon.ino 的 HUNT_KEY 里，再下载到板子里。",
+ "Your group's board key is wrong": "你们组的板子码不对",
  "Your phone lost its internet. Usually weak signal or no data left; the page tries again by itself.": "手机没网了。可能是信号不好或数据用完，页面会自己再试。",
  "Your role": "你的角色",
  "announced: {0}": "发布公告：{0}",

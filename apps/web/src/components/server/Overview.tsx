@@ -17,11 +17,9 @@ import {
   PlayIcon,
   PowerIcon,
   TerminalWindowIcon,
-  WifiHighIcon,
 } from "@phosphor-icons/react";
 import Confirm from "../ui/Confirm";
 import IconButton from "../ui/IconButton";
-import { Switch } from "../ui/Controls";
 import { getJson, jamMenit, postJson, sejak, tanggalPanjang, useTick } from "../../lib/app";
 import { useSegar } from "../../lib/siaran";
 import { AngkaGulir } from "../ui/Sorot";
@@ -30,7 +28,6 @@ import {
   bacaHasilSiap,
   bacaKondisi,
   jamServer,
-  hotspotMenyala,
   LAYANAN_URUT,
   urutkanLayanan,
 } from "../../lib/server-shared";
@@ -118,14 +115,8 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
   const t = S[lang];
   const now = useTick(1_000);
   const hb = data.denyutTerakhir;
-  const on = hotspotMenyala(hb?.modeJaringan);
-  const [want, setWant] = useState<boolean | null>(null);
   const [ask, setAsk] = useState(false);
   const [diag, setDiag] = useState(false);
-  useEffect(() => {
-    if (want !== null && want === on) setWant(null);
-  }, [on, want]);
-  const shown = want ?? on;
   const netLast = terakhirDari(data, "diag.jaringan");
   const netRun = sedangBerjalan(data, "diag.jaringan");
   const syncRun = sedangBerjalan(data, "jam.selaraskan");
@@ -148,7 +139,7 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
       <div className="panel__head">
         <h2 className="panel__title">{t.quick}</h2>
       </div>
-      {/* Sync Clock and the hotspot are for everyone; the rest needs Server Control. */}
+      {/* Sync Clock is for everyone; the rest needs Server Control. */}
       <div className="qa">
         <Tile
           title={t.sync}
@@ -190,30 +181,6 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
             onClick={() => (data.sesiModul !== null ? setAsk(true) : void restartAll())}
           />
         )}
-        <div className="qa__b qa__b--hot" data-on={shown ? "yes" : "no"}>
-          <WifiHighIcon size={26} aria-hidden="true" />
-          <span className="stack stack--sm grow">
-            <span className="qa__title">
-              <b>{t.hotspot}</b>
-              <span className={`pill ${shown ? "pill--ok" : ""}`}>
-                {shown ? t.hotspotOn : t.hotspotOff}
-              </span>
-            </span>
-            <span className="hint">{want !== null ? t.hotspotWait : t.hotspotHint}</span>
-          </span>
-          <Switch
-            on={shown}
-            busy={want !== null}
-            label={t.hotspot}
-            onChange={(v) => {
-              setWant(v);
-              void kirim(id, v ? "ap.nyala" : "ap.mati", {}, lang).then((ok) => {
-                if (!ok) setWant(null);
-                refresh();
-              });
-            }}
-          />
-        </div>
       </div>
       <Confirm
         open={ask}

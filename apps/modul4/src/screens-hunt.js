@@ -485,6 +485,9 @@
     const f = N.frame;
     const sisa = f && f.sesi_sisa != null ? Math.ceil(f.sesi_sisa / 60) : null;
     const head = html`<div class="hhead"><span class="row" style="gap:8px">${member ? html`<${Badge}><${Icon} n=${ROLES[role].i} sm />${L(...ROLES[role].l)}</${Badge}>` : html`<${Badge} tone="ok"><${Icon} n="eye" sm />${L("Melihat sebagai asisten", "Viewing as an assistant")}</${Badge}>`}<span class="hint">${sisa != null ? L(`Arena ${arena()} m · sisa ${sisa} menit`, `Arena ${arena()} m · ${sisa} minutes left`) : L(`Arena ${arena()} m`, `Arena ${arena()} m`)}</span></span>${!member && html`<${GroupPick} g=${g} />`}</div>`;
+    if (!row && f && (f.kunci_salah || []).includes(g))
+      return html`<${H.HuntApp} tab="hunt"><div class="hpage__in">${head}
+        <section class="card card--raised hjoin"><${H.StateView} icon="lock-key" title=${L("Kunci papan kelompokmu salah", "Your group's board key is wrong")} body=${L("Papan kelompokmu mengirim kunci yang salah, jadi pesannya dibuang. Tempel kunci dari langkah Perburuan situs ke HUNT_KEY di hunter.ino dan beacon.ino, lalu unggah ulang.", "Your group's board is sending the wrong key, so its messages are dropped. Paste the key from the site's Hunt step into HUNT_KEY in hunter.ino and beacon.ino, then upload again.")} /></section></div></${H.HuntApp}>`;
     if (!row)
       return html`<${H.HuntApp} tab="hunt"><div class="hpage__in">${head}
         <section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menunggu hunter kelompokmu", "Waiting for your group's hunter")} body=${L("Papan skor belum menerima paket dari hunter kelompok ini. Nyalakan papan hunter dan pastikan tersambung ke hotspot kelompokmu.", "The scoreboard hasn't had a packet from this group's hunter yet. Power the hunter board and make sure it's on your group's hotspot.")} /></section></div></${H.HuntApp}>`;
