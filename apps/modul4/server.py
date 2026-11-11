@@ -324,6 +324,8 @@ ROSTER_PATH = HERE / "roster.json"   # berkas v1; dibuang bila ditemukan
 JADWAL_IMPOR_PATH_BAWAAN = pathlib.Path("/var/lib/iris-agent/bagi/jadwal-modul4.json")
 JADWAL_IMPOR_PATH = JADWAL_IMPOR_PATH_BAWAAN  # dapat diganti lewat --jadwal-impor
 JADWAL_IMPOR_MTIME: float | None = None
+IMPOR_ULANG = False                # ada sesi yang ditolak: coba lagi walau berkasnya sama
+IMPOR_GALAT: dict = {}             # sesi -> alasan terakhir yang sudah dicatat ke konsol
 JADWAL_MULAI = ("06:30", "09:30", "12:30", "15:30")
 SESI_DURASI_SEC = 150 * 60         # batas satu sesi praktikum
 SESI_JEDA_SEC = 30 * 60            # bersih selambatnya sekian sebelum sesi berikut
@@ -1637,11 +1639,12 @@ def _anggota_bersih(raw) -> tuple[list[dict], str]:
     return keluar, ""
 
 
-def _bangun_regu(entry: dict, patch: dict) -> tuple[dict | None, str]:
-    """Validasi satu tempelan dan bangun dict regu-nya, termasuk pengecekan
-    NIM ganda lintas sesi. Diekstrak dari jadwal_set() agar jadwal_impor()
-    (Stage 18) tunduk pada aturan validasi yang persis sama, alih-alih
-    menduplikasi logikanya dengan risiko keduanya diam-diam berbeda."""
+def _regu_bersih(patch: dict) -> tuple[dict | None, str]:
+    """Validasi satu tempelan dan bangun dict regu-nya, tanpa pengecekan
+    lintas sesi. Dipakai jadwal_set() (lewat _bangun_regu) dan jadwal_impor()
+    (Stage 18) agar keduanya tunduk pada aturan validasi yang persis sama,
+    alih-alih menduplikasi logikanya dengan risiko keduanya diam-diam
+    berbeda."""
     if not isinstance(patch, dict):
         return None, "isian sesi tidak sah"
 
@@ -1667,6 +1670,16 @@ def _bangun_regu(entry: dict, patch: dict) -> tuple[dict | None, str]:
             "aktif": bool(value.get("aktif", True)),
             "anggota": anggota,
         }
+
+    return regu, ""
+
+
+def _bangun_regu(entry: dict, patch: dict) -> tuple[dict | None, str]:
+    """_regu_bersih() ditambah pengecekan NIM ganda terhadap isi sesi-sesi
+    lain yang sekarang ada. Untuk tempelan manual (jadwal_set())."""
+    regu, galat = _regu_bersih(patch)
+    if galat:
+        return None, galat
 
     # Satu orang tidak bisa berada di dua kelompok pada hari yang sama, dan
     # kalau itu terjadi pencarian NIM akan memilih salah satu tanpa bersuara.
@@ -1714,6 +1727,19 @@ def jadwal_set(sid, patch: dict) -> tuple[bool, str]:
     return True, ""
 
 
+def _ada_anggota(entry: dict) -> bool:
+    """Apakah sesi ini berisi paling tidak satu orang."""
+    return any(isi.get("anggota") for isi in entry["regu"].values())
+
+
+def _impor_ditolak(sid, galat: str) -> None:
+    """Catat satu sesi yang ditolak impornya, sekali saja per alasan; impor
+    yang diulang tiap denyut tidak boleh memenuhi konsol dengan baris sama."""
+    if IMPOR_GALAT.get(sid) != galat:
+        IMPOR_GALAT[sid] = galat
+        print(f"[{timestamp()}] jadwal impor sesi {sid} ditolak: {galat}")
+
+
 def jadwal_impor(path: pathlib.Path) -> int | None:
     """Tarik jadwal Modul 4 hari ini dari berkas yang ditulis agent PC
     (Stage 18), diisi dari respons denyut jantungnya sendiri
@@ -1728,12 +1754,19 @@ def jadwal_impor(path: pathlib.Path) -> int | None:
     rondenya. Mengembalikan nomor sesi yang harus dimulai, atau None.
 
     Sebuah sesi yang sumber-nya sudah "pc" -- pernah ditempel manual di
-    PC sejak impor terakhir -- DILEWATI, bukan ditimpa: kotak tempel
-    tetap menjadi cadangan luring yang berlaku penuh begitu asisten
-    menyentuhnya, persis seperti sebelum Stage 18 ada. Sesi yang gagal
-    validasi (mis. NIM ganda) dilewati dan dicatat ke konsol tanpa
+    PC sejak impor terakhir dan masih berisi orang -- DILEWATI, bukan
+    ditimpa: kotak tempel tetap menjadi cadangan luring yang berlaku penuh
+    begitu asisten menyentuhnya, persis seperti sebelum Stage 18 ada. Sesi
+    yang gagal validasi (mis. NIM ganda) dilewati dan dicatat ke konsol tanpa
     menggagalkan sesi lain dalam berkas yang sama -- satu baris rusak tidak
     boleh membuat keempat sesi gagal diimpor.
+
+    Satu NIM hanya boleh ada di satu sesi, dan itu dicek terhadap gambar
+    akhir hari ini, bukan menurut urutan tiba: sesi yang dikosongkan atau
+    tidak lagi disebut berkas (dibatalkan di situs) melepas orangnya, dan
+    sesi yang sedang berburu mendapat orangnya lebih dulu. Sesi yang masih
+    bentrok dicoba lagi pada denyut berikutnya (IMPOR_ULANG), karena
+    penyebabnya bisa hilang tanpa berkasnya berubah.
     """
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -1744,8 +1777,11 @@ def jadwal_impor(path: pathlib.Path) -> int | None:
         print(f"[{timestamp()}] jadwal impor: bentuk tidak dikenal, diabaikan")
         return None
 
+    global IMPOR_ULANG
     diterapkan = 0
     mulai_sekarang: int | None = None
+    calon: list[tuple[int, dict, dict]] = []   # (prioritas, sesi, regu bersih)
+    disebut: set[int] = set()
     for slot in data["sesi"]:
         if not isinstance(slot, dict):
             continue
@@ -1753,22 +1789,78 @@ def jadwal_impor(path: pathlib.Path) -> int | None:
         entry = sesi_oleh_id(sid if isinstance(sid, int) else -1)
         if entry is None:
             continue
+        disebut.add(entry["id"])
         berburu = slot.get("berburu")
         if isinstance(berburu, str) and berburu and berburu != JADWAL.get("berburu"):
             JADWAL["berburu"] = berburu
             mulai_sekarang = entry["id"]
-        if entry.get("sumber") == "pc":
+        # Tempelan manual yang masih berisi orang dilindungi. Yang kosong tidak
+        # punya apa-apa untuk dilindungi, dan kalau dibiarkan memblokir impor
+        # sesi yang sedang berburu tidak punya daftar sama sekali.
+        if entry.get("sumber") == "pc" and _ada_anggota(entry):
             continue
 
         patch = slot.get("regu") if isinstance(slot.get("regu"), dict) else {}
-        regu, galat = _bangun_regu(entry, patch)
+        regu, galat = _regu_bersih(patch)
         if galat:
-            print(f"[{timestamp()}] jadwal impor sesi {sid} ditolak: {galat}")
+            _impor_ditolak(sid, galat)
+            continue
+        # Sesi yang sedang berburu (atau sedang berjalan) mendapat orangnya lebih dulu.
+        utama = (isinstance(berburu, str) and bool(berburu)) or entry["id"] == JADWAL.get("aktif")
+        calon.append((0 if utama else 1, entry, regu))
+
+    # Sesi yang dulu diisi situs tetapi kini tidak disebut lagi (dibatalkan,
+    # mis. sesi TOT yang diulang) tidak ada di jadwal hari ini. Isinya dilepas;
+    # kalau tidak, orang-orang itu tertahan di sana dan sesi yang benar-benar
+    # berjalan tidak bisa memakai NIM mereka.
+    for entry in JADWAL["sesi"]:
+        if (entry["id"] not in disebut and entry.get("sumber") == "web"
+                and _ada_anggota(entry)):
+            calon.append((1, entry, {}))
+
+    # Satu NIM hanya boleh ada di satu sesi. Dicek terhadap gambar AKHIR, bukan
+    # menurut urutan tiba: sesi yang di berkas ini dikosongkan melepas orangnya
+    # lebih dulu, jadi urutan nomor sesi tidak lagi menentukan siapa yang
+    # ditolak (dulu sesi 4 ditolak karena sesi 5 masih memegang NIM yang sama,
+    # lalu tidak pernah dicoba lagi karena berkasnya tidak berubah).
+    id_calon = {entry["id"] for _, entry, _ in calon}
+    terpakai: dict[str, str] = {}
+    for lain in JADWAL["sesi"]:
+        if lain["id"] in id_calon:
+            continue
+        for gid, isi in lain["regu"].items():
+            for anggota in isi.get("anggota", []):
+                terpakai.setdefault(anggota["nim"], f"sesi {lain['id']} kelompok {gid}")
+
+    bentrok = False
+    for _, entry, regu in sorted(calon, key=lambda c: (c[0], c[1]["id"])):
+        klaim = dict(terpakai)
+        galat = ""
+        for gid, isi in regu.items():
+            for anggota in isi["anggota"]:
+                tempat = f"sesi {entry['id']} kelompok {gid}"
+                if anggota["nim"] in klaim:
+                    galat = (f"NIM {anggota['nim']} muncul dua kali: "
+                             f"{klaim[anggota['nim']]} dan {tempat}")
+                    break
+                klaim[anggota["nim"]] = tempat
+            if galat:
+                break
+        if galat:
+            _impor_ditolak(entry["id"], galat)
+            bentrok = True
             continue
 
-        entry["regu"] = regu
-        entry["sumber"] = "web"
-        diterapkan += 1
+        IMPOR_GALAT.pop(entry["id"], None)
+        terpakai = klaim
+        if entry["regu"] != regu or entry.get("sumber") != "web":
+            entry["regu"] = regu
+            entry["sumber"] = "web"
+            diterapkan += 1
+
+    # Bentrok bisa hilang sendiri (tempelan yang menahan NIM itu dikosongkan),
+    # padahal berkasnya tidak berubah, jadi dicoba lagi pada denyut berikutnya.
+    IMPOR_ULANG = bentrok
 
     if diterapkan:
         JADWAL["rev"] += 1
@@ -1790,7 +1882,7 @@ def jadwal_impor_jika_berubah(path: pathlib.Path) -> int | None:
         mtime = path.stat().st_mtime
     except OSError:
         return None
-    if mtime == JADWAL_IMPOR_MTIME:
+    if mtime == JADWAL_IMPOR_MTIME and not IMPOR_ULANG:
         return None
     JADWAL_IMPOR_MTIME = mtime
     return jadwal_impor(path)

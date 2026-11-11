@@ -37,6 +37,9 @@ jobs:
           python-version: "3.12"
       - run: pip install "websockets>=13"
 
+      - name: Schedule import (who holds which NIM across slots)
+        run: python tools/uji_jadwal_impor.py
+
       - name: Start the server with a fixed token
         run: |
           python server.py --token UJICI --arena 300 &
