@@ -174,3 +174,52 @@ button.hphoto--sm { width: 84px; }
 /* a podium with one or two finishers so far stays centred */
 .hpodium:not(:has(> :nth-child(3))) { grid-template-columns: repeat(var(--pods, 2), minmax(0, 200px)); justify-content: center; }
 .hpodium:not(:has(> :nth-child(2))) { --pods: 1; }
+
+/* ---- Hunt polish, phase 1 and 2 (2026-11-11) ---- */
+
+/* Sheets. A phone gets the bottom sheet (mockup.css). From 640px up it is a
+   centred card, and the Display panel (.sheet--pop) hangs from the header's
+   right corner like the IRIS site's Tampilan. The Done button is for phones. */
+.sheet__done { position: sticky; bottom: -24px; padding: 8px 0 2px; background: linear-gradient(to top, var(--surface-2) 70%, transparent); }
+@container huntapp (min-width: 640px) {
+  .sheet {
+    left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%);
+    width: min(520px, calc(100% - 48px)); max-height: min(86%, 760px);
+    padding: 22px 24px 24px; border: 1px solid var(--hairline-strong); border-radius: 20px;
+    box-shadow: var(--shadow-lift);
+  }
+  .sheet::before, .sheet__done { display: none; }
+  .sheet--pop { top: 72px; right: 16px; left: auto; transform: none; width: min(440px, calc(100% - 32px)); max-height: calc(100% - 88px); }
+  .sheet[data-state="open"] { animation: hsheet-in 200ms var(--ease) both; }
+  .sheet[data-state="closed"] { animation: hsheet-out 140ms ease-in both; }
+  .sheet--pop[data-state="open"] { animation-name: hpop-in; }
+  .sheet--pop[data-state="closed"] { animation-name: hpop-out; }
+}
+@keyframes hsheet-in { from { opacity: 0; transform: translate(-50%, -48%) scale(.98); } }
+@keyframes hsheet-out { to { opacity: 0; transform: translate(-50%, -48%) scale(.98); } }
+@keyframes hpop-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+@keyframes hpop-out { to { opacity: 0; transform: translateY(-6px) scale(.98); } }
+.reduce .sheet { animation: none !important; }
+.field[data-off="yes"] { opacity: .6; }
+
+/* Toasts clear the bottom tab bar until the tabs move to the top (900px). */
+@container huntapp (min-width: 640px) and (max-width: 899px) { .toasts { bottom: calc(84px + env(safe-area-inset-bottom)); } }
+
+/* The header and the tab bar line up with the centred 1240px column. */
+@container huntapp (min-width: 1289px) {
+  .hbar, .htabs { padding-inline: calc((100% - 1240px) / 2 + 24px); }
+}
+
+/* People: an avatar in the group's colour and the full name, never cut. */
+.hpeople { display: grid; gap: 8px; width: 100%; text-align: left; }
+@container huntapp (min-width: 640px) { .hpeople { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hperson { display: flex; align-items: center; gap: 10px; min-height: 44px; min-width: 0; padding: 6px 14px 6px 6px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--surface-2); }
+.hperson.is-on { border-color: color-mix(in srgb, var(--ok) 65%, var(--hairline)); }
+.hperson__av { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; font: 700 .78rem var(--font-body); color: var(--text); background: color-mix(in srgb, var(--g, var(--accent)) 26%, var(--surface-3)); }
+.hperson__name { min-width: 0; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.hperson .dot { margin-left: auto; flex: none; }
+.hperson--sm { min-height: 36px; padding: 3px 12px 3px 4px; font-size: .9rem; }
+.hperson--sm .hperson__av { width: 28px; height: 28px; font-size: .7rem; }
+/* the names under a role card sit on their own row */
+.rolecard__who { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.rolecard__who:empty { display: none; }
