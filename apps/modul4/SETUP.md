@@ -105,16 +105,19 @@ menggantikannya (`server.py`, diuji `tools/uji_protokol.py`):
   `X-Forwarded-For`, ...) dan menolak yang datang lewat tunnel.
 
 - **Kunci papan per kelompok**: tiap pesan Beacon dan Hunter membawa kunci
-  delapan huruf (`"k"`) milik kelompoknya, diturunkan dari token, sesi,
-  tanggal, dan nomor kelompok. Situs IRIS menampilkannya di langkah Perburuan
+  delapan huruf (`"k"`) milik kelompoknya, diturunkan dari token PC dan nomor
+  kelompok saja. Situs IRIS menampilkannya di langkah Perburuan
   (hanya kunci kelompok itu sendiri) dan kelompok menempelkannya ke `HUNT_KEY`
   di `hunter.ino` dan `beacon.ino` sebelum mengunggah. Pesan tanpa kunci yang
   benar dibuang; kunci satu kelompok tidak berlaku untuk kelompok lain, dan
   orang luar tidak bisa menyuntikkan RSSI palsu. Papan skor menunjukkan
   "Kunci papan kelompokmu salah" selagi papan sebuah kelompok masih
   mengirim kunci yang salah, dan soket yang terus salah (50 pesan) ditutup.
-  Kunci berganti tiap sesi dan tiap hari, jadi sketsa harus diunggah ulang
-  untuk sesi berikutnya. Kegagalan kunci tidak dihitung ke blokir per alamat,
+  Kunci TIDAK berganti antar sesi maupun hari, dan tetap sama bila server
+  dinyalakan ulang: papan yang sekali diunggah dengan kuncinya tetap sah
+  selama token PC tidak diganti (kode papan di atas tetap berganti tiap
+  sesi). Kalau token diganti, semua kunci berubah dan papan harus diunggah
+  ulang. Kegagalan kunci tidak dihitung ke blokir per alamat,
   karena alamat itu adalah ponsel hotspot kelompok yang juga dipakai
   anggotanya membuka papan.
 

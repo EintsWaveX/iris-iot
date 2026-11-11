@@ -38,7 +38,7 @@ export const C = dict({
     huntKeyLater:
       "Nomor kelompok, nama Wi-Fi, dan sync word LoRa sudah terisi otomatis. Kunci papan (HUNT_KEY) baru muncul di sini setelah asisten memulai perburuan. Sampai saat itu, kompilasi dan unggah dulu dengan kunci sementara, lalu unggah ulang saat kuncinya sudah terisi.",
     huntKeyFilled:
-      "Kunci papan kelompokmu sudah terisi di HUNT_KEY. Unduh filenya sekarang dan unggah ke kedua papan.",
+      "Kunci papan kelompokmu sudah terisi di HUNT_KEY dan tidak berganti antar sesi. Unduh filenya sekarang dan unggah ke kedua papan; papan yang sudah berisi kunci ini tidak perlu diunggah ulang.",
     keyError: "Jawaban belum bisa dimuat. Coba lagi sebentar.",
     progress: (a: number, b: number) => `${a} dari ${b} blank benar`,
     code: "Kode",
@@ -114,7 +114,7 @@ export const C = dict({
     huntKeyLater:
       "Your group number, Wi-Fi name and LoRa sync word are already filled in. The board key (HUNT_KEY) only appears here once your assistant starts the hunt. Until then, compile and upload with the placeholder, then upload again when the key is filled in.",
     huntKeyFilled:
-      "Your group's board key is already in HUNT_KEY. Download the file now and upload it to both boards.",
+      "Your group's board key is already in HUNT_KEY and does not change between sessions. Download the file now and upload it to both boards; a board that already has this key does not need uploading again.",
     keyError: "The answers could not load. Try again in a moment.",
     progress: (a: number, b: number) => `${a} of ${b} blanks right`,
     code: "Code",
@@ -188,7 +188,8 @@ export const C = dict({
     huntNetInternet: "这份代码用于你们组手机的热点（IRIS-G<n>）和 hunt.irisiotlab.com 上的记分板。",
     huntKeyLater:
       "组号、Wi-Fi 名称和 LoRa 同步字都已自动填好。板子密钥（HUNT_KEY）要等助教开始寻踪后才会出现在这里。在那之前，先用占位符编译并上传，密钥填好后再上传一次。",
-    huntKeyFilled: "你们组的板子密钥已经填在 HUNT_KEY 里了。现在下载文件，上传到两块板子上。",
+    huntKeyFilled:
+      "你们组的板子密钥已经填在 HUNT_KEY 里了，各节课之间不会更换。现在下载文件，上传到两块板子上；已经有这个密钥的板子不用再上传。",
     keyError: "答案暂时无法加载，请稍后再试。",
     progress: (a: number, b: number) => `${b} 个填空对了 ${a} 个`,
     code: "代码",
