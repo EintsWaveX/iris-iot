@@ -70,15 +70,24 @@
     return html`<span class="hclock" role="timer"><span class="hclock__d">${H.tgl(d)}</span><b class="mono">${compact ? t.slice(0, 5) : t}</b></span>`;
   };
   H.HClock = HClock;
+  /* One person of a group: initials avatar in the group's colour, the full
+     name beside it (it wraps, it is never cut), and a dot when their phone is
+     connected. Nothing depends on hover, so a phone shows the name too. */
+  H.Person = ({ m, g, sm }) => html`<span class=${"hperson" + (m.hadir ? " is-on" : "") + (sm ? " hperson--sm" : "")} style=${`--g:var(--group-${g})`}>
+    <span class="hperson__av" aria-hidden="true">${H.initials(m.nama)}</span>
+    <span class="hperson__name">${m.nama}</span>
+    ${m.hadir && html`<span class="dot dot--ok" role="img" aria-label=${L("Tersambung", "Connected")}></span>`}
+  </span>`;
   const HDisplay = ({ onClose }) => {
     const st = H.useStore();
-    return html`<${H.Sheet} title=${L("Tampilan perburuan", "Hunt display")} onClose=${onClose}><div class="stack">
+    return html`<${H.Sheet} pop done title=${L("Tampilan perburuan", "Hunt display")} onClose=${onClose}><div class="stack">
       <label class="hset"><span class="stack" style="gap:0"><b>${L("Mode Terang Matahari", "Bright Sun Mode")}</b><span class="hint">${L("Kontras tinggi dan angka besar buat di luar ruangan.", "High contrast and big numbers for outdoors.")}</span></span><${Switch} on=${st.sun} onChange=${(v) => H.set({ sun: v })} label=${L("Mode Terang Matahari", "Bright Sun Mode")} /></label>
       <label class="hset"><span class="stack" style="gap:0"><b>${L("Suara Geiger", "Geiger sound")}</b><span class="hint">${L("Bunyi makin cepat saat makin dekat. Layar tidak perlu dilihat terus.", "Ticks faster as you get closer, so you don't have to watch the screen.")}</span></span><${Switch} on=${!!st.sound} onChange=${(v) => (v ? H.unlockSound() : H.set({ sound: false }))} label=${L("Suara Geiger", "Geiger sound")} /></label>
       <label class="hset"><span class="stack" style="gap:0"><b>${L("Getar", "Vibrate")}</b><span class="hint">${L("Getar pendek mulai dari Hangat.", "A short buzz from Warm upwards.")}</span></span><${Switch} on=${st.vib !== false} onChange=${(v) => H.set({ vib: v })} label=${L("Getar", "Vibrate")} /></label>
       <div class="field"><span class="label">${L("Bahasa", "Language")}</span><${H.LangPick} /></div>
       <${H.ZhWeight} />
-      <div class="field"><span class="label">${L("Tema", "Theme")}</span><${Tabs} fill value=${st.theme} onChange=${(v) => H.set({ theme: v })} label=${L("Tema", "Theme")} tabs=${[{ v: "dark", l: L("Gelap", "Dark"), icon: "moon" }, { v: "light", l: L("Terang", "Light"), icon: "sun" }]} /></div>
+      <div class="field" data-off=${st.sun ? "yes" : "no"} inert=${st.sun ? "" : undefined}><span class="label">${L("Tema", "Theme")}</span><${Tabs} fill value=${st.sun ? "light" : st.theme} onChange=${(v) => H.set({ theme: v })} label=${L("Tema", "Theme")} tabs=${[{ v: "dark", l: L("Gelap", "Dark"), icon: "moon" }, { v: "light", l: L("Terang", "Light"), icon: "sun" }]} />
+        ${st.sun && html`<span class="hint">${L("Mode Terang Matahari sedang menyala, jadi layar tetap terang.", "Bright Sun Mode is on, so the screen stays light.")}</span>`}</div>
       <span class="hint">${H.canStayAwake() ? L("Layar tetap menyala selama perburuan.", "The screen stays on during the hunt.") : L("Browser tidak mengizinkan layar tetap menyala di hotspot ini. Matikan kunci layar otomatis sebentar.", "The browser won't keep the screen on over this hotspot. Turn off auto-lock for a while.")}</span>
     </div></${H.Sheet}>`;
   };
@@ -342,7 +351,7 @@
         <h1 class="h-title">${H.gname(g)}</h1>
         <p class="lede">${H.sync(g) ? L(`${H.kelompok(g)} · beacon kalian memancar dengan sync word ${H.sync(g)}. Papan lain tidak akan terbaca.`, `${H.kelompok(g)} · your beacon sends on sync word ${H.sync(g)}. Other boards won't be read.`) : H.kelompok(g)}</p>
         ${N.nama && html`<span class="hint">${L(`Halo, ${N.nama}`, `Hi, ${N.nama}`)}</span>`}
-        <div class="row" style="gap:6px;justify-content:center">${mem.map((m) => html`<span class=${"hmem" + (m.hadir ? " is-on" : "")} data-tip=${m.nama} tabindex="0">${H.initials(m.nama)}</span>`)}</div>
+        <div class="hpeople">${mem.map((m) => html`<${H.Person} m=${m} g=${g} />`)}</div>
         <${Btn} kind="primary" lg block iconEnd="arrow-right" onClick=${() => setStep("role")}>${L("Lanjut, Pilih Peran", "Next, Pick a Role")}</${Btn}>
       </section>`;
     } else {
@@ -353,7 +362,7 @@
         <p class="lede">${L("Peran hanya mengubah urutan layar Buru. Semua ponsel tetap melihat seluruh perburuan.", "A role only reorders the Hunt screen. Every phone still sees the whole hunt.")}</p>
         <div class="roles">${Object.entries(ROLES).map(([k, r]) => html`<button type="button" class="rolecard" aria-pressed=${String(role === k)} onClick=${() => setRole(k)}>
           <span class="rolecard__ic"><${Icon} n=${r.i} lg /></span><span class="stack" style="gap:2px"><b>${L(...r.l)}</b><span class="hint">${L(...r.d)}</span></span>
-          <span class="rolecard__who">${mem.filter((m) => m.peran === k).map((m) => html`<span class="hmem is-on" data-tip=${m.nama}>${H.initials(m.nama)}</span>`)}</span></button>`)}</div>
+          <span class="rolecard__who">${mem.filter((m) => m.peran === k).map((m) => html`<${H.Person} m=${{ ...m, hadir: false }} g=${g} sm />`)}</span></button>`)}</div>
         ${!st.sound && html`<div class="banner banner--ok"><${Icon} n="speaker-high" /><span class="grow">${L("Izinkan suara dan getar supaya kamu bisa berburu tanpa melihat layar.", "Allow sound and vibration so you can hunt without watching the screen.")}</span><${Btn} sm onClick=${() => { H.unlockSound(); H.toast(L("Suara dan getar menyala.", "Sound and vibration on."), { tone: "ok" }); }}>${L("Izinkan", "Allow")}</${Btn}></div>`}
         <${Btn} kind="primary" lg block icon="target" disabled=${!role || busy} onClick=${pick}>${L("Mulai Berburu", "Start Hunting")}</${Btn}>
       </section>`;

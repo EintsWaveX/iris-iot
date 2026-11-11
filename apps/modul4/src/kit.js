@@ -322,15 +322,20 @@
       </div>
     </${H.Portal}>`;
   };
-  H.Sheet = ({ title, onClose, children }) => {
+  /* A bottom sheet on a phone. From 640px up it is a centred card, or, with
+     `pop`, a panel hanging from the header's right corner (the Display
+     panel, like the IRIS site's Tampilan). `done` adds a Done button that
+     only the phone layout shows. */
+  H.Sheet = ({ title, onClose, children, pop, done }) => {
     const o = useOverlay(onClose);
     const box = useRef(null);
     useAutoFocus(box);
     return html`<${H.Portal}>
       <div class="scrim" data-state=${o.st} data-under=${o.under ? "yes" : "no"} onClick=${o.scrimClick}></div>
-      <div class="sheet" ref=${box} tabindex="-1" data-state=${o.st} inert=${o.under ? "" : undefined} role="dialog" aria-modal="true" aria-label=${title}>
+      <div class=${cls("sheet", pop && "sheet--pop")} ref=${box} tabindex="-1" data-state=${o.st} inert=${o.under ? "" : undefined} role="dialog" aria-modal="true" aria-label=${title}>
         <div class="row row--between" style="flex-wrap:nowrap"><h2 class="h2">${H.title(title)}</h2><${H.IconBtn} icon="x" label=${L("Tutup", "Close")} onClick=${o.close} /></div>
         ${typeof children === "function" ? children(o.close) : children}
+        ${done && html`<div class="sheet__done"><${H.Btn} kind="primary" lg block onClick=${o.close}>${L("Selesai", "Done")}</${H.Btn}></div>`}
       </div>
     </${H.Portal}>`;
   };
