@@ -649,17 +649,18 @@ export default function CodeEditor({ lang }: { lang: Lang }) {
     return r.ok;
   }
 
-  async function pulihkan(v: Ringkas) {
+  /** A saved version, or (v = null) the files bundled with the site. */
+  async function pulihkan(v: Ringkas | null) {
     const r = await postJson<{ ok: boolean; kode?: string; oleh?: string | null }>(
       "/api/modul/kode-pulihkan",
-      { modul, id: v.id, dasar },
+      v ? { modul, id: v.id, dasar } : { modul, bawaan: true, dasar },
     ).catch(() => ({ ok: false }) as { ok: false; kode?: string; oleh?: null });
     if (!r.ok) {
       if (r.kode === "draf_berubah") setBerubah({ oleh: r.oleh ?? null });
       else window.Toast?.show(t.gagal, "danger");
       return;
     }
-    window.Toast?.show(t.dipulihkan(v.nomor), "ok");
+    window.Toast?.show(v ? t.dipulihkan(v.nomor) : t.bawaanDraf, "ok");
     setRiwayatOpen(false);
     void muat();
   }
@@ -1040,6 +1041,22 @@ export default function CodeEditor({ lang }: { lang: Lang }) {
         lang={lang}
       >
         <ul className="kodeed__riwayat">
+          <li className="kodeed__versi">
+            <div className="stack kodeed__versi-isi">
+              <span className="kodeed__versi-judul">
+                <b>{t.bawaan}</b>
+              </span>
+              <span className="hint">{t.bawaanHint}</span>
+            </div>
+            <button
+              type="button"
+              className="btn btn--sm"
+              disabled={dirty}
+              onClick={() => void pulihkan(null)}
+            >
+              {t.pulihkan}
+            </button>
+          </li>
           {(data?.riwayat ?? []).map((v) => (
             <li key={v.id} className="kodeed__versi">
               <div className="stack kodeed__versi-isi">

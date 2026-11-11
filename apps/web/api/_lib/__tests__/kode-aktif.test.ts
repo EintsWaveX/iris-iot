@@ -93,6 +93,18 @@ describe("checking against version 1", () => {
   });
 });
 
+describe("the bundled Module 4 files (what Restore Bundled Files restores)", () => {
+  it("join the group's phone hotspot and the internet scoreboard, not the old PC hotspot", () => {
+    for (const b of kodeV1(4)) {
+      const all = Object.values(b.sumber).join("\n");
+      expect(all, b.path).not.toContain("192.168.4.1");
+      expect(all, b.path).not.toContain("IRIS_IOT");
+      expect(all, b.path).toContain("hunt.irisiotlab.com");
+      expect(all, b.path).toContain("HUNT_KEY");
+    }
+  });
+});
+
 describe("explanations and hints", () => {
   it("every version 1 blank has both, in id, en and zh, and no hint gives the answer", () => {
     for (const modul of [1, 2, 3, 4]) {
