@@ -337,7 +337,7 @@
         <span class="eyebrow">${L("Selamat datang di perburuan", "Welcome to the hunt")}</span>
         <h1 class="h-title">${H.T("Masuk dengan NIM", "Sign in with your NIM")}</h1>
         <p class="lede">${L("Kelompokmu diambil dari daftar sesi ini. Kamu tidak perlu memilihnya.", "Your group comes from this session's list. You don't pick it.")}</p>
-        <label class="field"><span class="label">NIM</span><input class="input hnim mono" inputmode="numeric" autocomplete="off" maxlength="20" id="h-nim" value=${nim} onInput=${(e) => setNim(e.target.value.replace(/[^0-9A-Za-z]/g, "").toUpperCase())} placeholder="1032230310" />
+        <label class="field"><span class="label">NIM</span><input class="input hnim mono" aria-label="NIM" inputmode="numeric" autocomplete="off" maxlength="20" id="h-nim" value=${nim} onInput=${(e) => setNim(e.target.value.replace(/[^0-9A-Za-z]/g, "").toUpperCase())} placeholder="1032230310" />
           ${msg && html`<span class="error"><${Icon} n="warning" sm />${msg}</span>`}</label>
         <${Btn} type="submit" kind="primary" lg block icon="arrow-right" disabled=${nim.length < 4 || busy}>${busy ? L("Mencari", "Looking Up") : L("Masuk", "Sign In")}</${Btn}>
         <span class="hint">${L("Papan ini jalan lewat internet ponselmu sendiri.", "This board runs over your own phone's internet.")}</span>

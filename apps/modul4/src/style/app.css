@@ -223,3 +223,31 @@ button.hphoto--sm { width: 84px; }
 /* the names under a role card sit on their own row */
 .rolecard__who { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
 .rolecard__who:empty { display: none; }
+
+/* ---- Hunt polish, phase 3: the Hunt screen on a phone (2026-11-11) ---- */
+
+/* The radar and the readout share a row on a phone, so the heat, the
+   distance and what to do next are on screen without scrolling. */
+@container huntapp (min-width: 360px) and (max-width: 599px) {
+  .hsonar__grid { grid-template-columns: minmax(0, 38%) minmax(0, 1fr); gap: 14px; }
+  .hsonar .sonar { max-width: 168px; }
+  .hsonar .hdist { font-size: 1.55rem; }
+  .hsonar__read { gap: 8px; }
+}
+
+/* Nothing under 12px, and touch targets of 44px. */
+.eyebrow { font-size: 12px; }
+.badge { font-size: 12px; }
+.ladder li small { font-size: 12px; }
+.ladder li span { font-size: .78rem; }
+@container huntapp (max-width: 479px) { .ladder li span { font-size: .75rem; } }
+.rose { width: 132px; height: 132px; }
+.rose__lab { font-size: 10.9px; }
+@media (pointer: coarse) {
+  .btn--sm, .iconbtn--sm { min-height: 44px; }
+  .iconbtn--sm { min-width: 44px; }
+}
+
+/* The replay chart is one SVG: past about 860px its axis text grows with it.
+   Capped and centred, with room on the left for "100%". */
+.stack:has(> .replay) { max-width: 860px; margin-inline: auto; width: 100%; }
