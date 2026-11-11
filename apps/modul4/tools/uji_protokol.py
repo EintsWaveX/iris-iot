@@ -435,6 +435,8 @@ async def main() -> int:
     ap.add_argument("--url", default="ws://127.0.0.1:8080")
     ap.add_argument("--http", default="http://127.0.0.1:8080")
     ap.add_argument("--token", required=True)
+    ap.add_argument("--jaringan", choices=("internet", "iris_iot"), default="internet",
+                    help="jaringan yang dipakai server yang diuji (server.py --jaringan)")
     args = ap.parse_args()
     T = args.token
     HTTP_DASAR[0] = args.http
@@ -772,6 +774,12 @@ async def main() -> int:
             json.dumps(sorted(ringkas.keys())))
         cek("/ringkas.json menyebut sesi berjalan", ringkas.get("sesi") == 1,
             str(ringkas.get("sesi")))
+        cek(f"/ringkas.json menyebut jaringan {args.jaringan}",
+            ringkas.get("jaringan") == args.jaringan, str(ringkas.get("jaringan")))
+        siaran = await bingkai(asisten)
+        cek(f"bingkai siaran menyebut jaringan {args.jaringan}",
+            (siaran or {}).get("jaringan") == args.jaringan,
+            str((siaran or {}).get("jaringan")))
         satu = [g for g in ringkas.get("grup", []) if g.get("grup") == 1]
         cek("/ringkas.json kelompok 1 membawa anggota ber-NIM",
             bool(satu) and all("nim" in a and "hadir" in a for a in satu[0]["anggota"])

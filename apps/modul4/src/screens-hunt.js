@@ -88,7 +88,7 @@
       <${H.ZhWeight} />
       <div class="field" data-off=${st.sun ? "yes" : "no"} inert=${st.sun ? "" : undefined}><span class="label">${L("Tema", "Theme")}</span><${Tabs} fill value=${st.sun ? "light" : st.theme} onChange=${(v) => H.set({ theme: v })} label=${L("Tema", "Theme")} tabs=${[{ v: "dark", l: L("Gelap", "Dark"), icon: "moon" }, { v: "light", l: L("Terang", "Light"), icon: "sun" }]} />
         ${st.sun && html`<span class="hint">${L("Mode Terang Matahari sedang menyala, jadi layar tetap terang.", "Bright Sun Mode is on, so the screen stays light.")}</span>`}</div>
-      <span class="hint">${H.canStayAwake() ? L("Layar tetap menyala selama perburuan.", "The screen stays on during the hunt.") : L("Browser tidak mengizinkan layar tetap menyala di hotspot ini. Matikan kunci layar otomatis sebentar.", "The browser won't keep the screen on over this hotspot. Turn off auto-lock for a while.")}</span>
+      <span class="hint">${H.awakeBy() === "lock" ? L("Layar tetap menyala selama perburuan.", "The screen stays on during the hunt.") : H.awakeBy() === "video" ? L("Layar dijaga tetap menyala dengan cara cadangan. Kalau layar tetap padam, matikan kunci layar otomatis sebentar.", "The screen is kept on with a backup method. If it still locks, turn off auto-lock for a while.") : L("Browser tidak mengizinkan layar tetap menyala di jaringan ini. Matikan kunci layar otomatis sebentar.", "The browser won't keep the screen on on this network. Turn off auto-lock for a while.")}</span>
     </div></${H.Sheet}>`;
   };
   const TABS = [
@@ -226,7 +226,7 @@
       setTimeout(() => setCool(false), 3000);
       const r = await H.ping(p.k);
       if (r.ok) H.toast(L(`Terkirim ke ${H.gname(g)} dan asisten: ${L(...p.l)}`, `Sent to ${H.gname(g)} and the assistants: ${L(...p.l)}`), { tone: "ok" });
-      else H.toast(r.kode === "terlalu_cepat" ? L("Tunggu 3 detik sebelum sinyal berikutnya.", "Wait 3 seconds before the next ping.") : L("Sinyal tidak terkirim. Cek sambungan internetmu.", "The ping didn't go through. Check your internet connection."), { tone: "warn" });
+      else H.toast(r.kode === "terlalu_cepat" ? L("Tunggu 3 detik sebelum sinyal berikutnya.", "Wait 3 seconds before the next ping.") : H.NET(L("Sinyal tidak terkirim. Cek sambungan internetmu.", "The ping didn't go through. Check your internet connection."), L("Sinyal tidak terkirim. Cek Wi-Fi IRIS_IOT di ponselmu.", "The ping didn't go through. Check the IRIS_IOT Wi-Fi on your phone.")), { tone: "warn" });
     };
     return html`<div class="pings">${PINGS.map((p) => html`<button type="button" class="ping" disabled=${cool} onClick=${() => fire(p)}><${Icon} n=${p.i} /><span>${H.title(L(...p.l))}</span></button>`)}</div>
       <span class="hint">${cool ? L("Tunggu 3 detik sebelum sinyal berikutnya.", "Wait 3 seconds before the next ping.") : L("Hanya timmu dan asisten yang melihat sinyal ini.", "Only your team and the assistants see these.")}</span>`;
@@ -332,7 +332,7 @@
         nim_cacat: L("NIM hanya berisi angka dan huruf, 4 sampai 20 karakter.", "A NIM has only digits and letters, 4 to 20 characters."),
         terlalu_sering: L("Terlalu banyak percobaan. Panggil asisten.", "Too many tries. Call an assistant."),
         kode_papan: L("Buka papan ini dari tautan di langkah Perburuan situs IRIS, bukan dari alamat yang diketik.", "Open this board from the link in the IRIS site's Hunt step, not from a typed address."),
-      }[err] || (err ? L("Tidak tersambung ke papan skor. Cek internetmu, lalu coba lagi.", "Not connected to the scoreboard. Check your internet, then try again.") : null);
+      }[err] || (err ? H.NET(L("Tidak tersambung ke papan skor. Cek internetmu, lalu coba lagi.", "Not connected to the scoreboard. Check your internet, then try again."), L("Tidak tersambung ke papan skor. Cek Wi-Fi IRIS_IOT di ponselmu, lalu coba lagi.", "Not connected to the scoreboard. Check the IRIS_IOT Wi-Fi on your phone, then try again.")) : null);
       body = html`<form class="card card--raised hjoin" onSubmit=${submit}>
         <span class="eyebrow">${L("Selamat datang di perburuan", "Welcome to the hunt")}</span>
         <h1 class="h-title">${H.T("Masuk dengan NIM", "Sign in with your NIM")}</h1>
@@ -340,7 +340,7 @@
         <label class="field"><span class="label">NIM</span><input class="input hnim mono" aria-label="NIM" inputmode="numeric" autocomplete="off" maxlength="20" id="h-nim" value=${nim} onInput=${(e) => setNim(e.target.value.replace(/[^0-9A-Za-z]/g, "").toUpperCase())} placeholder="1032230310" />
           ${msg && html`<span class="error"><${Icon} n="warning" sm />${msg}</span>`}</label>
         <${Btn} type="submit" kind="primary" lg block icon="arrow-right" disabled=${nim.length < 4 || busy}>${busy ? L("Mencari", "Looking Up") : L("Masuk", "Sign In")}</${Btn}>
-        <span class="hint">${L("Papan ini jalan lewat internet ponselmu sendiri.", "This board runs over your own phone's internet.")}</span>
+        <span class="hint">${H.NET(L("Papan ini jalan lewat internet ponselmu sendiri.", "This board runs over your own phone's internet."), L("Papan ini jalan di Wi-Fi IRIS_IOT milik PC lab, tanpa internet.", "This board runs on the lab PC's IRIS_IOT Wi-Fi, with no internet."))}</span>
         <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya Asisten", "I'm an Assistant")}</button>
       </form>`;
     } else if (step === "reveal") {
@@ -573,7 +573,7 @@
     const call = async () => {
       const r = await H.panggil(calling);
       if (r.ok) H.toast(r.aktif ? L("Asisten dipanggil.", "Assistant called.") : L("Panggilan dibatalkan.", "Call cancelled."), { tone: "ok" });
-      else H.toast(L("Panggilan tidak terkirim. Cek sambungan internetmu.", "The call didn't go through. Check your internet connection."), { tone: "warn" });
+      else H.toast(H.NET(L("Panggilan tidak terkirim. Cek sambungan internetmu.", "The call didn't go through. Check your internet connection."), L("Panggilan tidak terkirim. Cek Wi-Fi IRIS_IOT di ponselmu.", "The call didn't go through. Check the IRIS_IOT Wi-Fi on your phone.")), { tone: "warn" });
     };
     const log = N.pings.filter((p) => p.grup === g).slice(-5).reverse();
     const ann = N.frame && N.frame.pengumuman;

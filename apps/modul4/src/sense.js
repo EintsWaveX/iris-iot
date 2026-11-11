@@ -59,12 +59,58 @@
     lastLevel = lv;
   };
 
-  /* Wake Lock needs a secure context, so on the hotspot (plain HTTP) it is
-     usually missing; the Display sheet says so. */
+  /* Wake Lock needs a secure context, so on the IRIS_IOT Wi-Fi (plain HTTP) it
+     is missing. A playing video keeps a phone screen on, so there a silent
+     one-pixel stream drawn from a canvas stands in (the NoSleep trick, with
+     no video file to ship). It starts from the same tap that unlocks sound;
+     which phones honour it is unverified, so the Display sheet words it as a
+     backup. */
   let lock = null;
-  H.canStayAwake = () => "wakeLock" in navigator && window.isSecureContext;
+  let keepVideo = null;
+  let keepTimer = 0;
+  const hasLock = () => "wakeLock" in navigator && window.isSecureContext;
+  const canVideo = () =>
+    !hasLock() && typeof HTMLCanvasElement !== "undefined" && "captureStream" in HTMLCanvasElement.prototype;
+  H.canStayAwake = () => hasLock() || canVideo();
+  /* "lock" | "video" | "none": how the screen is kept on, for the Display sheet */
+  H.awakeBy = () => (hasLock() ? "lock" : canVideo() ? "video" : "none");
+  const stopVideo = () => {
+    clearInterval(keepTimer);
+    if (keepVideo) keepVideo.remove();
+    keepVideo = null;
+  };
+  const startVideo = () => {
+    if (keepVideo) return void keepVideo.play().catch(() => {});
+    try {
+      const c = document.createElement("canvas");
+      c.width = c.height = 2;
+      const g = c.getContext("2d");
+      let n = 0;
+      /* a stream only plays while its picture changes */
+      const draw = () => {
+        g.fillStyle = n++ % 2 ? "#000000" : "#010101";
+        g.fillRect(0, 0, 2, 2);
+      };
+      draw();
+      const v = document.createElement("video");
+      v.muted = true;
+      v.loop = true;
+      v.playsInline = true;
+      v.setAttribute("playsinline", "");
+      v.setAttribute("aria-hidden", "true");
+      v.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none";
+      v.srcObject = c.captureStream(2);
+      document.body.appendChild(v);
+      keepVideo = v;
+      keepTimer = setInterval(draw, 500);
+      v.play().catch(stopVideo);
+    } catch (e) {
+      stopVideo();
+    }
+  };
   H.keepAwake = async () => {
-    if (!H.canStayAwake() || lock) return;
+    if (canVideo()) return startVideo();
+    if (!hasLock() || lock) return;
     try {
       lock = await navigator.wakeLock.request("screen");
       lock.addEventListener("release", () => (lock = null));
