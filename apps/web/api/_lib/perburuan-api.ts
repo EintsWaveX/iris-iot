@@ -18,21 +18,28 @@ import { anggota as anggotaT, kelompok, server } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { bacaPerburuanSesi } from "./perburuan-sesi.js";
+import { bacaJaringanHunt } from "../../src/lib/jaringan-hunt.js";
 import {
   hotspotKelompok,
   keadaanPerburuan,
   penghargaanKelompok,
   perburuanBerjalan,
+  saringHotspot,
   saringPerburuan,
   tautanPerburuan,
+  wifiIrisIot,
   type Ringkas,
 } from "../../src/lib/perburuan.js";
 
 /** The PC running the hunt is the one that reported a summary lately; there
- *  is only ever one hunt at a time. */
-async function bacaRingkas(): Promise<Ringkas | null> {
+ *  is only ever one hunt at a time. `hotspot` is the Wi-Fi the PC reported
+ *  making (IRIS_IOT network), when it did. */
+async function bacaPcHunt(): Promise<{
+  ringkas: Ringkas | null;
+  hotspot: { ssid: string; sandi: string | null } | null;
+}> {
   const [srv] = await getDb()
-    .select({ perburuan: server.perburuan })
+    .select({ perburuan: server.perburuan, hotspot: server.hotspot })
     .from(server)
     .where(
       and(
@@ -42,7 +49,10 @@ async function bacaRingkas(): Promise<Ringkas | null> {
     )
     .orderBy(desc(server.perburuanPada))
     .limit(1);
-  return srv ? saringPerburuan(srv.perburuan) : null;
+  return {
+    ringkas: srv ? saringPerburuan(srv.perburuan) : null,
+    hotspot: srv ? saringHotspot(srv.hotspot) : null,
+  };
 }
 
 /** One group's board key (HUNT_KEY in the sketches), or null while the hunt
@@ -50,7 +60,7 @@ async function bacaRingkas(): Promise<Ringkas | null> {
  *  after the Asisten's Mulai Perburuan, so before it there is nothing to
  *  hand out. Used by the Perburuan step and to fill the sketch download. */
 export async function kunciPapanKelompok(sesiId: number, nomor: number): Promise<string | null> {
-  const ringkas = await bacaRingkas();
+  const { ringkas } = await bacaPcHunt();
   const perburuan = await bacaPerburuanSesi(sesiId);
   const terbuka = perburuanBerjalan(perburuan) && ringkas?.sesi != null;
   return terbuka ? (ringkas?.kunci[String(nomor)] ?? null) : null;
@@ -66,7 +76,8 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
   }
 
   const db = getDb();
-  const ringkas = await bacaRingkas();
+  const { ringkas, hotspot: hotspotPc } = await bacaPcHunt();
+  const jaringan = await bacaJaringanHunt();
   // 2026-10-08: the step opens only with the Asisten's Mulai Perburuan
   const perburuan = await bacaPerburuanSesi(running.id);
   // Every member scans the same screen and types their own NIM on the phone
@@ -77,7 +88,7 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
   // shown once that session exists: before it, the hunt would hand out a
   // value that changes a moment later.
   const terbuka = perburuanBerjalan(perburuan) && ringkas?.sesi != null;
-  const url = tautanPerburuan(terbuka ? (ringkas?.kode ?? null) : null);
+  const url = tautanPerburuan(terbuka ? (ringkas?.kode ?? null) : null, jaringan);
   // A group is only ever given its own board key
   const kunciPapan = terbuka ? (ringkas?.kunci[String(nomor)] ?? null) : null;
 
@@ -113,7 +124,11 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
     // the step says to ask the Asisten instead of showing a link that fails.
     terdaftar: who.role !== "praktikan" || !g || g.anggota.some((a) => a.nim === who.nim),
     url,
-    hotspot: hotspotKelompok(nomor),
+    jaringan,
+    // internet: the group's phone makes this hotspot; iris_iot: the PC makes
+    // the Wi-Fi (shown as a QR), so there is no per-group hotspot.
+    hotspot: jaringan === "internet" ? hotspotKelompok(nomor) : null,
+    wifi: jaringan === "iris_iot" ? wifiIrisIot(hotspotPc) : null,
     kunciPapan,
     berjalan: ringkas?.berjalan ?? 0,
     jumlahKelompok: ringkas?.grup.length ?? 0,

@@ -35,7 +35,7 @@ import { getDb } from "../../src/lib/db.js";
 import { asisten, kodeVersi } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { writeAudit } from "../../src/lib/auth.js";
-import { personalize } from "../../src/lib/group-identity.js";
+import { personalize, personalizeJaringan } from "../../src/lib/group-identity.js";
 import {
   BAHASA_KODE,
   buatTemplat,
@@ -167,6 +167,9 @@ export function masalahVersi(berkas: KodeBerkas[]): (Masalah & { berkas: string 
         for (const n of [1, 2, 5]) {
           personalize(b.slug, b.sumber[bahasa], n);
           personalize(b.slug, buatTemplat(b, bahasa), n);
+          // the IRIS_IOT variant of a Module 4 sketch needs its own lines too
+          personalizeJaringan(b.slug, personalize(b.slug, b.sumber[bahasa], n), "iris_iot");
+          personalizeJaringan(b.slug, personalize(b.slug, buatTemplat(b, bahasa), n), "iris_iot");
         }
       } catch {
         out.push({ kode: "identitas", berat: true, bahasa, berkas: b.slug });

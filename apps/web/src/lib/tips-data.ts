@@ -13,6 +13,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     "Soal Akhir dan PDF": "Menampilkan set akhir dan PDF resminya.",
     "1 Nyalakan Hotspot":
       "Langkah pertama: nyalakan hotspot di satu HP kelompokmu untuk Hunter dan Beacon.",
+    "1 Sambung Wi-Fi": "Langkah pertama: sambungkan HP ke Wi-Fi IRIS_IOT dengan memindai QR-nya.",
     "100%": "Mengembalikan zoom ke 100%.",
     "2 Buka Perburuan": "Langkah kedua: buka halaman Perburuan di PC Server lewat Wi-Fi tadi.",
     "30 Hari Terakhir": "Menampilkan 30 hari terakhir.",
@@ -593,6 +594,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
       "Step one: turn on a hotspot on one phone in your group for the Hunter and Beacon.",
     "100%": "Sets the zoom back to 100%.",
     "2 Open the Hunt": "Step two: open the Hunt page on the PC Server over that Wi-Fi.",
+    "1 Join the Wi-Fi": "Step one: join the phone to the IRIS_IOT Wi-Fi by scanning its QR.",
     Accept: "Accepts this.",
     Account: "Opens your account menu: profile, language and sign out.",
     "Account Page": "Opens the account page.",
@@ -1192,6 +1194,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     "1 打开热点": "第一步：在你们组的一部手机上打开热点，给 Hunter 和 Beacon 用。",
     "100%": "把缩放恢复到 100%。",
     "2 打开寻踪": "第二步：通过这个 Wi-Fi 打开 PC 服务器上的寻踪页面。",
+    "1 连接 Wi-Fi": "第一步：扫描二维码，让手机连上 IRIS_IOT Wi-Fi。",
     CPU: "显示处理器图表。",
     Canva: "从 Canva 链接嵌入演示文稿。",
     NIM: "按学号排序。",

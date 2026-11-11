@@ -21,6 +21,7 @@
  */
 import identitas from "../content/sketches/identitas.json" with { type: "json" };
 import type { Segment } from "./blanks.js";
+import { ALAMAT_IRIS_IOT, PORT_IRIS_IOT, SSID_IRIS_IOT, type Jaringan } from "./jaringan.js";
 
 interface RewriteOption {
   /** Must match zero or one times in an id/en-correct file -- see Rewrite's
@@ -175,6 +176,111 @@ export function personalize(berkas: string, text: string, nomorKelompok: number)
     out = result.text;
   }
   return out;
+}
+
+/**
+ * The network the Module 4 sketch is for (src/lib/jaringan.ts). The template
+ * (and the published code version) is the "internet" one: the group's phone
+ * hotspot and hunt.irisiotlab.com over TLS. On "iris_iot" the same lines
+ * point at the PC's own Wi-Fi instead. Every rewrite keeps its line count, so
+ * the slides' code ranges still hold, and each must match exactly once, like
+ * the group-identity ones above (run after them: it reads the IRIS-G<n> name
+ * they write).
+ */
+const REWRITES_IRIS_IOT: Record<string, Rewrite[]> = Object.fromEntries(
+  ["modul4_hunter", "modul4_beacon"].map((berkas) => [
+    berkas,
+    [
+      plain(
+        /const char\* WIFI_SSID(\s+)= "IRIS-G\d+";/,
+        () => `const char* WIFI_SSID      = "${SSID_IRIS_IOT}";`,
+      ),
+      plain(
+        /const char\* SERVER_HOST(\s+)= "hunt\.irisiotlab\.com";/,
+        () => `const char* SERVER_HOST    = "${ALAMAT_IRIS_IOT}";`,
+      ),
+      plain(
+        /const uint16_t SERVER_PORT = 443;/,
+        () => `const uint16_t SERVER_PORT = ${PORT_IRIS_IOT};`,
+      ),
+      plain(
+        /const char\* NTP_SERVER(\s+)= "time\.cloudflare\.com";/,
+        () => `const char* NTP_SERVER      = "${ALAMAT_IRIS_IOT}";`,
+      ),
+      // plain ws:// to the PC: no TLS on the LAN
+      plain(/webSocket\.beginSSL\(/, () => "webSocket.begin("),
+    ],
+  ]),
+);
+
+/** Words in the sketch that name the phone hotspot or "online". They are
+ *  comments and serial messages, so a file that lacks one (an older
+ *  version) is left alone instead of failing. */
+const KATA_IRIS_IOT: [RegExp, string][] = [
+  [
+    /\/\/ The group phone's hotspot \(IRIS-G<n>\) carries the board; the scoreboard is online\./,
+    "// The PC's IRIS_IOT Wi-Fi carries the board; the scoreboard runs on the PC.",
+  ],
+  [
+    /\/\/ Hotspot ponsel kelompok \(IRIS-G<n>\) membawa papan; papan skor ada di internet\./,
+    "// Wi-Fi IRIS_IOT milik PC membawa papan; papan skor ada di PC.",
+  ],
+  [
+    /\/\/ 本组手机的热点（IRIS-G<n>）负责联网；记分板在网上。/,
+    "// PC 的 IRIS_IOT Wi-Fi 负责联网；记分板在 PC 上。",
+  ],
+  [/Connecting to the phone hotspot/, "Connecting to the IRIS_IOT Wi-Fi"],
+  [/Menyambung ke hotspot ponsel/, "Menyambung ke Wi-Fi IRIS_IOT"],
+];
+
+/** The sketch for `jaringan`: the internet template as it is, or its
+ *  IRIS_IOT variant. Throws if a line it must change is missing. */
+export function personalizeJaringan(berkas: string, text: string, jaringan: Jaringan): string {
+  const rewrites = jaringan === "iris_iot" ? REWRITES_IRIS_IOT[berkas] : undefined;
+  if (!rewrites) return text;
+  let out = text;
+  for (const rewrite of rewrites) {
+    const result = applyRewrite(rewrite, out, 0);
+    if (result.count !== 1) {
+      throw new Error(
+        `personalizeJaringan(${berkas}): a rewrite matched ${result.count} times, expected exactly 1`,
+      );
+    }
+    out = result.text;
+  }
+  for (const [pola, ganti] of KATA_IRIS_IOT) out = out.replace(pola, ganti);
+  return out;
+}
+
+/** The same over the editor's segments. A line lives in one text segment. */
+export function personalizeJaringanSegments(
+  berkas: string,
+  segments: Segment[],
+  jaringan: Jaringan,
+): Segment[] {
+  const rewrites = jaringan === "iris_iot" ? REWRITES_IRIS_IOT[berkas] : undefined;
+  if (!rewrites) return segments;
+  let out = segments;
+  for (const rewrite of rewrites) {
+    let total = 0;
+    out = out.map((seg) => {
+      if (seg.kind !== "text") return seg;
+      const result = applyRewrite(rewrite, seg.text, 0);
+      total += result.count;
+      return result.count ? { ...seg, text: result.text } : seg;
+    });
+    if (total !== 1) {
+      throw new Error(
+        `personalizeJaringanSegments(${berkas}): a rewrite matched ${total} times across segments, expected exactly 1`,
+      );
+    }
+  }
+  return out.map((seg) => {
+    if (seg.kind !== "text") return seg;
+    let text = seg.text;
+    for (const [pola, ganti] of KATA_IRIS_IOT) text = text.replace(pola, ganti);
+    return text === seg.text ? seg : { ...seg, text };
+  });
 }
 
 /** The two Module 4 boards carry the group's board key in HUNT_KEY. */

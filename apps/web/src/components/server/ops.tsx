@@ -2,6 +2,8 @@
  * Server operation pieces shared by the console's server drawer and the
  * /servers device page (P8.2), so both behave the same:
  *
+ * - HotspotCard: the IRIS_IOT access point as one switch, with a pending
+ *   state until the next heartbeat confirms the new mode
  * - ServiceList: each practicum service with a big "Mulai ulang" button and
  *   an inline log peek (the log arrives as the diag.log command's output)
  * - CommandTimeline: recent commands as queued, sent, done / failed steps,
@@ -12,7 +14,7 @@
  * Commands are delivered on the PC's next heartbeat, never instantly, so
  * every action says so instead of pretending it already happened.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckCircleIcon,
   CircleNotchIcon,
@@ -21,15 +23,20 @@ import {
   RecordIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
+import { Switch } from "../ui/Controls";
 import { dict, jamMenit, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import { catatanBatal, urutkanLayanan } from "../../lib/server-shared";
+import { catatanBatal, hotspotMenyala, urutkanLayanan } from "../../lib/server-shared";
 import type { Heartbeat, Perintah } from "../console/types";
 import "./ops.css";
 import Lalu from "../ui/Lalu";
 
 export const OPS_T = dict({
   id: {
+    hotspot: "Hotspot IRIS_IOT",
+    hotspotOn: "Menyala: praktikan tersambung ke PC Server",
+    hotspotOff: "Mati: PC Server memakai Wi-Fi kampus",
+    pending: "Menunggu denyut berikutnya…",
     services: "Layanan praktikum",
     restart: "Mulai ulang",
     start: "Jalankan",
@@ -56,6 +63,8 @@ export const OPS_T = dict({
       "layanan.mulai": "Jalankan layanan",
       "layanan.henti": "Hentikan layanan",
       "layanan.mulai_ulang": "Mulai ulang layanan",
+      "ap.nyala": "Nyalakan hotspot",
+      "ap.mati": "Matikan hotspot",
       "jam.selaraskan": "Selaraskan jam",
       "diag.ringkas": "Diagnostik ringkas",
       "diag.log": "Ambil log",
@@ -82,6 +91,10 @@ export const OPS_T = dict({
     } as Record<string, string>,
   },
   en: {
+    hotspot: "IRIS_IOT hotspot",
+    hotspotOn: "On: students connect to the PC Server",
+    hotspotOff: "Off: the PC Server uses campus Wi-Fi",
+    pending: "Waiting for the next heartbeat…",
     services: "Practicum services",
     restart: "Restart",
     start: "Start",
@@ -108,6 +121,8 @@ export const OPS_T = dict({
       "layanan.mulai": "Start service",
       "layanan.henti": "Stop service",
       "layanan.mulai_ulang": "Restart service",
+      "ap.nyala": "Turn hotspot on",
+      "ap.mati": "Turn hotspot off",
       "jam.selaraskan": "Sync clock",
       "diag.ringkas": "Quick diagnostics",
       "diag.log": "Fetch logs",
@@ -134,6 +149,10 @@ export const OPS_T = dict({
     } as Record<string, string>,
   },
   zh: {
+    hotspot: "IRIS_IOT 热点",
+    hotspotOn: "已开：学生连到 PC 服务器",
+    hotspotOff: "已关：PC 服务器使用校园 Wi-Fi",
+    pending: "等待下一次心跳…",
     services: "实验服务",
     restart: "重启",
     start: "开启",
@@ -160,6 +179,8 @@ export const OPS_T = dict({
       "layanan.mulai": "开启服务",
       "layanan.henti": "停止服务",
       "layanan.mulai_ulang": "重启服务",
+      "ap.nyala": "开启热点",
+      "ap.mati": "关闭热点",
       "jam.selaraskan": "同步时钟",
       "diag.ringkas": "快速诊断",
       "diag.log": "获取日志",
@@ -219,6 +240,50 @@ export async function sendCommand(
     window.Toast?.show(t.fail, "danger");
     return false;
   }
+}
+
+/* --------------------------------------------------------------- hotspot */
+
+export function HotspotCard({
+  lang,
+  serverId,
+  hb,
+  onSent,
+}: {
+  lang: Lang;
+  serverId: number;
+  hb: Heartbeat | null;
+  onSent: () => void;
+}) {
+  const t = OPS_T[lang];
+  const on = hotspotMenyala(hb?.modeJaringan);
+  const [want, setWant] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (want !== null && want === on) setWant(null);
+  }, [on, want]);
+  const shown = want ?? on;
+  return (
+    <div className="ops-hotspot" data-on={shown ? "yes" : undefined}>
+      <span className="grow stack stack--sm">
+        <b>{t.hotspot}</b>
+        <span className="hint">
+          {want !== null ? t.pending : shown ? t.hotspotOn : t.hotspotOff}
+        </span>
+      </span>
+      <Switch
+        on={shown}
+        busy={want !== null}
+        label={t.hotspot}
+        onChange={(v) => {
+          setWant(v);
+          void sendCommand(serverId, v ? "ap.nyala" : "ap.mati", {}, lang).then((ok) => {
+            if (!ok) setWant(null);
+            onSent();
+          });
+        }}
+      />
+    </div>
+  );
 }
 
 /* -------------------------------------------------------------- services */

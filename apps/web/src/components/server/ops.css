@@ -1,5 +1,50 @@
 /* ops.tsx: shared server pieces (drawer + /servers). */
 
+.ops-hotspot {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  transition:
+    border-color var(--dur-mid) var(--ease-reveal),
+    background var(--dur-mid) var(--ease-reveal);
+}
+
+.ops-hotspot[data-on="yes"] {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.ops-hotspot__icon {
+  align-items: center;
+  background: var(--surface-3);
+  border-radius: 50%;
+  color: var(--text-muted);
+  display: inline-flex;
+  flex: none;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.ops-hotspot[data-on="yes"] .ops-hotspot__icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+:root:not([data-motion-tier="0"]) .ops-hotspot[data-on="yes"] .ops-hotspot__icon svg {
+  animation: ops-wave 2.4s ease-in-out infinite;
+}
+
+@keyframes ops-wave {
+  50% {
+    opacity: 0.55;
+  }
+}
+
 /* ------------------------------------------------------------ services */
 
 .ops-svc {

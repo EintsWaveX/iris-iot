@@ -55,8 +55,10 @@ import { BLANK_MARK, detectLang, tokenize, type Token } from "../../lib/highligh
 import {
   isiKunciPapanSegments,
   needsPersonalization,
+  personalizeJaringanSegments,
   personalizeSegments,
 } from "../../lib/group-identity";
+import { jaringanValid, type Jaringan } from "../../lib/jaringan";
 import { usePerburuan } from "./HuntStep";
 import IconButton from "../ui/IconButton";
 import Pill from "../ui/Pill";
@@ -65,7 +67,8 @@ import type { Lang } from "../../lib/kelas";
 import { C } from "./codeStrings";
 import { openSignIn } from "../../lib/signin";
 import { dengar } from "../../lib/siaran";
-import { jamMenit, useSessionNow } from "../../lib/app";
+import { getJson, jamMenit, useSessionNow } from "../../lib/app";
+import { usePoll } from "../../lib/hooks";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import { soalKodePrefix } from "../../lib/blanks";
 import {
@@ -218,6 +221,8 @@ export default function BlankFile(p: Props) {
   );
   const locked = lockedReason !== null;
   const [segments, setSegments] = useState<Segment[]>(file.segments);
+  // Module 4: the network the sketch is for, from the group's draft answer
+  const [jaringanDraft, setJaringanDraft] = useState<Jaringan | null>(null);
   const [grup, setGrup] = useState<number | null>(null);
   const [kunci, setKunci] = useState<Record<string, string> | null>(null);
   const [bantu, setBantu] = useState<Record<string, Bantu>>({});
@@ -315,6 +320,7 @@ export default function BlankFile(p: Props) {
       if (!mounted.current) return;
       if (d.ok) {
         terapkanDraft(d.jawaban as Saved, true);
+        if (jaringanValid(d.jaringan)) setJaringanDraft(d.jaringan);
       } else onFail(d.kode);
     } catch {
       // The next tick tries again.
@@ -335,6 +341,7 @@ export default function BlankFile(p: Props) {
           return;
         }
         terapkanDraft(d.jawaban as Saved);
+        if (jaringanValid(d.jaringan)) setJaringanDraft(d.jaringan);
         const n = d.nomorKelompok;
         if (typeof n === "number") {
           setGrup(n);
@@ -580,10 +587,29 @@ export default function BlankFile(p: Props) {
   // has opened the hunt (the step's own data, so it follows Mulai at once).
   const perburuan = usePerburuan(mode === "now" && modul === 4, p.wakil?.nomor);
   const kunciPapan = perburuan.data?.kunciPapan ?? null;
-  const tampil = useMemo(
-    () => isiKunciPapanSegments(berkas, segments, kunciPapan),
-    [berkas, segments, kunciPapan],
+  // An Asisten has no hunt of their own to read it from: the lab's setting.
+  const jaringanAsisten = usePoll(
+    () => getJson<{ jaringan?: unknown }>("/api/session/jaringan"),
+    60_000,
+    mode === "asisten" && modul === 4,
+    ["server", "sesi"],
+    0,
+    "jaringan-blankfile",
   );
+  const jaringan: Jaringan | null =
+    [perburuan.data?.jaringan, jaringanDraft, jaringanAsisten.data?.jaringan].find(jaringanValid) ??
+    null;
+  const tampil = useMemo(() => {
+    try {
+      const untukJaringan = jaringan
+        ? personalizeJaringanSegments(berkas, segments, jaringan)
+        : segments;
+      return isiKunciPapanSegments(berkas, untukJaringan, kunciPapan);
+    } catch (err) {
+      console.error(err);
+      return segments;
+    }
+  }, [berkas, segments, jaringan, kunciPapan]);
 
   // Colour the sketch once per template, then cut it into lines, each
   // knowing which blanks it holds.
@@ -830,7 +856,12 @@ export default function BlankFile(p: Props) {
     >
       {banner}
       {modul === 4 && mode === "now" && !locked && (
-        <p className="hint">{kunciPapan ? t.huntKeyFilled : t.huntKeyLater}</p>
+        <>
+          {jaringan && (
+            <p className="hint">{jaringan === "iris_iot" ? t.huntNetIrisIot : t.huntNetInternet}</p>
+          )}
+          <p className="hint">{kunciPapan ? t.huntKeyFilled : t.huntKeyLater}</p>
+        </>
       )}
       <div className={samping ? "codegrid codegrid--side" : "codegrid"}>
         <div className="panel codecard">

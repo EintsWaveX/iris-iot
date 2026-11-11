@@ -31,8 +31,13 @@ export interface PerburuanData {
   pcTerhubung?: boolean;
   terdaftar?: boolean;
   url?: string;
-  /** The hotspot one phone of the group turns on for the Beacon and Hunter. */
-  hotspot?: { ssid: string; sandi: string };
+  /** Which network the hunt runs on (src/lib/jaringan.ts). */
+  jaringan?: "internet" | "iris_iot";
+  /** internet: the hotspot one phone of the group turns on for the Beacon and
+   *  Hunter. */
+  hotspot?: { ssid: string; sandi: string } | null;
+  /** iris_iot: the Wi-Fi the PC makes, as text and as a WIFI: QR. */
+  wifi?: { ssid: string; sandi: string; qr: string } | null;
   /** This group's board key for HUNT_KEY in the sketches; null until the
    *  hunt's session exists. */
   kunciPapan?: string | null;
@@ -240,18 +245,37 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
   const t = H[lang];
   const url = data.url ?? "";
   const hotspot = data.hotspot ?? null;
-  const [step, setStep] = useState<"1" | "2">(hotspot ? "1" : "2");
+  // IRIS_IOT: the PC makes the Wi-Fi, so step 1 is a QR that joins the phone to it
+  const wifi = data.wifi ?? null;
+  const [step, setStep] = useState<"1" | "2">(hotspot || wifi ? "1" : "2");
   const salin = async (teks: string) => {
     const ok = await salinTeks(teks);
     window.Toast?.show(ok ? t.copied : t.copyFail, ok ? "ok" : "warn");
   };
+  // The group's board key (HUNT_KEY): already in the sketch the Code step gives,
+  // shown here for a copy made before the hunt opened.
+  const kunciBlok = data.kunciPapan ? (
+    <>
+      <div className="huntjoin__url">
+        <span className="hint">{t.boardKey}</span>
+        <span className="mono">{data.kunciPapan}</span>
+        <IconButton
+          icon={CopyIcon}
+          label={t.copyKey}
+          sm
+          onClick={() => salin(data.kunciPapan ?? "")}
+        />
+      </div>
+      <span className="hint">{t.boardKeyHint}</span>
+    </>
+  ) : null;
   return (
     <section className="panel">
       <div className="panel__head">
         <h2 className="panel__title">{t.joinTitle}</h2>
         <Pill tone="ok">{t.open}</Pill>
       </div>
-      <p className="panel__sub">{t.joinLede}</p>
+      <p className="panel__sub">{wifi ? t.joinLedeLokal : t.joinLede}</p>
       {!data.terdaftar && (
         <div className="banner banner--warn">
           <WarningIcon aria-hidden="true" />
@@ -264,7 +288,7 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
         onValueChange={(v) => setStep(v as "1" | "2")}
         aria-label={t.joinTitle}
         options={[
-          { value: "1", label: t.stepWifi },
+          { value: "1", label: wifi ? t.stepWifiLokal : t.stepWifi },
           { value: "2", label: t.stepHunt },
         ]}
       />
@@ -293,24 +317,41 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
                   onClick={() => salin(hotspot.sandi)}
                 />
               </div>
-              {data.kunciPapan && (
-                <>
-                  <div className="huntjoin__url">
-                    <span className="hint">{t.boardKey}</span>
-                    <span className="mono">{data.kunciPapan}</span>
-                    <IconButton
-                      icon={CopyIcon}
-                      label={t.copyKey}
-                      sm
-                      onClick={() => salin(data.kunciPapan ?? "")}
-                    />
-                  </div>
-                  <span className="hint">{t.boardKeyHint}</span>
-                </>
-              )}
+              {kunciBlok}
               <span className="hint">{t.hotspotHint}</span>
               <span className="hint">{t.hotspotOthers}</span>
             </div>
+          )}
+          {wifi && (
+            <>
+              <Qr text={wifi.qr} label={t.wifiQr(wifi.ssid)} />
+              <div className="stack stack--sm huntjoin__text">
+                <b>{t.wifiTitle(wifi.ssid)}</b>
+                <span className="hint">{t.wifiHint}</span>
+                <div className="huntjoin__url">
+                  <span className="hint">{t.hotspotName}</span>
+                  <span className="mono">{wifi.ssid}</span>
+                  <IconButton
+                    icon={CopyIcon}
+                    label={t.copyName}
+                    sm
+                    onClick={() => salin(wifi.ssid)}
+                  />
+                </div>
+                <div className="huntjoin__url">
+                  <span className="hint">{t.hotspotPass}</span>
+                  <span className="mono">{wifi.sandi}</span>
+                  <IconButton
+                    icon={CopyIcon}
+                    label={t.copyPass}
+                    sm
+                    onClick={() => salin(wifi.sandi)}
+                  />
+                </div>
+                {kunciBlok}
+                <span className="hint">{t.wifiNoNet}</span>
+              </div>
+            </>
           )}
           <button type="button" className="btn btn--primary" onClick={() => setStep("2")}>
             {t.next}

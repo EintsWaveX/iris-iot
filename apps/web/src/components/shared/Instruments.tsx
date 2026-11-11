@@ -8,8 +8,8 @@
 import { AngkaGulir } from "../ui/Sorot";
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { CheckIcon, LockSimpleIcon } from "@phosphor-icons/react";
-import { href, useTick } from "../../lib/app";
-import { useMotionTier } from "../../lib/hooks";
+import { getJson, href, useTick } from "../../lib/app";
+import { useMotionTier, usePoll } from "../../lib/hooks";
 import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import type { Reading } from "../../lib/telemetry-sim";
@@ -18,6 +18,8 @@ import Pill from "../ui/Pill";
 import { IN } from "./instrumentStrings";
 import "./instruments.css";
 
+/** Where the scoreboard is when the hunt's own link (with its join code and the
+ *  network the lab picked) isn't known yet: the internet one. */
 const IOT_BOARD_URL = "https://hunt.irisiotlab.com/";
 
 /** True when animations may run (motion tier 1 or 2). False on the first
@@ -852,7 +854,7 @@ export function Instrument({
   kelompok,
   lang,
   title,
-  nim,
+  nim: _nim,
   extra,
   sesiId = null,
 }: {
@@ -868,6 +870,18 @@ export function Instrument({
   const t = IN[lang];
   const tel = useTelemetry(m, kelompok, false, 2000, null, true, sesiId);
   const r = readings(m, tel.history.slice(-60), lang);
+  // Module 4: the Perburuan step's own link, which carries today's join code
+  // and points at the PC's IRIS_IOT address or the internet board, whichever
+  // the lab picked. (Not HuntStep's hook: that would pull its QR code library
+  // into the dashboard.)
+  const buru = usePoll(
+    () => getJson<{ url?: string }>("/api/session/perburuan"),
+    60_000,
+    m === 4,
+    ["sesi", "buru", "jurnal"],
+    0,
+    "perburuan-tautan-dasbor",
+  );
   return (
     <section className="panel instr" style={{ "--m": `var(--mod-${m})` } as CSSProperties}>
       <div className="panel__head">
@@ -898,7 +912,7 @@ export function Instrument({
         {m === 4 && (
           <a
             className="btn"
-            href={`${IOT_BOARD_URL}?nim=${encodeURIComponent(nim)}`}
+            href={buru.data?.url ?? IOT_BOARD_URL}
             target="_blank"
             rel="noopener noreferrer"
           >

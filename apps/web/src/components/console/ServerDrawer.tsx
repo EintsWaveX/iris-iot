@@ -1,7 +1,8 @@
 /**
  * The console's server drawer (P8.2): a right slide-over with everything a
  * running session needs from the PC, so nobody leaves the console:
- * health, services with restart and log peek, and the live command
+ * health, the hotspot switch (the only one, the old tab's duplicate is
+ * gone), services with restart and log peek, and the live command
  * timeline. It polls every 4 s while open. (Phase 9 dropped the ESP32 list
  * with the Devices tab.)
  */
@@ -13,7 +14,7 @@ import {
   TimerIcon,
 } from "@phosphor-icons/react";
 import Drawer from "../ui/Drawer";
-import { CommandTimeline, Sejak, ServiceList } from "../server/ops";
+import { CommandTimeline, HotspotCard, Sejak, ServiceList } from "../server/ops";
 import { href } from "../../lib/app";
 import { tri } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
@@ -69,8 +70,8 @@ export default function ServerDrawer({
           <p className="hint">
             {tri(
               lang,
-              "Sesi ini belum memakai server tertentu. Pilih server untuk layanan dan perintahnya.",
-              "This session isn't tied to one server yet. Pick a server for its services and commands.",
+              "Sesi ini belum memakai server tertentu. Pilih server untuk layanan, hotspot dan perintahnya.",
+              "This session isn't tied to one server yet. Pick a server for its services, hotspot and commands.",
               "本节课还没有指定服务器。选择一台服务器查看服务、热点和命令。",
             )}
           </p>
@@ -164,6 +165,8 @@ export default function ServerDrawer({
               </span>
             </div>
           </div>
+
+          <HotspotCard lang={lang} serverId={d.server.id} hb={hb} onSent={refresh} />
 
           <section className="stack">
             <h3 className="label-caps">{t.services}</h3>
