@@ -156,6 +156,15 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
   };
 }
 
+/** The hotspot the agent read from the PC's hostapd file, or null: the Wi-Fi the
+ *  PC makes on the IRIS_IOT network, shown on the Server page and in the Hunt step. */
+export function saringHotspot(raw: unknown): { ssid: string; sandi: string | null } | null {
+  if (!isObj(raw)) return null;
+  const ssid = str(raw.ssid, 32);
+  if (!ssid) return null;
+  return { ssid, sandi: str(raw.sandi, 63) };
+}
+
 /**
  * Where the scoreboard is reached (2026-11-10): the PC's hunt server behind a
  * Cloudflare Tunnel, so phones stay on their own mobile data and can be

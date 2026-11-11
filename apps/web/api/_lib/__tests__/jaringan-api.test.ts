@@ -8,10 +8,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let sesiJalan: { id: number; modul: number } | null = null;
 let buru: { mulai: string | null; selesai: string | null } | null = null;
 let tersimpan: "internet" | "iris_iot" = "iris_iot";
-const tulis = vi.fn(async (j: "internet" | "iris_iot") => {
+const tulis = vi.fn(async (j: "internet" | "iris_iot", _nim: string) => {
   tersimpan = j;
 });
-const audit = vi.fn(async () => {});
+const audit = vi.fn(async (..._a: unknown[]) => {});
 
 vi.mock("../../../src/lib/sesi", () => ({ currentSesi: async () => sesiJalan }));
 vi.mock("../perburuan-sesi", () => ({ bacaPerburuanSesi: async () => buru }));
@@ -19,7 +19,7 @@ vi.mock("../../../src/lib/jaringan-hunt", () => ({
   bacaJaringanHunt: async () => tersimpan,
   tulisJaringanHunt: (j: "internet" | "iris_iot", nim: string) => tulis(j, nim),
 }));
-vi.mock("../../../src/lib/auth", () => ({ writeAudit: (...a: unknown[]) => audit(...(a as [])) }));
+vi.mock("../../../src/lib/auth", () => ({ writeAudit: (...a: unknown[]) => audit(...a) }));
 
 const { handleJaringanGet, handleJaringanPost } = await import("../jaringan-api");
 
