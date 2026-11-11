@@ -10,6 +10,7 @@ import {
   sidikJaga,
   slotJaga,
   statusAksesSetelah,
+  GALAT_ROBOT,
   JEDA_ULANG_DETIK,
   PERCOBAAN_MAKS,
   sufiksSah,
@@ -107,8 +108,20 @@ describe("retries and accounts", () => {
       JEDA_ULANG_DETIK[1] * 1000,
     );
     expect(setelahGagal("tak_terjangkau", PERCOBAAN_MAKS - 1, t0).status).toBe("gagal");
-    for (const kode of ["ditolak", "bentuk_berubah", "anggota_beda", "butuh_token", "segel_rusak"])
+    for (const kode of [
+      "ditolak",
+      "bentuk_berubah",
+      "anggota_beda",
+      "butuh_token",
+      "segel_rusak",
+      "halaman_tertutup",
+    ])
       expect(setelahGagal(kode, 0, t0).status).toBe("gagal");
+  });
+
+  it("a page SeeLabs closed to an account is a known code, never retried, and leaves the account active", () => {
+    expect(GALAT_ROBOT).toContain("halaman_tertutup");
+    expect(statusAksesSetelah("halaman_tertutup", "aktif")).toBe("aktif");
   });
 
   it("marks an account bad only for a refused password, never for an unreachable SeeLabs", () => {
