@@ -287,6 +287,7 @@
       <div class="hpage__in">
         <div class="pagehead pagehead__row pagehead__row--center"><div class="stack stack--sm"><span class="eyebrow">${L("Ruang kendali", "Mission control")} · ${H.tgl(new Date())}${f.sesi ? L(` · Sesi ${f.sesi}`, ` · Session ${f.sesi}`) : ""}</span><h1 class="h-title">${f.sesi ? H.T("Perburuan berjalan", "Hunt running") : H.T("Belum ada sesi", "No session running")}</h1></div>
           ${f.sesi_sisa != null && html`<span class="strip strip--compact" role="timer"><span class="strip__i"><small>${L("Jam", "Time")}</small><b class="mono">${H.hms(jam)}</b></span><span class="strip__dot" aria-hidden="true">·</span><span class="strip__i strip__left" data-low=${f.sesi_sisa < 1800 ? "yes" : "no"}><small>${L("Sisa", "Left")}</small><b class="mono">${H.hms(f.sesi_sisa)}</b></span>${tot && html`<span class="strip__dot strip__prog-dot" aria-hidden="true">·</span><span class="strip__prog"><${H.Bar} p=${Math.round((lewat / tot) * 100)} /><span class="hint num">${L(`${lewat} dari ${tot} menit`, `${lewat} of ${tot} minutes`)}</span></span>`}</span>`}</div>
+        <div class="hmtop">
         <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Jalur kelompok", "Group lanes")}</h2><span class="hint">${L("dibandingkan lewat jarak tertutup", "compared by distance closed")}</span></div>
           ${ids.length ? html`<div class="lanes">${ids.map((g) => {
             const r = H.row(g);
@@ -298,14 +299,15 @@
               <${H.HeatChip} k=${H.heatOf(r)} />
               <span class="row" style="gap:4px;flex-wrap:nowrap">${calling ? html`<${Badge} tone="warn"><${Icon} n="hand-waving" sm />${L("memanggil", "calling")}</${Badge}>` : r && r.status === "menunggu" ? html`<${Badge} tone="warn"><${Icon} n="camera" sm />${L("klaim", "claim")}</${Badge}>` : null}<${IconBtn} sm icon="dots-three" label=${L(`Menu ${H.gname(g)}`, `${H.gname(g)} menu`)} onClick=${() => setMenu(g)} /></span></div>`;
           })}</div>` : html`<p class="hint">${L("Belum ada kelompok. Daftar sesi datang dari situs web lewat agent PC.", "No groups yet. The session list comes from the website through the PC agent.")}</p>`}</section>
-        <div class="hgrid hgrid--2">
-          <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Antrean klaim", "Claim queue")}</h2>${queue.length > 0 && html`<${Badge} tone="warn">${queue.length}</${Badge}>`}</div>
+        <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Antrean klaim", "Claim queue")}</h2>${queue.length > 0 && html`<${Badge} tone="warn">${queue.length}</${Badge}>`}</div>
             ${queue.length ? queue.map((q) => html`<div class="claimq" style=${`--g:var(--group-${q.grup})`}>
               <button type="button" class="hphoto hphoto--sm" onClick=${() => q.foto_url && setPhoto(q)} aria-label=${L("Perbesar foto", "Enlarge the photo")} data-tip=${q.foto_url ? L("Perbesar foto", "Enlarge the photo") : undefined}>${q.foto_url ? html`<img src=${q.foto_url} alt="" />` : html`<${Icon} n="camera-slash" />`}</button>
               <div class="stack stack--sm grow"><b>${H.gfull(q.grup)}</b><span class="hint">${L(`${q.jarak_m == null ? "·" : H.fmt(q.jarak_m, 1)} m saat klaim · ${q.sejak} detik lalu · klaim ke-${q.klaim_ke}`, `${q.jarak_m == null ? "·" : H.fmt(q.jarak_m, 1)} m at the claim · ${q.sejak} seconds ago · claim ${q.klaim_ke}`)}</span>
                 <div class="r5act"><${Btn} sm icon="x" onClick=${() => { setRej(q.grup); setWhy(0); setOther(""); }}>${L("Tolak", "Turn Down")}</${Btn}><${Btn} sm kind="primary" icon="check" onClick=${() => act("konfirmasi", { grup: q.grup }, L(`${H.gname(q.grup)} menang.`, `${H.gname(q.grup)} wins.`))}>${L("Konfirmasi", "Confirm")}</${Btn}></div></div></div>`)
               : html`<p class="hint">${L("Belum ada klaim yang menunggu.", "No claims waiting.")}</p>`}
             <span class="hint">${L("Paksa Konfirmasi ada di menu kelompok, untuk beacon yang terbukti ketemu tapi sinyalnya jatuh.", "Force Confirm is in the group menu, for a beacon that was clearly found but whose signal dropped.")}</span></section>
+        </div>
+        <div class="hgrid hgrid--2">
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Pengumuman dan hitung mundur", "Announcements and countdown")}</h2></div>
             <label class="field"><span class="label">${L("Pengumuman ke semua ponsel", "Announcement to every phone")}</span><input class="input" id="m-ann" aria-label=${L("Pengumuman ke semua ponsel", "Announcement to every phone")} maxlength="140" value=${ann} onInput=${(e) => setAnn(e.target.value)} placeholder=${L("contoh: 10 menit lagi, kumpul di lobi", "e.g. 10 minutes left, meet at the lobby")} /></label>
             ${f.pengumuman && html`<span class="hint">${L(`Tampil sekarang: ${f.pengumuman.teks}`, `Showing now: ${f.pengumuman.teks}`)}</span>`}
