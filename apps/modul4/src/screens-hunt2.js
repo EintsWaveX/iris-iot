@@ -210,7 +210,7 @@
         ${Array.from({ length: Math.max(6, code.length) }, (_, i) => i).map((i) => html`<span class=${"tokbox__c" + (i === code.length ? " is-cur" : "")}>${code[i] || ""}</span>`)}
         <input ref=${input} class="sr" aria-label=${L("Token asisten", "Assistant token")} autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" value=${code} onInput=${(e) => setCode(e.target.value.toUpperCase().replace(ALPHA, "").slice(0, 12))} autofocus />
       </label>
-      ${err != null && html`<span class="error"><${Icon} n="warning" sm />${err >= 0 ? L(`Token salah. Sisa ${err} kali coba sebelum sambungan ditutup.`, `Wrong token. ${err} tries left before the connection closes.`) : L("Tidak tersambung ke PC. Coba lagi.", "Not connected to the PC. Try again.")}</span>`}
+      ${err != null && html`<span class="error"><${Icon} n="warning" sm />${err >= 0 ? L(`Token salah. Sisa kesempatan sebelum sambungan ditutup: ${err}.`, `Wrong token. Tries left before the connection closes: ${err}.`) : L("Tidak tersambung ke PC. Coba lagi.", "Not connected to the PC. Try again.")}</span>`}
       <${Btn} type="submit" kind="primary" lg block icon="lock-key" disabled=${code.length < 4 || busy}>${L("Buka", "Open")}</${Btn}>
       <span class="hint">${L("Tab Asisten tidak tampil di ponsel praktikan sampai token benar.", "The Assistant tab doesn't show on student phones until the token is right.")}</span>
       <button type="button" class="hjoin__asisten" onClick=${() => H.go("hunt")}><${Icon} n="arrow-left" sm />${N.grup === null ? L("Kembali ke Masuk NIM", "Back to the NIM Sign-In") : L("Kembali ke Perburuan", "Back to the Hunt")}</button>
@@ -413,7 +413,7 @@
     else
       body = html`${banner}
         ${rows.length
-          ? html`<div class="hstage__lanes" style=${`--n:${rows.length}`}>${rows.map((r) => {
+          ? html`<div class="hstage__lanes" data-dense=${rows.length > 6 ? "yes" : "no"} style=${`--n:${rows.length}`}>${rows.map((r) => {
               const i = rank.get(r.grup);
               const won = r.status === "menang";
               return html`<div key=${r.grup} class="slane" data-flash=${flash[r.grup] || "no"} data-won=${won ? "yes" : "no"} style=${`--g:var(--group-${r.grup});--i:${i}`}>
@@ -436,7 +436,7 @@
     const N = H.useNet();
     H.useTick(1000);
     const V = {
-      offline: ["wifi-slash", L("Tidak Tersambung", "Not Connected"), H.NET(L("Ponselmu kehilangan internet. Biasanya sinyal seluler lemah atau data habis; halaman mencoba lagi sendiri.", "Your phone lost its internet. Usually weak signal or no data left; the page tries again by itself."), L("Ponselmu terlepas dari Wi-Fi IRIS_IOT. Biasanya kamu terlalu jauh dari PC lab; halaman mencoba lagi sendiri.", "Your phone dropped off the IRIS_IOT Wi-Fi. Usually you are too far from the lab PC; the page tries again by itself.")), L("Mencoba lagi sendiri", "Trying again by itself")],
+      offline: ["wifi-slash", L("Tidak Tersambung", "Not Connected"), H.NET(L("Tidak bisa menjangkau papan skor. Bisa jadi sinyal ponselmu lemah, atau PC sedang restart. Halaman mencoba lagi sendiri.", "Can't reach the scoreboard. Your phone's signal may be weak, or the PC may be restarting. The page tries again by itself."), L("Ponselmu terlepas dari Wi-Fi IRIS_IOT. Biasanya kamu terlalu jauh dari PC lab; halaman mencoba lagi sendiri.", "Your phone dropped off the IRIS_IOT Wi-Fi. Usually you are too far from the lab PC; the page tries again by itself.")), L("Mencoba lagi sendiri", "Trying again by itself")],
       restart: ["arrows-clockwise", L("Server perburuan dimulai ulang", "The hunt server is restarting"), L("Asisten memulai ulang server. Posisi dan klaim kalian aman.", "An assistant restarted the server. Your progress and claims are safe."), L("Tersambung lagi sendiri", "Reconnects by itself")],
       ended: ["flag-checkered", L("Ronde selesai", "Round over"), L("Semua kelompok sudah menemukan beaconnya, atau asisten menutup ronde.", "Every group found its beacon, or an assistant closed the round."), null],
       rolled: ["calendar-blank", L("Sesi sudah berganti", "The session changed"), L("Sesi ini sudah lewat. Masuk lagi dengan NIM kalau kamu ikut sesi berikutnya.", "This session is over. Sign in again with your NIM if you're in the next one."), null],

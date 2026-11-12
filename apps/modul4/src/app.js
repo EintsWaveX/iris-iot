@@ -91,6 +91,21 @@
       const t = setTimeout(() => setDown(true), 4000);
       return () => clearTimeout(t);
     }, [N.status]);
+    /* A QR link carries one person's NIM. A phone that is already signed in
+       as somebody else (a shared phone, a second person scanning) switches
+       to the NIM on the link; a link that doesn't resolve leaves the phone as it was. */
+    useEffect(() => {
+      if (STAGE || !H.urlNim || N.status !== "live" || !N.frame || N.grup === null) return;
+      const v = H.urlNim;
+      H.urlNim = null;
+      if (N.nim === v) return;
+      H.set({ reveal: true });
+      H.masuk(v).then((r) => {
+        if (r.ok) return;
+        H.set({ reveal: false });
+        H.toast(L("NIM di tautan itu tidak ada di sesi ini. Kamu tetap masuk sebagai akunmu yang tadi.", "The NIM on that link isn't on this session's list. You stay signed in as before."), { tone: "warn" });
+      });
+    }, [N.status, !!N.frame, N.grup]);
     if (STAGE) return html`<${H.Stage} />`;
     if (N.locked) return html`<${H.States} kind="token" />`;
     if (down && N.status !== "live") return html`<${H.States} kind=${N.closeCode === 1001 ? "restart" : "offline"} />`;

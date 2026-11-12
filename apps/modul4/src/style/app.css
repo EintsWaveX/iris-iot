@@ -270,7 +270,7 @@ button.hphoto--sm { width: 84px; }
 }
 
 /* Phone: say it in words when the link drops, a coloured dot is easy to miss outdoors. */
-.hbar__link { display: inline-flex; align-items: center; gap: 6px; }
+.hbar__link { display: inline-flex; align-items: center; gap: 6px; width: auto; flex: none; }
 .hbar__linkt { font-size: 12px; font-weight: 700; color: var(--warn); white-space: nowrap; }
 
 /* Key/value lists keep two columns on a phone instead of stacking every pair. */
@@ -433,7 +433,32 @@ button.hphoto--sm { width: 84px; }
    claim button is on the first screen instead of below a tall radar. */
 @container huntapp (min-width: 900px) {
   .hgrid:has(> .hcell--sonar) { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+  .hgrid:has(> .hcell--sonar) { grid-auto-flow: dense; }
   .hgrid > .hcell--sonar { grid-column: 1; }
   .hgrid > .hcell--claim { grid-column: 2; }
   .hsonar .sonar { max-width: 280px; }
 }
+
+/* the group chip in the top bar: a long name gets an ellipsis, the dot stays */
+.hbar__g { flex: 0 1 auto; min-width: 0; overflow: visible; }
+.hbar__g i { flex: none; }
+.hbar__gn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hbar__logo { flex: none; }
+
+/* The projector with many groups (more than six): one line per lane, no
+   "Group 4" sub-label, smaller type tied to the screen height, so ten lanes
+   fit a 720p projector without touching each other. */
+.hstage__lanes[data-dense="yes"] { --gap: 6px; }
+.hstage__lanes[data-dense="yes"] > .slane { min-height: 0; padding-block: 0; border-radius: var(--radius-md); gap: 14px; }
+.hstage__lanes[data-dense="yes"] .slane__n { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.hstage__lanes[data-dense="yes"] .slane__n > span { display: none; }
+.hstage__lanes[data-dense="yes"] .slane__n b { font-size: min(1.25rem, 3.4vh); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hstage__lanes[data-dense="yes"] .slane__rank { font-size: min(1.4rem, 3.4vh); line-height: 1; }
+.hstage__lanes[data-dense="yes"] .slane__v { font-size: min(1.3rem, 3.4vh); line-height: 1; }
+.hstage__lanes[data-dense="yes"] .slane__bar { height: 14px; }
+.hstage__lanes[data-dense="yes"] .slane__bar em { width: 20px; height: 20px; margin-top: -10px; border-width: 2px; }
+.hstage__lanes[data-dense="yes"] .heat { min-height: 0; height: min(26px, 3.4vh); padding-block: 0; font-size: min(0.85rem, 2.4vh); }
+
+/* Mission lanes: a long group name stops at two lines, the dot keeps its size */
+.lane2__n i { flex: none; }
+.lane2__n b { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }

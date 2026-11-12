@@ -120,7 +120,7 @@
         <span class="hbar__t"><b>${H.T("Perburuan LoRa", "LoRa Hunt")}</b><span class="hint hide-sm">${H.modul(4)}</span></span>
         ${!bare && W >= 900 && html`<nav class="hbar__tabs" aria-label=${L("Perburuan", "Hunt")}>${tabs.map((t) => html`<button type="button" aria-current=${tab === t.k ? "page" : undefined} onClick=${() => H.go(t.k)}><${Icon} n=${t.i} />${H.title(L(...t.l))}</button>`)}</nav>`}
         <span class="grow"></span>
-        ${!bare && (member || asisten) && html`<span class=${"hbar__g" + (asisten && !member ? " hbar__g--a" : "")} style=${`--g:var(--group-${asisten && !member ? 0 : g})`}>${asisten && !member ? html`<${Icon} n="shield-check" sm /><span>${L("Asisten", "Assistant")}</span>` : html`<i></i>${W < 640 ? H.gname(g) : H.gfull(g)}`}</span>`}
+        ${!bare && (member || asisten) && html`<span class=${"hbar__g" + (asisten && !member ? " hbar__g--a" : "")} style=${`--g:var(--group-${asisten && !member ? 0 : g})`}>${asisten && !member ? html`<${Icon} n="shield-check" sm /><span>${L("Asisten", "Assistant")}</span>` : html`<i></i><span class="hbar__gn">${W < 640 ? H.gname(g) : H.gfull(g)}</span>`}</span>`}
         <span class="hbar__link" role="status" aria-label=${live ? L("Tersambung ke papan skor", "Connected to the scoreboard") : L("Menyambung ulang ke PC", "Reconnecting to the PC")} data-tip=${live ? L("Tersambung ke papan skor", "Connected to the scoreboard") : L("Menyambung ulang ke PC", "Reconnecting to the PC")} tabindex="0"><span class=${"dot " + (live ? "dot--ok dot--pulse" : "dot--warn")}></span>${!live && html`<span class="hbar__linkt">${L("Menyambung ulang", "Reconnecting")}</span>`}</span>
         <${IconBtn} icon="sliders-horizontal" label=${L("Menu", "Menu")} onClick=${() => setDisp(true)} />
       </header>
@@ -507,6 +507,9 @@
     const rejected = row.status === "ditolak" && seenReject !== row.klaim_ke;
     const place = row.status === "menang" ? row.rank : null;
     const avgDelay = H.avgDelay(g);
+    /* what a CaAs must act on or read (an armed claim, a sent, turned down or won claim) goes
+       above the sonar, so it is on the first phone screen without scrolling */
+    const claimFirst = member && (row.status !== "memburu" || !!row.calon);
     const cards = {
       sonar: html`<section class="card hsonar" data-h=${heat}>
         <div class="hsonar__grid">
@@ -522,14 +525,14 @@
         </div>
         <${Ladder} heat=${heat} />
         <div class="hactions">
-          ${member && html`<${Btn} icon="compass" onClick=${() => setSheet("sweep")}>${L("Sapu 8 Arah", "Sweep 8 Facings")}</${Btn}>`}
+          ${member && heat !== "menang" && html`<${Btn} icon="compass" onClick=${() => setSheet("sweep")}>${L("Sapu 8 Arah", "Sweep 8 Facings")}</${Btn}>`}
           <${Btn} icon="wave-sine" onClick=${() => setSheet("details")}>${L("Detail", "Details")}</${Btn}>
         </div>
       </section>`,
       claim: !member
         ? html`<section class="card hclaim" data-c="wait"><${Icon} n="hand-tap" lg /><div class="stack stack--sm"><b class="h3">${H.T("Klaim kelompok ini", "This group's claim")}</b><span>${{ memburu: L("Belum mengklaim.", "No claim yet."), menunggu: L("Klaim menunggu tinjauan di ruang kendali.", "A claim is waiting in mission control."), ditolak: L(`Klaim terakhir ditolak: ${row.tolak_alasan || ""}`, `Last claim turned down: ${row.tolak_alasan || ""}`), menang: L(`Ketemu pada ${H.ms(row.durasi)}.`, `Found at ${H.ms(row.durasi)}.`) }[row.status]}</span></div></section>`
         : row.status === "menunggu"
-          ? html`<section class="card hclaim" data-c="wait"><${Icon} n="hourglass-high" lg /><div class="stack stack--sm"><b class="h3">${H.T("Klaim dikirim", "Claim sent")}</b><span>${L("Asisten sedang mengecek foto kalian. Tetap di dekat beacon.", "An assistant is checking your photo. Stay near the beacon.")}</span></div></section>`
+          ? html`<section class="card hclaim" data-c="wait"><${Icon} n="hourglass-high" lg /><div class="stack stack--sm"><b class="h3">${H.T("Klaim dikirim", "Claim sent")}</b><span>${L("Asisten sedang mengecek klaim kalian. Tetap di dekat beacon.", "An assistant is checking your claim. Stay near the beacon.")}</span></div></section>`
           : rejected
             ? html`<section class="card hclaim" data-c="no"><${Icon} n="x-circle" lg /><div class="stack stack--sm"><b class="h3">${H.T("Klaim ditolak", "Claim turned down")}</b><span>${L(`Alasan dari asisten: ${row.tolak_alasan || "tanpa alasan"}`, `The assistant's reason: ${row.tolak_alasan || "no reason given"}`)}</span><div class="r5act" style="justify-content:flex-start"><${Btn} sm icon="arrow-clockwise" onClick=${() => setSeenReject(row.klaim_ke)}>${L("Klaim Lagi", "Claim Again")}</${Btn}></div></div></section>`
             : row.status === "menang"
@@ -541,7 +544,7 @@
     };
     return html`<${H.HuntApp} tab="hunt">
       <div class="hpage__in">${head}
-        <div class="hgrid">${["race", "sonar", "claim"].filter((k) => cards[k]).map((k) => html`<div class=${"hcell hcell--" + k} key=${k}>${cards[k]}</div>`)}</div>
+        <div class="hgrid">${(claimFirst ? ["race", "claim", "sonar"] : ["race", "sonar", "claim"]).filter((k) => cards[k]).map((k) => html`<div class=${"hcell hcell--" + k} key=${k}>${cards[k]}</div>`)}</div>
       </div>
       ${sheet === "claim" && html`<${ClaimSheet} g=${g} onClose=${() => setSheet(null)} />`}
       ${sheet === "sweep" && html`<${SweepSheet} g=${g} onClose=${() => setSheet(null)} />`}
