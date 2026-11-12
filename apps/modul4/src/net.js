@@ -279,6 +279,19 @@
       : location.protocol === "http:" && !/^(localhost|127\.)/.test(location.hostname);
   /* H.NET(forInternet, forIrisIot): pick the wording that matches the network */
   H.NET = (internet, lokal) => (H.lokal() ? lokal : internet);
+  /* The server answers in short Indonesian reasons. People get a plain
+     sentence in their own language, never the raw reason. */
+  H.why = (r) => {
+    const t = String(r || "");
+    if (t === "tunggu sebentar") return L("Tunggu sebentar, lalu coba lagi.", "Wait a moment, then try again.");
+    if (/berkas|unggahan|penyimpanan/.test(t)) return L("Fotonya belum masuk dengan benar. Foto lagi.", "The photo didn't upload cleanly. Take it again.");
+    if (t === "kelompok belum mengirim data") return L("Hunter kelompokmu belum mengirim data.", "Your group's hunter hasn't sent any data yet.");
+    if (t === "masuk dengan NIM dulu") return L("Masuk dengan NIM dulu.", "Sign in with your NIM first.");
+    if (t === "tidak ada sesi yang berjalan") return L("Belum ada sesi yang berjalan.", "No session is running.");
+    if (t === "token salah" || t === "butuh token asisten") return L("Token salah atau belum diisi.", "Wrong or missing token.");
+    if (/hanya kelompok itu/.test(t)) return L("Hanya anggota kelompok itu yang bisa mengklaim.", "Only that group's own members can claim.");
+    return L("Coba lagi.", "Try again.");
+  };
   const GNAMES = ["Vela", "Lyra", "Cygnus", "Orion", "Carina", "Draco", "Pyxis", "Lepus", "Corvus", "Ara"];
   /* a group's own name from the schedule, or its star name */
   H.gname = (g) => {

@@ -91,6 +91,21 @@
       const t = setTimeout(() => setDown(true), 4000);
       return () => clearTimeout(t);
     }, [N.status]);
+    /* A QR link carries one person's NIM. A phone that is already signed in
+       as somebody else (a shared phone, a second person scanning) switches
+       to the NIM on the link; a link that doesn't resolve leaves the phone as it was. */
+    useEffect(() => {
+      if (STAGE || !H.urlNim || N.status !== "live" || !N.frame || N.grup === null) return;
+      const v = H.urlNim;
+      H.urlNim = null;
+      if (N.nim === v) return;
+      H.set({ reveal: true });
+      H.masuk(v).then((r) => {
+        if (r.ok) return;
+        H.set({ reveal: false });
+        H.toast(L("NIM di tautan itu tidak ada di sesi ini. Kamu tetap masuk sebagai akunmu yang tadi.", "The NIM on that link isn't on this session's list. You stay signed in as before."), { tone: "warn" });
+      });
+    }, [N.status, !!N.frame, N.grup]);
     if (STAGE) return html`<${H.Stage} />`;
     if (N.locked) return html`<${H.States} kind="token" />`;
     if (down && N.status !== "live") return html`<${H.States} kind=${N.closeCode === 1001 ? "restart" : "offline"} />`;
@@ -103,7 +118,8 @@
     const ended = f.penghargaan && f.penghargaan.beku && endedSeen !== f.ronde;
     if (ended && route !== "results" && (N.grup !== null || asisten)) return html`<${H.States} kind="ended" />`;
     if (N.grup === null && !asisten) return html`<${H.Join} />`;
-    if (N.grup !== null && !N.peranTim && route === "hunt") return html`<${H.Join} />`;
+    /* just signed in with a NIM: show the group once, until Start Hunting */
+    if (N.grup !== null && st.reveal && route === "hunt") return html`<${H.Join} />`;
     if (route === "team") return html`<${H.Team} />`;
     if (route === "layers") return html`<${H.Layers} />`;
     if (route === "results") return html`<${H.Results} />`;
@@ -116,7 +132,7 @@
       document.documentElement.lang = st.lang === "zh" ? "zh-Hans" : st.lang;
       document.title = H.title(L("Perburuan LoRa", "LoRa Hunt")) + " · IRIS";
     }, [st.lang]);
-    return html`<div class=${"huntapp" + (st.reduce ? " reduce" : "")} data-t=${st.sun ? "light" : st.theme} data-f="jakarta" data-zhw=${st.zhW} lang=${st.lang === "zh" ? "zh-Hans" : st.lang} data-stage=${STAGE ? "yes" : "no"}>
+    return html`<div class=${"huntapp" + (st.reduce ? " reduce" : "")} data-t=${st.sun ? "light" : st.theme} data-f="jakarta" data-zhw="700" lang=${st.lang === "zh" ? "zh-Hans" : st.lang} data-stage=${STAGE ? "yes" : "no"} data-short=${st.short ? "yes" : "no"}>
       <div class="huntapp__scroll"><${Screen} /></div>
       <div class="huntapp__layers"></div>
       <${H.Toasts} />

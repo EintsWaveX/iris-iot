@@ -9,7 +9,7 @@
 
   /* ---------------------------------------------------------------- store */
   const listeners = new Set();
-  const KEEP = ["lang", "theme", "sun", "sound", "vib", "zhW"];
+  const KEEP = ["lang", "theme", "sun", "sound", "vib"];
   const KEY = "iris_hunt_ui";
   const read = (k) => {
     try {
@@ -43,7 +43,7 @@
     return nav.startsWith("zh") ? "zh" : nav.startsWith("en") ? "en" : "id";
   };
   const state = Object.assign(
-    { theme: "dark", sun: false, sound: false, vib: true, zhW: "700", width: window.innerWidth, reduce: false },
+    { theme: "dark", sun: false, sound: false, vib: true, width: window.innerWidth, short: window.innerHeight <= 700, reduce: false },
     saved,
     { lang: firstLang() },
   );
@@ -67,7 +67,9 @@
     return state;
   };
   window.addEventListener("resize", () => {
-    if (Math.abs(window.innerWidth - state.width) > 2) H.set({ width: window.innerWidth });
+    /* width drives the tab placement, height flags a short laptop window (data-short) */
+    const short = window.innerHeight <= 700;
+    if (Math.abs(window.innerWidth - state.width) > 2 || short !== state.short) H.set({ width: window.innerWidth, short });
   });
   if (mq && mq.addEventListener) mq.addEventListener("change", () => H.set({ reduce: mq.matches }));
 
@@ -340,6 +342,39 @@
     </${H.Portal}>`;
   };
 
+  /* A side drawer, sized like the IRIS site's: "third" (1/3) to look at one
+     thing or set one control, "half" for a short form or list beside the
+     page, "wide" (2/3) for big content. Below 640px it is a bottom sheet.
+     Same overlay stack as Dialog, so Esc and the scrim close the top layer. */
+  H.Drawer = ({ title, desc, onClose, children, foot, size }) => {
+    const o = useOverlay(onClose, 160);
+    const box = useRef(null);
+    useAutoFocus(box);
+    return html`<${H.Portal}>
+      <div class="scrim" data-state=${o.st} data-under=${o.under ? "yes" : "no"} onClick=${o.scrimClick}></div>
+      <aside class=${cls("drawer", "drawer--" + (size || "third"))} ref=${box} tabindex="-1" data-state=${o.st} inert=${o.under ? "" : undefined} role="dialog" aria-modal="true" aria-label=${title}>
+        <div class="drawer__head">
+          <div class="stack stack--sm"><h2 class="h2">${H.title(title)}</h2>${desc && html`<p class="dialog__desc">${desc}</p>`}</div>
+          <${H.IconBtn} icon="x" label=${L("Tutup", "Close")} onClick=${o.close} />
+        </div>
+        <div class="drawer__body">${typeof children === "function" ? children(o.close) : children}</div>
+        ${foot && html`<div class="drawer__foot">${typeof foot === "function" ? foot(o.close) : foot}</div>`}
+      </aside>
+    </${H.Portal}>`;
+  };
+
+  /* The pieces every screen repeated by hand: a card with a head, a stat
+     tile, and the row of group chips (Hunt, Layers, Results, Mission). */
+  H.Card = ({ title, sub, action, class: klass, children, ...rest }) => html`
+    <section class=${cls("card", klass)} ...${rest}>
+      ${(title || action) && html`<div class="card__head">${title && html`<h2 class="card__title">${H.title(title)}</h2>`}${action}</div>`}
+      ${sub && html`<p class="card__sub">${sub}</p>`}
+      ${children}
+    </section>`;
+  H.Stat = ({ label, value, sub }) => html`<div class="stat"><b class="num">${value}</b><span>${label}</span>${sub && html`<span>${sub}</span>`}</div>`;
+  H.GroupChips = ({ ids, pressed, onPick, label }) =>
+    html`<div class="row gchips" role="group" aria-label=${label}>${ids.map((n) => html`<button type="button" class="chipbtn gchip" style=${`--g:var(--group-${n})`} aria-pressed=${String(pressed(n))} onClick=${() => onPick(n)}><i></i>${H.gname(n)}</button>`)}</div>`;
+
   /* Toasts */
   let pushToast = () => {};
   H.toast = (msg, opts) => pushToast(msg, opts || {});
@@ -426,14 +461,6 @@
     const sub = { id: L("Indonesia", "Indonesian"), en: L("Inggris", "English"), zh: L("Mandarin, aksara sederhana", "Mandarin, Simplified") };
     return html`<div class="langpick" role="radiogroup" aria-label=${L("Bahasa", "Language")}>${H.LANGS.map((o) => html`<button type="button" role="radio" class="langpick__o" aria-checked=${String(st.lang === o.v)} onClick=${() => H.set({ lang: o.v })}>
       <span class="stack" style="gap:0"><b lang=${o.v === "zh" ? "zh-Hans" : o.v}>${o.l}${o.v === "zh" && html` <${H.Badge} tone="warn">Beta</${H.Badge}>`}</b><span class="hint">${sub[o.v]}</span></span>${st.lang === o.v && html`<${Icon} n="check" />`}</button>`)}</div>`;
-  };
-  /* Mandarin only: the heading weight */
-  H.ZhWeight = () => {
-    const st = H.useStore();
-    if (st.lang !== "zh") return null;
-    return html`<div class="stack stack--sm"><span class="label">标题粗细</span>
-      <${H.Tabs} fill value=${st.zhW || "700"} onChange=${(v) => H.set({ zhW: v })} label="标题粗细" tabs=${[{ v: "700", l: "粗 700" }, { v: "500", l: "细 500" }]} />
-      <span class="hint">只在中文界面出现。改的是页面标题和卡片标题的字重。</span></div>`;
   };
 
   /* ------------------------------------------------------------- charts
