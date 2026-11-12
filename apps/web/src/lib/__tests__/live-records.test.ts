@@ -178,3 +178,51 @@ describe("LiveRecords", () => {
     expect(s.list()[0].nilai.jarak).toBeUndefined();
   });
 });
+
+describe("LiveRecords after a board restarts", () => {
+  const row = (seq: number, at: string) => pc({ seq, tx: at, rx: at, delayMs: 50 });
+
+  it("shows the new messages at once, not only after the old maximum is passed (#337)", () => {
+    const s = new LiveRecords(2);
+    for (let i = 1; i <= 337; i++) s.pc(row(i, "10:00:00:000"));
+    for (let i = 1; i <= 5; i++) s.pc(row(i, "10:20:00:000"));
+    const rows = s.list();
+    expect(rows.slice(-5).map((r) => r.seq)).toEqual([1, 2, 3, 4, 5]);
+    expect(rows.slice(-5).every((r) => r.tx === "10:20:00:000")).toBe(true);
+    expect(rows.some((r) => r.seq === 337)).toBe(true);
+  });
+
+  it("keeps a skipped number inside one run", () => {
+    const s = new LiveRecords(2);
+    for (const n of [1, 2, 50, 51]) s.pc(row(n, "10:00:00:000"));
+    const rows = s.list();
+    expect(rows.map((r) => r.seq)).toEqual([1, 2, 50, 51]);
+    expect(new Set(rows.map((r) => r.run)).size).toBe(1);
+  });
+
+  it("keeps a late older row inside its run (a small step back is not a restart)", () => {
+    const s = new LiveRecords(2);
+    for (const n of [10, 11, 13, 12, 14]) s.pc(row(n, "10:00:00:000"));
+    expect(new Set(s.list().map((r) => r.run)).size).toBe(1);
+  });
+
+  it("pairs the PC's row and the board's own line of the new run, even when the history was cut", () => {
+    const s = new LiveRecords(2);
+    // The PC still has the old run's tail; the laptop's board has only the new run.
+    for (let i = 258; i <= 337; i++) s.pc(row(i, "10:00:00:000"));
+    for (let i = 1; i <= 3; i++) s.pc(pc({ seq: i, rx: "10:20:00:018" }));
+    s.board(parseSerialLine(2, '[10:20:00:000] Kirim #2: {"seq":2,"temp":27.1,"hum":60}'));
+    const two = s.list().filter((r) => r.seq === 2);
+    expect(two).toHaveLength(1);
+    expect(two[0]).toMatchObject({ tx: "10:20:00:000", rx: "10:20:00:018", oneway: 18 });
+  });
+
+  it("when a table is full the oldest arrivals go, never the newest", () => {
+    const s = new LiveRecords(2);
+    for (let i = 1; i <= 400; i++) s.pc(row(i, "10:00:00:000"));
+    for (let i = 1; i <= 3; i++) s.pc(row(i, "10:30:00:000"));
+    const rows = s.list();
+    expect(rows.length).toBeLessThanOrEqual(120);
+    expect(rows.slice(-3).map((r) => r.seq)).toEqual([1, 2, 3]);
+  });
+});
