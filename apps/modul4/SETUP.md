@@ -207,7 +207,7 @@ tangan tanpa `--token`, server membangkitkan token enam huruf dan mencetaknya:
 [13:02:52:686] +-----------------------------+
 ```
 
-Asisten membuka alamat yang sama dengan praktikan, mengetuk **Saya asisten** di kartu masuk NIM, lalu mengetikkan token itu. Tokennya tersimpan di
+Asisten membuka alamat yang sama dengan praktikan, mengetuk **Menu** lalu **Buka Ruang Kendali Asisten** (atau **Saya Asisten** di kartu masuk NIM), lalu mengetikkan token itu. Tokennya tersimpan di
 peramban asisten, jadi cukup sekali per perangkat.
 
 Abjadnya sengaja tanpa huruf dan angka yang mudah tertukar saat dibacakan
@@ -248,28 +248,32 @@ mendengar karena kata sinkron radionya berbeda.
    (`grupN/`). Tidak ada baris yang perlu disunting. Beacon disambungkan ke
    hotspot dulu, baru asisten **menyembunyikan** kelima beacon di sekitar
    gedung.
-3. **Asisten mengisi jadwal sehari.** Buka `https://hunt.irisiotlab.com`, ketuk
-   lambang di kiri atas tiga kali, masukkan token. Tab **Asisten** (mission
-   control) terbuka sendiri. Buka **Jadwal dan kendali**, tempelkan daftar
-   tiap sesi (lihat bagian 4), lalu **Mulai sesi ini**.
+3. **Asisten masuk ke mission control.** Buka `https://hunt.irisiotlab.com`,
+   ketuk tombol **Menu** di kanan atas (ikon penggeser), lalu **Buka Ruang Kendali
+   Asisten** dan masukkan token. Tombol itu ada di semua layar, juga di ponsel
+   yang sudah masuk sebagai praktikan. Tab **Asisten** terbuka sendiri. Daftar
+   kelompok hari itu tidak diketik di sini: ia datang dari situs IRIS lewat agen
+   PC (bagian 4). Sesi dimulai dari tombol **Mulai Perburuan** di situs; kartu
+   **Sesi** di mission control punya **Mulai sesi** sebagai cadangan.
 4. **Tiap praktikan membuka tautan dari situs IRIS** (langkah Perburuan; QR
    atau salin tautan, karena kode papan ikut di dalamnya) dan mengetikkan
    **NIM**-nya. Papan menampilkan kelompoknya sebagai rasi bintang beserta
-   nama anggotanya untuk dipastikan, lalu tiga kartu singkat (tujuan, membaca
-   sonar, mengklaim) dan pilihan **peran**.
+   nama anggotanya untuk dipastikan, lalu tombol **Mulai Berburu**. Tidak ada
+   langkah memilih peran: peran boleh dipilih nanti di tab **Tim**.
 5. **Kalibrasi acuan jarak.** Pegang satu papan Hunter tepat **1 meter** dari
-   beacon-nya, pilih kelompok itu di **Jadwal dan kendali**, tekan
-   **Kalibrasi 1 m**. Kalibrasi berlaku untuk semua kelompok dan bertahan
+   beacon-nya, lalu di kartu **Kalibrasi dan arena** tekan **Ukur Ulang di 1 M**
+   dan pilih kelompok itu. Kalibrasi berlaku untuk semua kelompok dan bertahan
    melewati **Ronde baru** dan pergantian sesi, jadi cukup sekali per lokasi.
-6. Proyektor membuka `https://hunt.irisiotlab.com/?stage=1` dan asisten
-   masuk dengan token. Tombol
-   **Hitung mundur di proyektor** memutar 3, 2, 1, Buru! di layar besar;
-   memulai sesi memutarnya sendiri.
-7. **Perburuan.** Layar **Buru** di tiap ponsel: sonar (cincin terang adalah
-   jarak kelompok, bukan arahnya; warnanya naik dari Dingin ke Membara),
-   angka jarak dengan rentang perkiraannya, jejak 90 detik, sinyal tim,
-   balapan, dan angka tautan radio. Langit ikut berganti warna sesuai panas
-   kelompok itu sendiri.
+6. Proyektor membuka `https://hunt.irisiotlab.com/?stage=1`; layar itu tidak
+   butuh token. Tombol **Hitung Mundur 10 Detik** di mission control memutar
+   hitung mundur di layar besar; memulai sesi memutarnya sendiri.
+7. **Perburuan.** Layar **Buru** di tiap ponsel hanya memuat yang dibutuhkan
+   untuk menemukan beacon: balapan antarkelompok, sonar (cincin terang adalah
+   jarak kelompok, bukan arahnya; warnanya naik dari Dingin ke Membara) dengan
+   rentang jarak perkiraannya, tombol **Sapu 8 Arah**, dan tombol klaim. Tombol
+   **Detail** membuka angka tautan radio, tren 10 detik, dan sapuan terakhir.
+   Sinyal tim dan **Panggil asisten** ada di tab **Tim**. Langit ikut berganti
+   warna sesuai panas kelompok itu sendiri.
 8. **Mengklaim.** Di zona **Membara**, tombol klaim menyala. Tahan 1,2 detik,
    ambil foto beacon (boleh tanpa foto), kirim. Ponsel menampilkan radar
    "sedang ditinjau".
@@ -284,24 +288,22 @@ mendengar karena kata sinkron radionya berbeda.
     sekitar delapan detik, lengkap dengan seluruh jejak perburuannya.
     Kelompok lain terus berburu. Ronde baru benar-benar selesai begitu
     **semua** kelompok ditemukan: penghargaan membeku dan proyektor pindah ke
-    podium. Tombol **P** di proyektor menampilkan atau menyembunyikan podium
-    kapan saja.
-11. **Ronde baru** (di **Jadwal dan kendali**) mengosongkan waktu temu,
+    podium.
+11. **Ronde baru** (di kartu **Sesi**) mengosongkan waktu temu,
     klaim, jejak, dan foto untuk ronde berikutnya di dalam sesi yang sama.
     Jadwal, peran tim, dan kalibrasi tetap tersimpan. Unduh **jejak CSV**
     atau **JSON** lebih dulu kalau datanya ingin disimpan.
 
 Kalau papan sebuah kelompok mati di tengah perburuan padahal beacon-nya
-sudah di tangan, pilih kelompok itu di **Jadwal dan kendali** lalu **tahan**
-tombol *Tahan: sahkan tanpa klaim*. Tombol itu sengaja butuh tekan-lama.
+sudah di tangan, buka menu kelompok itu di **Jalur kelompok** (tombol
+"...") dan pilih **Paksa Konfirmasi**. Ada dialog konfirmasi karena
+tindakannya tidak bisa dibatalkan.
 
 ### Peran, sinyal tim, dan sapuan
 
-- **Peran** (Pemandu, Pengintai, Operator radio) hanya mengubah urutan layar
-  Buru: Pemandu mendapat sonar paling atas, Pengintai tombol klaim, Operator
-  angka tautan. Semua ponsel tetap melihat seluruh perburuan. Peran bisa
-  diganti kapan saja dari tab **Tim**; mission control menandai peran yang
-  kosong dengan warna kuning.
+- **Peran** (Pemandu, Pengintai, Operator radio) hanya pembagian tugas di
+  dalam kelompok dan **boleh dilewati**: layar Buru sama untuk semua. Peran
+  dipilih dari tab **Tim**, dan namanya tampil di samping anggota kelompok.
 - **Sinyal tim** (Ke sini, Sinyal naik, Tunggu, Cek klaim) hanya sampai ke
   ponsel satu kelompok dan ke asisten, tidak pernah ke proyektor. Jedanya
   tiga detik per ponsel.
@@ -347,7 +349,7 @@ context*, jadi penahan layar (**Screen Wake Lock**) bekerja di peramban yang
 mendukungnya. Di mode `iris_iot` papan memakai `http://`, tanpa Wake Lock; di
 sana papan memutar video satu piksel tanpa suara dari kanvas (cara NoSleep)
 begitu anggota mengetuk "Nyalakan suara". Peramban mana yang menghormatinya
-belum teruji di ponsel sungguhan, jadi layar Tampilan menyebutnya cara
+belum teruji di ponsel sungguhan, jadi **Menu** menyebutnya cara
 cadangan.
 Untuk jaga-jaga (peramban lama, mode hemat daya), minta tiap kelompok menyetel
 batas tidur layar ponselnya ke 5 menit atau "tidak pernah" sebelum sesi
@@ -368,10 +370,17 @@ Praktikum berjalan **empat sesi sehari** dengan praktikan yang berbeda-beda.
 Asisten mengetik keempatnya **sekali di pagi hari**; sesudah itu server yang
 mengurus sisanya.
 
-### Menempelkan daftar
+### Dari mana daftarnya datang
 
-Tiap sesi punya satu kotak tempel. Formatnya sengaja selonggar mungkin supaya
-tempelan dari spreadsheet langsung terbaca:
+Mission control **tidak** punya kotak tempel. Daftar kelompok dan NIM ditulis
+oleh situs IRIS dan agen PC ke `/var/lib/iris-agent/bagi/jadwal-modul4.json`;
+server membacanya tiap detak agen (`jadwal_impor`). Sesi yang membawa
+`berburu` (waktu asisten menekan **Mulai Perburuan** di situs) mendapat
+orangnya lebih dulu. Server masih menerima pesan `jadwal_set` untuk skrip
+dan pengujian, dengan format di bawah, tetapi tidak ada layar yang
+mengirimnya.
+
+Format yang diterima, sengaja selonggar mungkin:
 
 ```
 #1 Kelompok Cakra
@@ -387,15 +396,9 @@ tempelan dari spreadsheet langsung terbaca:
   opsional.
 - Baris lain adalah satu anggota: **NIM**, lalu koma / titik koma / tab /
   spasi, lalu namanya.
-- Di bawah kotak ada hitungan langsung — `7 kelompok · 28 anggota · 0 galat` —
-  dan tiap baris yang bermasalah disebutkan nomornya. Tombol **Simpan**
-  menolak bekerja selama masih ada galat.
 - **Satu NIM hanya boleh muncul sekali dalam sehari.** Kalau tidak, pencarian
   NIM akan memilih salah satu kelompok tanpa bersuara, dan seseorang akan
   berburu untuk kelompok yang salah tanpa ada yang tahu.
-
-Menyimpan menulis ulang seluruh sesi itu, jadi menghapus satu baris dari
-tempelan benar-benar menghapus orangnya.
 
 ### Jam dan pergantian
 
@@ -405,8 +408,8 @@ dibersihkan tepat **30 menit sebelum** sesi berikutnya dijadwalkan mulai.
 Kalau jamnya kelak dirapatkan, yang berlaku tetap yang lebih cepat dari
 keduanya.
 
-Tiap jam mulai dapat disunting di panelnya. Tombol **Mulai sekarang** dan
-**Akhiri sekarang** ada untuk praktikum yang meleset dari jadwal, dan
+Kartu **Sesi** di mission control punya **Mulai sesi** dan **Akhiri Sesi**
+untuk praktikum yang meleset dari jadwal, dan
 keputusan manual itu **tidak** dibatalkan lagi oleh jam: sesi yang dimulai
 manual berjalan sampai batasnya habis atau sampai diakhiri manual.
 
@@ -419,8 +422,7 @@ Saat sesi berganti, yang dihapus adalah:
   disuruh dan tanpa perlu menyambung ulang.
 
 Yang **tetap**: jadwal sehari penuh, ukuran arena, dan kalibrasi 1 meter.
-Tombol **Hapus jadwal** membuang keempat sesi sekaligus, dan hanya itu yang
-membuangnya sebelum hari berganti.
+Hanya pergantian hari (atau pesan `jadwal_hapus` dari skrip) yang membuang keempat sesi sekaligus.
 
 `--sesi-jam 07:00,10:00,13:00,16:00` mengubah jam mulainya dan
 `--sesi-durasi MENIT` mengubah batasnya.
@@ -580,9 +582,9 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
   layar NIM menyebutkan sesi mana yang berjalan supaya ketiganya mudah
   dibedakan: NIM-nya salah ketik; orangnya terdaftar di sesi lain hari itu;
   atau kelompoknya dihapus dari sesi ini karena papannya menjadi beacon.
-  Periksa tempelan sesi itu di tab Asisten.
+  Periksa daftar sesi itu di situs IRIS (langkah Perburuan).
 - **"Belum ada sesi yang berjalan".** Jam dinding sedang berada di jeda antar
-  sesi, atau sesi terakhir sudah diakhiri. Tekan **Mulai sekarang** pada sesi
+  sesi, atau sesi terakhir sudah diakhiri. Tekan **Mulai sesi** di kartu **Sesi** pada sesi
   yang dikehendaki.
 - **Tombol "Kami menemukannya" tidak bisa ditekan.** Itu memang perilakunya:
   tombol terbuka sendiri hanya ketika keadaan kelompok itu MEMBARA. Baris di

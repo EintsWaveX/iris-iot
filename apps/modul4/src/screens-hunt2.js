@@ -220,7 +220,7 @@
     const r = await H.asisten(aksi, extra);
     if (r.ok) {
       if (ok) H.toast(ok, { tone: "ok" });
-    } else H.toast(L(`Gagal: ${r.alasan || "coba lagi"}.`, `That failed: ${r.alasan || "try again"}.`), { tone: "warn" });
+    } else H.toast(L(`Gagal. ${H.why(r.alasan)}`, `That failed. ${H.why(r.alasan)}`), { tone: "warn" });
     return r;
   };
   const Confirm = ({ title, body, okLabel, danger, onOk, onClose }) =>

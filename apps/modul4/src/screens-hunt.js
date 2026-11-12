@@ -365,7 +365,7 @@
         const up = await H.uploadPhoto(g, file);
         if (!up.ok) {
           setBusy(false);
-          H.toast(L(`Foto tidak terkirim: ${up.alasan || "coba lagi"}.`, `The photo didn't go through: ${up.alasan || "try again"}.`), { tone: "warn" });
+          H.toast(L(`Foto tidak terkirim. ${H.why(up.alasan)}`, `The photo didn't go through. ${H.why(up.alasan)}`), { tone: "warn" });
           return;
         }
         foto = up.berkas;
@@ -375,7 +375,7 @@
       if (r.ok) {
         close();
         H.toast(L("Klaim dikirim. Tetap di dekat beacon.", "Claim sent. Stay near the beacon."), { tone: "ok" });
-      } else H.toast(L(`Klaim belum bisa dikirim: ${r.alasan || "coba lagi"}.`, `The claim couldn't be sent: ${r.alasan || "try again"}.`), { tone: "warn" });
+      } else H.toast(L(`Klaim belum bisa dikirim. ${H.why(r.alasan)}`, `The claim couldn't be sent. ${H.why(r.alasan)}`), { tone: "warn" });
     };
     return html`<${H.Sheet} title=${L("Kirim klaim", "Send a claim")} onClose=${onClose}>${(close) => html`<div class="stack">
       <input ref=${input} type="file" accept="image/*" capture="environment" hidden onChange=${choose} />
@@ -428,7 +428,7 @@
       if (r.ok) {
         close();
         H.toast(L(`Sapuan terkirim. Terkuat di arah jam ${clockText(best)}.`, `Sweep sent. Strongest at ${clockText(best)} o'clock.`), { tone: "ok" });
-      } else H.toast(L(`Sapuan belum terkirim: ${r.alasan || "coba lagi"}.`, `The sweep wasn't sent: ${r.alasan || "try again"}.`), { tone: "warn" });
+      } else H.toast(L(`Sapuan belum terkirim. ${H.why(r.alasan)}`, `The sweep wasn't sent. ${H.why(r.alasan)}`), { tone: "warn" });
     };
     const prog = rec == null ? 0 : Math.min(1, (Date.now() - rec) / 4000);
     return html`<${H.Sheet} title=${L("Sapuan 8 arah", "8-facing sweep")} onClose=${onClose}>${(close) => html`<div class="stack">
@@ -553,6 +553,7 @@
   H.Team = () => {
     const N = H.useNet();
     const g = N.grup;
+    const [leave, setLeave] = useState(false);
     if (g === null) return html`<${H.Hunt} />`;
     const mem = H.members(g);
     const role = N.peranTim;
@@ -589,8 +590,11 @@
               <span class="hint">${role ? L(...ROLES[role].d) : L("Pilih satu kalau timmu mau membagi tugas. Layar Buru sama untuk semua.", "Pick one if your team wants to split the jobs. The Hunt screen is the same for everyone.")}</span></div>
           </${H.Card}>
         </div>
-        <div class="r5act" style="justify-content:flex-start"><${Btn} kind="ghost" sm icon="sign-out" onClick=${H.keluar}>${L("Keluar dari Kelompok", "Leave the Group")}</${Btn}></div>
+        <div class="r5act" style="justify-content:flex-start"><${Btn} kind="ghost" sm icon="sign-out" onClick=${() => setLeave(true)}>${L("Keluar dari Kelompok", "Leave the Group")}</${Btn}></div>
       </div>
+      ${leave && html`<${H.Dialog} sm title=${L("Keluar dari kelompok?", "Leave the group?")} onClose=${() => setLeave(false)}
+        foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}><${Btn} kind="danger" onClick=${() => { c(); H.keluar(); }}>${L("Keluar", "Leave")}</${Btn}>`}>
+        <p>${L("Kamu bisa masuk lagi dengan NIM selama sesi masih berjalan.", "You can sign back in with your NIM while the session is still running.")}</p></${H.Dialog}>`}
     </${H.HuntApp}>`;
   };
 })();
