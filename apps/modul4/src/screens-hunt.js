@@ -73,23 +73,29 @@
   /* One person of a group: initials avatar in the group's colour, the full
      name beside it (it wraps, it is never cut), and a dot when their phone is
      connected. Nothing depends on hover, so a phone shows the name too. */
-  H.Person = ({ m, g, sm }) => html`<span class=${"hperson" + (m.hadir ? " is-on" : "") + (sm ? " hperson--sm" : "")} style=${`--g:var(--group-${g})`}>
+  H.Person = ({ m, g, sm, role }) => html`<span class=${"hperson" + (m.hadir ? " is-on" : "") + (sm ? " hperson--sm" : "")} style=${`--g:var(--group-${g})`}>
     <span class="hperson__av" aria-hidden="true">${H.initials(m.nama)}</span>
-    <span class="hperson__name">${m.nama}</span>
+    <span class="hperson__name">${m.nama}${role && m.peran && ROLES[m.peran] && html`<small class="hperson__role">${L(...ROLES[m.peran].l)}</small>`}</span>
     ${m.hadir && html`<span class="dot dot--ok" role="img" aria-label=${L("Tersambung", "Connected")}></span>`}
   </span>`;
+  /* The menu: the clock, how the hunt looks and sounds, and the way into
+     assistant mission control from any screen (a signed-in student too). */
   const HDisplay = ({ onClose }) => {
     const st = H.useStore();
-    return html`<${H.Sheet} pop done title=${L("Tampilan perburuan", "Hunt display")} onClose=${onClose}><div class="stack">
-      <label class="hset"><span class="stack" style="gap:0"><b>${L("Mode Terang Matahari", "Bright Sun Mode")}</b><span class="hint">${L("Kontras tinggi dan angka besar buat di luar ruangan.", "High contrast and big numbers for outdoors.")}</span></span><${Switch} on=${st.sun} onChange=${(v) => H.set({ sun: v })} label=${L("Mode Terang Matahari", "Bright Sun Mode")} /></label>
+    const N = H.useNet();
+    return html`<${H.Drawer} size="third" title=${L("Menu", "Menu")} onClose=${onClose}>${(close) => html`<div class="stack" style="gap:var(--space-4)">
+      <div class="hset"><span class="stack" style="gap:0"><b>${L("Jam sekarang", "Time now")}</b></span><${HClock} /></div>
+      <div class="field"><span class="label">${L("Tampilan", "Look")}</span>
+        <${Tabs} fill value=${st.sun ? "sun" : st.theme} onChange=${(v) => H.set(v === "sun" ? { sun: true } : { sun: false, theme: v })} label=${L("Tampilan", "Look")} tabs=${[{ v: "dark", l: L("Gelap", "Dark"), icon: "moon" }, { v: "light", l: L("Terang", "Light"), icon: "sun" }, { v: "sun", l: L("Terik", "Bright Sun"), icon: "lightning" }]} />
+        <span class="hint">${st.sun ? L("Mode Terik: kontras tinggi dan angka besar buat di luar ruangan.", "Bright Sun: high contrast and big numbers for outdoors.") : L("Pilih Terik kalau berburu di bawah matahari.", "Pick Bright Sun when you hunt in the sun.")}</span></div>
       <label class="hset"><span class="stack" style="gap:0"><b>${L("Suara Geiger", "Geiger sound")}</b><span class="hint">${L("Bunyi makin cepat saat makin dekat. Layar tidak perlu dilihat terus.", "Ticks faster as you get closer, so you don't have to watch the screen.")}</span></span><${Switch} on=${!!st.sound} onChange=${(v) => (v ? H.unlockSound() : H.set({ sound: false }))} label=${L("Suara Geiger", "Geiger sound")} /></label>
       <label class="hset"><span class="stack" style="gap:0"><b>${L("Getar", "Vibrate")}</b><span class="hint">${L("Getar pendek mulai dari Hangat.", "A short buzz from Warm upwards.")}</span></span><${Switch} on=${st.vib !== false} onChange=${(v) => H.set({ vib: v })} label=${L("Getar", "Vibrate")} /></label>
       <div class="field"><span class="label">${L("Bahasa", "Language")}</span><${H.LangPick} /></div>
-      <${H.ZhWeight} />
-      <div class="field" data-off=${st.sun ? "yes" : "no"} inert=${st.sun ? "" : undefined}><span class="label">${L("Tema", "Theme")}</span><${Tabs} fill value=${st.sun ? "light" : st.theme} onChange=${(v) => H.set({ theme: v })} label=${L("Tema", "Theme")} tabs=${[{ v: "dark", l: L("Gelap", "Dark"), icon: "moon" }, { v: "light", l: L("Terang", "Light"), icon: "sun" }]} />
-        ${st.sun && html`<span class="hint">${L("Mode Terang Matahari sedang menyala, jadi layar tetap terang.", "Bright Sun Mode is on, so the screen stays light.")}</span>`}</div>
       <span class="hint">${H.awakeBy() === "lock" ? L("Layar tetap menyala selama perburuan.", "The screen stays on during the hunt.") : H.awakeBy() === "video" ? L("Layar dijaga tetap menyala dengan cara cadangan. Kalau layar tetap padam, matikan kunci layar otomatis sebentar.", "The screen is kept on with a backup method. If it still locks, turn off auto-lock for a while.") : L("Browser tidak mengizinkan layar tetap menyala di jaringan ini. Matikan kunci layar otomatis sebentar.", "The browser won't keep the screen on on this network. Turn off auto-lock for a while.")}</span>
-    </div></${H.Sheet}>`;
+      ${N.role !== "asisten" && html`<div class="field hmenu__asisten"><span class="label">${L("Asisten", "Assistant")}</span>
+        <${Btn} block icon="shield-check" onClick=${() => { close(); H.go("mission"); }}>${L("Buka Ruang Kendali Asisten", "Open Assistant Mission Control")}</${Btn}>
+        <span class="hint">${L("Butuh token 6 huruf dari Konsol.", "Needs the 6-letter token from the Console.")}</span></div>`}
+    </div>`}</${H.Drawer}>`;
   };
   const TABS = [
     { k: "hunt", l: ["Buru", "Hunt"], i: "target" },
@@ -112,13 +118,12 @@
       <header class="hbar">
         <img class="hbar__logo" src=${H.LOGO} alt="IRIS" />
         <span class="hbar__t"><b>${H.T("Perburuan LoRa", "LoRa Hunt")}</b><span class="hint hide-sm">${H.modul(4)}</span></span>
-        ${!bare && (member || asisten) && html`<span class=${"hbar__g" + (asisten && !member ? " hbar__g--a" : "")} style=${`--g:var(--group-${asisten && !member ? 0 : g})`}>${asisten && !member ? html`<${Icon} n="shield-check" sm /><span>${L("Asisten", "Assistant")}</span>` : html`<i></i>${W < 640 ? H.gname(g) : H.gfull(g)}`}</span>`}
+        ${!bare && W >= 900 && html`<nav class="hbar__tabs" aria-label=${L("Perburuan", "Hunt")}>${tabs.map((t) => html`<button type="button" aria-current=${tab === t.k ? "page" : undefined} onClick=${() => H.go(t.k)}><${Icon} n=${t.i} />${H.title(L(...t.l))}</button>`)}</nav>`}
         <span class="grow"></span>
-        <${HClock} compact=${W < 640} />
+        ${!bare && (member || asisten) && html`<span class=${"hbar__g" + (asisten && !member ? " hbar__g--a" : "")} style=${`--g:var(--group-${asisten && !member ? 0 : g})`}>${asisten && !member ? html`<${Icon} n="shield-check" sm /><span>${L("Asisten", "Assistant")}</span>` : html`<i></i>${W < 640 ? H.gname(g) : H.gfull(g)}`}</span>`}
         <span class="hbar__link" role="status" aria-label=${live ? L("Tersambung ke papan skor", "Connected to the scoreboard") : L("Menyambung ulang ke PC", "Reconnecting to the PC")} data-tip=${live ? L("Tersambung ke papan skor", "Connected to the scoreboard") : L("Menyambung ulang ke PC", "Reconnecting to the PC")} tabindex="0"><span class=${"dot " + (live ? "dot--ok dot--pulse" : "dot--warn")}></span>${!live && html`<span class="hbar__linkt">${L("Menyambung ulang", "Reconnecting")}</span>`}</span>
-        <${IconBtn} icon="sliders-horizontal" label=${L("Tampilan", "Display")} onClick=${() => setDisp(true)} />
+        <${IconBtn} icon="sliders-horizontal" label=${L("Menu", "Menu")} onClick=${() => setDisp(true)} />
       </header>
-      ${!bare && W >= 900 && html`<nav class="htabs" aria-label=${L("Perburuan", "Hunt")}>${tabs.map((t) => html`<button type="button" aria-current=${tab === t.k ? "page" : undefined} onClick=${() => H.go(t.k)}><${Icon} n=${t.i} />${H.title(L(...t.l))}</button>`)}</nav>`}
       ${N.frame && N.frame.pengumuman && !bare && html`<div class="hann" role="status"><${Icon} n="megaphone" /><span>${N.frame.pengumuman.teks}</span></div>`}
       <main class="hpage">${children}</main>
       ${!bare && W < 900 && html`<nav class="hbottom" aria-label=${L("Perburuan", "Hunt")}>${tabs.map((t) => html`<button type="button" aria-current=${tab === t.k ? "page" : undefined} onClick=${() => H.go(t.k)}><${Icon} n=${t.i} /><span>${H.title(L(...t.l))}</span></button>`)}</nav>`}
@@ -266,66 +271,47 @@
   /* ------------------------------------------------ joining */
   H.Join = () => {
     const N = H.useNet();
-    const [step, setStep] = useState(N.grup !== null ? "role" : "nim");
     const [nim, setNim] = useState("");
     const [err, setErr] = useState(null);
     const [busy, setBusy] = useState(false);
-    const [role, setRole] = useState(N.peranTim);
     const st = H.useStore();
-    /* set while the form signs in, so the group reveal isn't skipped: the
-       effect below runs with the step from before the sign-in resolved */
-    const viaForm = useRef(false);
-    /* the server is the authority: a stored NIM that resolves on connect
-       skips straight to the role, one that stops resolving goes back */
-    useEffect(() => {
-      if (N.grup === null && step !== "nim") setStep("nim");
-      if (N.grup !== null && step === "nim" && !viaForm.current) {
-        setRole(N.peranTim);
-        setStep("role");
-      }
-    }, [N.grup]);
     const noSession = N.frame && N.frame.sesi == null;
+    /* "reveal" is on from the moment a NIM is sent until the person taps
+       Start Hunting: the sign-in reply makes the group known before the form
+       is done, and the reveal must not be skipped by that. A phone that signs
+       in by itself on connect (a saved NIM) never sets it and goes straight
+       to the hunt. */
     const submit = async (e, given) => {
       if (e) e.preventDefault();
       const v = given || nim;
       if (busy || v.length < 4) return;
       setBusy(true);
       setErr(null);
-      viaForm.current = true;
+      H.set({ reveal: true });
       const r = await H.masuk(v);
       setBusy(false);
-      if (!r.ok) viaForm.current = false;
-      if (r.ok) {
-        setRole(r.peran_tim || null);
-        setStep("reveal");
-        return;
-      }
+      if (r.ok) return;
+      H.set({ reveal: false });
       setErr(r.kode || r.alasan || "galat");
     };
-    const pick = async () => {
-      setBusy(true);
-      const r = await H.timPeran(role);
-      setBusy(false);
-      if (!r.ok) {
-        H.toast(L("Peran belum tersimpan. Coba lagi.", "The role wasn't saved. Try again."), { tone: "warn" });
-        return;
-      }
+    const start = () => {
+      H.set({ reveal: false });
       H.go("hunt");
     };
     /* a NIM from the web's QR link signs in as soon as the PC answers */
     useEffect(() => {
-      if (!H.urlNim || step !== "nim" || N.status !== "live" || noSession) return;
+      if (!H.urlNim || N.grup !== null || N.status !== "live" || noSession) return;
       const v = H.urlNim;
       H.urlNim = null;
       setNim(v);
       submit(null, v);
-    }, [N.status, step, noSession]);
+    }, [N.status, noSession]);
     const g = N.grup;
     let body;
     if (noSession && g === null)
-      body = html`<section class="card card--raised hjoin"><${H.StateView} icon="hourglass-high" title=${L("Belum ada perburuan", "No hunt yet")} body=${nextSlot() ? L(`Perburuan berikutnya mulai pukul ${nextSlot()}. Halaman ini terbuka sendiri saat asisten memulainya.`, `The next hunt starts at ${nextSlot()}. This page opens by itself when the assistant starts it.`) : L("Tidak ada sesi lagi hari ini. Halaman ini terbuka sendiri saat asisten memulai sesi.", "There are no more sessions today. This page opens by itself when an assistant starts one.")} /><${HClock} />
+      body = html`<section class="card card--raised hjoin"><${H.StateView} icon="hourglass-high" title=${L("Belum ada perburuan", "No hunt yet")} body=${nextSlot() ? L(`Perburuan berikutnya mulai pukul ${nextSlot()}. Halaman ini terbuka sendiri saat asisten memulainya.`, `The next hunt starts at ${nextSlot()}. This page opens by itself when the assistant starts it.`) : L("Tidak ada sesi lagi hari ini. Halaman ini terbuka sendiri saat asisten memulai sesi.", "There are no more sessions today. This page opens by itself when an assistant starts one.")} />
         <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya Asisten", "I'm an Assistant")}</button></section>`;
-    else if (step === "nim" || g === null) {
+    else if (g === null) {
       const msg = {
         tak_terdaftar: L("NIM ini tidak ada di daftar sesi yang berjalan. Cek lagi, atau panggil asisten.", "This NIM isn't on the running session's list. Check it, or call an assistant."),
         tak_ada_sesi: L("Belum ada sesi yang berjalan. Tunggu asisten memulainya.", "No session is running yet. Wait for the assistant to start it."),
@@ -343,7 +329,7 @@
         <span class="hint">${H.NET(L("Papan ini jalan lewat internet ponselmu sendiri.", "This board runs over your own phone's internet."), L("Papan ini jalan di Wi-Fi IRIS_IOT milik PC lab, tanpa internet.", "This board runs on the lab PC's IRIS_IOT Wi-Fi, with no internet."))}</span>
         <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya Asisten", "I'm an Assistant")}</button>
       </form>`;
-    } else if (step === "reveal") {
+    } else {
       const mem = H.members(g);
       body = html`<section class="card card--raised hjoin hreveal" style=${`--g:var(--group-${g})`}>
         <span class="eyebrow">${L("Kamu masuk sebagai", "You're in as")}</span>
@@ -352,23 +338,11 @@
         <p class="lede">${H.sync(g) ? L(`${H.kelompok(g)} · beacon kalian memancar dengan sync word ${H.sync(g)}. Papan lain tidak akan terbaca.`, `${H.kelompok(g)} · your beacon sends on sync word ${H.sync(g)}. Other boards won't be read.`) : H.kelompok(g)}</p>
         ${N.nama && html`<span class="hint">${L(`Halo, ${N.nama}`, `Hi, ${N.nama}`)}</span>`}
         <div class="hpeople">${mem.map((m) => html`<${H.Person} m=${m} g=${g} />`)}</div>
-        <${Btn} kind="primary" lg block iconEnd="arrow-right" onClick=${() => setStep("role")}>${L("Lanjut, Pilih Peran", "Next, Pick a Role")}</${Btn}>
-      </section>`;
-    } else {
-      const mem = H.members(g);
-      body = html`<section class="card card--raised hjoin">
-        <span class="eyebrow">${H.gfull(g)}</span>
-        <h1 class="h-title">${H.T("Pilih peranmu", "Pick your role")}</h1>
-        <p class="lede">${L("Peran hanya mengubah urutan layar Buru. Semua ponsel tetap melihat seluruh perburuan.", "A role only reorders the Hunt screen. Every phone still sees the whole hunt.")}</p>
-        <div class="roles">${Object.entries(ROLES).map(([k, r]) => html`<button type="button" class="rolecard" aria-pressed=${String(role === k)} onClick=${() => setRole(k)}>
-          <span class="rolecard__ic"><${Icon} n=${r.i} lg /></span><span class="stack" style="gap:2px"><b>${L(...r.l)}</b><span class="hint">${L(...r.d)}</span></span>
-          <span class="rolecard__who">${mem.filter((m) => m.peran === k).map((m) => html`<${H.Person} m=${{ ...m, hadir: false }} g=${g} sm />`)}</span></button>`)}</div>
+        <${Btn} kind="primary" lg block icon="target" onClick=${start}>${L("Mulai Berburu", "Start Hunting")}</${Btn}>
         ${!st.sound && html`<div class="banner banner--ok"><${Icon} n="speaker-high" /><span class="grow">${L("Izinkan suara dan getar supaya kamu bisa berburu tanpa melihat layar.", "Allow sound and vibration so you can hunt without watching the screen.")}</span><${Btn} sm onClick=${() => { H.unlockSound(); H.toast(L("Suara dan getar menyala.", "Sound and vibration on."), { tone: "ok" }); }}>${L("Izinkan", "Allow")}</${Btn}></div>`}
-        <${Btn} kind="primary" lg block icon="target" disabled=${!role || busy} onClick=${pick}>${L("Mulai Berburu", "Start Hunting")}</${Btn}>
       </section>`;
     }
-    const bare = g === null;
-    return html`<${H.HuntApp} tab="hunt" bare=${bare}><div class="hpage__in hpage__in--narrow">${body}</div></${H.HuntApp}>`;
+    return html`<${H.HuntApp} tab="hunt" bare><div class="hpage__in hpage__in--narrow">${body}</div></${H.HuntApp}>`;
   };
 
   /* ------------------------------------------------ claim and sweep sheets */
@@ -475,9 +449,35 @@
   const GroupPick = ({ g }) => {
     const ids = H.groups();
     if (!ids.length) return null;
-    return html`<div class="row" style="gap:6px">${ids.map((n) => html`<button type="button" class="chipbtn gchip" style=${`--g:var(--group-${n})`} aria-pressed=${String(n === g)} onClick=${() => H.setViewGroup(n)}><i></i>${H.gname(n)}</button>`)}</div>`;
+    return html`<${H.GroupChips} ids=${ids} pressed=${(n) => n === g} onPick=${H.setViewGroup} label=${L("Kelompok", "Group")} />`;
   };
   H.GroupPick = GroupPick;
+  /* More about the hunt, one tap away: the radio link numbers, whether the
+     last 10 seconds got closer, and the latest sweep. Buru itself only shows
+     what you need to find the beacon and claim it. */
+  const DetailsDrawer = ({ g, onClose }) => {
+    const row = H.row(g);
+    const f = H.net.frame;
+    const heat = H.heatOf(row);
+    const trend = H.trend10(g);
+    const sw = f && f.sapuan ? f.sapuan[String(g)] : null;
+    return html`<${H.Drawer} size="half" title=${L("Detail", "Details")} desc=${H.gfull(g)} onClose=${onClose}>
+      ${row && html`<section class="stack">
+        <h3 class="h3">${H.T("Tautan radio", "Radio link")}</h3>
+        <span class="hint">${L("Ketuk angka untuk grafiknya", "Tap a number for its chart")}</span>
+        <div class="dcards hdcards">
+          <${H.DataCard} label="SNR" value=${H.fmt(row.snr, 1)} unit="dB" dp=${1} series=${H.series(g, "snr")} />
+          <${H.DataCard} label=${L("Paket hilang", "Lost packets")} value=${H.fmt(row.rugi_persen, 1)} unit="%" dp=${1} tone="var(--danger)" series=${H.series(g, "lost")} />
+          <${H.DataCard} label=${L("Delay satu arah", "One-way delay")} value=${H.fmt(row.delay_ms)} unit="ms" tone="var(--accent)" series=${H.series(g, "delay")} />
+        </div>
+        ${heat !== "hilang" && heat !== "menang" && html`<span class="htrend" data-t=${trend}><${Icon} n=${trend === "naik" ? "arrow-up" : trend === "turun" ? "arrow-down" : "minus"} sm />${trend === "naik" ? L("Mendekat dalam 10 detik terakhir", "Getting closer over the last 10 seconds") : trend === "turun" ? L("Menjauh dalam 10 detik terakhir", "Moving away over the last 10 seconds") : L("Stabil dalam 10 detik terakhir", "Steady over the last 10 seconds")}</span>`}
+      </section>`}
+      <section class="stack">
+        <h3 class="h3">${H.T("Sapuan terakhir", "Latest sweep")}</h3>
+        <div class="hsweep__row"><${H.Rose} vals=${sw ? sw.arah : [null, null, null, null, null, null, null, null]} best=${sw ? sw.terkuat : null} /><div class="stack stack--sm"><b>${sw ? L(`Terkuat di arah jam ${clockText(sw.terkuat)}`, `Strongest at ${clockText(sw.terkuat)} o'clock`) : L("Belum ada sapuan", "No sweep yet")}</b>${sw && html`<span class="hint">${L(`oleh ${sw.oleh} pada ${sw.at.slice(0, 5)}`, `by ${sw.oleh} at ${sw.at.slice(0, 5)}`)}</span>`}</div></div>
+      </section>
+    </${H.Drawer}>`;
+  };
   H.Hunt = () => {
     const N = H.useNet();
     const member = N.grup !== null;
@@ -485,7 +485,6 @@
     const row = H.row(g);
     const heat = H.heatOf(row);
     const closed = H.closedOf(row);
-    const role = member ? N.peranTim || "pemandu" : "operator";
     const [sheet, setSheet] = useState(null);
     const [seenReject, setSeenReject] = useState(0);
     useEffect(() => {
@@ -493,7 +492,7 @@
     });
     const f = N.frame;
     const sisa = f && f.sesi_sisa != null ? Math.ceil(f.sesi_sisa / 60) : null;
-    const head = html`<div class="hhead"><span class="row" style="gap:8px">${member ? html`<${Badge}><${Icon} n=${ROLES[role].i} sm />${L(...ROLES[role].l)}</${Badge}>` : html`<${Badge} tone="ok"><${Icon} n="eye" sm />${L("Melihat sebagai asisten", "Viewing as an assistant")}</${Badge}>`}<span class="hint">${sisa != null ? L(`Arena ${arena()} m · sisa ${sisa} menit`, `Arena ${arena()} m · ${sisa} minutes left`) : L(`Arena ${arena()} m`, `Arena ${arena()} m`)}</span></span>${!member && html`<${GroupPick} g=${g} />`}</div>`;
+    const head = html`<div class="hhead"><span class="row" style="gap:8px">${!member && html`<${Badge} tone="ok"><${Icon} n="eye" sm />${L("Melihat sebagai asisten", "Viewing as an assistant")}</${Badge}>`}<span class="hint">${sisa != null ? L(`Arena ${arena()} m · sisa ${sisa} menit`, `Arena ${arena()} m · ${sisa} minutes left`) : L(`Arena ${arena()} m`, `Arena ${arena()} m`)}</span></span>${!member && html`<${GroupPick} g=${g} />`}</div>`;
     if (!row && f && (f.kunci_salah || []).includes(g))
       return html`<${H.HuntApp} tab="hunt"><div class="hpage__in">${head}
         <section class="card card--raised hjoin"><${H.StateView} icon="lock-key" title=${L("Kunci papan kelompokmu salah", "Your group's board key is wrong")} body=${L("Papan kelompokmu mengirim kunci yang salah, jadi pesannya dibuang. Tempel kunci dari langkah Perburuan situs ke HUNT_KEY di hunter.ino dan beacon.ino, lalu unggah ulang.", "Your group's board is sending the wrong key, so its messages are dropped. Paste the key from the site's Hunt step into HUNT_KEY in hunter.ino and beacon.ino, then upload again.")} /></section></div></${H.HuntApp}>`;
@@ -501,7 +500,6 @@
       return html`<${H.HuntApp} tab="hunt"><div class="hpage__in">${head}
         <section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menunggu hunter kelompokmu", "Waiting for your group's hunter")} body=${L("Papan skor belum menerima paket dari hunter kelompok ini. Nyalakan papan hunter dan pastikan tersambung ke hotspot kelompokmu.", "The scoreboard hasn't had a packet from this group's hunter yet. Power the hunter board and make sure it's on your group's hotspot.")} /></section></div></${H.HuntApp}>`;
     const band = row.jarak_dekat != null ? [metres(row.jarak_dekat), metres(row.jarak_jauh)] : null;
-    const trend = H.trend10(g);
     const sw = f && f.sapuan ? f.sapuan[String(g)] : null;
     const swAge = H.sweepAge(sw);
     const fresh = swAge != null && swAge <= H.SWEEP_FRESH_SEC;
@@ -519,11 +517,14 @@
               ? html`<b class="hdist num">${L(`${band[0]} sampai ${band[1]} m`, `${band[0]} to ${band[1]} m`)}</b><span class="hint">${L("perkiraan jarak dari RSSI halus", "estimated distance from the smoothed RSSI")}</span>`
               : html`<b class="hdist">${L("Tidak ada paket", "No packets")}</b><span class="hint">${L("3 detik tanpa paket. Kembali ke tempat terakhir sinyalnya kuat.", "3 seconds without a packet. Go back to where the signal was last strong.")}</span>`}
             <div class="hclosed"><div class="row row--between"><span class="label">${L("Jarak tertutup", "Distance closed")}</span><b class="num">${closed}%</b></div><${H.Bar} p=${closed} g=${g} /></div>
-            ${heat !== "hilang" && heat !== "menang" && html`<span class="htrend" data-t=${trend}><${Icon} n=${trend === "naik" ? "arrow-up" : trend === "turun" ? "arrow-down" : "minus"} sm />${trend === "naik" ? L("Mendekat dalam 10 detik terakhir", "Getting closer over the last 10 seconds") : trend === "turun" ? L("Menjauh dalam 10 detik terakhir", "Moving away over the last 10 seconds") : L("Stabil dalam 10 detik terakhir", "Steady over the last 10 seconds")}</span>`}
-            ${heat !== "hilang" && heat !== "menang" && html`<span class="hint hsonar__dir">${fresh ? L(`Arah dari sapuan ${sweepAgo}: terkuat di jam ${clockText(sw.terkuat)}.`, `Direction from the sweep ${sweepAgo}: strongest at ${clockText(sw.terkuat)} o'clock.`) : L("Cincin putus-putus menunjukkan jaraknya, belum arahnya. Sapu 8 arah untuk tahu arahnya.", "The dashed ring shows the distance, not yet the direction. Sweep 8 facings to find it.")}</span>`}
+            ${heat !== "hilang" && heat !== "menang" && html`<span class="hint hsonar__dir">${fresh ? L(`Arah dari sapuan ${sweepAgo}: terkuat di jam ${clockText(sw.terkuat)}.`, `Direction from the sweep ${sweepAgo}: strongest at ${clockText(sw.terkuat)} o'clock.`) : L("Belum tahu arahnya. Sapu 8 arah untuk menemukannya.", "Direction unknown. Sweep 8 facings to find it.")}</span>`}
           </div>
         </div>
         <${Ladder} heat=${heat} />
+        <div class="hactions">
+          ${member && html`<${Btn} icon="compass" onClick=${() => setSheet("sweep")}>${L("Sapu 8 Arah", "Sweep 8 Facings")}</${Btn}>`}
+          <${Btn} icon="wave-sine" onClick=${() => setSheet("details")}>${L("Detail", "Details")}</${Btn}>
+        </div>
       </section>`,
       claim: !member
         ? html`<section class="card hclaim" data-c="wait"><${Icon} n="hand-tap" lg /><div class="stack stack--sm"><b class="h3">${H.T("Klaim kelompok ini", "This group's claim")}</b><span>${{ memburu: L("Belum mengklaim.", "No claim yet."), menunggu: L("Klaim menunggu tinjauan di ruang kendali.", "A claim is waiting in mission control."), ditolak: L(`Klaim terakhir ditolak: ${row.tolak_alasan || ""}`, `Last claim turned down: ${row.tolak_alasan || ""}`), menang: L(`Ketemu pada ${H.ms(row.durasi)}.`, `Found at ${H.ms(row.durasi)}.`) }[row.status]}</span></div></section>`
@@ -533,28 +534,18 @@
             ? html`<section class="card hclaim" data-c="no"><${Icon} n="x-circle" lg /><div class="stack stack--sm"><b class="h3">${H.T("Klaim ditolak", "Claim turned down")}</b><span>${L(`Alasan dari asisten: ${row.tolak_alasan || "tanpa alasan"}`, `The assistant's reason: ${row.tolak_alasan || "no reason given"}`)}</span><div class="r5act" style="justify-content:flex-start"><${Btn} sm icon="arrow-clockwise" onClick=${() => setSeenReject(row.klaim_ke)}>${L("Klaim Lagi", "Claim Again")}</${Btn}></div></div></section>`
             : row.status === "menang"
               ? html`<section class="card hwin" style=${`--g:var(--group-${g})`}><div class="hwin__burst"></div><span class="eyebrow">${L("Beacon ketemu", "Beacon found")}</span><h2 class="h-display">${H.T("Kalian menang!", "You found it!")}</h2>
-                  <div class="stats"><div class="stat"><b class="num">${H.ms(row.durasi)}</b><span>${L("waktu ketemu", "finish time")}</span></div><div class="stat"><b class="num">#${place}</b><span>${L("urutan", "place")}</span></div><div class="stat"><b class="num">${H.fmt(row.diterima)}</b><span>${L("paket diterima", "packets received")}</span></div><div class="stat"><b class="num">${avgDelay == null ? "·" : H.fmt(avgDelay) + " ms"}</b><span>${L("rata-rata delay", "average delay")}</span></div></div>
+                  <div class="stats"><${H.Stat} label=${L("waktu ketemu", "finish time")} value=${H.ms(row.durasi)} /><${H.Stat} label=${L("urutan", "place")} value=${"#" + place} /><${H.Stat} label=${L("paket diterima", "packets received")} value=${H.fmt(row.diterima)} /><${H.Stat} label=${L("rata-rata delay", "average delay")} value=${avgDelay == null ? "·" : H.fmt(avgDelay) + " ms"} /></div>
                   <div class="card__actions"><${Btn} kind="inverse" lg block iconEnd="arrow-right" onClick=${() => H.go("results")}>${L("Lihat Hasil", "See the Results")}</${Btn}></div></section>`
               : html`<section class="card"><${HoldClaim} armed=${!!row.calon} onDone=${() => setSheet("claim")} /></section>`,
-      link: html`<section class="card"><div class="card__head"><h2 class="card__title">${H.T("Tautan radio", "Radio link")}</h2><span class="hint">${L("Ketuk angka untuk grafiknya", "Tap a number for its chart")}</span></div>
-        <div class="dcards hdcards">
-          <${H.DataCard} label="SNR" value=${H.fmt(row.snr, 1)} unit="dB" dp=${1} series=${H.series(g, "snr")} />
-          <${H.DataCard} label=${L("Paket hilang", "Lost packets")} value=${H.fmt(row.rugi_persen, 1)} unit="%" dp=${1} tone="var(--danger)" series=${H.series(g, "lost")} />
-          <${H.DataCard} label=${L("Delay satu arah", "One-way delay")} value=${H.fmt(row.delay_ms)} unit="ms" tone="var(--accent)" series=${H.series(g, "delay")} />
-        </div></section>`,
-      sweep: html`<section class="card hsweep"><div class="card__head"><h2 class="card__title">${H.T("Sapuan 8 arah", "8-facing sweep")}</h2>${sw && html`<span class="hint">${L(`oleh ${sw.oleh} pada ${sw.at.slice(0, 5)}`, `by ${sw.oleh} at ${sw.at.slice(0, 5)}`)}</span>`}</div>
-        <div class="hsweep__row"><${H.Rose} vals=${sw ? sw.arah : [null, null, null, null, null, null, null, null]} best=${sw ? sw.terkuat : null} /><div class="stack stack--sm"><b>${sw ? L(`Terkuat di arah jam ${clockText(sw.terkuat)}`, `Strongest at ${clockText(sw.terkuat)} o'clock`) : L("Belum ada sapuan", "No sweep yet")}</b><span class="hint">${L("Tubuhmu jadi antena: hadap satu arah, diam 4 detik, putar 45 derajat.", "Your body is the antenna: face one way, stand still 4 seconds, turn 45 degrees.")}</span>
-          ${member && html`<${Btn} sm icon="compass" onClick=${() => setSheet("sweep")}>${L("Sapu 8 Arah", "Sweep 8 Facings")}</${Btn}>`}</div></div></section>`,
-      pings: member ? html`<section class="card"><div class="card__head"><h2 class="card__title">${H.T("Sinyal tim", "Team pings")}</h2></div><${PingBar} g=${g} /></section>` : null,
       race: f && f.grup && f.grup.length > 1 ? html`<${Race} g=${g} />` : null,
     };
-    const ORDER = { pemandu: ["race", "sonar", "claim", "sweep", "pings", "link"], pengintai: ["race", "claim", "sonar", "pings", "sweep", "link"], operator: ["race", "sonar", "link", "claim", "pings", "sweep"] }[role];
     return html`<${H.HuntApp} tab="hunt">
       <div class="hpage__in">${head}
-        <div class="hgrid">${ORDER.filter((k) => cards[k]).map((k) => html`<div class=${"hcell hcell--" + k} key=${k}>${cards[k]}</div>`)}</div>
+        <div class="hgrid">${["race", "sonar", "claim"].filter((k) => cards[k]).map((k) => html`<div class=${"hcell hcell--" + k} key=${k}>${cards[k]}</div>`)}</div>
       </div>
       ${sheet === "claim" && html`<${ClaimSheet} g=${g} onClose=${() => setSheet(null)} />`}
       ${sheet === "sweep" && html`<${SweepSheet} g=${g} onClose=${() => setSheet(null)} />`}
+      ${sheet === "details" && html`<${DetailsDrawer} g=${g} onClose=${() => setSheet(null)} />`}
     </${H.HuntApp}>`;
   };
 
@@ -577,26 +568,26 @@
     };
     const log = N.pings.filter((p) => p.grup === g).slice(-5).reverse();
     const ann = N.frame && N.frame.pengumuman;
-    const sw = N.frame && N.frame.sapuan ? N.frame.sapuan[String(g)] : null;
     return html`<${H.HuntApp} tab="team">
       <div class="hpage__in">
         <div class="hgrid hgrid--2">
-          <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Peranmu", "Your role")}</h2><span class="hint">${L("hanya mengubah urutan layar Buru", "only reorders the Hunt screen")}</span></div>
-            <${Tabs} fill value=${role} onChange=${setRole} label=${L("Peranmu", "Your role")} tabs=${Object.entries(ROLES).map(([v, r]) => ({ v, l: L(...r.l), icon: r.i }))} />
-            <div class="crew">${Object.entries(ROLES).map(([k, r]) => html`<div class="crew__r"><span class="crew__role"><${Icon} n=${r.i} sm />${L(...r.l)}</span><span class="row" style="gap:6px">${mem.filter((m) => m.peran === k).map((m) => html`<span class="crew__m"><i class=${m.hadir ? "is-on" : ""}></i>${m.nama}</span>`)}</span></div>`)}
-              ${mem.some((m) => !m.peran) && html`<div class="crew__r"><span class="crew__role">${L("Belum memilih", "No role yet")}</span><span class="row" style="gap:6px">${mem.filter((m) => !m.peran).map((m) => html`<span class="crew__m"><i class=${m.hadir ? "is-on" : ""}></i>${m.nama}</span>`)}</span></div>`}</div>
-            <span class="hint">${L("Titik terang berarti ponselnya sedang tersambung.", "A lit dot means that phone is connected.")}</span></section>
-          <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Sinyal tim", "Team pings")}</h2><span class="hint">${L(`hanya ${H.gname(g)} dan asisten`, `${H.gname(g)} and assistants only`)}</span></div><${PingBar} g=${g} />
+          <${H.Card} title=${L("Sinyal tim", "Team pings")} action=${html`<span class="hint">${L(`hanya ${H.gname(g)} dan asisten`, `${H.gname(g)} and assistants only`)}</span>`}>
+            <${PingBar} g=${g} />
             <div class="tabstops tabstops--3">
               ${ann && html`<div class="tabstops__row"><span class="mono hint">${ann.at.slice(0, 5)}</span><span><b>${L("Asisten", "Assistant")}</b> ${L(`mengumumkan: ${ann.teks}`, `announced: ${ann.teks}`)}</span><span></span></div>`}
               ${log.map((p) => html`<div class="tabstops__row"><span class="mono hint">${p.at.slice(0, 5)}</span><span><b>${p.dari || L("Anggota", "A member")}</b> ${H.pingText(p.kode).toLowerCase()}</span><span></span></div>`)}
               ${!log.length && !ann && html`<span class="hint">${L("Belum ada sinyal.", "No pings yet.")}</span>`}
-            </div></section>
-          <section class="card card--pin"><div class="card__head"><h2 class="card__title">${H.T("Panggil asisten", "Call an assistant")}</h2>${calling && html`<${Badge} tone="warn">${L("memanggil", "calling")}</${Badge}>`}</div>
-            <p class="card__sub">${L("Papan mati, baterai habis, atau bingung? Asisten melihat panggilanmu di ruang kendali.", "Board dead, battery flat, or stuck? The assistants see your call in mission control.")}</p>
-            <div class="card__actions"><${Btn} kind=${calling ? "secondary" : "inverse"} lg block icon=${calling ? "x" : "hand-waving"} onClick=${call}>${calling ? L("Batalkan Panggilan", "Cancel the Call") : L("Panggil Asisten", "Call an Assistant")}</${Btn}></div></section>
-          <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Sapuan terakhir", "Latest sweep")}</h2></div>
-            <div class="hsweep__row"><${H.Rose} vals=${sw ? sw.arah : [null, null, null, null, null, null, null, null]} best=${sw ? sw.terkuat : null} /><div class="stack stack--sm"><b>${sw ? L(`Terkuat di arah jam ${clockText(sw.terkuat)}`, `Strongest at ${clockText(sw.terkuat)} o'clock`) : L("Belum ada sapuan", "No sweep yet")}</b>${sw && html`<span class="hint">${L(`oleh ${sw.oleh} pada ${sw.at.slice(0, 5)}`, `by ${sw.oleh} at ${sw.at.slice(0, 5)}`)}</span>`}</div></div></section>
+            </div>
+          </${H.Card}>
+          <${H.Card} class="card--pin" title=${L("Butuh bantuan?", "Need help?")} action=${calling && html`<${Badge} tone="warn">${L("memanggil", "calling")}</${Badge}>`} sub=${L("Papan mati, baterai habis, atau bingung? Asisten melihat panggilanmu di ruang kendali.", "Board dead, battery flat, or stuck? The assistants see your call in mission control.")}>
+            <div class="card__actions"><${Btn} kind=${calling ? "secondary" : "inverse"} lg block icon=${calling ? "x" : "hand-waving"} onClick=${call}>${calling ? L("Batalkan Panggilan", "Cancel the Call") : L("Panggil Asisten", "Call an Assistant")}</${Btn}></div>
+          </${H.Card}>
+          <${H.Card} title=${L("Timmu", "Your crew")} action=${html`<span class="hint">${L("Titik terang berarti ponselnya sedang tersambung.", "A lit dot means that phone is connected.")}</span>`}>
+            <div class="hpeople">${mem.map((m) => html`<${H.Person} m=${m} g=${g} role=${true} />`)}</div>
+            <div class="field"><span class="label">${L("Bagi tugas (boleh dilewati)", "Split the jobs (optional)")}</span>
+              <${Tabs} fill value=${role} onChange=${setRole} label=${L("Peranmu", "Your role")} tabs=${Object.entries(ROLES).map(([v, r]) => ({ v, l: L(...r.l), icon: r.i }))} />
+              <span class="hint">${role ? L(...ROLES[role].d) : L("Pilih satu kalau timmu mau membagi tugas. Layar Buru sama untuk semua.", "Pick one if your team wants to split the jobs. The Hunt screen is the same for everyone.")}</span></div>
+          </${H.Card}>
         </div>
         <div class="r5act" style="justify-content:flex-start"><${Btn} kind="ghost" sm icon="sign-out" onClick=${H.keluar}>${L("Keluar dari Kelompok", "Leave the Group")}</${Btn}></div>
       </div>

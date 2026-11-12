@@ -121,7 +121,7 @@
     };
     const ticks = [0, 0.25, 0.5, 0.75, 1].map((k) => Math.round(k * end));
     return html`<div class="stack">
-      <div class="row" style="gap:6px">${ids.map((n) => html`<button type="button" class="chipbtn gchip" style=${`--g:var(--group-${n})`} aria-pressed=${String(show[n] !== false)} onClick=${() => setShow({ ...show, [n]: show[n] === false })}><i></i>${H.gname(n)}</button>`)}</div>
+      <${H.GroupChips} ids=${ids} pressed=${(n) => show[n] !== false} onPick=${(n) => setShow({ ...show, [n]: show[n] === false })} label=${L("Kelompok di grafik", "Groups on the chart")} />
       <svg class="replay" viewBox="0 0 620 230" role="img" aria-label=${L("Jarak tertutup tiap kelompok sepanjang waktu", "Distance closed per group over time")}>
         ${[0, 0.25, 0.5, 0.75, 1].map((v) => html`<line x1="44" x2="590" y1=${Y(v)} y2=${Y(v)} class="chart__grid" /><text x="38" y=${Y(v) + 4} class="chart__tick" text-anchor="end">${Math.round(v * 100)}%</text>`)}
         ${ticks.map((s) => html`<text x=${X(s)} y="226" class="chart__tick" text-anchor="middle">${H.ms(s)}</text>`)}
@@ -213,7 +213,7 @@
       ${err != null && html`<span class="error"><${Icon} n="warning" sm />${err >= 0 ? L(`Token salah. Sisa ${err} kali coba sebelum sambungan ditutup.`, `Wrong token. ${err} tries left before the connection closes.`) : L("Tidak tersambung ke PC. Coba lagi.", "Not connected to the PC. Try again.")}</span>`}
       <${Btn} type="submit" kind="primary" lg block icon="lock-key" disabled=${code.length < 4 || busy}>${L("Buka", "Open")}</${Btn}>
       <span class="hint">${L("Tab Asisten tidak tampil di ponsel praktikan sampai token benar.", "The Assistant tab doesn't show on student phones until the token is right.")}</span>
-      ${N.grup === null && html`<button type="button" class="hjoin__asisten" onClick=${() => H.go("hunt")}><${Icon} n="arrow-left" sm />${L("Kembali ke Masuk NIM", "Back to the NIM Sign-In")}</button>`}
+      <button type="button" class="hjoin__asisten" onClick=${() => H.go("hunt")}><${Icon} n="arrow-left" sm />${N.grup === null ? L("Kembali ke Masuk NIM", "Back to the NIM Sign-In") : L("Kembali ke Perburuan", "Back to the Hunt")}</button>
     </form></div></${H.HuntApp}>`;
   };
   const act = async (aksi, extra, ok) => {
@@ -235,10 +235,8 @@
       foot=${(c) => html`<${Btn} kind="primary" onClick=${c}>${L("Selesai", "Done")}</${Btn}>`}>${(c) => html`<div class="stack">
       <${Btn} block icon="eye" onClick=${() => { H.setViewGroup(g); c(); H.go("hunt"); }}>${L("Lihat di Layar Buru", "View on the Hunt Screen")}</${Btn}>
       ${calling && html`<${Btn} block icon="check" onClick=${() => act("panggil_selesai", { grup: g }, L("Panggilan ditutup.", "Call closed."))}>${L("Tutup Panggilan", "Close the Call")}</${Btn}>`}
-      <${Btn} block icon="ruler" disabled=${!row || row.halus == null} onClick=${() => setAsk("kal")}>${L("Kalibrasi 1 m dari Kelompok Ini", "Calibrate 1 m from This Group")}</${Btn}>
       <${Btn} block kind="danger" icon="seal-check" disabled=${!row || row.status === "menang"} onClick=${() => setAsk("paksa")}>${L("Paksa Konfirmasi", "Force Confirm")}</${Btn}>
       <span class="hint">${L("Paksa Konfirmasi untuk beacon yang terbukti ketemu tapi sinyalnya jatuh atau kameranya tidak bisa dipakai.", "Force Confirm is for a beacon that was clearly found but whose signal dropped or whose camera failed.")}</span>
-      ${ask === "kal" && html`<${Confirm} title=${L("Kalibrasi 1 m", "1 m calibration")} body=${L("Pegang hunter kelompok ini tepat 1 m dari beaconnya, diam 5 detik, lalu tekan Ukur. Seluruh perkiraan jarak ikut bergeser.", "Hold this group's hunter exactly 1 m from its beacon, still for 5 seconds, then press Measure. Every distance estimate shifts with it.")} okLabel=${L("Ukur", "Measure")} onOk=${() => act("kalibrasi", { grup: g }, L("Kalibrasi tersimpan.", "Calibration saved."))} onClose=${() => setAsk(null)} />`}
       ${ask === "paksa" && html`<${Confirm} danger title=${L("Paksa konfirmasi", "Force confirm")} body=${L(`${H.gname(g)} dicatat menemukan beaconnya sekarang, tanpa klaim. Tidak bisa dibatalkan.`, `${H.gname(g)} is recorded as finding its beacon now, without a claim. This can't be undone.`)} okLabel=${L("Paksa Konfirmasi", "Force Confirm")} onOk=${() => act("konfirmasi", { grup: g, paksa: true }, L(`${H.gname(g)} menang.`, `${H.gname(g)} wins.`))} onClose=${() => setAsk(null)} />`}
     </div>`}</${H.Dialog}>`;
   };
@@ -250,7 +248,7 @@
       foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}><${Btn} kind="primary" icon="ruler" disabled=${g == null} onClick=${() => { c(); act("kalibrasi", { grup: g }, L("Kalibrasi tersimpan.", "Calibration saved.")); }}>${L("Ukur", "Measure")}</${Btn}>`}>
       <div class="stack"><p>${L("Taruh hunter 1 m dari beacon, diam 5 detik, lalu tekan Ukur. Seluruh perkiraan jarak ikut bergeser.", "Put the hunter 1 m from the beacon, still for 5 seconds, then press Measure. Every distance estimate shifts with it.")}</p>
         <span class="label">${L("Hunter kelompok", "Group's hunter")}</span>
-        <div class="row" style="gap:8px">${ready.map((id) => html`<button type="button" class="chipbtn" aria-pressed=${String(id === g)} onClick=${() => setG(id)}>${H.gname(id)}</button>`)}</div></div></${H.Dialog}>`;
+        <${H.GroupChips} ids=${ready} pressed=${(id) => id === g} onPick=${setG} label=${L("Hunter kelompok", "Group's hunter")} /></div></${H.Dialog}>`;
   };
   const Mission = () => {
     const N = H.useNet();

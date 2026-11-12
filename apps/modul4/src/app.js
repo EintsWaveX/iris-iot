@@ -103,7 +103,8 @@
     const ended = f.penghargaan && f.penghargaan.beku && endedSeen !== f.ronde;
     if (ended && route !== "results" && (N.grup !== null || asisten)) return html`<${H.States} kind="ended" />`;
     if (N.grup === null && !asisten) return html`<${H.Join} />`;
-    if (N.grup !== null && !N.peranTim && route === "hunt") return html`<${H.Join} />`;
+    /* just signed in with a NIM: show the group once, until Start Hunting */
+    if (N.grup !== null && st.reveal && route === "hunt") return html`<${H.Join} />`;
     if (route === "team") return html`<${H.Team} />`;
     if (route === "layers") return html`<${H.Layers} />`;
     if (route === "results") return html`<${H.Results} />`;
@@ -116,7 +117,7 @@
       document.documentElement.lang = st.lang === "zh" ? "zh-Hans" : st.lang;
       document.title = H.title(L("Perburuan LoRa", "LoRa Hunt")) + " · IRIS";
     }, [st.lang]);
-    return html`<div class=${"huntapp" + (st.reduce ? " reduce" : "")} data-t=${st.sun ? "light" : st.theme} data-f="jakarta" data-zhw=${st.zhW} lang=${st.lang === "zh" ? "zh-Hans" : st.lang} data-stage=${STAGE ? "yes" : "no"}>
+    return html`<div class=${"huntapp" + (st.reduce ? " reduce" : "")} data-t=${st.sun ? "light" : st.theme} data-f="jakarta" data-zhw="700" lang=${st.lang === "zh" ? "zh-Hans" : st.lang} data-stage=${STAGE ? "yes" : "no"} data-short=${st.short ? "yes" : "no"}>
       <div class="huntapp__scroll"><${Screen} /></div>
       <div class="huntapp__layers"></div>
       <${H.Toasts} />
