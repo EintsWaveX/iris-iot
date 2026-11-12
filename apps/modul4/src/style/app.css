@@ -462,3 +462,19 @@ button.hphoto--sm { width: 84px; }
 /* Mission lanes: a long group name stops at two lines, the dot keeps its size */
 .lane2__n i { flex: none; }
 .lane2__n b { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+
+/* A count on the Assistant tab: claims waiting plus groups calling */
+.hbar__tabs button, .hbottom button { position: relative; }
+.hbadge {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-pill);
+  background: var(--warn); color: var(--bg); font: 800 12px/1 var(--font-body);
+}
+.hbottom .hbadge { position: absolute; top: 6px; left: calc(50% + 8px); }
+
+/* Mission control on a laptop: the claim queue stays in view while the lanes scroll,
+   and short windows get a smaller page title so the work starts higher up. */
+@container huntapp (min-width: 1100px) {
+  .hmtop > .card:last-child { position: sticky; top: calc(var(--space-9) + var(--space-3)); max-height: calc(100dvh - 120px); overflow: auto; }
+  .huntapp[data-short="yes"] .hmtop > .card:last-child { top: calc(56px + var(--space-3)); max-height: calc(100dvh - 90px); }
+}
+.huntapp[data-short="yes"] .h-title { font-size: clamp(1.6rem, 3cqi, 2rem); }

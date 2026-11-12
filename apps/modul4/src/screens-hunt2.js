@@ -52,6 +52,15 @@
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     };
+    const radioCard = html`<section class="card"><div class="card__head"><h2 class="card__title">${H.T("Pengaturan radio", "Radio settings")}</h2></div>
+        <div class="kv">${[
+          [L("Frekuensi", "Frequency"), radio.freq || "920.0 MHz"],
+          ["SF / BW", `SF${radio.sf || 7} · ${radio.bw || "250 kHz"}`],
+          [L("Daya", "Power"), radio.daya || "10 dBm"],
+          H.sync(g) ? ["Sync word", H.sync(g)] : null,
+          [L("Jadwal kirim", "Send schedule"), L("TDMA 500 ms, slot 100 ms per kelompok", "TDMA 500 ms, a 100 ms slot per group")],
+          [L("Model jarak", "Distance model"), L(`RSSI 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, batas 2000 m`, `RSSI at 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, capped at 2000 m`)],
+        ].filter(Boolean).map(([a, b]) => html`<span class="label">${a}</span><span class="mono">${b}</span>`)}</div></section>`;
     return html`<${H.HuntApp} tab="layers">
       <div class="hpage__in">
         <div class="pagehead"><span class="eyebrow">${H.gfull(g)} · ${L("tautan beacon ke hunter", "beacon to hunter link")}</span><h1 class="h-title">${H.T("Lapisan", "Layers")}</h1>
@@ -67,25 +76,17 @@
               <${H.DataCard} label="Jitter" value=${jit == null ? "·" : H.fmt(jit, 1)} unit="ms" dp=${1} tone="var(--accent)" sub=${L("selisih delay antarpaket", "delay change between packets")} series=${H.series(g, "delay")} />
               <${H.DataCard} label=${L("Paket hilang", "Lost packets")} value=${H.fmt(row.rugi_persen, 1)} unit="%" dp=${1} tone="var(--danger)" sub=${L(`${H.fmt(row.hilang)} dari ${H.fmt(row.hilang + row.diterima)}`, `${H.fmt(row.hilang)} of ${H.fmt(row.hilang + row.diterima)}`)} series=${H.series(g, "lost")} />
             </div>
+            ${radioCard}
             <section class="card">
-              <div class="card__head"><h2 class="card__title">${H.T("Paket terakhir", "Latest packets")}</h2><${Badge} tone="ok"><${Icon} n="link" sm />${L("dipasangkan lewat nomor paket", "paired by packet number")}</${Badge}></div>
-              <p class="card__sub">${L("Beacon menaruh waktu kirimnya di payload LoRa (kelompok, nomor paket, waktu kirim). Hunter meneruskannya ke PC, jadi Waktu Kirim di sini dipasangkan dengan baris serial hunter lewat nomor paket. Sketsa tidak perlu diubah.", "The beacon puts its send time in the LoRa payload (group, packet number, send time). The hunter forwards it to the PC, so Send Time here is paired with the hunter's serial line by packet number. No sketch change.")}</p>
+              <div class="card__head"><h2 class="card__title">${H.T("Paket terakhir", "Latest packets")}</h2><${Btn} sm icon="download-simple" onClick=${csv}>${L("Unduh CSV", "Download CSV")}</${Btn}></div>
+              <p class="card__sub">${L("Tiap paket membawa waktu kirimnya, jadi bisa dipasangkan dengan baris serial hunter lewat nomor paket.", "Each packet carries its send time, so it is paired with the hunter's serial line by packet number.")}</p>
               ${narrow
                 ? html`<table class="table table--tight hpk"><thead><tr><th>#</th><th>${L("Kirim / terima", "Sent / received")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI · SNR</th></tr></thead>
                   <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td>${r.lost ? html`<td class="mono hint">·</td><td class="num"><span style="color:var(--danger)">${L("hilang", "lost")}</span></td><td class="num">·</td>` : html`<td class="mono hpk__t"><span>${r.tx || "·"}</span><span class="hint">${r.rx || "·"}</span></td><td class="num">${r.delay == null ? "·" : r.delay + " ms"}</td><td class="num hpk__t"><span>${r.rssi == null ? "·" : r.rssi}</span><span class="hint">${r.snr == null ? "·" : H.fmt(r.snr, 1)}</span></td>`}</tr>`)}</tbody></table>`
                 : html`<div class="scrollx"><table class="table table--tight"><thead><tr><th>#</th><th>${L("Waktu kirim (beacon)", "Send time (beacon)")}</th><th>${L("Waktu terima (PC)", "Receive time (PC)")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI</th><th class="num">SNR</th></tr></thead>
                 <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td><td class="mono">${r.lost ? "·" : r.tx || "·"}</td><td class="mono hint">${r.lost ? "·" : r.rx || "·"}</td><td class="num">${r.lost ? html`<span style="color:var(--danger)">${L("hilang", "lost")}</span>` : r.delay == null ? "·" : r.delay + " ms"}</td><td class="num">${r.lost || r.rssi == null ? "·" : r.rssi}</td><td class="num">${r.lost || r.snr == null ? "·" : H.fmt(r.snr, 1)}</td></tr>`)}</tbody></table></div>`}
-              <div class="r5act"><${Btn} sm icon="download-simple" onClick=${csv}>${L("Unduh CSV", "Download CSV")}</${Btn}></div>
             </section>`}
-        <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Pengaturan radio", "Radio settings")}</h2></div>
-          <div class="kv">${[
-            [L("Frekuensi", "Frequency"), radio.freq || "920.0 MHz"],
-            ["SF / BW", `SF${radio.sf || 7} · ${radio.bw || "250 kHz"}`],
-            [L("Daya", "Power"), radio.daya || "10 dBm"],
-            H.sync(g) ? ["Sync word", H.sync(g)] : null,
-            [L("Jadwal kirim", "Send schedule"), L("TDMA 500 ms, slot 100 ms per kelompok", "TDMA 500 ms, a 100 ms slot per group")],
-            [L("Model jarak", "Distance model"), L(`RSSI 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, batas 2000 m`, `RSSI at 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, capped at 2000 m`)],
-          ].filter(Boolean).map(([a, b]) => html`<span class="label">${a}</span><span class="mono">${b}</span>`)}</div></section>
+        ${!row && radioCard}
       </div>
     </${H.HuntApp}>`;
   };
@@ -172,7 +173,7 @@
           const v = aw[a.k];
           return html`<section class="card haward" style=${v ? `--g:var(--group-${v.grup})` : ""}><span class="haward__ic"><${Icon} n=${a.i} lg /></span><span class="row" style="gap:8px"><b class="h3">${L(...a.l)}</b>${v && !aw.beku && html`<${Badge}>${L("sementara", "provisional")}</${Badge}>`}</span><span>${v ? H.gname(v.grup) : L("Belum ada", "Nobody yet")}</span><span class="hint">${v ? a.v(v) : L("butuh 200 paket", "needs 200 packets")}</span></section>`;
         })}</div>
-        <span class="hint">${aw.beku ? L("Penghargaan selain podium butuh paling sedikit 200 paket.", "Awards other than the podium need at least 200 packets.") : L("Masih sementara: penghargaan bisa berpindah sampai ronde selesai. Selain podium, butuh paling sedikit 200 paket.", "Still provisional: awards can change hands until the round ends. Other than the podium, they need at least 200 packets.")}</span>
+        <span class="hint">${aw.beku ? L("Tiap penghargaan butuh paling sedikit 200 paket.", "Each award needs at least 200 packets.") : L("Penghargaan bisa berpindah sampai ronde selesai. Tiap penghargaan butuh paling sedikit 200 paket.", "Awards can change hands until the round ends. Each needs at least 200 packets.")}</span>
         <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Putar ulang", "Replay")}</h2><a class="btn btn--sm" href="jejak.csv" download><${Icon} n="download-simple" />${H.title(L("Unduh jejak CSV", "Download the track CSV"))}</a></div>
           ${jejak && Object.keys(jejak.grup || {}).length ? html`<${Replay} jejak=${jejak} />` : html`<p class="hint">${L("Jejak muncul setelah perburuan berjalan beberapa detik.", "The track appears once the hunt has run for a few seconds.")}</p>`}
           ${moments.length > 0 && html`<div class="tabstops tabstops--3">${moments.map((e) => html`<div class="tabstops__row"><span class="mono hint">${H.ms(e.t)}</span><span class="row" style="gap:8px;flex-wrap:nowrap"><${Icon} n=${EVICON[e.kind]} sm />${H.eventText(e)}</span><span></span></div>`)}</div>`}
