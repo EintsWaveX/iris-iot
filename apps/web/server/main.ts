@@ -20,6 +20,8 @@ import { tungguLatar } from "../api/_lib/tunggu.js";
 import { getDb, statusKolam } from "../src/lib/db.js";
 import { buatApp } from "./app.js";
 import { pantauJeda } from "./jeda.js";
+import { pasangKuis } from "./kuis.js";
+import { konteksKuisDb } from "./kuis-db.js";
 
 const akar = fileURLToPath(new URL("..", import.meta.url));
 const dist = process.env.IRIS_DIST ?? join(akar, "dist");
@@ -40,6 +42,9 @@ const { server, rute } = await buatApp({
   bacaBerkas,
   cekBerkas,
 });
+
+// The Module 4 quiz game's socket (games.irisiotlab.com, /kuis/ws).
+const kuis = pasangKuis(server, konteksKuisDb());
 
 const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
@@ -63,6 +68,8 @@ async function henti(sinyal: string): Promise<void> {
   console.warn(`[server] ${sinyal}: draining`);
   server.close();
   server.closeIdleConnections();
+  // The quiz rooms save once more, so a restart pauses a game instead of ending it.
+  await kuis.tutup().catch((err) => console.error("[server] the quiz rooms were not saved:", err));
   const kosong = await tungguLatar(60_000);
   if (!kosong) console.error("[server] background jobs still running after 60 s, exiting anyway");
   process.exit(0);

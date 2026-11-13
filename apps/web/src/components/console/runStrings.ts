@@ -30,6 +30,13 @@ export const R = dict({
       seelabs: ["SeeLabs", "Cara kerja robot"],
       skor: ["Papan Skor", "Papan skor perburuan, di tab baru"],
     },
+    game: {
+      title: "Game Kuis",
+      open: "Buka Game",
+      copy: "Salin Link",
+      copied: "Link disalin",
+      hint: "Praktikan buka link ini, lalu masuk dengan NIM dan kode sesi",
+    },
     kpi: {
       hadir: "hadir",
       notIn: (n: number) => (n ? `${n} belum masuk` : "semua sudah masuk"),
@@ -140,6 +147,13 @@ export const R = dict({
       seelabs: ["SeeLabs", "How the robot works"],
       skor: ["Scoreboard", "The hunt's scoreboard, in a new tab"],
     },
+    game: {
+      title: "Quiz Game",
+      open: "Open Game",
+      copy: "Copy Link",
+      copied: "Link copied",
+      hint: "Praktikan open this link, then sign in with their NIM and the session code",
+    },
     kpi: {
       hadir: "here",
       notIn: (n: number) => (n ? `${n} not in` : "everyone is in"),
@@ -248,6 +262,13 @@ export const R = dict({
       table: ["成绩表", "所有组在一张表里"],
       seelabs: ["SeeLabs", "机器人如何运作"],
       skor: ["记分板", "寻踪记分板，在新标签页打开"],
+    },
+    game: {
+      title: "测验游戏",
+      open: "打开游戏",
+      copy: "复制链接",
+      copied: "链接已复制",
+      hint: "学生打开此链接，再用学号和课程代码登录",
     },
     kpi: {
       hadir: "出席",

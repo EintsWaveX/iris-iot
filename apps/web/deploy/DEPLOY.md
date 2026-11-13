@@ -203,6 +203,36 @@ row counts, the audit sequence) and deletes everything it made: `bash restore-dr
 Run it on a machine that has the key, not on the PC. First run on 9 Nov 2026 with the 02:01 backup: restored with
 no errors, 119 tables, 261 indexes, 132 foreign keys, 14,336 audit rows. Run it again before deleting Neon.
 
+## 2d. The Module 4 quiz game (games.irisiotlab.com)
+
+The Kahoot-style Tes Awal quiz for Module 4 runs inside this same server (`server/kuis.ts`, a WebSocket at
+`/kuis/ws`), so it needs no new service and no new port: `games.irisiotlab.com` is just a second tunnel
+hostname pointing at the same `127.0.0.1:8787`. Add one ingress entry **above** the catch-all and route DNS:
+
+```sh
+cloudflared tunnel route dns iris-pc games.irisiotlab.com
+sudo sed -i '/- service: http_status:404/i\  - hostname: games.irisiotlab.com\n    service: http://127.0.0.1:8787' /etc/cloudflared/config.yml
+sudo systemctl restart cloudflared
+```
+
+Then the Website Upgrade (or `deploy.sh`) as usual: the page, the socket and the sign-in hand-over all ship in
+the one build. Check from anywhere:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' https://games.irisiotlab.com/                       # 200, the game page
+curl -s -o /dev/null -w '%{http_code}\n' https://games.irisiotlab.com/dashboard              # 302, back to /
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==' https://games.irisiotlab.com/kuis/ws   # 403: a socket needs a browser's Origin and a session
+```
+
+- The games host has its **own cookie** (`iris_session` is host-only, so the main site's is not sent). A person
+  opening the link from the Konsol or the Module 4 page arrives signed in through a one-minute, single-use
+  ticket in the link; anyone typing the address signs in on the site's own sign-in page, served on that host.
+- The game exists only while a **Module 4** session is running. A room is kept in memory and saved to
+  `pengaturan` (`kuis_<sesiId>`, no migration) a moment after each change, so a restart (a Website Upgrade, say)
+  brings the room back **paused** and the host presses Lanjutkan. A deploy mid-game is therefore safe but visible.
+- `IRIS_HOST_KUIS=<host>` names one more host that behaves as the games host (only for tests or a second domain).
+- Cloudflare keeps an idle WebSocket open for about 100 seconds; the page pings every 15 seconds.
+
 ## 3. Gates before the cutover
 
 All against `https://pc.irisiotlab.com`, while the real site is still on Vercel:

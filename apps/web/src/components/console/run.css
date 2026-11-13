@@ -65,7 +65,35 @@
   padding-inline: 18px 24px;
 }
 
+/* Module 4 only: the quiz game's address, always in view beside the code. */
+.shead__game {
+  align-items: flex-start;
+  align-self: stretch;
+  border-left: 1px solid var(--hairline);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  padding-inline: 18px;
+}
+.shead__game-url {
+  color: var(--accent-bright, var(--accent));
+  font-weight: 700;
+  text-decoration: none;
+}
+@media (hover: hover) {
+  .shead__game-url:hover {
+    text-decoration: underline;
+  }
+}
+
 @media (max-width: 640px) {
+  .shead__game {
+    border-left: 0;
+    flex-basis: 100%;
+    padding-inline: 0;
+  }
   .shead__kode {
     border-left: 0;
     flex-basis: 100%;

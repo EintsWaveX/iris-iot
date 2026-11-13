@@ -18,6 +18,7 @@ import {
   ArrowSquareOutIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  CopyIcon,
   CrosshairIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
@@ -36,6 +37,7 @@ import { durasiPalingPendek } from "../../lib/sesi-mulai";
 import { shortcutsOn } from "../../lib/prefs";
 import { hotspotMenyala } from "../../lib/server-shared";
 import { tautanPerburuan } from "../../lib/perburuan";
+import { HOST_KUIS, bukaKuis, tautanKuis } from "../../lib/kuis";
 import JaringanHunt from "../server/JaringanHunt";
 import BeaconHunt from "../server/BeaconHunt";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
@@ -222,6 +224,38 @@ export default function SessionBar({
         {sesi.kodeMasuk && (
           <div className="shead__kode">
             <KodeMasuk kode={sesi.kodeMasuk} lang={lang} blok />
+          </div>
+        )}
+        {sesi.modul === 4 && (
+          <div className="shead__game">
+            <span className="eyebrow">{r.game.title}</span>
+            <a
+              className="shead__game-url mono"
+              href={tautanKuis()}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={r.game.hint}
+              onClick={(e) => {
+                if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+                e.preventDefault();
+                void bukaKuis();
+              }}
+            >
+              {HOST_KUIS} <ArrowSquareOutIcon size={12} aria-hidden="true" />
+            </a>
+            <button
+              type="button"
+              className="btn btn--sm btn--ghost"
+              onClick={() => {
+                void navigator.clipboard?.writeText(tautanKuis()).then(
+                  () => window.Toast?.show(r.game.copied, "ok"),
+                  () => window.Toast?.show(tautanKuis(), "warn"),
+                );
+              }}
+            >
+              <CopyIcon size={14} aria-hidden="true" />
+              {r.game.copy}
+            </button>
           </div>
         )}
         <div className="shead__track">{track}</div>

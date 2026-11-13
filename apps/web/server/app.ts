@@ -20,6 +20,7 @@ import { cocokkanRute, petaRute, type Rute } from "./routes.js";
 import { akhiriJson } from "./kompres.js";
 import { sajikanBerkas, type BacaBerkas, type CekBerkas } from "./berkas.js";
 import { cariBerkas, sajikan } from "./static.js";
+import { aturKuis } from "./kuis-host.js";
 
 /** Vercel's own body limit, kept so a handler sees what it sees there (JSON and forms). */
 export const BATAS_BADAN = 4.5 * 1024 * 1024;
@@ -212,6 +213,17 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
         return;
       }
 
+      // The games host (server/kuis-host.ts): its `/` is the quiz page, its other pages go back
+      // to `/`, and /kuis on any other host forwards there.
+      const kuis = aturKuis(String(req.headers.host ?? ""), asli, url.search);
+      if (kuis?.jenis === "alih") {
+        res.statusCode = 302;
+        res.setHeader("Location", kuis.lokasi);
+        res.setHeader("Cache-Control", "no-store");
+        res.end();
+        return;
+      }
+
       // vercel.json's headers go on every other answer; a handler may still replace one.
       for (const [k, v] of aturan.header(asli)) res.setHeader(k, v);
 
@@ -241,7 +253,7 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
       if (asli.startsWith("/f/"))
         return sajikanBerkas(req, res, asli, opsi.bacaBerkas, opsi.cekBerkas);
 
-      const path = aturan.tulisUlang(asli);
+      const path = kuis?.jenis === "tulis" ? kuis.path : aturan.tulisUlang(asli);
       if (path === "/api" || path.startsWith("/api/")) {
         try {
           await jalankan(req, res, url, path);
