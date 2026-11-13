@@ -21,6 +21,8 @@ const SRC = fileURLToPath(new URL("../../", import.meta.url));
 /** Files that read once on purpose */
 const SEKALI: Record<string, string> = {
   "components/SignInPage.tsx": "sign-in checks, the page reloads after signing in",
+  "components/live/useUploadBoard.ts":
+    "an upload the person starts: it polls its own build until that ends, no topic involved",
   "components/shell/IdentityWatch.tsx": "asks who is signed in on focus and after a refusal",
   "components/KodeSesiDialog.tsx": "the session code check, typed by the person",
   "components/console/StartCheck.tsx": "the readiness check runs when Start is pressed",

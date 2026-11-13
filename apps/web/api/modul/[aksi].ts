@@ -39,14 +39,7 @@ import {
 } from "../_lib/session.js";
 import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
 import { getDb } from "../../src/lib/db.js";
-import {
-  anggota,
-  asisten,
-  jawaban,
-  kelompok,
-  percobaanMasuk,
-  sesiAnggota,
-} from "../../src/lib/schema.js";
+import { anggota, asisten, jawaban } from "../../src/lib/schema.js";
 import { isNimTot } from "../../src/lib/tot.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { pinGrupUntuk } from "../_lib/pin.js";
@@ -77,8 +70,9 @@ import { isiKunciPapan, personalize, personalizeJaringan } from "../../src/lib/g
 import { bacaJaringanHunt } from "../../src/lib/jaringan-hunt.js";
 import { kunciPapanKelompok } from "../_lib/perburuan-api.js";
 import { statusRiwayat } from "../../src/lib/akses.js";
+import { jawabanScope, sesiBaca } from "../_lib/jawaban-scope.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { and, asc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 import { antreSesi } from "../_lib/aliran.js";
 
@@ -103,59 +97,6 @@ async function parseModulBerkas(
   // A file with no blanks is still a file: it is read and downloaded whole
   if (!kode.berkas.has(berkas)) return null;
   return { modul, berkas, kode };
-}
-
-/** Which jawaban rows count as "this group's answers" right now. The
- *  same (group, blank) has one row per session, so an unscoped read used to
- *  mix them: the editor showed whichever row Postgres happened to return
- *  last, and the download could pass on a blank the running session's own
- *  report still counted wrong. In the running session of this module (its
- *  own sign-in, or an Asisten viewing as a group) only its rows count,
- *  matching handleLaporan's scope exactly.
- *
- *  History (2026-10-07): group ids are shared by every slot's Group N, so
- *  the group alone also mixed in other slots' answers. Now it is the
- *  sessions this NIM signed in to, each with the group the session's own
- *  roster snapshot had them in (handleResults does the same). Mode TOT
- *  needs no rule of its own: a dummy only ever signs in to TOT sessions,
- *  and a real Praktikan never does. Callers order by diubahPada, so the
- *  newest row per blank wins. */
-async function jawabanScope(
-  sesiIni: { id: number } | null,
-  kelompokId: number,
-  prefix: string,
-  nim: string,
-) {
-  const base = like(jawaban.soalKode, `${prefix}%`);
-  if (sesiIni) return and(base, eq(jawaban.kelompokId, kelompokId), eq(jawaban.sesiId, sesiIni.id));
-  const ikut = await getDb()
-    .selectDistinct({ sesiId: sesiAnggota.sesiId, kelompokId: kelompok.id })
-    .from(percobaanMasuk)
-    .innerJoin(
-      sesiAnggota,
-      and(eq(sesiAnggota.sesiId, percobaanMasuk.sesiId), eq(sesiAnggota.nim, percobaanMasuk.nim)),
-    )
-    .innerJoin(kelompok, eq(kelompok.nomor, sesiAnggota.kelompokNomor))
-    .where(
-      and(
-        eq(percobaanMasuk.nim, nim),
-        eq(percobaanMasuk.jenis, "praktikan"),
-        eq(percobaanMasuk.berhasil, true),
-      ),
-    );
-  if (ikut.length === 0) return sql`false`;
-  return and(
-    base,
-    or(...ikut.map((x) => and(eq(jawaban.sesiId, x.sesiId), eq(jawaban.kelompokId, x.kelompokId)))),
-  );
-}
-
-/** The running session of this module, when this reader is in it: its own
- *  sign-in, or an Asisten viewing as a group. Anyone else reads history. */
-async function sesiBaca(session: SessionPayload, modul: number, wakil: boolean) {
-  const running = await currentSesi();
-  if (!running || running.modul !== modul) return null;
-  return wakil || session.sesiId === running.id ? running : null;
 }
 
 /** The journal gate (akses.ts statusRiwayat): this student's running

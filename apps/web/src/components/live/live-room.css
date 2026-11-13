@@ -66,6 +66,7 @@
 }
 
 .ports__list {
+  align-items: start;
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
@@ -685,4 +686,98 @@
   font-size: 0.85rem;
   font-weight: 700;
   padding: 2px 10px;
+}
+
+/* ---------------------------------------------------------- live upload */
+
+.uploadset {
+  display: grid;
+  gap: 12px;
+}
+
+.uploadset__intro {
+  margin: 0;
+}
+
+.uploadset__grid {
+  align-items: start;
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.uploadset__key {
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.uploadset__head {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 600;
+  gap: 8px;
+}
+
+/* A row's progress and failure, under its three columns */
+.port__extra {
+  grid-column: 1 / -1;
+}
+
+.port__bar {
+  background: var(--surface-3);
+  border-radius: 999px;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+}
+
+.port__bar > i {
+  background: var(--accent);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.port__bar[data-wait="yes"] > i {
+  animation: portbar-slide 1.4s ease-in-out infinite;
+  transition: none;
+  width: 40%;
+}
+
+@keyframes portbar-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.port__err {
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.port__err pre {
+  background: var(--bg-sunken);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  margin: 6px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .port__bar[data-wait="yes"] > i {
+    animation: none;
+  }
 }
