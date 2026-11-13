@@ -216,3 +216,50 @@ describe("what was typed in Live reaches the Hunt step", () => {
     get.mockRestore();
   });
 });
+
+describe("the board key follows the group on the form", () => {
+  function Harness() {
+    const [key, setKey] = useState<string | null>("KEYGROUP");
+    const s = useUploadSettings(1, key);
+    return h(
+      "div",
+      { id: "k", "data-key": s.values.key, "data-filled": String(s.keyFilled) },
+      h("button", { id: "g2", onClick: () => setKey("KEYTWO22") }, "g2"),
+      h("button", { id: "none", onClick: () => setKey(null) }, "none"),
+      h(
+        "button",
+        { id: "typed", onClick: () => s.change({ ...s.values, key: "TYPED123" }) },
+        "typed",
+      ),
+    );
+  }
+  const key = () => document.getElementById("k")!.getAttribute("data-key");
+  const filled = () => document.getElementById("k")!.getAttribute("data-filled");
+  const press = (id: string) => act(() => document.getElementById(id)!.click());
+
+  it("replaces a key it put in itself when another group's key arrives", () => {
+    mount(h(Harness));
+    expect(key()).toBe("KEYGROUP");
+    press("g2");
+    expect(key()).toBe("KEYTWO22");
+    expect(filled()).toBe("true");
+  });
+
+  it("takes its key back while the new group has none, so the old one is never sent", () => {
+    mount(h(Harness));
+    press("none");
+    expect(key()).toBe("");
+    expect(filled()).toBe("false");
+  });
+
+  it("never overwrites a key the person typed", () => {
+    mount(h(Harness));
+    press("typed");
+    expect(key()).toBe("TYPED123");
+    expect(filled()).toBe("false");
+    press("g2");
+    expect(key()).toBe("TYPED123");
+    press("none");
+    expect(key()).toBe("TYPED123");
+  });
+});

@@ -332,10 +332,19 @@ export default function LiveRoom({
   // board key and hotspot from the Hunt step.
   const [huntKey, setHuntKey] = useState<string | null>(null);
   const [huntNet, setHuntNet] = useState<{ ssid: string; sandi: string } | null>(null);
+  const huntKeyRef = useRef<string | null>(null);
+  huntKeyRef.current = huntKey;
+  const settings = useUploadSettings(ownGroup, huntKey, huntNet);
+  const grupForm = settings.values.group;
+  // The key follows the group the Upload form is on: an Asisten reads any group's, a Praktikan only
+  // their own (the API answers with their own group whatever is asked, so no other group is asked).
+  const bolehKunci = modul === 4 && showPorts && (!praktikan || grupForm === ownGroup);
   useEffect(() => {
-    if (modul !== 4 || !canPorts) return;
+    // Another group's key is not this one's: drop it until the new one arrives
+    setHuntKey(null);
+    if (!bolehKunci) return;
     let alive = true;
-    const q = acting && wakil ? `?kelompok=${wakil.nomor}` : "";
+    const q = praktikan ? "" : `?kelompok=${grupForm}`;
     const ask = async () => {
       try {
         const r = await fetch(`/api/session/perburuan${q}`);
@@ -345,7 +354,7 @@ export default function LiveRoom({
           wifi?: { ssid: string; sandi: string } | null;
         };
         if (!alive) return;
-        if (typeof d.kunciPapan === "string") setHuntKey(d.kunciPapan);
+        setHuntKey(typeof d.kunciPapan === "string" ? d.kunciPapan : null);
         const net = d.hotspot ?? d.wifi ?? null;
         if (net) setHuntNet((old) => (old?.ssid === net.ssid ? old : net));
       } catch {
@@ -361,10 +370,7 @@ export default function LiveRoom({
       alive = false;
       window.clearInterval(id);
     };
-  }, [modul, canPorts, acting, wakil?.nomor]);
-  const huntKeyRef = useRef<string | null>(null);
-  huntKeyRef.current = huntKey;
-  const settings = useUploadSettings(ownGroup, huntKey, huntNet);
+  }, [bolehKunci, grupForm, praktikan]);
   /** Sent with every write when an Asisten acts for the group. */
   const wakilBody = acting && wakil ? { kelompok: wakil.nomor } : {};
 
