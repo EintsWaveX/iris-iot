@@ -91,9 +91,9 @@ export function useUploadBoard(
       const result = await runUpload<SerialPortLike>(
         {
           api,
-          flashEsp32: async (p, image, pct) => {
+          flashEsp32: async (p, image, pct, phase) => {
             await free();
-            await flashEsp32(p as PortLike, image, pct);
+            await flashEsp32(p as PortLike, image, pct, phase);
           },
           writeMain: async (p, text, pct) => {
             await free();

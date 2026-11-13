@@ -48,6 +48,9 @@ export default function UploadPanel({
       ? uploadError(lang, check.kode)
       : undefined;
   const set = (patch: Partial<UploadValues>) => onChange({ ...values, ...patch });
+  // A group no file can be made for (Module 4 has five) is named at once, not after a blur.
+  const groupError =
+    !check.ok && check.field === "group" ? uploadError(lang, check.kode) : undefined;
 
   return (
     <div className="uploadset">
@@ -90,7 +93,7 @@ export default function UploadPanel({
             />
           </>
         )}
-        <div className="field">
+        <div className="field" data-invalid={groupError ? "yes" : undefined}>
           <span className="field__label">{t.group}</span>
           <GroupPicker
             value={values.group}
@@ -101,6 +104,11 @@ export default function UploadPanel({
             mark={ownGroup ?? undefined}
             markLabel={t.mine}
           />
+          {groupError && (
+            <p className="field__error" role="alert">
+              {groupError}
+            </p>
+          )}
         </div>
         {facts.key && (
           <div className="field" data-invalid={bad("key") ? "yes" : undefined}>

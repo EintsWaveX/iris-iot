@@ -6,7 +6,7 @@
  * port will not open. Whatever happens the port ends closed and the failure carries a code.
  */
 import { describe, expect, it } from "vitest";
-import { RAW_BANNER, UploadError, writeMain, type PortLike } from "../upload-serial";
+import { PICO_WIPE, RAW_BANNER, UploadError, writeMain, type PortLike } from "../upload-serial";
 
 class FakePico {
   state: "running" | "repl" | "raw" = "running";
@@ -15,6 +15,10 @@ class FakePico {
   file: number[] | null = null;
   pending: number[] = [];
   reboots = 0;
+  /** What else is on the Pico besides main.py: an old program, a folder of data, the libraries */
+  others = ["boot.py", "old_main.py", "data", "lib"];
+  /** What happened, in order */
+  events: string[] = [];
   stopping = false;
   writes = 0;
   opened = false;
@@ -34,6 +38,8 @@ class FakePico {
       /** bytes the second write loses */
       dropBytes?: number;
       failOpen?: boolean;
+      /** the clean-up script fails with this message */
+      failWipe?: string;
     } = {},
   ) {}
 
@@ -109,11 +115,25 @@ class FakePico {
     this.say("OK");
     let out = "";
     let err = "";
+    if (this.code === PICO_WIPE) {
+      this.events.push("wipe");
+      if (this.o.failWipe) err = this.o.failWipe;
+      else {
+        this.others = this.others.filter((x) => x === "lib");
+        this.file = null;
+        out = `${JSON.stringify([...this.others, ...(this.file ? ["main.py"] : [])]).replace(/"/g, "'")}
+`;
+      }
+      this.code = "";
+      this.say(`${out}${err}>`);
+      return;
+    }
     const w = /^f=open\('main\.py','(wb|ab)'\)\nf\.write\(b'(.*)'\)\nf\.close\(\)\n$/s.exec(
       this.code,
     );
     if (w) {
       this.writes++;
+      if (this.writes === 1) this.events.push("write");
       let bytes = [...w[2].matchAll(/\\x([0-9a-f]{2})|(.)/gs)].map((m) =>
         m[1] ? parseInt(m[1], 16) : m[2].charCodeAt(0),
       );
@@ -154,6 +174,23 @@ describe("writeMain against a simulated Pico", () => {
     expect(pico.opened).toBe(false);
     expect(seen.at(-1)).toBe(100);
     expect(seen).toEqual([...seen].sort((a, b) => a - b));
+  }, 20000);
+
+  it("a fresh install: everything but /lib is removed first, then main.py is written", async () => {
+    const pico = make();
+    pico.file = [1, 2, 3]; // an old main.py
+    await writeMain(pico.port, sample(500), () => undefined);
+    expect(pico.others).toEqual(["lib"]); // the old programs and folders are gone, the libraries stay
+    expect(pico.events.slice(0, 2)).toEqual(["wipe", "write"]); // wiped before anything is written
+    expect(pico.file).toEqual(bytesOf(sample(500))); // the old main.py is gone, not appended to
+  }, 20000);
+
+  it("a clean-up the Pico refuses ends as pico_galat and writes nothing", async () => {
+    const pico = make({ failWipe: "OSError: [Errno 5] EIO" });
+    const err = await writeMain(pico.port, sample(300), () => undefined).catch((e) => e);
+    expect(err.kode).toBe("pico_galat");
+    expect(pico.events).toEqual(["wipe"]);
+    expect(pico.opened).toBe(false);
   }, 20000);
 
   it("a whole module file (8 KB with every awkward character) arrives intact", async () => {

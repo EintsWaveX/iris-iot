@@ -114,7 +114,9 @@ export interface UploadValues {
 export const SSID_MAX = 32;
 export const SANDI_MIN = 8;
 export const SANDI_MAX = 63;
-export const GRUP_MAKS = 10;
+/** Only a sanity bound: how many groups a session has is the lab's to decide (3, 5, 10 or more), and
+ *  every module's file is made for whichever group is asked, up to this. */
+export const GRUP_MAKS = 99;
 export const KUNCI_RE = /^[A-Z0-9]{8}$/;
 
 export type UploadField = "ssid" | "password" | "group" | "key" | "role";

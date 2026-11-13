@@ -5,7 +5,7 @@ export const UP = dict({
   id: {
     title: "Pengaturan Unggah",
     intro:
-      "Isi data ini, lalu tekan Unggah di papan yang mau diisi. Kode jurnal yang sudah benar dibangun di PC Server dan ditulis ke papan lewat kabel USB. Tidak ada yang perlu dipasang di laptopmu.",
+      "Isi data ini, lalu tekan Unggah di papan yang mau diisi. Kode jurnal yang sudah benar dibangun di PC Server dan ditulis ke papan lewat kabel USB sebagai pemasangan baru: isi lama papan dihapus lebih dulu, pustakanya ikut terpasang lagi. Tidak ada yang perlu dipasang di laptopmu.",
     ssid: "Nama Wi-Fi",
     ssidHint: "Hotspot ponsel atau Wi-Fi lab, maksimal 32 karakter.",
     password: "Kata Sandi Wi-Fi",
@@ -26,6 +26,7 @@ export const UP = dict({
       building: "Membangun kode di PC Server…",
       queue: (n: number) => `Antre, giliran ke-${n}`,
       downloading: "Mengunduh hasil bangunan…",
+      erasing: "Menghapus seluruh isi papan lama…",
       flashing: (n: number) => `Menulis ke papan ${n}%`,
       done: "Selesai. Papan menyala ulang dan tersambung.",
     },
@@ -84,7 +85,7 @@ export const UP = dict({
   en: {
     title: "Upload Settings",
     intro:
-      "Fill these in, then press Upload on the board you want to fill. The module's correct code is built on the PC Server and written to the board over USB. Nothing to install on your laptop.",
+      "Fill these in, then press Upload on the board you want to fill. The module's correct code is built on the PC Server and written to the board over USB as a fresh install: whatever was on the board is erased first and the libraries come back with the new code. Nothing to install on your laptop.",
     ssid: "Wi-Fi Name",
     ssidHint: "Your phone hotspot or the lab Wi-Fi, 32 characters at most.",
     password: "Wi-Fi Password",
@@ -105,6 +106,7 @@ export const UP = dict({
       building: "Building the code on the PC Server…",
       queue: (n: number) => `Waiting, number ${n} in line`,
       downloading: "Downloading the build…",
+      erasing: "Erasing everything on the old board…",
       flashing: (n: number) => `Writing to the board ${n}%`,
       done: "Done. The board restarts and connects.",
     },
@@ -164,7 +166,7 @@ export const UP = dict({
   zh: {
     title: "上传设置",
     intro:
-      "填好这些，再在要写入的开发板上点上传。正确的模块代码在 PC 服务器上编译，经 USB 线写入开发板。笔记本上无需安装任何东西。",
+      "填好这些，再在要写入的开发板上点上传。正确的模块代码在 PC 服务器上编译，经 USB 线以全新安装的方式写入开发板：板上原有内容先全部清除，库会随新代码一起装回。笔记本上无需安装任何东西。",
     ssid: "Wi-Fi 名称",
     ssidHint: "手机热点或实验室 Wi-Fi，最多 32 个字符。",
     password: "Wi-Fi 密码",
@@ -184,6 +186,7 @@ export const UP = dict({
       building: "正在 PC 服务器上编译代码…",
       queue: (n: number) => `排队中，第 ${n} 位`,
       downloading: "正在下载编译结果…",
+      erasing: "正在清除开发板上的全部旧内容…",
       flashing: (n: number) => `正在写入开发板 ${n}%`,
       done: "完成。开发板重启并连接。",
     },

@@ -45,12 +45,19 @@ const IDENTITAS = identitas as Record<
   Record<string, { groupId: number; syncWord?: string }>
 >;
 
-function syncWordFor(modul: number, nomorKelompok: number): string {
+/** The radio's sync word for a group: the table's for groups 1 to 5, and the same pattern beyond
+ *  them so a session of any size works: 0xF6 to 0xFF for groups 6 to 15, then 0x40 upward (one
+ *  byte, never 0x12 or 0x34, the LoRaWAN words). A group past what the radio can tell apart
+ *  (about 190) has none. */
+export function syncWordFor(modul: number, nomorKelompok: number): string {
   const entry = IDENTITAS[String(modul)]?.[String(nomorKelompok)];
-  if (!entry?.syncWord) {
-    throw new Error(`no sync word recorded for modul ${modul} group ${nomorKelompok}`);
+  if (entry?.syncWord) return entry.syncWord;
+  if (modul === 4 && Number.isInteger(nomorKelompok) && nomorKelompok >= 1) {
+    const byte = nomorKelompok <= 15 ? 0xf0 + nomorKelompok : 0x40 + (nomorKelompok - 16);
+    if (byte <= 0xef || (nomorKelompok <= 15 && byte <= 0xff))
+      return `0x${byte.toString(16).toUpperCase().padStart(2, "0")}`;
   }
-  return entry.syncWord;
+  throw new Error(`no sync word for modul ${modul} group ${nomorKelompok}`);
 }
 
 /** One option, for a rewrite with no language variation (Modules 1, 3, and

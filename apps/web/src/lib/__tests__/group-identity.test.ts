@@ -9,6 +9,7 @@ import {
   personalizeJaringan,
   personalizeJaringanSegments,
   needsPersonalization,
+  syncWordFor,
 } from "../group-identity";
 import identitas from "../../content/sketches/identitas.json";
 
@@ -260,5 +261,37 @@ describe("src/content/sketches directory has no extra languages", () => {
       .map((entry) => entry.name)
       .sort();
     expect(dirs).toEqual([...LANGUAGES].sort());
+  });
+});
+
+describe("syncWordFor, for a session of any size", () => {
+  it("keeps the table's words for groups 1 to 5 and goes on with the same pattern", () => {
+    expect([1, 2, 3, 4, 5].map((n) => syncWordFor(4, n))).toEqual([
+      "0xF1",
+      "0xF2",
+      "0xF3",
+      "0xF4",
+      "0xF5",
+    ]);
+    expect([6, 10, 15].map((n) => syncWordFor(4, n))).toEqual(["0xF6", "0xFA", "0xFF"]);
+    expect(syncWordFor(4, 16)).toBe("0x40");
+  });
+
+  it("gives every group up to 99 its own one-byte word, never the LoRaWAN ones", () => {
+    const words = Array.from({ length: 99 }, (_, i) => syncWordFor(4, i + 1));
+    expect(new Set(words).size).toBe(99);
+    for (const w of words) {
+      const v = parseInt(w, 16);
+      expect(v).toBeGreaterThan(0);
+      expect(v).toBeLessThanOrEqual(0xff);
+      expect([0x12, 0x34]).not.toContain(v);
+    }
+  });
+
+  it("has no word for a group that is not a number or is past what a byte can tell apart", () => {
+    expect(() => syncWordFor(4, 0)).toThrow();
+    expect(() => syncWordFor(4, 1.5)).toThrow();
+    expect(() => syncWordFor(4, 400)).toThrow();
+    expect(() => syncWordFor(1, 6)).toThrow(); // only Module 4 has a radio
   });
 });

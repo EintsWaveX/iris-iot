@@ -13,7 +13,7 @@ import { useSerialBoard, type SerialPortLike } from "../useSerialBoard";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** A port that refuses to open twice, like the real one */
-function fakePort(): SerialPortLike & { isOpen: boolean; opens: number } {
+function fakePort(): SerialPortLike & { isOpen: boolean; opens: number; signals: number } {
   const p = {
     isOpen: false,
     opens: 0,
@@ -31,7 +31,10 @@ function fakePort(): SerialPortLike & { isOpen: boolean; opens: number } {
       p.readable = null;
       p.writable = null;
     },
-    async setSignals() {},
+    signals: 0,
+    async setSignals() {
+      p.signals++;
+    },
   };
   return p;
 }
@@ -43,8 +46,8 @@ let box: HTMLElement | null = null;
 let granted: SerialPortLike[] = [];
 let next: SerialPortLike | null = null;
 
-function Row({ name }: { name: string }) {
-  rows[name] = useSerialBoard(3);
+function Row({ name, modul = 3 }: { name: string; modul?: number }) {
+  rows[name] = useSerialBoard(modul);
   return null;
 }
 
@@ -159,5 +162,60 @@ describe("one board in two rows", () => {
     });
     expect(picked).toBeNull();
     expect(rows.sub.status).toBe("idle");
+  });
+});
+
+describe("what a board gets after an upload", () => {
+  // Module 1's boards wait ten seconds at boot for the PC's clock and print the prompt before this
+  // port is open again, so they are restarted once with the port open; the others need nothing.
+  it.each([
+    [1, 2],
+    [2, 0],
+    [3, 0],
+    [4, 0],
+  ])("Module %i: reopening pulses EN %i times", async (modul, pulses) => {
+    act(() => root!.render(h("div", null, h(Row, { name: "one", modul }))));
+    const pico = fakePort();
+    await act(async () => {
+      void rows.one.reopen(pico);
+      await new Promise((r) => setTimeout(r, 500));
+    });
+    expect(rows.one.status).toBe("open");
+    expect(pico.signals).toBe(pulses);
+  });
+
+  it("Hubungkan still restarts an ESP32 board once, and a Pico not at all", async () => {
+    for (const [modul, pulses] of [
+      [4, 2],
+      [3, 0],
+    ] as const) {
+      act(() => root!.render(h("div", null, h(Row, { name: "one", modul }))));
+      const pico = fakePort();
+      next = pico;
+      await act(async () => {
+        void rows.one.connect();
+        await new Promise((r) => setTimeout(r, 500));
+      });
+      expect(pico.signals).toBe(pulses);
+      await act(async () => {
+        await rows.one.close();
+      });
+    }
+  });
+
+  it("a port the system has not let go of yet is asked again a few times", async () => {
+    act(() => root!.render(h("div", null, h(Row, { name: "one", modul: 4 }))));
+    const pico = fakePort();
+    const real = pico.open.bind(pico);
+    let refused = 2;
+    pico.open = async (o: { baudRate: number }) => {
+      if (refused-- > 0) throw new DOMException("not yet", "NetworkError");
+      return real(o);
+    };
+    await act(async () => {
+      void rows.one.reopen(pico);
+      await new Promise((r) => setTimeout(r, 1200));
+    });
+    expect(rows.one.status).toBe("open");
   });
 });
