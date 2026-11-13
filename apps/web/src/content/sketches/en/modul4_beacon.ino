@@ -1,9 +1,9 @@
 /*
  * MODULE 4 - LoRa HUNT  |  Role: BEACON (Group 1, hidden
  * by the assistant)
- * Transmits only in its own time slot, taking turns with the other four
- * pairs within one shared period, so all five beacons share the same
- * channel without ever colliding. Every packet carries a sequence number
+ * Transmits only in its own time slot, taking turns with the other
+ * groups' beacons within one shared period, so all beacons share the same
+ * channel without stepping on each other. Every packet carries a sequence number
  * and send time, also reported to the scoreboard over Wi-Fi so lost packets
  * can be counted.
  *
@@ -54,14 +54,15 @@ const int   DST_OFFSET_SEC  = 0;
 // One room: 2. One floor of a building: 10. A large building: 14.
 #define BEACON_TX_POWER 10
 
-// TDMA schedule: one 500 ms period split into five 100 ms slots, one per
-// group, chosen by GROUP_ID, so all five beacons share one channel without
-// ever colliding -- none transmits outside its own slot. This replaces the
-// previous version's fixed gap, which was only safe with a single beacon
-// on the air.
+// TDMA schedule: one 500 ms period split into ten 50 ms slots, one per
+// group (group 11 and up share a slot with the group ten below). Slots
+// follow the NTP clock the board just synchronised, not its own power-on
+// time, so every beacon really keeps to its slot. A packet takes about
+// 30 ms; the rest of the slot absorbs clock error.
 const unsigned long TDMA_PERIOD_MS = 500;
-const unsigned long TDMA_SLOT_MS   = 100;
-unsigned long nextFireAt = 0;
+const unsigned long TDMA_SLOT_MS   = 50;
+const int           TDMA_SLOTS     = 10;
+int64_t nextFireAt = 0;
 
 WebSocketsClient webSocket;
 
@@ -128,6 +129,19 @@ void startRadio() {
   LoRa.setTxPower(________);  // (4) Beacon transmit power constant
 }
 
+// Milliseconds since 1970 on the NTP clock, and the next moment that falls
+// in this group's slot. Slots follow the NTP clock, not the power-on time.
+int64_t clockMs() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return (int64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
+int64_t nextSlot(int64_t now) {
+  int64_t start = now - now % TDMA_PERIOD_MS + (GROUP_ID - 1) % TDMA_SLOTS * TDMA_SLOT_MS;
+  return start > now ? start : start + TDMA_PERIOD_MS;
+}
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -136,9 +150,9 @@ void setup() {
   syncClock();
   startRadio();
 
-  // Group 1 transmits at the start of every period, group 2 a hundred
-  // milliseconds after that, and so on -- see the TDMA_* comment above.
-  nextFireAt = millis() + (unsigned long)(GROUP_ID - 1) * TDMA_SLOT_MS;
+  // The first transmission falls in this group's next slot on the NTP
+  // clock (see the TDMA_* comment above), not from the power-on moment.
+  nextFireAt = nextSlot(clockMs());
 
   webSocket.beginSSL(SERVER_HOST, SERVER_PORT, "/beacon");
   webSocket.setReconnectInterval(2000);
@@ -150,10 +164,11 @@ void setup() {
 void loop() {
   webSocket.loop();
 
-  if ((long)(millis() - nextFireAt) < 0) {
+  int64_t now = clockMs();
+  if (now < nextFireAt) {
     return;
   }
-  nextFireAt += TDMA_PERIOD_MS;
+  nextFireAt = nextSlot(now);
 
   seq++;
 

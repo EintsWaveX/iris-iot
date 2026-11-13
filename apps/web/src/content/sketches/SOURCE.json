@@ -6,7 +6,7 @@
     "src/content/sketches/en/modul2_websocket_server.py": "7c963db7850383df617482f87d3fa217115de455a080f8ec380b4afad3e17bae",
     "src/content/sketches/en/modul3_mqtt_publish.py": "fbce0ec039fac08c9df26e1be80be5f3503d25bf7957c85d784c1ba8a09ea525",
     "src/content/sketches/en/modul3_mqtt_subscribe.py": "97920a02ce6a4861cdd8c58ad6fa6cca2fefa2b2e680ac3f87121c8ffe988fc1",
-    "src/content/sketches/en/modul4_beacon.ino": "17d2db90fb0d53025b9bb21f4be137afefdfe3f99d43964907c534434385ac7e",
+    "src/content/sketches/en/modul4_beacon.ino": "204d410f19e9668ff24b528eb0fa7ba3fdcb14473a265277d3a48d5ea415f87e",
     "src/content/sketches/en/modul4_hunter.ino": "e5b3f8b33a667c4ebbca232616f9c0278dc85e31af2152be7bb06e2a35e16f01",
     "src/content/sketches/id/modul1_ble_central.ino": "b5bb92321a4797999263a2d21e665a97211637028438436ff7432acef5b21bc1",
     "src/content/sketches/id/modul1_ble_peripheral.ino": "2874ebb59fca8f6c70110f911e7fec5927ccfa70276645ddb17261295a45d0e1",
@@ -14,9 +14,9 @@
     "src/content/sketches/id/modul2_websocket_server.py": "b0fd4d03074c0683787b59e18e34b3fa2fadd49b2d87ad7afc0d14d20ae05f5f",
     "src/content/sketches/id/modul3_mqtt_publish.py": "be8020a4eea0367e7c1c6ac4e70b6f5ce2316c0ca2da49d6ff5b8cde7328f68f",
     "src/content/sketches/id/modul3_mqtt_subscribe.py": "38fd32cff88fb08107e9e4a1e9d679597258e15b8fe71e25c7b3bc1299a295e1",
-    "src/content/sketches/id/modul4_beacon.ino": "63f6873c6cf325686437ac315201f7d9019e0b81d7251e2bf1126700b461e4b2",
+    "src/content/sketches/id/modul4_beacon.ino": "dfee702ff04b633175859f365cf0c868fcd0d95ab879467cc9c4630ece399e17",
     "src/content/sketches/id/modul4_hunter.ino": "eb47446dc60a430cdcecabcb1c88867eb637bc421ab1dee31ea6ef53aabafca4"
   },
-  "irisAsoCommit": "5e1ff8301d7224bd75d62e644cbc7d05ae5c39d5",
-  "irisAsoDirty": true
+  "irisAsoCommit": "d62037db01c32459701910ca4aa12c22240bba82",
+  "irisAsoDirty": false
 }
