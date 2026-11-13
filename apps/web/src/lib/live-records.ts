@@ -18,6 +18,8 @@ import type { Reading } from "./telemetry-sim";
 import type { SerialEvent } from "./serial-lines";
 
 export interface LiveRecord {
+  /** 0 for the newest run of message numbers, -1 for the one before a board restart, and so on */
+  run: number;
   seq: number;
   tx: string | null;
   rx: string | null;
@@ -52,6 +54,22 @@ export function selisihMs(a: string | null, b: string | null): number | null {
 
 const MAX = 120;
 
+/** A number this far below the highest one seen in a run is a board that restarted, not a late row. */
+const RESTART_MARGIN = 5;
+
+/** Local run index of each number, in arrival order: a number far below the run's highest starts the next run. */
+function runsOf(seqs: number[]): number[] {
+  let run = 0;
+  let top = -Infinity;
+  return seqs.map((n, i) => {
+    if (i > 0 && n < top - RESTART_MARGIN) {
+      run += 1;
+      top = n;
+    } else top = Math.max(top, n);
+    return run;
+  });
+}
+
 /** The scoreboard's own defaults (apps/modul4/server.py RSSI_AT_1M, PATH_LOSS_N and
  *  MAX_RANGE_M): RSSI at 1 m, path-loss exponent for open ground, the farthest it reports. */
 const RSSI_1M = -40;
@@ -73,7 +91,12 @@ export function jarakDariRssi(halus: number, rssi1m = RSSI_1M, n = PATH_LOSS_N):
  */
 function isiJarakDariRssi(rows: LiveRecord[]) {
   let sebelum: number | undefined;
+  let run: number | undefined;
   for (const r of rows) {
+    if (r.run !== run) {
+      run = r.run;
+      sebelum = undefined;
+    }
     const halus = r.nilai.rssiHalus;
     if (halus === undefined) continue;
     if (r.nilai.jarak === undefined) r.nilai.jarak = jarakDariRssi(halus);
@@ -83,101 +106,141 @@ function isiJarakDariRssi(rows: LiveRecord[]) {
   }
 }
 
+type BoardEvent = Extract<NonNullable<SerialEvent>, { k: "send" | "recv" | "echo" }>;
+type Op = { k: "pc"; x: Reading } | { k: "board"; e: BoardEvent };
+
+/**
+ * Records are rebuilt from the operations fed to them, so the two sources can be lined up by run:
+ * each source numbers its own restarts, and the newest run of each is the current one (a source
+ * whose history was cut still ends in the same run as the other).
+ */
 export class LiveRecords {
-  private bySeq = new Map<number, LiveRecord>();
-  private m1Seq = 0;
+  private ops: Op[] = [];
 
   constructor(private modul: number) {}
 
-  private get(seq: number): LiveRecord {
-    let r = this.bySeq.get(seq);
-    if (!r) {
-      r = {
-        seq,
-        tx: null,
-        rx: null,
-        oneway: null,
-        rtt: null,
-        rssi: null,
-        snr: null,
-        nilai: {},
-        lost: false,
-      };
-      this.bySeq.set(seq, r);
-      if (this.bySeq.size > MAX) {
-        const oldest = Math.min(...this.bySeq.keys());
-        this.bySeq.delete(oldest);
-      }
-    }
-    return r;
-  }
-
-  /** Module 1's newest record still waiting for this kind of line. */
-  private m1Open(field: "rx" | "rtt"): LiveRecord | null {
-    for (let s = this.m1Seq; s > 0 && s > this.m1Seq - 3; s--) {
-      const r = this.bySeq.get(s);
-      if (r && r[field] === null) return r;
-    }
-    return null;
-  }
-
   board(e: SerialEvent): void {
     if (!e || (e.k !== "send" && e.k !== "recv" && e.k !== "echo")) return;
-    let r: LiveRecord | null;
-    if (this.modul === 1) {
-      if (e.k === "send") {
-        this.m1Seq += 1;
-        r = this.get(this.m1Seq);
-      } else r = this.m1Open(e.k === "echo" ? "rtt" : "rx");
-      if (!r) return;
-    } else {
-      if (e.seq === null) return;
-      r = this.get(e.seq);
-    }
-    if (e.k === "send") r.tx = e.ts;
-    else if (e.k === "recv") r.rx = e.ts;
-    else r.rtt = e.rtt;
-    if (e.k !== "echo") {
-      const { rssi, snr, ...rest } = e.nilai;
-      if (rssi !== undefined) r.rssi = rssi;
-      if (snr !== undefined) r.snr = snr;
-      Object.assign(r.nilai, rest);
-    }
-    this.settle(r);
+    this.ops.push({ k: "board", e });
   }
 
   /** A row from the PC (or the simulator). Board lines win for the fields
    *  they carry; the PC fills the rest. Module 1's rows came from a group
    *  PC's Central, whose rx is the echo time, so they keep their own delay. */
   pc(x: Reading): void {
-    if (this.modul === 1) {
-      this.m1Seq = Math.max(this.m1Seq, x.seq);
-    }
-    const r = this.get(x.seq);
-    r.tx ??= x.tx;
-    if (this.modul === 1) {
-      r.rtt ??= x.delayMs;
-      if (x.rx === null) r.lost = true;
-    } else {
-      r.rx ??= x.rx;
-      if (x.delayMs !== null && r.oneway === null) r.oneway = x.delayMs;
-    }
-    r.rssi ??= x.rssi;
-    r.snr ??= x.snr;
-    for (const [k, v] of Object.entries(x.nilai ?? {})) if (!(k in r.nilai)) r.nilai[k] = v;
-    this.settle(r);
+    this.ops.push({ k: "pc", x });
   }
 
-  private settle(r: LiveRecord) {
-    const d = selisihMs(r.tx, r.rx);
-    if (d !== null) r.oneway = d;
-    if (r.rx !== null || r.rtt !== null) r.lost = false;
+  /** Global run of each operation, newest run of its source = 0. Module 1 numbers itself: one run. */
+  private runsOfOps(): number[] {
+    if (this.modul === 1) return this.ops.map(() => 0);
+    const seqOf = (o: Op) => (o.k === "pc" ? o.x.seq : o.e.seq);
+    const out: number[] = new Array(this.ops.length).fill(0);
+    for (const kind of ["pc", "board"] as const) {
+      const idx = this.ops
+        .map((o, i) => (o.k === kind && seqOf(o) !== null ? i : -1))
+        .filter((i) => i >= 0);
+      const local = runsOf(idx.map((i) => seqOf(this.ops[i]) as number));
+      const last = local.length ? local[local.length - 1] : 0;
+      idx.forEach((i, j) => {
+        out[i] = local[j] - last;
+      });
+    }
+    return out;
   }
 
   /** Oldest first. A record with a send and no receive counts as lost once
    *  two newer ones have arrived. */
   list(): LiveRecord[] {
-    const rows = [...this.bySeq.values()].sort((a, b) => a.seq - b.seq);
+    const bySeq = new Map<string, LiveRecord>();
+    let m1Seq = 0;
+    const key = (run: number, seq: number) => `${run}:${seq}`;
+    const get = (run: number, seq: number): LiveRecord => {
+      let r = bySeq.get(key(run, seq));
+      if (!r) {
+        r = {
+          run,
+          seq,
+          tx: null,
+          rx: null,
+          oneway: null,
+          rtt: null,
+          rssi: null,
+          snr: null,
+          nilai: {},
+          lost: false,
+        };
+        bySeq.set(key(run, seq), r);
+        if (bySeq.size > MAX) {
+          // The oldest run goes first, and inside a run the lowest number: never the newest arrival.
+          let oldest: LiveRecord | null = null;
+          for (const c of bySeq.values())
+            if (!oldest || c.run < oldest.run || (c.run === oldest.run && c.seq < oldest.seq))
+              oldest = c;
+          if (oldest) bySeq.delete(key(oldest.run, oldest.seq));
+        }
+      }
+      return r;
+    };
+    /** Module 1's newest record still waiting for this kind of line. */
+    const m1Open = (field: "rx" | "rtt"): LiveRecord | null => {
+      for (let n = m1Seq; n > 0 && n > m1Seq - 3; n--) {
+        const r = bySeq.get(key(0, n));
+        if (r && r[field] === null) return r;
+      }
+      return null;
+    };
+    const settle = (r: LiveRecord) => {
+      const d = selisihMs(r.tx, r.rx);
+      if (d !== null) r.oneway = d;
+      if (r.rx !== null || r.rtt !== null) r.lost = false;
+    };
+
+    const runs = this.runsOfOps();
+    this.ops.forEach((o, i) => {
+      if (o.k === "board") {
+        const e = o.e;
+        let r: LiveRecord | null;
+        if (this.modul === 1) {
+          if (e.k === "send") {
+            m1Seq += 1;
+            r = get(0, m1Seq);
+          } else r = m1Open(e.k === "echo" ? "rtt" : "rx");
+          if (!r) return;
+        } else {
+          if (e.seq === null) return;
+          r = get(runs[i], e.seq);
+        }
+        if (e.k === "send") r.tx = e.ts;
+        else if (e.k === "recv") r.rx = e.ts;
+        else r.rtt = e.rtt;
+        if (e.k !== "echo") {
+          const { rssi, snr, ...rest } = e.nilai;
+          if (rssi !== undefined) r.rssi = rssi;
+          if (snr !== undefined) r.snr = snr;
+          Object.assign(r.nilai, rest);
+        }
+        settle(r);
+      } else {
+        const x = o.x;
+        if (this.modul === 1) m1Seq = Math.max(m1Seq, x.seq);
+        const r = get(runs[i], x.seq);
+        r.tx ??= x.tx;
+        if (this.modul === 1) {
+          r.rtt ??= x.delayMs;
+          if (x.rx === null) r.lost = true;
+        } else {
+          r.rx ??= x.rx;
+          if (x.delayMs !== null && r.oneway === null) r.oneway = x.delayMs;
+        }
+        r.rssi ??= x.rssi;
+        r.snr ??= x.snr;
+        for (const [k, v] of Object.entries(x.nilai ?? {})) if (!(k in r.nilai)) r.nilai[k] = v;
+        settle(r);
+      }
+    });
+
+    const rows = [...bySeq.values()].sort((a, b) => a.run - b.run || a.seq - b.seq);
     const done = (r: LiveRecord) => r.rx !== null || r.rtt !== null;
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
@@ -189,8 +252,7 @@ export class LiveRecords {
   }
 
   clear() {
-    this.bySeq.clear();
-    this.m1Seq = 0;
+    this.ops = [];
   }
 }
 

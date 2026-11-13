@@ -3,6 +3,7 @@ import { JURNAL, barisJurnal, rataJurnal, tsvJarak, tsvJurnal } from "../jurnal-
 import type { LiveRecord } from "../live-records";
 
 const rec = (o: Partial<LiveRecord> & { seq: number }): LiveRecord => ({
+  run: 0,
   tx: null,
   rx: null,
   oneway: null,
