@@ -45,6 +45,7 @@ import { handleUbahSesi } from "../_lib/sesi-ubah.js";
 import { bisaJawab, handlePanggil, panggilanTerbuka } from "../_lib/panggil.js";
 import { handlePerburuan } from "../_lib/perburuan-api.js";
 import { handleJaringanGet, handleJaringanPost } from "../_lib/jaringan-api.js";
+import { handleBeaconGet, handleBeaconPost } from "../_lib/beacon-api.js";
 import { handleBangunBerkas, handleBangunPost, handleBangunStatus } from "../_lib/live-build.js";
 import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
@@ -1686,6 +1687,19 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     }
     if (!requireMethod(req, res, "GET")) return;
     return handleJaringanGet(req, res);
+  }
+
+  // How many Beacons Module 4's hunt has (2026-11-13): any Asisten reads and changes it, until the
+  // hunt starts (checked inside).
+  if (aksi === "beacons") {
+    const session = requireRole(req, res, "asisten");
+    if (!session) return;
+    if (req.method === "POST") {
+      if (!(await cekHak(res, session.nim, "own"))) return;
+      return handleBeaconPost(req, res, session);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    return handleBeaconGet(req, res);
   }
 
   // Phase 9: the Module 4 Perburuan step (the hunt on the PC, as one group

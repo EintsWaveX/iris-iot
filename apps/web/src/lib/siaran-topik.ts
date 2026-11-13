@@ -114,6 +114,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:perburuan": ["sesi", "buru", "server"],
   // The Module 4 network switch (2026-11-11): the Hunt and Code steps, the PC.
   "session:jaringan": ["sesi", "buru", "server", "jurnal"],
+  // The Module 4 board layout (2026-11-13): shared Beacons change what a Beacon build carries.
+  "session:beacons": ["sesi", "buru", "server", "jurnal"],
   // Every 2 s per laptop while a port is open; the Asisten mirror polls.
   "session:cermin": [],
   // Every 1.5 s per laptop; the Live page polls.
