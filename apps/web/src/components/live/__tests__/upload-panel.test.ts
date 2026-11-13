@@ -19,7 +19,7 @@ vi.mock("../../ui/GroupPicker", () => ({
 }));
 
 import UploadPanel from "../UploadPanel";
-import { useUploadSettings } from "../useUploadSettings";
+import { useUploadSettings, useWifiDiketik, wifiDiketik } from "../useUploadSettings";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -163,5 +163,56 @@ describe("useUploadSettings", () => {
     expect(read()).toMatchObject({ ssid: "MyNet" });
     get.mockRestore();
     set.mockRestore();
+  });
+});
+
+describe("what was typed in Live reaches the Hunt step", () => {
+  function Hunt() {
+    const w = useWifiDiketik();
+    return h("div", { id: "hunt", "data-w": JSON.stringify(w) }, "x");
+  }
+  function Live() {
+    const s = useUploadSettings(1, null);
+    return h(
+      "button",
+      {
+        id: "type",
+        onClick: () => s.change({ ssid: "PhoneNet", password: "pw-654321", group: 1, key: "" }),
+      },
+      "x",
+    );
+  }
+  const shown = () =>
+    JSON.parse(document.getElementById("hunt")!.getAttribute("data-w")!) as {
+      ssid: string;
+      password: string;
+    };
+
+  it("is empty until something is typed", () => {
+    mount(h(Hunt));
+    expect(shown()).toEqual({ ssid: "", password: "" });
+    expect(wifiDiketik()).toEqual({ ssid: "", password: "" });
+  });
+
+  it("follows the name and password as they are typed, without a reload", () => {
+    mount(h("div", null, h(Hunt), h(Live)));
+    act(() => document.getElementById("type")!.click());
+    expect(shown()).toEqual({ ssid: "PhoneNet", password: "pw-654321" });
+  });
+
+  it("finds what an earlier visit in this tab typed", () => {
+    localStorage.setItem("iris.upload.v1", JSON.stringify({ ssid: "OldNet", group: 2 }));
+    sessionStorage.setItem("iris.upload.pw", "old-password");
+    mount(h(Hunt));
+    expect(shown()).toEqual({ ssid: "OldNet", password: "old-password" });
+  });
+
+  it("stays empty when storage throws", () => {
+    const get = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    mount(h(Hunt));
+    expect(shown()).toEqual({ ssid: "", password: "" });
+    get.mockRestore();
   });
 });

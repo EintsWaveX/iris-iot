@@ -23,6 +23,39 @@ function read(): { ssid?: string; group?: number } {
   }
 }
 
+/** Fired on the window whenever the Live form's Wi-Fi name or password changes in this tab */
+const GANTI = "iris-upload-wifi";
+
+/** The Wi-Fi name and password typed in Live, as far as this laptop kept them (either may be empty) */
+export function wifiDiketik(): { ssid: string; password: string } {
+  let password = "";
+  try {
+    password = sessionStorage.getItem(PW) ?? "";
+  } catch {
+    /* no storage */
+  }
+  return { ssid: read().ssid ?? "", password };
+}
+
+/**
+ * What the person typed in Live, kept in step as they type: the Hunt step shows the same hotspot name
+ * and password the boards were set up with. Empty until something is typed (and on the server).
+ */
+export function useWifiDiketik(): { ssid: string; password: string } {
+  const [w, setW] = useState({ ssid: "", password: "" });
+  useEffect(() => {
+    const baca = () => setW(wifiDiketik());
+    baca();
+    window.addEventListener(GANTI, baca);
+    window.addEventListener("storage", baca);
+    return () => {
+      window.removeEventListener(GANTI, baca);
+      window.removeEventListener("storage", baca);
+    };
+  }, []);
+  return w;
+}
+
 export function useUploadSettings(
   ownGroup: number | null,
   huntKey: string | null,
@@ -96,6 +129,7 @@ export function useUploadSettings(
     } catch {
       /* no storage */
     }
+    window.dispatchEvent(new Event(GANTI));
   };
 
   return { values, change, keyFilled };
