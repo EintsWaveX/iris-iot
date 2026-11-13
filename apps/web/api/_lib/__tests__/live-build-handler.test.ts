@@ -26,7 +26,8 @@ vi.mock("../kode-aktif", async (orig) => {
 process.env.IRIS_BUILD_TOKEN = "t".repeat(24);
 globalThis.fetch = (async (url: string, init?: RequestInit) => {
   fetchCalls.push({ url, init });
-  if (layananJawab.raw) return new Response(layananJawab.raw, { status: layananJawab.status });
+  if (layananJawab.raw)
+    return new Response(new Blob([layananJawab.raw as BlobPart]), { status: layananJawab.status });
   return new Response(JSON.stringify(layananJawab.body), { status: layananJawab.status });
 }) as unknown as typeof fetch;
 
