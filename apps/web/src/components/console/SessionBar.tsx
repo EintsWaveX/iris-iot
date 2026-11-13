@@ -37,6 +37,7 @@ import { shortcutsOn } from "../../lib/prefs";
 import { hotspotMenyala } from "../../lib/server-shared";
 import { tautanPerburuan } from "../../lib/perburuan";
 import JaringanHunt from "../server/JaringanHunt";
+import BeaconHunt from "../server/BeaconHunt";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
 import type { Lang } from "../../lib/kelas";
@@ -430,7 +431,12 @@ export default function SessionBar({
           onChanged();
         }}
       >
-        {!buruJalan && <JaringanHunt lang={lang} />}
+        {!buruJalan && (
+          <>
+            <JaringanHunt lang={lang} />
+            <BeaconHunt lang={lang} />
+          </>
+        )}
       </Confirm>
     </section>
   );

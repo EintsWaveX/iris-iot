@@ -60,10 +60,16 @@ async function bacaPcHunt(): Promise<{
  *  after the Asisten's Mulai Perburuan, so before it there is nothing to
  *  hand out. Used by the Perburuan step and to fill the sketch download. */
 export async function kunciPapanKelompok(sesiId: number, nomor: number): Promise<string | null> {
+  return (await kunciPapanSemua(sesiId))[String(nomor)] ?? null;
+}
+
+/** Every group's board key the PC lists (groups 1 to 10), or none while the hunt isn't open. A shared
+ *  Beacon (api/_lib/beacon-tambahan.ts) needs the keys of all the groups it serves. */
+export async function kunciPapanSemua(sesiId: number): Promise<Record<string, string>> {
   const { ringkas } = await bacaPcHunt();
   const perburuan = await bacaPerburuanSesi(sesiId);
   const terbuka = perburuanBerjalan(perburuan) && ringkas?.sesi != null;
-  return terbuka ? (ringkas?.kunci[String(nomor)] ?? null) : null;
+  return terbuka ? (ringkas?.kunci ?? {}) : {};
 }
 
 export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: SessionPayload) {

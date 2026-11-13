@@ -18,6 +18,16 @@ const fetchCalls: { url: string; init?: RequestInit }[] = [];
 vi.mock("../../../src/lib/akses", () => ({ statusRiwayat: async () => akses }));
 vi.mock("../jawaban-scope", () => ({ jawabanBenar: (...a: unknown[]) => jawabanBenar(...a) }));
 vi.mock("../../../src/lib/jaringan-hunt", () => ({ bacaJaringanHunt: async () => "internet" }));
+// The lab's layout for Module 4 Beacons: a running session, the layout setting and the PC's board keys
+let sesiJalan: { id: number; modul: number; jumlahKelompok: number } | null = null;
+let layout: { jumlah: number | null; pola: "selang" | "berurutan" } = {
+  jumlah: null,
+  pola: "selang",
+};
+let kunciPc: Record<string, string> = {};
+vi.mock("../../../src/lib/sesi", () => ({ currentSesi: async () => sesiJalan }));
+vi.mock("../../../src/lib/beacon-hunt", () => ({ bacaBeaconHunt: async () => layout }));
+vi.mock("../perburuan-api", () => ({ kunciPapanSemua: async () => kunciPc }));
 vi.mock("../kode-aktif", async (orig) => {
   const real = await orig<typeof import("../kode-aktif")>();
   return { ...real, kodeModul: async (m: number) => real.kodeBawaan(m) };
@@ -79,6 +89,9 @@ async function bangun(body: unknown, who = orang()) {
 }
 
 beforeEach(() => {
+  sesiJalan = null;
+  layout = { jumlah: null, pola: "selang" };
+  kunciPc = {};
   akses = { jurnal: [1, 2, 3, 4], diikuti: [1, 2, 3, 4] };
   benar = { benar: 6, total: 6 };
   jawabanBenar.mockClear();
@@ -243,5 +256,83 @@ describe("GET bangun-status and bangun-berkas", () => {
     expect(Array.from(mine.raw as Buffer)).toEqual([0xff, 0xe9, 1, 2]);
     const theirs = await baca(handleBangunBerkas, id, orang("asisten"));
     expect(theirs.body).toEqual({ ok: false, kode: "tak_ada" });
+  });
+});
+
+describe("POST bangun, a Beacon that serves several groups", () => {
+  const KUNCI = {
+    "1": "AAAAAAAA",
+    "2": "BBBBBBBB",
+    "3": "CCCCCCCC",
+    "4": "DDDDDDDD",
+    "5": "EEEEEEEE",
+  };
+  const kirim = () => JSON.parse(fetchCalls[0].init!.body as string).files["s.ino"] as string;
+  const beacon = (over: Record<string, unknown> = {}) => pesan({ role: "beacon", ...over });
+
+  it("group 3 of 5 on 2 Beacons gets GROUP_ID 3 and groups 1 and 5 with the PC's keys", async () => {
+    sesiJalan = { id: 9, modul: 4, jumlahKelompok: 5 };
+    layout = { jumlah: 2, pola: "selang" };
+    kunciPc = KUNCI;
+    const r = await bangun(beacon());
+    expect(r.body.ok).toBe(true);
+    const sk = kirim();
+    expect(sk).toMatch(/#define GROUP_ID 3\b/);
+    expect(sk).toContain("irisSharedGroup[] = {1, 5};");
+    expect(sk).toContain("irisSharedSync[] = {0xF1, 0xF5};");
+    expect(sk).toContain('irisSharedKey[] = {"AAAAAAAA", "EEEEEEEE"};');
+  });
+
+  it("never takes the extra groups or keys from the request", async () => {
+    sesiJalan = { id: 9, modul: 4, jumlahKelompok: 5 };
+    layout = { jumlah: 2, pola: "selang" };
+    kunciPc = KUNCI;
+    await bangun(beacon({ tambahan: [{ grup: 2, sync: "0xF2", kunci: "ZZZZZZZZ" }], extra: [2] }));
+    expect(kirim()).not.toContain("ZZZZZZZZ");
+    expect(kirim()).toContain("irisSharedGroup[] = {1, 5};");
+  });
+
+  it("builds no extras without a running Module 4 session (practice)", async () => {
+    layout = { jumlah: 2, pola: "selang" };
+    kunciPc = KUNCI;
+    await bangun(beacon());
+    expect(kirim()).not.toContain("irisShared");
+    sesiJalan = { id: 9, modul: 3, jumlahKelompok: 5 };
+    fetchCalls.length = 0;
+    await bangun(beacon());
+    expect(kirim()).not.toContain("irisShared");
+  });
+
+  it("with the default layout the file equals a single group's file", async () => {
+    sesiJalan = { id: 9, modul: 4, jumlahKelompok: 5 };
+    kunciPc = KUNCI;
+    await bangun(beacon());
+    expect(kirim()).not.toContain("irisShared");
+  });
+
+  it("refuses when a served group has no key yet, and never calls the build service", async () => {
+    sesiJalan = { id: 9, modul: 4, jumlahKelompok: 5 };
+    layout = { jumlah: 2, pola: "selang" };
+    kunciPc = { "1": "AAAAAAAA" };
+    const r = await bangun(beacon());
+    expect(r.body).toMatchObject({ ok: false, kode: "beacon_kunci_belum_ada" });
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it("refuses when two served groups would share a slot", async () => {
+    sesiJalan = { id: 9, modul: 4, jumlahKelompok: 12 };
+    layout = { jumlah: 2, pola: "selang" };
+    kunciPc = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [String(i + 1), "ABCDEFGH"]));
+    const r = await bangun(beacon({ group: 1 }));
+    expect(r.body).toMatchObject({ ok: false, kode: "beacon_slot_bentrok" });
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it("a Hunter never gets extra groups", async () => {
+    sesiJalan = { id: 9, modul: 4, jumlahKelompok: 5 };
+    layout = { jumlah: 2, pola: "selang" };
+    kunciPc = KUNCI;
+    await bangun(pesan({ role: "hunter" }));
+    expect(kirim()).not.toContain("irisShared");
   });
 });

@@ -69,6 +69,8 @@ import {
 import { isiKunciPapan, personalize, personalizeJaringan } from "../../src/lib/group-identity.js";
 import { bacaJaringanHunt } from "../../src/lib/jaringan-hunt.js";
 import { kunciPapanKelompok } from "../_lib/perburuan-api.js";
+import { pasangBeaconBersama } from "../_lib/beacon-bersama.js";
+import { tambahanBeacon } from "../_lib/beacon-tambahan.js";
 import { statusRiwayat } from "../../src/lib/akses.js";
 import { jawabanScope, sesiBaca } from "../_lib/jawaban-scope.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
@@ -487,6 +489,15 @@ async function handleUnduh(
       reconstructed,
       await kunciPapanKelompok(running.id, nomorKelompok),
     );
+    // A Beacon that shares its board with other groups carries them too (2026-11-13)
+    if (parsed.berkas === "modul4_beacon") {
+      const tb = await tambahanBeacon(nomorKelompok);
+      if (!tb.ok) {
+        res.status(200).json({ ok: false, kode: tb.kode });
+        return;
+      }
+      reconstructed = pasangBeaconBersama(reconstructed, tb.tambahan);
+    }
   }
 
   res.status(200);

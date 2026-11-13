@@ -36,6 +36,7 @@ import {
 } from "../../lib/server-shared";
 import Enroll, { bacaPerintah } from "./Enroll";
 import JaringanHunt from "./JaringanHunt";
+import BeaconHunt from "./BeaconHunt";
 import {
   kirim,
   sedangBerjalan,
@@ -477,6 +478,10 @@ export default function Settings({
 
       <div className="s12span6">
         <JaringanHunt lang={lang} kartu />
+      </div>
+
+      <div className="s12span6">
+        <BeaconHunt lang={lang} kartu />
       </div>
 
       {bisa.full && (

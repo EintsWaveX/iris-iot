@@ -32,6 +32,8 @@ import {
 } from "../../src/lib/live-build.js";
 import { kanonik, kodeModul, type KodeAktif } from "./kode-aktif.js";
 import { jawabanBenar } from "./jawaban-scope.js";
+import { pasangBeaconBersama, type TambahanBeacon } from "./beacon-bersama.js";
+import { tambahanBeacon } from "./beacon-tambahan.js";
 
 const FQBN = "esp32:esp32:esp32";
 /** Builds one person may start in the window below (a repeat of one already made, and a Pico file, cost nothing and are not counted) */
@@ -84,6 +86,7 @@ export function rakitSketch(
   bahasa: "id" | "en",
   v: Required<UploadValues>,
   jaringan: Jaringan,
+  tambahan: TambahanBeacon[] = [],
 ): string {
   const aktif = kode.berkas.get(file.slug);
   if (!aktif) throw new Error(`live-build: no file ${file.slug} in module ${file.modul}`);
@@ -93,7 +96,10 @@ export function rakitSketch(
   let text = personalize(file.slug, umum, v.group);
   if (file.modul === 4) text = personalizeJaringan(file.slug, text, jaringan);
   text = isiKunciPapan(file.slug, text, v.key || null);
-  return isiWifi(file, text, v);
+  text = isiWifi(file, text, v);
+  // A Module 4 Beacon that shares its board with other groups carries them (see beacon-bersama.ts)
+  if (file.slug === "modul4_beacon") text = pasangBeaconBersama(text, tambahan);
+  return text;
 }
 
 // ---------- The build service ----------
@@ -274,6 +280,16 @@ export async function handleBangunPost(req: ApiRequest, res: ApiResponse, sessio
       return;
     }
   }
+  // Module 4 Beacon: the groups this board also serves (the lab's layout), worked out here only
+  let tambahan: TambahanBeacon[] = [];
+  if (cek.file.slug === "modul4_beacon") {
+    const t = await tambahanBeacon(cek.v.group);
+    if (!t.ok) {
+      res.status(200).json({ ok: false, kode: t.kode });
+      return;
+    }
+    tambahan = t.tambahan;
+  }
   let sketch: string;
   try {
     sketch = rakitSketch(
@@ -282,6 +298,7 @@ export async function handleBangunPost(req: ApiRequest, res: ApiResponse, sessio
       body.bahasa === "en" ? "en" : "id",
       cek.v,
       modul === 4 ? await bacaJaringanHunt() : "internet",
+      tambahan,
     );
   } catch (err) {
     console.error("[live-build] the template does not fit:", (err as Error).message);
