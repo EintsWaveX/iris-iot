@@ -31,7 +31,7 @@ export const UP = dict({
     },
     errorHead: "Gagal mengunggah",
     again: "Coba Lagi",
-    log: "Catatan Kompiler",
+    log: "Detail Teknis",
     errors: {
       ssid_kosong: "Nama Wi-Fi belum diisi.",
       ssid_panjang: "Nama Wi-Fi maksimal 32 karakter.",
@@ -65,7 +65,15 @@ export const UP = dict({
       gagal_flash: "Penulisan ke papan terputus. Pastikan kabel USB tidak bergoyang dan coba lagi.",
       gagal_tulis:
         "Penulisan main.py ke Pico terputus. Tutup Thonny, cabut dan colok lagi Pico-nya, lalu coba lagi.",
-      port_sibuk: "Port sedang dipakai aplikasi lain. Tutup Thonny atau Serial Monitor.",
+      port_sibuk:
+        "Port tidak bisa dibuka. Tutup Thonny atau Serial Monitor kalau terbuka, lalu cabut dan colok lagi kabelnya, lalu coba lagi.",
+      pico_tak_menjawab:
+        "Pico tidak menjawab. Pastikan port yang dipilih memang port Pico ini, lalu cabut dan colok lagi kabel USB-nya (program lama berhenti saat Pico menyala ulang) dan tekan Unggah lagi.",
+      port_baris_lain:
+        "Papan ini sedang ditulis dari baris lain. Tunggu sampai selesai, lalu coba lagi.",
+      pico_galat: "Pico menolak tulisannya. Rincian dari Pico ada di bawah.",
+      pico_tidak_utuh:
+        "Berkas di Pico tidak sama panjang dengan yang dikirim. Cabut dan colok lagi kabelnya, lalu coba lagi.",
       dibatalkan: "Dibatalkan.",
       terlalu_besar: "Kode terlalu besar untuk dibangun.",
       berbahaya: "Kode ditolak oleh pemeriksa keamanan.",
@@ -102,7 +110,7 @@ export const UP = dict({
     },
     errorHead: "Upload Failed",
     again: "Try Again",
-    log: "Compiler Log",
+    log: "Technical Details",
     errors: {
       ssid_kosong: "The Wi-Fi name is empty.",
       ssid_panjang: "The Wi-Fi name is 32 characters at most.",
@@ -137,7 +145,15 @@ export const UP = dict({
       gagal_flash: "Writing to the board was cut off. Keep the USB cable steady and try again.",
       gagal_tulis:
         "Writing main.py to the Pico was cut off. Close Thonny, unplug and replug the Pico, then try again.",
-      port_sibuk: "The port is in use by another app. Close Thonny or Serial Monitor.",
+      port_sibuk:
+        "The port could not be opened. Close Thonny or Serial Monitor if either is open, then unplug and replug the cable and try again.",
+      pico_tak_menjawab:
+        "The Pico did not answer. Make sure the port you picked is this Pico's, then unplug and replug its USB cable (the old program stops when the Pico restarts) and press Upload again.",
+      port_baris_lain:
+        "This board is being written from the other row. Wait until it finishes, then try again.",
+      pico_galat: "The Pico refused what was written. Its own message is below.",
+      pico_tidak_utuh:
+        "The file on the Pico is not as long as what was sent. Unplug and replug the cable, then try again.",
       dibatalkan: "Cancelled.",
       terlalu_besar: "The code is too large to build.",
       berbahaya: "The safety check refused the code.",
@@ -173,7 +189,7 @@ export const UP = dict({
     },
     errorHead: "上传失败",
     again: "重试",
-    log: "编译日志",
+    log: "技术详情",
     errors: {
       ssid_kosong: "Wi-Fi 名称未填写。",
       ssid_panjang: "Wi-Fi 名称最多 32 个字符。",
@@ -204,7 +220,12 @@ export const UP = dict({
         "开发板无法进入写入模式。请拔插 USB 线，确认是数据线，关闭占用端口的其他程序，再试一次。",
       gagal_flash: "写入开发板时中断。请保持 USB 线稳固，再试一次。",
       gagal_tulis: "向 Pico 写入 main.py 时中断。请关闭 Thonny，拔插 Pico，再试一次。",
-      port_sibuk: "端口正被其他程序占用，请关闭 Thonny 或串口监视器。",
+      port_sibuk: "无法打开端口。若 Thonny 或串口监视器开着，请关闭，再拔插数据线后重试。",
+      pico_tak_menjawab:
+        "Pico 没有响应。请确认所选端口是这块 Pico 的，再拔插 USB 线（Pico 重启时旧程序会停止），然后再点一次上传。",
+      port_baris_lain: "这块开发板正在从另一行写入。请等它完成后再试。",
+      pico_galat: "Pico 拒绝了写入的内容，它自己的提示见下方。",
+      pico_tidak_utuh: "Pico 上的文件长度与发送的不一致。请拔插数据线后重试。",
       dibatalkan: "已取消。",
       terlalu_besar: "代码太大，无法编译。",
       berbahaya: "安全检查拒绝了该代码。",

@@ -34,8 +34,8 @@ import { kanonik, kodeModul, type KodeAktif } from "./kode-aktif.js";
 import { jawabanBenar } from "./jawaban-scope.js";
 
 const FQBN = "esp32:esp32:esp32";
-/** Build requests one person may make in the window below */
-export const BANGUN_MAKS = 12;
+/** Builds one person may start in the window below (a repeat of one already made, and a Pico file, cost nothing and are not counted) */
+export const BANGUN_MAKS = 20;
 export const BANGUN_JENDELA_MS = 10 * 60_000;
 const SIMPAN_MS = 15 * 60_000;
 const LOG_MAKS = 4000;
@@ -198,6 +198,11 @@ export class Pembatas {
     private sekarang: () => number = Date.now,
   ) {}
 
+  /** Takes back the person's latest count (a request that cost the PC nothing) */
+  kembalikan(nim: string): void {
+    this.catat.get(nim)?.pop();
+  }
+
   /** True and counted while the person is under the limit */
   boleh(nim: string): boolean {
     const t = this.sekarang();
@@ -269,11 +274,6 @@ export async function handleBangunPost(req: ApiRequest, res: ApiResponse, sessio
       return;
     }
   }
-  if (!pembatas.boleh(session.nim)) {
-    res.status(200).json({ ok: false, kode: "terlalu_sering" });
-    return;
-  }
-
   let sketch: string;
   try {
     sketch = rakitSketch(
@@ -289,15 +289,23 @@ export async function handleBangunPost(req: ApiRequest, res: ApiResponse, sessio
     return;
   }
 
+  // A MicroPython file costs the PC nothing (no build), so it is not counted.
   if (cek.file.kind === "pico") {
     res.status(200).json({ ok: true, kind: "pico", path: cek.file.path, teks: sketch });
     return;
   }
+  if (!pembatas.boleh(session.nim)) {
+    res.status(200).json({ ok: false, kode: "terlalu_sering" });
+    return;
+  }
   const mulai = await layanan.mulai(sketch);
   if (!mulai.ok) {
+    pembatas.kembalikan(session.nim);
     res.status(200).json({ ok: false, kode: mulai.kode });
     return;
   }
+  // Pressing Upload again with the same values joins the build already made: it cost nothing either.
+  if (mulai.tampil.state === "done") pembatas.kembalikan(session.nim);
   lupakanKadaluarsa();
   pemilik.set(mulai.id, { nim: session.nim, sampai: Date.now() + SIMPAN_MS });
   res.status(200).json({ ok: true, kind: "esp32", id: mulai.id, ...mulai.tampil });

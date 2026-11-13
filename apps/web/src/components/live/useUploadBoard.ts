@@ -15,6 +15,8 @@ import type { BoardStatus, SerialPortLike } from "./useSerialBoard";
 export interface BoardHandle {
   status: BoardStatus;
   pickPort(): Promise<SerialPortLike | null>;
+  /** Has whichever other row holds `p` let go of it */
+  claim(p: SerialPortLike): Promise<void>;
   release(): Promise<SerialPortLike | null>;
   reopen(p: SerialPortLike): Promise<void>;
 }
@@ -42,6 +44,9 @@ const api: UploadApi = {
 };
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Ports being written right now, page wide: two rows must not write to one board at once */
+const writing = new Set<SerialPortLike>();
 const IDLE: UploadProgress = { stage: "idle" };
 
 export function useUploadBoard(
@@ -67,33 +72,45 @@ export function useUploadBoard(
     // Inside the click: the chooser opens only now.
     const port = await board.pickPort();
     if (!port) return;
+    if (writing.has(port)) {
+      setState({ stage: "error", kode: "port_baris_lain" });
+      return;
+    }
+    writing.add(port);
     const ac = new AbortController();
     control.current = ac;
     let released = false;
+    // Only now, with an image or a file in hand, does the board leave whichever row holds it: a
+    // build that fails first leaves every connection as it was.
     const free = async () => {
       released = true;
+      await board.claim(port);
       await board.release();
     };
-    const result = await runUpload<SerialPortLike>(
-      {
-        api,
-        flashEsp32: async (p, image, pct) => {
-          await free();
-          await flashEsp32(p as PortLike, image, pct);
+    try {
+      const result = await runUpload<SerialPortLike>(
+        {
+          api,
+          flashEsp32: async (p, image, pct) => {
+            await free();
+            await flashEsp32(p as PortLike, image, pct);
+          },
+          writeMain: async (p, text, pct) => {
+            await free();
+            await writeMain(p as PortLike, text, pct);
+          },
+          sleep,
         },
-        writeMain: async (p, text, pct) => {
-          await free();
-          await writeMain(p as PortLike, text, pct);
-        },
-        sleep,
-      },
-      { modul, role, bahasa: lang === "id" ? "id" : "en", values, port },
-      setState,
-      ac.signal,
-    );
-    // The board is on the cable again: connect to it, as Hubungkan would. A failed upload
-    // gives back the connection the board had before.
-    if (released && (result.ok || wasOpen)) void board.reopen(port);
+        { modul, role, bahasa: lang === "id" ? "id" : "en", values, port },
+        setState,
+        ac.signal,
+      );
+      // The board is on the cable again: connect to it, as Hubungkan would. A failed upload
+      // gives back the connection the board had before.
+      if (released && (result.ok || wasOpen)) void board.reopen(port);
+    } finally {
+      writing.delete(port);
+    }
   }, [busy, modul, role, lang, board, values]);
 
   const cancel = useCallback(() => control.current?.abort(), []);
