@@ -571,6 +571,7 @@ export default function ModuleSteps(p: Props) {
               layers={p.layers}
               wakil={wakil ?? undefined}
               embed
+              praktik
             />
           )}
         </Fade>

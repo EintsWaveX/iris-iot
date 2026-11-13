@@ -1,21 +1,15 @@
 ---
 /**
- * /modules/[n]/live and /en/modules/[n]/live (Phase 8): the one live
- * room (live/LiveRoom.tsx, Phase 9): value cards, boards over Web Serial,
- * Serial Monitor, flow and readings, with the student's own group preselected.
- * /groups/[n] redirects here.
- *
- * Every module shows real data once it arrives and simulates it until then:
- * Modules 2 to 4 through the PC, Module 1 from a group PC reading its
- * Central board over USB. The subtitle says which (t.live.disclosureFor).
+ * /modules/[n]/live and /en/modules/[n]/live: there is one live page, the module's own Live step
+ * (/modules/[n]?step=live, which carries the room, Hubungkan and Upload, with or without a running
+ * session). This address only forwards there and keeps ?kelompok=, so old links, the Modules menu
+ * and group links all land on the same page instead of a second copy of it.
  */
-import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
-import PageHeader from "../components/ui/PageHeader.astro";
-import LiveRoom from "../components/live/LiveRoom";
-import { stringsFor } from "../i18n/zh";
+import { tri } from "../lib/labels";
 import type { Lang } from "../lib/kelas";
 import { href } from "../lib/app";
+import "../components/ui/Display.css";
 
 interface Props {
   lang: Lang;
@@ -23,71 +17,37 @@ interface Props {
 }
 
 const { lang, modul } = Astro.props;
-const t = stringsFor(lang);
-const entry = await getEntry("modules", `${lang}/${modul}`);
-if (!entry) {
-  throw new Error(`no module content for ${lang}/${modul}`);
-}
-const m = entry.data;
-const basePath = href(lang, "/modules");
+const target = `${href(lang, "/modules")}/${modul}?step=live`;
 ---
 
 <Base
   noindex
-  title={`${t.live.heading} · ${t.moduleWord} ${m.modul} · IRIS IoT`}
-  description={t.live.disclosureFor(m.modul)}
-  cosmosScene="kerja"
+  title={`${tri(lang, "Live", "Live", "实时")} · IRIS IoT`}
   lang={lang}
+  cosmosScene="kerja"
 >
-  <main id="main" class="page-wide page-main" style={`--mod-hue: var(--mod-${m.modul})`}>
-    <PageHeader
-      back={{ href: `${basePath}/${m.modul}`, label: t.live.backToModule }}
-      eyebrow={`${t.moduleWord} ${m.modul}`}
-      title={`${m.judul} · ${t.live.heading}`}
-      subtitle={t.live.disclosureFor(m.modul)}
-    />
-    <LiveRoom client:load lang={lang} modul={m.modul} layers={m.lapisan} praktik />
+  <main id="main" class="page-regular page-main">
+    <div class="state-view state-view--accent" data-live-forward data-target={target}>
+      <h1 class="state-view__title">
+        {tri(lang, "Membuka ruang live…", "Opening the live view…", "正在打开实时视图…")}
+      </h1>
+      <p class="state-view__body">
+        <a href={target}>{tri(lang, "Buka sekarang", "Open it now", "现在打开")}</a>
+      </p>
+    </div>
   </main>
 </Base>
 
 <script>
   import { sekaliPerHalaman } from "../scripts/per-halaman";
-  import { applyLockScreen, getAksesState, jurnalTertutup } from "../scripts/modul-akses";
-  import { dengar } from "../lib/siaran";
-  import { stringsFor } from "../i18n/zh";
-  import { isLang } from "../lib/kelas";
-  function playEntrance() {
-    window.Motion?.enter(".page-header > *");
-  }
-  sekaliPerHalaman("ModulLiveAnimasi", playEntrance);
 
-  // P6.5: see ModuleDetailView.astro's own version of this check for why
-  // the module number and language both come from the page itself rather
-  // than a prop.
-  function checkAkses() {
-    const match = /\/modules\/(\d)\/live(?:\/|$)/.exec(location.pathname);
-    if (!match) return;
-    const l = document.documentElement.lang;
-    const lang = l.startsWith("zh") ? "zh" : isLang(l) ? l : "id";
-    const t = stringsFor(lang);
-    const heading = document.querySelector(".page-header__title");
-    const modul = Number(match[1]);
-    const kunci = () =>
-      applyLockScreen(
-        modul,
-        t.jurnal.body,
-        { id: "terkunci untuk praktikan", en: "locked for students", zh: "对学生锁定" }[lang],
-        heading,
-      );
-    void kunci();
-    // Live (2026-10-07): a module closed while this page is open locks it;
-    // one opened while the lock screen shows brings the room back.
-    const lepas = dengar(["akses", "sesi"], async () => {
-      const st = await getAksesState(true, true);
-      if (!document.querySelector(".lockscreen")) void kunci();
-      else if (!jurnalTertutup(st, modul)) location.reload();
-    });
-    document.addEventListener("astro:before-swap", lepas, { once: true });
+  function forward() {
+    const el = document.querySelector<HTMLElement>("[data-live-forward]");
+    if (!el?.dataset.target) return;
+    const kelompok = new URLSearchParams(location.search).get("kelompok");
+    location.replace(
+      el.dataset.target + (kelompok ? `&kelompok=${encodeURIComponent(kelompok)}` : ""),
+    );
   }
-  sekaliPerHalaman("ModulLiveAkses", checkAkses);
+  sekaliPerHalaman("LiveAlihkan", forward);
 </script>
