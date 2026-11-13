@@ -48,7 +48,35 @@ function nowMs() {
   return ((d.getHours() * 60 + d.getMinutes()) * 60 + d.getSeconds()) * 1000 + d.getMilliseconds();
 }
 
+/**
+ * Which board row has which port open, for the whole page. A browser hands back the SAME port
+ * object for the same device, so one Pico picked for the Subscriber after it served as the
+ * Publisher is still open in the Publisher's row (its connected state), and opening it again
+ * fails as "busy" with nothing else running. A row that wants a port first has the row that holds
+ * it let go: one board is one role at a time.
+ */
+const holders = new Map<SerialPortLike, { owner: symbol; close: () => Promise<void> }>();
+
+async function takeFromOthers(p: SerialPortLike, me: symbol) {
+  const h = holders.get(p);
+  if (h && h.owner !== me) await h.close();
+}
+
+/** True when the browser still lists `p` (an unplugged or re-plugged board is a different object) */
+async function stillThere(p: SerialPortLike): Promise<boolean> {
+  const serial = (
+    navigator as unknown as { serial?: { getPorts?: () => Promise<SerialPortLike[]> } }
+  ).serial;
+  if (!serial?.getPorts) return true; // cannot tell: trust it, the open will say
+  try {
+    return (await serial.getPorts()).includes(p);
+  } catch {
+    return true;
+  }
+}
+
 export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: SerialEvent) => void) {
+  const me = useRef(Symbol("board"));
   const [status, setStatus] = useState<BoardStatus>("idle");
   const [log, setLog] = useState<LogLine[]>([]);
   const [role, setRole] = useState<BoardRole | null>(null);
@@ -99,10 +127,13 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
     if (!p) return;
     setSynced(false);
     if (modul === 3) {
-      // Two Ctrl C, as Thonny sends them: the first can land inside the
-      // sketch's own try block and only break out of one call.
-      await writeRaw("\x03\x03");
-      await new Promise((r) => setTimeout(r, 150));
+      // Two Ctrl C, as Thonny sends them, a moment apart: the first can land inside the
+      // sketch's own try block and only break out of one call, and two sent at the same
+      // instant count as one.
+      await writeRaw("\x03");
+      await new Promise((r) => setTimeout(r, 120));
+      await writeRaw("\x03");
+      await new Promise((r) => setTimeout(r, 250));
       await writeRaw("\x04");
       return;
     }
@@ -118,6 +149,7 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
   const close = useCallback(async (next: BoardStatus = "idle") => {
     const p = port.current;
     port.current = null;
+    if (p && holders.get(p)?.owner === me.current) holders.delete(p);
     try {
       await reader.current?.cancel();
     } catch {
@@ -142,14 +174,24 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
    *  first (Hubungkan does; right after an upload the board has just restarted by itself). */
   const openPort = useCallback(
     async (p: SerialPortLike, restart: boolean) => {
-      try {
-        await p.open({ baudRate: BAUD });
-      } catch {
+      await takeFromOthers(p, me.current);
+      // Right after an upload the system may not have let go of the port yet: ask a few times.
+      let opened = false;
+      for (let i = 0; i < (restart ? 1 : 4) && !opened; i++) {
+        try {
+          await p.open({ baudRate: BAUD });
+          opened = true;
+        } catch {
+          if (!restart) await new Promise((r) => setTimeout(r, 300));
+        }
+      }
+      if (!opened) {
         setStatus("busy"); // most often the Arduino Serial Monitor or Thonny holding it
         return;
       }
       port.current = p;
       lastPort.current = p;
+      holders.set(p, { owner: me.current, close: () => close("idle") });
       setStatus("open");
       setRole(null);
       setSynced(false);
@@ -196,12 +238,19 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
   /** Live Upload: the port this board is on, or a chosen one. Call it from the click that starts
    *  the upload: a browser opens its port chooser only from a click, and a build can take a minute. */
   const pickPort = useCallback(async (): Promise<SerialPortLike | null> => {
+    // Our own open port, or the one we used last while it is still on the cable; else ask.
     if (port.current) return port.current;
-    if (lastPort.current) return lastPort.current;
-    const p = await requestPort();
-    if (p) lastPort.current = p;
+    let p: SerialPortLike | null = lastPort.current;
+    if (p && !(await stillThere(p))) p = null;
+    if (!p) p = await requestPort();
+    if (!p) return null;
+    lastPort.current = p;
     return p;
   }, [requestPort]);
+
+  /** The same board may still be open in another row (it served as the other role a moment ago):
+   *  that row lets go of it, and is back to "not connected". */
+  const claim = useCallback((p: SerialPortLike) => takeFromOthers(p, me.current), []);
 
   /** Closes the port for an upload (esptool needs it closed) and says which one it was */
   const release = useCallback(async (): Promise<SerialPortLike | null> => {
@@ -220,5 +269,18 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
     [close],
   );
 
-  return { status, log, role, synced, connect, close, reset, sendTime, pickPort, release, reopen };
+  return {
+    status,
+    log,
+    role,
+    synced,
+    connect,
+    close,
+    reset,
+    sendTime,
+    pickPort,
+    claim,
+    release,
+    reopen,
+  };
 }

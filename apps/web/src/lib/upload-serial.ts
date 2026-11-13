@@ -8,9 +8,11 @@
  *   writeMain    a MicroPython file as main.py on a Pico W through the raw REPL.
  *
  * Both take a SerialPort that is closed and return with it closed, so the
- * caller opens it again for Hubungkan. Errors are Errors whose message is one
- * of upload-flow's codes (gagal_masuk_bootloader, gagal_flash, gagal_tulis ...).
- * Nothing here can be unit tested without a board; the pure helpers are.
+ * caller opens it again for Hubungkan. Failures are UploadError: `kode` is one
+ * of upload-flow's codes and `log` the device's own words, shown under the
+ * message so a failure on a real board says what the board said.
+ * The Pico side is tested against a simulated Pico (upload-serial.test.ts);
+ * flashing an ESP32 needs a board.
  */
 import SparkMD5 from "spark-md5";
 
@@ -20,6 +22,16 @@ export interface PortLike {
   close(): Promise<void>;
   readable: ReadableStream<Uint8Array> | null;
   writable: WritableStream<Uint8Array> | null;
+}
+
+/** A failure with one of our codes, and what the device said */
+export class UploadError extends Error {
+  constructor(
+    public kode: string,
+    public log?: string,
+  ) {
+    super(kode);
+  }
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -33,37 +45,63 @@ export const ESP32_ATTEMPTS = [
   { baud: 115200, stub: false },
 ] as const;
 
-const SILENT = { clean: () => undefined, writeLine: () => undefined, write: () => undefined };
+/** Opens and closes the port once: a port something else holds fails here, with its own code,
+ *  instead of looking like a board that will not enter its bootloader. */
+async function probe(port: PortLike): Promise<void> {
+  try {
+    await port.open({ baudRate: 115200 });
+  } catch {
+    throw new UploadError("port_sibuk");
+  }
+  try {
+    await port.close();
+  } catch {
+    /* an unplugged port throws */
+  }
+  await sleep(150);
+}
 
 export async function flashEsp32(
   port: PortLike,
   image: Uint8Array,
   onPercent: (n: number) => void,
 ): Promise<void> {
+  await probe(port);
   const { ESPLoader, Transport } = await import("esptool-js");
+  const said: string[] = [];
+  const terminal = {
+    clean: () => undefined,
+    writeLine: (s: string) => void said.push(s),
+    write: (s: string) => void said.push(s),
+  };
   let last = "gagal_masuk_bootloader";
   for (const a of ESP32_ATTEMPTS) {
+    said.push(`-- attempt: ${a.baud} baud, ${a.stub ? "stub" : "ROM loader"}`);
     const transport = new Transport(port as never, false);
-    const loader = new ESPLoader({
-      transport,
-      baudrate: a.baud,
-      romBaudrate: 115200,
-      terminal: SILENT,
-    });
+    const loader = new ESPLoader({ transport, baudrate: a.baud, romBaudrate: 115200, terminal });
     const release = async () => {
       try {
         await transport.disconnect();
       } catch {
         /* already gone */
       }
+      // A port left open would make the next attempt fail as "already open"
+      if (port.readable || port.writable) {
+        try {
+          await port.close();
+        } catch {
+          /* locked or unplugged */
+        }
+      }
+      await sleep(400);
     };
     try {
       if (a.stub) await loader.main("default_reset");
       else await loader.detectChip("default_reset");
-    } catch {
+    } catch (err) {
+      said.push(`-- ${err instanceof Error ? err.message : String(err)}`);
       last = "gagal_masuk_bootloader";
       await release();
-      await sleep(400);
       continue;
     }
     try {
@@ -84,13 +122,13 @@ export async function flashEsp32(
       await loader.after("hard_reset");
       await release();
       return;
-    } catch {
+    } catch (err) {
+      said.push(`-- ${err instanceof Error ? err.message : String(err)}`);
       last = "gagal_flash";
       await release();
-      await sleep(400);
     }
   }
-  throw new Error(last);
+  throw new UploadError(last, said.slice(-30).join("\n"));
 }
 
 // ---------- Pico W ----------
@@ -111,16 +149,21 @@ export function writeStatements(chunk: Uint8Array, first: boolean): string {
 }
 
 export const PICO_CHUNK = 200;
+/** What the raw REPL says when it is ready for code */
+export const RAW_BANNER = "raw REPL; CTRL-B to exit\r\n>";
+/** Tries at stopping a running program and getting into the raw REPL, about 1.2 s each */
+export const ENTER_TRIES = 12;
 
 export async function writeMain(
   port: PortLike,
   text: string,
   onPercent: (n: number) => void,
+  tries: number = ENTER_TRIES,
 ): Promise<void> {
   try {
     await port.open({ baudRate: 115200 });
   } catch {
-    throw new Error("port_sibuk");
+    throw new UploadError("port_sibuk");
   }
   const writer = port.writable!.getWriter();
   const reader = port.readable!.getReader();
@@ -128,9 +171,15 @@ export async function writeMain(
   const dec = new TextDecoder();
   let seen = "";
 
-  const send = (s: string) => writer.write(enc.encode(s));
-  /** Reads until `end` shows in what arrived (kept in `seen`), or throws on a timeout */
-  const until = async (end: string, ms: number): Promise<string> => {
+  /** Small pieces with a pause between, so the board's USB buffer never overflows */
+  const send = async (s: string) => {
+    for (let i = 0; i < s.length; i += 64) {
+      await writer.write(enc.encode(s.slice(i, i + 64)));
+      if (s.length > 64) await sleep(4);
+    }
+  };
+  /** Reads until `end` shows in what arrived (kept in `seen`); false on a timeout */
+  const until = async (end: string, ms: number): Promise<string | null> => {
     const stop = Date.now() + ms;
     for (;;) {
       const at = seen.indexOf(end);
@@ -140,43 +189,72 @@ export async function writeMain(
         return got;
       }
       const left = stop - Date.now();
-      if (left <= 0) throw new Error("gagal_tulis");
+      if (left <= 0) return null;
       const r = await Promise.race([
         reader.read(),
         sleep(left).then(() => ({ done: true as const, value: undefined })),
       ]);
-      if (r.done) throw new Error("gagal_tulis");
+      if (r.done) return null;
       seen += dec.decode(r.value, { stream: true });
     }
   };
+  const tail = () => seen.slice(-400);
+
+  /** Runs statements in the raw REPL: what they printed and what they failed with */
+  const run = async (code: string): Promise<{ out: string; err: string }> => {
+    await send(code);
+    await send("\x04");
+    if ((await until("OK", 3000)) === null) throw new UploadError("pico_tak_menjawab", tail());
+    const out = await until("\x04", 6000);
+    const err = out === null ? null : await until("\x04", 6000);
+    if (out === null || err === null || (await until(">", 3000)) === null)
+      throw new UploadError("pico_tak_menjawab", tail());
+    return { out: out.slice(0, -1), err: err.slice(0, -1) };
+  };
 
   try {
-    // Stop whatever main.py is doing (twice, as Thonny does), then the raw REPL
-    await send("\x03\x03");
-    await sleep(200);
+    // A running main.py may be busy in the middle of a socket call, or still tidying up after the
+    // first Ctrl C (its finally block closes the broker connection): one Ctrl C is not enough,
+    // and two sent at the same instant count as one. So, like Thonny: stop, wait, stop again,
+    // ask for the raw REPL, and if it does not come, start over.
+    let entered = false;
+    for (let i = 0; i < tries && !entered; i++) {
+      await send("\x03");
+      await sleep(120);
+      await send("\x03");
+      await sleep(250);
+      await send("\x01");
+      entered = (await until(RAW_BANNER, 800)) !== null;
+    }
+    if (!entered) throw new UploadError("pico_tak_menjawab", tail());
+    await sleep(80);
     seen = "";
-    await send("\x01");
-    await until("raw REPL; CTRL-B to exit\r\n>", 3000);
 
     const bytes = enc.encode(text);
+    onPercent(0);
     for (let i = 0; i < bytes.length; i += PICO_CHUNK) {
-      await send(writeStatements(bytes.slice(i, i + PICO_CHUNK), i === 0));
-      await send("\x04");
-      await until("OK", 3000);
-      // What the statements printed, then what they failed with, each ended by \x04
-      const out = await until("\x04", 5000);
-      const err = await until("\x04", 5000);
-      await until(">", 3000);
-      if (out.length > 1 || err.length > 1) throw new Error("gagal_tulis");
-      onPercent(Math.min(100, Math.round(((i + PICO_CHUNK) / bytes.length) * 100)));
+      const { err } = await run(writeStatements(bytes.slice(i, i + PICO_CHUNK), i === 0));
+      if (err.trim()) throw new UploadError("pico_galat", err.trim());
+      onPercent(Math.min(99, Math.round(((i + PICO_CHUNK) / bytes.length) * 100)));
     }
+    // The whole file is on the Pico, byte for byte
+    const check = await run("import os\nprint(os.stat('main.py')[6])\n");
+    const size = parseInt(check.out.trim(), 10);
+    if (check.err.trim()) throw new UploadError("pico_galat", check.err.trim());
+    if (size !== bytes.length)
+      throw new UploadError(
+        "pico_tidak_utuh",
+        `sent ${bytes.length} bytes, the Pico holds ${size}`,
+      );
+    onPercent(100);
+
     // Out of the raw REPL, then a soft reset runs the new main.py
     await send("\x02");
     await sleep(100);
     await send("\x04");
     await sleep(100);
   } catch (err) {
-    throw err instanceof Error && err.message === "gagal_tulis" ? err : new Error("gagal_tulis");
+    throw err instanceof UploadError ? err : new UploadError("gagal_tulis", String(err));
   } finally {
     try {
       // A cancel ends a read that is still waiting, so the lock can go and the port can close

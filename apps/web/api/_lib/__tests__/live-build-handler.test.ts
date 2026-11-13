@@ -150,12 +150,40 @@ describe("POST bangun", () => {
     });
   });
 
-  it("limits one person to 12 builds in 10 minutes", async () => {
+  it("limits one person to 20 builds in 10 minutes", async () => {
     const who = orang("asisten");
-    for (let i = 0; i < 12; i++)
-      expect((await bangun(pesan(), who)).body).toMatchObject({ ok: true });
-    expect((await bangun(pesan(), who)).body).toEqual({ ok: false, kode: "terlalu_sering" });
+    for (let i = 0; i < 20; i++)
+      expect((await bangun(pesan({ ssid: `Net${i}` }), who)).body).toMatchObject({ ok: true });
+    expect((await bangun(pesan({ ssid: "Over" }), who)).body).toEqual({
+      ok: false,
+      kode: "terlalu_sering",
+    });
     expect((await bangun(pesan(), orang("asisten"))).body).toMatchObject({ ok: true });
+  });
+
+  it("pressing Upload again for a build already made does not count against the limit", async () => {
+    const who = orang("asisten");
+    layananJawab = {
+      status: 202,
+      body: { id: "d".repeat(16), state: "done", pos: 0, size: 5000, kode: null, log: "" },
+    };
+    for (let i = 0; i < 25; i++)
+      expect((await bangun(pesan(), who)).body).toMatchObject({ ok: true });
+  });
+
+  it("a MicroPython file never counts against the limit, and a refused build is given back", async () => {
+    const who = orang("asisten");
+    for (let i = 0; i < 25; i++)
+      expect((await bangun(pesan({ modul: 3, role: "publisher" }), who)).body).toMatchObject({
+        ok: true,
+        kind: "pico",
+      });
+    layananJawab = { status: 503, body: { kode: "sibuk" } };
+    for (let i = 0; i < 25; i++)
+      expect((await bangun(pesan({ ssid: `Busy${i}` }), who)).body).toEqual({
+        ok: false,
+        kode: "sibuk",
+      });
   });
 
   it("says so when the PC is busy or the build service is not there", async () => {

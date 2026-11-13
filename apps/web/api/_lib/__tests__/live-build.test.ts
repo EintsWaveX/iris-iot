@@ -136,10 +136,10 @@ describe("isiWifi", () => {
 });
 
 describe("Pembatas", () => {
-  it("lets a person ask 12 times in 10 minutes and then waits, per person", () => {
+  it("lets a person start 20 builds in 10 minutes and then waits, per person", () => {
     let t = 0;
-    const p = new Pembatas(12, 600_000, () => t);
-    for (let i = 0; i < 12; i++) expect(p.boleh("a")).toBe(true);
+    const p = new Pembatas(20, 600_000, () => t);
+    for (let i = 0; i < 20; i++) expect(p.boleh("a")).toBe(true);
     expect(p.boleh("a")).toBe(false);
     expect(p.boleh("b")).toBe(true);
     t = 600_001;

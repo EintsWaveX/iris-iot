@@ -118,7 +118,7 @@ export async function runUpload<Port>(
         report({ stage: "flashing", percent: n }),
       );
     } catch (err) {
-      return fail(codeOf(err, "gagal_tulis"));
+      return fail(codeOf(err, "gagal_tulis"), logOf(err));
     }
     report({ stage: "done" });
     return { ok: true };
@@ -159,14 +159,22 @@ export async function runUpload<Port>(
   try {
     await deps.flashEsp32(input.port, image, (n) => report({ stage: "flashing", percent: n }));
   } catch (err) {
-    return fail(codeOf(err, "gagal_flash"));
+    return fail(codeOf(err, "gagal_flash"), logOf(err));
   }
   report({ stage: "done" });
   return { ok: true };
 }
 
-/** An Error's message when it is one of our codes, else the fallback */
+/** An error's code when it carries one of ours (UploadError.kode, or a message that is one), else the fallback */
 function codeOf(err: unknown, fallback: string): string {
+  const kode = (err as { kode?: unknown } | null)?.kode;
+  if (typeof kode === "string" && /^[a-z_]{3,30}$/.test(kode)) return kode;
   const m = err instanceof Error ? err.message : "";
   return /^[a-z_]{3,30}$/.test(m) ? m : fallback;
+}
+
+/** What the device said, when the error carries it (UploadError.log) */
+function logOf(err: unknown): string | undefined {
+  const log = (err as { log?: unknown } | null)?.log;
+  return typeof log === "string" && log.trim() ? log.slice(0, 4000) : undefined;
 }
