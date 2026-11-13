@@ -215,7 +215,7 @@ function PortRow({
         ) : (
           <button
             type="button"
-            className={`btn btn--sm ${optional ? "btn--secondary" : "btn--primary"}`}
+            className="btn btn--sm btn--primary"
             onClick={() => void b.connect()}
           >
             {t.connect}
