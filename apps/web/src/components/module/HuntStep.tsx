@@ -8,6 +8,7 @@
  * while it runs, then the result.
  */
 import { useMemo, useState } from "react";
+import { useWifiDiketik } from "../live/useUploadSettings";
 import qrcode from "qrcode-generator";
 import { CopyIcon, FlagCheckeredIcon, WarningIcon } from "@phosphor-icons/react";
 import { getJson, KELOMPOK_NAMA } from "../../lib/app";
@@ -244,7 +245,14 @@ export default function HuntStep({
 function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; asisten: boolean }) {
   const t = H[lang];
   const url = data.url ?? "";
-  const hotspot = data.hotspot ?? null;
+  // The hotspot the boards join: what was typed in Live when there is something, else the group's default
+  const diketik = useWifiDiketik();
+  const hotspot = data.hotspot
+    ? {
+        ssid: diketik.ssid || data.hotspot.ssid,
+        sandi: diketik.ssid || diketik.password ? diketik.password : data.hotspot.sandi,
+      }
+    : null;
   // IRIS_IOT: the PC makes the Wi-Fi, so step 1 is a QR that joins the phone to it
   const wifi = data.wifi ?? null;
   const [step, setStep] = useState<"1" | "2">(hotspot || wifi ? "1" : "2");
