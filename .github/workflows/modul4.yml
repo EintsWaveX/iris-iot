@@ -40,6 +40,9 @@ jobs:
       - name: Schedule import (who holds which NIM across slots)
         run: python tools/uji_jadwal_impor.py
 
+      - name: RSSI filter (follows a real step in about three packets, no noisier than before)
+        run: python tools/uji_penapis.py
+
       - name: Start the server with a fixed token
         run: |
           python server.py --token UJICI --arena 300 &

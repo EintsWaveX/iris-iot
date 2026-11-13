@@ -357,6 +357,55 @@ LAJU_MIN_DB_S = 0.3                # di bawah ini bukan mendekat, hanya derau
 # cukup panjang untuk menampung jendela laju mendekat di atas dengan sisa.
 HISTORY_CAP = 160
 
+# Penapis RSSI di PC (2026-11-13). Hunter lama menghaluskan dengan median lima paket
+# lalu EWMA 0,25: sesudah langkah 20 dB, angkanya baru sampai ke nilai baru kira-kira
+# delapan paket kemudian, 4 detik pada 2 paket/detik, dan pemain menunggu selama itu
+# untuk melihat jarak berubah. Penapis di bawah menerima RSSI mentah dari hunter dan
+# sampai dalam sekitar tiga paket, dengan derau dataran yang sama. Angka-angkanya
+# dipilih dengan tools/sim_penapis.py (derau 3 dB, 200 percobaan).
+PENAPIS_LANTAI = 0.15              # gain saat sinyal diam
+PENAPIS_LANGIT = 0.85              # gain tertinggi saat sinyal melompat
+PENAPIS_SKALA = 0.05               # tambahan gain per dB selisih di atas 2 dB
+PENAPIS_LONCAT_DB = 8.0            # selisih yang dianggap langkah sungguhan, bukan pudar
+
+
+class PenapisRssi:
+    """Menghaluskan RSSI mentah satu hunter: median tiga paket, lalu gain yang naik
+    bersama selisihnya.
+
+    Median tiga membuang satu paket yang pudar sendirian. Gain kecil (0,15) meredam
+    derau saat orangnya diam; gain naik 0,05 per dB selisih di atas 2 dB sampai 0,85,
+    jadi langkah besar cepat terikuti. Dua selisih berturut-turut di atas ambang pada
+    arah yang sama dianggap langkah sungguhan (orangnya berjalan), dan taksiran langsung
+    pindah ke nilai baru.
+    """
+
+    def __init__(self) -> None:
+        self.x: float | None = None
+        self.jendela: list[float] = []
+        self.arah = 0
+        self.berturut = 0
+
+    def tambah(self, mentah: float) -> float:
+        self.jendela = (self.jendela + [mentah])[-3:]
+        tengah = sorted(self.jendela)[len(self.jendela) // 2]
+        if self.x is None:
+            self.x = float(tengah)
+            return self.x
+        selisih = tengah - self.x
+        if abs(selisih) >= PENAPIS_LONCAT_DB:
+            arah = 1 if selisih > 0 else -1
+            self.berturut = self.berturut + 1 if arah == self.arah else 1
+            self.arah = arah
+            if self.berturut >= 2:
+                self.x, self.berturut = float(tengah), 0
+                return self.x
+        else:
+            self.arah = self.berturut = 0
+        gain = clamp(PENAPIS_LANTAI + PENAPIS_SKALA * (abs(selisih) - 2.0), PENAPIS_LANTAI, PENAPIS_LANGIT)
+        self.x += gain * selisih
+        return self.x
+
 
 def timestamp() -> str:
     """Jam dinding PC dalam format HH:MM:SS:MS."""
@@ -557,7 +606,16 @@ class Hunt:
         if slot["first_seq"] is None:
             slot["first_seq"] = slot["seq"]
         slot["rssi"] = int(msg.get("rssi", 0))
-        slot["halus"] = float(msg.get("halus", msg.get("rssi", 0)))
+        # RSSI halus dihitung di sini dari RSSI mentah, bukan dipakai dari hunter: penapis
+        # hunter lama butuh sekitar 4 detik untuk mengikuti langkah. Sesudah hening panjang
+        # taksirannya dimulai lagi dari paket pertama. Tanpa "rssi" (pesan yang tidak biasa)
+        # nilai halus kiriman hunter dipakai apa adanya.
+        if "rssi" in msg:
+            if was_silent or slot.get("penapis") is None:
+                slot["penapis"] = PenapisRssi()
+            slot["halus"] = round(slot["penapis"].tambah(float(slot["rssi"])), 1)
+        else:
+            slot["halus"] = float(msg.get("halus", 0))
         slot["snr"] = float(msg.get("snr", 0))
         slot["tx"] = msg.get("tx")
         slot["rx"] = msg.get("rx")
