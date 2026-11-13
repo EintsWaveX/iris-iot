@@ -295,7 +295,7 @@ export default function DataModal({
             <h3 className="dmodal__cap">{t.slowest}</h3>
             <ul>
               {lambat.map((r) => (
-                <li key={r.seq}>
+                <li key={`${r.run}:${r.seq}`}>
                   <span className="dmodal__ms num">{fmt(num(ukur[0].get(r)), 0)} ms</span>
                   <span className="hint mono">
                     {r.rx ?? r.tx} · #{r.seq}
@@ -322,7 +322,7 @@ export default function DataModal({
               </thead>
               <tbody>
                 {terbaru.map((r) => (
-                  <tr key={r.seq}>
+                  <tr key={`${r.run}:${r.seq}`}>
                     <td className="mono">{r.rx ?? r.tx ?? <Nil dot />}</td>
                     <td className="num">{r.seq}</td>
                     {ukur.map((m) => (

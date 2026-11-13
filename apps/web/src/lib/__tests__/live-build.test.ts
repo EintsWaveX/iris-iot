@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { BOARDS } from "../serial-lines";
-import { literalC, uploadFile, validateUploadValues, type UploadValues } from "../live-build";
+import {
+  literalC,
+  GRUP_MAKS,
+  uploadFile,
+  validateUploadValues,
+  type UploadValues,
+} from "../live-build";
 
 const ok: UploadValues = { ssid: "EintsWaveX", password: "Secret123", group: 4, key: "C39AVC44" };
 
@@ -39,7 +45,7 @@ describe("validateUploadValues", () => {
     [{ password: "p".repeat(64) }, "password", "sandi_panjang"],
     [{ password: "tab\there123" }, "password", "sandi_karakter"],
     [{ group: 0 }, "group", "grup_salah"],
-    [{ group: 11 }, "group", "grup_salah"],
+    [{ group: 100 }, "group", "grup_salah"],
     [{ group: 1.5 }, "group", "grup_salah"],
     [{ key: "abc" }, "key", "kunci_salah"],
     [{ key: "ABCD123!" }, "key", "kunci_salah"],
@@ -65,6 +71,27 @@ describe("validateUploadValues", () => {
     expect(validateUploadValues(2, "esp32", { ...ok, key: "not checked here" })).toMatchObject({
       ok: true,
       v: { key: "" },
+    });
+  });
+
+  it("takes any group a session can have, for every module, up to the sanity bound", () => {
+    for (const [m, r] of [
+      [1, "central"],
+      [2, "esp32"],
+      [3, "subscriber"],
+      [4, "hunter"],
+      [4, "beacon"],
+    ] as [number, string][])
+      for (const g of [1, 3, 5, 6, 10, 16, 40, GRUP_MAKS])
+        expect(
+          validateUploadValues(m, r, { ...ok, group: g }),
+          `${m} ${r} group ${g}`,
+        ).toMatchObject({
+          ok: true,
+        });
+    expect(validateUploadValues(4, "hunter", { ...ok, group: GRUP_MAKS + 1 })).toMatchObject({
+      ok: false,
+      kode: "grup_salah",
     });
   });
 

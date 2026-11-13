@@ -171,18 +171,18 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
   }, []);
 
   /** Opens a port the user has already chosen and reads it until it closes. `restart`: pulse EN
-   *  first (Hubungkan does; right after an upload the board has just restarted by itself). */
+   *  first (Hubungkan does). `tries`: how often to ask for the port (right after an upload the
+   *  system may not have let go of it yet). */
   const openPort = useCallback(
-    async (p: SerialPortLike, restart: boolean) => {
+    async (p: SerialPortLike, restart: boolean, tries = 1) => {
       await takeFromOthers(p, me.current);
-      // Right after an upload the system may not have let go of the port yet: ask a few times.
       let opened = false;
-      for (let i = 0; i < (restart ? 1 : 4) && !opened; i++) {
+      for (let i = 0; i < tries && !opened; i++) {
         try {
           await p.open({ baudRate: BAUD });
           opened = true;
         } catch {
-          if (!restart) await new Promise((r) => setTimeout(r, 300));
+          if (i < tries - 1) await new Promise((r) => setTimeout(r, 300));
         }
       }
       if (!opened) {
@@ -259,8 +259,11 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
     return p;
   }, [close]);
 
-  /** Opens `p` again as Hubungkan does, without a restart (the board has just restarted itself) */
-  const reopen = useCallback((p: SerialPortLike) => openPort(p, false), [openPort]);
+  /** Opens `p` again as Hubungkan does, a few tries if need be. The board has just restarted by
+   *  itself, so no EN pulse, except Module 1: its boards wait only ten seconds at boot for the PC's
+   *  clock and the prompt for it was printed before this port was open again, so they restart once
+   *  more with the port open, hear the prompt and get the time (a journal needs real timestamps). */
+  const reopen = useCallback((p: SerialPortLike) => openPort(p, modul === 1, 4), [openPort, modul]);
 
   useEffect(
     () => () => {

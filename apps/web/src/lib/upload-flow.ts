@@ -20,8 +20,10 @@ export interface UploadProgress {
   stage: UploadStage;
   /** Place in the build queue (1 = next), while building */
   pos?: number;
-  /** 0 to 100, while flashing or writing */
+  /** 0 to 100, while writing */
   percent?: number;
+  /** Flashing an ESP32 first erases the whole chip, then writes */
+  phase?: "erase" | "write";
   /** What went wrong, when stage is "error" */
   kode?: string;
   /** The compiler's own words, for a failed build */
@@ -60,7 +62,12 @@ export interface UploadApi {
 export interface UploadDeps<Port> {
   api: UploadApi;
   /** Flash a merged image at address 0 and reset the board. Throws an Error whose message is a code. */
-  flashEsp32(port: Port, image: Uint8Array, onPercent: (n: number) => void): Promise<void>;
+  flashEsp32(
+    port: Port,
+    image: Uint8Array,
+    onPercent: (n: number) => void,
+    onPhase: (p: "erase" | "write") => void,
+  ): Promise<void>;
   /** Write the text as main.py on a Pico W and restart it. */
   writeMain(port: Port, text: string, onPercent: (n: number) => void): Promise<void>;
   sleep(ms: number): Promise<void>;
@@ -157,7 +164,12 @@ export async function runUpload<Port>(
 
   report({ stage: "flashing", percent: 0 });
   try {
-    await deps.flashEsp32(input.port, image, (n) => report({ stage: "flashing", percent: n }));
+    await deps.flashEsp32(
+      input.port,
+      image,
+      (n) => report({ stage: "flashing", percent: n, phase: "write" }),
+      (phase) => report({ stage: "flashing", percent: 0, phase }),
+    );
   } catch (err) {
     return fail(codeOf(err, "gagal_flash"), logOf(err));
   }

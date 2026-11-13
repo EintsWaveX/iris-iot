@@ -443,7 +443,7 @@ export function FlowPane({ lang, records }: { lang: Lang; records: LiveRecord[] 
       {rows.map((r) => {
         const d = r.oneway ?? r.rtt;
         return (
-          <div className="flow__row" key={r.seq} data-lost={r.lost ? "yes" : "no"}>
+          <div className="flow__row" key={`${r.run}:${r.seq}`} data-lost={r.lost ? "yes" : "no"}>
             <span className="mono hint">#{r.seq}</span>
             <span className="flow__bar">
               <i
@@ -489,7 +489,8 @@ export function ReadingsPane({
   const rows = records.slice(-30);
   const cols = VALS(t)[modul] ?? [];
   // A reading that lands while the table is open slides in at the top.
-  const baru = useBaru(rows.map((r) => r.seq));
+  // Keyed by run too: after a board restarts its numbers start again, and #5 of the new run is not #5 of the old
+  const baru = useBaru(rows.map((r) => `${r.run}:${r.seq}`));
   const head = ["#", ...cols.map(([h]) => h), t.sent, t.received, `${t.delay} (ms)`];
   const tsv = () =>
     [
@@ -539,7 +540,10 @@ export function ReadingsPane({
           </thead>
           <tbody>
             {[...rows].reverse().map((r) => (
-              <tr key={r.seq} data-baru={baru.has(String(r.seq)) ? "yes" : undefined}>
+              <tr
+                key={`${r.run}:${r.seq}`}
+                data-baru={baru.has(`${r.run}:${r.seq}`) ? "yes" : undefined}
+              >
                 <td className="mono">{r.seq}</td>
                 {cols.map(([h, f]) => (
                   <td key={h} className="num">

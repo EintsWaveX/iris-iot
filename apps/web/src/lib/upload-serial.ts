@@ -65,6 +65,7 @@ export async function flashEsp32(
   port: PortLike,
   image: Uint8Array,
   onPercent: (n: number) => void,
+  onPhase: (p: "erase" | "write") => void = () => undefined,
 ): Promise<void> {
   await probe(port);
   const { ESPLoader, Transport } = await import("esptool-js");
@@ -105,6 +106,18 @@ export async function flashEsp32(
       continue;
     }
     try {
+      // A fresh install: the whole chip is erased first, so nothing of what was on the board stays
+      // (an old firmware, Wi-Fi settings and pairings kept in NVS, files in the flash). The libraries
+      // are part of the image written next, so they come back with it. Only the stub can erase the
+      // whole chip; the plain ROM loader attempt writes the image from address 0 instead, which
+      // still overwrites the bootloader, the partition table, NVS and the boot data (the image is
+      // padded with 0xFF through all of them).
+      if (a.stub) {
+        onPhase("erase");
+        said.push("-- erasing the whole flash");
+        await loader.eraseFlash();
+      }
+      onPhase("write");
       onPercent(0);
       await loader.writeFlash({
         fileArray: [{ data: image, address: 0 }],
@@ -149,6 +162,26 @@ export function writeStatements(chunk: Uint8Array, first: boolean): string {
 }
 
 export const PICO_CHUNK = 200;
+
+/** A fresh install of the Pico's files: everything in the root goes (an old main.py, boot.py, test
+ *  files, saved settings, folders) except /lib, where the libraries live. Each item that cannot be
+ *  removed is skipped; the script prints what is left. */
+export const PICO_WIPE = `import os
+def rm(p):
+    try:
+        if os.stat(p)[0] & 0x4000:
+            for f in os.listdir(p):
+                rm(p + '/' + f)
+            os.rmdir(p)
+        else:
+            os.remove(p)
+    except OSError:
+        pass
+for f in os.listdir('/'):
+    if f != 'lib':
+        rm('/' + f)
+print(sorted(os.listdir('/')))
+`;
 /** What the raw REPL says when it is ready for code */
 export const RAW_BANNER = "raw REPL; CTRL-B to exit\r\n>";
 /** Tries at stopping a running program and getting into the raw REPL, about 1.2 s each */
@@ -232,6 +265,8 @@ export async function writeMain(
 
     const bytes = enc.encode(text);
     onPercent(0);
+    const wiped = await run(PICO_WIPE);
+    if (wiped.err.trim()) throw new UploadError("pico_galat", wiped.err.trim());
     for (let i = 0; i < bytes.length; i += PICO_CHUNK) {
       const { err } = await run(writeStatements(bytes.slice(i, i + PICO_CHUNK), i === 0));
       if (err.trim()) throw new UploadError("pico_galat", err.trim());

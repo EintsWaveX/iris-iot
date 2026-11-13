@@ -137,7 +137,8 @@ function PortRow({
     onState(slot, { status: b.status, role: b.role, synced: b.synced });
   }, [slot, b.status, b.role, b.synced, onState]);
   const st = up.state;
-  const percent = st.stage === "flashing" ? (st.percent ?? 0) : null;
+  // While the chip is being erased there is no percentage to show: the bar just moves.
+  const percent = st.stage === "flashing" && st.phase !== "erase" ? (st.percent ?? 0) : null;
   const sub = up.busy
     ? st.stage === "building"
       ? st.pos
@@ -145,7 +146,9 @@ function PortRow({
         : u.stage.building
       : st.stage === "downloading"
         ? u.stage.downloading
-        : u.stage.flashing(st.percent ?? 0)
+        : st.phase === "erase"
+          ? u.stage.erasing
+          : u.stage.flashing(st.percent ?? 0)
     : st.stage === "done"
       ? u.stage.done
       : open
@@ -297,9 +300,8 @@ export default function LiveRoom({
   const ownGroup = praktikan ? (me?.kelompok ?? null) : wakil ? wakil.nomor : null;
   // /now needs a sign-in; a guest's room just shows the default group count.
   const sesiNow = useSessionNow(!!me);
-  // Practice: any of the six groups (Mode TOT's count), so one person can try both boards of any pair.
-  const jumlahSesi = sesiNow.data?.jumlahKelompok ?? KELOMPOK_DEFAULT;
-  const jumlah = praktik ? Math.max(6, jumlahSesi) : jumlahSesi;
+  // However many groups the lab has now (3, 5, 10 ...): the room, the picker and Upload all follow it.
+  const jumlah = sesiNow.data?.jumlahKelompok ?? KELOMPOK_DEFAULT;
   const GROUPS = useMemo(() => Array.from({ length: jumlah }, (_, i) => i + 1), [jumlah]);
   const [group, setGroup] = useState(1);
   const [picked, setPicked] = useState(false);
