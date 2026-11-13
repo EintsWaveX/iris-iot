@@ -89,18 +89,17 @@ describe("personalize()", () => {
   });
 
   it("never touches the TDMA explanation's own illustrative 'group 1, group 2' text", () => {
-    // beacon.ino explains the TDMA slot scheme using "Kelompok 1 memancar...
-    // kelompok 2..." / "Group 1 transmits... group 2..." as a generic
-    // example -- this stays identical in every group's own file on purpose,
+    // beacon.ino explains the TDMA slot scheme using "kelompok 11 dan
+    // seterusnya..." / "group 11 and up..." as a generic example -- this stays identical in every group's own file on purpose,
     // and must not be mistaken for that group's own identity.
     for (const bahasa of LANGUAGES) {
       const source = readSketch(bahasa, "modul4_beacon");
       const marker =
         bahasa === "id"
-          ? "Kelompok 1 memancar"
+          ? "kelompok 11 dan seterusnya"
           : bahasa === "zh"
-            ? "第 1 组在每个周期开头发射"
-            : "Group 1 transmits";
+            ? "第 11 组起"
+            : "group 11 and up";
       for (const n of GROUPS) {
         const out = personalize("modul4_beacon", source, n);
         expect(out).toContain(marker);

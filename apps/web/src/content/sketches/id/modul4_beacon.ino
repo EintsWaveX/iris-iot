@@ -1,9 +1,9 @@
 /*
  * MODUL 4 - PERBURUAN LoRa  |  Peran: BEACON (Kelompok 1,
  * disembunyikan asisten)
- * Memancar hanya di jendela waktu (slot) miliknya sendiri, bergiliran dengan
- * keempat pasangan lain dalam satu periode bersama, sehingga kelima beacon
- * berbagi kanal yang sama tanpa pernah bertabrakan. Tiap paket membawa nomor
+ * Memancar hanya di slot waktunya sendiri, bergiliran dengan beacon
+ * kelompok lain dalam satu periode bersama, sehingga semua beacon
+ * berbagi kanal yang sama tanpa saling menimpa. Tiap paket membawa nomor
  * urut dan waktu kirimnya, dilaporkan juga ke papan skor lewat Wi-Fi supaya
  * paket yang hilang dapat dihitung.
  *
@@ -54,14 +54,15 @@ const int   DST_OFFSET_SEC  = 0;
 // Satu ruangan: 2. Satu lantai gedung: 10. Gedung besar: 14.
 #define BEACON_TX_POWER 10
 
-// Jadwal TDMA: satu periode 500 ms dibagi lima slot 100 ms, satu slot per
-// kelompok dipilih oleh GROUP_ID, sehingga kelima beacon berbagi kanal yang
-// sama tanpa pernah bertabrakan -- tak satu pun memancar di luar slotnya
-// sendiri. Ini menggantikan jeda tetap versi sebelumnya, yang hanya aman
-// selama cuma ada satu beacon menyala di udara.
+// Jadwal TDMA: satu periode 500 ms dibagi sepuluh slot 50 ms, satu slot per
+// kelompok (kelompok 11 dan seterusnya berbagi slot dengan kelompok 10 di
+// bawahnya). Slot mengikuti jam NTP yang baru disinkronkan, bukan waktu papan
+// dinyalakan, jadi tiap beacon benar-benar memancar di slotnya. Satu paket
+// butuh sekitar 30 ms; sisa slot menampung selisih jam.
 const unsigned long TDMA_PERIOD_MS = 500;
-const unsigned long TDMA_SLOT_MS   = 100;
-unsigned long nextFireAt = 0;
+const unsigned long TDMA_SLOT_MS   = 50;
+const int           TDMA_SLOTS     = 10;
+int64_t nextFireAt = 0;
 
 WebSocketsClient webSocket;
 
@@ -128,6 +129,19 @@ void startRadio() {
   LoRa.setTxPower(________);  // (4) Konstanta daya pancar beacon
 }
 
+// Milidetik sejak 1970 menurut jam NTP, dan saat berikutnya yang jatuh di slot
+// kelompok ini. Slot mengikuti jam NTP, bukan waktu papan dinyalakan.
+int64_t clockMs() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return (int64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
+int64_t nextSlot(int64_t now) {
+  int64_t start = now - now % TDMA_PERIOD_MS + (GROUP_ID - 1) % TDMA_SLOTS * TDMA_SLOT_MS;
+  return start > now ? start : start + TDMA_PERIOD_MS;
+}
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -136,9 +150,9 @@ void setup() {
   syncClock();
   startRadio();
 
-  // Kelompok 1 memancar di awal setiap periode, kelompok 2 seratus
-  // milidetik sesudahnya, dan seterusnya -- lihat komentar TDMA_* di atas.
-  nextFireAt = millis() + (unsigned long)(GROUP_ID - 1) * TDMA_SLOT_MS;
+  // Pancaran pertama jatuh di slot kelompok ini yang berikutnya menurut jam NTP
+  // (lihat komentar TDMA_* di atas), bukan sejak papan dinyalakan.
+  nextFireAt = nextSlot(clockMs());
 
   webSocket.beginSSL(SERVER_HOST, SERVER_PORT, "/beacon");
   webSocket.setReconnectInterval(2000);
@@ -150,10 +164,11 @@ void setup() {
 void loop() {
   webSocket.loop();
 
-  if ((long)(millis() - nextFireAt) < 0) {
+  int64_t now = clockMs();
+  if (now < nextFireAt) {
     return;
   }
-  nextFireAt += TDMA_PERIOD_MS;
+  nextFireAt = nextSlot(now);
 
   seq++;
 

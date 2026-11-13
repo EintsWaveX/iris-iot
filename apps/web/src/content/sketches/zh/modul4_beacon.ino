@@ -1,9 +1,9 @@
 /*
  * 模块 4 · LoRa 寻信号  |  角色：BEACON（第 1 组，由助教
  * 藏好）
- * 只在自己的时隙里发射，和另外四对在同一个周期里
- * 轮流发，所以五个 beacon 共用同一个信道
- * 也不会撞车。每个数据包都带着序号
+ * 只在自己的时隙里发射，和其他组的 beacon 在同一个周期里
+ * 轮流发，所以所有 beacon 共用同一个信道
+ * 也不会互相干扰。每个数据包都带着序号
  * 和发送时间，并通过 Wi-Fi 报给记分板，
  * 这样就能统计丢包。
  *
@@ -54,14 +54,15 @@ const int   DST_OFFSET_SEC  = 0;
 // 一个房间：2。一层楼：10。一整栋大楼：14。
 #define BEACON_TX_POWER 10
 
-// TDMA 时间表：一个 500 ms 的周期分成五个 100 ms 的时隙，每组一个，
-// 由 GROUP_ID 决定，所以五个 beacon 共用一个信道
-// 也不会撞车，谁都不会在自己的时隙以外发射。这代替了
-// 旧版本的固定间隔，那种做法只有空中只有一个 beacon
-// 的时候才安全。
+// TDMA 时间表：一个 500 ms 的周期分成十个 50 ms 的时隙，每组一个
+// （第 11 组起与往前数十组的那一组共用时隙）。时隙跟着刚同步好的
+// NTP 时钟走，而不是从开机那一刻算起，所以每个 beacon 都真正守在
+// 自己的时隙里。一个数据包大约 30 ms，时隙里剩下的时间
+// 用来容纳时钟误差。
 const unsigned long TDMA_PERIOD_MS = 500;
-const unsigned long TDMA_SLOT_MS   = 100;
-unsigned long nextFireAt = 0;
+const unsigned long TDMA_SLOT_MS   = 50;
+const int           TDMA_SLOTS     = 10;
+int64_t nextFireAt = 0;
 
 WebSocketsClient webSocket;
 
@@ -128,6 +129,19 @@ void startRadio() {
   LoRa.setTxPower(________);  // (4) beacon 发射功率常量
 }
 
+// NTP 时钟上自 1970 年起的毫秒数，以及下一个落在本组时隙里的时刻。
+// 时隙跟着 NTP 时钟走，而不是开机时间。
+int64_t clockMs() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return (int64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
+int64_t nextSlot(int64_t now) {
+  int64_t start = now - now % TDMA_PERIOD_MS + (GROUP_ID - 1) % TDMA_SLOTS * TDMA_SLOT_MS;
+  return start > now ? start : start + TDMA_PERIOD_MS;
+}
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -136,9 +150,9 @@ void setup() {
   syncClock();
   startRadio();
 
-  // 第 1 组在每个周期开头发射，第 2 组晚一百
-  // 毫秒，以此类推，详见上面 TDMA_* 的注释。
-  nextFireAt = millis() + (unsigned long)(GROUP_ID - 1) * TDMA_SLOT_MS;
+  // 第一次发射落在本组按 NTP 时钟算的下一个时隙
+  // （见上面 TDMA_* 的注释），而不是从开机那一刻算起。
+  nextFireAt = nextSlot(clockMs());
 
   webSocket.beginSSL(SERVER_HOST, SERVER_PORT, "/beacon");
   webSocket.setReconnectInterval(2000);
@@ -150,10 +164,11 @@ void setup() {
 void loop() {
   webSocket.loop();
 
-  if ((long)(millis() - nextFireAt) < 0) {
+  int64_t now = clockMs();
+  if (now < nextFireAt) {
     return;
   }
-  nextFireAt += TDMA_PERIOD_MS;
+  nextFireAt = nextSlot(now);
 
   seq++;
 
