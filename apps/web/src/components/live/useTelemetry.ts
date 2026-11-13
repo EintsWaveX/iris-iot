@@ -49,6 +49,9 @@ export function useTelemetry(
   sim = true,
   /** The running session: its stream room brings readings as they land */
   sesiId: number | null = null,
+  /** False (practice): no real rows from the PC or the room at all; the simulator and the
+   *  laptop's own boards are all there is, so nothing of a running session leaks in. */
+  fetchReal = true,
 ): Telemetry {
   const [state, setState] = useState<Telemetry>(EMPTY);
   const seen = useRef(new Set<string>());
@@ -113,7 +116,7 @@ export function useTelemetry(
     push(batch.readings, true);
   }, [modul, group, push]);
 
-  const opsi = { ruang: "sesi" as const, sesiId, aktif: aktif && sesiId !== null };
+  const opsi = { ruang: "sesi" as const, sesiId, aktif: aktif && fetchReal && sesiId !== null };
   const status = useAliran(
     opsi,
     ["tel"],
@@ -140,9 +143,9 @@ export function useTelemetry(
   useLihat(opsi, group);
 
   useEffect(() => {
-    if (aktif) void ambil();
-  }, [aktif, ambil]);
-  useCadangan(() => void ambil(), ms, aktif && status !== "live");
+    if (aktif && fetchReal) void ambil();
+  }, [aktif, fetchReal, ambil]);
+  useCadangan(() => void ambil(), ms, aktif && fetchReal && status !== "live");
 
   // The simulator stands in until the first real reading (no fetch).
   useEffect(() => {

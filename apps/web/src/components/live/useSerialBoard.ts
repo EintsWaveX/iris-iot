@@ -16,7 +16,7 @@ import { parseSerialLine, type BoardRole, type SerialEvent } from "../../lib/ser
 import { jamMs } from "../../lib/live-records";
 
 // The DOM lib here has no Web Serial types yet; only what this file uses.
-interface SerialPortLike {
+export interface SerialPortLike {
   open(o: { baudRate: number }): Promise<void>;
   close(): Promise<void>;
   setSignals(s: { dataTerminalReady?: boolean; requestToSend?: boolean }): Promise<void>;
@@ -54,6 +54,8 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
   const [role, setRole] = useState<BoardRole | null>(null);
   const [synced, setSynced] = useState(false);
   const port = useRef<SerialPortLike | null>(null);
+  /** The port last chosen or opened, kept after it closes so an upload can use it again */
+  const lastPort = useRef<SerialPortLike | null>(null);
   const reader = useRef<ReadableStreamDefaultReader<string> | null>(null);
   const piped = useRef<Promise<void> | null>(null);
   const lineId = useRef(0);
@@ -136,47 +138,80 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
     setStatus(next);
   }, []);
 
-  const connect = useCallback(async () => {
-    const serial = (navigator as unknown as { serial?: SerialLike }).serial;
-    if (!serial) return;
-    let p: SerialPortLike;
-    try {
-      p = await serial.requestPort();
-    } catch {
-      return; // the chooser was dismissed
-    }
-    try {
-      await p.open({ baudRate: BAUD });
-    } catch {
-      setStatus("busy"); // most often the Arduino Serial Monitor or Thonny holding it
-      return;
-    }
-    port.current = p;
-    setStatus("open");
-    setRole(null);
-    setSynced(false);
-    setLog([]);
-
-    const decoder = new TextDecoderStream();
-    piped.current = p.readable!.pipeTo(decoder.writable as WritableStream<Uint8Array>);
-    const r = decoder.readable.getReader();
-    reader.current = r;
-    if (modul !== 3) void reset();
-
-    const lines = new LineBuffer();
-    try {
-      for (;;) {
-        const { value, done } = await r.read();
-        if (done) break;
-        for (const line of lines.push(value)) handle(line);
+  /** Opens a port the user has already chosen and reads it until it closes. `restart`: pulse EN
+   *  first (Hubungkan does; right after an upload the board has just restarted by itself). */
+  const openPort = useCallback(
+    async (p: SerialPortLike, restart: boolean) => {
+      try {
+        await p.open({ baudRate: BAUD });
+      } catch {
+        setStatus("busy"); // most often the Arduino Serial Monitor or Thonny holding it
+        return;
       }
-    } catch {
-      // Unplugged mid-read.
+      port.current = p;
+      lastPort.current = p;
+      setStatus("open");
+      setRole(null);
+      setSynced(false);
+      setLog([]);
+
+      const decoder = new TextDecoderStream();
+      piped.current = p.readable!.pipeTo(decoder.writable as WritableStream<Uint8Array>);
+      const r = decoder.readable.getReader();
+      reader.current = r;
+      if (modul !== 3 && restart) void reset();
+
+      const lines = new LineBuffer();
+      try {
+        for (;;) {
+          const { value, done } = await r.read();
+          if (done) break;
+          for (const line of lines.push(value)) handle(line);
+        }
+      } catch {
+        // Unplugged mid-read.
+        if (port.current === p) await close("lost");
+        return;
+      }
       if (port.current === p) await close("lost");
-      return;
+    },
+    [close, handle, reset, modul],
+  );
+
+  const requestPort = useCallback(async (): Promise<SerialPortLike | null> => {
+    const serial = (navigator as unknown as { serial?: SerialLike }).serial;
+    if (!serial) return null;
+    try {
+      return await serial.requestPort();
+    } catch {
+      return null; // the chooser was dismissed
     }
-    if (port.current === p) await close("lost");
-  }, [close, handle, reset, modul]);
+  }, []);
+
+  const connect = useCallback(async () => {
+    const p = await requestPort();
+    if (p) await openPort(p, true);
+  }, [requestPort, openPort]);
+
+  /** Live Upload: the port this board is on, or a chosen one. Call it from the click that starts
+   *  the upload: a browser opens its port chooser only from a click, and a build can take a minute. */
+  const pickPort = useCallback(async (): Promise<SerialPortLike | null> => {
+    if (port.current) return port.current;
+    if (lastPort.current) return lastPort.current;
+    const p = await requestPort();
+    if (p) lastPort.current = p;
+    return p;
+  }, [requestPort]);
+
+  /** Closes the port for an upload (esptool needs it closed) and says which one it was */
+  const release = useCallback(async (): Promise<SerialPortLike | null> => {
+    const p = port.current ?? lastPort.current;
+    await close("idle");
+    return p;
+  }, [close]);
+
+  /** Opens `p` again as Hubungkan does, without a restart (the board has just restarted itself) */
+  const reopen = useCallback((p: SerialPortLike) => openPort(p, false), [openPort]);
 
   useEffect(
     () => () => {
@@ -185,5 +220,5 @@ export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: Seria
     [close],
   );
 
-  return { status, log, role, synced, connect, close, reset, sendTime };
+  return { status, log, role, synced, connect, close, reset, sendTime, pickPort, release, reopen };
 }

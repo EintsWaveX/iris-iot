@@ -33,9 +33,11 @@ import {
   PlayIcon,
   PlugsConnectedIcon,
   PlugsIcon,
+  UploadSimpleIcon,
   UsbIcon,
 } from "@phosphor-icons/react";
 import GroupPicker from "../ui/GroupPicker";
+import Disclose from "../ui/Disclose";
 import SegmentedControl from "../ui/SegmentedControl";
 import IconButton from "../ui/IconButton";
 import Fade from "../ui/Fade";
@@ -57,6 +59,11 @@ import { FlowPane, ReadingsPane, SerialMonitor, ValueCards, type Source } from "
 import { LV } from "./liveStrings";
 import { CV } from "./captureStrings";
 import { CaptureDialog, useTangkapan } from "./Capture";
+import { validateUploadValues, type UploadValues } from "../../lib/live-build";
+import UploadPanel from "./UploadPanel";
+import { UP, uploadError } from "./uploadStrings";
+import { useUploadBoard } from "./useUploadBoard";
+import { useUploadSettings } from "./useUploadSettings";
 import "./live-room.css";
 
 interface Layer {
@@ -105,6 +112,7 @@ function PortRow({
   slot,
   role,
   optional,
+  values,
   onLine,
   onState,
 }: {
@@ -113,26 +121,45 @@ function PortRow({
   slot: number;
   role: BoardRole;
   optional: boolean;
+  /** Live Upload's settings, shared by every row */
+  values: UploadValues;
   onLine: (slot: number, line: LogLine, ev: SerialEvent) => void;
   onState: (slot: number, s: SlotState) => void;
 }) {
   const t = LV[lang];
+  const u = UP[lang];
   const handler = useCallback((l: LogLine, ev: SerialEvent) => onLine(slot, l, ev), [slot, onLine]);
   const b = useSerialBoard(modul, handler);
   const open = b.status === "open";
+  const up = useUploadBoard(modul, role, lang, b, values);
+  const ready = validateUploadValues(modul, role, values).ok;
   useEffect(() => {
     onState(slot, { status: b.status, role: b.role, synced: b.synced });
   }, [slot, b.status, b.role, b.synced, onState]);
-  const sub = open
-    ? t.portOn(modul === 1 ? b.synced : null)
-    : b.status === "idle" && optional
-      ? t.optional
-      : t.status[b.status];
+  const st = up.state;
+  const percent = st.stage === "flashing" ? (st.percent ?? 0) : null;
+  const sub = up.busy
+    ? st.stage === "building"
+      ? st.pos
+        ? u.stage.queue(st.pos)
+        : u.stage.building
+      : st.stage === "downloading"
+        ? u.stage.downloading
+        : u.stage.flashing(st.percent ?? 0)
+    : st.stage === "done"
+      ? u.stage.done
+      : open
+        ? t.portOn(modul === 1 ? b.synced : null)
+        : b.status === "idle" && optional
+          ? t.optional
+          : t.status[b.status];
   return (
     <div
       className="port"
       data-on={open ? "yes" : "no"}
-      data-warn={b.status === "busy" || b.status === "lost" ? "yes" : undefined}
+      data-warn={
+        b.status === "busy" || b.status === "lost" || st.stage === "error" ? "yes" : undefined
+      }
     >
       <span className="port__ic" aria-hidden="true">
         {open ? <PlugsConnectedIcon size={22} /> : <UsbIcon size={22} />}
@@ -142,6 +169,22 @@ function PortRow({
         <span className="hint">{sub}</span>
       </span>
       <span className="port__act">
+        {up.busy ? (
+          <button type="button" className="btn btn--sm btn--ghost" onClick={up.cancel}>
+            {u.cancel}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn--sm btn--secondary"
+            disabled={!ready}
+            data-tip={ready ? u.uploadTip : u.fillFirst}
+            onClick={() => void up.start()}
+          >
+            <UploadSimpleIcon aria-hidden="true" />
+            {u.upload}
+          </button>
+        )}
         {open ? (
           <>
             {modul === 1 && (
@@ -176,6 +219,46 @@ function PortRow({
           </button>
         )}
       </span>
+      {(up.busy || st.stage === "error") && (
+        <div className="port__extra">
+          {up.busy ? (
+            <span
+              className="port__bar"
+              data-wait={percent === null ? "yes" : undefined}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={percent ?? undefined}
+              aria-label={sub}
+            >
+              <i style={{ width: `${percent ?? 40}%` }} />
+            </span>
+          ) : (
+            <div className="port__err" role="alert">
+              <b>{u.errorHead}</b>
+              <span>{uploadError(lang, st.kode ?? "")}</span>
+              {st.log && (
+                <details>
+                  <summary>{u.log}</summary>
+                  <pre>{st.log}</pre>
+                </details>
+              )}
+              <span className="row">
+                <button
+                  type="button"
+                  className="btn btn--sm btn--primary"
+                  onClick={() => void up.start()}
+                >
+                  {u.again}
+                </button>
+                <button type="button" className="btn btn--sm btn--ghost" onClick={up.clear}>
+                  {u.cancel}
+                </button>
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -189,6 +272,7 @@ export default function LiveRoom({
   layers,
   wakil,
   embed,
+  praktik,
 }: {
   lang: Lang;
   modul: number;
@@ -198,6 +282,9 @@ export default function LiveRoom({
   embed?: boolean;
   /** Lihat Sebagai Praktikan: the group an Asisten views the room as. */
   wakil?: { nomor: number; own: boolean; sesiId: number };
+  /** The Live of the Modules menu (2026-11-13): Hubungkan and Upload for anyone, any group,
+   *  with nothing saved to a session and nothing of a running one mixed in. */
+  praktik?: boolean;
 }) {
   const t = LV[lang];
   const tc = CV[lang];
@@ -210,7 +297,9 @@ export default function LiveRoom({
   const ownGroup = praktikan ? (me?.kelompok ?? null) : wakil ? wakil.nomor : null;
   // /now needs a sign-in; a guest's room just shows the default group count.
   const sesiNow = useSessionNow(!!me);
-  const jumlah = sesiNow.data?.jumlahKelompok ?? KELOMPOK_DEFAULT;
+  // Practice: any of the six groups (Mode TOT's count), so one person can try both boards of any pair.
+  const jumlahSesi = sesiNow.data?.jumlahKelompok ?? KELOMPOK_DEFAULT;
+  const jumlah = praktik ? Math.max(6, jumlahSesi) : jumlahSesi;
   const GROUPS = useMemo(() => Array.from({ length: jumlah }, (_, i) => i + 1), [jumlah]);
   const [group, setGroup] = useState(1);
   const [picked, setPicked] = useState(false);
@@ -230,7 +319,50 @@ export default function LiveRoom({
   }, [ownGroup, picked, GROUPS]);
 
   const own = ownGroup !== null && group === ownGroup;
+  /** The boards on this laptop report into the session: the own group of a running session's room */
   const canPorts = (praktikan || acting) && own;
+  /** The Modules menu's Live for anyone else: ports and Upload with nothing saved to a session */
+  const practice = !!praktik && !canPorts;
+  /** The ports (Hubungkan and Upload) are on screen */
+  const showPorts = canPorts || practice;
+
+  // Live Upload: the settings every board's Upload uses; Module 4 in a session brings the group's
+  // board key and hotspot from the Hunt step.
+  const [huntKey, setHuntKey] = useState<string | null>(null);
+  const [huntNet, setHuntNet] = useState<{ ssid: string; sandi: string } | null>(null);
+  useEffect(() => {
+    if (modul !== 4 || !canPorts) return;
+    let alive = true;
+    const q = acting && wakil ? `?kelompok=${wakil.nomor}` : "";
+    const ask = async () => {
+      try {
+        const r = await fetch(`/api/session/perburuan${q}`);
+        const d = (await r.json()) as {
+          kunciPapan?: string | null;
+          hotspot?: { ssid: string; sandi: string } | null;
+          wifi?: { ssid: string; sandi: string } | null;
+        };
+        if (!alive) return;
+        if (typeof d.kunciPapan === "string") setHuntKey(d.kunciPapan);
+        const net = d.hotspot ?? d.wifi ?? null;
+        if (net) setHuntNet((old) => (old?.ssid === net.ssid ? old : net));
+      } catch {
+        /* not in a hunt: the person types the values */
+      }
+    };
+    void ask();
+    // The key appears only once the Asisten opens the hunt: ask again until it does.
+    const id = window.setInterval(() => {
+      if (!huntKeyRef.current) void ask();
+    }, 20_000);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, [modul, canPorts, acting, wakil?.nomor]);
+  const huntKeyRef = useRef<string | null>(null);
+  huntKeyRef.current = huntKey;
+  const settings = useUploadSettings(ownGroup, huntKey, huntNet);
   /** Sent with every write when an Asisten acts for the group. */
   const wakilBody = acting && wakil ? { kelompok: wakil.nomor } : {};
 
@@ -469,8 +601,9 @@ export default function LiveRoom({
   );
   useCadangan(() => void tarikMirror(), MIRROR_TICK, mirrorOn && mirrorStatus !== "live");
 
-  const tel = useTelemetry(modul, group, paused, 1000, null, true, sesiId);
-  const localEvents = canPorts ? events : [];
+  // Practice with a board of your own plugged in: that board alone, none of a running session's rows.
+  const tel = useTelemetry(modul, group, paused, 1000, null, true, sesiId, !(practice && anyOpen));
+  const localEvents = showPorts ? events : [];
   const live = tel.live || localEvents.length > 0;
 
   const records = useMemo(() => {
@@ -484,7 +617,7 @@ export default function LiveRoom({
   }, [modul, tel.history, tel.live, localEvents]);
 
   const now = useTick(1000);
-  const lastAt = Math.max(tel.updatedAt ?? 0, canPorts ? (lastBoard ?? 0) : 0);
+  const lastAt = Math.max(tel.updatedAt ?? 0, showPorts ? (lastBoard ?? 0) : 0);
   const ago = lastAt ? Math.max(0, Math.round((now - lastAt) / 1000)) : null;
   const stale =
     tel.live && tel.updatedAt !== null && now - tel.updatedAt > 20_000 && !localEvents.length;
@@ -492,7 +625,7 @@ export default function LiveRoom({
   // Serial Monitor sources.
   const sources: Source[] = useMemo(() => {
     const out: Source[] = [];
-    if (canPorts)
+    if (showPorts)
       slots.forEach((s, i) =>
         out.push({
           k: `b${i}`,
@@ -535,7 +668,7 @@ export default function LiveRoom({
       });
     return out;
   }, [
-    canPorts,
+    showPorts,
     acting,
     slots,
     slotState,
@@ -623,6 +756,7 @@ export default function LiveRoom({
           {paused ? t.paused : live ? (stale ? t.stale : t.real) : t.sim}
         </span>
         {ago !== null && <span className="hint">{t.updated(ago)}</span>}
+        {practice && <span className="pill">{UP[lang].practice}</span>}
         <IconButton
           sm
           icon={paused ? PlayIcon : PauseIcon}
@@ -659,7 +793,7 @@ export default function LiveRoom({
       </div>
 
       {/* Kept mounted in Lapisan so an open port is not dropped. */}
-      {canPorts && (
+      {showPorts && (
         <section className="panel ports" data-ok={missing ? "no" : "yes"} hidden={mode !== "live"}>
           {/* Phase 21 (f7): once every board is connected the panel is just
               their rows; the three steps open on demand. */}
@@ -691,6 +825,26 @@ export default function LiveRoom({
                   <li>{t.step3}</li>
                 </ol>
               )}
+              {practice && <p className="hint">{UP[lang].practiceNote}</p>}
+              <Disclose
+                head={
+                  <span className="uploadset__head">
+                    <UploadSimpleIcon aria-hidden="true" />
+                    {UP[lang].title}
+                  </span>
+                }
+                defaultOpen
+              >
+                <UploadPanel
+                  lang={lang}
+                  modul={modul}
+                  groups={GROUPS}
+                  ownGroup={ownGroup}
+                  values={settings.values}
+                  onChange={settings.change}
+                  keyFilled={settings.keyFilled}
+                />
+              </Disclose>
               <div className="ports__list">
                 {slots.map((s, i) => (
                   <PortRow
@@ -700,6 +854,7 @@ export default function LiveRoom({
                     slot={i}
                     role={s.role}
                     optional={!!s.optional}
+                    values={settings.values}
                     onLine={onLine}
                     onState={onState}
                   />

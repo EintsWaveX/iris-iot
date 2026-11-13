@@ -118,6 +118,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:cermin": [],
   // Every 1.5 s per laptop; the Live page polls.
   "session:telemetry": [],
+  // Live Upload (2026-11-13): a build for one person's own board; nothing shared changes.
+  "session:bangun": [],
   "session:seelabs": ["sesi", "bayar"],
   // Phase 14: connect, test, retry, token, Kelompok and Jaga pulls, the robot's switches.
   "session:robot": ["seelabs"],

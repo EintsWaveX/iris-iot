@@ -21,6 +21,7 @@
  * POST /api/session/catatan { sesiId, kelompokId, catatan, peran } (Stage 10) — per-group note/role.
  * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
  * POST /api/session/telemetry { readings }          — praktikan. Module 1's readings from the group PC's Web Serial link.
+ * POST /api/session/bangun { modul, role, bahasa, ssid, password, group, key } — Live Upload: build a board's sketch with the person's values (api/_lib/live-build.ts); GET bangun-status?id= and bangun-berkas?id= (the image).
  * POST /api/session/lanjutkan { sesiId }             — reopen an ended session until 150 minutes after its start.
  * POST /api/session/durasi { menit }                 — (Phase 9) Extend the running session (api/_lib/berjalan.ts).
  * GET  /api/session/kejadian?sesiId=                 — (Phase 9) pairing and length changes, oldest first.
@@ -44,6 +45,7 @@ import { handleUbahSesi } from "../_lib/sesi-ubah.js";
 import { bisaJawab, handlePanggil, panggilanTerbuka } from "../_lib/panggil.js";
 import { handlePerburuan } from "../_lib/perburuan-api.js";
 import { handleJaringanGet, handleJaringanPost } from "../_lib/jaringan-api.js";
+import { handleBangunBerkas, handleBangunPost, handleBangunStatus } from "../_lib/live-build.js";
 import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak, muatOrang } from "../_lib/hak.js";
@@ -1722,6 +1724,21 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     const who = requireAnyRole(req, res, ["asisten", "praktikan"]);
     if (!who) return;
     return handleTangkapanGet(req, res, who);
+  }
+  // Live Upload (2026-11-13): build a module's sketch for the person's own board, then hand
+  // over the image (api/_lib/live-build.ts). Any signed in user; the module's journal gate
+  // and a per-person rate limit are checked inside.
+  if (aksi === "bangun" || aksi === "bangun-status" || aksi === "bangun-berkas") {
+    const who = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!who) return;
+    if (aksi === "bangun") {
+      if (!requireMethod(req, res, "POST")) return;
+      return handleBangunPost(req, res, who);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    return aksi === "bangun-status"
+      ? handleBangunStatus(req, res, who)
+      : handleBangunBerkas(req, res, who);
   }
   if (aksi === "cermin") {
     if (req.method === "POST") {
