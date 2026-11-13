@@ -97,13 +97,23 @@ export function useUploadSettings(
     if (ownGroup !== null && !grouped.current) setValues((v) => ({ ...v, group: ownGroup }));
   }, [ownGroup]);
 
-  // The Hunt step's key, while the box is still empty.
+  // The Hunt step's key for the group on the form: put in while the box is empty or still holds the
+  // key that was put in before (another group's), never over a key the person typed.
   useEffect(() => {
-    if (huntKey && huntKey !== filledFor.current) {
-      filledFor.current = huntKey;
-      setValues((v) => (v.key ? v : { ...v, key: huntKey }));
-      setKeyFilled(true);
+    if (!huntKey) {
+      // No key for this group (yet): take back the one that was put in for another group
+      const dulu = filledFor.current;
+      filledFor.current = null;
+      if (dulu) {
+        setValues((v) => (v.key === dulu ? { ...v, key: "" } : v));
+        setKeyFilled(false);
+      }
+      return;
     }
+    const antara = filledFor.current;
+    filledFor.current = huntKey;
+    setValues((v) => (v.key && v.key !== antara ? v : { ...v, key: huntKey }));
+    setKeyFilled(true);
   }, [huntKey]);
 
   // The group's hotspot, once, so the first upload needs nothing typed. After that the person's own choice stands.
