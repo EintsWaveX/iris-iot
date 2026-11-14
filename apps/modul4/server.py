@@ -322,6 +322,9 @@ WS_MAX_SIZE = 1 << 20
 # ---------------------------------------------------------------------------
 
 JADWAL_PATH = HERE / "jadwal.json"
+# Benih acak kode sesi ini (lihat "kode yang berganti" di bawah). Berkas sendiri,
+# bukan bagian jadwal.json, supaya menghapus jadwal tidak menghapus kodenya.
+BENIH_PATH = HERE / "benih.json"
 ROSTER_PATH = HERE / "roster.json"   # berkas v1; dibuang bila ditemukan
 # Ditulis oleh agent PC (Stage 18) dari respons denyut jantungnya
 # sendiri -- lihat pc/agent/agent.py dan apps/web/api/agent/index.ts's
@@ -1359,7 +1362,19 @@ HUNT = Hunt()
 # lebih lama daripada koneksinya.
 VIEWERS: dict[ServerConnection, dict] = {}
 
+# Tiga kode Modul 4 -- token asisten, kode papan di tautan praktikan, dan kunci
+# papan tiap kelompok -- berganti tiap sesi. Semuanya diturunkan dari dua hal:
+#   AKAR   rahasia mesin ini (--token, di PC dari /var/lib/iris-modul4/token);
+#          tidak pernah ditampilkan dan tidak pernah berganti
+#   BENIH  bilangan acak yang dibangkitkan setiap sesi berakhir (putar_benih)
+#          dan disimpan di benih.json, jadi server yang dinyalakan ulang di
+#          tengah sesi memberi kode yang sama persis
+# TOKEN adalah token asisten yang berlaku sekarang.
+AKAR: str = ""
+BENIH: str = ""
 TOKEN: str = ""
+# --tetap: tanpa pergantian (uji CI dan pengembangan); TOKEN = AKAR
+TETAP: bool = False
 
 # NIM -> peran lunak yang dipilih orangnya. Milik satu sesi, bukan satu
 # ronde: "Ronde baru" di tengah sesi tidak membuat orang yang sama harus
@@ -1426,18 +1441,96 @@ def token_ok(candidate) -> bool:
     return secrets.compare_digest(candidate.strip().upper(), TOKEN)
 
 
-def kode_papan() -> str:
-    """Kode masuk papan untuk sesi yang berjalan hari ini.
+# -- kode yang berganti tiap sesi -------------------------------------------
 
-    Diturunkan dari token, sesi, dan tanggal -- bukan disimpan -- jadi server
-    yang dinyalakan ulang di tengah sesi tetap memberi kode yang sama dan
-    tautan di ponsel praktikan tidak basi. Berganti tiap sesi dan tiap hari.
+def _huruf(label: str, panjang: int) -> str:
+    """`panjang` huruf dari AKAR, BENIH, dan label, tanpa bias modulo.
+
+    Byte hasil HMAC yang jatuh di sisa pembagian (256 tidak habis dibagi 26)
+    dibuang, supaya tiap huruf abjad token punya peluang yang sama persis.
     """
-    if not TOKEN:
+    kunci = (AKAR or TOKEN).encode()
+    batas = 256 - 256 % len(TOKEN_ALPHABET)
+    huruf: list[str] = []
+    n = 0
+    while len(huruf) < panjang:
+        mac = hmac.new(kunci, f"{label}|{BENIH}|{n}".encode(), hashlib.sha256).digest()
+        n += 1
+        for b in mac:
+            if b < batas:
+                huruf.append(TOKEN_ALPHABET[b % len(TOKEN_ALPHABET)])
+                if len(huruf) == panjang:
+                    break
+    return "".join(huruf)
+
+
+def pasang_benih(benih: str) -> None:
+    """Pakai `benih`: dari sinilah token, kode papan, dan semua kunci berasal."""
+    global BENIH, TOKEN
+    BENIH = benih
+    TOKEN = AKAR if TETAP else _huruf("token", TOKEN_LEN)
+
+
+def _simpan_benih() -> None:
+    tmp = BENIH_PATH.with_suffix(".json.tmp")
+    try:
+        tmp.write_text(json.dumps({"benih": BENIH, "dibuat": timestamp()}),
+                       encoding="utf-8")
+        try:
+            os.chmod(tmp, 0o600)
+        except OSError:
+            pass
+        os.replace(tmp, BENIH_PATH)
+    except OSError as err:
+        print(f"[{timestamp()}] benih gagal disimpan: {err}")
+
+
+def putar_benih(alasan: str) -> None:
+    """Ganti seluruh kode sesi: token asisten, kode papan, dan kunci papan.
+
+    Dipanggil ketika sebuah sesi berakhir (jendelanya habis, diakhiri asisten,
+    atau situs mengosongkan daftarnya) -- BUKAN ketika sesi dimulai. Praktikan
+    mengunggah papannya sebelum Mulai Perburuan ditekan, dan menekan Mulai
+    menjalankan sesi_mulai() sekali lagi; kalau kode berganti di sana, papan
+    yang baru diunggah langsung ditolak. Dengan berganti di akhir, sesi
+    berikutnya (TOT atau sungguhan) sudah punya kode baru sejak awal dan
+    memakainya tetap sampai selesai, termasuk ronde yang diulang.
+    """
+    if TETAP:
+        return
+    pasang_benih(secrets.token_hex(8))
+    _simpan_benih()
+    print(f"[{timestamp()}] kode sesi diganti ({alasan}): token asisten, kode "
+          "papan, dan kunci papan semua kelompok")
+    cetak_token()
+
+
+def muat_benih() -> None:
+    """Saat server dinyalakan: benih yang tersimpan, atau yang baru bila belum ada."""
+    if TETAP:
+        pasang_benih("")
+        return
+    try:
+        benih = json.loads(BENIH_PATH.read_text(encoding="utf-8")).get("benih")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        benih = None
+    if isinstance(benih, str) and re.fullmatch(r"[0-9a-f]{16}", benih):
+        pasang_benih(benih)
+        return
+    pasang_benih(secrets.token_hex(8))
+    _simpan_benih()
+
+
+def kode_papan() -> str:
+    """Kode masuk papan untuk sesi ini.
+
+    Diturunkan dari AKAR dan BENIH, bukan disimpan, jadi server yang
+    dinyalakan ulang di tengah sesi memberi kode yang sama dan tautan di
+    ponsel praktikan tidak basi. Berganti tiap sesi berakhir.
+    """
+    if not (AKAR or TOKEN):
         return ""
-    pesan = f"papan|{JADWAL['aktif']}|{datetime.now().date().isoformat()}"
-    mac = hmac.new(TOKEN.encode(), pesan.encode(), hashlib.sha256).digest()
-    return "".join(TOKEN_ALPHABET[b % len(TOKEN_ALPHABET)] for b in mac[:KODE_LEN])
+    return _huruf("papan", KODE_LEN)
 
 
 def kode_ok(candidate) -> bool:
@@ -1450,18 +1543,15 @@ def kode_ok(candidate) -> bool:
 def kunci_grup(gid: int) -> str:
     """Kunci papan satu kelompok.
 
-    Diturunkan dari token PC dan nomor kelompok saja, tidak dari sesi atau
-    tanggal. Sebuah papan yang sekali diunggah dengan kunci ini tetap sah di
-    semua sesi dan sesudah server dinyalakan ulang, selama token PC tidak
-    diganti; kelompok tidak perlu mengunggah ulang tiap sesi. Kunci satu
-    kelompok tidak berlaku untuk kelompok lain dan berbeda dari kode papan
-    (pesan yang di-HMAC lain). Kode papan tetap berganti tiap sesi.
+    Diturunkan dari AKAR, BENIH, dan nomor kelompok. Tetap sepanjang satu sesi
+    dan sesudah server dinyalakan ulang di tengahnya, jadi papan yang diunggah
+    sebelum Mulai Perburuan tetap sah sampai sesinya berakhir; sesudah itu
+    kuncinya berganti dan papan harus diunggah ulang. Kunci satu kelompok
+    tidak berlaku untuk kelompok lain dan berbeda dari kode papan dan token.
     """
-    if not TOKEN:
+    if not (AKAR or TOKEN):
         return ""
-    pesan = f"papan-grup|{gid}"
-    mac = hmac.new(TOKEN.encode(), pesan.encode(), hashlib.sha256).digest()
-    return "".join(TOKEN_ALPHABET[b % len(TOKEN_ALPHABET)] for b in mac[:KUNCI_LEN])
+    return _huruf(f"papan-grup|{gid}", KUNCI_LEN)
 
 
 def kunci_ok(gid: int, candidate) -> bool:
@@ -1913,6 +2003,11 @@ def jadwal_impor(path: pathlib.Path) -> int | None:
                 terpakai.setdefault(anggota["nim"], f"sesi {lain['id']} kelompok {gid}")
 
     bentrok = False
+    # Situs mengosongkan daftar sebuah sesi ketika sesi itu berakhir di sana
+    # (sesi TOT yang diulang juga begitu). Itu juga pergantian sesi bagi kode
+    # papan: sesi berikutnya, dengan orang yang sama sekalipun, mulai dengan
+    # kode baru.
+    sesi_berakhir = False
     for _, entry, regu in sorted(calon, key=lambda c: (c[0], c[1]["id"])):
         klaim = dict(terpakai)
         galat = ""
@@ -1934,6 +2029,8 @@ def jadwal_impor(path: pathlib.Path) -> int | None:
         IMPOR_GALAT.pop(entry["id"], None)
         terpakai = klaim
         if entry["regu"] != regu or entry.get("sumber") != "web":
+            if entry.get("sumber") == "web" and _ada_anggota(entry) and not regu:
+                sesi_berakhir = True
             entry["regu"] = regu
             entry["sumber"] = "web"
             diterapkan += 1
@@ -1942,6 +2039,8 @@ def jadwal_impor(path: pathlib.Path) -> int | None:
     # padahal berkasnya tidak berubah, jadi dicoba lagi pada denyut berikutnya.
     IMPOR_ULANG = bentrok
 
+    if sesi_berakhir:
+        putar_benih("situs mengakhiri sebuah sesi")
     if diterapkan:
         JADWAL["rev"] += 1
         JADWAL["hari"] = hari_ini()
@@ -2036,6 +2135,7 @@ async def sesi_akhiri(alasan: str = "selesai") -> None:
     JADWAL["mulai_pada"] = None
     jadwal_simpan()
     await ronde_bersih()
+    putar_benih(f"sesi {sid} berakhir")
     HUNT.note("sesi-akhir", None, sesi=sid)
     print(f"[{timestamp()}] sesi {sid} diakhiri ({alasan}), ronde dibersihkan")
 
@@ -2046,6 +2146,7 @@ async def jadwal_hapus() -> None:
     JADWAL["rev"] += 1
     JADWAL_PATH.unlink(missing_ok=True)
     await ronde_bersih()
+    putar_benih("jadwal dihapus")
     HUNT.note("jadwal-hapus")
     print(f"[{timestamp()}] jadwal dihapus, foto dibuang")
 
@@ -3242,8 +3343,14 @@ if __name__ == "__main__":
              f"skor, bukan dari sini (bawaan {RSSI_AT_1M})")
     parser.add_argument(
         "--token", default=None, metavar="KODE",
-        help="token asisten tetap; bila tidak diisi, sebuah token acak "
-             "dibangkitkan dan dicetak saat server dinyalakan")
+        help="rahasia mesin ini (AKAR): dasar token asisten, kode papan, dan "
+             "kunci papan, yang berganti tiap sesi berakhir; bila tidak diisi, "
+             "sebuah rahasia acak dibangkitkan setiap server dinyalakan")
+    parser.add_argument(
+        "--tetap", action="store_true",
+        help="tanpa pergantian kode: token asisten adalah --token itu sendiri "
+             "dan kode papan serta kunci tidak pernah berganti (uji CI dan "
+             "pengembangan, bukan PC lab)")
     parser.add_argument(
         "--sesi-durasi", type=float, default=SESI_DURASI_SEC / 60.0,
         metavar="MENIT", dest="sesi_durasi",
@@ -3281,7 +3388,9 @@ if __name__ == "__main__":
     HUNT.arena_m = args.arena
     HUNT.path_loss_n = args.path_loss_n
     HUNT.rssi_at_1m = args.rssi1m
-    TOKEN = (args.token or buat_token()).strip().upper()
+    AKAR = (args.token or buat_token()).strip().upper()
+    TETAP = args.tetap
+    muat_benih()
 
     try:
         asyncio.run(main(args.host, args.port))
