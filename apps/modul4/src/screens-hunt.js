@@ -80,6 +80,13 @@
   </span>`;
   /* The menu: the clock, how the hunt looks and sounds, and the way into
      assistant mission control from any screen (a signed-in student too). */
+  /* The way back to the practicum site, on the Module 4 page in the language
+     picked here. Signing out is a separate choice: this link keeps the NIM. */
+  H.PracticumLink = ({ sm }) => {
+    const st = H.useStore();
+    const href = `https://irisiotlab.com${st.lang === "en" || st.lang === "zh" ? "/" + st.lang : ""}/modules/4`;
+    return html`<a class=${"btn" + (sm ? " btn--sm" : "") + " btn--ghost"} href=${href}><${Icon} n="arrow-left" sm />${L("Kembali ke Praktikum", "Back to Practicum")}</a>`;
+  };
   H.LogoutDialog = ({ onClose }) => {
     const N = H.useNet();
     const asisten = N.role === "asisten";
@@ -103,6 +110,8 @@
       <label class="hset"><span class="stack" style="gap:0"><b>${L("Suara Geiger", "Geiger sound")}</b><span class="hint">${L("Bunyi makin cepat saat makin dekat. Layar tidak perlu dilihat terus.", "Ticks faster as you get closer, so you don't have to watch the screen.")}</span></span><${Switch} on=${!!st.sound} onChange=${(v) => (v ? H.unlockSound() : H.set({ sound: false }))} label=${L("Suara Geiger", "Geiger sound")} /></label>
       <label class="hset"><span class="stack" style="gap:0"><b>${L("Getar", "Vibrate")}</b><span class="hint">${L("Getar pendek mulai dari Hangat.", "A short buzz from Warm upwards.")}</span></span><${Switch} on=${st.vib !== false} onChange=${(v) => H.set({ vib: v })} label=${L("Getar", "Vibrate")} /></label>
       <div class="field"><span class="label">${L("Bahasa", "Language")}</span><${H.LangPick} /></div>
+      <div class="field"><span class="label">${L("Situs praktikum", "Practicum site")}</span><${H.PracticumLink} />
+        <span class="hint">${L("Kembali ke halaman Modul 4 di situs IRIS. Kamu tetap masuk di sini.", "Back to the Module 4 page on the IRIS site. You stay signed in here.")}</span></div>
       <span class="hint">${H.awakeBy() === "lock" ? L("Layar tetap menyala selama perburuan.", "The screen stays on during the hunt.") : H.awakeBy() === "video" ? L("Layar dijaga tetap menyala dengan cara cadangan. Kalau layar tetap padam, matikan kunci layar otomatis sebentar.", "The screen is kept on with a backup method. If it still locks, turn off auto-lock for a while.") : L("Browser tidak mengizinkan layar tetap menyala di jaringan ini. Matikan kunci layar otomatis sebentar.", "The browser won't keep the screen on on this network. Turn off auto-lock for a while.")}</span>
       ${N.role !== "asisten" && html`<div class="field hmenu__asisten"><span class="label">${L("Asisten", "Assistant")}</span>
         <${Btn} block icon="shield-check" onClick=${() => { close(); H.go("mission"); }}>${L("Buka Ruang Kendali Asisten", "Open Assistant Mission Control")}</${Btn}>
@@ -645,7 +654,7 @@
               <span class="hint">${role ? L(...ROLES[role].d) : L("Pilih satu kalau timmu mau membagi tugas. Layar Buru sama untuk semua.", "Pick one if your team wants to split the jobs. The Hunt screen is the same for everyone.")}</span></div>
           </${H.Card}>
         </div>
-        <div class="r5act" style="justify-content:flex-start"><${Btn} kind="ghost" sm icon="sign-out" onClick=${() => setLeave(true)}>${L("Keluar", "Log Out")}</${Btn}></div>
+        <div class="r5act" style="justify-content:flex-start"><${H.PracticumLink} sm /><${Btn} kind="ghost" sm icon="sign-out" onClick=${() => setLeave(true)}>${L("Keluar", "Log Out")}</${Btn}></div>
       </div>
       ${leave && html`<${H.LogoutDialog} onClose=${() => setLeave(false)} />`}
     </${H.HuntApp}>`;
