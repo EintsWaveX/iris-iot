@@ -57,6 +57,7 @@ import type {
   FreezeResponse,
   ScoresResponse,
   StatsResponse,
+  TesDetail,
   VoidResponse,
 } from "../../src/lib/recruitment/score-api.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
@@ -239,14 +240,19 @@ async function muatMasukan(db: Db, edisiId: number) {
   const tier = new Map(
     (
       await db
-        .select({ id: recCProblem.id, tier: recCProblem.tier, body: recCProblem.body })
+        .select({
+          id: recCProblem.id,
+          tier: recCProblem.tier,
+          body: recCProblem.body,
+          title: recCProblem.title,
+        })
         .from(recCProblem)
         .where(eq(recCProblem.editionId, edisiId))
     ).map((r) => [r.id, r]),
   );
   const hand = new Map<
     number,
-    { problemId: number; points: number; bonus?: boolean; own?: boolean }[]
+    { problemId: number; points: number; bonus?: boolean; own?: boolean; title?: string }[]
   >();
   for (const r of seatRows) {
     const lc = (r.draw as { livecode?: { problems?: number[]; bonus?: number[] } }).livecode;
@@ -263,6 +269,7 @@ async function muatMasukan(db: Db, edisiId: number) {
                 : problemWorth(config, t.tier, t.body.points),
               ...(bonus ? { bonus } : {}),
               ...(t.body.points !== undefined ? { own: true } : {}),
+              title: t.title,
             },
           ]
         : [];
@@ -345,6 +352,58 @@ export async function muatNilaiCutting(db: Db, edisiId: number) {
     });
   }
   return { final: beku !== null, byCandidate: out };
+}
+
+/**
+ * Everything behind one candidate's Tes Tulis score, for the Cutting drawer (15 Nov 2026): every
+ * part with each question's result, and the Live Coding problems. The question lines are worked out
+ * from the answers and keys as they stand; after Finalkan the part scores, the Live Coding score and
+ * the total are the frozen ones, so the drawer never disagrees with the board. Null when the
+ * candidate has no seat (never sat the test). Panitia only: the router asks for an Asisten session.
+ */
+export async function muatRinciTes(
+  db: Db,
+  edisiId: number,
+  candidateId: number,
+): Promise<TesDetail | null> {
+  const m = await muatMasukan(db, edisiId);
+  const seat = m.kursi.find((k) => k.candidateId === candidateId);
+  if (!seat) return null;
+  const config = await bacaConfig(db, edisiId);
+  const caps = capsOf(config);
+  const a = assemble(m.kursi, m.bank, m.live, caps, defaultQuestionPoints(config), seat.seatId);
+  const beku = await muatBeku(db, edisiId);
+  const row = beku ? (beku.scores.find((r) => r.candidateId === candidateId) ?? null) : null;
+  const now = a.rows.find((r) => r.seatId === seat.seatId);
+  const src = row ?? now;
+  if (!src || !a.detail) return null;
+  const parts = a.detail.parts.map((p) => {
+    const f = src.parts[p.part];
+    const { flag: _f, cut: _c, was: _w, ...rest } = p;
+    return {
+      ...rest,
+      score: f.score,
+      ...(f.flag ? { flag: f.flag } : {}),
+      ...(f.cut !== undefined ? { cut: f.cut, was: f.was } : {}),
+    };
+  });
+  return {
+    final: beku !== null,
+    seatId: seat.seatId,
+    roomId: seat.roomId,
+    total: src.total,
+    phase1: src.phase1,
+    caps,
+    parts,
+    live: {
+      score: src.livecode,
+      cap: caps.livecode,
+      ...(src.liveFlag ? { flag: src.liveFlag } : {}),
+      ...(src.liveCut ? { cut: src.liveCut } : {}),
+      problems: a.detail.liveProblems,
+    },
+    pending: src.penalty?.pending ?? [],
+  };
 }
 
 /* ---------------------------------------------------------------- blockers */

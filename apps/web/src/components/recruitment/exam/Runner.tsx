@@ -29,7 +29,11 @@ import type { PartView, TestView } from "../../../lib/recruitment/seat-types";
 import { QuestionCard } from "./render";
 import { BigIcon, LiveChip, PartsMini, SaveChip, Timer, type Motion } from "./parts";
 import { CalmStars, EdgeGlow } from "./ScreenFx";
-import { BONUS_ASKS, declinesLeft, type BonusQuote } from "../../../lib/recruitment/bonus";
+import {
+  BONUS_ASKS,
+  declinesLeft,
+  type BonusOffer as SeatOffer,
+} from "../../../lib/recruitment/bonus";
 import BonusOffer from "./BonusOffer";
 import { readDeclines, writeDeclines } from "./bonusDecline";
 import { TAB, askBonus, sendAnswer, submitPart, toast } from "./seatApi";
@@ -98,7 +102,7 @@ export default function Runner({
   const declineId = `${seat.id}.${key}`;
   const [declines, setDeclines] = useState(() => readDeclines(declineId));
   const declined = !declinesLeft(declines);
-  const [quote, setQuote] = useState<BonusQuote | null>(null);
+  const [quote, setQuote] = useState<SeatOffer | null>(null);
   const jumpToBonus = useRef(false);
   // The part's entrance plays once, when it starts; moving between questions has its own slide.
   const [entering, setEntering] = useState(true);
@@ -257,7 +261,7 @@ export default function Runner({
     await saver.flush();
     const r = await askBonus(key, true);
     setBusy(false);
-    if (r.ok && r.quote && r.quote.quota >= 1) {
+    if (r.ok && r.quote) {
       setQuote(r.quote);
       setAsk(false);
       setOffer(true);
@@ -279,7 +283,7 @@ export default function Runner({
     reopened.current = true;
     void (async () => {
       const r = await askBonus(key, true);
-      if (r.ok && r.quote && r.quote.quota >= 1) {
+      if (r.ok && r.quote) {
         setQuote(r.quote);
         setOffer(true);
       }
@@ -309,7 +313,7 @@ export default function Runner({
     jumpToBonus.current = true;
     setOffer(false);
     setAsk(false);
-    toast(t.bonus.added(r.count ?? 0));
+    toast(t.bonus.added());
     onRefresh();
   }
   const flaggedList = items

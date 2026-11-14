@@ -61,7 +61,7 @@ import {
 } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
-import { muatNilaiCutting } from "./recruitment-score.js";
+import { muatNilaiCutting, muatRinciTes } from "./recruitment-score.js";
 import { muatNilaiTahap } from "./recruitment-s4.js";
 import { isIvStage } from "../../src/lib/recruitment/interview.js";
 import { muatKonteks, muatTubesCutting } from "./recruitment-s7.js";
@@ -504,6 +504,8 @@ export async function handleCuttingRinci(req: ApiRequest, res: ApiResponse, s: S
       at: l.at.toISOString(),
       note: l.note,
     })),
+    // Tes Tulis: the whole result behind the score, part by part and question by question
+    ...(stage === "tes_tulis" ? { tes: await muatRinciTes(db, edisi.id, k.id) } : {}),
   };
   res.status(200).json(body);
 }

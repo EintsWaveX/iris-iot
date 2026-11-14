@@ -432,3 +432,75 @@ describe("the violation cut a pengawas applied (9 Nov 2026)", () => {
     });
   });
 });
+
+describe("assemble, one seat in full (Cutting drawer, 15 Nov 2026)", () => {
+  const detailOf = (n: number, bank = BANK) =>
+    assemble(SEATS, bank, NO_LIVE, CAPS, {}, n).detail!.parts.find((p) => p.part === "logika")!;
+
+  it("builds no detail unless a seat is asked for", () => {
+    expect(asm(SEATS, BANK, NO_LIVE).detail).toBeUndefined();
+    expect(assemble(SEATS, BANK, NO_LIVE, CAPS, {}, 999).detail).toBeUndefined();
+  });
+
+  it("lists each dealt question with how it went", () => {
+    const d = detailOf(2);
+    expect(d.score).toBe(348);
+    expect(d.questions.map((q) => [q.q, q.state])).toEqual([
+      [1, "wrong"],
+      [2, "partial"],
+      [4, "partial"],
+    ]);
+    expect([d.full, d.partial, d.wrong, d.blank, d.voided]).toEqual([0, 2, 1, 0, 0]);
+  });
+
+  it("the points of the questions add up to the part score", () => {
+    for (const n of [1, 2, 3, 4]) {
+      const d = detailOf(n);
+      const got = d.questions.reduce((a, q) => a + q.got, 0);
+      const max = d.questions.reduce((a, q) => a + q.max, 0);
+      // each question is rounded to a tenth and the part score to a whole point
+      expect(Math.abs(got - d.score)).toBeLessThanOrEqual(0.7);
+      expect(Math.round(max)).toBe(1000);
+    }
+  });
+
+  it("a question never answered is blank, and a withdrawn one is out of the sums", () => {
+    const d = detailOf(4);
+    expect(d.questions.find((q) => q.q === 3)!.state).toBe("blank");
+    const v = detailOf(
+      1,
+      BANK.map((q) => (q.id === 3 ? { ...q, voided: true } : q)),
+    );
+    const q3 = v.questions.find((q) => q.q === 3)!;
+    expect([q3.state, q3.got, q3.max]).toEqual(["void", 0, 0]);
+    expect(v.voided).toBe(1);
+  });
+
+  it("a seat that never took the part has no questions and keeps its flag", () => {
+    const d = detailOf(5);
+    expect(d.questions).toEqual([]);
+    expect(d.flag).toBe("absent");
+  });
+
+  it("carries the Live Coding problems with their title and tests", () => {
+    const live: Parameters<typeof assemble>[2] = {
+      hand: new Map([[1, [{ problemId: 7, points: 400, title: "Hitung Luas" }]]]),
+      runs: new Map([[1, [{ problemId: 7, passed: 3, total: 4, at: 1 }]]]),
+      waiting: new Set(),
+    };
+    const out = assemble(SEATS, BANK, live, CAPS, {}, 1);
+    expect(out.detail!.liveProblems).toEqual([
+      {
+        problemId: 7,
+        title: "Hitung Luas",
+        bonus: false,
+        points: 400,
+        got: 300,
+        passed: 3,
+        total: 4,
+        fails: 1,
+        lost: 0,
+      },
+    ]);
+  });
+});

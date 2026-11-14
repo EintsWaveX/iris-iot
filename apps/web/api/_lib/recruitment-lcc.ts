@@ -37,9 +37,10 @@ import {
   penaltyOf,
   problemWorth,
 } from "../../src/lib/recruitment/exam-config.js";
-import { bonusQuota, bonusWorth, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
+import { bonusQuota, bonusWorth, OFFER, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
 import { normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
+  stateForSeat,
   stateOf,
   type LccProblem,
   type LccRoom,
@@ -292,7 +293,7 @@ async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
     .where(sql`${recCSubmission.status} in ('antre', 'diambil')`)
     .orderBy(recCSubmission.requestedAt, recCSubmission.id);
   const place = new Map(waiting.map((w, i) => [w.id, i + 1]));
-  const { state, total } = stateOf(
+  const { state } = stateOf(
     hand.map((h) => ({ id: h.id, points: h.points })),
     subs as SubRow[],
     (id) => place.get(id) ?? null,
@@ -301,9 +302,8 @@ async function bacaLcc(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse) {
   const body: LccSelf = {
     fase,
     hand,
-    state,
-    total,
-    cap: capsOf(c.config).livecode,
+    // Points, the penalty and the running total never go to a seat (15 Nov 2026)
+    state: stateForSeat(state),
     minutes: c.config.livecode.minutes,
     penalty: penaltyOf(c.config),
     judgeReady: await judgeSiap(c.db, c.now),
@@ -401,8 +401,8 @@ async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse
   );
   if (!all.length) return void tolak(res, "soal_kurang", 409);
   const quote = await kuotaBonus(c, base, all.length);
-  if (dry) return void res.status(200).json({ ok: true, quote });
-  if (quote.quota < 1) return void tolak(res, "bonus_kosong", 409, { quote });
+  if (dry) return void res.status(200).json({ ok: true, quote: OFFER });
+  if (quote.quota < 1) return void tolak(res, "bonus_kosong", 409);
   const ids = all.slice(0, quote.quota);
   // Only the first writer wins: two tabs asking at once end with one bonus list
   await c.db
@@ -421,7 +421,7 @@ async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse
       .update(recCProblem)
       .set({ shownAt: new Date() })
       .where(and(inArray(recCProblem.id, ids), isNull(recCProblem.shownAt)));
-  res.status(200).json({ ok: true, count: ids.length, quote });
+  res.status(200).json({ ok: true });
 }
 
 /** Selesai: the seat is done with Live Coding. What it submitted counts; nothing more is taken from it. */

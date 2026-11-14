@@ -65,16 +65,15 @@ export const BONUS_ASKS = 2;
 /** True while a seat that said No `declines` times may still be asked */
 export const declinesLeft = (declines: number) => declines < BONUS_ASKS;
 
-export type Mood = "top" | "good" | "ok" | "low";
-
 /**
- * How the offer describes a seat without showing any number (8 Nov 2026): the share of the
- * questions it was dealt that it got right, and whether a good part of the time is still left.
- * `roomy` is when the time left is at least a third of the questions dealt (two at the least).
+ * What a seat is told about the offer (15 Nov 2026): that there is one, and nothing else. Not how
+ * many bonus questions it may take, not the right, wrong and blank counts, not any words about how
+ * it did. The offer is made to every seat that may be offered (so its appearance says nothing), and
+ * a seat whose count is 0 gets the same "cannot take it" answer as any failure. A candidate must
+ * never learn their Tes Tulis score, in any form.
  */
-export function performanceWords(q: BonusQuote): { mood: Mood; roomy: boolean } {
-  const dealt = q.correct + q.wrong + q.blank;
-  const share = dealt > 0 ? q.correct / dealt : 0;
-  const mood: Mood = share >= 0.85 ? "top" : share >= 0.6 ? "good" : share >= 0.3 ? "ok" : "low";
-  return { mood, roomy: q.time >= Math.max(2, Math.ceil(dealt / 3)) };
+export interface BonusOffer {
+  offered: true;
 }
+
+export const OFFER: BonusOffer = { offered: true };

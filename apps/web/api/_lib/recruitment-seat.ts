@@ -49,7 +49,7 @@ import {
   type Value,
 } from "../../src/lib/recruitment/exam-types.js";
 import { checkValue, credit, toView } from "../../src/lib/recruitment/formats.js";
-import { bonusQuota, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
+import { bonusQuota, OFFER, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
 import { isOne } from "../../src/lib/recruitment/frac.js";
 import { DrawShort, drawBonus, drawPart, drawSeed } from "../../src/lib/recruitment/draw.js";
 import { answerOpen, normalize, seatLeft } from "../../src/lib/recruitment/room.js";
@@ -997,7 +997,7 @@ async function mintaBonus(k: Konteks) {
   const run = state.runs[part];
   if (!run || state.cur !== part || run.state !== "running")
     return void tolakKursi(res, "waktu_habis");
-  if (draw.bonus) return void res.status(200).json({ ok: true, count: draw.bonus.length });
+  if (draw.bonus) return void res.status(200).json({ ok: true });
   const config = await muatConfig(db, edisiId);
   const minLeft = config.parts[part].bonusMin * 60_000;
   if (minLeft <= 0) return void tolakKursi(res, "bonus_mati");
@@ -1068,8 +1068,8 @@ async function mintaBonus(k: Konteks) {
       quote = again?.draw[part]?.quote ?? fresh;
     }
   }
-  if (b.dry === true) return void res.status(200).json({ ok: true, quote });
-  if (quote.quota < 1) return void tolakKursi(res, "bonus_kosong", { quote });
+  if (b.dry === true) return void res.status(200).json({ ok: true, quote: OFFER });
+  if (quote.quota < 1) return void tolakKursi(res, "bonus_kosong");
   const items = all.slice(0, Math.min(quote.quota, all.length));
   // Only the first writer wins: two tabs asking at once end with one bonus list
   await db
@@ -1097,7 +1097,7 @@ async function mintaBonus(k: Konteks) {
           isNull(recQuestion.shownAt),
         ),
       );
-  res.status(200).json({ ok: true, count: items.length, quote });
+  res.status(200).json({ ok: true });
 }
 
 /* -------------------------------------------------------------- Kumpulkan */

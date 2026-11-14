@@ -4,7 +4,7 @@
  * Submit, test, judge, queue, input, output), Title Case on headers and buttons,
  * no em or en dashes.
  */
-import type { BonusQuote } from "../../../lib/recruitment/bonus";
+import type { BonusOffer } from "../../../lib/recruitment/bonus";
 import { dict } from "../../../lib/app";
 import { offerWords } from "../exam/bonusWords";
 
@@ -43,9 +43,9 @@ export const LCC = dict({
     drawWait: "Menunggu pengawas menekan Start.",
     tier: { easy: "Mudah", medium: "Sedang", hard: "Susah" } as Tier,
     points: (n: number) => `${n} poin`,
-    tests: (passed: number | null, total: number) =>
-      passed === null ? `${total} test` : `${passed} / ${total} test`,
     notSent: "belum dikirim",
+    sentOk: "sudah dikirim",
+    submitted: "Submit diterima dan dinilai. Hasilnya tidak ditampilkan.",
     waiting: "menunggu judge",
     running: "sedang dinilai",
     problemList: "Soal Live Coding",
@@ -55,13 +55,13 @@ export const LCC = dict({
       title: "Mau coba soal bonus?",
       title2: "Yakin tidak mau coba soal bonus?",
       counting: "Melihat hasil kerjamu...",
-      desc: (q: BonusQuote, round: 1 | 2) => offerWords("id", q, round),
+      desc: (q: BonusOffer, round: 1 | 2) => offerWords("id", q, round),
       yes: "Ya, Coba Soal Bonus",
       yes2: "Oke, Aku Coba",
       no: "Tidak, Lewati",
       no2: "Tetap Lewati",
       taking: "Menyiapkan soal bonus",
-      added: (n: number) => `${n} soal bonus ditambahkan di daftar soal.`,
+      added: () => "Soal bonus ditambahkan di daftar soal.",
       fail: "Soal bonus belum bisa diambil. Coba lagi.",
       late: "Sisa waktumu sudah kurang dari batas untuk bonus.",
       bar: "Soal Bonus: bernilai setengah soal biasa. Kosong atau gagal tidak mengurangi.",
@@ -73,8 +73,7 @@ export const LCC = dict({
     finishKeep: "Lanjut Mengerjakan",
     finishGo: "Ya, Selesai",
     finishFail: "Belum bisa menyelesaikan. Coba lagi.",
-    scoreSoFar: "Nilai sementara",
-    outOf: (cap: number) => `/ ${cap}`,
+    scoreHidden: "Nilaimu tidak ditampilkan selama tes.",
     statement: "Soal",
     input: "Input",
     output: "Output",
@@ -114,10 +113,8 @@ export const LCC = dict({
     compileErrorLede: "Kodemu belum bisa di-compile. Ini pesan dari compiler:",
     failedTitle: "Judge gagal menilai",
     failedLede: "Bukan salahmu. Submit lagi, atau panggil pengawas kalau terus begini.",
-    best: (got: number, points: number) => `Terbaikmu: ${got} dari ${points} poin`,
     penaltyRule: (free: number, step: number, max: number) =>
       `Submit yang gagal bisa memotong nilai soal: ${free} kali pertama gratis, setelah itu tiap Submit gagal memotong ${step}% dari nilai yang kamu dapat di soal itu, paling banyak ${max}%. Kalau soalnya sudah lolos semua test, Submit sesudahnya tidak dihitung.`,
-    cut: (fails: number, lost: number) => `Dipotong ${lost}% karena ${fails} Submit gagal`,
     verdict: {
       ac: "Lolos",
       wa: "Jawaban salah",
@@ -177,9 +174,9 @@ export const LCC = dict({
     drawWait: "Waiting for the proctor to press Start.",
     tier: { easy: "Easy", medium: "Medium", hard: "Hard" } as Tier,
     points: (n: number) => `${n} points`,
-    tests: (passed: number | null, total: number) =>
-      passed === null ? `${total} tests` : `${passed} / ${total} tests`,
     notSent: "not sent yet",
+    sentOk: "sent",
+    submitted: "Submit received and graded. The result is not shown.",
     waiting: "waiting for judge",
     running: "being judged",
     problemList: "Live Coding problems",
@@ -189,16 +186,13 @@ export const LCC = dict({
       title: "Want to try the bonus problems?",
       title2: "Sure you do not want the bonus problems?",
       counting: "Looking at how you did...",
-      desc: (q: BonusQuote, round: 1 | 2) => offerWords("en", q, round),
+      desc: (q: BonusOffer, round: 1 | 2) => offerWords("en", q, round),
       yes: "Yes, Try the Bonus",
       yes2: "Okay, I will Try",
       no: "No, Skip",
       no2: "Skip Anyway",
       taking: "Getting the bonus problems ready",
-      added: (n: number) =>
-        n === 1
-          ? "1 bonus problem was added to the problem list."
-          : `${n} bonus problems were added to the problem list.`,
+      added: () => "Bonus problems were added to the problem list.",
       fail: "The bonus problems could not be taken. Try again.",
       late: "Your time left is now under the limit for the bonus.",
       bar: "Bonus Problem: worth half a normal one. Blank or failing takes nothing away.",
@@ -210,8 +204,7 @@ export const LCC = dict({
     finishKeep: "Keep Working",
     finishGo: "Yes, Finish",
     finishFail: "Could not finish. Try again.",
-    scoreSoFar: "Score so far",
-    outOf: (cap: number) => `/ ${cap}`,
+    scoreHidden: "Your score is not shown during the test.",
     statement: "Problem",
     input: "Input",
     output: "Output",
@@ -251,10 +244,8 @@ export const LCC = dict({
     compileErrorLede: "Your code does not compile yet. This is what the compiler said:",
     failedTitle: "The judge could not finish",
     failedLede: "Not your fault. Submit again, or call the proctor if it keeps happening.",
-    best: (got: number, points: number) => `Your best: ${got} of ${points} points`,
     penaltyRule: (free: number, step: number, max: number) =>
       `Failed Submits can cut a problem's score: the first ${free} are free, then each failed Submit takes ${step}% off what you earned on that problem, at most ${max}%. Once a problem passes every test, later Submits do not count.`,
-    cut: (fails: number, lost: number) => `${lost}% cut for ${fails} failed Submits`,
     verdict: {
       ac: "Passed",
       wa: "Wrong answer",
@@ -313,9 +304,9 @@ export const LCC = dict({
     drawWait: "等待监考按下开始。",
     tier: { easy: "简单", medium: "中等", hard: "困难" } as Tier,
     points: (n: number) => `${n} 分`,
-    tests: (passed: number | null, total: number) =>
-      passed === null ? `${total} 个测试` : `${passed} / ${total} 个测试`,
     notSent: "尚未提交",
+    sentOk: "已提交",
+    submitted: "提交已收到并评分，结果不会显示。",
     waiting: "等待评测",
     running: "评测中",
     problemList: "现场编程题目",
@@ -325,13 +316,13 @@ export const LCC = dict({
       title: "要试试加分题吗？",
       title2: "真的不想试加分题吗？",
       counting: "正在查看你的表现...",
-      desc: (q: BonusQuote, round: 1 | 2) => offerWords("zh", q, round),
+      desc: (q: BonusOffer, round: 1 | 2) => offerWords("zh", q, round),
       yes: "是，试试加分题",
       yes2: "好，我来试试",
       no: "不用，跳过",
       no2: "还是跳过",
       taking: "正在准备加分题",
-      added: (n: number) => `已在题目列表中加入 ${n} 道加分题。`,
+      added: () => "已在题目列表中加入加分题。",
       fail: "暂时无法领取加分题，请重试。",
       late: "剩余时间已低于加分题的门槛。",
       bar: "加分题：分值是普通题的一半，空白或未通过不扣分。",
@@ -342,8 +333,7 @@ export const LCC = dict({
     finishKeep: "继续作答",
     finishGo: "是，结束",
     finishFail: "暂时无法结束，请重试。",
-    scoreSoFar: "当前得分",
-    outOf: (cap: number) => `/ ${cap}`,
+    scoreHidden: "测试期间不会显示你的得分。",
     statement: "题目",
     input: "输入",
     output: "输出",
@@ -378,10 +368,8 @@ export const LCC = dict({
     compileErrorLede: "你的代码还不能编译。编译器的信息如下：",
     failedTitle: "评测未能完成",
     failedLede: "不是你的问题。再提交一次，如果一直这样请叫监考。",
-    best: (got: number, points: number) => `你的最好成绩：${got} / ${points} 分`,
     penaltyRule: (free: number, step: number, max: number) =>
       `失败的提交会扣该题得分：前 ${free} 次免扣，之后每次失败提交扣掉你在该题所得分的 ${step}%，最多扣 ${max}%。题目通过全部测试后，之后的提交不计入。`,
-    cut: (fails: number, lost: number) => `因 ${fails} 次失败提交扣了 ${lost}%`,
     verdict: {
       ac: "通过",
       wa: "答案错误",

@@ -14,9 +14,20 @@ import {
   type Value,
 } from "./exam-types.js";
 import type { Caps } from "./exam-config.js";
+import { BONUS_OVER } from "./bonus.js";
 import { credit } from "./formats.js";
-import { fracText, type Frac } from "./frac.js";
-import type { LiveFlag, PartScore, ScoreRow, StatRow, WrongPick } from "./score-api.js";
+import { ZERO, div, frac, fracText, isOne, mul, sum, type Frac } from "./frac.js";
+import type {
+  LiveFlag,
+  PartScore,
+  ScoreRow,
+  SeatDetail,
+  SeatLiveProblem,
+  SeatPartDetail,
+  SeatQuestion,
+  StatRow,
+  WrongPick,
+} from "./score-api.js";
 import { scorePart, totals, type SeatPart } from "./scoring.js";
 import { livecodeResult, type Penalty, type Run } from "./c-problem.js";
 
@@ -51,7 +62,7 @@ export interface LiveIn {
   /** Seats that were dealt a hand, with what each problem is worth */
   hand: ReadonlyMap<
     number,
-    readonly { problemId: number; points: number; bonus?: boolean; own?: boolean }[]
+    readonly { problemId: number; points: number; bonus?: boolean; own?: boolean; title?: string }[]
   >;
   /** Finished Submits per seat; a Run Sample never counts */
   runs: ReadonlyMap<number, readonly (Run & { problemId: number })[]>;
@@ -64,6 +75,8 @@ export interface LiveIn {
 export interface Assembled {
   rows: ScoreRow[];
   stats: StatRow[];
+  /** The seat asked for with `detailSeat`: every question and Live Coding problem behind its score */
+  detail?: SeatDetail;
   /** Seats that started each part */
   started: Record<Phase1Part, number>;
   /** Seats with a Submit the judge has not answered yet */
@@ -80,6 +93,8 @@ export function assemble(
   caps: Caps,
   /** What a question is worth when it has no score of its own, per part; 1 when left out */
   defaultPts: Partial<Record<Phase1Part, number>> = {},
+  /** One seat to explain question by question (Cutting drawer); left out, no detail is built */
+  detailSeat?: number,
 ): Assembled {
   const byId = new Map(questions.map((q) => [q.id, q]));
   const voided = new Set(questions.filter((q) => q.voided).map((q) => q.id));
@@ -127,6 +142,7 @@ export function assemble(
 
   const rows: ScoreRow[] = [];
   const liveWaiting: number[] = [];
+  let liveProblems: SeatLiveProblem[] = [];
   for (const s of seats) {
     const parts = {} as Record<Phase1Part, PartScore>;
     for (const part of PHASE1_PARTS) {
@@ -166,6 +182,21 @@ export function assemble(
         baseSum === 0 || baseSum === caps.livecode || !base.some((h) => h.own)
           ? all.total
           : Math.round((all.total * caps.livecode) / baseSum);
+      if (s.seatId === detailSeat)
+        liveProblems = all.problems.map((pr) => {
+          const h = hand.find((x) => x.problemId === pr.problemId);
+          return {
+            problemId: pr.problemId,
+            title: h?.title ?? "",
+            bonus: !!h?.bonus,
+            points: pr.points,
+            got: pr.got,
+            passed: pr.best?.passed ?? null,
+            total: pr.best?.total ?? null,
+            fails: pr.fails,
+            lost: pr.lost,
+          };
+        });
       if (live.waiting.has(s.seatId)) {
         liveFlag = "belum";
         liveWaiting.push(s.seatId);
@@ -200,6 +231,84 @@ export function assemble(
         : {}),
       total: t.total,
     });
+  }
+
+  // One seat in full (Cutting drawer): every question with what it gave, and the Live Coding problems.
+  let detail: SeatDetail | undefined;
+  const ds = detailSeat === undefined ? undefined : seats.find((x) => x.seatId === detailSeat);
+  const dr = ds ? rows.find((r) => r.seatId === ds.seatId) : undefined;
+  if (ds && dr) {
+    const parts: SeatPartDetail[] = PHASE1_PARTS.map((part) => {
+      const pr = dr.parts[part];
+      const out: SeatPartDetail = {
+        part,
+        cap: caps.parts[part],
+        score: pr.score,
+        ...(pr.flag ? { flag: pr.flag } : {}),
+        ...(pr.cut !== undefined ? { cut: pr.cut, was: pr.was } : {}),
+        questions: [],
+        full: 0,
+        partial: 0,
+        wrong: 0,
+        blank: 0,
+        voided: 0,
+      };
+      const run = ds.draw[part];
+      if (!run) return out;
+      const stats = scored[part].now.stats;
+      const dp = defaultPts[part] ?? 1;
+      const weight = (q: number): Frac => {
+        const st = stats.get(q);
+        return st ? mul(st.w, frac(ownPts.get(q) ?? dp)) : ZERO;
+      };
+      const denom = sum(
+        run.items.filter((it) => byId.has(it.q) && !voided.has(it.q)).map((it) => weight(it.q)),
+      );
+      const points = (f: Frac) =>
+        denom.n === 0n ? 0 : Math.round((caps.parts[part] * 10 * Number(f.n)) / Number(f.d)) / 10;
+      const line = (id: number, bonus: boolean): SeatQuestion | null => {
+        const q = byId.get(id);
+        if (!q) return null;
+        const v = ds.values.get(id);
+        const isVoid = voided.has(id);
+        const c = credit(q.question, v ?? null);
+        const state: SeatQuestion["state"] = isVoid
+          ? "void"
+          : v == null
+            ? "blank"
+            : isOne(c)
+              ? "full"
+              : c.n === 0n
+                ? "wrong"
+                : "partial";
+        const w = isVoid ? ZERO : bonus ? mul(weight(id), frac(1, BONUS_OVER)) : weight(id);
+        return {
+          q: id,
+          title: q.title,
+          format: q.question.format,
+          lang: q.lang,
+          bonus,
+          state,
+          got: denom.n === 0n ? 0 : points(div(mul(c, w), denom)),
+          max: denom.n === 0n ? 0 : points(div(w, denom)),
+        };
+      };
+      for (const it of run.items) {
+        const l = line(it.q, false);
+        if (!l) continue;
+        out.questions.push(l);
+        if (l.state === "void") out.voided++;
+        else out[l.state]++;
+      }
+      // A bonus question left blank is as if never dealt (scorePart), so it is not listed
+      for (const it of run.bonus ?? []) {
+        if (ds.values.get(it.q) == null) continue;
+        const l = line(it.q, true);
+        if (l) out.questions.push(l);
+      }
+      return out;
+    });
+    detail = { parts, liveProblems };
   }
 
   // Statistics: every question some seat was dealt, a voided one with the numbers it had.
@@ -245,7 +354,7 @@ export function assemble(
       wrong: wrongPick(q.question, valuesOf.get(id) ?? []),
     });
   }
-  return { rows, stats, started, liveWaiting };
+  return { rows, stats, ...(detail ? { detail } : {}), started, liveWaiting };
 }
 
 /* ------------------------------------------------------------ wrong picks */
