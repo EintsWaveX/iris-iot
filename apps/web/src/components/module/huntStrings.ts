@@ -55,7 +55,7 @@ export const H = dict({
     copyKey: "Salin kunci papan",
     boardKey: "Kunci papan",
     boardKeyHint:
-      "Kunci ini sudah terisi di HUNT_KEY pada file yang kamu unduh dari langkah Kode. Kuncinya khusus kelompokmu dan tidak berganti antar sesi, jadi papan yang sudah diunggah dengan kunci ini tidak perlu diunggah ulang. Hanya asisten yang bisa memutar kunci, dan itu terlihat di sini. Kalau kamu memakai salinan lama, tempel kunci ini ke HUNT_KEY.",
+      "Kunci ini sudah terisi di HUNT_KEY pada file yang kamu unduh dari langkah Kode. Kuncinya khusus kelompokmu dan berganti setiap sesi selesai, jadi papan harus diunggah dengan kunci sesi ini dan tidak berlaku di sesi lain. Kalau kamu memakai salinan lama, tempel kunci ini ke HUNT_KEY.",
     keyRound: (n: number, at: number | null) =>
       n === 0
         ? "Kunci belum pernah diganti."
@@ -155,7 +155,7 @@ export const H = dict({
     copyKey: "Copy the board key",
     boardKey: "Board key",
     boardKeyHint:
-      "This key is already filled into HUNT_KEY in the files you download from the Code step. It belongs to your group only and does not change between sessions, so a board already uploaded with this key does not need uploading again. Only an assistant can turn the keys, and it shows here when they do. If you are using an older copy, paste this key into HUNT_KEY.",
+      "This key is already filled into HUNT_KEY in the files you download from the Code step. It belongs to your group only and changes every time a session ends, so a board has to be uploaded with this session's key and will not work in another session. If you are using an older copy, paste this key into HUNT_KEY.",
     keyRound: (n: number, at: number | null) =>
       n === 0
         ? "The key has never been changed."
@@ -253,7 +253,7 @@ export const H = dict({
     copyKey: "复制板子密钥",
     boardKey: "板子密钥",
     boardKeyHint:
-      "从代码步骤下载的文件里，HUNT_KEY 已经填好这个密钥。它只属于你们组，各节课之间不会更换，所以已经上传过这个密钥的板子不用再上传。只有助教能更换密钥，更换时这里会显示。如果你用的是旧副本，就把这个密钥粘贴到 HUNT_KEY 里。",
+      "从代码步骤下载的文件里，HUNT_KEY 已经填好这个密钥。它只属于你们组，每节课结束后都会更换，所以板子必须用本节课的密钥上传，换到其他课就不能用了。如果你用的是旧副本，就把这个密钥粘贴到 HUNT_KEY 里。",
     keyRound: (n: number, at: number | null) =>
       n === 0 ? "密钥还没换过。" : `密钥第 ${n} 轮${at ? `，${jam(at)} 更换` : ""}。`,
     keyOld:

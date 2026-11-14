@@ -5,8 +5,10 @@ Menjalankan seluruh perintah baru terhadap server yang sedang hidup, termasuk
 yang HARUS ditolak. Sebelum revisi ini tidak ada satu pun perintah /live yang
 teruji otomatis, sehingga perubahan skema hanya ketahuan di lapangan.
 
-    python modul4/server.py --token UJICOBA &
+    python modul4/server.py --token UJICOBA --tetap &
     python modul4/tools/uji_protokol.py --token UJICOBA
+
+(--tetap: tanpa pergantian kode tiap sesi, supaya token uji tetap UJICOBA)
 
 Keluar dengan status bukan-nol bila ada satu saja yang gagal.
 """
@@ -620,7 +622,7 @@ async def uji_login(args, T: str) -> None:
         cek("login: sesudah sesi berakhir sapuan ditolak",
             bool(r) and r.get("ok") is False, (r or {}).get("alasan", ""))
 
-        # ---- kode masuk berputar saat sesi dijalankan ulang ----------------
+        # ---- kode masuk tetap saat sesi dijalankan ulang (berganti di akhir) --
         await asisten.send(json.dumps({"aksi": "sesi_mulai", "sesi": 3}))
         await balas(asisten, "sesi_mulai")
         kode1 = kode_sekarang()
@@ -628,8 +630,8 @@ async def uji_login(args, T: str) -> None:
         await asisten.send(json.dumps({"aksi": "sesi_mulai", "sesi": 3}))
         await balas(asisten, "sesi_mulai")
         kode2 = kode_sekarang()
-        cek("kode masuk berputar saat sesi yang sama dijalankan ulang",
-            kode1 and kode2 and kode1 != kode2, f"{kode1} -> {kode2}")
+        cek("kode masuk tidak berubah saat sesi yang sama dijalankan ulang",
+            bool(kode1) and kode1 == kode2, f"{kode1} -> {kode2}")
 
         # ---- kunci papan bisa diputar -------------------------------------
         with urllib.request.urlopen(f"{args.http}/ringkas.json") as resp:
@@ -742,14 +744,17 @@ async def uji_tot(args, T: str) -> None:
         cek("tot: ponsel kedua cukup memilih bayangan lain",
             bool(r) and r.get("ok") is True and r.get("grup") == 1, json.dumps(r)[:80])
 
-        # Rehearsal diulang: kode berputar, tetapi yang sudah masuk tidak perlu tautan baru.
-        kode_lama = kode_sekarang()
+        # Rehearsal diulang: kode papan hanya berganti saat sesi BERAKHIR (benih
+        # acak), jadi mengulang Mulai tidak mengubahnya. Kode dari sesi lain
+        # diwakili kode lama yang basi: ponsel yang sudah masuk tetap
+        # boleh tersambung ulang, ponsel baru tidak.
+        kode_baru = kode_sekarang()
         await asyncio.sleep(0.05)
         await asisten.send(json.dumps({"aksi": "sesi_mulai", "sesi": 3}))
         await balas(asisten, "sesi_mulai")
-        kode_baru = kode_sekarang()
-        cek("tot: kode berputar saat rehearsal diulang", kode_lama != kode_baru,
-            f"{kode_lama} -> {kode_baru}")
+        cek("tot: mengulang Mulai tidak mengubah kode (hanya akhir sesi)",
+            kode_sekarang() == kode_baru, f"{kode_baru} -> {kode_sekarang()}")
+        kode_lama = "QQQQQQ" if kode_baru != "QQQQQQ" else "WWWWWW"
         await pertama.close()
         pertama = await buka()
         await pertama.send(json.dumps({"aksi": "halo", "nim": "100000", "dev": DEV_A,

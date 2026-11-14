@@ -88,9 +88,10 @@ jalankan ulang generatornya — jangan menyunting berkas hasil bangkitan.
 Dulu papan hanya terjangkau dari hotspot tertutup. Sekarang tiga pagar
 menggantikannya (`server.py`, diuji `tools/uji_protokol.py`):
 
-- **Kode papan**: enam huruf yang diturunkan dari token asisten, sesi, dan
-  tanggal (jadi berganti tiap sesi dan tiap hari, dan tetap sama bila server
-  dinyalakan ulang). Kodenya ikut di tautan yang ditampilkan situs IRIS di
+- **Kode papan**: enam huruf yang diturunkan dari rahasia mesin PC dan benih
+  acak sesi (lihat "Kode yang berganti tiap sesi" di bawah): berganti setiap
+  sesi berakhir, dan tetap sama bila server dinyalakan ulang di tengah sesi.
+  Kodenya ikut di tautan yang ditampilkan situs IRIS di
   langkah Perburuan (`#k=...`, di fragmen, jadi tidak pernah dikirim ke server
   atau tercatat). Tanpanya NIM tidak dicoba sama sekali dan `/roster.json`
   menjawab 403. Asisten yang memasukkan token menerima kodenya di jawaban
@@ -109,24 +110,25 @@ menggantikannya (`server.py`, diuji `tools/uji_protokol.py`):
   `X-Forwarded-For`, ...) dan menolak yang datang lewat tunnel.
 
 - **Kunci papan per kelompok**: tiap pesan Beacon dan Hunter membawa kunci
-  delapan huruf (`"k"`) milik kelompoknya, diturunkan dari token PC dan nomor
-  kelompok saja. Situs IRIS menampilkannya di langkah Perburuan
+  delapan huruf (`"k"`) milik kelompoknya, diturunkan dari rahasia mesin PC,
+  benih acak sesi, dan nomor kelompok. Situs IRIS menampilkannya di langkah Perburuan
   (hanya kunci kelompok itu sendiri) dan kelompok menempelkannya ke `HUNT_KEY`
   di `hunter.ino` dan `beacon.ino` sebelum mengunggah. Pesan tanpa kunci yang
   benar dibuang; kunci satu kelompok tidak berlaku untuk kelompok lain, dan
   orang luar tidak bisa menyuntikkan RSSI palsu. Papan skor menunjukkan
   "Kunci papan kelompokmu salah" selagi papan sebuah kelompok masih
   mengirim kunci yang salah, dan soket yang terus salah (50 pesan) ditutup.
-  Kunci TIDAK berganti antar sesi maupun hari, dan tetap sama bila server
-  dinyalakan ulang: papan yang sekali diunggah dengan kuncinya tetap sah
-  selama token PC tidak diganti dan asisten tidak menekan **Kunci Papan Baru**
-  (`kunci_baru`, putaran disimpan di `modul4/kunci.json`, bukan di jadwal.json
-  yang dibuang tiap hari). Kode papan di atas berganti tiap sesi dan tiap sesi
-  dimulai lagi. Kalau token diganti atau kunci diputar, semua kunci berubah dan
-  papan harus diunggah ulang; situs menampilkan putaran kunci dan memberi
-  peringatan bila papan kelompok masih mengirim kunci lama. Kegagalan kunci tidak dihitung ke blokir per alamat,
+  Kunci tetap sama sepanjang satu sesi (termasuk ronde yang diulang dan server
+  yang dinyalakan ulang di tengahnya), jadi papan yang diunggah sebelum Mulai
+  Perburuan tetap sah. Begitu sesi berakhir kuncinya berganti, dan papan harus
+  diunggah ulang dengan kunci sesi berikutnya. Kegagalan kunci tidak dihitung
+  ke blokir per alamat,
   karena alamat itu adalah ponsel hotspot kelompok yang juga dipakai
   anggotanya membuka papan.
+  Asisten juga bisa menekan **Kunci Papan Baru** (`kunci_baru`; putarannya
+  disimpan di `modul4/kunci.json`) untuk memutar semua kunci di tengah sesi;
+  situs menampilkan putaran kunci dan memberi peringatan bila papan
+  kelompok masih mengirim kunci lama.
 
 Sisa risiko yang diketahui: kelompok yang menyunting sketsanya sendiri tetap
 bisa memalsukan pembacaan **kelompoknya sendiri** (kuncinya ada di tangan
@@ -201,12 +203,35 @@ jangkauan), paket putus-putus dengan RSSI liar (tepat di tepi), lalu paket
 rapat dengan RSSI yang mengikuti jarak (di dalam jangkauan). Peralihan dari
 "tidak ada apa-apa" ke "ada sesuatu" itulah pendeteksi otomatisnya.
 
+### Kode yang berganti tiap sesi
+
+Tiga kode Modul 4, yaitu token asisten, kode papan di tautan praktikan, dan kunci
+papan tiap kelompok, berganti **setiap sesi berakhir**. Ketiganya diturunkan dari
+dua hal: *rahasia mesin* (`--token`; di PC isi `/var/lib/iris-modul4/token`, dibuat
+sekali oleh `opi_provision.sh`, mode 0600, tidak pernah ditampilkan) dan *benih*
+acak yang disimpan di `benih.json` di samping `jadwal.json` (mode 0600). Benihnya
+diganti ketika:
+
+- jendela sebuah sesi habis atau asisten mengakhirinya,
+- situs mengosongkan daftar sebuah sesi (sesi itu berakhir di situs, termasuk sesi
+  TOT yang diulang dengan orang yang sama),
+- jadwal dihapus.
+
+Benih **tidak** diganti ketika sesi dimulai atau Mulai Perburuan ditekan: papan
+diunggah sebelum tombol itu ditekan, dan tekanannya menjalankan sesi sekali lagi.
+Karena itu sesi berikutnya sudah punya kode baru sejak sesi sebelumnya berakhir,
+dan kode itu tetap sampai sesi itu sendiri berakhir, juga bila server dinyalakan
+ulang atau satu sesi menjalankan beberapa ronde. Sesudah pergantian, papan yang
+diunggah dengan kunci lama ditolak ("Kunci papan kelompokmu salah") dan harus
+diunggah ulang dengan kunci baru (situs mengisinya otomatis di langkah Perburuan
+dan di Unggah). Pergantian tercetak di konsol PC bersama token barunya.
+`--tetap` mematikan pergantian (uji CI dan pengembangan): token = `--token`.
+
 ### Token asisten
 
-Di PC, `modul4.service` membaca token tetap dari
-`/var/lib/iris-modul4/token` (dibuat sekali oleh `opi_provision.sh`, mode 0600),
-jadi token **tidak** berganti saat layanan dinyalakan ulang. Dijalankan dengan
-tangan tanpa `--token`, server membangkitkan token enam huruf dan mencetaknya:
+Tokennya berganti tiap sesi, dan situs menampilkannya kepada Asisten di langkah
+Perburuan (tombol Salin). Dijalankan dengan
+tangan tanpa `--token`, server membangkitkan rahasia mesin acak dan mencetak token enam huruf:
 
 ```
 [13:02:52:686] +-----------------------------+
@@ -215,11 +240,12 @@ tangan tanpa `--token`, server membangkitkan token enam huruf dan mencetaknya:
 ```
 
 Asisten membuka alamat yang sama dengan praktikan, mengetuk **Menu** lalu **Buka Ruang Kendali Asisten** (atau **Saya Asisten** di kartu masuk NIM), lalu mengetikkan token itu. Tokennya tersimpan di
-peramban asisten, jadi cukup sekali per perangkat.
+peramban asisten; sesudah sesi berakhir token lama tidak dikenal lagi, peramban
+melupakannya sendiri, dan token baru diketik sekali.
 
 Abjadnya sengaja tanpa huruf dan angka yang mudah tertukar saat dibacakan
 (tanpa 0/O, 1/I/L, 2/Z, 5/S, 8/B), dan salah ketik lima kali menutup koneksi.
-Pakai `--token KODE` untuk token tetap saat menjalankan server dengan tangan.
+Pakai `--token KODE --tetap` untuk token yang tidak berganti saat menjalankan server dengan tangan.
 
 > Tanpa token, tidak ada yang bisa mengesahkan pemenang, menolak klaim,
 > mengkalibrasi, memulai sesi baru, atau menyunting nama. Sebelum revisi ini
@@ -478,9 +504,10 @@ NIM dipakai untuk satu hal saja: mencari kelompok seseorang saat ia masuk.
   **bukan** otentikasi penuh, dan itu alasan jadwalnya tidak menginap semalam.
 
 **Kode masuk berputar, ponsel yang sudah masuk tidak ikut repot.** Kode papan
-(`#k=` di tautan) berganti tiap sesi dimulai lagi. Ponsel yang sudah masuk di
+(`#k=` di tautan) berganti tiap sesi berakhir. Ponsel yang sudah masuk di
 sesi itu dikenali dari NIM dan nomor perangkatnya, jadi kalau sambungannya
-putus ia tersambung lagi tanpa tautan baru. Ponsel baru tetap butuh kode
+putus ia tersambung lagi tanpa tautan baru, bahkan bila kodenya sempat
+diputar. Ponsel baru tetap butuh kode
 terbaru, dan sesudah **Keluar** ponsel itu dianggap baru lagi. Tautan baru yang
 dibuka di tab yang sudah berjalan dipakai langsung, tanpa muat ulang.
 
@@ -542,7 +569,7 @@ diselesaikan dalam lima belas detik.
 Untuk melihat seluruh permainan tanpa satu orang pun di lapangan:
 
 ```bash
-python modul4/server.py --token UJICOBA
+python modul4/server.py --token UJICOBA --tetap
 python modul4/tools/fake_hunt.py --jalur --bot --token UJICOBA --tempo 3
 ```
 
@@ -560,7 +587,7 @@ bergabung dengan kelompok 3 di samping bot-nya, atau buka `?nim=D0300`.
 termasuk yang **harus ditolak** — diuji terpisah:
 
 ```bash
-python modul4/server.py --token UJICOBA &
+python modul4/server.py --token UJICOBA --tetap &
 python modul4/tools/uji_protokol.py --token UJICOBA
 ```
 
@@ -584,7 +611,7 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
   "Menyambung ke hotspot", atau berulang kali mencoba menyambung soket.
 - **"Buka papan ini dari tautan di langkah Perburuan situs IRIS".** Ponsel itu
   membuka alamat tanpa kode papan. Kode ikut di tautan/QR dari situs, berganti
-  tiap sesi dan tiap hari; buka ulang tautannya dari situs.
+  tiap sesi berakhir; buka ulang tautannya dari situs.
 - **Satu alamat tiba-tiba ditolak ("terlalu banyak percobaan").** Lima belas
   tebakan token dalam sepuluh menit memblokir alamat itu selama sisa
   jendelanya (NIM dan kode salah: enam puluh). Pada jaringan seluler yang berbagi satu alamat, salah ketik

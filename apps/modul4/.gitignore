@@ -10,6 +10,10 @@ jadwal.json
 jadwal.json.tmp
 roster.json
 
+# Benih acak kode sesi (token, kode papan, kunci papan; lihat SETUP.md). Rahasia.
+benih.json
+benih.json.tmp
+
 # Hasil build; dibangkitkan ulang dengan `python modul4/build.py`.
 public/index.html
 
