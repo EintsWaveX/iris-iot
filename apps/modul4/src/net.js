@@ -87,17 +87,31 @@
   H.net = N;
   /* The join code arrives in the address fragment, which a browser never
      sends to a server or a log. Read once, then dropped from the address. */
-  (() => {
+  const takeKodeFromLink = () => {
     try {
       const m = /[#&]k=([A-Za-z0-9]{4,12})/.exec(window.location.hash);
-      if (!m) return;
+      if (!m) return false;
       N.kode = cleanKode(m[1]);
       H.write(KEY_KODE, N.kode);
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      return !!N.kode;
     } catch (e) {
       /* no history API: the stored copy still works */
+      return !!N.kode;
     }
-  })();
+  };
+  takeKodeFromLink();
+  /* A fresh link opened in a tab that is already running (a new QR scanned
+     into the same tab, or a link with a new code pasted over the address):
+     take its code and say hello again so the sign-in does not wait for a
+     reload. */
+  window.addEventListener("hashchange", () => {
+    if (takeKodeFromLink()) {
+      N.problem = null;
+      if (N.nim && N.grup === null) halo();
+      changed(true);
+    }
+  });
   /* Phase 9: the web's Perburuan step links here with ?nim=, so a phone
      that scanned the QR signs in without typing. Read once, then dropped
      from the address so a reload doesn't sign in again. */

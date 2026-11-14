@@ -661,6 +661,150 @@ async def uji_login(args, T: str) -> None:
                 pass
 
 
+async def uji_tot(args, T: str) -> None:
+    """Mode TOT: 60 peserta bayangan, rehearsal yang diulang, daftar yang berganti.
+
+    Bentuk datanya sama dengan yang dikirim situs saat Mode TOT menyala: enam
+    divisi, tiap kelompok sepuluh NIM bayangan (100000..100009, 200000.., dst.)
+    bernama "TOT ASO 01". Berdiri sendiri, memasang dan membersihkan sesinya.
+    """
+    DEV_A, DEV_B = "UJITOTPERANGKATAA", "UJITOTPERANGKATBB"
+    DIVISI = ["ASO", "ARD", "ADS", "ADC", "AER", "ARM"]
+    tot = {str(i + 1): {"nama": f"Kelompok {i + 1}", "aktif": True,
+                        "anggota": [{"nim": f"{i + 1}0000{n}", "nama": f"TOT {d} {n + 1:02d}"}
+                                    for n in range(10)]}
+           for i, d in enumerate(DIVISI)}
+    nyata = {"1": {"nama": "Regu Nyata", "aktif": True,
+                   "anggota": [{"nim": "UJINYATA01", "nama": "Mahasiswa Nyata"}]}}
+
+    async def masuk(ws, nim: str, dev: str = DEV_A, **extra) -> dict | None:
+        await ws.send(json.dumps({"aksi": "masuk", "nim": nim, "dev": dev, **extra}))
+        return await tunggu_tipe(ws, "masuk")
+
+    soket: list = []
+
+    async def buka():
+        ws = await connect(args.url + "/live")
+        soket.append(ws)
+        return ws
+
+    asisten = await buka()
+    try:
+        await asisten.send(json.dumps({"aksi": "halo", "token": T}))
+        await balas(asisten, "halo")
+
+        # Sebelum TOT menyala: mahasiswa nyata sedang main di sesi 3.
+        await asisten.send(json.dumps({"aksi": "jadwal_set", "sesi": 3, "regu": nyata}))
+        await balas(asisten, "jadwal_set")
+        await asisten.send(json.dumps({"aksi": "sesi_mulai", "sesi": 3}))
+        await balas(asisten, "sesi_mulai")
+        nyata_ws = await buka()
+        r = await masuk(nyata_ws, "UJINYATA01", dev=DEV_B)
+        cek("tot: mahasiswa nyata masuk sebelum Mode TOT", bool(r) and r.get("ok") is True,
+            json.dumps(r)[:80])
+
+        # Mode TOT menyala: daftar hidup diganti peserta bayangan.
+        await asisten.send(json.dumps({"aksi": "jadwal_set", "sesi": 3, "regu": tot}))
+        r = await balas(asisten, "jadwal_set")
+        cek("tot: 60 peserta bayangan diterima sebagai daftar", bool(r) and r.get("ok") is True,
+            (r or {}).get("alasan", ""))
+        r = await tunggu_tipe(nyata_ws, "halo", timeout=3.0)
+        cek("tot: mahasiswa nyata dikeluarkan saat daftar berganti ke bayangan",
+            bool(r) and r.get("ok") is False and r.get("grup") is None
+            and r.get("kode") == "tak_terdaftar", json.dumps(r)[:90])
+        r = await masuk(nyata_ws, "UJINYATA01", dev=DEV_B)
+        cek("tot: mahasiswa nyata tidak bisa masuk selama TOT",
+            bool(r) and r.get("ok") is False and r.get("kode") == "tak_terdaftar",
+            json.dumps(r)[:80])
+
+        # Peserta bayangan dari setiap divisi bisa masuk ke kelompoknya.
+        benar = True
+        catatan = ""
+        for i, d in enumerate(DIVISI):
+            ws = await buka()
+            r = await masuk(ws, f"{i + 1}00003", dev=f"UJITOTDEV{i:04d}XX")
+            if not (r and r.get("ok") is True and r.get("grup") == i + 1
+                    and r.get("nama") == f"TOT {d} 04"):
+                benar, catatan = False, json.dumps(r)[:90]
+                break
+        cek("tot: satu peserta tiap divisi masuk ke kelompok dan nama yang benar", benar, catatan)
+
+        # Dua trainer memilih bayangan yang sama di dua ponsel.
+        pertama = await buka()
+        r = await masuk(pertama, "100000", dev=DEV_A)
+        cek("tot: bayangan pertama masuk", bool(r) and r.get("ok") is True, json.dumps(r)[:80])
+        kedua = await buka()
+        r = await masuk(kedua, "100000", dev=DEV_B)
+        cek("tot: bayangan yang sama di ponsel kedua ditolak dengan alasan jelas",
+            bool(r) and r.get("ok") is False and r.get("kode") == "sedang_dipakai",
+            json.dumps(r)[:80])
+        r = await masuk(kedua, "100001", dev=DEV_B)
+        cek("tot: ponsel kedua cukup memilih bayangan lain",
+            bool(r) and r.get("ok") is True and r.get("grup") == 1, json.dumps(r)[:80])
+
+        # Rehearsal diulang: kode berputar, tetapi yang sudah masuk tidak perlu tautan baru.
+        kode_lama = kode_sekarang()
+        await asyncio.sleep(0.05)
+        await asisten.send(json.dumps({"aksi": "sesi_mulai", "sesi": 3}))
+        await balas(asisten, "sesi_mulai")
+        kode_baru = kode_sekarang()
+        cek("tot: kode berputar saat rehearsal diulang", kode_lama != kode_baru,
+            f"{kode_lama} -> {kode_baru}")
+        await pertama.close()
+        pertama = await buka()
+        await pertama.send(json.dumps({"aksi": "halo", "nim": "100000", "dev": DEV_A,
+                                       "kode_papan": kode_lama}))
+        r = await tunggu_tipe(pertama, "halo")
+        cek("tot: ponsel yang sudah masuk tersambung ulang dengan kode lama",
+            bool(r) and r.get("ok") is True and r.get("grup") == 1, json.dumps(r)[:90])
+        asing = await buka()
+        r = await masuk(asing, "100005", dev="UJITOTORANGASING", kode_papan=kode_lama)
+        cek("tot: ponsel baru dengan kode lama ditolak",
+            bool(r) and r.get("ok") is False and r.get("kode") == "kode_papan", json.dumps(r)[:80])
+        r = await masuk(asing, "100005", dev="UJITOTORANGASING", kode_papan=kode_baru)
+        cek("tot: ponsel baru dengan kode baru diterima",
+            bool(r) and r.get("ok") is True and r.get("grup") == 1, json.dumps(r)[:80])
+
+        # Sesudah keluar, ponsel itu dianggap baru lagi.
+        await pertama.send(json.dumps({"aksi": "keluar"}))
+        await tunggu_tipe(pertama, "keluar")
+        await pertama.close()
+        pertama = await buka()
+        await pertama.send(json.dumps({"aksi": "halo", "nim": "100000", "dev": DEV_A,
+                                       "kode_papan": kode_lama}))
+        r = await tunggu_tipe(pertama, "halo")
+        cek("tot: sesudah keluar, kode lama tidak lagi cukup",
+            bool(r) and r.get("ok") is False and r.get("kode") == "kode_papan",
+            json.dumps(r)[:90])
+
+        # Asisten melepas bayangan yang macet, lalu trainer lain memakainya.
+        await asisten.send(json.dumps({"aksi": "lepas_nim", "nim": "100001"}))
+        await tunggu_tipe(asisten, "balas")
+        r = await tunggu_tipe(kedua, "halo", timeout=3.0)
+        cek("tot: bayangan yang dilepas asisten dikeluarkan dari ponselnya",
+            bool(r) and r.get("ok") is False and r.get("kode") == "dilepas", json.dumps(r)[:80])
+        baru = await buka()
+        r = await masuk(baru, "100001", dev="UJITOTPERANGKATCC", kode_papan=kode_baru)
+        cek("tot: bayangan yang dilepas bisa dipakai ponsel lain",
+            bool(r) and r.get("ok") is True, json.dumps(r)[:80])
+
+        # TOT selesai: semua keluar.
+        await asisten.send(json.dumps({"aksi": "sesi_akhiri"}))
+        await balas(asisten, "sesi_akhiri")
+        r = await tunggu_tipe(baru, "halo", timeout=3.0)
+        cek("tot: sesi TOT berakhir mengeluarkan semua bayangan",
+            bool(r) and r.get("ok") is False and r.get("kode") == "tak_ada_sesi",
+            json.dumps(r)[:80])
+        await asisten.send(json.dumps({"aksi": "jadwal_hapus"}))
+        await balas(asisten, "jadwal_hapus")
+    finally:
+        for ws in soket:
+            try:
+                await ws.close()
+            except Exception:                              # noqa: BLE001
+                pass
+
+
 async def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--url", default="ws://127.0.0.1:8080")
@@ -1325,6 +1469,7 @@ async def main() -> int:
         str(baris and (baris.get("beacon"), baris.get("heat"))))
 
     await uji_login(args, T)
+    await uji_tot(args, T)
 
     await beacon.close()
 

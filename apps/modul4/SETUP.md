@@ -477,6 +477,23 @@ NIM dipakai untuk satu hal saja: mencari kelompok seseorang saat ia masuk.
   jadi menebak seluruh angkatan dari luar tidak mungkin dan tidak murah. Tetap
   **bukan** otentikasi penuh, dan itu alasan jadwalnya tidak menginap semalam.
 
+**Kode masuk berputar, ponsel yang sudah masuk tidak ikut repot.** Kode papan
+(`#k=` di tautan) berganti tiap sesi dimulai lagi. Ponsel yang sudah masuk di
+sesi itu dikenali dari NIM dan nomor perangkatnya, jadi kalau sambungannya
+putus ia tersambung lagi tanpa tautan baru. Ponsel baru tetap butuh kode
+terbaru, dan sesudah **Keluar** ponsel itu dianggap baru lagi. Tautan baru yang
+dibuka di tab yang sudah berjalan dipakai langsung, tanpa muat ulang.
+
+**Mode TOT.** Situs mengirim 60 peserta bayangan (NIM `100000`..`100009` untuk
+ASO, `200000`.. untuk ARD, dan seterusnya sampai `600009` untuk ARM) lewat
+jadwal yang sama dengan mahasiswa nyata, jadi semua aturan di atas berlaku
+tanpa pengecualian: satu bayangan satu ponsel, keluar sungguhan, dan asisten
+bisa melepas bayangan yang macet dari kartu Kode dan akun. Satu peramban
+memegang satu NIM; trainer yang mau memainkan beberapa bayangan sekaligus
+memakai ponsel atau profil peramban yang berbeda. Saat Mode TOT menyala atau
+mati, daftar berganti dan setiap ponsel yang NIM-nya tidak ada lagi dikeluarkan
+dengan alasan "tidak terdaftar". `tools/uji_protokol.py` menguji ini (`uji_tot`).
+
 Rencana tersimpan di `modul4/jadwal.json`, satu-satunya berkas yang sengaja
 selamat dari restart, supaya server yang mati di tengah sesi tidak memaksa
 asisten mengetik ulang. Rencana dari **hari lain dibuang saat dimuat**.

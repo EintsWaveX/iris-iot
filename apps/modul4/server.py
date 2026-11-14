@@ -2527,6 +2527,27 @@ def _dev_bersih(nilai) -> str | None:
     return None
 
 
+# NIM -> (nomor perangkat, sesi, tanggal) dari terakhir kali NIM itu masuk.
+# Kode papan berganti tiap sesi dimulai lagi (rehearsal TOT dan praktikum yang
+# diulang), jadi ponsel yang SUDAH masuk di sesi ini tidak boleh dipaksa membuka
+# tautan baru hanya karena sambungannya putus: dia dikenali dari NIM dan nomor
+# perangkatnya, rahasia yang hanya ada di peramban itu. Ponsel baru tetap
+# butuh kode terbaru.
+KENAL: dict[str, tuple[str, int | None, str]] = {}
+
+
+def _catat_kenal(nim: str, dev: str | None) -> None:
+    if dev:
+        KENAL[nim] = (dev, JADWAL["aktif"], datetime.now().date().isoformat())
+
+
+def _dikenal(nim, dev: str | None) -> bool:
+    if not dev or not isinstance(nim, str):
+        return False
+    ada = KENAL.get(nim.strip().upper())
+    return bool(ada) and ada == (dev, JADWAL["aktif"], datetime.now().date().isoformat())
+
+
 def _dipakai_ponsel_lain(connection, nim: str, dev: str | None) -> bool:
     """NIM ini sedang dipegang soket hidup dari peramban yang berbeda.
 
@@ -2553,6 +2574,7 @@ def _lepas(meta: dict) -> None:
 async def _lepas_nim_semua(nim: str) -> int:
     """Lepas NIM dari setiap soket yang memegangnya dan beri tahu pemiliknya."""
     jumlah = 0
+    KENAL.pop(nim, None)
     for conn, m in list(VIEWERS.items()):
         if m.get("nim") != nim:
             continue
@@ -2972,7 +2994,8 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
                         alasan="terlalu banyak percobaan",
                         kode="terlalu_sering", tunggu=sisa_blokir_nim(meta["ip"]))
             return
-        if not (berwenang or kode_ok(msg.get("kode_papan"))):
+        if not (berwenang or kode_ok(msg.get("kode_papan"))
+                or _dikenal(msg.get("nim"), _dev_bersih(msg.get("dev")))):
             meta["gagal_masuk"] += 1
             catat_gagal_nim(meta["ip"])
             await kirim(connection, "masuk", ok=False,
@@ -3008,6 +3031,7 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         meta["nama"] = orang["nama"]
         meta["sesi"] = JADWAL["aktif"]
         meta["dev"] = dev
+        _catat_kenal(meta["nim"], dev)
         if meta["peran"] != PERAN_ASISTEN:
             meta["peran"] = PERAN_ANGGOTA
         print(f"[{timestamp()}] masuk: kelompok {gid} ({meta['ip']})")
@@ -3023,6 +3047,8 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         # sekarang), dan peran asisten ikut gugur supaya ponsel yang dipinjam
         # tidak tetap berwenang. Menyambung ulang tidak mengembalikan apa-apa
         # karena klien juga menghapus NIM dan tokennya.
+        if meta.get("nim"):
+            KENAL.pop(meta["nim"], None)
         _lepas(meta)
         meta["peran"] = PERAN_TAMU
         meta["gagal"] = 0
@@ -3099,7 +3125,8 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
             if terblokir_nim(meta["ip"]):
                 alasan, kode = "terlalu banyak percobaan", "terlalu_sering"
                 tunggu = sisa_blokir_nim(meta["ip"])
-            elif not (punya_token or kode_ok(msg.get("kode_papan"))):
+            elif not (punya_token or kode_ok(msg.get("kode_papan"))
+                      or _dikenal(nim_kirim, dev)):
                 catat_gagal_nim(meta["ip"])
                 alasan, kode = "buka papan lewat tautan dari situs IRIS", "kode_papan"
             else:
@@ -3112,6 +3139,7 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
             meta["nim"] = nim_kirim.strip().upper()
             meta["sesi"] = JADWAL["aktif"]
             meta["dev"] = dev
+            _catat_kenal(meta["nim"], dev)
         else:
             meta["grup"] = None
             meta["nim"] = None

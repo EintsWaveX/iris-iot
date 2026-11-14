@@ -299,6 +299,9 @@
     const [busy, setBusy] = useState(false);
     const st = H.useStore();
     const why = err || (N.problem && N.problem.kode) || null;
+    /* a new join link arrived (a fresh code): the old complaint about the
+       code no longer applies */
+    useEffect(() => { setErr((e) => (e === "kode_papan" ? null : e)); }, [N.kode]);
     const noSession = N.frame && N.frame.sesi == null;
     /* "reveal" is on from the moment a NIM is sent until the person taps
        Start Hunting: the sign-in reply makes the group known before the form
