@@ -5,6 +5,7 @@
  *                ESP32 with esptool-js, trying a faster link first and the plain
  *                ROM loader last, because these CH340 boards sometimes will not
  *                start the stub flasher (the same thing the Linux esptool shows).
+ *                It returns which attempt worked, for the upload report.
  *   writeMain    a MicroPython file as main.py on a Pico W through the raw REPL.
  *
  * Both take a SerialPort that is closed and return with it closed, so the
@@ -66,7 +67,7 @@ export async function flashEsp32(
   image: Uint8Array,
   onPercent: (n: number) => void,
   onPhase: (p: "erase" | "write") => void = () => undefined,
-): Promise<void> {
+): Promise<string> {
   await probe(port);
   const { ESPLoader, Transport } = await import("esptool-js");
   const said: string[] = [];
@@ -134,7 +135,8 @@ export async function flashEsp32(
       });
       await loader.after("hard_reset");
       await release();
-      return;
+      // Which attempt got the board in, for the upload report (a laptop that needs the slow ROM loader shows here)
+      return `reset-${a.baud}-${a.stub ? "stub" : "rom"}`;
     } catch (err) {
       said.push(`-- ${err instanceof Error ? err.message : String(err)}`);
       last = "gagal_flash";

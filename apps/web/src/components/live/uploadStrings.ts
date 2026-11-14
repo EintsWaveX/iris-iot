@@ -62,7 +62,7 @@ export const UP = dict({
       unduh_gagal: "Hasil bangunan tidak terunduh. Periksa koneksi internetmu, lalu coba lagi.",
       tidak_terhubung: "Tidak bisa menghubungi server. Periksa koneksi internetmu.",
       gagal_masuk_bootloader:
-        "Papan tidak mau masuk mode tulis. Cabut dan colok lagi kabel USB-nya, pastikan kabel data, tutup aplikasi lain yang memakai port, lalu coba lagi.",
+        "Papan tidak mau masuk mode tulis. Cabut dan colok lagi kabel USB-nya, pastikan kabel data, tutup aplikasi lain yang memakai port, lalu coba lagi. Kalau dua kali dicoba tetap gagal, laptop ini mungkin tidak bisa me-reset papan lewat browser: pakai laptop lain atau panggil Asisten. Hasil percobaanmu (tanpa sandi Wi-Fi) tercatat supaya Asisten bisa melihat penyebabnya.",
       gagal_flash: "Penulisan ke papan terputus. Pastikan kabel USB tidak bergoyang dan coba lagi.",
       gagal_tulis:
         "Penulisan main.py ke Pico terputus. Tutup Thonny, cabut dan colok lagi Pico-nya, lalu coba lagi.",
@@ -143,7 +143,7 @@ export const UP = dict({
       unduh_gagal: "The build did not download. Check your internet, then try again.",
       tidak_terhubung: "Cannot reach the server. Check your internet.",
       gagal_masuk_bootloader:
-        "The board would not enter write mode. Unplug and replug the USB cable, make sure it is a data cable, close other apps that use the port, then try again.",
+        "The board would not enter write mode. Unplug and replug the USB cable, make sure it is a data cable, close other apps that use the port, then try again. If it fails twice, this laptop may not be able to reset the board from the browser: use another laptop or call an Assistant. Your attempt (without the Wi-Fi password) is logged so an Assistant can see why.",
       gagal_flash: "Writing to the board was cut off. Keep the USB cable steady and try again.",
       gagal_tulis:
         "Writing main.py to the Pico was cut off. Close Thonny, unplug and replug the Pico, then try again.",
@@ -220,7 +220,7 @@ export const UP = dict({
       unduh_gagal: "编译结果下载失败，请检查网络后重试。",
       tidak_terhubung: "无法连接服务器，请检查网络。",
       gagal_masuk_bootloader:
-        "开发板无法进入写入模式。请拔插 USB 线，确认是数据线，关闭占用端口的其他程序，再试一次。",
+        "开发板无法进入写入模式。请拔插 USB 线，确认是数据线，关闭占用端口的其他程序，再试一次。如果两次都失败，这台电脑可能无法通过浏览器复位开发板：请换一台电脑或叫助教。你的尝试记录（不含 Wi-Fi 密码）会被保存，方便助教查看原因。",
       gagal_flash: "写入开发板时中断。请保持 USB 线稳固，再试一次。",
       gagal_tulis: "向 Pico 写入 main.py 时中断。请关闭 Thonny，拔插 Pico，再试一次。",
       port_sibuk: "无法打开端口。若 Thonny 或串口监视器开着，请关闭，再拔插数据线后重试。",

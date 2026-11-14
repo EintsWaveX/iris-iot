@@ -65,7 +65,8 @@ export const AKSI_PER_JENIS: Record<JenisAudit, readonly string[]> = {
   // tim_ubah lines that change rights are picked out by their detail.
   hak: ["tim_ubah"],
   // Errors the site saved itself (api/_lib/galat.ts), 2026-10-05.
-  galat: ["galat_server", "galat_klien"],
+  // unggah_catat: how a board upload from the browser went (api/_lib/unggah-catat.ts), 2026-11-14.
+  galat: ["galat_server", "galat_klien", "unggah_catat"],
 };
 
 export function isJenisAudit(v: unknown): v is JenisAudit {

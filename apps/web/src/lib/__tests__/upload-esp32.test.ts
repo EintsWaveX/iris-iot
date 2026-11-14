@@ -130,6 +130,17 @@ describe("flashEsp32 as a fresh install", () => {
     expect(p.isOpen).toBe(false);
   });
 
+  it("says which attempt worked, so a laptop that needs the slow ROM loader shows in the reports", async () => {
+    h.plan = [{ main: true }, { main: true }, {}];
+    expect(await flashEsp32(port(), image, () => undefined)).toBe("reset-115200-rom");
+    h.attempt = -1;
+    h.calls = [];
+    h.writes = [];
+    h.bauds = [];
+    h.plan = [];
+    expect(await flashEsp32(port(), image, () => undefined)).toBe("reset-460800-stub");
+  });
+
   it("starts with the fast link and ends on the plain ROM loader", () => {
     expect(ESP32_ATTEMPTS[0]).toEqual({ baud: 460800, stub: true });
     expect(ESP32_ATTEMPTS.at(-1)).toEqual({ baud: 115200, stub: false });

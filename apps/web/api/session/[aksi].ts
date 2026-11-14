@@ -21,6 +21,7 @@
  * POST /api/session/catatan { sesiId, kelompokId, catatan, peran } (Stage 10) — per-group note/role.
  * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
  * POST /api/session/telemetry { readings }          — praktikan. Module 1's readings from the group PC's Web Serial link.
+ * POST /api/session/unggah-catat { modul, role, hasil, kode, via, ua, sistem, vid, pid, log, ms } — the browser reports how a board flash went (api/_lib/unggah-catat.ts): one audit row.
  * POST /api/session/bangun { modul, role, bahasa, ssid, password, group, key } — Live Upload: build a board's sketch with the person's values (api/_lib/live-build.ts); GET bangun-status?id= and bangun-berkas?id= (the image).
  * POST /api/session/lanjutkan { sesiId }             — reopen an ended session until 150 minutes after its start.
  * POST /api/session/durasi { menit }                 — (Phase 9) Extend the running session (api/_lib/berjalan.ts).
@@ -48,6 +49,7 @@ import { handleJaringanGet, handleJaringanPost } from "../_lib/jaringan-api.js";
 import { handleTokenPapanGet } from "../_lib/token-papan-api.js";
 import { handleBeaconGet, handleBeaconPost } from "../_lib/beacon-api.js";
 import { handleBangunBerkas, handleBangunPost, handleBangunStatus } from "../_lib/live-build.js";
+import { handleUnggahCatat } from "../_lib/unggah-catat.js";
 import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak, muatOrang } from "../_lib/hak.js";
@@ -1762,6 +1764,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     return aksi === "bangun-status"
       ? handleBangunStatus(req, res, who)
       : handleBangunBerkas(req, res, who);
+  }
+  // What happened when a board was flashed from the browser (api/_lib/unggah-catat.ts): one audit row
+  if (aksi === "unggah-catat") {
+    if (!requireMethod(req, res, "POST")) return;
+    const who = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!who) return;
+    return handleUnggahCatat(req, res, who);
   }
   if (aksi === "cermin") {
     if (req.method === "POST") {
