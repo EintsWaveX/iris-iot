@@ -234,6 +234,53 @@ export function readSessionCookie(value: string | undefined | null): SessionPayl
   }
 }
 
+/** The quiz game lives on its own host (games.irisiotlab.com), whose cookie jar is not this one's.
+ *  A signed-in person clicking "Open Game" carries this ticket across: 60 seconds, used once
+ *  (api/_lib/kuis-tiket.ts), and signed under its own label so it can never pass for a session cookie. */
+export const KUIS_TIKET_DETIK = 60;
+
+function signKuis(body: string): string {
+  return createHmac("sha256", getSessionSecret()).update(`kuis-tiket|${body}`).digest("base64url");
+}
+
+export function createKuisTiket(payload: Omit<SessionPayload, "exp">, nowMs = Date.now()): string {
+  const body = Buffer.from(
+    JSON.stringify({
+      p: payload,
+      n: randomBytes(9).toString("base64url"),
+      exp: Math.floor(nowMs / 1000) + KUIS_TIKET_DETIK,
+    }),
+  ).toString("base64url");
+  return `${body}.${signKuis(body)}`;
+}
+
+export interface IsiKuisTiket {
+  payload: Omit<SessionPayload, "exp">;
+  nonce: string;
+  exp: number;
+}
+
+/** The ticket's contents if it is well formed, correctly signed and not expired; otherwise null. */
+export function readKuisTiket(value: unknown, nowMs = Date.now()): IsiKuisTiket | null {
+  if (typeof value !== "string" || value.length > 2000) return null;
+  const [body, sig] = value.split(".");
+  if (!body || !sig || !safeEqual(signKuis(body), sig)) return null;
+  try {
+    const o = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as {
+      p?: Omit<SessionPayload, "exp">;
+      n?: string;
+      exp?: number;
+    };
+    if (!o.p || typeof o.n !== "string" || typeof o.exp !== "number") return null;
+    if (o.exp < nowMs / 1000) return null;
+    if (o.p.role !== "asisten" && o.p.role !== "praktikan") return null;
+    if (typeof o.p.nim !== "string" || typeof o.p.nama !== "string") return null;
+    return { payload: o.p, nonce: o.n, exp: o.exp };
+  } catch {
+    return null;
+  }
+}
+
 export function sessionCookieHeader(value: string, maxAgeSec = SESSION_TTL_SEC): string {
   const parts = [
     `iris_session=${value}`,

@@ -1,0 +1,22 @@
+---
+/**
+ * /kuis: the Module 4 quiz game. It is served at the root of
+ * games.irisiotlab.com (server/kuis-host.ts); on any other host this path
+ * forwards there, so a signed-in person never plays on the wrong cookie.
+ * No navbar and no footer: like the exam, the game is the whole screen.
+ */
+import Base from "../layouts/Base.astro";
+import KuisApp from "../components/kuis/KuisApp";
+---
+
+<Base
+  noindex
+  title="Kuis Modul 4 · IRIS IoT"
+  description="Kuis seru Tes Awal Modul 4 untuk Asisten dan Praktikan IRIS."
+  lang="id"
+  cosmosScene="kerja"
+  nav={false}
+  footer={false}
+>
+  <KuisApp client:only="react" lang="id" />
+</Base>

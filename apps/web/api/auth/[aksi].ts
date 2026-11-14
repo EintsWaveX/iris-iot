@@ -13,6 +13,9 @@
  * POST /api/auth/logout        (no body)
  * POST /api/auth/set-password  { password }         — assistant-only, first-login flow.
  * POST /api/auth/change-password { lama, baru }      — assistant-only, any time (P8 /account). Rate-limited like a login.
+ * POST /api/auth/kuis-tiket   (no body) — signed in: a 60-second one-use ticket to open the Module 4 quiz
+ *                              game (games.irisiotlab.com) already signed in.
+ * POST /api/auth/kuis-masuk    { tiket } — on the games host: trade the ticket for that host's own cookie.
  * POST /api/auth/galat         { pesan, sumber?, baris?, halaman? } — anyone: the browser reporting its
  *                              own uncaught error (2026-10-05, _lib/galat.ts). Capped per IP.
  */
@@ -27,6 +30,8 @@ import {
   createSessionCookie,
   sessionCookieHeader,
   clearSessionCookieHeader,
+  createKuisTiket,
+  readKuisTiket,
   writeAudit,
   setAsistenPassword,
   NIM_PATTERN,
@@ -41,6 +46,8 @@ import { denganSiaran } from "../_lib/siaran.js";
 import { catatGalat } from "../_lib/galat.js";
 import { alasanTolakTot } from "../../src/lib/mode-tot.js";
 import { jalankanOtomatis } from "../_lib/retensi.js";
+import { pakaiTiket } from "../_lib/kuis-tiket.js";
+import { currentSesi } from "../../src/lib/sesi.js";
 
 async function handleMe(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "GET")) return;
@@ -315,6 +322,50 @@ async function handleGalat(req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true });
 }
 
+/** Is this person allowed in the running Module 4 session's game? A Praktikan must belong to it. */
+async function bolehKuis(p: {
+  role: "asisten" | "praktikan";
+  sesiId?: number;
+  lihat?: true;
+}): Promise<boolean> {
+  const sesi = await currentSesi();
+  if (!sesi || sesi.modul !== 4) return false;
+  return p.role === "asisten" || (!p.lihat && p.sesiId === sesi.id);
+}
+
+/** POST /api/auth/kuis-tiket: a signed-in person asks for a ticket to open the game already signed in. */
+async function handleKuisTiket(req: ApiRequest, res: ApiResponse) {
+  if (!requireMethod(req, res, "POST")) return;
+  const session = currentSession(req);
+  if (!session) {
+    res.status(401).json({ ok: false, kode: "belum_masuk" });
+    return;
+  }
+  if (!(await bolehKuis(session))) {
+    res.status(403).json({ ok: false, kode: "tidak_ada_kuis" });
+    return;
+  }
+  const { exp: _exp, ...isi } = session;
+  res.status(200).json({ ok: true, tiket: createKuisTiket(isi) });
+}
+
+/** POST /api/auth/kuis-masuk { tiket }: on the games host, trades a ticket for that host's own cookie. */
+async function handleKuisMasuk(req: ApiRequest, res: ApiResponse) {
+  if (!requireMethod(req, res, "POST")) return;
+  const body = jsonBody(req);
+  const isi = readKuisTiket(body?.tiket);
+  if (!isi || !pakaiTiket(isi.nonce, isi.exp)) {
+    res.status(400).json({ ok: false, kode: "tiket_salah" });
+    return;
+  }
+  if (!(await bolehKuis(isi.payload))) {
+    res.status(403).json({ ok: false, kode: "tidak_ada_kuis" });
+    return;
+  }
+  res.setHeader("Set-Cookie", sessionCookieHeader(createSessionCookie(isi.payload)));
+  res.status(200).json({ ok: true, role: isi.payload.role });
+}
+
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
@@ -327,6 +378,8 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "set-password") return handleSetPassword(req, res);
   if (aksi === "change-password") return handleChangePassword(req, res);
   if (aksi === "galat") return handleGalat(req, res);
+  if (aksi === "kuis-tiket") return handleKuisTiket(req, res);
+  if (aksi === "kuis-masuk") return handleKuisMasuk(req, res);
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
 }

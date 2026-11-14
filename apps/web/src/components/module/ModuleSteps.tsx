@@ -43,6 +43,7 @@ import {
   CheckIcon,
   EyeIcon,
   FlagCheckeredIcon,
+  GameControllerIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
 } from "@phosphor-icons/react";
@@ -71,7 +72,8 @@ import { getJson, href, tanggalPanjang, useMe, useSessionNow } from "../../lib/a
 import { getAksesState, type AksesState } from "../../scripts/modul-akses";
 import { useProyektor } from "../../lib/proyektor";
 import { setModulAkses } from "../shell/AsistenCommands";
-import { modulLabel } from "../../lib/labels";
+import { modulLabel, tri } from "../../lib/labels";
+import { bukaKuis, tautanKuis } from "../../lib/kuis";
 import type { Lang } from "../../lib/kelas";
 import { M } from "./moduleStrings";
 import { openSignIn } from "../../lib/signin";
@@ -481,6 +483,42 @@ export default function ModuleSteps(p: Props) {
           <button type="button" className="btn btn--sm btn--primary" onClick={() => go("hunt")}>
             {H[lang].toHunt}
           </button>
+        </div>
+      )}
+
+      {berburu && !pro && (
+        <div className="banner modsteps__hunt">
+          <GameControllerIcon aria-hidden="true" />
+          <b>
+            {tri(
+              lang,
+              "Kuis Modul 4 Siap Dimainkan",
+              "The Module 4 Quiz Is Ready",
+              "模块 4 测验已开放",
+            )}
+          </b>
+          <span className="hint modsteps__hide-sm">
+            {tri(
+              lang,
+              "Gabung kalau asistenmu sudah membukanya, masuk pakai NIM dan kode sesi.",
+              "Join when your assistant opens it, signing in with your NIM and the session code.",
+              "助教开放后加入，用学号和课程代码登录。",
+            )}
+          </span>
+          <span className="grow" />
+          <a
+            className="btn btn--sm btn--primary"
+            href={tautanKuis()}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+              e.preventDefault();
+              void bukaKuis();
+            }}
+          >
+            {tri(lang, "Buka Kuis", "Open Quiz", "打开测验")}
+          </a>
         </div>
       )}
 

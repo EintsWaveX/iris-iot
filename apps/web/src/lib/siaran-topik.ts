@@ -151,6 +151,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "auth:set-password": [],
   "auth:change-password": [],
   "auth:galat": [],
+  "auth:kuis-tiket": [],
+  "auth:kuis-masuk": [],
   "modul:cek": ["jawaban"],
   // The Konsol's Blank tab reads one group's blanks (GET).
   "modul:blank": [],
