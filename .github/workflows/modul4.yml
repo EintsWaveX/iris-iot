@@ -43,9 +43,12 @@ jobs:
       - name: RSSI filter (follows a real step in about three packets, no noisier than before)
         run: python tools/uji_penapis.py
 
+      - name: Session codes (token, board code and board keys change when a session ends, not when it starts)
+        run: python tools/uji_kode_sesi.py
+
       - name: Start the server with a fixed token
         run: |
-          python server.py --token UJICI --arena 300 &
+          python server.py --token UJICI --tetap --arena 300 &
           echo $! > server.pid
           # Give the WebSocket listener a moment to bind before the
           # protocol suite starts connecting to it.

@@ -39,6 +39,9 @@ def muat_server(folder: pathlib.Path):
     sys.modules["server_uji"] = srv
     spec.loader.exec_module(srv)
     srv.JADWAL_PATH = folder / "jadwal.json"
+    # The codes do not change here (a site emptying a roster would otherwise write a real benih.json)
+    srv.BENIH_PATH = folder / "benih.json"
+    srv.TETAP = True
     srv.jadwal_awal()
     srv.IMPOR_ULANG = False
     if hasattr(srv, "IMPOR_GALAT"):
@@ -147,7 +150,7 @@ def main() -> int:
         ok, galat = srv.jadwal_set(2, regu("100000"))
         cek("jadwal_set tetap menolak NIM yang dipegang sesi lain", ok is False and "dua kali" in galat, galat)
 
-        # 9. kunci papan per kelompok tetap: tidak bergantung pada sesi atau hari
+        # 9. kunci papan per kelompok: tidak bergantung pada nomor sesi yang aktif
         srv = muat_server(folder)
         srv.TOKEN = "UJICI"
         srv.JADWAL["aktif"] = None
@@ -156,7 +159,7 @@ def main() -> int:
         sesi_dua = {g: srv.kunci_grup(g) for g in range(1, 7)}
         srv.JADWAL["aktif"] = 4
         sesi_empat = {g: srv.kunci_grup(g) for g in range(1, 7)}
-        cek("kunci kelompok sama di semua sesi (papan cukup diunggah sekali)",
+        cek("kunci kelompok sama di semua nomor sesi (satu sesi memakai satu kunci)",
             tanpa_sesi == sesi_dua == sesi_empat, str(sesi_empat[1]))
         cek("kunci tiap kelompok berbeda, delapan karakter",
             len(set(sesi_empat.values())) == 6 and all(len(k) == 8 for k in sesi_empat.values()),
@@ -167,7 +170,9 @@ def main() -> int:
         srv.JADWAL["aktif"] = 2
         kode_dua = srv.kode_papan()
         srv.JADWAL["aktif"] = 4
-        cek("kode papan tetap berganti tiap sesi", kode_dua != srv.kode_papan(), kode_dua)
+        # Kode dan kunci berganti lewat benih ketika sesi berakhir (tools/uji_kode_sesi.py), bukan
+        # menurut sesi mana yang aktif: pindah dari sesi 2 ke 4 tidak mengubah apa pun.
+        cek("kode papan tidak bergantung pada nomor sesi yang aktif", kode_dua == srv.kode_papan(), kode_dua)
         srv.TOKEN = "TOKEN-LAIN"
         cek("kunci berganti bila token PC diganti", srv.kunci_grup(1) != sesi_empat[1], srv.kunci_grup(1))
 

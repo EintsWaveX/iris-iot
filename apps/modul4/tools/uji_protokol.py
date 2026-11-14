@@ -5,8 +5,10 @@ Menjalankan seluruh perintah baru terhadap server yang sedang hidup, termasuk
 yang HARUS ditolak. Sebelum revisi ini tidak ada satu pun perintah /live yang
 teruji otomatis, sehingga perubahan skema hanya ketahuan di lapangan.
 
-    python modul4/server.py --token UJICOBA &
+    python modul4/server.py --token UJICOBA --tetap &
     python modul4/tools/uji_protokol.py --token UJICOBA
+
+(--tetap: tanpa pergantian kode tiap sesi, supaya token uji tetap UJICOBA)
 
 Keluar dengan status bukan-nol bila ada satu saja yang gagal.
 """
