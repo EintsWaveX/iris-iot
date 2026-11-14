@@ -122,6 +122,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:telemetry": [],
   // Live Upload (2026-11-13): a build for one person's own board; nothing shared changes.
   "session:bangun": [],
+  // The browser's report of how a flash went (2026-11-14): one audit row, no screen shows it live.
+  "session:unggah-catat": [],
   "session:seelabs": ["sesi", "bayar"],
   // Phase 14: connect, test, retry, token, Kelompok and Jaga pulls, the robot's switches.
   "session:robot": ["seelabs"],
