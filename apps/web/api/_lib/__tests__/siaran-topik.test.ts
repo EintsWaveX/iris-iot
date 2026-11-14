@@ -30,6 +30,7 @@ const BACA: Record<string, string[]> = {
     "perburuan",
     "results",
     "riwayat",
+    "tokenpapan",
     "waspada",
   ],
   modul: ["draft", "kode", "kode-edit", "kunci", "unduh"],
