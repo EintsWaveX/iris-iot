@@ -25,7 +25,7 @@ import {
   bonusQuota,
   bonusWorth,
   declinesLeft,
-  offerOf,
+  OFFER,
   BONUS_ASKS,
 } from "../recruitment/bonus";
 import { StrikeTracker, isScreenshotKey, STRIKE_KINDS } from "../recruitment/seat-lockdown";
@@ -343,17 +343,9 @@ describe("handing in is never blocked by blanks", () => {
 });
 
 describe("what a seat is told about the offer (never a score)", () => {
-  it("is the number of bonus questions and nothing else", () => {
-    const quote = bonusQuota({
-      leftMs: 13 * 60_000,
-      perQuestionMs: 60_000,
-      correct: 12,
-      wrong: 8,
-      blank: 0,
-      rest: 20,
-    });
-    expect(offerOf(quote)).toEqual({ quota: 17 });
-    expect(Object.keys(offerOf(quote))).toEqual(["quota"]);
+  it("is only that there is one: no count, no right or wrong, no words about how it did", () => {
+    expect(OFFER).toEqual({ offered: true });
+    expect(JSON.stringify(OFFER)).not.toMatch(/quota|correct|wrong|blank|time/);
   });
 
   it("asks twice at most, then stops", () => {

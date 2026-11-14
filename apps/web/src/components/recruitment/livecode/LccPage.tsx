@@ -527,7 +527,7 @@ function Workbench({
     void (async () => {
       const r = await recPost<{ ok: true; quote: SeatOffer }>("lcc-bonus", { dry: true });
       if (dead) return;
-      if (!isFail(r) && r.quote.quota >= 1) setQuote(r.quote);
+      if (!isFail(r)) setQuote(r.quote);
       else sayNo(BONUS_ASKS);
     })();
     return () => {
@@ -546,7 +546,7 @@ function Workbench({
 
   async function takeBonus() {
     setFinBusy(true);
-    const r = await recPost<{ ok: true; count: number }>("lcc-bonus", {});
+    const r = await recPost<{ ok: true }>("lcc-bonus", {});
     setFinBusy(false);
     if (isFail(r)) {
       setNote({
@@ -558,7 +558,7 @@ function Workbench({
     }
     jumpToBonus.current = true;
     setFin(false);
-    setNote({ tone: "ok", text: t.bonus.added(r.count) });
+    setNote({ tone: "ok", text: t.bonus.added() });
     refresh();
   }
 
@@ -581,12 +581,7 @@ function Workbench({
 
   const tab = (h: LccProblem, i: number, mini = false) => {
     const s = lcc.state[h.id];
-    const full = !!s.best && s.best.passed === s.best.total;
-    const sub = busy(s.submit)
-      ? t.waiting
-      : s.best
-        ? t.tests(s.best.passed, s.best.total)
-        : t.notSent;
+    const sub = busy(s.submit) ? t.waiting : s.sent ? t.sentOk : t.notSent;
     return (
       <button
         key={h.id}
@@ -595,10 +590,10 @@ function Workbench({
         aria-selected={i === at}
         className={mini ? "lcc-tab lcc-tab--mini" : "lcc-tab"}
         data-b={h.bonus ? "yes" : undefined}
-        data-st={full ? "full" : s.best ? "part" : "none"}
+        data-st={s.sent ? "part" : "none"}
         onClick={() => setAt(i)}
       >
-        <span className="lcc-num">{full ? <CheckIcon size={14} weight="bold" /> : i + 1}</span>
+        <span className="lcc-num">{i + 1}</span>
         <span className="lcc-tab__t">
           <b title={h.title}>{h.title}</b>
           <span className="hint">{sub}</span>
@@ -608,8 +603,7 @@ function Workbench({
   };
   const bonusAt = lcc.hand.flatMap((h, i) => (h.bonus ? [i] : []));
   const bonusDone = bonusAt.filter((i) => {
-    const b = lcc.state[lcc.hand[i].id].best;
-    return !!b && b.passed === b.total;
+    return lcc.state[lcc.hand[i].id].sent;
   }).length;
 
   return (
@@ -885,10 +879,13 @@ function Result({
   const running = sub.status === "diambil";
   const failed = sub.status === "gagal";
   const ce = sub.status === "selesai" && sub.compileLog !== null;
+  // A Submit is judged on hidden tests: its result is never shown (15 Nov 2026), only that it was received
+  const scored = sub.kind === "submit";
   const all = sub.status === "selesai" && !ce && sub.passed !== null && sub.passed === sub.total;
   // Green when every test passed, red when anything failed (a compile error, a failed judge run, or
   // even one wrong test), amber with a spinner while it waits: the colour says the result at a glance.
-  const tone = failed || ce ? "bad" : all ? "ok" : waiting || running ? "wait" : "bad";
+  const tone =
+    failed || ce ? "bad" : waiting || running ? "wait" : scored ? "ok" : all ? "ok" : "bad";
   const StateIcon =
     tone === "ok" ? CheckCircleIcon : tone === "wait" ? CircleNotchIcon : XCircleIcon;
   return (
@@ -908,9 +905,11 @@ function Result({
                   ? t.failedTitle
                   : ce
                     ? t.compileError
-                    : all
-                      ? t.allPassed
-                      : t.somePassed(sub.passed ?? 0, sub.total ?? 0)}
+                    : scored
+                      ? t.submitted
+                      : all
+                        ? t.allPassed
+                        : t.somePassed(sub.passed ?? 0, sub.total ?? 0)}
           </span>
         </div>
       </div>

@@ -57,14 +57,12 @@ export async function askBonus(
   part: string,
   /** Only count what the seat would get, deal nothing */
   dry = false,
-): Promise<{ ok: boolean; kode?: string; status?: number; count?: number; quote?: BonusOffer }> {
-  const r = await recPost<{ ok: true; count?: number; quote?: BonusOffer }>("test-bonus", {
+): Promise<{ ok: boolean; kode?: string; status?: number; quote?: BonusOffer }> {
+  const r = await recPost<{ ok: true; quote?: BonusOffer }>("test-bonus", {
     part,
     ...(dry ? { dry: true } : {}),
   });
-  return isFail(r)
-    ? { ok: false, kode: r.kode, status: r.status }
-    : { ok: true, count: r.count, quote: r.quote };
+  return isFail(r) ? { ok: false, kode: r.kode, status: r.status } : { ok: true, quote: r.quote };
 }
 
 /** The seat saw a warning: it stops coming back with the view (9 Nov 2026) */

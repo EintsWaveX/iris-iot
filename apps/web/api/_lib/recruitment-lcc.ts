@@ -37,12 +37,7 @@ import {
   penaltyOf,
   problemWorth,
 } from "../../src/lib/recruitment/exam-config.js";
-import {
-  bonusQuota,
-  bonusWorth,
-  offerOf,
-  type BonusQuote,
-} from "../../src/lib/recruitment/bonus.js";
+import { bonusQuota, bonusWorth, OFFER, type BonusQuote } from "../../src/lib/recruitment/bonus.js";
 import { normalize, seatLeft } from "../../src/lib/recruitment/room.js";
 import {
   stateForSeat,
@@ -406,8 +401,8 @@ async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse
   );
   if (!all.length) return void tolak(res, "soal_kurang", 409);
   const quote = await kuotaBonus(c, base, all.length);
-  if (dry) return void res.status(200).json({ ok: true, quote: offerOf(quote) });
-  if (quote.quota < 1) return void tolak(res, "bonus_kosong", 409, { quote: offerOf(quote) });
+  if (dry) return void res.status(200).json({ ok: true, quote: OFFER });
+  if (quote.quota < 1) return void tolak(res, "bonus_kosong", 409);
   const ids = all.slice(0, quote.quota);
   // Only the first writer wins: two tabs asking at once end with one bonus list
   await c.db
@@ -426,7 +421,7 @@ async function mintaBonus(c: KonteksLc, fase: "spin" | "kerja", res: ApiResponse
       .update(recCProblem)
       .set({ shownAt: new Date() })
       .where(and(inArray(recCProblem.id, ids), isNull(recCProblem.shownAt)));
-  res.status(200).json({ ok: true, count: ids.length, quote: offerOf(quote) });
+  res.status(200).json({ ok: true });
 }
 
 /** Selesai: the seat is done with Live Coding. What it submitted counts; nothing more is taken from it. */

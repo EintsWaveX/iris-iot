@@ -176,7 +176,7 @@ export const TS = dict({
       no: "Tidak, Lewati",
       no2: "Tetap Lewati",
       taking: "Menyiapkan soal bonus",
-      added: (n: number) => `${n} soal bonus ditambahkan di daftar soal.`,
+      added: () => "Soal bonus ditambahkan di daftar soal.",
       fail: "Soal bonus belum bisa diambil. Coba lagi.",
       late: "Sisa waktumu sudah kurang dari batas untuk bonus.",
       cell: "Soal bonus",
@@ -405,10 +405,7 @@ export const TS = dict({
       no: "No, Skip",
       no2: "Skip Anyway",
       taking: "Getting the bonus questions ready",
-      added: (n: number) =>
-        n === 1
-          ? "1 bonus question was added to the question list."
-          : `${n} bonus questions were added to the question list.`,
+      added: () => "Bonus questions were added to the question list.",
       fail: "The bonus questions could not be taken. Try again.",
       late: "Your time left is now under the limit for the bonus.",
       cell: "Bonus question",
@@ -627,7 +624,7 @@ export const TS = dict({
       no: "不用，跳过",
       no2: "还是跳过",
       taking: "正在准备加分题",
-      added: (n: number) => `已在题目列表中加入 ${n} 道加分题。`,
+      added: () => "已在题目列表中加入加分题。",
       fail: "暂时无法领取加分题，请重试。",
       late: "剩余时间已低于加分题的门槛。",
       cell: "加分题",

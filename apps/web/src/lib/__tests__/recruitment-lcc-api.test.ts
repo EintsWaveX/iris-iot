@@ -116,13 +116,14 @@ describe("toSub", () => {
 });
 
 describe("stateForSeat (a candidate never learns the score, 15 Nov 2026)", () => {
-  it("keeps the tests passed and drops the points, the failed Submits and the percent lost", () => {
+  it("keeps only that a Submit was judged: no tests passed, points, failed Submits or percent lost", () => {
     const rows = [row({ id: 5, passed: 8, total: 8 }), row({ id: 3, passed: 4, total: 8 })];
     const { state } = stateOf(hand, rows, () => null, { free: 0, step: 5, max: 30 });
     expect(state[1].best).toMatchObject({ got: 380, fails: 1, lost: 5 });
     const seat = stateForSeat(state);
-    expect(seat[1].best).toEqual({ passed: 8, total: 8 });
-    expect(seat[2].best).toBeNull();
-    expect(JSON.stringify(seat)).not.toMatch(/"(got|lost|fails)"/);
+    expect(seat[1].sent).toBe(true);
+    expect(seat[2].sent).toBe(false);
+    expect(seat[1].submit).toMatchObject({ verdicts: [], passed: null, total: null });
+    expect(JSON.stringify(seat)).not.toMatch(/"(got|lost|fails|best)"/);
   });
 });

@@ -261,7 +261,7 @@ export default function Runner({
     await saver.flush();
     const r = await askBonus(key, true);
     setBusy(false);
-    if (r.ok && r.quote && r.quote.quota >= 1) {
+    if (r.ok && r.quote) {
       setQuote(r.quote);
       setAsk(false);
       setOffer(true);
@@ -283,7 +283,7 @@ export default function Runner({
     reopened.current = true;
     void (async () => {
       const r = await askBonus(key, true);
-      if (r.ok && r.quote && r.quote.quota >= 1) {
+      if (r.ok && r.quote) {
         setQuote(r.quote);
         setOffer(true);
       }
@@ -313,7 +313,7 @@ export default function Runner({
     jumpToBonus.current = true;
     setOffer(false);
     setAsk(false);
-    toast(t.bonus.added(r.count ?? 0));
+    toast(t.bonus.added());
     onRefresh();
   }
   const flaggedList = items

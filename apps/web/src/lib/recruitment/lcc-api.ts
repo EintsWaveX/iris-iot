@@ -57,12 +57,13 @@ export interface LccProblemStateFull {
 }
 
 /**
- * What a seat gets of a problem (15 Nov 2026): the tests its best Submit passed, never the points
- * they earned, what a failed Submit cost, or any running total. A candidate must never learn their
- * Tes Tulis score, in any form.
+ * What a seat gets of a problem (15 Nov 2026): only that a Submit was judged. Never the tests it
+ * passed, the points, what a failed Submit cost, or any total: a candidate must never learn their
+ * Tes Tulis score, in any form. A Run Sample still shows its sample tests (they are never scored).
  */
 export interface LccProblemState extends Omit<LccProblemStateFull, "best"> {
-  best: { passed: number; total: number } | null;
+  /** A Submit of this problem was judged */
+  sent: boolean;
 }
 
 /** The seat's view of the states: the points and the penalty are left out. */
@@ -72,8 +73,10 @@ export function stateForSeat(
   const out: Record<number, LccProblemState> = {};
   for (const [id, s] of Object.entries(state))
     out[Number(id)] = {
-      ...s,
-      best: s.best ? { passed: s.best.passed, total: s.best.total } : null,
+      run: s.run,
+      submit: s.submit ? { ...s.submit, verdicts: [], passed: null, total: null } : null,
+      position: s.position,
+      sent: s.best !== null,
     };
   return out;
 }

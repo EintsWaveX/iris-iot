@@ -66,12 +66,14 @@ export const BONUS_ASKS = 2;
 export const declinesLeft = (declines: number) => declines < BONUS_ASKS;
 
 /**
- * What a seat is told about the offer (15 Nov 2026): only the number of bonus questions it may
- * take. The right, wrong and blank counts, and any words about how the seat did, stay on the
- * server: a candidate must never learn their Tes Tulis score, in any form.
+ * What a seat is told about the offer (15 Nov 2026): that there is one, and nothing else. Not how
+ * many bonus questions it may take, not the right, wrong and blank counts, not any words about how
+ * it did. The offer is made to every seat that may be offered (so its appearance says nothing), and
+ * a seat whose count is 0 gets the same "cannot take it" answer as any failure. A candidate must
+ * never learn their Tes Tulis score, in any form.
  */
 export interface BonusOffer {
-  quota: number;
+  offered: true;
 }
 
-export const offerOf = (q: Pick<BonusQuote, "quota">): BonusOffer => ({ quota: q.quota });
+export const OFFER: BonusOffer = { offered: true };
