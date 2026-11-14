@@ -793,6 +793,8 @@ async def main() -> int:
             {"versi", "jam", "sesi", "mulai", "selesai", "berjalan", "grup",
              "penghargaan", "peristiwa"} <= set(ringkas.keys()),
             json.dumps(sorted(ringkas.keys())))
+        cek("/ringkas.json membawa token asisten untuk situs",
+            ringkas.get("token") == T, "token cocok dengan yang dipakai server")
         cek("/ringkas.json menyebut sesi berjalan", ringkas.get("sesi") == 1,
             str(ringkas.get("sesi")))
         cek(f"/ringkas.json menyebut jaringan {args.jaringan}",

@@ -45,6 +45,7 @@ import { handleUbahSesi } from "../_lib/sesi-ubah.js";
 import { bisaJawab, handlePanggil, panggilanTerbuka } from "../_lib/panggil.js";
 import { handlePerburuan } from "../_lib/perburuan-api.js";
 import { handleJaringanGet, handleJaringanPost } from "../_lib/jaringan-api.js";
+import { handleTokenPapanGet } from "../_lib/token-papan-api.js";
 import { handleBeaconGet, handleBeaconPost } from "../_lib/beacon-api.js";
 import { handleBangunBerkas, handleBangunPost, handleBangunStatus } from "../_lib/live-build.js";
 import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
@@ -1700,6 +1701,14 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     }
     if (!requireMethod(req, res, "GET")) return;
     return handleBeaconGet(req, res);
+  }
+
+  // The Asisten token for the scoreboard's Mission Control (2026-11-14): Asisten only, GET only.
+  if (aksi === "tokenpapan") {
+    const session = requireRole(req, res, "asisten");
+    if (!session) return;
+    if (!requireMethod(req, res, "GET")) return;
+    return handleTokenPapanGet(req, res);
   }
 
   // Phase 9: the Module 4 Perburuan step (the hunt on the PC, as one group

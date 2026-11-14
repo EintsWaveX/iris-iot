@@ -55,6 +55,13 @@ async function bacaPcHunt(): Promise<{
   };
 }
 
+/** The Asisten token for the scoreboard's Mission Control, while the PC reports its hunt. Only
+ *  api/_lib/token-papan-api.ts calls this, for a signed-in Asisten; handlePerburuan below never
+ *  includes it, whoever asks. */
+export async function tokenAsisten(): Promise<string | null> {
+  return (await bacaPcHunt()).ringkas?.token ?? null;
+}
+
 /** One group's board key (HUNT_KEY in the sketches), or null while the hunt
  *  isn't open: the keys are tied to the hunt's session, which exists only
  *  after the Asisten's Mulai Perburuan, so before it there is nothing to

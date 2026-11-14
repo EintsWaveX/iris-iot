@@ -40,6 +40,7 @@ import { tautanPerburuan } from "../../lib/perburuan";
 import { HOST_KUIS, bukaKuis, tautanKuis } from "../../lib/kuis";
 import JaringanHunt from "../server/JaringanHunt";
 import BeaconHunt from "../server/BeaconHunt";
+import TokenAsisten from "../server/TokenAsisten";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
 import type { Lang } from "../../lib/kelas";
@@ -258,6 +259,7 @@ export default function SessionBar({
             </button>
           </div>
         )}
+        {sesi.modul === 4 && buruJalan && <TokenAsisten lang={lang} />}
         <div className="shead__track">{track}</div>
       </div>
 

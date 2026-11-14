@@ -37,6 +37,7 @@ import {
 import Enroll, { bacaPerintah } from "./Enroll";
 import JaringanHunt from "./JaringanHunt";
 import BeaconHunt from "./BeaconHunt";
+import TokenAsisten from "./TokenAsisten";
 import {
   kirim,
   sedangBerjalan,
@@ -482,6 +483,10 @@ export default function Settings({
 
       <div className="s12span6">
         <BeaconHunt lang={lang} kartu />
+      </div>
+
+      <div className="s12span6">
+        <TokenAsisten lang={lang} kartu />
       </div>
 
       {bisa.full && (
