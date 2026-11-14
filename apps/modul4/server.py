@@ -2225,6 +2225,10 @@ def ringkasan_perburuan() -> dict:
         "jam": bingkai["jam"],
         # Kode masuk papan hari ini; situs menaruhnya di tautan praktikan
         "kode": kode_papan() or None,
+        # Token asisten, untuk situs: hanya ditampilkan kepada Asisten yang masuk
+        # (bukan Praktikan), supaya tidak perlu dicari di log PC. Rute ini
+        # loopback saja, seperti sisanya.
+        "token": TOKEN or None,
         # Kunci papan tiap kelompok, untuk situs: ditempel kelompok ke HUNT_KEY
         "kunci": {str(g): kunci_grup(g) for g in range(1, KUNCI_MAKS_GRUP + 1)},
         "sesi": JADWAL["aktif"],
