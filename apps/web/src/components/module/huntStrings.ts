@@ -57,7 +57,9 @@ export const H = dict({
     boardKeyHint:
       "Kunci ini sudah terisi di HUNT_KEY pada file yang kamu unduh dari langkah Kode. Kuncinya khusus kelompokmu dan tidak berganti antar sesi, jadi papan yang sudah diunggah dengan kunci ini tidak perlu diunggah ulang. Hanya asisten yang bisa memutar kunci, dan itu terlihat di sini. Kalau kamu memakai salinan lama, tempel kunci ini ke HUNT_KEY.",
     keyRound: (n: number, at: number | null) =>
-      n === 0 ? "Kunci belum pernah diganti." : `Kunci putaran ${n}${at ? `, diganti ${jam(at)}` : ""}.`,
+      n === 0
+        ? "Kunci belum pernah diganti."
+        : `Kunci putaran ${n}${at ? `, diganti ${jam(at)}` : ""}.`,
     keyOld:
       "PC menolak kunci yang dikirim papanmu. Tempel kunci di atas ke HUNT_KEY, lalu unggah ulang Hunter dan Beacon.",
     notListed:
@@ -155,7 +157,9 @@ export const H = dict({
     boardKeyHint:
       "This key is already filled into HUNT_KEY in the files you download from the Code step. It belongs to your group only and does not change between sessions, so a board already uploaded with this key does not need uploading again. Only an assistant can turn the keys, and it shows here when they do. If you are using an older copy, paste this key into HUNT_KEY.",
     keyRound: (n: number, at: number | null) =>
-      n === 0 ? "The key has never been changed." : `Key round ${n}${at ? `, changed at ${jam(at)}` : ""}.`,
+      n === 0
+        ? "The key has never been changed."
+        : `Key round ${n}${at ? `, changed at ${jam(at)}` : ""}.`,
     keyOld:
       "The PC is turning down the key your boards send. Paste the key above into HUNT_KEY, then upload the Hunter and Beacon again.",
     notListed:
@@ -252,7 +256,8 @@ export const H = dict({
       "从代码步骤下载的文件里，HUNT_KEY 已经填好这个密钥。它只属于你们组，各节课之间不会更换，所以已经上传过这个密钥的板子不用再上传。只有助教能更换密钥，更换时这里会显示。如果你用的是旧副本，就把这个密钥粘贴到 HUNT_KEY 里。",
     keyRound: (n: number, at: number | null) =>
       n === 0 ? "密钥还没换过。" : `密钥第 ${n} 轮${at ? `，${jam(at)} 更换` : ""}。`,
-    keyOld: "PC 不接受你们板子发来的密钥。把上面的密钥粘贴到 HUNT_KEY，然后重新上传 Hunter 和 Beacon。",
+    keyOld:
+      "PC 不接受你们板子发来的密钥。把上面的密钥粘贴到 HUNT_KEY，然后重新上传 Hunter 和 Beacon。",
     notListed: "你的 NIM 还不在寻踪名单里。请助教在课前准备里更新名单。",
     teamTitle: "你的组在寻踪中",
     inCount: (n: number, of: number) => `${n}/${of} 已加入`,
