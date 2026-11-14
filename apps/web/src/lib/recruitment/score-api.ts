@@ -76,6 +76,86 @@ export interface WrongPick {
   text: string;
 }
 
+/* ------------------------------------------------- one seat, in full (15 Nov 2026) */
+
+/** How one dealt question went for the seat. `void`: taken out of every sum. */
+export type QuestionState = "full" | "partial" | "wrong" | "blank" | "void";
+
+export interface SeatQuestion {
+  q: number;
+  title: string;
+  format: string;
+  lang: string;
+  /** Dealt by the bonus round: worth half, and only counted when answered */
+  bonus: boolean;
+  state: QuestionState;
+  /** What the seat earned and what the question could give, in points of the part (one decimal) */
+  got: number;
+  max: number;
+}
+
+export interface SeatPartDetail {
+  part: Phase1Part;
+  /** The part's cap, and the score the seat ended with (after a violation cut) */
+  cap: number;
+  score: number;
+  flag?: PartFlag;
+  cut?: number;
+  was?: number;
+  questions: SeatQuestion[];
+  /** Counts over the dealt (not bonus) questions that still count */
+  full: number;
+  partial: number;
+  wrong: number;
+  blank: number;
+  voided: number;
+}
+
+export interface SeatLiveProblem {
+  problemId: number;
+  title: string;
+  bonus: boolean;
+  /** What a full pass is worth, and what the best Submit gave after the penalty */
+  points: number;
+  got: number;
+  /** Tests the best finished Submit passed, null when nothing finished */
+  passed: number | null;
+  total: number | null;
+  /** Failed Submits counted and the percent they took off */
+  fails: number;
+  lost: number;
+}
+
+/**
+ * Everything behind one candidate's Tes Tulis score, for the Cutting drawer. Panitia only: a
+ * candidate must never learn their score, in any form (15 Nov 2026).
+ */
+export interface TesDetail {
+  /** The numbers come from a Finalkan freeze, not from the live answers */
+  final: boolean;
+  seatId: number;
+  roomId: number;
+  total: number;
+  phase1: number;
+  caps: Caps;
+  parts: SeatPartDetail[];
+  live: {
+    score: number | null;
+    cap: number;
+    flag?: LiveFlag;
+    cut?: { pct: number; was: number };
+    problems: SeatLiveProblem[];
+  };
+  /** Parts whose suggested violation cut nobody decided yet */
+  pending: PartKey[];
+}
+
+/** What `assemble` hands back for the one seat it was asked about (the loader adds the rest). */
+export interface SeatDetail {
+  parts: SeatPartDetail[];
+  liveProblems: SeatLiveProblem[];
+}
+
 export interface FreezeInfo {
   id: number;
   at: string;

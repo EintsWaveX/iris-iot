@@ -29,7 +29,11 @@ import type { PartView, TestView } from "../../../lib/recruitment/seat-types";
 import { QuestionCard } from "./render";
 import { BigIcon, LiveChip, PartsMini, SaveChip, Timer, type Motion } from "./parts";
 import { CalmStars, EdgeGlow } from "./ScreenFx";
-import { BONUS_ASKS, declinesLeft, type BonusQuote } from "../../../lib/recruitment/bonus";
+import {
+  BONUS_ASKS,
+  declinesLeft,
+  type BonusOffer as SeatOffer,
+} from "../../../lib/recruitment/bonus";
 import BonusOffer from "./BonusOffer";
 import { readDeclines, writeDeclines } from "./bonusDecline";
 import { TAB, askBonus, sendAnswer, submitPart, toast } from "./seatApi";
@@ -98,7 +102,7 @@ export default function Runner({
   const declineId = `${seat.id}.${key}`;
   const [declines, setDeclines] = useState(() => readDeclines(declineId));
   const declined = !declinesLeft(declines);
-  const [quote, setQuote] = useState<BonusQuote | null>(null);
+  const [quote, setQuote] = useState<SeatOffer | null>(null);
   const jumpToBonus = useRef(false);
   // The part's entrance plays once, when it starts; moving between questions has its own slide.
   const [entering, setEntering] = useState(true);

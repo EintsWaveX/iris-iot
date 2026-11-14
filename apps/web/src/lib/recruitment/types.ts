@@ -8,6 +8,7 @@
  * docs/recruitment/prompts/handoffs/02.md.
  */
 import type { DocSetting, SettingMap } from "./settings.js";
+import type { TesDetail } from "./score-api.js";
 
 /* ------------------------------------------------------------ vocabulary */
 
@@ -903,6 +904,11 @@ export interface CutDetailResponse {
   } | null;
   /** Who proposed what and when in this stage, newest first */
   history: { proposal: Proposal | null; by: string; at: string; note: string | null }[];
+  /**
+   * Tes Tulis only (15 Nov 2026): every part, question and Live Coding problem behind the score.
+   * Null when the candidate never sat the test. Always absent in other stages.
+   */
+  tes?: TesDetail | null;
 }
 
 /** POST propose */

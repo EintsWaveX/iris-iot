@@ -42,7 +42,8 @@ export interface LccSub {
   at: number;
 }
 
-export interface LccProblemState {
+/** A problem's state with its points, for the server and the panel: never sent to a seat. */
+export interface LccProblemStateFull {
   /** The newest Run Sample and the newest Submit, whatever their state */
   run: LccSub | null;
   submit: LccSub | null;
@@ -53,6 +54,28 @@ export interface LccProblemState {
   best: { passed: number; total: number; got: number; fails: number; lost: number } | null;
   /** Where a waiting job stands in the room's queue, counting from 1 */
   position: number | null;
+}
+
+/**
+ * What a seat gets of a problem (15 Nov 2026): the tests its best Submit passed, never the points
+ * they earned, what a failed Submit cost, or any running total. A candidate must never learn their
+ * Tes Tulis score, in any form.
+ */
+export interface LccProblemState extends Omit<LccProblemStateFull, "best"> {
+  best: { passed: number; total: number } | null;
+}
+
+/** The seat's view of the states: the points and the penalty are left out. */
+export function stateForSeat(
+  state: Record<number, LccProblemStateFull>,
+): Record<number, LccProblemState> {
+  const out: Record<number, LccProblemState> = {};
+  for (const [id, s] of Object.entries(state))
+    out[Number(id)] = {
+      ...s,
+      best: s.best ? { passed: s.best.passed, total: s.best.total } : null,
+    };
+  return out;
 }
 
 export interface LccBonus {
@@ -71,9 +94,6 @@ export interface LccSelf {
   /** The seat pressed Selesai */
   done: boolean;
   state: Record<number, LccProblemState>;
-  /** Points so far out of `cap`, from the best Submit of each problem */
-  total: number;
-  cap: number;
   /** The Live Coding minutes from the exam settings */
   minutes: number;
   /** What a failed Submit costs, from the exam settings, so the page can say so */
@@ -178,8 +198,8 @@ export function stateOf(
   rows: readonly SubRow[],
   position: (subId: number) => number | null,
   penalty: Penalty = NO_PENALTY,
-): { state: Record<number, LccProblemState>; total: number } {
-  const state: Record<number, LccProblemState> = {};
+): { state: Record<number, LccProblemStateFull>; total: number } {
+  const state: Record<number, LccProblemStateFull> = {};
   const live = livecodeResult(
     hand.map((h) => ({
       problemId: h.id,

@@ -38,17 +38,15 @@ import type { Lang } from "../../../lib/kelas";
 import { usePoll } from "../../../lib/hooks";
 import type { Verdict } from "../../../lib/recruitment/c-problem";
 import { isFail, recGet, recPost } from "../../../lib/recruitment/client";
-import type {
-  LccProblem,
-  LccProblemState,
-  LccSelf,
-  LccSendReply,
-  LccSub,
-} from "../../../lib/recruitment/lcc-api";
+import type { LccProblem, LccSelf, LccSendReply, LccSub } from "../../../lib/recruitment/lcc-api";
 import type { SeatPhase } from "../../../lib/recruitment/seat-state";
 import type { TestView } from "../../../lib/recruitment/seat-types";
 import Dialog from "../../ui/Dialog";
-import { BONUS_ASKS, declinesLeft, type BonusQuote } from "../../../lib/recruitment/bonus";
+import {
+  BONUS_ASKS,
+  declinesLeft,
+  type BonusOffer as SeatOffer,
+} from "../../../lib/recruitment/bonus";
 import BonusOffer from "../exam/BonusOffer";
 import { readDeclines, writeDeclines } from "../exam/bonusDecline";
 import { Gate, Timer, type Motion } from "../exam/parts";
@@ -482,7 +480,7 @@ function Workbench({
     setDeclines(n);
     writeDeclines(declineId, n);
   };
-  const [quote, setQuote] = useState<BonusQuote | null>(null);
+  const [quote, setQuote] = useState<SeatOffer | null>(null);
   const [finBusy, setFinBusy] = useState(false);
   const jumpToBonus = useRef(false);
   const st = lcc.state[p.id];
@@ -527,7 +525,7 @@ function Workbench({
     if (!canOffer || quote) return;
     let dead = false;
     void (async () => {
-      const r = await recPost<{ ok: true; quote: BonusQuote }>("lcc-bonus", { dry: true });
+      const r = await recPost<{ ok: true; quote: SeatOffer }>("lcc-bonus", { dry: true });
       if (dead) return;
       if (!isFail(r) && r.quote.quota >= 1) setQuote(r.quote);
       else sayNo(BONUS_ASKS);
@@ -797,19 +795,15 @@ function Workbench({
           <Result
             lang={lang}
             sub={shown}
-            p={p}
-            best={st.best}
             position={st.position}
             queueTotal={lcc.queueTotal ?? null}
           />
         </section>
       </div>
-      {/* Pinned to the bottom edge like the written parts' bar: the score on the left, Selesai at the right */}
-      <div className="lcc-bar" role="group" aria-label={t.scoreSoFar}>
+      {/* Pinned to the bottom edge like the written parts' bar. No score here (15 Nov 2026): a candidate never learns it. */}
+      <div className="lcc-bar" role="group" aria-label={t.scoreHidden}>
         <div className="lcc-bar__score">
-          <span className="lcc-bar__label">{t.scoreSoFar}</span>
-          <b className="num lcc-bar__n">{lcc.total}</b>
-          <span className="num lcc-bar__of">{t.outOf(lcc.cap)}</span>
+          <span className="lcc-bar__label">{t.scoreHidden}</span>
         </div>
         <button
           type="button"
@@ -868,15 +862,11 @@ export function Block({
 function Result({
   lang,
   sub,
-  p,
-  best,
   position,
   queueTotal,
 }: {
   lang: Lang;
   sub: LccSub | null;
-  p: LccProblem;
-  best: LccProblemState["best"];
   position: number | null;
   /** Every job waiting or being judged, for "number 3 of 7" and the row of squares */
   queueTotal: number | null;
@@ -950,19 +940,6 @@ function Result({
             </li>
           ))}
         </ul>
-      )}
-      {best && sub.kind === "submit" && (
-        <div className="lcc-best" data-full={best.passed === best.total ? "yes" : undefined}>
-          <span className="lcc-best__t">
-            {t.best(best.got, p.points)}
-            {best.lost > 0 && (
-              <small className="lcc-best__cut"> · {t.cut(best.fails, best.lost)}</small>
-            )}
-          </span>
-          <span className="lcc-best__bar" aria-hidden="true">
-            <i style={{ width: `${Math.round((best.got / Math.max(1, p.points)) * 100)}%` }} />
-          </span>
-        </div>
       )}
     </div>
   );

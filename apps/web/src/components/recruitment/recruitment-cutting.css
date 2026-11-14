@@ -609,6 +609,13 @@
   font-size: 0.9rem;
   margin: 6px 0 0;
 }
+.cwd__list-v[data-v="mid"] {
+  color: var(--n7-warn);
+}
+.cwd__qmeta {
+  display: block;
+  font-weight: 400;
+}
 .cwd__concl {
   display: grid;
   gap: 8px;

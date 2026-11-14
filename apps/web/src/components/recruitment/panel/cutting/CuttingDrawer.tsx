@@ -21,6 +21,7 @@ import type {
 import { S2 } from "../../s2Strings";
 import { tgl } from "../../shared";
 import { CW } from "./cutWhyStrings";
+import TesResult from "./TesResult";
 import { RB } from "../rollback/rollbackStrings";
 import Skeleton from "../../../ui/Skeleton";
 
@@ -365,6 +366,10 @@ export default function CuttingDrawer({
                   </ul>
                 )}
               </Sec>
+
+              {stage === "tes_tulis" && d.tes !== undefined && (
+                <TesResult lang={lang} tes={d.tes} />
+              )}
 
               {d.iv && (
                 <Sec title={t.iv}>

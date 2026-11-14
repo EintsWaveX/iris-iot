@@ -8,7 +8,7 @@
 import { SparkleIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import type { Lang } from "../../../lib/kelas";
-import type { BonusQuote } from "../../../lib/recruitment/bonus";
+import type { BonusOffer as SeatOffer } from "../../../lib/recruitment/bonus";
 
 export interface BonusText {
   badge: string;
@@ -16,7 +16,7 @@ export interface BonusText {
   /** The second ask */
   title2: string;
   counting: string;
-  desc: (q: BonusQuote, round: 1 | 2) => string;
+  desc: (q: SeatOffer, round: 1 | 2) => string;
   yes: string;
   yes2: string;
   no: string;
@@ -42,7 +42,7 @@ export default function BonusOffer({
   /** Left out for the written parts: the offer must be answered, it has no way out but its buttons */
   onOpenChange?: (open: boolean) => void;
   /** Null while the server is still counting */
-  quote: BonusQuote | null;
+  quote: SeatOffer | null;
   busy: boolean;
   t: BonusText;
   onYes: () => void;

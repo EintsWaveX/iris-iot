@@ -5,7 +5,7 @@
  * strike is a kejadian in the Master's console; to the candidate it is just
  * "tercatat" (logged), and the page never says a score.
  */
-import type { BonusQuote } from "../../../lib/recruitment/bonus";
+import type { BonusOffer } from "../../../lib/recruitment/bonus";
 import { dict } from "../../../lib/app";
 import { offerWords } from "./bonusWords";
 import type { PartKey } from "../../../lib/recruitment/exam-types";
@@ -170,7 +170,7 @@ export const TS = dict({
       title: "Mau coba soal bonus?",
       title2: "Yakin tidak mau coba soal bonus?",
       counting: "Melihat hasil kerjamu...",
-      desc: (q: BonusQuote, round: 1 | 2) => offerWords("id", q, round),
+      desc: (q: BonusOffer, round: 1 | 2) => offerWords("id", q, round),
       yes: "Ya, Coba Soal Bonus",
       yes2: "Oke, Aku Coba",
       no: "Tidak, Lewati",
@@ -399,7 +399,7 @@ export const TS = dict({
       title: "Want to try the bonus questions?",
       title2: "Sure you do not want the bonus questions?",
       counting: "Looking at how you did...",
-      desc: (q: BonusQuote, round: 1 | 2) => offerWords("en", q, round),
+      desc: (q: BonusOffer, round: 1 | 2) => offerWords("en", q, round),
       yes: "Yes, Try the Bonus",
       yes2: "Okay, I will Try",
       no: "No, Skip",
@@ -621,7 +621,7 @@ export const TS = dict({
       title: "要试试加分题吗？",
       title2: "真的不想试加分题吗？",
       counting: "正在查看你的表现...",
-      desc: (q: BonusQuote, round: 1 | 2) => offerWords("zh", q, round),
+      desc: (q: BonusOffer, round: 1 | 2) => offerWords("zh", q, round),
       yes: "是，试试加分题",
       yes2: "好，我来试试",
       no: "不用，跳过",

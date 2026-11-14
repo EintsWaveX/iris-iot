@@ -25,7 +25,7 @@ import {
   bonusQuota,
   bonusWorth,
   declinesLeft,
-  performanceWords,
+  offerOf,
   BONUS_ASKS,
 } from "../recruitment/bonus";
 import { StrikeTracker, isScreenshotKey, STRIKE_KINDS } from "../recruitment/seat-lockdown";
@@ -342,30 +342,18 @@ describe("handing in is never blocked by blanks", () => {
   });
 });
 
-describe("how the offer talks about a seat (words, never numbers)", () => {
-  const q = (correct: number, wrong: number, blank: number, time: number) => ({
-    rest: 20,
-    time,
-    correct,
-    wrong,
-    blank,
-    quota: 5,
-  });
-
-  it("grades the share of dealt questions answered right", () => {
-    expect(performanceWords(q(19, 1, 0, 4)).mood).toBe("top");
-    expect(performanceWords(q(14, 6, 0, 4)).mood).toBe("good");
-    expect(performanceWords(q(8, 12, 0, 4)).mood).toBe("ok");
-    expect(performanceWords(q(2, 10, 8, 4)).mood).toBe("low");
-  });
-
-  it("says the time is roomy only when a good part of the part is still left", () => {
-    expect(performanceWords(q(10, 10, 0, 12)).roomy).toBe(true);
-    expect(performanceWords(q(10, 10, 0, 1)).roomy).toBe(false);
-  });
-
-  it("an empty seat does not divide by zero", () => {
-    expect(performanceWords(q(0, 0, 0, 0))).toEqual({ mood: "low", roomy: false });
+describe("what a seat is told about the offer (never a score)", () => {
+  it("is the number of bonus questions and nothing else", () => {
+    const quote = bonusQuota({
+      leftMs: 13 * 60_000,
+      perQuestionMs: 60_000,
+      correct: 12,
+      wrong: 8,
+      blank: 0,
+      rest: 20,
+    });
+    expect(offerOf(quote)).toEqual({ quota: 17 });
+    expect(Object.keys(offerOf(quote))).toEqual(["quota"]);
   });
 
   it("asks twice at most, then stops", () => {
