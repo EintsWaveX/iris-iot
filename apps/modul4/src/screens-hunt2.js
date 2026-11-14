@@ -92,7 +92,7 @@
         ${Array.from({ length: Math.max(6, code.length) }, (_, i) => i).map((i) => html`<span class=${"tokbox__c" + (i === code.length ? " is-cur" : "")}>${code[i] || ""}</span>`)}
         <input ref=${input} class="sr" aria-label=${L("Token asisten", "Assistant token")} autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" value=${code} onInput=${(e) => setCode(e.target.value.toUpperCase().replace(ALPHA, "").slice(0, 12))} autofocus />
       </label>
-      ${err != null && html`<span class="error"><${Icon} n="warning" sm />${err >= 0 ? L(`Token salah. Sisa kesempatan sebelum sambungan ditutup: ${err}.`, `Wrong token. Tries left before the connection closes: ${err}.`) : L("Tidak tersambung ke PC. Coba lagi.", "Not connected to the PC. Try again.")}</span>`}
+      ${err != null && html`<span class="error" role="alert"><${Icon} n="warning" sm />${err >= 0 ? L(`Token salah. Sisa kesempatan sebelum sambungan ditutup: ${err}.`, `Wrong token. Tries left before the connection closes: ${err}.`) : L("Tidak tersambung ke PC. Coba lagi.", "Not connected to the PC. Try again.")}</span>`}
       <${Btn} type="submit" kind="primary" lg block icon="lock-key" disabled=${code.length < 4 || busy}>${L("Buka", "Open")}</${Btn}>
       <span class="hint">${L("Tab Asisten tidak tampil di ponsel praktikan sampai token benar.", "The Assistant tab doesn't show on student phones until the token is right.")}</span>
       <button type="button" class="hjoin__asisten" onClick=${() => H.go("hunt")}><${Icon} n="arrow-left" sm />${N.grup === null ? L("Kembali ke Masuk NIM", "Back to the NIM Sign-In") : L("Kembali ke Perburuan", "Back to the Hunt")}</button>
@@ -160,6 +160,16 @@
       clearTimeout(arenaTimer.current);
       arenaTimer.current = setTimeout(() => act("arena", { arena_m: v }, L(`Arena ${v} m.`, `Arena ${v} m.`)).then(() => setArena(null)), 700);
     };
+    /* the link the assistant hands out: this page with today's join code */
+    const copyLink = async () => {
+      const url = location.origin + "/#k=" + N.kode;
+      try {
+        await navigator.clipboard.writeText(url);
+        H.toast(L("Tautan disalin.", "Link copied."), { tone: "ok" });
+      } catch (e) {
+        H.toast(L(`Tidak bisa menyalin di sini. Tautannya: ${url}`, `Couldn't copy here. The link is: ${url}`), { tone: "warn", ms: 12000 });
+      }
+    };
     const totalIn = ids.reduce((a, g) => a + H.members(g).filter((m) => m.hadir).length, 0);
     const total = ids.reduce((a, g) => a + H.members(g).length, 0);
     const packets = rows.reduce((a, r) => a + (r.diterima || 0), 0);
@@ -213,7 +223,7 @@
               <${Btn} sm icon="arrow-counter-clockwise" onClick=${() => setAsk("reset")}>${L("Ronde Baru", "New Round")}</${Btn}>
               ${f.sesi ? html`<${Btn} sm kind="danger" icon="stop" onClick=${() => setAsk("akhiri")}>${L("Akhiri Sesi", "End the Session")}</${Btn}>` : html`<${Btn} sm kind="primary" icon="play" onClick=${() => setAsk("mulai")}>${L("Mulai Sesi", "Start a Session")}</${Btn}>`}</div></section>
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Kode dan akun", "Codes and sign-ins")}</h2></div>
-            <div class="kv"><span class="label">${L("Kode masuk", "Join code")}</span><span class="mono">${N.kode || "·"}</span><span class="label">${L("Kunci papan", "Board keys")}</span><span>${L(`putaran ${f.kunci_epoch || 0}`, `round ${f.kunci_epoch || 0}`)}</span><span class="label">${L("Token asisten", "Assistant token")}</span><span>${L("tetap, dari PC", "fixed, set on the PC")}</span></div>
+            <div class="kv"><span class="label">${L("Kode masuk", "Join code")}</span><span class="row" style="gap:8px;flex-wrap:nowrap"><span class="mono">${N.kode || "·"}</span>${N.kode && html`<${IconBtn} sm icon="link" label=${L("Salin tautan masuk", "Copy the join link")} onClick=${copyLink} />`}</span><span class="label">${L("Kunci papan", "Board keys")}</span><span>${L(`putaran ${f.kunci_epoch || 0}`, `round ${f.kunci_epoch || 0}`)}</span><span class="label">${L("Token asisten", "Assistant token")}</span><span>${L("tetap, dari PC", "fixed, set on the PC")}</span></div>
             <span class="hint">${L("Kode masuk ada di tautan dan QR. Kode ini berganti tiap sesi, dan tiap sesi dimulai lagi. Kunci papan tetap sama antar sesi, jadi papan tidak perlu diunggah ulang, sampai kamu menekan Kunci Papan Baru.", "The join code is in the link and the QR. It changes every session and every time a session is started again. Board keys stay the same between sessions, so boards need no new upload, until you press New Board Keys.")}</span>
             <div class="r5act r5act--alt"><${Btn} sm icon="sign-out" onClick=${() => setAsk("lepas")}>${L("Lepas NIM", "Release a NIM")}</${Btn}><${Btn} sm kind="danger" icon="lock-key" onClick=${() => setAsk("kunci")}>${L("Kunci Papan Baru", "New Board Keys")}</${Btn}></div></section>
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Sinyal tim", "Team pings")}</h2></div>

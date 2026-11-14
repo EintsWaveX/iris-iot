@@ -66,6 +66,17 @@ button.hphoto--sm { width: 84px; }
   .lane2 > :nth-child(4) { grid-column: 3; grid-row: 1; }
   .lane2 > :last-child { grid-column: 4; grid-row: 1; justify-self: end; }
 }
+/* Small phones (320 to 479): one row holds only the name and the percent, the
+   bar gets its own row, and the heat chip and the menu share the third. With
+   everything on one row a name like "Solo" was squeezed to two letters. */
+@container huntapp (max-width: 479px) {
+  .lane2 { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+  .lane2 > .lane2__n { grid-column: 1; grid-row: 1; }
+  .lane2 > :nth-child(3) { grid-column: 2; grid-row: 1; }
+  .lane2 > .lane2__bar { grid-column: 1 / -1; grid-row: 2; }
+  .lane2 > :nth-child(4) { grid-column: 1; grid-row: 3; justify-self: start; }
+  .lane2 > :last-child { grid-column: 2; grid-row: 3; justify-self: end; }
+}
 
 /* The win card's glow floats behind the text. In the mockup ".hwin > *"
    (position: relative) came later and pushed it into the flow, leaving an
@@ -485,5 +496,10 @@ button.hphoto--sm { width: 84px; }
    and the primary button keeps its gradient still. Every moving background
    is paint work a phone does for nothing while nobody is touching it. */
 .btn::after, .btn--primary::before { animation: none; }
-.btn:hover::after, .btn:focus-visible::after { animation: sweep 4s linear infinite; }
+.btn:focus-visible::after { animation: sweep 4s linear infinite; }
+/* hover only where there is a real pointer: on a phone :hover sticks after a tap */
+@media (hover: hover) and (pointer: fine) { .btn:hover::after { animation: sweep 4s linear infinite; } }
 .reduce .btn:hover::after, .reduce .btn:focus-visible::after { animation: none; }
+/* a long label wraps inside the drawer instead of pushing it sideways */
+.drawer__body > *, .drawer__body .field { min-width: 0; }
+.drawer__body .btn { white-space: normal; text-align: center; }
