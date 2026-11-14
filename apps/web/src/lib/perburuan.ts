@@ -63,6 +63,9 @@ export interface Ringkas {
   /** Today's join code for the scoreboard; only ever handed to the people
    *  the session's own group and Asisten, never to a guest. */
   kode: string | null;
+  /** The Asisten's token for the scoreboard's Mission Control. NEVER part of any answer a Praktikan
+   *  can read: only api/_lib/token-papan-api.ts hands it out, to a signed-in Asisten. */
+  token: string | null;
   /** Each group's board key (group number to 8 letters): pasted into HUNT_KEY
    *  in that group's sketches, so only its own boards can feed its hunt. A
    *  group is only ever handed its own. */
@@ -141,6 +144,8 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
     peristiwa.push(p);
   }
   const kode = typeof raw.kode === "string" && /^[A-Z0-9]{4,12}$/.test(raw.kode) ? raw.kode : null;
+  const token =
+    typeof raw.token === "string" && /^[A-Z0-9]{4,12}$/.test(raw.token) ? raw.token : null;
   const kunci: Record<string, string> = {};
   if (isObj(raw.kunci)) {
     for (const [nomor, nilai] of Object.entries(raw.kunci).slice(0, MAKS_GRUP)) {
@@ -154,6 +159,7 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
   return {
     versi: 1,
     kode,
+    token,
     kunci,
     kunciEpoch: int(raw.kunci_epoch ?? raw.kunciEpoch, 0, 1_000_000) ?? 0,
     kunciDiputar:

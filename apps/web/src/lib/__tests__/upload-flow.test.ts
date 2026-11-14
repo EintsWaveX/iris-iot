@@ -19,6 +19,8 @@ function make(
     image: Uint8Array | null;
     flash: () => Promise<void>;
     write: () => Promise<void>;
+    /** what flashEsp32 returns: which way in worked */
+    via: string;
   }> = {},
 ) {
   const calls: string[] = [];
@@ -43,6 +45,7 @@ function make(
       calls.push("flash");
       pct(50);
       await (over.flash ?? (async () => undefined))();
+      return over.via;
     },
     writeMain: async (_p, _t, pct) => {
       calls.push("write");
@@ -63,6 +66,11 @@ function make(
 }
 
 describe("runUpload", () => {
+  it("passes on which way into the bootloader worked, for the upload report", async () => {
+    const t = make({ via: "reset-115200-rom" });
+    expect(await t.run()).toEqual({ ok: true, via: "reset-115200-rom" });
+  });
+
   it("builds, waits its turn, downloads, flashes and says done, in that order", async () => {
     const t = make({
       statuses: [
@@ -71,7 +79,7 @@ describe("runUpload", () => {
         { ok: true, state: "done", pos: 0 },
       ],
     });
-    expect(await t.run()).toEqual({ ok: true });
+    expect(await t.run()).toEqual({ ok: true, via: "esp32" });
     expect(t.calls).toEqual(["start", "status", "status", "status", "image", "flash"]);
     const stages = t.seen.map((p) => p.stage);
     expect(stages[0]).toBe("building");
@@ -85,7 +93,7 @@ describe("runUpload", () => {
     const t = make({
       start: { ok: true, kind: "pico", path: "modul3_mqtt_publish.py", teks: "print(1)" },
     });
-    expect(await t.run()).toEqual({ ok: true });
+    expect(await t.run()).toEqual({ ok: true, via: "raw-repl" });
     expect(t.calls).toEqual(["start", "write"]);
   });
 
@@ -181,7 +189,7 @@ describe("runUpload", () => {
       () => undefined,
       new AbortController().signal,
     );
-    expect(r).toEqual({ ok: true });
+    expect(r).toEqual({ ok: true, via: "esp32" });
     expect(n).toBe(2);
   });
 });

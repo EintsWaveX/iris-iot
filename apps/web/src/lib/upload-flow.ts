@@ -61,13 +61,14 @@ export interface UploadApi {
 
 export interface UploadDeps<Port> {
   api: UploadApi;
-  /** Flash a merged image at address 0 and reset the board. Throws an Error whose message is a code. */
+  /** Flash a merged image at address 0 and reset the board. Throws an Error whose message is a code.
+   *  Returns which way in worked (see flashEsp32), for the upload report. */
   flashEsp32(
     port: Port,
     image: Uint8Array,
     onPercent: (n: number) => void,
     onPhase: (p: "erase" | "write") => void,
-  ): Promise<void>;
+  ): Promise<string | void>;
   /** Write the text as main.py on a Pico W and restart it. */
   writeMain(port: Port, text: string, onPercent: (n: number) => void): Promise<void>;
   sleep(ms: number): Promise<void>;
@@ -81,7 +82,7 @@ export interface UploadInput<Port> {
   port: Port;
 }
 
-export type UploadResult = { ok: true } | { ok: false; kode: string; log?: string };
+export type UploadResult = { ok: true; via: string } | { ok: false; kode: string; log?: string };
 
 /** How often the queue is asked, and how long the whole wait may last */
 export const POLL_MS = 1500;
@@ -128,7 +129,7 @@ export async function runUpload<Port>(
       return fail(codeOf(err, "gagal_tulis"), logOf(err));
     }
     report({ stage: "done" });
-    return { ok: true };
+    return { ok: true, via: "raw-repl" };
   }
 
   // An ESP32 file: wait for the PC's build.
@@ -163,18 +164,20 @@ export async function runUpload<Port>(
   if (cancelled()) return fail("dibatalkan");
 
   report({ stage: "flashing", percent: 0 });
+  let via = "esp32";
   try {
-    await deps.flashEsp32(
-      input.port,
-      image,
-      (n) => report({ stage: "flashing", percent: n, phase: "write" }),
-      (phase) => report({ stage: "flashing", percent: 0, phase }),
-    );
+    via =
+      (await deps.flashEsp32(
+        input.port,
+        image,
+        (n) => report({ stage: "flashing", percent: n, phase: "write" }),
+        (phase) => report({ stage: "flashing", percent: 0, phase }),
+      )) || via;
   } catch (err) {
     return fail(codeOf(err, "gagal_flash"), logOf(err));
   }
   report({ stage: "done" });
-  return { ok: true };
+  return { ok: true, via };
 }
 
 /** An error's code when it carries one of ours (UploadError.kode, or a message that is one), else the fallback */

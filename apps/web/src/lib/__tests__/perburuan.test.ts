@@ -204,6 +204,14 @@ describe("scoreboard link and join code", () => {
     expect(saringPerburuan(contoh)?.kode).toBeNull();
   });
 
+  it("keeps only a well-formed Asisten token", () => {
+    expect(saringPerburuan({ ...contoh, token: "QXA3W7" })?.token).toBe("QXA3W7");
+    expect(saringPerburuan({ ...contoh, token: "qxa3w7" })?.token).toBeNull();
+    expect(saringPerburuan({ ...contoh, token: "AB" })?.token).toBeNull();
+    expect(saringPerburuan({ ...contoh, token: 123456 })?.token).toBeNull();
+    expect(saringPerburuan(contoh)?.token).toBeNull();
+  });
+
   it("keeps only well-formed per-group board keys", () => {
     const kunci = saringPerburuan({
       ...contoh,

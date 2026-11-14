@@ -141,6 +141,12 @@ BEACON_TX_DBM = 10
 # tepat 1 meter dari beacon, lalu tekan tombol kalibrasi pada papan skor.
 RSSI_AT_1M = -40.0
 
+# Rentang RSSI yang masuk akal untuk pembacaan 1 meter. Kalibrasi di luarnya
+# ditolak: di bawah batas bawah hunter-nya pasti jauh, di atas batas atas
+# antenanya menempel atau pembacaannya rusak.
+RSSI_1M_MIN = -70.0
+RSSI_1M_MAX = -15.0
+
 # Eksponen path loss. 2.0 = ruang bebas dan lapangan terbuka; 2.5-3.5 =
 # ruangan dengan sekat dan perabot; makin besar berarti sinyal makin cepat
 # melemah terhadap jarak.
@@ -734,19 +740,32 @@ class Hunt:
         far = self.distance_m(rssi - RSSI_UNCERTAINTY_DB)
         return near, far
 
-    def calibrate(self, gid: int) -> None:
+    def calibrate(self, gid: int) -> tuple[bool, str]:
         """Menetapkan RSSI acuan 1 meter dari pembacaan sebuah hunter.
 
         Asisten memegang papan hunter itu tepat satu meter dari beacon, lalu
         menekan tombol kalibrasi. Sesudah ini seluruh perkiraan jarak memakai
         ruangan yang sebenarnya, bukan angka bawaan di dalam kode.
+
+        Angka yang ditolak: hunter yang sedang hening (nilai halusnya sisa
+        lama) dan nilai di luar rentang yang masuk akal untuk jarak 1 meter.
+        Acuan -98 dBm pernah tersimpan dari hunter yang jauh, dan sejak itu
+        semua jarak terbaca 0,1 m karena tersimpan sampai server dimulai ulang.
         """
         slot = self.groups.get(gid)
         if slot is None or slot["halus"] is None:
-            return
-        self.rssi_at_1m = round(slot["halus"], 1)
+            return False, "hunter belum melapor"
+        if self._silent(slot):
+            return False, "hunter sedang tidak mengirim paket"
+        halus = round(slot["halus"], 1)
+        if not RSSI_1M_MIN <= halus <= RSSI_1M_MAX:
+            return False, (f"RSSI {halus} dBm tidak masuk akal untuk jarak "
+                           f"1 meter, harusnya antara {RSSI_1M_MIN:g} dan "
+                           f"{RSSI_1M_MAX:g} dBm")
+        self.rssi_at_1m = halus
         self.kalibrasi_pada = datetime.now().strftime("%Y-%m-%d %H:%M")
         self.note("kalibrasi", gid, rssi=self.rssi_at_1m)
+        return True, ""
 
     def heat_radius(self, fraction: float, floor_m: float) -> float:
         """Jarak batas satu anak tangga panas, dalam meter."""
@@ -2282,6 +2301,10 @@ def ringkasan_perburuan() -> dict:
         "jam": bingkai["jam"],
         # Kode masuk papan hari ini; situs menaruhnya di tautan praktikan
         "kode": kode_papan() or None,
+        # Token asisten, untuk situs: hanya ditampilkan kepada Asisten yang masuk
+        # (bukan Praktikan), supaya tidak perlu dicari di log PC. Rute ini
+        # loopback saja, seperti sisanya.
+        "token": TOKEN or None,
         # Kunci papan tiap kelompok, untuk situs: ditempel kelompok ke HUNT_KEY
         "kunci": {str(g): kunci_grup(g) for g in range(1, KUNCI_MAKS_GRUP + 1)},
         # Putaran kunci papan dan kapan terakhir diputar (detik epoch, atau
@@ -3320,8 +3343,8 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
             await kirim(connection, "balas", aksi="kalibrasi", ok=False,
                         alasan="nomor kelompok tidak sah")
             return
-        HUNT.calibrate(gid)
-        await kirim(connection, "balas", aksi="kalibrasi", ok=True)
+        ok, alasan = HUNT.calibrate(gid)
+        await kirim(connection, "balas", aksi="kalibrasi", ok=ok, alasan=alasan)
         return
 
     if aksi == "reset":

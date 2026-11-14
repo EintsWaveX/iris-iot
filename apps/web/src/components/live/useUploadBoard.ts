@@ -45,6 +45,46 @@ const api: UploadApi = {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+const hex4 = (n: unknown) => (typeof n === "number" ? n.toString(16).padStart(4, "0") : "");
+
+/** Tells the site how a flash went (api/_lib/unggah-catat.ts keeps it as one audit row), so Reports
+ *  shows which laptops cannot upload and why. Never throws, never waits: a lost report costs nothing.
+ *  Sends no value the person typed (no Wi-Fi password, no key), only the outcome and what esptool said. */
+export function laporkanUnggah(
+  modul: number,
+  role: string,
+  port: SerialPortLike,
+  result: { ok: true; via: string } | { ok: false; kode: string; log?: string },
+  ms: number,
+): void {
+  try {
+    const info = (
+      port as { getInfo?: () => { usbVendorId?: number; usbProductId?: number } }
+    ).getInfo?.();
+    const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+    void fetch("/api/session/unggah-catat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        modul,
+        role,
+        hasil: result.ok ? "ok" : "gagal",
+        kode: result.ok ? "" : result.kode,
+        via: result.ok ? result.via : "",
+        ua: navigator.userAgent,
+        sistem: nav.userAgentData?.platform || navigator.platform || "",
+        vid: hex4(info?.usbVendorId),
+        pid: hex4(info?.usbProductId),
+        log: result.ok ? "" : (result.log ?? "").slice(-1000),
+        ms,
+      }),
+    }).catch(() => undefined);
+  } catch {
+    /* a report is never worth a failed upload */
+  }
+}
+
 /** Ports being written right now, page wide: two rows must not write to one board at once */
 const writing = new Set<SerialPortLike>();
 const IDLE: UploadProgress = { stage: "idle" };
@@ -87,6 +127,7 @@ export function useUploadBoard(
       await board.claim(port);
       await board.release();
     };
+    const began = Date.now();
     try {
       const result = await runUpload<SerialPortLike>(
         {
@@ -105,6 +146,9 @@ export function useUploadBoard(
         setState,
         ac.signal,
       );
+      // Only a flash that really started is reported: a build that failed, a cancel or a busy port
+      // says nothing about this laptop's USB.
+      if (released) laporkanUnggah(modul, role, port, result, Date.now() - began);
       // The board is on the cable again: connect to it, as Hubungkan would. A failed upload
       // gives back the connection the board had before.
       if (released && (result.ok || wasOpen)) void board.reopen(port);

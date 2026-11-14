@@ -886,6 +886,27 @@ async def main() -> int:
     await kirim_hunter(args.url, 1, -50.0, 5)
     await kirim_hunter(args.url, 2, -95.0, 5)
 
+    # ---- kalibrasi 1 m: angka yang mustahil ditolak --------------------
+    async with connect(args.url + "/live") as kal:
+        await kal.send(json.dumps({"aksi": "halo", "token": T}))
+        await balas(kal, "halo")
+        # Hunter jauh (-95 dBm) bukan hunter 1 meter dari beacon
+        await kal.send(json.dumps({"aksi": "kalibrasi", "grup": 2}))
+        r = await balas(kal, "kalibrasi")
+        cek("kalibrasi dari hunter jauh ditolak",
+            bool(r) and r.get("ok") is False, (r or {}).get("alasan", ""))
+        # Kelompok yang belum pernah melapor
+        await kal.send(json.dumps({"aksi": "kalibrasi", "grup": 9}))
+        r = await balas(kal, "kalibrasi")
+        cek("kalibrasi tanpa laporan hunter ditolak",
+            bool(r) and r.get("ok") is False, (r or {}).get("alasan", ""))
+        # Hunter masuk akal (-40 dBm) diterima, dan acuannya terpakai
+        await kirim_hunter(args.url, 4, -40.0, 5)
+        await kal.send(json.dumps({"aksi": "kalibrasi", "grup": 4}))
+        r = await balas(kal, "kalibrasi")
+        cek("kalibrasi dari hunter 1 meter diterima",
+            bool(r) and r.get("ok") is True, (r or {}).get("alasan", ""))
+
     # ---- tamu: tidak boleh apa-apa -------------------------------------
     # Satu koneksi per perintah. Menumpuknya pada satu koneksi akan memicu
     # penjaga MAX_GAGAL_TOKEN di tengah daftar, dan perintah sesudahnya
@@ -1147,6 +1168,8 @@ async def main() -> int:
             {"versi", "jam", "sesi", "mulai", "selesai", "berjalan", "grup",
              "penghargaan", "peristiwa"} <= set(ringkas.keys()),
             json.dumps(sorted(ringkas.keys())))
+        cek("/ringkas.json membawa token asisten untuk situs",
+            ringkas.get("token") == T, "token cocok dengan yang dipakai server")
         cek("/ringkas.json menyebut sesi berjalan", ringkas.get("sesi") == 1,
             str(ringkas.get("sesi")))
         cek(f"/ringkas.json menyebut jaringan {args.jaringan}",

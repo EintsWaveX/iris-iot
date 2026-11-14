@@ -193,6 +193,8 @@ const W = {
     paksa: (a: string) => `, dimulai tetap walau lab belum siap. Alasan: ${a}`,
     galatServer: (r: string, p: string) => `mencatat galat server${r ? ` di ${r}` : ""}: ${p}`,
     galatKlien: (h: string, p: string) => `mencatat galat di halaman ${h || "?"}: ${p}`,
+    unggah: (m: string, ok: boolean, kode: string, via: string, sistem: string, usb: string) =>
+      `mengunggah kode Modul ${m} ke papan dari browser: ${ok ? "berhasil" : `gagal (${kode || "?"})`}, cara masuk ${via || "?"}, ${sistem || "?"}${usb ? `, USB ${usb}` : ""}`,
     brief: (m: string, b: string) => `mengubah Ringkasan ${m} (${b})`,
     presentasi: "mengubah slide presentasi",
     profil: "mengubah Profil Lab di Beranda",
@@ -381,6 +383,8 @@ const W = {
     paksa: (a: string) => `, started anyway with the lab not ready. Reason: ${a}`,
     galatServer: (r: string, p: string) => `logged a server error${r ? ` in ${r}` : ""}: ${p}`,
     galatKlien: (h: string, p: string) => `logged an error on page ${h || "?"}: ${p}`,
+    unggah: (m: string, ok: boolean, kode: string, via: string, sistem: string, usb: string) =>
+      `uploaded Module ${m} code to a board from the browser: ${ok ? "worked" : `failed (${kode || "?"})`}, way in ${via || "?"}, ${sistem || "?"}${usb ? `, USB ${usb}` : ""}`,
     brief: (m: string, b: string) => `changed the ${m} Brief (${b})`,
     presentasi: "changed the presentation slides",
     profil: "changed the Lab Profile on Home",
@@ -560,6 +564,8 @@ const W = {
     paksa: (a: string) => `，实验室未就绪但仍然开始。原因：${a}`,
     galatServer: (r: string, p: string) => `记录了服务器错误${r ? `（${r}）` : ""}：${p}`,
     galatKlien: (h: string, p: string) => `记录了页面 ${h || "?"} 的错误：${p}`,
+    unggah: (m: string, ok: boolean, kode: string, via: string, sistem: string, usb: string) =>
+      `在浏览器中把模块 ${m} 的代码上传到开发板：${ok ? "成功" : `失败（${kode || "?"}）`}，进入方式 ${via || "?"}，${sistem || "?"}${usb ? `，USB ${usb}` : ""}`,
     brief: (m: string, b: string) => `修改了${m}的概要（${b}）`,
     presentasi: "修改了演示幻灯片",
     profil: "修改了首页上的实验室简介",
@@ -1132,6 +1138,24 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(WarningIcon, w.galatServer(String(d.rute ?? ""), String(d.pesan ?? "")), true);
     case "galat_klien":
       return k(WarningIcon, w.galatKlien(String(d.halaman ?? ""), String(d.pesan ?? "")), true);
+    case "unggah_catat": {
+      const ok = d.hasil === "ok";
+      const usb = d.vid && d.pid ? `${d.vid}:${d.pid}` : "";
+      return {
+        ...k(
+          ok ? MonitorIcon : WarningIcon,
+          w.unggah(
+            String(d.modul ?? "?"),
+            ok,
+            String(d.kode ?? ""),
+            String(d.via ?? ""),
+            String(d.sistem ?? ""),
+            usb,
+          ),
+        ),
+        transkrip: typeof d.log === "string" && d.log ? d.log : undefined,
+      };
+    }
     default:
       if (row.aksi.startsWith("konsol_")) return k(MonitorIcon, w.konsol);
       if (row.aksi.startsWith("profil_")) return k(NotePencilIcon, w.profil);
