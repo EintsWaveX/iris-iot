@@ -45,3 +45,5 @@ apps/web/dist.old/
 .remember/
 .impeccable/
 *.tsbuildinfo
+kunci.json
+kunci.json.tmp

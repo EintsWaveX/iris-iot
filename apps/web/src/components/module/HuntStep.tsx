@@ -42,6 +42,12 @@ export interface PerburuanData {
   /** This group's board key for HUNT_KEY in the sketches; null until the
    *  hunt's session exists. */
   kunciPapan?: string | null;
+  /** 0 until an Asisten turns the board keys, then 1, 2 ... */
+  kunciEpoch?: number;
+  /** When the keys were last turned (unix seconds), or null. */
+  kunciDiputar?: number | null;
+  /** This group's boards are sending a key the PC no longer accepts. */
+  kunciLama?: boolean;
   berjalan?: number;
   jumlahKelompok?: number;
   kelompok?: {
@@ -274,7 +280,15 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
           onClick={() => salin(data.kunciPapan ?? "")}
         />
       </div>
-      <span className="hint">{t.boardKeyHint}</span>
+      <span className="hint">
+        {t.keyRound(data.kunciEpoch ?? 0, data.kunciDiputar ?? null)} {t.boardKeyHint}
+      </span>
+      {data.kunciLama && (
+        <div className="banner banner--warn">
+          <WarningIcon aria-hidden="true" />
+          <span>{t.keyOld}</span>
+        </div>
+      )}
     </>
   ) : null;
   return (

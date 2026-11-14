@@ -143,6 +143,11 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
     hotspot: jaringan === "internet" ? hotspotKelompok(nomor) : null,
     wifi: jaringan === "iris_iot" ? wifiIrisIot(hotspotPc) : null,
     kunciPapan,
+    // Which round of keys the PC is on, when it last turned, and whether this
+    // group's boards are still sending an old one
+    kunciEpoch: terbuka ? (ringkas?.kunciEpoch ?? 0) : 0,
+    kunciDiputar: terbuka ? (ringkas?.kunciDiputar ?? null) : null,
+    kunciLama: terbuka && (ringkas?.kunciSalah ?? []).includes(nomor),
     berjalan: ringkas?.berjalan ?? 0,
     jumlahKelompok: ringkas?.grup.length ?? 0,
     kelompok: {

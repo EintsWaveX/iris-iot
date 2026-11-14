@@ -32,7 +32,7 @@ const TOKEN = arg("token", "UJICOBA");
 const NIM = arg("nim", "D0301"); // a member of group 3 who is not the fake player
 const LANGS = arg("langs", "id").split(",");
 const THEMES = arg("themes", "dark").split(","); // dark | light | sun
-const SCENES = arg("scenes", "join,reveal,roles,hunt,display,team,layers,results,mission,stage").split(",");
+const SCENES = arg("scenes", "join,reveal,roles,hunt,display,team,results,mission,stage").split(",");
 
 // width or WxH; phones and tablets are touch devices
 const SIZES = arg("widths", "360,390,820,1024,1280x720,1280,1680")
@@ -148,7 +148,7 @@ for (const lang of LANGS)
     for (const z of SIZES) {
       const want = (s) => SCENES.includes(s);
 
-      if (["join", "reveal", "roles", "hunt", "display", "team", "layers", "results"].some(want)) {
+      if (["join", "reveal", "roles", "hunt", "display", "team", "results"].some(want)) {
         // one phone, start to finish: sign in with the NIM, see the group, pick a role, use the tabs
         const { ctx, page } = await open(browser, z, lang, theme);
         if (want("join")) done.push(await shoot(page, "join", lang, theme, z));
@@ -176,7 +176,7 @@ for (const lang of LANGS)
           await page.keyboard.press("Escape");
           await page.waitForTimeout(400);
         }
-        for (const [scene, hash] of [["team", "#tim"], ["layers", "#lapisan"], ["results", "#hasil"]])
+        for (const [scene, hash] of [["team", "#tim"], ["results", "#hasil"]])
           if (want(scene)) {
             await goTab(hash);
             done.push(await shoot(page, scene, lang, theme, z));
