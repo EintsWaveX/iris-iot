@@ -3,16 +3,16 @@
    One address for everyone. Roles are told apart inside the page: a
    student types their NIM once, an assistant types the token once, and
    the projector opens ?stage=1. Tabs live in the hash (#buru, #tim,
-   #lapisan, #hasil, #asisten) so the back button and a reload keep the
+   #hasil, #asisten) so the back button and a reload keep the
    place. Language is ?lang=id|en|zh or the Display sheet. */
 (function () {
   const { html, render, useEffect, useState } = window.htmPreact;
   const H = window.H;
   const L = H.L;
 
-  const HASH = { hunt: "buru", team: "tim", layers: "lapisan", results: "hasil", mission: "asisten" };
+  const HASH = { hunt: "buru", team: "tim", results: "hasil", mission: "asisten" };
   const BACK = Object.fromEntries(Object.entries(HASH).map(([k, v]) => [v, k]));
-  const fromHash = () => BACK[(window.location.hash || "").replace(/^#\/?/, "")] || "hunt";
+  const fromHash = () => BACK[(window.location.hash || "").replace(/^#\/?/, "")] || "hunt"; /* an old #lapisan link lands on Buru */
   const STAGE = new URLSearchParams(window.location.search).get("stage") === "1";
   H.state.route = fromHash();
   H.go = (k) => {
@@ -92,22 +92,34 @@
       return () => clearTimeout(t);
     }, [N.status]);
     /* A QR link carries one person's NIM. A phone that is already signed in
-       as somebody else (a shared phone, a second person scanning) switches
-       to the NIM on the link; a link that doesn't resolve leaves the phone as it was. */
+       as somebody else asks before doing anything: switching is a log out and
+       a new sign-in, never a silent swap. */
+    const [switchTo, setSwitchTo] = useState(null);
     useEffect(() => {
       if (STAGE || !H.urlNim || N.status !== "live" || !N.frame || N.grup === null) return;
       const v = H.urlNim;
       H.urlNim = null;
       if (N.nim === v) return;
-      H.set({ reveal: true });
-      H.masuk(v).then((r) => {
-        if (r.ok) return;
-        H.set({ reveal: false });
-        H.toast(L("NIM di tautan itu tidak ada di sesi ini. Kamu tetap masuk sebagai akunmu yang tadi.", "The NIM on that link isn't on this session's list. You stay signed in as before."), { tone: "warn" });
-      });
+      setSwitchTo(v);
     }, [N.status, !!N.frame, N.grup]);
+    const doSwitch = async (v) => {
+      H.keluar();
+      H.set({ reveal: true });
+      const r = await H.masuk(v);
+      if (r.ok) return;
+      H.set({ reveal: false });
+      H.toast(L("NIM di tautan itu tidak bisa masuk. Cek NIM-nya di layar masuk.", "The NIM on that link couldn't sign in. Check it on the sign-in screen."), { tone: "warn" });
+    };
+    const switchDialog = switchTo && html`<${H.Dialog} sm title=${L("Ganti akun?", "Switch account?")} onClose=${() => setSwitchTo(null)}
+      foot=${(c) => html`<${H.Btn} kind="ghost" onClick=${c}>${L("Tetap di sini", "Stay Signed In")}</${H.Btn}><${H.Btn} kind="danger" onClick=${() => { const v = switchTo; c(); doSwitch(v); }}>${L("Keluar dan Ganti", "Log Out and Switch")}</${H.Btn}>`}>
+      <p>${L(`Kamu masuk sebagai ${N.nama || N.nim}. Tautan ini untuk NIM lain. Kalau lanjut, kamu keluar dulu dan akunmu dilepas.`, `You're signed in as ${N.nama || N.nim}. This link is for a different NIM. If you continue, you log out first and your account is released.`)}</p></${H.Dialog}>`;
     if (STAGE) return html`<${H.Stage} />`;
     if (N.locked) return html`<${H.States} kind="token" />`;
+    if (switchDialog) return html`<${Body} N=${N} down=${down} />${switchDialog}`;
+    return html`<${Body} N=${N} down=${down} />`;
+  };
+  const Body = ({ N, down }) => {
+    const st = H.useStore();
     if (down && N.status !== "live") return html`<${H.States} kind=${N.closeCode === 1001 ? "restart" : "offline"} />`;
     if (!N.frame) return html`<${H.HuntApp} tab="hunt" bare><div class="hpage__in hpage__in--narrow"><section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menyambung ke PC", "Connecting to the PC")} body=${H.NET(L("Pastikan ponselmu punya internet, lewat data seluler atau Wi-Fi.", "Make sure your phone has internet, over mobile data or Wi-Fi."), L("Pastikan ponselmu tersambung ke Wi-Fi IRIS_IOT.", "Make sure your phone is connected to the IRIS_IOT Wi-Fi."))} /></section></div></${H.HuntApp}>`;
     if (N.rolled && N.grup === null) return html`<${H.States} kind="rolled" />`;
@@ -121,7 +133,6 @@
     /* just signed in with a NIM: show the group once, until Start Hunting */
     if (N.grup !== null && st.reveal && route === "hunt") return html`<${H.Join} />`;
     if (route === "team") return html`<${H.Team} />`;
-    if (route === "layers") return html`<${H.Layers} />`;
     if (route === "results") return html`<${H.Results} />`;
     return html`<${H.Hunt} />`;
   };

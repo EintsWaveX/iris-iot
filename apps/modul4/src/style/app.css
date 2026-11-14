@@ -377,7 +377,9 @@ button.hphoto--sm { width: 84px; }
 /* ---- Drawer: the IRIS site's sizes. third = 1/3, half = 1/2, wide = 2/3.
    Opaque surface, hairline edge. Below 640px it is a bottom sheet. ---- */
 .drawer {
-  position: absolute; top: 0; right: 0; bottom: 0; z-index: 1;
+  position: absolute; top: 0; right: 0; bottom: 0;
+  /* no z-index: layers stack in the order they opened, so a dialog opened from
+     the drawer (Log Out) sits above it */
   width: min(100%, max(33.4%, 420px)); display: flex; flex-direction: column; outline: none;
   background: var(--surface-1); border-left: 1px solid var(--hairline-strong); box-shadow: var(--shadow-lift);
 }
@@ -478,3 +480,10 @@ button.hphoto--sm { width: 84px; }
   .huntapp[data-short="yes"] .hmtop > .card:last-child { top: calc(56px + var(--space-3)); max-height: calc(100dvh - 90px); }
 }
 .huntapp[data-short="yes"] .h-title { font-size: clamp(1.6rem, 3cqi, 2rem); }
+
+/* ---- Less always-on motion: the button sweeps only move on hover or focus,
+   and the primary button keeps its gradient still. Every moving background
+   is paint work a phone does for nothing while nobody is touching it. */
+.btn::after, .btn--primary::before { animation: none; }
+.btn:hover::after, .btn:focus-visible::after { animation: sweep 4s linear infinite; }
+.reduce .btn:hover::after, .reduce .btn:focus-visible::after { animation: none; }

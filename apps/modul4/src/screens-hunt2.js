@@ -1,7 +1,7 @@
-/* Perburuan LoRa IRIS, part 2: Layers (the link and the send time paired
-   by packet number), Results (podium, awards, replay), the Asisten mission
-   control, the projector and the error states. Ported from the Phase 9
-   mockup (screens-hunt2.js) onto the real frame and /jejak.json. */
+/* Perburuan LoRa IRIS, part 2: Results (podium, awards, moments), the
+   Asisten mission control, the projector and the error states. The radio
+   link numbers that used to be their own Layers tab now live in the Details
+   drawer on the Buru screen. */
 (function () {
   const { html, useState, useEffect, useRef } = window.htmPreact;
   const H = window.H;
@@ -30,118 +30,7 @@
   };
   const EVICON = { ditemukan: "flag-checkered", salip: "arrows-left-right", klaim: "camera", tolak: "x-circle", panggil: "hand-waving", zona: "fire", sapuan: "compass", pengumuman: "megaphone" };
 
-  /* ------------------------------------------------ Layers */
-  H.Layers = () => {
-    const N = H.useNet();
-    const member = N.grup !== null;
-    const g = H.viewGroup();
-    const row = H.row(g);
-    const f = N.frame;
-    const model = (f && f.model) || {};
-    const radio = (f && f.radio) || {};
-    const jit = H.jitter(g);
-    const rows = H.packets(g);
-    /* phones get four columns: the send and receive times stack */
-    const narrow = H.useStore().width < 560;
-    const csv = () => {
-      const lines = ["seq,waktu_kirim_beacon,waktu_terima_pc,delay_ms,rssi,snr"];
-      H.packets(g).slice().reverse().forEach((r) => lines.push(r.lost ? `${r.seq},,,,,` : `${r.seq},${r.tx || ""},${r.rx || ""},${r.delay == null ? "" : r.delay},${r.rssi == null ? "" : r.rssi},${r.snr == null ? "" : r.snr}`));
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
-      a.download = `paket-kelompok-${g}.csv`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    };
-    const radioCard = html`<section class="card"><div class="card__head"><h2 class="card__title">${H.T("Pengaturan radio", "Radio settings")}</h2></div>
-        <div class="kv">${[
-          [L("Frekuensi", "Frequency"), radio.freq || "920.0 MHz"],
-          ["SF / BW", `SF${radio.sf || 7} · ${radio.bw || "250 kHz"}`],
-          [L("Daya", "Power"), radio.daya || "10 dBm"],
-          H.sync(g) ? ["Sync word", H.sync(g)] : null,
-          [L("Jadwal kirim", "Send schedule"), L("TDMA 500 ms, slot 100 ms per kelompok", "TDMA 500 ms, a 100 ms slot per group")],
-          [L("Model jarak", "Distance model"), L(`RSSI 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, batas 2000 m`, `RSSI at 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, capped at 2000 m`)],
-        ].filter(Boolean).map(([a, b]) => html`<span class="label">${a}</span><span class="mono">${b}</span>`)}</div></section>`;
-    return html`<${H.HuntApp} tab="layers">
-      <div class="hpage__in">
-        <div class="pagehead"><span class="eyebrow">${H.gfull(g)} · ${L("tautan beacon ke hunter", "beacon to hunter link")}</span><h1 class="h-title">${H.T("Lapisan", "Layers")}</h1>
-          <p class="lede">${L("Yang terjadi di bawah perburuan: radio LoRa, waktu, dan paket yang hilang. Angka ini juga masuk jurnal Modul 4.", "What happens under the hunt: the LoRa radio, timing and lost packets. These numbers also go into the Module 4 journal.")}</p>
-          ${!member && html`<${H.GroupPick} g=${g} />`}</div>
-        ${!row
-          ? html`<section class="card"><${H.StateView} icon="broadcast" title=${L("Belum ada paket", "No packets yet")} body=${L("PC belum menerima paket dari hunter kelompok ini.", "The PC hasn't had a packet from this group's hunter yet.")} /></section>`
-          : html`<div class="dcards dcards--6 hlayers">
-              <${H.DataCard} label=${L("RSSI halus", "Smoothed RSSI")} value=${H.fmt(row.halus, 0)} unit="dBm" sub=${L("median 5, lalu EWMA 0,25", "median of 5, then EWMA 0.25")} series=${H.series(g, "halus")} />
-              <${H.DataCard} label="SNR" value=${H.fmt(row.snr, 1)} unit="dB" dp=${1} series=${H.series(g, "snr")} />
-              <${H.DataCard} label=${L("Perkiraan jarak", "Estimated distance")} value=${row.jarak_m == null ? "·" : H.fmt(row.jarak_m, 1)} unit="m" dp=${1} sub=${L(`n = ${H.fmt(model.n, 1)}`, `n = ${H.fmt(model.n, 1)}`)} series=${H.series(g, "jarak")} />
-              <${H.DataCard} label=${L("Delay", "Delay")} value=${H.fmt(row.delay_ms)} unit="ms" tone="var(--accent)" sub=${L("terima di PC dikurangi kirim di beacon", "PC receive time minus beacon send time")} series=${H.series(g, "delay")} />
-              <${H.DataCard} label="Jitter" value=${jit == null ? "·" : H.fmt(jit, 1)} unit="ms" dp=${1} tone="var(--accent)" sub=${L("selisih delay antarpaket", "delay change between packets")} series=${H.series(g, "delay")} />
-              <${H.DataCard} label=${L("Paket hilang", "Lost packets")} value=${H.fmt(row.rugi_persen, 1)} unit="%" dp=${1} tone="var(--danger)" sub=${L(`${H.fmt(row.hilang)} dari ${H.fmt(row.hilang + row.diterima)}`, `${H.fmt(row.hilang)} of ${H.fmt(row.hilang + row.diterima)}`)} series=${H.series(g, "lost")} />
-            </div>
-            ${radioCard}
-            <section class="card">
-              <div class="card__head"><h2 class="card__title">${H.T("Paket terakhir", "Latest packets")}</h2><${Btn} sm icon="download-simple" onClick=${csv}>${L("Unduh CSV", "Download CSV")}</${Btn}></div>
-              <p class="card__sub">${L("Tiap paket membawa waktu kirimnya, jadi bisa dipasangkan dengan baris serial hunter lewat nomor paket.", "Each packet carries its send time, so it is paired with the hunter's serial line by packet number.")}</p>
-              ${narrow
-                ? html`<table class="table table--tight hpk"><thead><tr><th>#</th><th>${L("Kirim / terima", "Sent / received")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI · SNR</th></tr></thead>
-                  <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td>${r.lost ? html`<td class="mono hint">·</td><td class="num"><span style="color:var(--danger)">${L("hilang", "lost")}</span></td><td class="num">·</td>` : html`<td class="mono hpk__t"><span>${r.tx || "·"}</span><span class="hint">${r.rx || "·"}</span></td><td class="num">${r.delay == null ? "·" : r.delay + " ms"}</td><td class="num hpk__t"><span>${r.rssi == null ? "·" : r.rssi}</span><span class="hint">${r.snr == null ? "·" : H.fmt(r.snr, 1)}</span></td>`}</tr>`)}</tbody></table>`
-                : html`<div class="scrollx"><table class="table table--tight"><thead><tr><th>#</th><th>${L("Waktu kirim (beacon)", "Send time (beacon)")}</th><th>${L("Waktu terima (PC)", "Receive time (PC)")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI</th><th class="num">SNR</th></tr></thead>
-                <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td><td class="mono">${r.lost ? "·" : r.tx || "·"}</td><td class="mono hint">${r.lost ? "·" : r.rx || "·"}</td><td class="num">${r.lost ? html`<span style="color:var(--danger)">${L("hilang", "lost")}</span>` : r.delay == null ? "·" : r.delay + " ms"}</td><td class="num">${r.lost || r.rssi == null ? "·" : r.rssi}</td><td class="num">${r.lost || r.snr == null ? "·" : H.fmt(r.snr, 1)}</td></tr>`)}</tbody></table></div>`}
-            </section>`}
-        ${!row && radioCard}
-      </div>
-    </${H.HuntApp}>`;
-  };
-
   /* ------------------------------------------------ Results */
-  const Replay = ({ jejak }) => {
-    const ids = Object.keys(jejak.grup || {}).map(Number).sort((a, b) => a - b);
-    const end = Math.max(1, jejak.berjalan || 1);
-    const [t, setT] = useState(end);
-    const [play, setPlay] = useState(false);
-    const [show, setShow] = useState({});
-    useEffect(() => {
-      if (!play) setT(end);
-    }, [end]);
-    const stepT = Math.max(1, Math.round(end / 60));
-    H.useInterval(() => {
-      if (!play) return;
-      if (t >= end) setPlay(false);
-      else setT(Math.min(end, t + stepT));
-    }, play ? (H.state.reduce ? 60 : 250) : null);
-    const bar = useRef(null);
-    const pick = (e) => {
-      const r = bar.current.getBoundingClientRect();
-      setT(Math.max(0, Math.min(end, Math.round(((e.clientX - r.left) / r.width) * end))));
-    };
-    const X = (s) => 44 + (s / end) * 546;
-    const Y = (v) => 210 - v * 190;
-    const marks = (jejak.peristiwa || []).filter((e) => e.kind === "salip" || e.kind === "ditemukan");
-    const at = (pts, s) => {
-      let v = 0;
-      for (const p of pts) if (p[0] <= s) v = p[2];
-      return v;
-    };
-    const ticks = [0, 0.25, 0.5, 0.75, 1].map((k) => Math.round(k * end));
-    return html`<div class="stack">
-      <${H.GroupChips} ids=${ids} pressed=${(n) => show[n] !== false} onPick=${(n) => setShow({ ...show, [n]: show[n] === false })} label=${L("Kelompok di grafik", "Groups on the chart")} />
-      <svg class="replay" viewBox="0 0 620 230" role="img" aria-label=${L("Jarak tertutup tiap kelompok sepanjang waktu", "Distance closed per group over time")}>
-        ${[0, 0.25, 0.5, 0.75, 1].map((v) => html`<line x1="44" x2="590" y1=${Y(v)} y2=${Y(v)} class="chart__grid" /><text x="38" y=${Y(v) + 4} class="chart__tick" text-anchor="end">${Math.round(v * 100)}%</text>`)}
-        ${ticks.map((s) => html`<text x=${X(s)} y="226" class="chart__tick" text-anchor="middle">${H.ms(s)}</text>`)}
-        ${ids.filter((n) => show[n] !== false).map((n) => {
-          const pts = jejak.grup[String(n)].s.filter((p) => p[0] <= t);
-          if (!pts.length) return null;
-          return html`<polyline class="replay__line" style=${`--g:var(--group-${n})`} points=${pts.map((p) => `${X(p[0]).toFixed(1)},${Y(p[2]).toFixed(1)}`).join(" ")} /><circle cx=${X(Math.min(t, pts[pts.length - 1][0]))} cy=${Y(at(pts, t))} r="5" class="replay__dot" style=${`--g:var(--group-${n})`} />`;
-        })}
-        <line x1=${X(t)} x2=${X(t)} y1="18" y2="210" class="replay__now" />
-      </svg>
-      <div class="scrub" ref=${bar} role="slider" tabindex="0" aria-valuemin="0" aria-valuemax=${end} aria-valuenow=${t} aria-valuetext=${H.ms(t)} aria-label=${L("Waktu putar ulang", "Replay time")}
-        onPointerDown=${(e) => { setPlay(false); pick(e); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) { /* older browsers */ } }}
-        onPointerMove=${(e) => e.buttons && pick(e)}
-        onKeyDown=${(e) => { if (e.key === "ArrowRight") setT(Math.min(end, t + stepT)); if (e.key === "ArrowLeft") setT(Math.max(0, t - stepT)); }}>
-        <span class="scrub__fill" style=${`width:${(t / end) * 100}%`}></span><span class="scrub__knob" style=${`left:${(t / end) * 100}%`}></span>
-        ${marks.map((m) => html`<span class="scrub__mark" data-k=${m.kind === "salip" ? "salip" : "menang"} style=${`left:${(m.t / end) * 100}%`}></span>`)}</div>
-      <div class="row row--between"><span class="mono">${H.ms(t)}</span><span class="row" style="gap:6px"><${IconBtn} sm icon="rewind" label=${L("Ke awal", "To the start")} disabled=${t === 0 && !play} onClick=${() => { setPlay(false); setT(0); }} /><${IconBtn} sm icon=${play ? "pause" : "play"} label=${play ? L("Jeda", "Pause") : L("Putar", "Play")} pressed=${play} onClick=${() => { if (!play && t >= end) setT(0); setPlay(!play); }} /></span></div>
-    </div>`;
-  };
   const Podium = ({ podium, stage }) => {
     const order = [podium[1], podium[0], podium[2]].filter(Boolean);
     return html`<div class=${"hpodium" + (stage ? " hpodium--stage" : "")}>${order.map((p) => html`<div class="hpod" data-r=${p.posisi} style=${`--g:var(--group-${p.grup})`}>
@@ -150,20 +39,13 @@
   H.Podium = Podium;
   H.Results = () => {
     const N = H.useNet();
-    const [jejak, setJejak] = useState(null);
-    const load = () => {
-      const run = (N.frame && N.frame.berjalan) || 0;
-      H.fetchJejak(Math.max(1, Math.ceil(run / 240))).then((d) => d && setJejak(d));
-    };
-    useEffect(load, []);
-    H.useInterval(load, 15000);
     const aw = (N.frame && N.frame.penghargaan) || { podium: [] };
     const AW = [
       { k: "pendekat_tercepat", i: "lightning", l: ["Pendekat Tercepat", "Fastest Closer"], v: (a) => L(`${H.fmt(a.nilai, 1)} dB per detik`, `${H.fmt(a.nilai, 1)} dB per second`) },
       { k: "tautan_tercepat", i: "timer", l: ["Tautan Tercepat", "Fastest Link"], v: (a) => L(`delay terbaik ${H.fmt(a.nilai)} ms`, `best delay ${H.fmt(a.nilai)} ms`) },
       { k: "tautan_terandal", i: "shield-check", l: ["Tautan Terandal", "Most Reliable Link"], v: (a) => L(`${H.fmt(a.nilai, 1)}% hilang`, `${H.fmt(a.nilai, 1)}% lost`) },
     ];
-    const moments = jejak ? (jejak.peristiwa || []).filter((e) => e.kind === "salip" || e.kind === "ditemukan").slice(-8).reverse() : [];
+    const moments = ((N.frame && N.frame.peristiwa) || []).filter((e) => e.kind === "salip" || e.kind === "ditemukan").slice(-8).reverse();
     const d = new Date();
     return html`<${H.HuntApp} tab="results">
       <div class="hpage__in">
@@ -174,9 +56,8 @@
           return html`<section class="card haward" style=${v ? `--g:var(--group-${v.grup})` : ""}><span class="haward__ic"><${Icon} n=${a.i} lg /></span><span class="row" style="gap:8px"><b class="h3">${L(...a.l)}</b>${v && !aw.beku && html`<${Badge}>${L("sementara", "provisional")}</${Badge}>`}</span><span>${v ? H.gname(v.grup) : L("Belum ada", "Nobody yet")}</span><span class="hint">${v ? a.v(v) : L("butuh 200 paket", "needs 200 packets")}</span></section>`;
         })}</div>
         <span class="hint">${aw.beku ? L("Tiap penghargaan butuh paling sedikit 200 paket.", "Each award needs at least 200 packets.") : L("Penghargaan bisa berpindah sampai ronde selesai. Tiap penghargaan butuh paling sedikit 200 paket.", "Awards can change hands until the round ends. Each needs at least 200 packets.")}</span>
-        <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Putar ulang", "Replay")}</h2><a class="btn btn--sm" href="jejak.csv" download><${Icon} n="download-simple" />${H.title(L("Unduh jejak CSV", "Download the track CSV"))}</a></div>
-          ${jejak && Object.keys(jejak.grup || {}).length ? html`<${Replay} jejak=${jejak} />` : html`<p class="hint">${L("Jejak muncul setelah perburuan berjalan beberapa detik.", "The track appears once the hunt has run for a few seconds.")}</p>`}
-          ${moments.length > 0 && html`<div class="tabstops tabstops--3">${moments.map((e) => html`<div class="tabstops__row"><span class="mono hint">${H.ms(e.t)}</span><span class="row" style="gap:8px;flex-wrap:nowrap"><${Icon} n=${EVICON[e.kind]} sm />${H.eventText(e)}</span><span></span></div>`)}</div>`}
+        <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Momen penting", "Key moments")}</h2><a class="btn btn--sm" href="jejak.csv" download><${Icon} n="download-simple" />${H.title(L("Unduh jejak CSV", "Download the track CSV"))}</a></div>
+          ${moments.length > 0 ? html`<div class="tabstops tabstops--3">${moments.map((e) => html`<div class="tabstops__row"><span class="mono hint">${H.ms(e.t)}</span><span class="row" style="gap:8px;flex-wrap:nowrap"><${Icon} n=${EVICON[e.kind]} sm />${H.eventText(e)}</span><span></span></div>`)}</div>` : html`<p class="hint">${L("Momen muncul saat ada yang menyalip atau menemukan beaconnya.", "Moments show up when someone overtakes or finds its beacon.")}</p>`}
           <span class="hint">${L("Jejak CSV tidak memuat NIM.", "The track CSV holds no NIM.")}</span></section>
       </div>
     </${H.HuntApp}>`;
@@ -242,6 +123,13 @@
     </div>`}</${H.Dialog}>`;
   };
   /* "Ukur Ulang di 1 M": pick whose hunter is held 1 m from its beacon. */
+  const ReleaseNim = ({ onClose }) => {
+    const [nim, setNim] = useState("");
+    return html`<${H.Dialog} sm title=${L("Lepas NIM", "Release a NIM")} onClose=${onClose}
+      foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}><${Btn} kind="primary" icon="sign-out" disabled=${nim.length < 4} onClick=${() => { c(); act("lepas_nim", { nim }, L("NIM dilepas. Ponselnya kembali ke layar masuk.", "NIM released. That phone is back on the sign-in screen.")); }}>${L("Lepas", "Release")}</${Btn}>`}>
+      <div class="stack"><p>${L("Pakai ini kalau seseorang tidak bisa masuk karena NIM-nya masih terbuka di ponsel lain, misalnya ponselnya mati atau hilang.", "Use this when someone can't sign in because their NIM is still open on another phone, for example a dead or lost phone.")}</p>
+        <label class="field"><span class="label">NIM</span><input class="input mono" aria-label="NIM" inputmode="numeric" autocomplete="off" maxlength="20" value=${nim} onInput=${(e) => setNim(e.target.value.replace(/[^0-9A-Za-z]/g, "").toUpperCase())} /></label></div></${H.Dialog}>`;
+  };
   const KalPick = ({ rows, onClose }) => {
     const ready = rows.filter((r) => r.halus != null).map((r) => r.grup);
     const [g, setG] = useState(ready[0] ?? null);
@@ -324,6 +212,10 @@
               <a class="btn btn--sm" href="jejak.csv" download><${Icon} n="download-simple" />${H.title(L("Unduh jejak CSV", "Download the track CSV"))}</a>
               <${Btn} sm icon="arrow-counter-clockwise" onClick=${() => setAsk("reset")}>${L("Ronde Baru", "New Round")}</${Btn}>
               ${f.sesi ? html`<${Btn} sm kind="danger" icon="stop" onClick=${() => setAsk("akhiri")}>${L("Akhiri Sesi", "End the Session")}</${Btn}>` : html`<${Btn} sm kind="primary" icon="play" onClick=${() => setAsk("mulai")}>${L("Mulai Sesi", "Start a Session")}</${Btn}>`}</div></section>
+          <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Kode dan akun", "Codes and sign-ins")}</h2></div>
+            <div class="kv"><span class="label">${L("Kode masuk", "Join code")}</span><span class="mono">${N.kode || "·"}</span><span class="label">${L("Kunci papan", "Board keys")}</span><span>${L(`putaran ${f.kunci_epoch || 0}`, `round ${f.kunci_epoch || 0}`)}</span><span class="label">${L("Token asisten", "Assistant token")}</span><span>${L("tetap, dari PC", "fixed, set on the PC")}</span></div>
+            <span class="hint">${L("Kode masuk ada di tautan dan QR. Kode ini berganti tiap sesi, dan tiap sesi dimulai lagi. Kunci papan tetap sama antar sesi, jadi papan tidak perlu diunggah ulang, sampai kamu menekan Kunci Papan Baru.", "The join code is in the link and the QR. It changes every session and every time a session is started again. Board keys stay the same between sessions, so boards need no new upload, until you press New Board Keys.")}</span>
+            <div class="r5act r5act--alt"><${Btn} sm icon="sign-out" onClick=${() => setAsk("lepas")}>${L("Lepas NIM", "Release a NIM")}</${Btn}><${Btn} sm kind="danger" icon="lock-key" onClick=${() => setAsk("kunci")}>${L("Kunci Papan Baru", "New Board Keys")}</${Btn}></div></section>
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Sinyal tim", "Team pings")}</h2></div>
             ${pings.length ? html`<div class="tabstops tabstops--3">${pings.map((p) => html`<div class="tabstops__row"><span class="mono hint">${p.at.slice(0, 5)}</span><span><b>${H.gname(p.grup)}</b> · ${p.dari}: ${H.pingText(p.kode).toLowerCase()}</span><span></span></div>`)}</div>` : html`<p class="hint">${L("Belum ada sinyal tim.", "No team pings yet.")}</p>`}</section>
         </div>
@@ -336,6 +228,8 @@
         <div class="row" style="gap:8px">${reasons.map((r, i) => html`<button type="button" class="chipbtn" aria-pressed=${String(i === why)} onClick=${() => setWhy(i)}>${r}</button>`)}</div>
         ${why === reasons.length - 1 && html`<label class="field"><span class="label">${L("Alasan", "Reason")}</span><input class="input" maxlength="120" value=${other} onInput=${(e) => setOther(e.target.value)} /></label>`}</${H.Dialog}>`}
       ${ask === "kal" && html`<${KalPick} rows=${rows} onClose=${() => setAsk(null)} />`}
+      ${ask === "lepas" && html`<${ReleaseNim} onClose=${() => setAsk(null)} />`}
+      ${ask === "kunci" && html`<${Confirm} danger title=${L("Kunci papan baru", "New board keys")} body=${L("Semua kelompok harus mengunggah ulang hunter dan beacon dengan kunci baru dari langkah Perburuan situs. Papan yang lama dibuang sampai itu. Lakukan ini hanya kalau kunci bocor.", "Every group must upload its hunter and beacon again with the new key from the site's Hunt step. The old boards are ignored until then. Only do this if a key leaked.")} okLabel=${L("Putar Kunci", "Change the Keys")} onOk=${() => act("kunci_baru", {}, L("Kunci papan baru sudah dipakai.", "The new board keys are in use."))} onClose=${() => setAsk(null)} />`}
       ${ask === "reset" && html`<${Confirm} danger title=${L("Mulai ronde baru", "Start a new round")} body=${L("Semua kemajuan, klaim, foto dan jejak ronde ini dihapus. Daftar sesi dan kalibrasi tetap.", "All progress, claims, photos and the track of this round are cleared. The session list and calibration stay.")} okLabel=${L("Ronde Baru", "New Round")} onOk=${() => act("reset", {}, L("Ronde baru dimulai.", "A new round started."))} onClose=${() => setAsk(null)} />`}
       ${ask === "akhiri" && html`<${Confirm} danger title=${L("Akhiri sesi", "End the session")} body=${L("Ponsel praktikan kembali ke layar masuk dan foto klaim dihapus.", "Student phones go back to the sign-in screen and the claim photos are deleted.")} okLabel=${L("Akhiri Sesi", "End the Session")} onOk=${() => act("sesi_akhiri", {}, L("Sesi diakhiri.", "Session ended."))} onClose=${() => setAsk(null)} />`}
       ${ask === "mulai" && html`<${H.Dialog} sm title=${L("Mulai sesi", "Start a session")} onClose=${() => setAsk(null)} foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}>`}>${(c) => html`<div class="stack">
@@ -357,7 +251,6 @@
     const N = H.useNet();
     const st = H.useStore();
     const [count, setCount] = useState(null);
-    const [ticker, setTicker] = useState([]);
     const [flash, setFlash] = useState({});
     const [moment, setMoment] = useState(null);
     useEffect(
@@ -365,9 +258,6 @@
         H.onEvents((evs) => {
           for (const ev of evs) {
             if (ev.kind === "aba-aba") setCount(10);
-            const ann = H.net.frame && H.net.frame.pengumuman;
-            const t = ev.kind === "pengumuman" ? (ann ? L(`Asisten: ${ann.teks}`, `Assistants: ${ann.teks}`) : null) : H.eventText(ev);
-            if (t && ev.kind !== "bergabung" && ev.kind !== "mulai") setTicker((l) => [...l, { t, k: ev.kind, id: Math.random() }].slice(-6));
             if ((ev.kind === "salip" || ev.kind === "ditemukan") && ev.grup != null) {
               const g = ev.grup;
               setFlash((m) => ({ ...m, [g]: ev.kind }));
@@ -392,10 +282,6 @@
     const found = rows.filter((r) => r.status === "menang").length;
     const finale = f.penghargaan && f.penghargaan.beku && f.penghargaan.podium && f.penghargaan.podium.length;
     const d = new Date();
-    /* before anything new happens, the ticker shows the latest moments the
-       frame already carries (an announcement is already in the header) */
-    const recent = (f.peristiwa || []).filter((e) => e.kind !== "bergabung" && e.kind !== "mulai" && e.kind !== "pengumuman").map((e) => ({ t: H.eventText(e), id: e.at + e.kind })).filter((x) => x.t).slice(-6);
-    const items = ticker.length ? ticker : recent.length ? recent : [{ t: f.sesi ? L("Perburuan berjalan", "The hunt is running") : L("Menunggu sesi dimulai", "Waiting for a session to start"), id: 0 }];
     const banner = moment
       ? html`<div class="smoment" key=${moment.id} data-k=${moment.kind} style=${`--g:var(--group-${moment.grup})`}>
           <span class="smoment__ic"><${Icon} n=${moment.kind === "salip" ? "arrows-left-right" : "flag-checkered"} lg /></span>
@@ -409,7 +295,7 @@
     if (count != null)
       body = html`<div class="hstage__count"><span class="hint">${L("Perburuan dimulai dalam", "The hunt starts in")}</span><b key=${count} class="num">${count > 0 ? count : L("Mulai!", "Go!")}</b></div>`;
     else if (finale)
-      body = html`<div class="hstage__finale">${!st.reduce && html`<div class="confetti">${Array.from({ length: 36 }, (_, i) => html`<i style=${`--x:${(i * 37) % 100}%;--d:${(i % 7) * 0.35}s;--g:var(--group-${(i % 5) + 1})`}></i>`)}</div>`}
+      body = html`<div class="hstage__finale">
         <h1 class="h-display">${H.T("Selamat!", "Well done!")}</h1><${H.Podium} podium=${f.penghargaan.podium} stage /></div>`;
     else
       body = html`${banner}
@@ -422,8 +308,7 @@
                 <span class="slane__bar" data-h=${H.heatOf(r)}><i style=${`width:${won ? 100 : H.closedOf(r)}%`}><em></em></i></span>
                 <b class="slane__v num">${won ? H.ms(r.durasi) : H.closedOf(r) + "%"}</b><${H.HeatChip} k=${H.heatOf(r)} lg /></div>`;
             })}</div>`
-          : html`<p class="lede hstage__empty">${L("Belum ada hunter yang mengirim data.", "No hunter is sending data yet.")}</p>`}
-        <div class="ticker"><div class="ticker__in">${(st.reduce ? items : items.concat(items)).map((x, i) => html`<span aria-hidden=${i >= items.length ? "true" : undefined}><${Icon} n="sparkle" sm />${x.t}</span>`)}</div></div>`;
+          : html`<p class="lede hstage__empty">${L("Belum ada hunter yang mengirim data.", "No hunter is sending data yet.")}</p>`}`;
     return html`<div class="hstage" data-sun=${st.sun ? "yes" : "no"}>
       <header class="hstage__top"><img src=${H.LOGO} alt="IRIS" /><b>${H.T("Perburuan LoRa", "LoRa Hunt")} · ${H.modul(4)}</b><span class="grow"></span>
         ${f.pengumuman && html`<span class="hstage__ann"><${Icon} n="megaphone" />${f.pengumuman.teks}</span>`}
@@ -441,7 +326,7 @@
       restart: ["arrows-clockwise", L("Server perburuan dimulai ulang", "The hunt server is restarting"), L("Asisten memulai ulang server. Posisi dan klaim kalian aman.", "An assistant restarted the server. Your progress and claims are safe."), L("Tersambung lagi sendiri", "Reconnects by itself")],
       ended: ["flag-checkered", L("Ronde selesai", "Round over"), L("Semua kelompok sudah menemukan beaconnya, atau asisten menutup ronde.", "Every group found its beacon, or an assistant closed the round."), null],
       rolled: ["calendar-blank", L("Sesi sudah berganti", "The session changed"), L("Sesi ini sudah lewat. Masuk lagi dengan NIM kalau kamu ikut sesi berikutnya.", "This session is over. Sign in again with your NIM if you're in the next one."), null],
-      token: ["lock-key", L("Terlalu banyak token salah", "Too many wrong tokens"), L("Sambungan ini ditutup setelah 5 kali salah. Muat ulang halaman untuk mencoba lagi.", "This connection closed after 5 wrong tries. Reload the page to try again."), null],
+      token: ["lock-key", L("Terlalu banyak percobaan", "Too many tries"), L("Sambungan ditutup karena terlalu banyak token salah dari jaringan ini. Tunggu beberapa menit, lalu muat ulang halaman.", "The connection closed because too many wrong tokens came from this network. Wait a few minutes, then reload the page."), null],
     }[kind];
     const action =
       kind === "ended" ? html`<${Btn} kind="primary" iconEnd="arrow-right" onClick=${() => { H.dismissEnded(); H.go("results"); }}>${L("Lihat Hasil", "See the Results")}</${Btn}>`

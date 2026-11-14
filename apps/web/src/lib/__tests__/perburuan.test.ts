@@ -48,6 +48,34 @@ const contoh = {
   ],
 };
 
+describe("saringPerburuan, key rounds", () => {
+  it("reads the key round, when it was turned and which groups use an old key", () => {
+    const r = saringPerburuan({
+      ...contoh,
+      kunci_epoch: 2,
+      kunci_diputar: 1_763_100_000.4,
+      kunci_salah: [3, 99, "x", 3],
+    })!;
+    expect(r.kunciEpoch).toBe(2);
+    expect(r.kunciDiputar).toBe(1_763_100_000);
+    expect(r.kunciSalah).toEqual([3, 3]);
+  });
+
+  it("defaults to round 0 for a PC that does not report rounds yet", () => {
+    const r = saringPerburuan(contoh)!;
+    expect(r.kunciEpoch).toBe(0);
+    expect(r.kunciDiputar).toBeNull();
+    expect(r.kunciSalah).toEqual([]);
+  });
+
+  it("reads its own stored copy back", () => {
+    const first = saringPerburuan({ ...contoh, kunci_epoch: 1, kunci_diputar: 1_763_000_000 })!;
+    const again = saringPerburuan(first)!;
+    expect(again.kunciEpoch).toBe(1);
+    expect(again.kunciDiputar).toBe(1_763_000_000);
+  });
+});
+
 describe("saringPerburuan", () => {
   it("keeps the known shape and drops the rest", () => {
     const r = saringPerburuan(contoh)!;

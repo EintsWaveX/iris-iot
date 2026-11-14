@@ -80,10 +80,22 @@
   </span>`;
   /* The menu: the clock, how the hunt looks and sounds, and the way into
      assistant mission control from any screen (a signed-in student too). */
+  H.LogoutDialog = ({ onClose }) => {
+    const N = H.useNet();
+    const asisten = N.role === "asisten";
+    return html`<${H.Dialog} sm title=${L("Keluar?", "Log out?")} onClose=${onClose}
+      foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}><${Btn} kind="danger" icon="sign-out" onClick=${() => { c(); H.keluar(); }}>${L("Keluar", "Log Out")}</${Btn}>`}>
+      <p>${asisten ? L("NIM-mu dilepas dan akses asisten di ponsel ini hilang. Masuk lagi dengan NIM, atau pakai token untuk jadi asisten.", "Your NIM is released and assistant access on this phone ends. Sign back in with your NIM, or use the token to be an assistant again.") : L("NIM-mu dilepas, jadi bisa dipakai di ponsel lain. Kamu bisa masuk lagi dengan NIM selama sesi masih berjalan.", "Your NIM is released, so it can be used on another phone. You can sign back in with your NIM while the session is still running.")}</p></${H.Dialog}>`;
+  };
   const HDisplay = ({ onClose }) => {
     const st = H.useStore();
     const N = H.useNet();
+    const [out, setOut] = useState(false);
+    const signedIn = N.grup !== null || N.role === "asisten";
     return html`<${H.Drawer} size="third" title=${L("Menu", "Menu")} onClose=${onClose}>${(close) => html`<div class="stack" style="gap:var(--space-4)">
+      ${signedIn && html`<div class="field"><span class="label">${L("Akun", "Account")}</span>
+        <div class="hset"><span class="stack" style="gap:0"><b>${N.nama || (N.role === "asisten" ? L("Asisten", "Assistant") : "")}</b><span class="hint">${N.grup !== null ? L(`Masuk di ${H.gname(N.grup)}`, `Signed in on ${H.gname(N.grup)}`) : L("Masuk sebagai asisten", "Signed in as an assistant")}</span></span>
+          <${Btn} sm icon="sign-out" onClick=${() => setOut(true)}>${L("Keluar", "Log Out")}</${Btn}></div></div>`}
       <div class="hset"><span class="stack" style="gap:0"><b>${L("Jam sekarang", "Time now")}</b></span><${HClock} /></div>
       <div class="field"><span class="label">${L("Tampilan", "Look")}</span>
         <${Tabs} fill value=${st.sun ? "sun" : st.theme} onChange=${(v) => H.set(v === "sun" ? { sun: true } : { sun: false, theme: v })} label=${L("Tampilan", "Look")} tabs=${[{ v: "dark", l: L("Gelap", "Dark"), icon: "moon" }, { v: "light", l: L("Terang", "Light"), icon: "sun" }, { v: "sun", l: L("Terik", "Bright Sun"), icon: "lightning" }]} />
@@ -95,12 +107,11 @@
       ${N.role !== "asisten" && html`<div class="field hmenu__asisten"><span class="label">${L("Asisten", "Assistant")}</span>
         <${Btn} block icon="shield-check" onClick=${() => { close(); H.go("mission"); }}>${L("Buka Ruang Kendali Asisten", "Open Assistant Mission Control")}</${Btn}>
         <span class="hint">${L("Butuh token 6 huruf dari Konsol.", "Needs the 6-letter token from the Console.")}</span></div>`}
-    </div>`}</${H.Drawer}>`;
+    </div>`}</${H.Drawer}>${out && html`<${H.LogoutDialog} onClose=${() => { setOut(false); onClose(); }} />`}`;
   };
   const TABS = [
     { k: "hunt", l: ["Buru", "Hunt"], i: "target" },
     { k: "team", l: ["Tim", "Team"], i: "users", member: true },
-    { k: "layers", l: ["Lapisan", "Layers"], i: "wave-sine" },
     { k: "results", l: ["Hasil", "Results"], i: "trophy" },
     { k: "mission", l: ["Asisten", "Assistant"], i: "shield-check", asisten: true },
   ];
@@ -274,10 +285,11 @@
   /* ------------------------------------------------ joining */
   H.Join = () => {
     const N = H.useNet();
-    const [nim, setNim] = useState("");
+    const [nim, setNim] = useState(N.nim || "");
     const [err, setErr] = useState(null);
     const [busy, setBusy] = useState(false);
     const st = H.useStore();
+    const why = err || (N.problem && N.problem.kode) || null;
     const noSession = N.frame && N.frame.sesi == null;
     /* "reveal" is on from the moment a NIM is sent until the person taps
        Start Hunting: the sign-in reply makes the group known before the form
@@ -319,9 +331,13 @@
         tak_terdaftar: L("NIM ini tidak ada di daftar sesi yang berjalan. Cek lagi, atau panggil asisten.", "This NIM isn't on the running session's list. Check it, or call an assistant."),
         tak_ada_sesi: L("Belum ada sesi yang berjalan. Tunggu asisten memulainya.", "No session is running yet. Wait for the assistant to start it."),
         nim_cacat: L("NIM hanya berisi angka dan huruf, 4 sampai 20 karakter.", "A NIM has only digits and letters, 4 to 20 characters."),
-        terlalu_sering: L("Terlalu banyak percobaan. Panggil asisten.", "Too many tries. Call an assistant."),
-        kode_papan: L("Buka papan ini dari tautan di langkah Perburuan situs IRIS, bukan dari alamat yang diketik.", "Open this board from the link in the IRIS site's Hunt step, not from a typed address."),
-      }[err] || (err ? H.NET(L("Tidak tersambung ke papan skor. Cek internetmu, lalu coba lagi.", "Not connected to the scoreboard. Check your internet, then try again."), L("Tidak tersambung ke papan skor. Cek Wi-Fi IRIS_IOT di ponselmu, lalu coba lagi.", "Not connected to the scoreboard. Check the IRIS_IOT Wi-Fi on your phone, then try again.")) : null);
+        terlalu_sering: (N.problem && N.problem.tunggu) ? L(`Terlalu banyak percobaan dari jaringan ini. Tunggu sekitar ${Math.ceil(N.problem.tunggu / 60)} menit, lalu coba lagi.`, `Too many tries from this network. Wait about ${Math.ceil(N.problem.tunggu / 60)} minutes, then try again.`) : L("Terlalu banyak percobaan. Tunggu sebentar atau panggil asisten.", "Too many tries. Wait a moment or call an assistant."),
+        kode_papan: L("Buka papan ini dari tautan di langkah Perburuan situs IRIS, bukan dari alamat yang diketik. NIM-mu masih tersimpan.", "Open this board from the link in the IRIS site's Hunt step, not from a typed address. Your NIM is still saved."),
+        sedang_dipakai: L("NIM ini sedang masuk di ponsel lain. Keluar dulu di sana, atau minta asisten melepasnya.", "This NIM is signed in on another phone. Log out there first, or ask an assistant to release it."),
+        sudah_masuk: L("Kamu masih masuk. Keluar dulu kalau mau pakai NIM lain.", "You're still signed in. Log out first to use another NIM."),
+        dilepas: L("Asisten melepas NIM-mu. Masuk lagi dengan NIM.", "An assistant released your NIM. Sign in again."),
+        tab_lain: L("Tab lain di ponsel ini masuk sebagai orang lain, jadi tab ini keluar.", "Another tab on this phone signed in as someone else, so this one logged out."),
+      }[why] || (err ? H.NET(L("Tidak tersambung ke papan skor. Cek internetmu, lalu coba lagi.", "Not connected to the scoreboard. Check your internet, then try again."), L("Tidak tersambung ke papan skor. Cek Wi-Fi IRIS_IOT di ponselmu, lalu coba lagi.", "Not connected to the scoreboard. Check the IRIS_IOT Wi-Fi on your phone, then try again.")) : null);
       body = html`<form class="card card--raised hjoin" onSubmit=${submit}>
         <span class="eyebrow">${L("Selamat datang di perburuan", "Welcome to the hunt")}</span>
         <h1 class="h-title">${H.T("Masuk dengan NIM", "Sign in with your NIM")}</h1>
@@ -464,20 +480,53 @@
     const heat = H.heatOf(row);
     const trend = H.trend10(g);
     const sw = f && f.sapuan ? f.sapuan[String(g)] : null;
-    return html`<${H.Drawer} size="half" title=${L("Detail", "Details")} desc=${H.gfull(g)} onClose=${onClose}>
+    const model = (f && f.model) || {};
+    const radio = (f && f.radio) || {};
+    const jit = H.jitter(g);
+    const rows = H.packets(g);
+    const csv = () => {
+      const lines = ["seq,waktu_kirim_beacon,waktu_terima_pc,delay_ms,rssi,snr"];
+      H.packets(g).slice().reverse().forEach((r) => lines.push(r.lost ? `${r.seq},,,,,` : `${r.seq},${r.tx || ""},${r.rx || ""},${r.delay == null ? "" : r.delay},${r.rssi == null ? "" : r.rssi},${r.snr == null ? "" : r.snr}`));
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
+      a.download = `paket-kelompok-${g}.csv`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    };
+    return html`<${H.Drawer} size="wide" title=${L("Detail", "Details")} desc=${H.gfull(g)} onClose=${onClose}>
       ${row && html`<section class="stack">
         <h3 class="h3">${H.T("Tautan radio", "Radio link")}</h3>
-        <span class="hint">${L("Ketuk angka untuk grafiknya", "Tap a number for its chart")}</span>
+        <span class="hint">${L("Ketuk angka untuk grafiknya. Angka ini juga masuk jurnal Modul 4.", "Tap a number for its chart. These numbers also go into the Module 4 journal.")}</span>
         <div class="dcards hdcards">
+          <${H.DataCard} label=${L("RSSI halus", "Smoothed RSSI")} value=${H.fmt(row.halus, 0)} unit="dBm" series=${H.series(g, "halus")} />
           <${H.DataCard} label="SNR" value=${H.fmt(row.snr, 1)} unit="dB" dp=${1} series=${H.series(g, "snr")} />
-          <${H.DataCard} label=${L("Paket hilang", "Lost packets")} value=${H.fmt(row.rugi_persen, 1)} unit="%" dp=${1} tone="var(--danger)" series=${H.series(g, "lost")} />
+          <${H.DataCard} label=${L("Perkiraan jarak", "Estimated distance")} value=${row.jarak_m == null ? "·" : H.fmt(row.jarak_m, 1)} unit="m" dp=${1} series=${H.series(g, "jarak")} />
           <${H.DataCard} label=${L("Delay satu arah", "One-way delay")} value=${H.fmt(row.delay_ms)} unit="ms" tone="var(--accent)" series=${H.series(g, "delay")} />
+          <${H.DataCard} label="Jitter" value=${jit == null ? "·" : H.fmt(jit, 1)} unit="ms" dp=${1} tone="var(--accent)" series=${H.series(g, "delay")} />
+          <${H.DataCard} label=${L("Paket hilang", "Lost packets")} value=${H.fmt(row.rugi_persen, 1)} unit="%" dp=${1} tone="var(--danger)" sub=${L(`${H.fmt(row.hilang)} dari ${H.fmt(row.hilang + row.diterima)}`, `${H.fmt(row.hilang)} of ${H.fmt(row.hilang + row.diterima)}`)} series=${H.series(g, "lost")} />
         </div>
         ${heat !== "hilang" && heat !== "menang" && html`<span class="htrend" data-t=${trend}><${Icon} n=${trend === "naik" ? "arrow-up" : trend === "turun" ? "arrow-down" : "minus"} sm />${trend === "naik" ? L("Mendekat dalam 10 detik terakhir", "Getting closer over the last 10 seconds") : trend === "turun" ? L("Menjauh dalam 10 detik terakhir", "Moving away over the last 10 seconds") : L("Stabil dalam 10 detik terakhir", "Steady over the last 10 seconds")}</span>`}
       </section>`}
       <section class="stack">
         <h3 class="h3">${H.T("Sapuan terakhir", "Latest sweep")}</h3>
         <div class="hsweep__row"><${H.Rose} vals=${sw ? sw.arah : [null, null, null, null, null, null, null, null]} best=${sw ? sw.terkuat : null} /><div class="stack stack--sm"><b>${sw ? L(`Terkuat di arah jam ${clockText(sw.terkuat)}`, `Strongest at ${clockText(sw.terkuat)} o'clock`) : L("Belum ada sapuan", "No sweep yet")}</b>${sw && html`<span class="hint">${L(`oleh ${sw.oleh} pada ${sw.at.slice(0, 5)}`, `by ${sw.oleh} at ${sw.at.slice(0, 5)}`)}</span>`}</div></div>
+      </section>
+      <section class="stack">
+        <h3 class="h3">${H.T("Pengaturan radio", "Radio settings")}</h3>
+        <div class="kv">${[
+          [L("Frekuensi", "Frequency"), radio.freq || "920.0 MHz"],
+          ["SF / BW", `SF${radio.sf || 7} · ${radio.bw || "250 kHz"}`],
+          [L("Daya", "Power"), radio.daya || "10 dBm"],
+          H.sync(g) ? ["Sync word", H.sync(g)] : null,
+          [L("Jadwal kirim", "Send schedule"), L("TDMA 500 ms, slot 100 ms per kelompok", "TDMA 500 ms, a 100 ms slot per group")],
+          [L("Model jarak", "Distance model"), L(`RSSI 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, batas 2000 m`, `RSSI at 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, capped at 2000 m`)],
+        ].filter(Boolean).map(([a, b]) => html`<span class="label">${a}</span><span class="mono">${b}</span>`)}</div>
+      </section>
+      <section class="stack">
+        <div class="row row--between"><h3 class="h3">${H.T("Paket terakhir", "Latest packets")}</h3><${Btn} sm icon="download-simple" onClick=${csv}>${L("Unduh CSV", "Download CSV")}</${Btn}></div>
+        <span class="hint">${L("Tiap paket membawa waktu kirimnya, jadi bisa dipasangkan dengan baris serial hunter lewat nomor paket.", "Each packet carries its send time, so it is paired with the hunter's serial line by packet number.")}</span>
+        ${rows.length ? html`<table class="table table--tight hpk"><thead><tr><th>#</th><th>${L("Kirim / terima", "Sent / received")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI · SNR</th></tr></thead>
+          <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td>${r.lost ? html`<td class="mono hint">·</td><td class="num"><span style="color:var(--danger)">${L("hilang", "lost")}</span></td><td class="num">·</td>` : html`<td class="mono hpk__t"><span>${r.tx || "·"}</span><span class="hint">${r.rx || "·"}</span></td><td class="num">${r.delay == null ? "·" : r.delay + " ms"}</td><td class="num hpk__t"><span>${r.rssi == null ? "·" : r.rssi}</span><span class="hint">${r.snr == null ? "·" : H.fmt(r.snr, 1)}</span></td>`}</tr>`)}</tbody></table>` : html`<p class="hint">${L("PC belum menerima paket dari hunter kelompok ini.", "The PC hasn't had a packet from this group's hunter yet.")}</p>`}
       </section>
     </${H.Drawer}>`;
   };
@@ -596,11 +645,9 @@
               <span class="hint">${role ? L(...ROLES[role].d) : L("Pilih satu kalau timmu mau membagi tugas. Layar Buru sama untuk semua.", "Pick one if your team wants to split the jobs. The Hunt screen is the same for everyone.")}</span></div>
           </${H.Card}>
         </div>
-        <div class="r5act" style="justify-content:flex-start"><${Btn} kind="ghost" sm icon="sign-out" onClick=${() => setLeave(true)}>${L("Keluar dari Kelompok", "Leave the Group")}</${Btn}></div>
+        <div class="r5act" style="justify-content:flex-start"><${Btn} kind="ghost" sm icon="sign-out" onClick=${() => setLeave(true)}>${L("Keluar", "Log Out")}</${Btn}></div>
       </div>
-      ${leave && html`<${H.Dialog} sm title=${L("Keluar dari kelompok?", "Leave the group?")} onClose=${() => setLeave(false)}
-        foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}><${Btn} kind="danger" onClick=${() => { c(); H.keluar(); }}>${L("Keluar", "Leave")}</${Btn}>`}>
-        <p>${L("Kamu bisa masuk lagi dengan NIM selama sesi masih berjalan.", "You can sign back in with your NIM while the session is still running.")}</p></${H.Dialog}>`}
+      ${leave && html`<${H.LogoutDialog} onClose=${() => setLeave(false)} />`}
     </${H.HuntApp}>`;
   };
 })();

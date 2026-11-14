@@ -27,14 +27,27 @@
     o.start(t);
     o.stop(t + 0.06);
   };
-  setInterval(() => {
-    if (!H.state.sound || !RATE[heat] || document.hidden) return;
+  /* The 40 ms timer only runs while a sound could actually play: sound on,
+     some heat, tab visible. Otherwise it sleeps instead of waking a phone
+     twenty-five times a second for nothing. */
+  let geiger = null;
+  const step = () => {
+    if (!H.state.sound || !RATE[heat] || document.hidden) return void settleGeiger();
     const now = performance.now();
     if (now < next) return;
     /* a little jitter so it sounds like a counter, not a metronome */
     next = now + (1000 / RATE[heat]) * (0.75 + Math.random() * 0.5);
     tick();
-  }, 40);
+  };
+  const settleGeiger = () => {
+    const want = !!H.state.sound && !!RATE[heat] && !document.hidden;
+    if (want && !geiger) geiger = setInterval(step, 40);
+    else if (!want && geiger) {
+      clearInterval(geiger);
+      geiger = null;
+    }
+  };
+  document.addEventListener("visibilitychange", settleGeiger);
 
   H.unlockSound = () => {
     try {
@@ -44,6 +57,7 @@
       ctx = null;
     }
     H.set({ sound: true, vib: true });
+    settleGeiger();
     tick();
     if (navigator.vibrate) navigator.vibrate(30);
     H.keepAwake();
@@ -52,6 +66,7 @@
   /* called with the group's heat on every render of the Hunt screen */
   H.feelHeat = (k) => {
     heat = k;
+    settleGeiger();
     const lv = LEVEL[k] || 0;
     if (lv > lastLevel && lv >= LEVEL.hangat && H.state.vib && navigator.vibrate) {
       navigator.vibrate(lv === LEVEL.membara ? [80, 60, 80, 60, 160] : lv === LEVEL.panas ? [70, 50, 70] : [60]);

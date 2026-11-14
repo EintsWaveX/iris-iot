@@ -67,6 +67,13 @@ export interface Ringkas {
    *  in that group's sketches, so only its own boards can feed its hunt. A
    *  group is only ever handed its own. */
   kunci: Record<string, string>;
+  /** Which round of board keys the PC is on: 0 until an Asisten turns them
+   *  (New Board Keys in mission control), then 1, 2, and so on. */
+  kunciEpoch: number;
+  /** When the keys were last turned, in unix seconds, or null if never. */
+  kunciDiputar: number | null;
+  /** Groups whose boards just sent a key the PC no longer accepts. */
+  kunciSalah: number[];
   sesi: number | null;
   mulai: boolean;
   selesai: boolean;
@@ -142,10 +149,20 @@ export function saringPerburuan(raw: unknown): Ringkas | null {
       }
     }
   }
+  const diputar = raw.kunci_diputar ?? raw.kunciDiputar;
+  const salah = raw.kunci_salah ?? raw.kunciSalah;
   return {
     versi: 1,
     kode,
     kunci,
+    kunciEpoch: int(raw.kunci_epoch ?? raw.kunciEpoch, 0, 1_000_000) ?? 0,
+    kunciDiputar:
+      typeof diputar === "number" && Number.isFinite(diputar) && diputar > 0
+        ? Math.round(diputar)
+        : null,
+    kunciSalah: (Array.isArray(salah) ? salah.slice(0, MAKS_GRUP) : [])
+      .map((n) => int(n, 1, MAKS_GRUP))
+      .filter((n): n is number => n !== null),
     sesi: int(raw.sesi, 1, 10),
     mulai: raw.mulai === true,
     selesai: raw.selesai === true,

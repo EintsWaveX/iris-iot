@@ -97,7 +97,11 @@ menggantikannya (`server.py`, diuji `tools/uji_protokol.py`):
   `halo`, untuk proyektor.
 - **Per alamat**: kegagalan (token, kode, NIM) dihitung per alamat peramban
   sebenarnya (`CF-Connecting-IP`, hanya dipercaya bila soketnya sendiri
-  loopback). Lima belas kegagalan dalam sepuluh menit memblokir alamat itu.
+  loopback). Lima belas tebakan token dalam sepuluh menit memblokir alamat itu.
+  NIM atau kode papan yang salah dihitung terpisah (enam puluh dalam sepuluh
+  menit), supaya satu hotspot bersama tidak terkunci oleh satu salah ketik;
+  ponsel yang kena batas ini diberi tahu berapa lama menunggu dan NIM-nya
+  tidak dihapus.
   Sekitar empat puluh soket terbuka per alamat paling banyak.
 - **Rute khusus agent** (`/ringkas.json`, `/telemetri.json`, yang membawa NIM)
   hanya dilayani untuk proses di PC ini. Karena tunnel menyambung dari
@@ -115,9 +119,12 @@ menggantikannya (`server.py`, diuji `tools/uji_protokol.py`):
   mengirim kunci yang salah, dan soket yang terus salah (50 pesan) ditutup.
   Kunci TIDAK berganti antar sesi maupun hari, dan tetap sama bila server
   dinyalakan ulang: papan yang sekali diunggah dengan kuncinya tetap sah
-  selama token PC tidak diganti (kode papan di atas tetap berganti tiap
-  sesi). Kalau token diganti, semua kunci berubah dan papan harus diunggah
-  ulang. Kegagalan kunci tidak dihitung ke blokir per alamat,
+  selama token PC tidak diganti dan asisten tidak menekan **Kunci Papan Baru**
+  (`kunci_baru`, putaran disimpan di `modul4/kunci.json`, bukan di jadwal.json
+  yang dibuang tiap hari). Kode papan di atas berganti tiap sesi dan tiap sesi
+  dimulai lagi. Kalau token diganti atau kunci diputar, semua kunci berubah dan
+  papan harus diunggah ulang; situs menampilkan putaran kunci dan memberi
+  peringatan bila papan kelompok masih mengirim kunci lama. Kegagalan kunci tidak dihitung ke blokir per alamat,
   karena alamat itu adalah ponsel hotspot kelompok yang juga dipakai
   anggotanya membuka papan.
 
@@ -418,14 +425,40 @@ Saat sesi berganti, yang dihapus adalah:
 - perburuan, peringkat, riwayat RSSI;
 - seluruh klaim dan foto klaim;
 - penghargaan yang sudah dibekukan;
-- **sesi login tiap ponsel** — semua ponsel kembali ke layar NIM, tanpa perlu
-  disuruh dan tanpa perlu menyambung ulang.
+- **sesi login tiap ponsel** — server sendiri mencocokkan ulang setiap ponsel
+  yang sudah masuk (`revalidasi_penonton`) begitu sesi, ronde, atau daftar
+  berubah. Yang tidak lagi terdaftar langsung dikeluarkan dan menerima `halo`
+  dengan alasannya, yang pindah kelompok diikuti, tanpa menunggu ponselnya
+  bertanya. Klaim, foto, sinyal, dan sapuan juga menolak soket yang sesinya
+  sudah lewat.
 
 Yang **tetap**: jadwal sehari penuh, ukuran arena, dan kalibrasi 1 meter.
 Hanya pergantian hari (atau pesan `jadwal_hapus` dari skrip) yang membuang keempat sesi sekaligus.
 
 `--sesi-jam 07:00,10:00,13:00,16:00` mengubah jam mulainya dan
 `--sesi-durasi MENIT` mengubah batasnya.
+
+### Masuk, keluar, dan satu NIM satu ponsel
+
+- Tiap peramban membuat nomor perangkat acak sekali (`iris_hunt_dev`) dan
+  mengirimnya (`dev`) bersama `masuk`/`halo`. Satu NIM hanya boleh dipegang
+  satu peramban pada satu waktu: tab kedua di peramban yang sama boleh, ponsel
+  lain ditolak dengan `sedang_dipakai` selama soket pemegangnya masih hidup.
+  Soket yang mati melepas NIM-nya sendiri.
+- Satu koneksi, satu orang. `masuk` atau `halo` dengan NIM lain pada koneksi
+  yang sudah masuk dijawab `sudah_masuk`; `halo` basi tanpa NIM tidak
+  mengeluarkan siapa pun. Berganti orang berarti `keluar` dulu.
+- `keluar` melepas NIM di server dan menjatuhkan peran asisten koneksi itu.
+  Tombolnya **Keluar** ada di Menu (Akun) dan di tab Tim; tab lain di peramban
+  yang sama ikut keluar.
+- Asisten bisa **Lepas NIM** (`lepas_nim`, di kartu "Kode dan akun") untuk NIM
+  yang macet di ponsel mati atau hilang; ponsel yang dilepas diberi tahu
+  (`dilepas`).
+- Alasan gagal masuk tidak lagi disamarkan sebagai "sesi berganti": kode papan
+  hilang atau basi (`kode_papan`) dan batas alamat (`terlalu_sering`) menjaga
+  NIM tersimpan dan menjelaskan sebabnya.
+- Foto klaim harus salah satu foto kelompok itu sendiri (`foto tidak dikenal`
+  bila bukan).
 
 ### NIM adalah data pribadi
 
@@ -536,8 +569,8 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
   membuka alamat tanpa kode papan. Kode ikut di tautan/QR dari situs, berganti
   tiap sesi dan tiap hari; buka ulang tautannya dari situs.
 - **Satu alamat tiba-tiba ditolak ("terlalu banyak percobaan").** Lima belas
-  kegagalan token/kode/NIM dalam sepuluh menit memblokir alamat itu selama
-  sisa jendelanya. Pada jaringan seluler yang berbagi satu alamat, salah ketik
+  tebakan token dalam sepuluh menit memblokir alamat itu selama sisa
+  jendelanya (NIM dan kode salah: enam puluh). Pada jaringan seluler yang berbagi satu alamat, salah ketik
   banyak orang dapat menjumlah; tunggu sepuluh menit, atau nyalakan ulang
   `modul4.service` untuk mengosongkan hitungannya.
 - **Semua kelompok terbaca "MEMBARA" sekaligus.** `BEACON_TX_POWER` terisi 20,

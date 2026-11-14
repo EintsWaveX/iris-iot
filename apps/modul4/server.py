@@ -57,6 +57,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import gzip
 import hashlib
 import hmac
 import json
@@ -220,6 +221,9 @@ AKSI_ASISTEN = frozenset({
     "panggil_selesai", "pengumuman", "aba_aba",
     # Jari-jari arena dari ruang kendali, tanpa menyalakan ulang server.
     "arena",
+    # Melepas NIM yang macet di ponsel lain, dan memutar kunci papan semua
+    # kelompok (papan harus diunggah ulang sesudahnya).
+    "lepas_nim", "kunci_baru",
 })
 
 # ---------------------------------------------------------------------------
@@ -340,6 +344,10 @@ MAX_GRUP_ID = 99
 # gagal keras di sini akan tampak seperti "papan skornya rusak" di lapangan.
 NIM_RE = re.compile(r"^[A-Za-z0-9]{4,20}$")
 MAX_GAGAL_MASUK = 12               # percobaan NIM tak dikenal per koneksi
+# NIM salah atau kode papan salah dihitung terpisah dari tebakan token: satu
+# hotspot dipakai bersama satu kelompok (bahkan satu kampus), dan satu anggota
+# yang salah ketik tidak boleh mengunci semua orang di alamat yang sama.
+GAGAL_NIM_IP_MAKS = 60
 
 # ---------------------------------------------------------------------------
 # Penghargaan
@@ -1225,6 +1233,7 @@ class Hunt:
             "grup": rows,
             "peristiwa": self.events[-12:],
             "ronde": self.ronde,
+            "kunci_epoch": KUNCI["epoch"],
             "antrian": self.antrian(),
             "penghargaan": hadiah,
             # Daftar namanya sendiri TIDAK ikut di sini. Lima kelompok
@@ -1416,7 +1425,13 @@ def kode_papan() -> str:
     """
     if not TOKEN:
         return ""
-    pesan = f"papan|{JADWAL['aktif']}|{datetime.now().date().isoformat()}"
+    # "mulai_pada" ikut diaduk: menjalankan ulang sesi yang sama (Mulai
+    # Perburuan lagi, atau Mulai Sesi dari ruang kendali) memutar kodenya,
+    # jadi tautan lama dari ronde sebelumnya tidak ikut hidup. Nilainya
+    # disimpan di jadwal.json, jadi server yang dinyalakan ulang di tengah
+    # sesi tetap memberi kode yang sama.
+    mulai = int((JADWAL.get("mulai_pada") or 0) * 1000)
+    pesan = f"papan|{JADWAL['aktif']}|{datetime.now().date().isoformat()}|{mulai}"
     mac = hmac.new(TOKEN.encode(), pesan.encode(), hashlib.sha256).digest()
     return "".join(TOKEN_ALPHABET[b % len(TOKEN_ALPHABET)] for b in mac[:KODE_LEN])
 
@@ -1440,9 +1455,38 @@ def kunci_grup(gid: int) -> str:
     """
     if not TOKEN:
         return ""
-    pesan = f"papan-grup|{gid}"
+    # Epoch 0 memberi pesan yang sama persis dengan sebelumnya, jadi papan
+    # yang sudah terunggah tetap sah sampai asisten memutar kuncinya.
+    pesan = f"papan-grup|{gid}" if not KUNCI["epoch"] else         f"papan-grup|{gid}|{KUNCI['epoch']}"
     mac = hmac.new(TOKEN.encode(), pesan.encode(), hashlib.sha256).digest()
     return "".join(TOKEN_ALPHABET[b % len(TOKEN_ALPHABET)] for b in mac[:KUNCI_LEN])
+
+
+# Putaran kunci papan. Disimpan terpisah dari jadwal.json: jadwal dibuang tiap
+# hari, sedangkan papan yang sudah diunggah harus tetap cocok dengan kuncinya.
+KUNCI_PATH = HERE / "kunci.json"
+KUNCI: dict = {"epoch": 0, "diputar": None}
+
+
+def kunci_muat() -> None:
+    try:
+        data = json.loads(KUNCI_PATH.read_text(encoding="utf-8"))
+        KUNCI["epoch"] = max(0, int(data.get("epoch", 0)))
+        KUNCI["diputar"] = data.get("diputar")
+    except (OSError, ValueError, TypeError, AttributeError):
+        pass
+
+
+def kunci_putar() -> None:
+    """Putar kunci semua kelompok: papan lama ditolak sampai diunggah ulang."""
+    KUNCI["epoch"] += 1
+    KUNCI["diputar"] = time.time()
+    tmp = KUNCI_PATH.with_suffix(".json.tmp")
+    try:
+        tmp.write_text(json.dumps(KUNCI), encoding="utf-8")
+        os.replace(tmp, KUNCI_PATH)
+    except OSError as err:
+        print(f"[{timestamp()}] kunci gagal disimpan: {err}")
 
 
 def kunci_ok(gid: int, candidate) -> bool:
@@ -2058,6 +2102,25 @@ async def sapu_unggahan(semua: bool = False) -> None:
 
 WS_PATHS = ("/hunter", "/beacon", "/live")
 
+# Halaman yang sudah dibaca dan dimampatkan, dipakai ulang selama berkasnya
+# tidak berubah (mtime). Dibaca ulang tiap permintaan, 714 KB dari cakram dan
+# dimampatkan lagi, adalah kerja sia-sia di papan kecil saat 30 ponsel
+# membuka halaman bersamaan.
+_HALAMAN: dict = {"mtime": None, "isi": None}
+
+
+def muat_halaman() -> tuple[str, bytes, bytes] | None:
+    try:
+        mtime = INDEX_PATH.stat().st_mtime_ns
+        if _HALAMAN["mtime"] != mtime:
+            mentah = INDEX_PATH.read_bytes()
+            etag = '"' + hashlib.sha256(mentah).hexdigest()[:24] + '"'
+            _HALAMAN["isi"] = (etag, mentah, gzip.compress(mentah, 6, mtime=0))
+            _HALAMAN["mtime"] = mtime
+    except OSError:
+        return None
+    return _HALAMAN["isi"]
+
 
 def process_request(connection: ServerConnection, request) -> Response | None:
     path = request.path.split("?")[0]
@@ -2065,18 +2128,31 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         return None  # Lanjutkan sebagai koneksi WebSocket
 
     if path in ("/", "/index.html"):
-        try:
-            body = INDEX_PATH.read_bytes()
-        except OSError:
+        halaman = muat_halaman()
+        if halaman is None:
             return connection.respond(
                 HTTPStatus.SERVICE_UNAVAILABLE,
                 "Papan skor belum dibangun. Jalankan: python modul4/build.py\n",
             )
+        etag, mentah, gz = halaman
+        # no-cache = boleh disimpan, tetapi ditanyakan dulu: halaman yang
+        # tidak berubah tidak diunduh ulang (700 KB lewat data seluler), dan
+        # halaman yang baru dibangun langsung terambil.
+        if request.headers.get("If-None-Match") == etag:
+            return Response(HTTPStatus.NOT_MODIFIED, "Not Modified", Headers({
+                "ETag": etag, "Cache-Control": "no-cache",
+            }), b"")
+        body = mentah
         headers = Headers({
             "Content-Type": "text/html; charset=utf-8",
-            "Content-Length": str(len(body)),
-            "Cache-Control": "no-store",
+            "ETag": etag,
+            "Cache-Control": "no-cache",
+            "Vary": "Accept-Encoding",
         })
+        if "gzip" in (request.headers.get("Accept-Encoding") or "").lower():
+            body = gz
+            headers["Content-Encoding"] = "gzip"
+        headers["Content-Length"] = str(len(body))
         return Response(HTTPStatus.OK, "OK", headers, body)
 
     if path == "/roster.json":
@@ -2088,12 +2164,12 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         # demi bidang dan hanya mengambil namanya, jadi kebocoran di sini
         # membutuhkan perubahan sengaja, bukan kelalaian.
         ip = klien_ip(connection)
-        if terblokir(ip):
+        if terblokir_nim(ip):
             return connection.respond(HTTPStatus.TOO_MANY_REQUESTS,
                                       "Terlalu banyak percobaan.\n")
         kunci = parse_qs(urlsplit(request.path).query).get("k", [""])[0]
         if not kode_ok(kunci):
-            catat_gagal(ip)
+            catat_gagal_nim(ip)
             return connection.respond(HTTPStatus.FORBIDDEN,
                                       "Butuh kode papan dari tautan situs IRIS.\n")
         body = json.dumps(jadwal_publik(), ensure_ascii=False).encode("utf-8")
@@ -2208,6 +2284,13 @@ def ringkasan_perburuan() -> dict:
         "kode": kode_papan() or None,
         # Kunci papan tiap kelompok, untuk situs: ditempel kelompok ke HUNT_KEY
         "kunci": {str(g): kunci_grup(g) for g in range(1, KUNCI_MAKS_GRUP + 1)},
+        # Putaran kunci papan dan kapan terakhir diputar (detik epoch, atau
+        # None bila belum pernah); situs menunjukkannya di kartu Kode.
+        "kunci_epoch": KUNCI["epoch"],
+        "kunci_diputar": KUNCI["diputar"],
+        "mulai_pada": JADWAL.get("mulai_pada"),
+        # Kelompok yang papannya baru saja mengirim kunci lama
+        "kunci_salah": bingkai["kunci_salah"],
         "sesi": JADWAL["aktif"],
         "mulai": HUNT.started_at is not None,
         "selesai": HUNT.round_ended_at is not None,
@@ -2396,6 +2479,145 @@ def koneksi_ip(ip: str | None) -> int:
     return sum(1 for m in VIEWERS.values() if m.get("ip") == ip)
 
 
+GAGAL_NIM_IP: dict[str, list[float]] = {}
+
+
+def catat_gagal_nim(ip: str | None) -> None:
+    """NIM atau kode papan salah, dihitung terpisah dari tebakan token."""
+    if not ip or ip in LOOPBACK:
+        return
+    kini = time.monotonic()
+    daftar = [t for t in GAGAL_NIM_IP.get(ip, []) if kini - t < GAGAL_IP_JENDELA]
+    daftar.append(kini)
+    GAGAL_NIM_IP[ip] = daftar
+    if len(GAGAL_NIM_IP) > 5000:
+        for kunci in [k for k, v in GAGAL_NIM_IP.items()
+                      if not v or kini - v[-1] >= GAGAL_IP_JENDELA]:
+            GAGAL_NIM_IP.pop(kunci, None)
+
+
+def terblokir_nim(ip: str | None) -> bool:
+    if not ip:
+        return False
+    kini = time.monotonic()
+    return sum(1 for t in GAGAL_NIM_IP.get(ip, [])
+               if kini - t < GAGAL_IP_JENDELA) >= GAGAL_NIM_IP_MAKS
+
+
+def sisa_blokir_nim(ip: str | None) -> int:
+    """Berapa detik lagi sampai satu kegagalan tertua keluar dari jendela."""
+    if not ip:
+        return 0
+    kini = time.monotonic()
+    ada = [t for t in GAGAL_NIM_IP.get(ip, []) if kini - t < GAGAL_IP_JENDELA]
+    if len(ada) < GAGAL_NIM_IP_MAKS:
+        return 0
+    return max(1, int(GAGAL_IP_JENDELA - (kini - min(ada))))
+
+
+# -- satu NIM, satu ponsel -------------------------------------------------
+
+DEV_RE = re.compile(r"^[A-Za-z0-9_-]{8,40}$")
+
+
+def _dev_bersih(nilai) -> str | None:
+    """Nomor perangkat dari klien: rahasia kecil yang menandai satu peramban."""
+    if isinstance(nilai, str) and DEV_RE.match(nilai):
+        return nilai
+    return None
+
+
+def _dipakai_ponsel_lain(connection, nim: str, dev: str | None) -> bool:
+    """NIM ini sedang dipegang soket hidup dari peramban yang berbeda.
+
+    Peramban yang sama (nomor perangkat sama) boleh membuka tab kedua atau
+    menyambung ulang. Klien tanpa nomor perangkat dianggap berbeda dari
+    siapa pun yang sudah memegang NIM itu.
+    """
+    for conn, m in VIEWERS.items():
+        if conn is connection or m.get("nim") != nim or m.get("grup") is None:
+            continue
+        if dev is None or m.get("dev") != dev:
+            return True
+    return False
+
+
+def _lepas(meta: dict) -> None:
+    meta["grup"] = None
+    meta["nim"] = None
+    meta["sesi"] = None
+    meta["nama"] = ""
+    meta["dev"] = None
+
+
+async def _lepas_nim_semua(nim: str) -> int:
+    """Lepas NIM dari setiap soket yang memegangnya dan beri tahu pemiliknya."""
+    jumlah = 0
+    for conn, m in list(VIEWERS.items()):
+        if m.get("nim") != nim:
+            continue
+        _lepas(m)
+        if m["peran"] != PERAN_ASISTEN:
+            m["peran"] = PERAN_TAMU
+        jumlah += 1
+        await kirim(conn, "halo", ok=False, kode="dilepas",
+                    alasan="NIM dilepas oleh asisten", peran=m["peran"],
+                    grup=None, id=m["id"], ronde=HUNT.ronde,
+                    sesi=JADWAL["aktif"], roster_rev=JADWAL["rev"])
+    return jumlah
+
+
+def terikat(meta: dict) -> bool:
+    """Soket ini masih sah mewakili anggota sebuah kelompok di sesi sekarang."""
+    return (meta.get("grup") is not None and bool(meta.get("nim"))
+            and meta.get("sesi") == JADWAL["aktif"])
+
+
+REVALIDASI_TERAKHIR: tuple | None = None
+
+
+async def revalidasi_penonton(paksa: bool = False) -> None:
+    """Cocokkan ulang setiap ponsel yang sudah masuk dengan rencana sekarang.
+
+    Dipanggil dari siaran tiap denyut, tetapi hanya bekerja ketika sesi,
+    ronde, atau daftar berubah. Sebelumnya hanya klien yang mengecek ini
+    (lewat halo ulang), jadi soket yang tidak mau mengecek tetap menjadi
+    anggota kelompok lama dan bisa mengklaim, mengunggah, dan memberi sinyal
+    di sesi berikutnya.
+    """
+    global REVALIDASI_TERAKHIR
+    cap = (JADWAL["aktif"], JADWAL["rev"], JADWAL.get("mulai_pada"))
+    if not paksa and cap == REVALIDASI_TERAKHIR:
+        return
+    REVALIDASI_TERAKHIR = cap
+    for conn, m in list(VIEWERS.items()):
+        if not m.get("nim"):
+            continue
+        orang = cari_nim(m["nim"])
+        if orang is not None and orang["grup"] == m["grup"] \
+                and m.get("sesi") == JADWAL["aktif"]:
+            continue
+        if orang is not None:
+            # Masih terdaftar di sesi sekarang (kelompoknya mungkin berganti):
+            # ikuti rencananya, tidak perlu mengeluarkan siapa pun.
+            m["grup"] = orang["grup"]
+            m["nama"] = orang["nama"]
+            m["sesi"] = JADWAL["aktif"]
+            await kirim(conn, "halo", ok=True, peran=m["peran"], grup=m["grup"],
+                        id=m["id"], ronde=HUNT.ronde, sesi=JADWAL["aktif"],
+                        roster_rev=JADWAL["rev"], nama=m["nama"],
+                        peran_tim=PERAN.get(m["nim"]))
+            continue
+        alasan_kode = "tak_ada_sesi" if JADWAL["aktif"] is None else "tak_terdaftar"
+        _lepas(m)
+        if m["peran"] != PERAN_ASISTEN:
+            m["peran"] = PERAN_TAMU
+        await kirim(conn, "halo", ok=False, kode=alasan_kode,
+                    alasan="sesi berganti", peran=m["peran"], grup=None,
+                    id=m["id"], ronde=HUNT.ronde, sesi=JADWAL["aktif"],
+                    roster_rev=JADWAL["rev"])
+
+
 async def handle(connection: ServerConnection) -> None:
     path = connection.request.path.split("?")[0]
     ip = peer_ip(connection)
@@ -2495,7 +2717,8 @@ def boleh_unggah(meta: dict, gid: int) -> bool:
     """Hanya anggota kelompok itu sendiri (atau asisten) yang boleh."""
     if meta["peran"] == PERAN_ASISTEN:
         return True
-    return meta["peran"] == PERAN_ANGGOTA and meta["grup"] == gid
+    return (meta["peran"] == PERAN_ANGGOTA and meta["grup"] == gid
+            and terikat(meta))
 
 
 async def terima_foto(connection: ServerConnection, meta: dict,
@@ -2567,7 +2790,7 @@ async def kirim_riwayat_ping(connection: ServerConnection, meta: dict) -> None:
 async def kirim_ping(connection: ServerConnection, meta: dict, kode) -> None:
     """Satu sinyal tim, hanya ke kelompoknya sendiri dan ke asisten."""
     gid = meta.get("grup")
-    if gid is None or not meta.get("nim"):
+    if gid is None or not meta.get("nim") or not terikat(meta):
         await kirim(connection, "balas", aksi="ping", ok=False,
                     alasan="masuk dengan NIM dulu")
         return
@@ -2608,7 +2831,7 @@ async def kirim_ping(connection: ServerConnection, meta: dict, kode) -> None:
 def simpan_sapuan(meta: dict, msg: dict) -> tuple[bool, str]:
     """Validasi dan simpan satu sapuan 8 arah dari anggota kelompok."""
     gid = meta.get("grup")
-    if gid is None or not meta.get("nim"):
+    if gid is None or not meta.get("nim") or not terikat(meta):
         return False, "masuk dengan NIM dulu"
 
     arah = msg.get("arah")
@@ -2666,6 +2889,7 @@ async def handle_viewer(connection: ServerConnection) -> None:
         "gagal": 0,
         "gagal_masuk": 0,
         "unggah": None,
+        "dev": None,
         "nama": "",
         "ping_at": 0.0,
     }
@@ -2743,24 +2967,39 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         # hitungan kegagalan per alamat peramban. Balasannya tidak pernah
         # memuat lebih dari catatan orang yang baru saja mengetikkan NIM-nya
         # sendiri.
-        if meta["gagal_masuk"] >= MAX_GAGAL_MASUK or terblokir(meta["ip"]):
+        if meta["gagal_masuk"] >= MAX_GAGAL_MASUK or terblokir_nim(meta["ip"]):
             await kirim(connection, "masuk", ok=False,
                         alasan="terlalu banyak percobaan",
-                        kode="terlalu_sering")
+                        kode="terlalu_sering", tunggu=sisa_blokir_nim(meta["ip"]))
             return
         if not (berwenang or kode_ok(msg.get("kode_papan"))):
             meta["gagal_masuk"] += 1
-            catat_gagal(meta["ip"])
+            catat_gagal_nim(meta["ip"])
             await kirim(connection, "masuk", ok=False,
                         alasan="buka papan lewat tautan dari situs IRIS",
                         kode="kode_papan")
             return
+        # Satu koneksi, satu orang. Berganti NIM berarti keluar dulu; tanpa
+        # ini sebuah ponsel yang sudah masuk bisa pindah ke kelompok lain
+        # hanya dengan mengetikkan NIM lain.
         nim = msg.get("nim")
+        if meta["nim"] and isinstance(nim, str) and nim.strip().upper() != meta["nim"]:
+            await kirim(connection, "masuk", ok=False,
+                        alasan="keluar dulu sebelum masuk dengan NIM lain",
+                        kode="sudah_masuk", grup=meta["grup"])
+            return
         gid, alasan, kode = terapkan_nim(nim)
         if gid is None:
             meta["gagal_masuk"] += 1
-            catat_gagal(meta["ip"])
+            catat_gagal_nim(meta["ip"])
             await kirim(connection, "masuk", ok=False, alasan=alasan, kode=kode)
+            return
+
+        dev = _dev_bersih(msg.get("dev"))
+        if _dipakai_ponsel_lain(connection, nim.strip().upper(), dev):
+            await kirim(connection, "masuk", ok=False,
+                        alasan="NIM ini sedang dipakai di ponsel lain",
+                        kode="sedang_dipakai")
             return
 
         orang = cari_nim(nim)
@@ -2768,6 +3007,7 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         meta["nim"] = nim.strip().upper()
         meta["nama"] = orang["nama"]
         meta["sesi"] = JADWAL["aktif"]
+        meta["dev"] = dev
         if meta["peran"] != PERAN_ASISTEN:
             meta["peran"] = PERAN_ANGGOTA
         print(f"[{timestamp()}] masuk: kelompok {gid} ({meta['ip']})")
@@ -2776,6 +3016,37 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
                     peran=meta["peran"], id=meta["id"],
                     peran_tim=PERAN.get(meta["nim"]))
         await kirim_riwayat_ping(connection, meta)
+        return
+
+    if aksi == "keluar":
+        # Keluar sungguhan: NIM dilepas di server (ponsel lain boleh memakainya
+        # sekarang), dan peran asisten ikut gugur supaya ponsel yang dipinjam
+        # tidak tetap berwenang. Menyambung ulang tidak mengembalikan apa-apa
+        # karena klien juga menghapus NIM dan tokennya.
+        _lepas(meta)
+        meta["peran"] = PERAN_TAMU
+        meta["gagal"] = 0
+        print(f"[{timestamp()}] keluar ({meta['ip']})")
+        await kirim(connection, "keluar", ok=True, peran=meta["peran"],
+                    id=meta["id"], sesi=JADWAL["aktif"])
+        return
+
+    if aksi == "lepas_nim":
+        # Asisten membebaskan NIM yang macet di ponsel yang hilang atau mati.
+        nim = msg.get("nim")
+        if not isinstance(nim, str) or not NIM_RE.match(nim.strip()):
+            await kirim(connection, "balas", aksi="lepas_nim", ok=False,
+                        alasan="NIM tidak sah")
+            return
+        jumlah = await _lepas_nim_semua(nim.strip().upper())
+        await kirim(connection, "balas", aksi="lepas_nim", ok=True, jumlah=jumlah)
+        return
+
+    if aksi == "kunci_baru":
+        kunci_putar()
+        HUNT.note("kunci-baru")
+        await kirim(connection, "balas", aksi="kunci_baru", ok=True,
+                    epoch=KUNCI["epoch"])
         return
 
     if aksi == "halo":
@@ -2791,20 +3062,60 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
                 await connection.close(1008, "terlalu banyak percobaan")
             return
 
+        nim_kirim = msg.get("nim")
+        dev = _dev_bersih(msg.get("dev"))
+
+        # Halo bukan jalan untuk berganti orang atau keluar: sebuah halo
+        # basi dari tab lain tidak boleh memindahkan ponsel yang sudah masuk,
+        # dan tidak boleh mengeluarkannya. Keduanya hanya lewat "masuk" dan
+        # "keluar".
+        if meta["nim"]:
+            if isinstance(nim_kirim, str) and nim_kirim.strip().upper() != meta["nim"]:
+                await kirim(connection, "halo", ok=False, kode="sudah_masuk",
+                            alasan="keluar dulu sebelum masuk dengan NIM lain",
+                            peran=meta["peran"], grup=meta["grup"], id=meta["id"],
+                            ronde=HUNT.ronde, sesi=JADWAL["aktif"],
+                            roster_rev=JADWAL["rev"], nama=meta["nama"],
+                            peran_tim=PERAN.get(meta["nim"]))
+                return
+            # Tanpa token berarti bukan asisten: tombol "Kunci Ruang Kendali"
+            # di klien menjatuhkan tokennya lalu mengirim halo, dan itu harus
+            # benar-benar menurunkan wewenangnya.
+            meta["peran"] = PERAN_ASISTEN if punya_token else PERAN_ANGGOTA
+            await kirim(connection, "halo", ok=True, peran=meta["peran"],
+                        grup=meta["grup"], id=meta["id"], ronde=HUNT.ronde,
+                        sesi=JADWAL["aktif"], roster_rev=JADWAL["rev"],
+                        nama=meta["nama"],
+                        kode_papan=kode_papan() if meta["peran"] == PERAN_ASISTEN else None,
+                        peran_tim=PERAN.get(meta["nim"]))
+            await kirim_riwayat_ping(connection, meta)
+            return
+
         alasan = ""
         kode = ""
         gid = None
-        if msg.get("nim") is not None:
-            if terblokir(meta["ip"]):
+        tunggu = 0
+        if nim_kirim is not None:
+            if terblokir_nim(meta["ip"]):
                 alasan, kode = "terlalu banyak percobaan", "terlalu_sering"
+                tunggu = sisa_blokir_nim(meta["ip"])
             elif not (punya_token or kode_ok(msg.get("kode_papan"))):
-                catat_gagal(meta["ip"])
+                catat_gagal_nim(meta["ip"])
                 alasan, kode = "buka papan lewat tautan dari situs IRIS", "kode_papan"
             else:
-                gid, alasan, kode = terapkan_nim(msg.get("nim"))
-        meta["grup"] = gid
-        meta["nim"] = msg.get("nim", "").strip().upper() if gid is not None else None
-        meta["sesi"] = JADWAL["aktif"] if gid is not None else None
+                gid, alasan, kode = terapkan_nim(nim_kirim)
+                if gid is not None and _dipakai_ponsel_lain(
+                        connection, nim_kirim.strip().upper(), dev):
+                    gid, alasan, kode = None, "NIM ini sedang dipakai di ponsel lain", "sedang_dipakai"
+        if gid is not None:
+            meta["grup"] = gid
+            meta["nim"] = nim_kirim.strip().upper()
+            meta["sesi"] = JADWAL["aktif"]
+            meta["dev"] = dev
+        else:
+            meta["grup"] = None
+            meta["nim"] = None
+            meta["sesi"] = None
         orang = cari_nim(meta["nim"]) if meta["nim"] else None
         meta["nama"] = orang["nama"] if orang else ""
 
@@ -2818,6 +3129,7 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         # ok=False dengan peran "tamu" adalah bagaimana sebuah ponsel dari
         # sesi sebelumnya diberi tahu untuk melupakan dirinya sendiri.
         await kirim(connection, "halo", ok=not alasan, alasan=alasan, kode=kode,
+                    tunggu=tunggu,
                     peran=meta["peran"], grup=meta["grup"], id=meta["id"],
                     ronde=HUNT.ronde, sesi=JADWAL["aktif"],
                     roster_rev=JADWAL["rev"],
@@ -2829,7 +3141,7 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         return
 
     if aksi == "tim_peran":
-        if meta["grup"] is None or not meta["nim"]:
+        if meta["grup"] is None or not meta["nim"] or not terikat(meta):
             await kirim(connection, "balas", aksi="tim_peran", ok=False,
                         alasan="masuk dengan NIM dulu")
             return
@@ -2852,7 +3164,7 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
 
     if aksi == "panggil_asisten":
         gid = meta["grup"]
-        if gid is None:
+        if gid is None or not terikat(meta):
             await kirim(connection, "balas", aksi="panggil_asisten", ok=False,
                         alasan="masuk dengan NIM dulu")
             return
@@ -2941,7 +3253,15 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
             await kirim(connection, "balas", aksi="klaim", ok=False,
                         alasan="hanya kelompok itu sendiri yang boleh mengklaim")
             return
-        ok, alasan = HUNT.claim(gid, msg.get("foto"))
+        foto = msg.get("foto")
+        if foto is not None:
+            slot_foto = HUNT.groups.get(gid)
+            if (not isinstance(foto, str) or len(foto) > 80 or slot_foto is None
+                    or foto not in slot_foto["foto_riwayat"]):
+                await kirim(connection, "balas", aksi="klaim", ok=False,
+                            alasan="foto tidak dikenal")
+                return
+        ok, alasan = HUNT.claim(gid, foto)
         await kirim(connection, "balas", aksi="klaim", ok=ok, alasan=alasan,
                     urut=HUNT.groups[gid]["klaim_urut"] if ok else None)
         return
@@ -3088,8 +3408,19 @@ async def mulai_unggah(connection: ServerConnection, meta: dict,
 
 
 async def broadcast_loop() -> None:
-    """Menggambar ulang pada laju tetap, bukan tiap paket masuk."""
+    """Menggambar ulang pada laju tetap, bukan tiap paket masuk.
+
+    Bingkai hanya dikirim bila ada yang berubah (HUNT.rev naik tiap paket
+    radio dan tiap peristiwa) atau detiknya berganti (jam, sisa waktu, tanda
+    hening). Di antara ronde, atau saat tidak ada papan yang memancar, itu
+    satu bingkai per detik, bukan sepuluh. Blok "model" dan "radio" hampir
+    tidak pernah berubah, jadi hanya ikut bila isinya berubah; ponsel yang
+    baru tersambung sudah mendapat bingkai penuh dari handle_viewer.
+    """
     period = 1.0 / BROADCAST_HZ
+    rev_terakhir = -1
+    detik_terakhir = -1
+    statis_terakhir: str | None = None
 
     while True:
         await asyncio.sleep(period)
@@ -3098,10 +3429,22 @@ async def broadcast_loop() -> None:
         # ulangnya tidak berlubang. cuplik() sendiri menjaga satu cuplikan
         # per detik perburuan.
         HUNT.cuplik()
+        await revalidasi_penonton()
         if not VIEWERS:
             continue
 
-        frame = json.dumps(HUNT.snapshot())
+        detik = int(time.monotonic())
+        if HUNT.rev == rev_terakhir and detik == detik_terakhir:
+            continue
+        rev_terakhir, detik_terakhir = HUNT.rev, detik
+
+        bingkai = HUNT.snapshot()
+        statis = json.dumps([bingkai["model"], bingkai["radio"]], sort_keys=True)
+        if statis == statis_terakhir:
+            del bingkai["model"]
+            del bingkai["radio"]
+        statis_terakhir = statis
+        frame = json.dumps(bingkai, separators=(",", ":"))
         # Dikirim serentak, bukan satu per satu: sebelumnya satu penonton
         # dengan Wi-Fi lemah menahan denyut untuk semua orang, dan unggahan
         # foto membuat itu lebih mudah terjadi.
@@ -3169,6 +3512,7 @@ async def main(host: str, port: int) -> None:
     # memori, jadi memulai dengan cakram bersih meniadakan aritmetika umur
     # berkas sekaligus folder yatim sesudah server mati mendadak.
     await sapu_unggahan(semua=True)
+    kunci_muat()
     jadwal_muat()
     mulai_web = jadwal_impor_jika_berubah(JADWAL_IMPOR_PATH)
     if mulai_web is not None:
@@ -3184,7 +3528,11 @@ async def main(host: str, port: int) -> None:
 
     async with serve(handle, host, port, process_request=process_request,
                      ping_interval=20, ping_timeout=20,
-                     max_size=WS_MAX_SIZE):
+                     max_size=WS_MAX_SIZE,
+                     # Tanpa deflate per pesan: tiap bingkai dimampatkan sekali
+                     # per ponsel di papan kecil ini, dan Cloudflare sudah
+                     # memampatkan lalu lintas ke ponsel di tepinya.
+                     compression=None):
         print(f"[{timestamp()}] Papan skor berjalan pada http://{host}:{port} "
               f"(jaringan {JARINGAN})")
         print(f"[{timestamp()}] Arena {HUNT.arena_m:.0f} m: "

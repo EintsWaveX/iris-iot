@@ -27,6 +27,25 @@
   const KEY_NIM = "iris_hunt_nim";
   const KEY_TOKEN = "iris_hunt_token";
   const KEY_KODE = "iris_hunt_kode";
+  const KEY_DEV = "iris_hunt_dev";
+  /* A small random id for this browser, made once. The PC lets one NIM be
+     signed in on one browser at a time: a second tab here is fine, a second
+     phone is turned away until the first one logs out. */
+  const makeDev = () => {
+    const have = H.read(KEY_DEV);
+    if (typeof have === "string" && /^[A-Za-z0-9_-]{8,40}$/.test(have)) return have;
+    let id = "";
+    try {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      id = Array.from(b, (x) => x.toString(36).padStart(2, "0")).join("").slice(0, 28);
+    } catch (e) {
+      id = (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 28);
+    }
+    id = id.replace(/[^A-Za-z0-9_-]/g, "x").padEnd(12, "z");
+    H.write(KEY_DEV, id);
+    return id;
+  };
   const cleanKode = (v) => {
     if (typeof v !== "string") return null;
     const s = v.trim().toUpperCase();
@@ -51,6 +70,9 @@
        join code (#k=...). Without it the NIM is never tried and the roster
        stays closed. Kept on this phone for the rest of the session. */
     kode: cleanKode(H.read(KEY_KODE)),
+    dev: makeDev(),
+    problem: null /* why sign-in failed: { kode, tunggu } */,
+    closeReason: "",
     role: "tamu",
     grup: null,
     nama: "",
@@ -105,6 +127,9 @@
   };
   const changed = (now) => {
     dirty = true;
+    /* a hidden tab keeps the latest data but does not redraw; it catches up
+       the moment it is visible again */
+    if (document.hidden && !now) return;
     if (now) {
       if (timer) clearTimeout(timer);
       flush();
@@ -290,6 +315,7 @@
     if (t === "tidak ada sesi yang berjalan") return L("Belum ada sesi yang berjalan.", "No session is running.");
     if (t === "token salah" || t === "butuh token asisten") return L("Token salah atau belum diisi.", "Wrong or missing token.");
     if (/hanya kelompok itu/.test(t)) return L("Hanya anggota kelompok itu yang bisa mengklaim.", "Only that group's own members can claim.");
+    if (t === "foto tidak dikenal") return L("Foto itu bukan dari kelompokmu. Foto lagi.", "That photo isn't from your group. Take it again.");
     return L("Coba lagi.", "Try again.");
   };
   const GNAMES = ["Vela", "Lyra", "Cygnus", "Orion", "Carina", "Draco", "Pyxis", "Lepus", "Corvus", "Ara"];
@@ -345,14 +371,19 @@
   };
   /* privileged actions carry the token on the message itself */
   const sendAuth = (msg) => (N.token ? Object.assign(msg, { token: N.token }) : msg);
+  let masukBusy = false;
   const halo = () => {
+    /* a hello sent while a sign-in is still on its way could arrive with the
+       old NIM and undo it */
+    if (masukBusy) return false;
     lastHaloAt = Date.now();
-    const msg = { aksi: "halo" };
+    const msg = { aksi: "halo", dev: N.dev };
     if (N.nim) msg.nim = N.nim;
     if (N.token) msg.token = N.token;
     if (N.kode) msg.kode_papan = N.kode;
     return send(msg);
   };
+  let haloTimer = null;
 
   const onHalo = (m) => {
     if (m.ok === false && m.alasan === "token salah") {
@@ -372,18 +403,43 @@
     }
     N.role = m.peran || "tamu";
     N.connId = m.id || N.connId;
+    if (m.kode === "sudah_masuk") {
+      /* a stale hello: the PC keeps whoever is signed in on this socket */
+      if (typeof m.grup === "number") N.grup = m.grup;
+      changed(true);
+      return;
+    }
     const was = N.grup;
     N.grup = typeof m.grup === "number" ? m.grup : null;
     if (N.grup === null && N.nim) {
-      /* the NIM no longer resolves: the session rolled over */
-      if (was !== null || m.kode === "tak_terdaftar") N.rolled = true;
-      N.nim = null;
-      N.nama = "";
-      N.sesi = null;
-      H.write(KEY_NIM, null);
+      if (m.kode === "kode_papan" || m.kode === "terlalu_sering") {
+        /* The NIM is fine; the link or the network is the problem. Keep the
+           NIM and say why, instead of signing the person out. */
+        N.problem = { kode: m.kode, tunggu: m.tunggu || 0 };
+        N.sesi = null;
+        if (m.kode === "terlalu_sering" && !haloTimer) {
+          haloTimer = setTimeout(() => {
+            haloTimer = null;
+            halo();
+          }, Math.min(600, Math.max(5, (m.tunggu || 30) + 1)) * 1000);
+        }
+      } else {
+        /* the session rolled over, the NIM left the list, an assistant
+           released it, or it is open on another phone */
+        if (m.kode === "tak_terdaftar" || m.kode === "tak_ada_sesi") {
+          if (was !== null || m.kode === "tak_terdaftar") N.rolled = true;
+        } else if (m.kode === "dilepas" || m.kode === "sedang_dipakai") {
+          N.problem = { kode: m.kode, tunggu: 0 };
+        }
+        N.nim = null;
+        N.nama = "";
+        N.sesi = null;
+        H.write(KEY_NIM, null);
+      }
     } else {
       N.sesi = m.sesi;
       N.nama = m.nama || N.nama;
+      if (N.grup !== null) N.problem = null;
     }
     N.peranTim = N.grup !== null ? m.peran_tim || null : null;
     changed(true);
@@ -403,6 +459,11 @@
     const tipe = m.tipe || "bingkai";
     if (tipe === "bingkai") {
       const prev = N.frame;
+      /* the PC sends the radio and distance model only when they change */
+      if (prev) {
+        if (!m.model && prev.model) m.model = prev.model;
+        if (!m.radio && prev.radio) m.radio = prev.radio;
+      }
       N.frame = m;
       sample(m);
       drain(m.peristiwa);
@@ -449,6 +510,7 @@
     socket.onmessage = (ev) => onMessage(ev.data);
     socket.onclose = (ev) => {
       N.closeCode = ev.code;
+      N.closeReason = ev.reason || "";
       if (ev.code === 1008) {
         N.locked = true;
         setStatus("offline");
@@ -511,7 +573,9 @@
   H.masuk = async (nim) => {
     const clean = cleanNim(nim);
     if (!clean) return { ok: false, kode: "nim_cacat" };
-    const r = await request({ aksi: "masuk", nim: clean, kode_papan: N.kode || undefined }, (m) => m.tipe === "masuk");
+    masukBusy = true;
+    const r = await request({ aksi: "masuk", nim: clean, dev: N.dev, kode_papan: N.kode || undefined }, (m) => m.tipe === "masuk");
+    masukBusy = false;
     if (r.ok) {
       N.nim = clean;
       H.write(KEY_NIM, clean);
@@ -522,20 +586,49 @@
       N.peranTim = r.peran_tim || null;
       N.role = r.peran || "anggota";
       N.rolled = false;
+      N.problem = null;
       changed(true);
     }
     return r;
   };
-  H.keluar = () => {
+  /* Log out for real: the PC releases the NIM (another phone can use it) and
+     drops assistant rights; this phone forgets the NIM and the token. If the
+     socket is down the PC lets go of the NIM when the socket closes anyway. */
+  const signOutHere = (tellPc, write) => {
+    if (tellPc) send({ aksi: "keluar" });
     N.nim = null;
     N.grup = null;
     N.nama = "";
     N.sesi = null;
     N.peranTim = null;
-    H.write(KEY_NIM, null);
-    halo();
+    N.role = "tamu";
+    N.token = null;
+    N.tokenFails = 0;
+    N.pings = [];
+    N.rolled = false;
+    N.problem = null;
+    if (write) {
+      H.write(KEY_NIM, null);
+      H.write(KEY_TOKEN, null);
+    }
+    H.set({ reveal: false, viewG: null });
     changed(true);
   };
+  H.keluar = () => {
+    signOutHere(true, true);
+    H.go("hunt");
+  };
+  /* another tab on this browser signed in as somebody else, or logged out:
+     this tab follows so two people never share one saved login */
+  window.addEventListener("storage", (e) => {
+    if (e.key !== KEY_NIM || !N.nim) return;
+    if (cleanNim(e.newValue) === N.nim) return;
+    const other = !!cleanNim(e.newValue);
+    signOutHere(true, false);
+    if (other) N.problem = { kode: "tab_lain", tunggu: 0 };
+    H.go("hunt");
+    changed(true);
+  });
   /* The token is tried with a halo of its own; a wrong one counts towards
      the five the server allows on one connection. */
   H.tryToken = async (code) => {
@@ -614,10 +707,4 @@
     const done = request(buf, balas("foto"));
     return done;
   };
-
-  /* the replay and the moments list, fetched on demand */
-  H.fetchJejak = (langkah) =>
-    fetch("jejak.json?langkah=" + (langkah || 1), { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null);
 })();
