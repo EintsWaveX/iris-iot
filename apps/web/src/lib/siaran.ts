@@ -92,8 +92,42 @@ export function alamatRelay(h: string): string {
   return "wss://konsol.irisiotlab.com/siaran";
 }
 
+/**
+ * Where a page listens (15 Nov 2026): on irisiotlab.com, the hub inside the server itself (same origin,
+ * /siaran), which takes no detour through Cloudflare's Worker; elsewhere, or after the hub failed to
+ * connect three times in a row, the Worker relay. A reconnection to the hub says the last message it
+ * saw (`sejak`) and which server run that was (`e`), so it is told only what it missed.
+ */
+export function alamatSiaran(
+  h: string,
+  protokol: string,
+  hostPenuh: string,
+  pakaiWorker: boolean,
+  sejak: number | null,
+  epoch: string | null,
+): string {
+  if (pakaiWorker || !/(^|\.)irisiotlab\.com$/.test(h)) return alamatRelay(h);
+  const dasar = `${protokol === "https:" ? "wss" : "ws"}://${hostPenuh}/siaran`;
+  return sejak !== null && epoch ? `${dasar}?sejak=${sejak}&e=${encodeURIComponent(epoch)}` : dasar;
+}
+
+/** The hub's last message number and run id, for the next reconnection. */
+let nomorHub: number | null = null;
+let epochHub: string | null = null;
+/** Hub connections that closed before they ever opened; three in a row sends the page to the Worker. */
+let gagalHub = 0;
+let pakaiWorker = false;
+let menungguSalam: ReturnType<typeof setTimeout> | null = null;
+
 function alamat(): string {
-  return alamatRelay(location.hostname);
+  return alamatSiaran(
+    location.hostname,
+    location.protocol,
+    location.host,
+    pakaiWorker,
+    nomorHub,
+    epochHub,
+  );
 }
 
 /** Runs the subscribers of what arrived, once each, after a short pause
@@ -168,13 +202,26 @@ function sambung() {
     return jadwalUlang();
   }
   ws = s;
+  const denganHub = /^wss?:\/\/[^/]+\/siaran/.test(s.url) && !s.url.includes("konsol.");
+  let pernahBuka = false;
   s.onopen = () => {
     if (ws !== s) return;
+    pernahBuka = true;
     coba = 0;
     terbuka = true;
+    if (denganHub) gagalHub = 0;
     hitungStatus();
-    // Anything sent while this tab wasn't listening: fetch everything once.
-    if (pernahTerhubung) jadwalkan("semua");
+    if (denganHub && pernahTerhubung) {
+      // The hub's first frame says what was missed; if it never comes, fetch everything as before.
+      if (menungguSalam) clearTimeout(menungguSalam);
+      menungguSalam = setTimeout(() => {
+        menungguSalam = null;
+        jadwalkan("semua");
+      }, 3000);
+    } else if (pernahTerhubung) {
+      // Anything sent while this tab wasn't listening: fetch everything once.
+      jadwalkan("semua");
+    }
     pernahTerhubung = true;
     detak = setInterval(() => ping(s), PING_MS);
   };
@@ -185,9 +232,23 @@ function sambung() {
     tungguPong = null;
     if (typeof e.data !== "string" || e.data === "pong") return;
     try {
-      const t = (JSON.parse(e.data) as { t?: unknown }).t;
-      if (Array.isArray(t)) {
-        const ts = t.filter((x): x is string => typeof x === "string");
+      const m = JSON.parse(e.data) as {
+        t?: unknown;
+        n?: unknown;
+        e?: unknown;
+        w?: unknown;
+        semua?: unknown;
+      };
+      if (typeof m.n === "number") nomorHub = m.n;
+      if (typeof m.e === "string") epochHub = m.e;
+      if (m.w === 1) {
+        // The hub's greeting: "fetch everything" (a restart, or too long away), what was missed, or nothing.
+        if (menungguSalam) clearTimeout(menungguSalam);
+        menungguSalam = null;
+        if (m.semua === true) jadwalkan("semua");
+      }
+      if (Array.isArray(m.t)) {
+        const ts = m.t.filter((x): x is string => typeof x === "string");
         if (!sudahDigema(ts)) jadwalkan(ts);
       }
     } catch {
@@ -196,6 +257,7 @@ function sambung() {
   };
   s.onclose = () => {
     if (ws !== s) return;
+    if (denganHub && !pernahBuka && ++gagalHub >= 3) pakaiWorker = true;
     ws = null;
     terbuka = false;
     hentiDetak();

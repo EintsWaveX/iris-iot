@@ -61,6 +61,24 @@ export interface OpsiApp {
   bacaBerkas?: BacaBerkas;
   /** The same without the bytes, for a 304 or a HEAD; falls back to bacaBerkas. */
   cekBerkas?: CekBerkas;
+  /** Announces topics to every page on the live-update hub; returns how many it reached. */
+  siarkan?: (topik: readonly string[]) => number;
+}
+
+/** A small JSON body (at most `maks` bytes), or null when it is too big or unreadable. */
+async function bacaBadanKecil(req: http.IncomingMessage, maks: number): Promise<unknown | null> {
+  const bagian: Buffer[] = [];
+  let ukuran = 0;
+  for await (const b of req) {
+    ukuran += (b as Buffer).length;
+    if (ukuran > maks) return null;
+    bagian.push(b as Buffer);
+  }
+  try {
+    return JSON.parse(Buffer.concat(bagian).toString("utf8"));
+  } catch {
+    return null;
+  }
 }
 
 const tak = (res: http.ServerResponse, status: number, badan: unknown) => {
@@ -241,6 +259,22 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
 
       // vercel.json's headers go on every other answer; a handler may still replace one.
       for (const [k, v] of aturan.header(asli)) res.setHeader(k, v);
+
+      // A manual announcement to every open page, for load tests and for operations. Closed unless the
+      // metrics token is configured and sent.
+      if (asli === "/api/sehat" && url.searchParams.get("siarkan") === "1") {
+        if (
+          req.method !== "POST" ||
+          !opsi.siarkan ||
+          !bolehLihat(String(req.headers["x-metrik"] ?? ""))
+        ) {
+          return tak(res, 404, { ok: false, kode: "tidak_ditemukan" });
+        }
+        const b = (await bacaBadanKecil(req, 1024)) as { t?: unknown } | null;
+        const t = Array.isArray(b?.t) ? b.t.filter((x): x is string => typeof x === "string") : [];
+        if (!t.length) return tak(res, 400, { ok: false, kode: "format_salah" });
+        return tak(res, 200, { ok: true, sampai: opsi.siarkan(t) });
+      }
 
       if (asli === "/api/sehat") {
         const badan: Record<string, unknown> = {

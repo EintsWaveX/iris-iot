@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { noStore } from "./http.js";
 import { konsolEnv } from "./konsol.js";
+import { siarkanLokal } from "./penyiar.js";
 import { currentSession, requireCurrentPraktikanSesi, requireRole } from "./session.js";
 import { nomorWakil, wakilKelompok } from "./wakil.js";
 import { getDb } from "../../src/lib/db.js";
@@ -36,15 +37,18 @@ const KOSONG_MS = 15_000;
 const ALIRAN_DERAS = new Set(["denyut"]);
 
 /**
- * A write's topics and its room messages, to the relay in one signed
- * request (POST /kirim): one Worker request per write on the free plan.
- * Quietly does nothing when the relay is not set up or slow (the pages
- * catch up on their next refetch and the 60 s safety net).
+ * A write's topics reach every page on this server at once, through the hub in this process
+ * (server/hub/siaran.ts), and then, with its room messages, the relay in one signed request
+ * (POST /kirim): one Worker request per write on the free plan. The relay stays for the session and
+ * exam rooms and for pages still on an older build; once every page listens to the hub, setting
+ * IRIS_RELAY_LAMA=0 stops the topics' duplicate trip to the Worker. Quietly does nothing when the
+ * relay is not set up or slow (the pages catch up on their next refetch and the safety net).
  */
 export async function kirimRelay(
   topik: readonly string[],
   ruang: Readonly<Record<string, PesanAliran[]>> = {},
 ): Promise<void> {
+  siarkanLokal(topik);
   const env = konsolEnv();
   if (!env) return;
   const kini = Date.now();
@@ -54,7 +58,7 @@ export async function kirimRelay(
     const kirim = sepi ? m.filter((x) => !ALIRAN_DERAS.has(x.j)) : m;
     if (kirim.length) r[k] = kirim;
   }
-  const t = [...new Set(topik)];
+  const t = process.env.IRIS_RELAY_LAMA === "0" ? [] : [...new Set(topik)];
   if (!t.length && !Object.keys(r).length) return;
   const body = JSON.stringify({
     ...(t.length ? { t } : {}),

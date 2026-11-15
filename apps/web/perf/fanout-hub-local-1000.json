@@ -1,0 +1,31 @@
+{
+  "cap": "2026-11-15T06:36:55.212Z",
+  "nama": "hub-local-1000",
+  "url": "ws://127.0.0.1:8799/siaran",
+  "soketDiminta": 1000,
+  "soketTersambung": 1000,
+  "gagalSambung": 0,
+  "terputusSelama": 0,
+  "hidupDiAkhir": 1000,
+  "sambungMs": {
+    "p50": 190.26,
+    "p95": 204.34,
+    "maks": 210.27
+  },
+  "putaran": 15,
+  "emitGagal": 0,
+  "rttEmitMs": {
+    "p50": 55.82,
+    "maks": 80.82
+  },
+  "diharap": 15000,
+  "diterima": 15000,
+  "hilang": 0,
+  "latensiMs": {
+    "p50": 36.34,
+    "p95": 58.01,
+    "p99": 66.54,
+    "maks": 71.42
+  },
+  "totalDetik": 29.07
+}

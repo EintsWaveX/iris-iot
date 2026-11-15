@@ -21,7 +21,11 @@ import { cacheSesiBerjalan } from "../src/lib/sesi.js";
 import { getDb, statusKolam } from "../src/lib/db.js";
 import { buatApp } from "./app.js";
 import { pantauJeda } from "./jeda.js";
+import { pasangPenyiar } from "../api/_lib/penyiar.js";
+import { buatHubSiaran } from "./hub/siaran.js";
 import { pasangKuis } from "./kuis.js";
+import { daftarkanSoket } from "./metrik.js";
+import { buatPengarah } from "./upgrade.js";
 import { konteksKuisDb } from "./kuis-db.js";
 
 const akar = fileURLToPath(new URL("..", import.meta.url));
@@ -45,10 +49,25 @@ const { server, rute } = await buatApp({
   },
   bacaBerkas,
   cekBerkas,
+  siarkan: (t) => hub.publish(t),
 });
 
+// One dispatcher for every WebSocket upgrade; each socket feature registers its own path.
+const pengarah = buatPengarah(server);
+
 // The Module 4 quiz game's socket (games.irisiotlab.com, /kuis/ws).
-const kuis = pasangKuis(server, konteksKuisDb());
+const kuis = pasangKuis(server, konteksKuisDb(), { pengarah });
+
+// The live-update hub: every open page listens here (/siaran) and the API announces topics to it directly.
+const hub = buatHubSiaran({
+  soketMaks:
+    Number(process.env.IRIS_SIARAN_SOKET_MAKS) > 0
+      ? Number(process.env.IRIS_SIARAN_SOKET_MAKS)
+      : 5000,
+});
+pengarah.daftar((jalur) => jalur === "/siaran", hub.naik);
+pasangPenyiar(hub.publish);
+daftarkanSoket("siaran", hub.jumlah);
 
 const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
@@ -72,6 +91,9 @@ async function henti(sinyal: string): Promise<void> {
   console.warn(`[server] ${sinyal}: draining`);
   server.close();
   server.closeIdleConnections();
+  // Pages reconnect by themselves (and ask only for what they missed).
+  pasangPenyiar(null);
+  hub.tutup();
   // The quiz rooms save once more, so a restart pauses a game instead of ending it.
   await kuis.tutup().catch((err) => console.error("[server] the quiz rooms were not saved:", err));
   const kosong = await tungguLatar(60_000);

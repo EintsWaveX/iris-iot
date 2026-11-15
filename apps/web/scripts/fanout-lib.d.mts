@@ -1,7 +1,7 @@
 export function persentil(nilai: number[], p: number): number;
 export function topikUnik(): string;
 export function minta(
-  emit: { mode: "hmac" | "bearer"; url: string; rahasia: string },
+  emit: { mode: "hmac" | "bearer" | "metrik"; url: string; rahasia: string },
   topik: string,
 ): { badan: string; header: Record<string, string> };
 export interface OpsiFanout {
@@ -13,7 +13,7 @@ export interface OpsiFanout {
   rampa?: number;
   /** ms to wait after each announcement before counting missing deliveries (default 1500). */
   tungguAkhir?: number;
-  emit?: { mode: "hmac" | "bearer"; url: string; rahasia: string };
+  emit?: { mode: "hmac" | "bearer" | "metrik"; url: string; rahasia: string };
   origin?: string;
 }
 export interface HasilFanout {
