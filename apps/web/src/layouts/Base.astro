@@ -176,9 +176,14 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
     {nav && shell !== "rekrutmen" && (
       <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />
     )}
-    <Toast client:load />
-    <SegFit client:load />
-    <TipLayer client:load />
+    {/*
+      Idle, not load (15 Nov 2026): none of the three draws anything at first paint, so the nav and the
+      page's own island hydrate first. A toast raised before Toast is up waits in window.__toastAntre
+      (public/theme-init.js) and is shown when it is.
+    */}
+    <Toast client:idle />
+    <SegFit client:idle />
+    <TipLayer client:idle />
     <slot />
     {footer && <SiteFooter lang={lang} />}
   </body>

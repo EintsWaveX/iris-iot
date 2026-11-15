@@ -39,6 +39,8 @@ interface ToastItem {
 }
 
 let nextId = 0;
+/** A toast that waited longer than this for the island is dropped, not shown late. */
+const ANTRE_MAKS_MS = 6000;
 
 const ICON = {
   info: InfoIcon,
@@ -91,9 +93,16 @@ export default function Toast() {
       arm(id, ms);
     }
     window.Toast = { show };
+    // What was raised while this island was still waiting for idle (public/theme-init.js).
+    const antre = window.__toastAntre ?? [];
+    window.__toastAntre = [];
+    for (const m of antre) if (Date.now() - m.t < ANTRE_MAKS_MS) show(...m.a);
     const map = timers.current;
     return () => {
-      delete window.Toast;
+      // Between this island leaving (a navigation) and the next page's idle hydration, toasts queue again.
+      window.__toastAntre ??= [];
+      const q = window.__toastAntre;
+      window.Toast = { show: (...a) => void q.push({ t: Date.now(), a }) };
       map.forEach((t) => clearTimeout(t));
     };
   }, []);

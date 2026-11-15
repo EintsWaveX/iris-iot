@@ -74,6 +74,17 @@
     detail: detail,
   };
 
+  // Toast hydrates when the page is idle (Base.astro), so a toast raised before that waits here and is
+  // shown by Toast.tsx as soon as it is up (anything older than a few seconds is dropped there).
+  window.__toastAntre = [];
+  if (!window.Toast) {
+    window.Toast = {
+      show: function () {
+        window.__toastAntre.push({ t: Date.now(), a: Array.prototype.slice.call(arguments) });
+      },
+    };
+  }
+
   document.addEventListener("astro:before-swap", function (e) {
     if (e.newDocument) apply(e.newDocument.documentElement);
   });

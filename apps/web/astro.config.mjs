@@ -7,6 +7,9 @@ import { phosphorWeights } from "./vite/phosphor-weights.ts";
 // https://astro.build/config
 export default defineConfig({
   integrations: [react()],
+  // No `prefetch` option on purpose: <ClientRouter /> (Base.astro) already switches prefetch on, hover
+  // strategy, every link (checked in the built ClientRouter script). Setting it here as well adds an
+  // inline script, which the CSP would need a hash for (vercel.json, scripts/check_csp_hashes.mjs).
   vite: {
     // Cuts the thin and light drawings out of every Phosphor icon (see the file).
     plugins: [phosphorWeights()],
@@ -36,12 +39,14 @@ export default defineConfig({
       // Vite's 4 KB inline limit and became data: URLs, which the CSP's
       // `font-src 'self'` blocks on every page.
       assetsInlineLimit: (file) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined),
-      // Fewer, larger chunks (2026-10-11): a page pulled 60 to 140 scripts,
-      // two thirds of them under 2 KB, and every one is a Vercel edge
-      // request on the first visit after each deploy (Hobby: 1M a month).
-      // Code shared by two or more islands goes to a few chunks, grouped by
-      // the islands that use it; the heavy libraries only some views load
-      // lazily keep their own.
+      // One chunk per module group (15 Nov 2026). It used to merge: from 2026-10-11 the shared code of two
+      // or more islands was folded into a few big chunks, because every file was a Vercel edge request on
+      // the first visit after a deploy (Hobby: 1M a month). On the PC that quota is gone, and the merge
+      // cost real bytes: Home's first load was 50 files and 1.13 MB (357 KB Brotli), and any change to one
+      // module renamed the whole chunk it sat in, so every visitor downloaded it again after each deploy.
+      // Unmerged it is 97 files and 0.87 MB (295 KB Brotli) on Home (static imports before hydration), 18% less, with no deeper an import chain,
+      // and a deploy only renames the chunks whose code changed. What stays grouped is what must be one
+      // file: React itself, and the heavy libraries only some views load lazily (QR maker, C++ editor).
       rolldownOptions: {
         output: {
           codeSplitting: {
@@ -59,39 +64,12 @@ export default defineConfig({
                 priority: 4,
               },
               // The C++ code editor (470 KB) in a chunk of its own, loaded only
-              // by the views that open it. The vendor group below folds small
-              // groups into a neighbour, and once pako left it (next comment)
-              // the neighbour it picked was this editor, so the Console and the
-              // candidate landing page downloaded it. Only the core the C++
-              // editor needs: the Python, Markdown and JS parsers keep their
-              // own chunks.
+              // by the views that open it. Only the core the C++ editor needs:
+              // the Python, Markdown and JS parsers keep their own chunks.
               {
                 name: "codemirror",
                 test: /node_modules[\\/](@codemirror[\\/](view|state|autocomplete|commands|language|lang-cpp)|@lezer[\\/](common|lr|highlight|cpp)|@marijn|style-mod|w3c-keyname)[\\/]/,
                 priority: 4,
-              },
-              {
-                name: "vendor",
-                test: (id) =>
-                  /node_modules/.test(id) &&
-                  // pako is pdf-lib's: it should follow that lazy code, not the pages.
-                  !/node_modules[\\/](pdfjs-dist|fontkit|@pdf-lib|pdf-lib|pako|@xterm|@novnc|write-excel-file|read-excel-file)[\\/]/.test(
-                    id,
-                  ),
-                minShareCount: 2,
-                priority: 2,
-                // Grouped by the pages that use them, small groups folded
-                // into a neighbour: few chunks, little code a page won't run.
-                entriesAware: true,
-                entriesAwareMergeThreshold: 20_000,
-              },
-              {
-                name: "app",
-                test: /[\\/]src[\\/](lib|components[\\/](ui|shell|shared))[\\/]/,
-                minShareCount: 2,
-                priority: 1,
-                entriesAware: true,
-                entriesAwareMergeThreshold: 20_000,
               },
             ],
           },
