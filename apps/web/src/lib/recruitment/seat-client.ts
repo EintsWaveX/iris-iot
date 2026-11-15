@@ -90,7 +90,11 @@ export function useSeatLive(
       if (tutup || ws || document.hidden) return;
       let t: { ok: boolean; kode?: string; url?: string; tiket?: string };
       try {
-        t = await (await fetch("/api/recruitment/test-ticket", { cache: "no-store" })).json();
+        t = await (
+          await fetch(`/api/recruitment/test-ticket${coba >= 3 ? "?lama=1" : ""}`, {
+            cache: "no-store",
+          })
+        ).json();
       } catch {
         setStatus("putus");
         return jadwalUlang();

@@ -139,6 +139,8 @@ async function sambung(k: Koneksi) {
   if (k.ws || !k.subs.size || typeof WebSocket === "undefined" || document.hidden) return;
   const q = new URLSearchParams({ ruang: k.opsi.ruang });
   if (k.opsi.kelompok) q.set("kelompok", String(k.opsi.kelompok));
+  // Three connections in a row that never opened: try the old relay's address for a while.
+  if (k.coba >= 3) q.set("lama", "1");
   let t: { ok: boolean; kode?: string; url?: string; tiket?: string; sesiId?: number };
   try {
     const r = await fetch(`/api/session/aliran?${q}`);

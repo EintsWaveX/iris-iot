@@ -146,7 +146,9 @@ export function useRuangLangsung(
       if (tutup || ws || document.hidden) return;
       let t: { ok: boolean; kode?: string; url?: string; tiket?: string };
       try {
-        t = await (await fetch(`/api/recruitment/room-ticket?id=${id}`)).json();
+        t = await (
+          await fetch(`/api/recruitment/room-ticket?id=${id}${coba >= 3 ? "&lama=1" : ""}`)
+        ).json();
       } catch {
         setStatus("putus");
         return jadwalUlang();

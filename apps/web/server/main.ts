@@ -21,8 +21,11 @@ import { cacheSesiBerjalan } from "../src/lib/sesi.js";
 import { getDb, statusKolam } from "../src/lib/db.js";
 import { buatApp } from "./app.js";
 import { pantauJeda } from "./jeda.js";
-import { pasangPenyiar } from "../api/_lib/penyiar.js";
+import { pasangPenyiar, pasangPenyiarRuang } from "../api/_lib/penyiar.js";
+import { jamLabBilaPerlu } from "../api/_lib/jam-lab.js";
+import { buatHubRuang } from "./hub/ruang.js";
 import { buatHubSiaran } from "./hub/siaran.js";
+import { mulaiJamLab } from "./jam.js";
 import { pasangKuis } from "./kuis.js";
 import { daftarkanSoket } from "./metrik.js";
 import { buatPengarah } from "./upgrade.js";
@@ -69,6 +72,24 @@ pengarah.daftar((jalur) => jalur === "/siaran", hub.naik);
 pasangPenyiar(hub.publish);
 daftarkanSoket("siaran", hub.jumlah);
 
+// The session and exam rooms (/aliran/*, /ujian/*): what the Cloudflare relay's rooms did, in this process.
+const ruang = buatHubRuang({
+  rahasia: () => process.env.KONSOL_RELAY_SECRET?.trim() || null,
+  soketMaks:
+    Number(process.env.IRIS_RUANG_SOKET_MAKS) > 0
+      ? Number(process.env.IRIS_RUANG_SOKET_MAKS)
+      : 5000,
+});
+pengarah.daftar((jalur) => /^\/(aliran|ujian)\/[^/]+$/.test(jalur), ruang.naik);
+pasangPenyiarRuang({ kirim: ruang.kirim, tutup: ruang.tutup });
+daftarkanSoket("ruang", ruang.jumlah);
+
+// The lab clock: sessions start and end on time with no page open. IRIS_JAM_LAB=0 leaves it to the Worker's cron.
+const hentiJam =
+  process.env.IRIS_JAM_LAB === "0"
+    ? () => {}
+    : mulaiJamLab({ jalankan: () => jamLabBilaPerlu(getDb()) });
+
 const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
 server.listen(port, host, () => {
@@ -93,7 +114,10 @@ async function henti(sinyal: string): Promise<void> {
   server.closeIdleConnections();
   // Pages reconnect by themselves (and ask only for what they missed).
   pasangPenyiar(null);
+  pasangPenyiarRuang(null);
+  hentiJam();
   hub.tutup();
+  ruang.tutupSemua();
   // The quiz rooms save once more, so a restart pauses a game instead of ending it.
   await kuis.tutup().catch((err) => console.error("[server] the quiz rooms were not saved:", err));
   const kosong = await tungguLatar(60_000);

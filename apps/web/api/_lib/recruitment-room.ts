@@ -120,7 +120,8 @@ import { acakId } from "../../src/lib/tanda.js";
 import { antreAliran, terbitkan } from "./aliran.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
 import { createHmac } from "node:crypto";
-import { konsolEnv } from "./konsol.js";
+import { konsolEnv, ruangEnv } from "./konsol.js";
+import { alamatRuang, relayLamaMenyala, tutupRuangLokal } from "./penyiar.js";
 import { bungkus } from "./rahasia.js";
 import { muatOrang } from "./hak.js";
 import { muatKolam as muatDaftarAsisten, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
@@ -478,9 +479,10 @@ export async function muatConfig(db: Db, edisiId: number): Promise<ExamConfig> {
 
 /** Closes every socket of the room after Finish (code 4000); quietly nothing without a relay. */
 async function tutupRuangUjian(roomId: number): Promise<void> {
-  const env = konsolEnv();
-  if (!env) return;
   const ruang = ruangUjian(roomId);
+  tutupRuangLokal(ruang);
+  const env = konsolEnv();
+  if (!env || !relayLamaMenyala()) return;
   const ts = Math.floor(Date.now() / 1000);
   const tanda = createHmac("sha256", env.secret)
     .update(`ujian|tutup|${ruang}||${ts}`)
@@ -997,7 +999,7 @@ async function tiket({ req, res, db, edisi, p, s }: Ctx) {
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
   const pengawas = await muatPengawas(db, r.room);
   if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
-  const env = konsolEnv();
+  const env = ruangEnv();
   if (!env) return void res.status(200).json({ ok: false, kode: "relay_belum_diatur" });
   const ruang = ruangUjian(id);
   const t = await tandaTiketUjian(
@@ -1013,7 +1015,9 @@ async function tiket({ req, res, db, edisi, p, s }: Ctx) {
     },
     env.secret,
   );
-  res.status(200).json({ ok: true, url: `${env.relay}/ujian/${ruang}`, tiket: t });
+  const url = alamatRuang(req, "ujian", ruang, env.relay, req.query.lama === "1");
+  if (!url) return void res.status(200).json({ ok: false, kode: "relay_belum_diatur" });
+  res.status(200).json({ ok: true, url, tiket: t });
 }
 
 /* ----------------------------------------------------------------- setup */
