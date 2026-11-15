@@ -361,3 +361,52 @@ folder is missing or the site was not restarted after the new unit was copied (`
 
 Nothing here needs a new secret. To remove it: `sudo systemctl disable --now iris-upgrade.path`, and delete the
 unit files and `/var/lib/iris-web/upgrade`.
+
+## 8. Measuring (real-time upgrade)
+
+Every change to speed is judged against numbers taken before it. Four tools, all read-only on the live site.
+
+**What the server says about itself.** `GET /api/sehat` (public) shows the build, uptime, background jobs, the
+database pool (`kolam`: total, idle, waiting), open sockets per live hub (`soket`) and the event-loop delay
+(`jedaLoopMs`, p99 over 100 ms means something held the process). With a token it also shows, per route, how many
+requests, how many failed, p50/p95/p99 in ms, and how many database queries each one ran and how long they took:
+
+```sh
+# once: put a token in /etc/iris-web/env as IRIS_METRIK_TOKEN (16+ characters, silent prompt), restart the site
+curl -s -H "x-metrik: $IRIS_METRIK_TOKEN" 'http://127.0.0.1:8787/api/sehat?metrik=1'            # read
+curl -s -H "x-metrik: $IRIS_METRIK_TOKEN" 'http://127.0.0.1:8787/api/sehat?metrik=1&ulang=1'    # read, then start a fresh window
+```
+
+A percentile of `-1` means over 5 s. Set `IRIS_LAMBAT_MS=200` to log every answer slower than that.
+
+**The database.** Turn on `pg_stat_statements` once (it needs a Postgres restart, so do it at a quiet moment):
+
+```sh
+sudo -u postgres psql -Atc "show shared_preload_libraries"      # note what is there, keep it and add the new name
+sudo -u postgres psql -c "alter system set shared_preload_libraries = 'pg_stat_statements'"   # append to any existing list
+sudo systemctl restart postgresql
+sudo -u postgres psql -d iris -c "create extension if not exists pg_stat_statements"
+```
+
+Then take the baseline (cache hit ratio, connections, biggest tables, sequential-scan-heavy tables, unused indexes,
+the settings that matter, top 20 statements by total time):
+
+```sh
+sudo -u postgres psql -d iris -f /opt/iris-web/apps/web/deploy/baseline-db.sql > ~/db-baseline-$(date +%F).txt
+```
+
+**The web as a visitor sees it** (from a laptop; use `http://127.0.0.1:8787` on the PC for the server alone):
+`node scripts/baseline-web.mjs https://irisiotlab.com --runs 5 --out perf/web-baseline-<date>.json` records, for
+eight pages, TTFB, first-load bytes, number of stylesheets and scripts, and whether a repeat visit is a 304.
+
+**Real-time fan-out** (`scripts/fanout.mjs`): opens N listener sockets, announces unique topics, and times every
+socket hearing each one (p50/p95/p99/max, missing deliveries, connect time). On a live host it needs `--allow-live`
+and refuses during class hours (06:00 to 21:00 WIB, Monday to Saturday) unless `--force`. The secret only ever comes
+from an environment variable:
+
+```sh
+node scripts/fanout.mjs --url ws://127.0.0.1:8787/siaran --sockets 1000 --hold 30           # connections only
+FANOUT_SECRET=... node scripts/fanout.mjs --url wss://HOST/siaran --emit bearer --emit-url https://HOST/siaran/kirim   --sockets 1000 --rounds 20 --out perf/fanout-<name>.json --allow-live
+```
+
+Baselines taken so far are in `apps/web/perf/`.

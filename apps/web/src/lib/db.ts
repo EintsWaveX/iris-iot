@@ -15,6 +15,7 @@
  */
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
+import { catatQuery } from "./lingkup-query.js";
 import * as schema from "./schema.js";
 
 /** The shape every caller sees. */
@@ -36,6 +37,23 @@ export function statusKolam(): { total: number; menganggur: number; antre: numbe
     : null;
 }
 
+/**
+ * Times every promise-style query on `sasaran` (the pool, or a client of it) for the request metrics.
+ * A call with a callback or a stream object is passed through untouched.
+ */
+function ukurQuery(sasaran: { query: (...a: never[]) => unknown }): void {
+  const asli = sasaran.query.bind(sasaran) as (...a: unknown[]) => unknown;
+  (sasaran as { query: unknown }).query = (...args: unknown[]) => {
+    if (args.some((a) => typeof a === "function")) return asli(...args);
+    const t0 = performance.now();
+    const hasil = asli(...args);
+    if (hasil && typeof (hasil as Promise<unknown>).then === "function") {
+      return (hasil as Promise<unknown>).finally(() => catatQuery(performance.now() - t0));
+    }
+    return hasil;
+  };
+}
+
 export function getDb(): Db {
   if (cachedDb) return cachedDb;
 
@@ -54,6 +72,8 @@ export function getDb(): Db {
     // A burst waits in line instead of failing: a busy second must not become an error report.
     connectionTimeoutMillis: angka(process.env.IRIS_DB_TUNGGU_MS, 15_000),
   });
+  ukurQuery(pool as never);
+  pool.on("connect", (client) => ukurQuery(client as never));
   // An idle client the server dropped (a restart of Postgres) must not crash the process.
   pool.on("error", (err) => console.error("[db] idle client error:", err.message));
   kolam = pool;
