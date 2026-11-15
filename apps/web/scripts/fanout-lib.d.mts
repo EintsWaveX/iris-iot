@@ -4,6 +4,16 @@ export function minta(
   emit: { mode: "hmac" | "bearer" | "metrik"; url: string; rahasia: string },
   topik: string,
 ): { badan: string; header: Record<string, string> };
+export interface RuangFanout {
+  jenis: "aliran" | "ujian";
+  /** "sesi-<n>" or "rec-<n>" */
+  nama: string;
+  rahasia: string;
+}
+export function buatTiket(isi: unknown, rahasia: string): string;
+export function tiketRuang(ruang: RuangFanout, i: number, rahasia: string, now?: number): string;
+export function bingkaiRuang(ruang: RuangFanout, r: number): string;
+export function bulatanDariRuang(ruang: RuangFanout, teks: string): string[];
 export interface OpsiFanout {
   url: string;
   soket: number;
@@ -15,9 +25,12 @@ export interface OpsiFanout {
   tungguAkhir?: number;
   emit?: { mode: "hmac" | "bearer" | "metrik"; url: string; rahasia: string };
   origin?: string;
+  /** Rooms mode: `url` is the server's base (ws://host:port); socket 0 sends, the others listen. */
+  ruang?: RuangFanout;
 }
 export interface HasilFanout {
   url: string;
+  ruang?: string;
   soketDiminta: number;
   soketTersambung: number;
   gagalSambung: number;
