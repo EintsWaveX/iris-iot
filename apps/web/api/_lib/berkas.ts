@@ -6,9 +6,8 @@
  * answers with the file's address, `/f/<id>/<name>`. That address is what the
  * feature's own row stores, as a Blob URL was; server/app.ts serves it.
  *
- * Old rows still hold Blob addresses until scripts/migrasi-blob.ts has copied
- * them in; `urlBerkasValid` accepts both for that window (drop the Blob half
- * once the store is gone).
+ * The move is finished (15 Nov 2026: no Blob address was left in the
+ * database), so `urlBerkasValid` accepts only our own addresses.
  */
 import { randomBytes } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
@@ -18,7 +17,6 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 
 export const JALUR_BERKAS = "/f/";
 const ID_BERKAS = /^[A-Za-z0-9_-]{22}$/;
-const BLOB_HOST_LAMA = ".public.blob.vercel-storage.com";
 const NAMA_MAKS = 120;
 
 /** The id inside a file address of ours (`/f/<id>` or `/f/<id>/<name>`), else null. */
@@ -28,20 +26,9 @@ export function idDariUrl(url: unknown): string | null {
   return ID_BERKAS.test(id) ? id : null;
 }
 
-/** Still a Vercel Blob address (before scripts/migrasi-blob.ts has run). */
-export function urlBlobLama(url: unknown): url is string {
-  if (typeof url !== "string") return false;
-  try {
-    const u = new URL(url);
-    return u.protocol === "https:" && u.hostname.endsWith(BLOB_HOST_LAMA);
-  } catch {
-    return false;
-  }
-}
-
-/** A file address a row may store: ours, or (until the move is done) a Blob one. */
+/** A file address a row may store: ours. */
 export function urlBerkasValid(url: unknown): url is string {
-  return idDariUrl(url) !== null || urlBlobLama(url);
+  return idDariUrl(url) !== null;
 }
 
 /** A file name safe to put in an address and a header: no path, no controls. */

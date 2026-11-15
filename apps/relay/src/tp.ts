@@ -30,7 +30,6 @@ export interface EnvTp {
 const ASAL = new Set([
   "https://irisiotlab.com",
   "https://www.irisiotlab.com",
-  "https://iris-praktikum-jurnal.vercel.app",
   "http://localhost:4321",
   "http://127.0.0.1:4321",
 ]);

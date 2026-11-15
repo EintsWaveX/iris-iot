@@ -15,7 +15,7 @@ import {
   profilFotoBersama,
 } from "../../../src/lib/schema.js";
 
-const BLOB = "https://x.public.blob.vercel-storage.com";
+const BLOB = `/f/${"A".repeat(22)}`;
 const data = new Map<unknown, unknown[]>();
 
 /** A stand-in for drizzle: every select of a table resolves to its rows. */
