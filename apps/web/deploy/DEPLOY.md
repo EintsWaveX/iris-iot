@@ -11,7 +11,8 @@ and the domain are already on Cloudflare.
 
 ## What runs
 
-`server/main.ts` is one Node process that serves `dist/` (the built site) and the `api/` handlers,
+`server/supervisor.ts` starts several workers (`server/main.ts`, section 8a); each one is a Node process that serves
+`dist/` (the built site) and the `api/` handlers,
 applying `vercel.json`'s redirects, rewrites and headers itself (`server/rules.ts`), so the site answers
 as it does on Vercel. It listens on `127.0.0.1:8787` only; `cloudflared` is the way in.
 `GET /api/sehat` answers the host, the build and the number of background jobs (`?db=1` also checks
@@ -253,8 +254,10 @@ All against `https://pc.irisiotlab.com`, while the real site is still on Vercel:
 ## 4. Deploying a new commit
 
 `sudo -u iris-web /opt/iris-web/apps/web/deploy/deploy.sh [git-ref]` fetches, builds next to the live
-copy, swaps it in and restarts. A failed build stops before touching the running site. Roll back by
-deploying the previous ref. A restart lets background jobs finish for up to 60 s.
+copy, swaps it in and then replaces the workers one at a time (section 8a), so the site keeps answering. A failed
+build stops before touching the running site. Roll back by deploying the previous ref. A worker lets background
+jobs finish for up to 60 s before it leaves. While the unit still starts the old single process (before section
+8a's one-time step), the last step is a plain `systemctl restart` as before.
 
 Since 10 Nov 2026 the same thing is a button: the Pencipta's **Website Upgrade** card on the Server page
 (section 7). Use it instead of SSH once it is installed.
@@ -435,25 +438,82 @@ fallback. `/api/sehat` shows `soket.ruang` next to `soket.siaran`.
 
 `IRIS_PANTAU_QR=0` turns off the server reading a QR wall's Google Form sheet every 2.5 s while a page watches it (pages are told with the `recqr` topic; with it off they ask every 20 s).
 
+## 8a. Several workers (real-time upgrade, phase 3)
+
+The site runs as a **supervisor** and N **workers** on this one machine. The supervisor (`server/supervisor.ts`)
+is thin: it loads none of the site, so it keeps running while a deploy replaces every worker under it. Each worker
+(`server/main.ts`) answers requests and holds sockets; the supervisor hands them connections round-robin.
+
+What the supervisor keeps, so that several workers behave like one server (`server/klaster/`):
+
+- the **order** of live-update messages (every worker applies the same numbered stream, so a page that reconnects to
+  another worker, or after a deploy, is told only what it missed);
+- the **roster** of the rooms (who is connected on which worker, so "Panitia online" and "2 are looking at your
+  group" count everybody);
+- tickets **used once** (a ticket works once on the whole site, not once per worker);
+- the **leader**: one worker at a time runs what must exist once (the lab clock, the quiz game, the QR sheet
+  watch). The newest code leads; the others pass what concerns it along (the quiz socket goes to the leader's own
+  door on 127.0.0.1).
+
+**One-time step** (a restart, so not during class hours; deploys stop restarting the service after it):
+
+```sh
+sudo cp /opt/iris-web/apps/web/deploy/iris-web.service /etc/systemd/system/ && sudo systemctl daemon-reload
+sudo systemctl restart iris-web
+journalctl -u iris-web -n 20 --no-pager        # "[supervisor] up: 4 worker(s)", then "[server] worker 1 leads"
+curl -s 'http://127.0.0.1:8787/api/sehat?klaster=1'   # one line per worker: gen, pid, sockets, pool, event-loop delay, leader
+```
+
+The new unit starts `server/supervisor.ts`, gives the service a `/run/iris-web` folder (the supervisor writes
+`supervisor.json` there for `deploy.sh`) and raises `LimitNOFILE` to 65536. **Changing `/etc/iris-web/env` still
+needs `sudo systemctl restart iris-web`**: the supervisor reads it once at start, and workers inherit it.
+
+**A deploy now:** `deploy.sh` builds, writes `.build-sha`, and sends `SIGHUP` to the supervisor (the same user, no
+sudo). For each old worker the supervisor starts a new one on the new code, waits until it is listening, moves the
+leader's duties to new code, then tells the old one to drain (it closes its sockets with 1001, so pages reconnect to a
+live worker at once, and finishes the requests in flight) and waits for it to leave. The site never has fewer workers
+than it started with, so the `connection refused` gap is gone. A new worker that does not become ready within 90 s stops
+the roll and leaves the old workers serving; `deploy.sh` then reports that the workers did not all come up. When the
+supervisor's own files changed (`server/supervisor.ts` and `server/klaster/*`), `deploy.sh` restarts the whole service
+that once.
+
+| Variable        | Default                  | What it does                                                             |
+| --------------- | ------------------------ | ------------------------------------------------------------------------ |
+| `IRIS_PEKERJA`  | half the cores, 2 to 4   | workers; `0` runs one plain process, the way the site ran before workers |
+| `IRIS_DB_TOTAL` | 40                       | database connections for all workers together (split evenly, 8 at least) |
+| `IRIS_DB_POOL`  | split of `IRIS_DB_TOTAL` | one worker's own pool; setting it overrides the split                    |
+
+During a roll there is one more worker than usual for a short time, so keep `IRIS_DB_TOTAL` (plus the lab's other
+connections) well under Postgres's `max_connections` (section 9). Rollback to the old single process: `IRIS_PEKERJA=0`
+in `/etc/iris-web/env`, then `sudo systemctl restart iris-web`.
+
+**Drill** (on the PC or a laptop, no database needed, listens on 127.0.0.1:18787 only):
+`cd apps/web && node --import tsx scripts/uji-klaster.mjs` starts the real supervisor with 3 real workers and checks
+the stream, the rooms, a rolling restart under constant requests, and a killed leader. Run it after any change in
+`server/klaster/`, `server/hub/` or `server/main.ts`. On Windows add `NODE_CLUSTER_SCHED_POLICY=rr`.
+
+`/api/sehat?klaster=1` lists the workers; `?metrik=1` adds up all workers' route numbers (`pekerja` says how many
+answered); `ulang=1` starts every worker's window over.
+
 ## 9. Tuning Postgres for this PC
 
 A stock Postgres is set for a small machine. These values suit a PC with plenty of RAM and an SSD that runs Postgres
 beside the site, `cloudflared` and the lab services. Sizes come from the RAM: take **RAM = 16 GB** here and scale the
 three memory lines for another machine (the second server will have more).
 
-| Setting                        | Value              | Why                                                                                |
-| ------------------------------ | ------------------ | ---------------------------------------------------------------------------------- |
-| `shared_buffers`               | 25% of RAM (4 GB)  | Postgres's own cache of table and index pages                                      |
-| `effective_cache_size`         | 60% of RAM (10 GB) | tells the planner the OS also caches; no memory is reserved                        |
-| `work_mem`                     | 16 MB              | per sort or hash in a query; the report queries sort a little                      |
-| `maintenance_work_mem`         | 512 MB             | index builds and vacuum                                                            |
-| `random_page_cost`             | 1.1                | an SSD reads a random page almost as fast as a sequential one                      |
-| `effective_io_concurrency`     | 200                | SSD                                                                                |
-| `wal_compression`              | on                 | smaller WAL for the heartbeat and telemetry writes                                 |
-| `checkpoint_completion_target` | 0.9                | spreads checkpoint writes                                                          |
-| `max_wal_size`                 | 2 GB               | fewer forced checkpoints under bursts                                              |
-| `track_io_timing`              | on                 | read and write time per query in `pg_stat_statements`                              |
-| `max_connections`              | 200                | the site's pool is 30 per process (`IRIS_DB_POOL`); leave room for several workers |
+| Setting                        | Value              | Why                                                                                            |
+| ------------------------------ | ------------------ | ---------------------------------------------------------------------------------------------- |
+| `shared_buffers`               | 25% of RAM (4 GB)  | Postgres's own cache of table and index pages                                                  |
+| `effective_cache_size`         | 60% of RAM (10 GB) | tells the planner the OS also caches; no memory is reserved                                    |
+| `work_mem`                     | 16 MB              | per sort or hash in a query; the report queries sort a little                                  |
+| `maintenance_work_mem`         | 512 MB             | index builds and vacuum                                                                        |
+| `random_page_cost`             | 1.1                | an SSD reads a random page almost as fast as a sequential one                                  |
+| `effective_io_concurrency`     | 200                | SSD                                                                                            |
+| `wal_compression`              | on                 | smaller WAL for the heartbeat and telemetry writes                                             |
+| `checkpoint_completion_target` | 0.9                | spreads checkpoint writes                                                                      |
+| `max_wal_size`                 | 2 GB               | fewer forced checkpoints under bursts                                                          |
+| `track_io_timing`              | on                 | read and write time per query in `pg_stat_statements`                                          |
+| `max_connections`              | 200                | the site's workers share `IRIS_DB_TOTAL` (40 by default); leave room for a roll's extra worker |
 
 ```sh
 sudo -u postgres psql <<'SQL'
@@ -483,5 +543,5 @@ SQL
 ```
 
 After a restart, check with `show shared_buffers;` and run section 8's database baseline again to compare the cache hit
-ratio and the top statements. If the site's workers (Phase 3 of the upgrade) are many, lower `IRIS_DB_POOL` so that
-workers times pool stays under `max_connections` minus a margin.
+ratio and the top statements. With several workers (section 8a) `IRIS_DB_TOTAL` is the number to keep under
+`max_connections` minus a margin; it is split between the workers.

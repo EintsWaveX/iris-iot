@@ -354,7 +354,7 @@ async function handleKuisMasuk(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "POST")) return;
   const body = jsonBody(req);
   const isi = readKuisTiket(body?.tiket);
-  if (!isi || !pakaiTiket(isi.nonce, isi.exp)) {
+  if (!isi || !(await pakaiTiket(isi.nonce, isi.exp))) {
     res.status(400).json({ ok: false, kode: "tiket_salah" });
     return;
   }

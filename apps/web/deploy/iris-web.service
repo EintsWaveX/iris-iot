@@ -21,12 +21,20 @@ Environment=HOST=127.0.0.1
 Environment=PORT=8787
 Environment=IRIS_PERCAYA_CF=1
 # Node 24 from the tarball in DEPLOY.md step 1 (the PC has no packaged Node 24).
-ExecStart=/opt/node24/bin/node --import tsx server/main.ts
+# The supervisor starts the workers (IRIS_PEKERJA of them) and replaces them one at a time on SIGHUP, which is
+# what deploy.sh sends, so a deploy no longer stops the site. IRIS_PEKERJA=0 runs one plain process.
+ExecStart=/opt/node24/bin/node --import tsx server/supervisor.ts
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=3
 # The server drains background jobs for up to 60 s after SIGTERM.
 KillSignal=SIGTERM
 TimeoutStopSec=70
+# Every open page is a socket (and the tunnel's connections are more): the default 1024 is too few.
+LimitNOFILE=65536
+# /run/iris-web: where the supervisor writes supervisor.json so deploy.sh can tell it to roll.
+RuntimeDirectory=iris-web
+Environment=IRIS_RUN_DIR=/run/iris-web
 
 # The server writes nothing under the checkout and needs no privileges.
 NoNewPrivileges=true

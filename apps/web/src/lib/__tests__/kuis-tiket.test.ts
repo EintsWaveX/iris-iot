@@ -50,16 +50,16 @@ describe("quiz hand-over ticket", () => {
     expect(readSessionCookie(createKuisTiket(orang))).toBeNull();
   });
 
-  it("can be redeemed once", () => {
+  it("can be redeemed once", async () => {
     const isi = readKuisTiket(createKuisTiket(orang))!;
-    expect(pakaiTiket(isi.nonce, isi.exp)).toBe(true);
-    expect(pakaiTiket(isi.nonce, isi.exp)).toBe(false);
+    expect(await pakaiTiket(isi.nonce, isi.exp)).toBe(true);
+    expect(await pakaiTiket(isi.nonce, isi.exp)).toBe(false);
   });
 
-  it("forgets a nonce once its ticket would have expired", () => {
-    expect(pakaiTiket("n1", 100, 50_000)).toBe(true);
-    expect(pakaiTiket("n2", 100, 200_000)).toBe(true); // n1 expired and was purged
-    expect(pakaiTiket("n1", 300, 200_000)).toBe(true);
+  it("forgets a nonce once its ticket would have expired", async () => {
+    expect(await pakaiTiket("n1", 100, 50_000)).toBe(true);
+    expect(await pakaiTiket("n2", 100, 200_000)).toBe(true); // n1 expired and was purged
+    expect(await pakaiTiket("n1", 300, 200_000)).toBe(true);
   });
 
   it("gives two tickets for the same person different nonces", () => {

@@ -12,6 +12,10 @@
  *
  * Pages only listen: the one thing they send is the text "ping", answered "pong". Sockets that go quiet are
  * dropped, a socket that cannot keep up is dropped, and a socket that talks too much is dropped.
+ *
+ * With several workers (Phase 3) each worker has its own hub, but the numbering is the supervisor's: `urutan`
+ * sends the topics there, and the numbered message comes back to every worker's `terapkan`, in one order and
+ * under one epoch, so a page may reconnect to any worker, or after a deploy, and still be told only what it missed.
  */
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage } from "node:http";
@@ -36,6 +40,11 @@ export interface OpsiHubSiaran {
   /** Browsers always send Origin; a request without one is a tool. Default: allowed. */
   izinTanpaOrigin?: boolean;
   now?: () => number;
+  /**
+   * Several workers: where to send topics to be numbered. When set, `publish` only sends them there and the
+   * message reaches this worker's sockets through `terapkan`, like everyone's. Unset: this hub numbers them.
+   */
+  urutan?: (topik: string[]) => void;
 }
 
 interface Meta {
@@ -49,6 +58,10 @@ export interface HubSiaran {
   naik(req: IncomingMessage, socket: Duplex, head: Buffer): void;
   /** Announces topics to every socket; returns how many it reached. Invalid names are dropped. */
   publish(topik: readonly string[]): number;
+  /** A numbered message from the supervisor (several workers): applies it in order and tells every socket. */
+  terapkan(n: number, epoch: string, topik: readonly string[]): number;
+  /** The supervisor's numbering so far, for a worker that just started. */
+  sinkron(n: number, epoch: string, cincin: ReadonlyArray<{ n: number; t: string[] }>): void;
   jumlah(): number;
   statistik(): { soket: number; nomor: number; epoch: string; terkirim: number; dibuang: number };
   /** Closes every socket with 1001 and stops the timers. */
@@ -60,7 +73,7 @@ export function buatHubSiaran(opsi: OpsiHubSiaran = {}): HubSiaran {
   const soketMaks = opsi.soketMaks ?? 5000;
   const wss = new WebSocketServer({ noServer: true, maxPayload: 256, perMessageDeflate: false });
   const soket = new Map<WebSocket, Meta>();
-  const epoch = randomBytes(4).toString("hex");
+  let epoch = randomBytes(4).toString("hex");
   let nomor = 0;
   let terkirim = 0;
   let dibuang = 0;
@@ -98,6 +111,30 @@ export function buatHubSiaran(opsi: OpsiHubSiaran = {}): HubSiaran {
       else if (miss.length) salam.t = miss;
     }
     ws.send(JSON.stringify(salam));
+  }
+
+  /** Numbers `t` as message `n`, remembers it, and tells every socket. */
+  function sebar(n: number, t: string[]): number {
+    nomor = n;
+    cincin.push({ n, t });
+    if (cincin.length > RING) cincin.shift();
+    const pesan = JSON.stringify({ t, n });
+    let sampai = 0;
+    for (const [ws] of soket) {
+      if (ws.readyState !== WebSocket.OPEN) continue;
+      if (ws.bufferedAmount > ANTRE_MAKS_BYTE) {
+        buang(ws, 1013, "too slow");
+        continue;
+      }
+      try {
+        ws.send(pesan);
+        sampai++;
+      } catch {
+        buang(ws);
+      }
+    }
+    terkirim += sampai;
+    return sampai;
   }
 
   const ping = setInterval(() => {
@@ -168,26 +205,30 @@ export function buatHubSiaran(opsi: OpsiHubSiaran = {}): HubSiaran {
     publish(topik) {
       const t = [...new Set(topik)].filter((x) => TOPIK_RE.test(x)).slice(0, TOPIK_MAKS_PER_SIARAN);
       if (!t.length) return 0;
-      nomor++;
-      cincin.push({ n: nomor, t });
-      if (cincin.length > RING) cincin.shift();
-      const pesan = JSON.stringify({ t, n: nomor });
-      let sampai = 0;
-      for (const [ws] of soket) {
-        if (ws.readyState !== WebSocket.OPEN) continue;
-        if (ws.bufferedAmount > ANTRE_MAKS_BYTE) {
-          buang(ws, 1013, "too slow");
-          continue;
-        }
-        try {
-          ws.send(pesan);
-          sampai++;
-        } catch {
-          buang(ws);
-        }
+      if (opsi.urutan) {
+        opsi.urutan(t);
+        return 0;
       }
-      terkirim += sampai;
-      return sampai;
+      return sebar(nomor + 1, t);
+    },
+
+    terapkan(n, e, topik) {
+      if (e !== epoch) {
+        // The supervisor's numbering replaces whatever this hub made up before it knew it.
+        epoch = e;
+        cincin.length = 0;
+        nomor = n - 1;
+      }
+      const t = [...new Set(topik)].filter((x) => TOPIK_RE.test(x)).slice(0, TOPIK_MAKS_PER_SIARAN);
+      if (!t.length || n <= nomor) return 0;
+      return sebar(n, t);
+    },
+
+    sinkron(n, e, lama) {
+      epoch = e;
+      nomor = n;
+      cincin.length = 0;
+      for (const m of lama.slice(-RING)) cincin.push({ n: m.n, t: [...m.t] });
     },
 
     jumlah: () => soket.size,

@@ -17,6 +17,11 @@ export interface OpsiPantau<T> {
 
 export interface Pantau<T> {
   aktif: boolean;
+  /**
+   * Several workers: only the leader reads the sheet (`aktif`); the others pass what a page asked on to it,
+   * at most once a second per sheet.
+   */
+  teruskan?: (kunci: string, isi: T) => void;
   /** A page just asked and was shown `isi`; keeps (or starts) the watch for `kunci`. */
   diminta(kunci: string, isi: T): void;
   jumlah(): number;
@@ -27,6 +32,7 @@ export function buatPantau<T>(opsi: OpsiPantau<T>): Pantau<T> {
   const now = opsi.now ?? Date.now;
   const jedaMs = opsi.jedaMs ?? 2_500;
   const sepiMs = opsi.sepiMs ?? 30_000;
+  const terakhirTeruskan = new Map<string, number>();
   const peta = new Map<
     string,
     { diminta: number; tanda: string; timer: ReturnType<typeof setInterval> }
@@ -35,7 +41,15 @@ export function buatPantau<T>(opsi: OpsiPantau<T>): Pantau<T> {
   const p: Pantau<T> = {
     aktif: false,
     diminta(kunci, isi) {
-      if (!p.aktif) return;
+      if (!p.aktif) {
+        if (!p.teruskan) return;
+        const t = now();
+        if (t - (terakhirTeruskan.get(kunci) ?? 0) < 1000) return;
+        terakhirTeruskan.set(kunci, t);
+        if (terakhirTeruskan.size > 200) terakhirTeruskan.clear();
+        p.teruskan(kunci, isi);
+        return;
+      }
       const ada = peta.get(kunci);
       if (ada) {
         ada.diminta = now();

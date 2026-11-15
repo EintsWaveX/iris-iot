@@ -7,7 +7,9 @@ import {
   dalamLingkup,
   kunciRute,
   persentil,
+  mentah,
   ringkas,
+  ringkasDari,
   ulang,
   TEPI_MS,
 } from "../metrik.js";
@@ -95,5 +97,43 @@ describe("bolehLihat", () => {
   });
   it("opens only for the exact token", () => {
     expect(bolehLihat(T, T)).toBe(true);
+  });
+});
+
+describe("several workers' numbers", () => {
+  it("adds up requests, time and buckets per route and reads the percentiles from the sum", () => {
+    const lingkup = { n: 0, ms: 0 };
+    catat("GET /api/x", 200, 4, lingkup);
+    catat("GET /api/x", 200, 4, lingkup);
+    const a = mentah();
+    ulang();
+    catat("GET /api/x", 500, 300, lingkup);
+    catat("GET /api/y", 200, 1, lingkup);
+    const b = mentah();
+    const gabung = ringkasDari([a, b]);
+    const x = gabung.rute.find((r) => r.rute === "GET /api/x")!;
+    expect(x).toMatchObject({ n: 3, galat: 1, maks: 300 });
+    expect(x.rataMs).toBeCloseTo(102.7, 1);
+    expect(x.p50).toBe(5);
+    expect(x.p99).toBe(500);
+    expect(gabung.ruteTotal).toBe(2);
+    // The data one worker hands over is a copy: merging does not change it.
+    expect(a.rute.find(([k]) => k === "GET /api/x")![1].n).toBe(2);
+  });
+
+  it("shows the worst event-loop delay and adds the sockets", () => {
+    const dasar = { sejakDetik: 5, rute: [] as ReturnType<typeof mentah>["rute"] };
+    const g = ringkasDari([
+      { ...dasar, jedaLoopMs: { p50: 1, p99: 8, maks: 20 }, soket: { siaran: 3, ruang: 1 } },
+      { ...dasar, sejakDetik: 9, jedaLoopMs: { p50: 2, p99: 5, maks: 90 }, soket: { siaran: 4 } },
+    ]);
+    expect(g.jedaLoopMs).toEqual({ p50: 2, p99: 8, maks: 90 });
+    expect(g.soket).toEqual({ siaran: 7, ruang: 1 });
+    expect(g.sejakDetik).toBe(9);
+  });
+
+  it("is what ringkas gives for one process", () => {
+    catat("GET /api/z", 200, 2, { n: 1, ms: 1 });
+    expect(ringkas().rute).toEqual(ringkasDari([mentah()]).rute);
   });
 });
