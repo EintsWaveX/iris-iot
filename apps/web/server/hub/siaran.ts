@@ -31,6 +31,10 @@ export const RING = 256;
 export const ANTRE_MAKS_BYTE = 256 * 1024;
 const PESAN_MAKS_PER_JENDELA = 20;
 const JENDELA_MS = 10_000;
+/** A broadcast reaches the sockets in this many slices, a little apart (see `sebar`). */
+export const IRISAN = 8;
+export const SEBAR_MAKS_MS = 600;
+export const SEBAR_AMBANG = 50;
 
 export interface OpsiHubSiaran {
   /** Sockets at once (default 5000). */
@@ -40,6 +44,14 @@ export interface OpsiHubSiaran {
   /** Browsers always send Origin; a request without one is a tool. Default: allowed. */
   izinTanpaOrigin?: boolean;
   now?: () => number;
+  /**
+   * Load smoothing: a broadcast to many sockets makes every page fetch again at the same instant. Past
+   * `sebarAmbang` sockets here, the sends are spread over `IRISAN` slices, up to `sebarMaksMs` apart in all
+   * (the delay grows with the sockets beyond the threshold: 1,000 sockets spread over 600 ms, 150 over 100 ms).
+   * Defaults 600 ms and 50. `sebarMaksMs: 0` sends to everyone at once (tests).
+   */
+  sebarMaksMs?: number;
+  sebarAmbang?: number;
   /**
    * Several workers: where to send topics to be numbered. When set, `publish` only sends them there and the
    * message reaches this worker's sockets through `terapkan`, like everyone's. Unset: this hub numbers them.
@@ -51,12 +63,17 @@ interface Meta {
   hidup: boolean;
   pesan: number;
   jendela: number;
+  /** Which slice of a broadcast this socket is in (fixed for its life, so its messages keep their order). */
+  irisan: number;
+  /** Messages waiting for this socket's slice, oldest first. */
+  antre: string[];
 }
 
 export interface HubSiaran {
   /** Hand over an accepted upgrade at /siaran. */
   naik(req: IncomingMessage, socket: Duplex, head: Buffer): void;
-  /** Announces topics to every socket; returns how many it reached. Invalid names are dropped. */
+  /** Announces topics to every socket; returns how many it targets (past the load-smoothing threshold the
+   *  later slices are sent a few hundred ms after). Invalid names are dropped. */
   publish(topik: readonly string[]): number;
   /** A numbered message from the supervisor (several workers): applies it in order and tells every socket. */
   terapkan(n: number, epoch: string, topik: readonly string[]): number;
@@ -78,6 +95,14 @@ export function buatHubSiaran(opsi: OpsiHubSiaran = {}): HubSiaran {
   let terkirim = 0;
   let dibuang = 0;
   const cincin: Array<{ n: number; t: string[] }> = [];
+  const sebarMaksMs = opsi.sebarMaksMs ?? SEBAR_MAKS_MS;
+  const sebarAmbang = opsi.sebarAmbang ?? SEBAR_AMBANG;
+  let irisanBerikut = 0;
+  /** One pending timer per slice (slice 0 goes at once). */
+  const pewaktu: Array<ReturnType<typeof setTimeout> | null> = Array.from(
+    { length: IRISAN },
+    () => null,
+  );
 
   const buang = (ws: WebSocket, kode?: number, alasan?: string) => {
     dibuang++;
@@ -119,22 +144,55 @@ export function buatHubSiaran(opsi: OpsiHubSiaran = {}): HubSiaran {
     cincin.push({ n, t });
     if (cincin.length > RING) cincin.shift();
     const pesan = JSON.stringify({ t, n });
-    let sampai = 0;
-    for (const [ws] of soket) {
+    // The spread grows with the sockets on this worker and stops at the cap; under the threshold, no delay.
+    const jarak = Math.min(sebarMaksMs, Math.max(0, soket.size - sebarAmbang));
+    let sasaran = 0;
+    for (const [ws, m] of soket) {
+      if (ws.readyState !== WebSocket.OPEN) continue;
+      sasaran++;
+      m.antre.push(pesan);
+    }
+    for (let k = 0; k < IRISAN; k++) {
+      const tunda = jarak > 0 ? Math.floor((k * jarak) / (IRISAN - 1)) : 0;
+      if (tunda <= 0) {
+        // A slice due now also takes whatever an earlier broadcast left waiting, in order.
+        const t0 = pewaktu[k];
+        if (t0) clearTimeout(t0);
+        pewaktu[k] = null;
+        kosongkan(k);
+      } else if (!pewaktu[k]) {
+        // A slice already waiting keeps its time; the new message rides with it, so nothing overtakes.
+        const w = setTimeout(() => {
+          pewaktu[k] = null;
+          kosongkan(k);
+        }, tunda);
+        w.unref();
+        pewaktu[k] = w;
+      }
+    }
+    return sasaran;
+  }
+
+  /** Sends what is waiting to every socket in slice `k`. */
+  function kosongkan(k: number) {
+    for (const [ws, m] of soket) {
+      if (m.irisan !== k || !m.antre.length) continue;
+      const antre = m.antre;
+      m.antre = [];
       if (ws.readyState !== WebSocket.OPEN) continue;
       if (ws.bufferedAmount > ANTRE_MAKS_BYTE) {
         buang(ws, 1013, "too slow");
         continue;
       }
       try {
-        ws.send(pesan);
-        sampai++;
+        for (const p of antre) {
+          ws.send(p);
+          terkirim++;
+        }
       } catch {
         buang(ws);
       }
     }
-    terkirim += sampai;
-    return sampai;
   }
 
   const ping = setInterval(() => {
@@ -173,7 +231,13 @@ export function buatHubSiaran(opsi: OpsiHubSiaran = {}): HubSiaran {
       const e = url.searchParams.get("e");
 
       wss.handleUpgrade(req, socket, head, (ws) => {
-        const m: Meta = { hidup: true, pesan: 0, jendela: now() };
+        const m: Meta = {
+          hidup: true,
+          pesan: 0,
+          jendela: now(),
+          irisan: irisanBerikut++ % IRISAN,
+          antre: [],
+        };
         soket.set(ws, m);
         ws.on("pong", () => (m.hidup = true));
         ws.on("message", (data, biner) => {
@@ -236,6 +300,11 @@ export function buatHubSiaran(opsi: OpsiHubSiaran = {}): HubSiaran {
 
     tutup() {
       clearInterval(ping);
+      for (let k = 0; k < IRISAN; k++) {
+        const w = pewaktu[k];
+        if (w) clearTimeout(w);
+        pewaktu[k] = null;
+      }
       for (const [ws] of soket) {
         try {
           ws.close(1001, "server restarting");

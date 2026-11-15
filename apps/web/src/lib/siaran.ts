@@ -28,12 +28,13 @@ type Fn = () => void;
 
 const PING_MS = 20_000;
 const PONG_MS = 8_000;
-const FALLBACK_MS = 30_000;
+const FALLBACK_MS = 15_000;
 /** While live, a slow net for a message lost on the way. Every open tab
- *  refetches all its views on it, so at a class's scale it costs Vercel
- *  edge requests (2026-10-11: 5 min, was 60 s); the socket proves itself
- *  with ping and pong every 20 s, and catches up after any reconnect. */
-const SAFETY_MS = 300_000;
+ *  refetches all its views on it; the socket proves itself with ping and
+ *  pong every 20 s, and catches up after any reconnect. It was 5 min while
+ *  every request cost money (Vercel); on the lab PC a minute is cheap
+ *  (15 Nov 2026). */
+const SAFETY_MS = 60_000;
 /** A gap this long between 5 s ticks means the tab or laptop slept. */
 const TIDUR_MS = 20_000;
 
@@ -268,8 +269,9 @@ function sambung() {
 
 function jadwalUlang() {
   if (ulang || !subs.size) return;
-  // 1, 2, 4 ... up to 30 seconds between tries.
-  const ms = Math.min(30_000, 1000 * 2 ** coba++);
+  // 1, 2, 4 ... up to 30 seconds between tries, times 0.5 to 1.5 so that the
+  // pages a deploy just closed (1001) do not all come back in the same instant.
+  const ms = Math.min(30_000, 1000 * 2 ** coba++) * (0.5 + Math.random());
   ulang = setTimeout(() => {
     ulang = null;
     sambung();
