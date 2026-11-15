@@ -16,6 +16,7 @@
  * minute) so a failing loop can't flood it. A failed save only reaches the
  * original console.error, never this hook again.
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { pgErrorCode, type ApiHandler, type ApiRequest, type ApiResponse } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
 import { audit } from "../../src/lib/schema.js";
@@ -28,7 +29,9 @@ const tertunda = new Set<Promise<unknown>>();
 const baruSaja = new Map<string, number>();
 let jendela = 0;
 let hitung = 0;
-let ruteKini = "";
+/** Which route is answering, per request: one process now answers many at once, so a shared variable named the
+ *  wrong route in a report whenever two overlapped. */
+const ruteBerjalan = new AsyncLocalStorage<string>();
 let terpasang = false;
 
 /** An error's own line plus the one underneath it. drizzle wraps a driver failure as "Failed query: ..." and
@@ -91,17 +94,11 @@ export function pasangPencatat() {
     try {
       const pesan = args.map(teks).join(" ").slice(0, PESAN_MAKS);
       if (bukanGalat(pesan)) return;
-      catatGalat("galat_server", { rute: ruteKini, pesan });
+      catatGalat("galat_server", { rute: ruteBerjalan.getStore() ?? "", pesan });
     } catch {
       /* reporting must never break the caller */
     }
   };
-}
-
-/** Which route is answering, for the reports (one request at a time per
- *  instance on Vercel's Node runtime, so a module variable is enough). */
-export function setRute(rute: string) {
-  ruteKini = rute;
 }
 
 /** Waits for reports still being saved, so a frozen function doesn't drop
@@ -124,23 +121,32 @@ export function denganGalat(
   handler: (req: ApiRequest, res: ApiResponse) => Promise<void> | void,
 ): ApiHandler {
   pasangPencatat();
-  return async (req: ApiRequest, res: ApiResponse) => {
+  return (req: ApiRequest, res: ApiResponse) => {
     const aksi = req.query?.aksi;
-    setRute(`${req.method ?? ""} ${rute}${typeof aksi === "string" && aksi ? `:${aksi}` : ""}`);
-    try {
-      await handler(req, res);
-    } catch (err) {
-      // A number too big for its column, or text that is no number or date:
-      // the caller's input, not a fault. Answered 400 and not reported, so
-      // a stray query string cannot trip the error alert.
-      if (MASUKAN_SALAH.has(pgErrorCode(err) ?? "")) {
-        if (!res.headersSent) res.status(400).json({ ok: false, kode: "format_salah" });
-        return;
-      }
-      console.error(`[api/${rute}] uncaught error:`, err);
-      if (!res.headersSent) res.status(500).json({ ok: false, kode: "galat_server" });
-    } finally {
-      await tungguGalat();
-    }
+    const nama = `${req.method ?? ""} ${rute}${typeof aksi === "string" && aksi ? `:${aksi}` : ""}`;
+    return ruteBerjalan.run(nama, () => jalankan(rute, handler, req, res));
   };
+}
+
+async function jalankan(
+  rute: string,
+  handler: (req: ApiRequest, res: ApiResponse) => Promise<void> | void,
+  req: ApiRequest,
+  res: ApiResponse,
+): Promise<void> {
+  try {
+    await handler(req, res);
+  } catch (err) {
+    // A number too big for its column, or text that is no number or date:
+    // the caller's input, not a fault. Answered 400 and not reported, so
+    // a stray query string cannot trip the error alert.
+    if (MASUKAN_SALAH.has(pgErrorCode(err) ?? "")) {
+      if (!res.headersSent) res.status(400).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    console.error(`[api/${rute}] uncaught error:`, err);
+    if (!res.headersSent) res.status(500).json({ ok: false, kode: "galat_server" });
+  } finally {
+    await tungguGalat();
+  }
 }

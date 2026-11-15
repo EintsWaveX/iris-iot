@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
 import { bacaBerkas, cekBerkas } from "../api/_lib/berkas.js";
 import { tungguLatar } from "../api/_lib/tunggu.js";
+import { cacheSesiBerjalan } from "../src/lib/sesi.js";
 import { getDb, statusKolam } from "../src/lib/db.js";
 import { buatApp } from "./app.js";
 import { pantauJeda } from "./jeda.js";
@@ -30,6 +31,9 @@ if (!existsSync(join(dist, "index.html"))) {
   process.exit(1);
 }
 const config = JSON.parse(readFileSync(join(akar, "vercel.json"), "utf8"));
+
+// The running session is asked for by nearly every request: one query a second at most, dropped after any write.
+cacheSesiBerjalan.atur(Number(process.env.IRIS_SESI_CACHE_MS ?? 1000));
 
 const { server, rute } = await buatApp({
   akar,

@@ -106,7 +106,7 @@ import {
   setPraktikumFinal,
   statusRiwayat,
 } from "../../src/lib/akses.js";
-import { hilangPersen, selisihJamMs } from "../../src/lib/telemetri-ringkas.js";
+import { TELEMETRI_KOSONG, ringkasTelemetriSesi } from "../_lib/laporan-telemetri.js";
 import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
 import {
   asistenMengajar,
@@ -635,13 +635,6 @@ async function handleGroup(req: ApiRequest, res: ApiResponse, session: SessionPa
   }
 }
 
-function median(nums: number[]): number | null {
-  if (nums.length === 0) return null;
-  const sorted = [...nums].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
-}
-
 /**
  * GET /api/session/laporan (Stage 10; extended P6.8 with ?sesiId=) —
  * everything the console's live tiles and stuck list need in one call for
@@ -682,7 +675,7 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
   // Every read below depends only on the session, so they go out together
   // (the console polls this every 6 s; seven round trips in a row made its
   // first paint wait on the slowest chain, not the slowest query).
-  const [groups, members, overrides, jawabanRows, masukRows, telemetriRows, pemilikMap] =
+  const [groups, members, overrides, jawabanRows, masukRows, telemetriGrup, pemilikMap] =
     await Promise.all([
       db.select().from(kelompok).where(eq(kelompok.aktif, true)),
       db
@@ -719,44 +712,14 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
           ),
         ),
       // P6.8: per-group telemetry count and delays for the report. Module 1
-      // rows come from the group PC (Web Serial), 2 to 4 from the PC.
-      db
-        .select({
-          kelompokNomor: telemetriLog.kelompokNomor,
-          delayMs: telemetriLog.delayMs,
-          seq: telemetriLog.seq,
-          tx: telemetriLog.tx,
-          rx: telemetriLog.rx,
-        })
-        .from(telemetriLog)
-        .where(eq(telemetriLog.sesiId, running.id)),
+      // rows come from the group PC (Web Serial), 2 to 4 from the PC. Worked out in Postgres, one row per
+      // group (api/_lib/laporan-telemetri.ts), not read row by row: this report is polled every few seconds.
+      ringkasTelemetriSesi(db, running.id),
       // P8: group owners, so the board needs one poll only.
       pemilikKelompok(db, running.id),
     ]);
   const overrideByKelompokId = new Map(overrides.map((o) => [o.kelompokId, o]));
   const hadirNims = new Set(masukRows.map((r) => r.nim));
-  const telemetriByKelompokNomor = new Map<number, number[]>();
-  const telemetriCountByKelompokNomor = new Map<number, number>();
-  // Phase 9: every module's one-way delay (the PC's own delayMs, else the
-  // board's send and receive stamps) and the seq range, for the inspector's
-  // per-group delay and lost-message charts.
-  const seqByKelompokNomor = new Map<number, number[]>();
-  for (const r of telemetriRows) {
-    telemetriCountByKelompokNomor.set(
-      r.kelompokNomor,
-      (telemetriCountByKelompokNomor.get(r.kelompokNomor) ?? 0) + 1,
-    );
-    const d = r.delayMs ?? selisihJamMs(r.tx, r.rx);
-    if (d != null) {
-      const arr = telemetriByKelompokNomor.get(r.kelompokNomor) ?? [];
-      arr.push(d);
-      telemetriByKelompokNomor.set(r.kelompokNomor, arr);
-    }
-    const sq = seqByKelompokNomor.get(r.kelompokNomor) ?? [];
-    sq.push(r.seq);
-    seqByKelompokNomor.set(r.kelompokNomor, sq);
-  }
-
   const total = jumlahCelahModul(await kodeModul(running.modul));
   const daftarKelompok = groups
     .filter((g) => g.nomor <= (running.jumlahKelompok ?? 10))
@@ -767,7 +730,6 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
       const jawabanKelompok = jawabanRows.filter((r) => r.kelompokId === g.id);
       const benar = jawabanKelompok.filter((r) => r.benar).length;
       const hadir = anggotaKelompok.filter((m) => hadirNims.has(m.nim)).length;
-      const delays = telemetriByKelompokNomor.get(g.nomor) ?? [];
       return {
         id: g.id,
         nomor: g.nomor,
@@ -801,16 +763,7 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
         // comment) -- min/median/max come back null for Modules 2-3, which
         // the report renders as "from your serial output", same wording the
         // live Ladder/GroupLive views already use for the same gap.
-        telemetri: {
-          count: telemetriCountByKelompokNomor.get(g.nomor) ?? 0,
-          delayMinMs: delays.length ? Math.min(...delays) : null,
-          delayMedianMs: median(delays),
-          delayMaxMs: delays.length ? Math.max(...delays) : null,
-          delayRataMs: delays.length
-            ? Math.round(delays.reduce((a, b) => a + b, 0) / delays.length)
-            : null,
-          hilangPct: hilangPersen(seqByKelompokNomor.get(g.nomor) ?? []),
-        },
+        telemetri: telemetriGrup.get(g.nomor) ?? TELEMETRI_KOSONG,
       };
     });
 

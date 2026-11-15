@@ -31,6 +31,7 @@ import { semesterDariTanggal } from "./jadwal-parser.js";
 import { satuSlotPerNim } from "./jadwal-modul4.js";
 import { namaKelompok } from "./kelompok-nama.js";
 import { bacaPerburuanSesi, perburuanBerjalan } from "./perburuan.js";
+import { cacheTunggal } from "./cache-tunggal.js";
 
 export interface ResolvedPraktikan {
   nim: string;
@@ -53,6 +54,17 @@ export interface ResolvedPraktikan {
  * idle-wakeup cost the way a standalone poller would add.
  */
 export async function currentSesi() {
+  return cacheSesiBerjalan.ambil();
+}
+
+/**
+ * Which session is running, asked by nearly every request (the banner, sign-in, every console). The server
+ * keeps the answer for a second, shared by everyone asking at once, and drops it after every write
+ * (lib/cache-tunggal.ts), so a session started or ended shows at once.
+ */
+export const cacheSesiBerjalan = cacheTunggal(muatSesiBerjalan, (r) => (r ? { ...r } : r));
+
+async function muatSesiBerjalan() {
   const db = getDb();
   const [row] = await db
     .select()
@@ -79,6 +91,7 @@ export async function currentSesi() {
       durasiDetik: batasDetik,
     })
     .where(eq(sesi.id, row.id));
+  cacheSesiBerjalan.batalkan();
 
   return null;
 }

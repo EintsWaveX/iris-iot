@@ -470,6 +470,13 @@
       "when": 1794284963093,
       "tag": "0066_hot_path_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1794722516232,
+      "tag": "0067_indeks_pangkas_dan_jawaban",
+      "breakpoints": true
     }
   ]
 }

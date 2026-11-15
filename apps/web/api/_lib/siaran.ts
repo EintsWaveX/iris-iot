@@ -14,6 +14,7 @@
  *
  * PC heartbeats (api/agent) send only when something a page shows changed.
  */
+import { batalkanSemuaCache } from "../../src/lib/cache-tunggal.js";
 import { waitUntil } from "./tunggu.js";
 import type { ApiHandler, ApiRequest, ApiResponse } from "./http.js";
 import { ambilAntre, kirimRelay } from "./aliran.js";
@@ -24,6 +25,8 @@ import { topikUntuk, type Topik } from "../../src/lib/siaran-topik.js";
  *  not set up or doesn't answer within 1.5 s (pages also refetch when they
  *  come back into view, so a lost message only delays an update). */
 export async function siarkan(topik: readonly Topik[]): Promise<void> {
+  // Whatever changed, what the server remembers about it is out of date.
+  batalkanSemuaCache();
   if (topik.length) await kirimRelay(topik);
 }
 
@@ -50,12 +53,15 @@ export function denganSiaran(rute: string, handler: ApiHandler): ApiHandler {
     let berhasil: boolean | null = null;
     const json = res.json.bind(res);
     res.json = (body: unknown) => {
+      // Before the answer leaves, so the refetch it triggers cannot meet a copy from before the write.
+      batalkanSemuaCache();
       const gagal = !!body && typeof body === "object" && (body as { ok?: unknown }).ok === false;
       berhasil = !gagal && res.statusCode < 300;
       if (berhasil && topik.length && !res.headersSent) res.setHeader("x-siaran", topik.join(","));
       json(body);
     };
     await handler(req, res);
+    batalkanSemuaCache();
     // Room messages the write queued (Phase 12) go in the same request.
     const antre = ambilAntre(res);
     if (!(berhasil ?? res.statusCode < 300)) return;

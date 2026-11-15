@@ -1023,7 +1023,11 @@ export const denyut = pgTable(
     modeJaringan: text("mode_jaringan"), // "ethernet-router" | "ap-mandiri" | "ap+uplink" | "offline"
     layanan: jsonb("layanan").$type<Record<string, string>>(),
   },
-  (t) => [index("denyut_server_pada_idx").on(t.serverId, t.pada)],
+  (t) => [
+    index("denyut_server_pada_idx").on(t.serverId, t.pada),
+    // The prune (server-lib.ts) and the history charts' whole-table windows filter on `pada` alone.
+    index("denyut_pada_idx").on(t.pada),
+  ],
 );
 
 /**
@@ -1186,7 +1190,11 @@ export const telemetriLog = pgTable(
     diukurPada: timestamp("diukur_pada", { withTimezone: true }),
     dicatatPada: timestamp("dicatat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("telemetri_log_sesi_modul_kelompok_idx").on(t.sesiId, t.modul, t.kelompokNomor)],
+  (t) => [
+    index("telemetri_log_sesi_modul_kelompok_idx").on(t.sesiId, t.modul, t.kelompokNomor),
+    // The prune (server-lib.ts, rows past their week) filters on this alone.
+    index("telemetri_log_dicatat_idx").on(t.dicatatPada),
+  ],
 );
 
 /**
@@ -2756,7 +2764,11 @@ export const recAnswer = pgTable(
     tab: text("tab"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.seatId, t.questionId] })],
+  (t) => [
+    primaryKey({ columns: [t.seatId, t.questionId] }),
+    // A foreign key with no index: deleting or editing a question scanned the whole table.
+    index("rec_answer_question_idx").on(t.questionId),
+  ],
 );
 
 /** A kejadian: the seat left fullscreen, switched tab, pasted... (EXAM-ENGINE 7). */

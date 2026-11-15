@@ -19,7 +19,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, pgErrorCode } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
-import { hashPassword, writeAudit, type SessionPayload } from "../../src/lib/auth.js";
+import { hashPasswordAsync, writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import {
   asisten,
   recAccount,
@@ -265,7 +265,7 @@ export async function handleTambahKandidat(req: ApiRequest, res: ApiResponse, s:
   // Someone's own account (made before the form took over) is theirs: not overwritten by a new add.
   if (!ubah && akun?.passHash) return tolak(res, "akun_ada", 409);
 
-  const hash = sandiAda ? hashPassword(b.sandi as string) : null;
+  const hash = sandiAda ? await hashPasswordAsync(b.sandi as string) : null;
   let baris: { id: number };
   try {
     baris = await db.transaction(async (tx) => {

@@ -30,7 +30,8 @@
  * their own session ended.
  */
 import * as nodeCrypto from "node:crypto";
-import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypto";
+import { createHmac, timingSafeEqual, randomBytes, scrypt, scryptSync } from "node:crypto";
+import { promisify } from "node:util";
 import { eq, and, gte, gt, count, desc, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { asisten, percobaanMasuk, audit, sesiKejadian } from "./schema.js";
@@ -98,6 +99,26 @@ type Argon2Sync = (
 ) => Buffer;
 const argon2Sync = (nodeCrypto as unknown as { argon2Sync?: Argon2Sync }).argon2Sync;
 
+/** The same Argon2id on Node's thread pool: the process keeps answering while a hash is worked out. */
+type Argon2Async = (
+  algorithm: "argon2id",
+  params: Parameters<Argon2Sync>[1],
+  callback: (err: Error | null, key: Buffer) => void,
+) => void;
+const argon2Async = (nodeCrypto as unknown as { argon2?: Argon2Async }).argon2;
+const scryptAsync = promisify(scrypt) as (
+  password: string,
+  salt: string,
+  keylen: number,
+  options?: { N: number; r: number; p: number; maxmem: number },
+) => Promise<Buffer>;
+
+function argon2Janji(params: Parameters<Argon2Sync>[1]): Promise<Buffer> {
+  return new Promise((selesai, gagal) =>
+    argon2Async!("argon2id", params, (err, kunci) => (err ? gagal(err) : selesai(kunci))),
+  );
+}
+
 function scryptKuat(password: string, salt: string, n: number): string {
   return scryptSync(password, salt, SCRYPT_KEYLEN, {
     N: n,
@@ -129,6 +150,59 @@ export function hashPassword(password: string): string {
 export function perluHashUlang(stored: string): boolean {
   if (stored.startsWith("a2id$")) return false;
   return !!argon2Sync || !stored.startsWith(`s2$${SCRYPT_N}$`);
+}
+
+/**
+ * hashPassword without holding the event loop (Argon2id at 64 MiB x 3 passes takes 100-300 ms of CPU, and the
+ * site is one process: a few dozen sign-ins at once froze every page and every socket). Same stored forms.
+ */
+export async function hashPasswordAsync(password: string): Promise<string> {
+  if (!argon2Async) return hashPassword(password);
+  const salt = randomBytes(16);
+  const { memory, passes, parallelism, tagLength } = ARGON2;
+  const hash = await argon2Janji({
+    message: password,
+    nonce: salt,
+    memory,
+    passes,
+    parallelism,
+    tagLength,
+  });
+  return `a2id$${memory}$${passes}$${parallelism}$${salt.toString("hex")}$${hash.toString("hex")}`;
+}
+
+/** verifyPasswordHash on the thread pool; the answer is the same for every stored form. */
+export async function verifyPasswordHashAsync(password: string, stored: string): Promise<boolean> {
+  if (stored.startsWith("a2id$")) {
+    const [, m, t, p, salt, hash] = stored.split("$");
+    if (!argon2Async || !salt || !hash) return false;
+    const candidate = (
+      await argon2Janji({
+        message: password,
+        nonce: Buffer.from(salt, "hex"),
+        memory: Number(m),
+        passes: Number(t),
+        parallelism: Number(p),
+        tagLength: hash.length / 2,
+      })
+    ).toString("hex");
+    return safeEqual(candidate, hash);
+  }
+  if (stored.startsWith("s2$")) {
+    const [, n, salt, hash] = stored.split("$");
+    if (!salt || !hash) return false;
+    const N = Number(n);
+    const kunci = await scryptAsync(password, salt, SCRYPT_KEYLEN, {
+      N,
+      r: 8,
+      p: 1,
+      maxmem: 256 * N * 8,
+    });
+    return safeEqual(kunci.toString("hex"), hash);
+  }
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  return safeEqual((await scryptAsync(password, salt, SCRYPT_KEYLEN)).toString("hex"), hash);
 }
 
 export function verifyPasswordHash(password: string, stored: string): boolean {
@@ -665,7 +739,9 @@ export async function verifyAsistenLogin(
   // compare would otherwise have run.
   const expected = (row?.nim ?? nim) + ASSISTANT_PASSWORD_SUFFIX;
   const derivedMatch = safeEqual(password, expected);
-  const hashMatch = row?.passwordHash ? verifyPasswordHash(password, row.passwordHash) : false;
+  const hashMatch = row?.passwordHash
+    ? await verifyPasswordHashAsync(password, row.passwordHash)
+    : false;
 
   const matched = row !== undefined && (row.passwordHash ? hashMatch : derivedMatch);
 
@@ -676,7 +752,7 @@ export async function verifyAsistenLogin(
   if (row!.passwordHash && perluHashUlang(row!.passwordHash))
     await db
       .update(asisten)
-      .set({ passwordHash: hashPassword(password) })
+      .set({ passwordHash: await hashPasswordAsync(password) })
       .where(eq(asisten.nim, row!.nim));
   return { ok: true, nim: row!.nim, nama: row!.nama, perluAturSandi: !row!.passwordHash };
 }
@@ -704,7 +780,7 @@ export async function setAsistenPassword(nim: string, password: string): Promise
   const db = getDb();
   await db
     .update(asisten)
-    .set({ passwordHash: hashPassword(password), passwordDiaturPada: new Date() })
+    .set({ passwordHash: await hashPasswordAsync(password), passwordDiaturPada: new Date() })
     .where(eq(asisten.nim, nim));
 }
 
