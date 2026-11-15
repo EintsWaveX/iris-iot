@@ -1,10 +1,10 @@
 name: Smoke
 
-# After every successful production deploy (Vercel's GitHub integration
-# reports it as a deployment status), check the live site from outside:
-# pages, security headers, the API, the relay's live updates
+# Every morning at 05:30 WIB, before the first class, check the live site
+# from outside: pages, security headers, the API, the relay's live updates
 # (apps/web/scripts/rehearse.mjs). Read-only. A failure emails the repo
-# owner, like any failed workflow.
+# owner, like any failed workflow. (It used to run after each Vercel deploy;
+# the site now deploys on the PC, which GitHub is not told about.)
 #
 # Run by hand (Actions, Smoke, Run workflow, tick "tot") it can also run
 # the TOT rehearsal: Mode TOT on, a TOT session, dummy sign-ins with the
@@ -14,7 +14,8 @@ name: Smoke
 # runs on its own after a deploy, since Mode TOT locks real Praktikan out.
 
 on:
-  deployment_status:
+  schedule:
+    - cron: "30 22 * * *"
   workflow_dispatch:
     inputs:
       tot:
@@ -24,12 +25,6 @@ on:
 
 jobs:
   smoke:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.deployment_status.state == 'success' &&
-       github.event.deployment.environment == 'Production')
-    # On the job, not the workflow: deployment_status also fires for pending
-    # and in-progress states, which skip the job and must not cancel a live run
     concurrency:
       group: smoke
       cancel-in-progress: true
@@ -43,12 +38,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-
-      # The production alias moves to the new build a few seconds after the
-      # deployment reports success.
-      - name: Wait for the alias
-        if: github.event_name == 'deployment_status'
-        run: sleep 30
 
       - name: Smoke test
         env:
