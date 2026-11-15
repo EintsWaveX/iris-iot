@@ -415,6 +415,24 @@ FANOUT_SECRET=... node scripts/fanout.mjs --url wss://HOST/siaran --emit bearer 
 
 Baselines taken so far are in `apps/web/perf/`.
 
+**Live rooms and the lab clock in this server** (real-time upgrade, phase 2b). The session rooms (`/aliran/sesi-<id>`,
+`/aliran/pc`) and the exam rooms (`/ujian/rec-<id>`) live in the server process, with the same tickets and the same
+who-sees-what rules as the Worker's rooms. A page's ticket request now answers with this server's address
+(`wss://<host>/aliran/...`); three failed connects in a row make the page ask for the Worker's address (`?lama=1`)
+for a while. The lab clock also runs in the server, two seconds into every minute (starts sessions at their
+attendance clock, ends them at their cap with no page open, announces it).
+
+| Variable                | Default | What it does                                                                         |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------ |
+| `IRIS_RUANG_HUB=0`      | on      | tickets point at the Worker again (rollback, then restart the service)               |
+| `IRIS_RUANG_SOKET_MAKS` | 5000    | sockets in all rooms together                                                        |
+| `IRIS_JAM_LAB=0`        | on      | leaves the lab clock to the Worker's minute cron                                     |
+| `IRIS_RELAY_LAMA=0`     | on      | stops every POST to the Worker (topics and rooms); do it only after a few quiet days |
+
+The Worker's cron and the server's timer can both run: the minute is claimed in one SQL statement, so it runs once.
+After a week without trouble, `IRIS_RELAY_LAMA=0` is the last step; the Worker stays for Konsol, TP files and as a
+fallback. `/api/sehat` shows `soket.ruang` next to `soket.siaran`.
+
 ## 9. Tuning Postgres for this PC
 
 A stock Postgres is set for a small machine. These values suit a PC with plenty of RAM and an SSD that runs Postgres

@@ -74,7 +74,8 @@ import type {
 } from "../../src/lib/recruitment/seat-types.js";
 import type { SeatCheckin } from "../../src/lib/recruitment/room-types.js";
 import { acakId } from "../../src/lib/tanda.js";
-import { konsolEnv } from "./konsol.js";
+import { ruangEnv } from "./konsol.js";
+import { alamatRuang } from "./penyiar.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { antreUjian, muatConfig, simpanHotspotKursi, sudahMasuk } from "./recruitment-room.js";
 import { judgeSiap } from "./recruitment-lcc.js";
@@ -500,10 +501,10 @@ async function tulisDraw(
 
 /* ---------------------------------------------------------------- ticket */
 
-async function tiket({ res, s, seat, room }: Konteks) {
+async function tiket({ req, res, s, seat, room }: Konteks) {
   noStore(res);
   if (!seat || !room) return void tolakKursi(res, "belum_masuk");
-  const env = konsolEnv();
+  const env = ruangEnv();
   if (!env) return void res.status(200).json({ ok: false, kode: "relay_belum_diatur" });
   const ruang = ruangUjian(room.id);
   const t = await tandaTiketUjian(
@@ -519,7 +520,9 @@ async function tiket({ res, s, seat, room }: Konteks) {
     },
     env.secret,
   );
-  res.status(200).json({ ok: true, url: `${env.relay}/ujian/${ruang}`, tiket: t });
+  const url = alamatRuang(req, "ujian", ruang, env.relay, req.query.lama === "1");
+  if (!url) return void res.status(200).json({ ok: false, kode: "relay_belum_diatur" });
+  res.status(200).json({ ok: true, url, tiket: t });
 }
 
 /* --------------------------------------------------------------- check-in */

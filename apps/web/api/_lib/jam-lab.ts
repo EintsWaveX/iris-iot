@@ -476,6 +476,8 @@ async function tandaiMenyusul(db: Db, berubah: Set<Topik>): Promise<void> {
 
 /** The one-time re-keying (rahasia-putar.ts) has run in this process. */
 let sudahPutar = false;
+/** The running session the last minute saw (undefined before the first look). */
+let sesiMenitLalu: number | null | undefined;
 
 /** Everything the lab clock does in one minute. Never throws. */
 export async function jamLab(db: Db, now: Date): Promise<void> {
@@ -493,7 +495,12 @@ export async function jamLab(db: Db, now: Date): Promise<void> {
   // First, a session past its cap ends at the cap (currentSesi does it), so it
   // ends on time with no page open and the PC Server off.
   try {
-    await currentSesi();
+    const s = await currentSesi();
+    const id = s?.id ?? null;
+    // A session that was running and no longer is ended at its cap (or by hand a moment ago): tell the pages
+    // now, instead of whenever someone next asks.
+    if (sesiMenitLalu != null && id === null) await siarkan(["sesi", "jadwal", "hadir"]);
+    sesiMenitLalu = id;
   } catch (err) {
     console.error("[jam-lab] cap check failed:", err);
   }

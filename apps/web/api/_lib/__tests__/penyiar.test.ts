@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { kirimRelay } from "../aliran.js";
-import { pasangPenyiar, siarkanLokal } from "../penyiar.js";
+import {
+  alamatRuang,
+  kirimRuangLokal,
+  pasangPenyiar,
+  pasangPenyiarRuang,
+  ruangDiServer,
+  siarkanLokal,
+  tutupRuangLokal,
+} from "../penyiar.js";
 
 const ENV_ASLI = { ...process.env };
 
@@ -10,6 +18,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   pasangPenyiar(null);
+  pasangPenyiarRuang(null);
   vi.unstubAllGlobals();
   process.env = { ...ENV_ASLI };
 });
@@ -51,19 +60,30 @@ describe("kirimRelay announces to the local hub first, and to the Worker unless 
     expect(JSON.parse(String(fetchPalsu.mock.calls[0]![1].body))).toEqual({ t: ["sesi"] });
   });
 
-  it("with IRIS_RELAY_LAMA=0 the topics stay on the hub and only room messages go to the Worker", async () => {
+  it("with IRIS_RELAY_LAMA=0 nothing goes to the Worker any more, topics or rooms", async () => {
     process.env.IRIS_RELAY_LAMA = "0";
     const hub = vi.fn(() => 3);
+    const ruang = vi.fn(() => 2);
     pasangPenyiar(hub);
+    pasangPenyiarRuang({ kirim: ruang, tutup: () => 0 });
     const fetchPalsu = vi.fn(async (_u: string, _i: RequestInit) => jawab());
     vi.stubGlobal("fetch", fetchPalsu);
-    await kirimRelay(["sesi"]);
+    const pesan = [{ j: "denyut", g: null, d: 1 }] as never[];
+    await kirimRelay(["sesi"], { "sesi-1": pesan });
     expect(hub).toHaveBeenCalledWith(["sesi"]);
+    expect(ruang).toHaveBeenCalledWith("sesi-1", pesan);
     expect(fetchPalsu).not.toHaveBeenCalled();
-    await kirimRelay(["sesi"], { "sesi-1": [{ j: "denyut" } as never] });
-    const badan = JSON.parse(String(fetchPalsu.mock.calls[0]![1].body));
-    expect(badan).not.toHaveProperty("t");
-    expect(badan.r).toHaveProperty("sesi-1");
+  });
+
+  it("room messages reach the rooms held by this server, and still go to the Worker by default", async () => {
+    const ruang = vi.fn(() => 2);
+    pasangPenyiarRuang({ kirim: ruang, tutup: () => 0 });
+    const fetchPalsu = vi.fn(async (_u: string, _i: RequestInit) => jawab());
+    vi.stubGlobal("fetch", fetchPalsu);
+    const pesan = [{ j: "tel", g: 2, d: [] }] as never[];
+    await kirimRelay([], { "sesi-1": pesan });
+    expect(ruang).toHaveBeenCalledWith("sesi-1", pesan);
+    expect(JSON.parse(String(fetchPalsu.mock.calls[0]![1].body)).r).toHaveProperty("sesi-1");
   });
 
   it("still reaches the hub when no relay is configured", async () => {
@@ -75,5 +95,74 @@ describe("kirimRelay announces to the local hub first, and to the Worker unless 
     await kirimRelay(["sesi"]);
     expect(hub).toHaveBeenCalledWith(["sesi"]);
     expect(fetchPalsu).not.toHaveBeenCalled();
+  });
+});
+
+describe("rooms held by this server", () => {
+  it("reach nobody until the server hands them over, and never throw", () => {
+    expect(ruangDiServer()).toBe(false);
+    expect(kirimRuangLokal("sesi-1", [{}])).toBe(0);
+    expect(tutupRuangLokal("rec-1")).toBe(0);
+    pasangPenyiarRuang({
+      kirim: () => {
+        throw new Error("x");
+      },
+      tutup: () => {
+        throw new Error("y");
+      },
+    });
+    expect(ruangDiServer()).toBe(true);
+    expect(kirimRuangLokal("sesi-1", [{}])).toBe(0);
+    expect(tutupRuangLokal("rec-1")).toBe(0);
+  });
+});
+
+describe("alamatRuang", () => {
+  const req = (h: Record<string, string>) => ({ headers: h });
+  const relay = "wss://relay.example";
+
+  it("points at the relay until this server holds the rooms", () => {
+    expect(alamatRuang(req({ host: "irisiotlab.com" }), "aliran", "pc", relay, false)).toBe(
+      "wss://relay.example/aliran/pc",
+    );
+    expect(alamatRuang(req({ host: "irisiotlab.com" }), "aliran", "pc", null, false)).toBeNull();
+  });
+
+  it("points at this server once it holds them, over wss on the public host", () => {
+    pasangPenyiarRuang({ kirim: () => 0, tutup: () => 0 });
+    expect(alamatRuang(req({ host: "irisiotlab.com" }), "ujian", "rec-7", relay, false)).toBe(
+      "wss://irisiotlab.com/ujian/rec-7",
+    );
+    expect(
+      alamatRuang(
+        req({
+          host: "127.0.0.1:8787",
+          "x-forwarded-host": "pc.irisiotlab.com",
+          "x-forwarded-proto": "https",
+        }),
+        "ujian",
+        "rec-7",
+        relay,
+        false,
+      ),
+    ).toBe("wss://pc.irisiotlab.com/ujian/rec-7");
+    expect(alamatRuang(req({ host: "localhost:8787" }), "aliran", "sesi-2", null, false)).toBe(
+      "ws://localhost:8787/aliran/sesi-2",
+    );
+  });
+
+  it("falls back to the relay when the page asks for it (lama) or IRIS_RUANG_HUB=0", () => {
+    pasangPenyiarRuang({ kirim: () => 0, tutup: () => 0 });
+    expect(alamatRuang(req({ host: "irisiotlab.com" }), "aliran", "pc", relay, true)).toBe(
+      "wss://relay.example/aliran/pc",
+    );
+    // With no relay to fall back to, the page keeps using this server.
+    expect(alamatRuang(req({ host: "irisiotlab.com" }), "aliran", "pc", null, true)).toBe(
+      "wss://irisiotlab.com/aliran/pc",
+    );
+    process.env.IRIS_RUANG_HUB = "0";
+    expect(alamatRuang(req({ host: "irisiotlab.com" }), "aliran", "pc", relay, false)).toBe(
+      "wss://relay.example/aliran/pc",
+    );
   });
 });

@@ -70,6 +70,20 @@ export function konsolEnv(): { relay: string; secret: string } | null {
   return { relay: relay.replace(/\/+$/, ""), secret };
 }
 
+/**
+ * What the session and exam rooms need: the shared secret that signs their tickets, and the relay's address
+ * when one is set (the old way in, kept as a fallback while the rooms live in this server). Null without a secret.
+ */
+export function ruangEnv(): { relay: string | null; secret: string } | null {
+  const secret = process.env.KONSOL_RELAY_SECRET?.trim();
+  if (!secret || secret.length < 32) return null;
+  const relay = process.env.KONSOL_RELAY_URL?.trim();
+  return {
+    relay: relay && /^wss?:\/\//.test(relay) ? relay.replace(/\/+$/, "") : null,
+    secret,
+  };
+}
+
 type Row = typeof konsolPc.$inferSelect;
 type Peserta = typeof konsolPeserta.$inferSelect;
 

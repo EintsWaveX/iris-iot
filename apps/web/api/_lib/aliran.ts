@@ -9,8 +9,8 @@ import { createHmac } from "node:crypto";
 import { eq } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { noStore } from "./http.js";
-import { konsolEnv } from "./konsol.js";
-import { siarkanLokal } from "./penyiar.js";
+import { konsolEnv, ruangEnv } from "./konsol.js";
+import { alamatRuang, kirimRuangLokal, relayLamaMenyala, siarkanLokal } from "./penyiar.js";
 import { currentSession, requireCurrentPraktikanSesi, requireRole } from "./session.js";
 import { nomorWakil, wakilKelompok } from "./wakil.js";
 import { getDb } from "../../src/lib/db.js";
@@ -49,8 +49,11 @@ export async function kirimRelay(
   ruang: Readonly<Record<string, PesanAliran[]>> = {},
 ): Promise<void> {
   siarkanLokal(topik);
+  // The rooms this server holds hear their messages straight away; the relay's rooms only matter to pages
+  // that could not reach this server and fell back to the Worker.
+  for (const [k, m] of Object.entries(ruang)) kirimRuangLokal(k, m);
   const env = konsolEnv();
-  if (!env) return;
+  if (!env || !relayLamaMenyala()) return;
   const kini = Date.now();
   const r: Record<string, PesanAliran[]> = {};
   for (const [k, m] of Object.entries(ruang)) {
@@ -58,7 +61,7 @@ export async function kirimRelay(
     const kirim = sepi ? m.filter((x) => !ALIRAN_DERAS.has(x.j)) : m;
     if (kirim.length) r[k] = kirim;
   }
-  const t = process.env.IRIS_RELAY_LAMA === "0" ? [] : [...new Set(topik)];
+  const t = [...new Set(topik)];
   if (!t.length && !Object.keys(r).length) return;
   const body = JSON.stringify({
     ...(t.length ? { t } : {}),
@@ -139,7 +142,7 @@ export async function nomorDariId(kelompokId: number): Promise<number | null> {
  */
 export async function handleAliranGet(req: ApiRequest, res: ApiResponse) {
   noStore(res);
-  const env = konsolEnv();
+  const env = ruangEnv();
   if (!env) {
     res.status(200).json({ ok: false, kode: "relay_belum_diatur" });
     return;
@@ -154,7 +157,12 @@ export async function handleAliranGet(req: ApiRequest, res: ApiResponse) {
       { v: 1, p: "aliran", r: "pc", peran: "asisten", g: null, u: s.nim, exp, n: acakId() },
       env.secret,
     );
-    res.status(200).json({ ok: true, url: `${env.relay}/aliran/pc`, tiket, ruang: "pc" });
+    const url = alamatRuang(req, "aliran", "pc", env.relay, req.query.lama === "1");
+    if (!url) {
+      res.status(200).json({ ok: false, kode: "relay_belum_diatur" });
+      return;
+    }
+    res.status(200).json({ ok: true, url, tiket, ruang: "pc" });
     return;
   }
   if (ruangMinta !== "sesi") {
@@ -192,7 +200,10 @@ export async function handleAliranGet(req: ApiRequest, res: ApiResponse) {
     { v: 1, p: "aliran", r: ruang, peran, g, u: nim, exp, n: acakId() },
     env.secret,
   );
-  res
-    .status(200)
-    .json({ ok: true, url: `${env.relay}/aliran/${ruang}`, tiket, ruang, sesiId: running.id, g });
+  const url = alamatRuang(req, "aliran", ruang, env.relay, req.query.lama === "1");
+  if (!url) {
+    res.status(200).json({ ok: false, kode: "relay_belum_diatur" });
+    return;
+  }
+  res.status(200).json({ ok: true, url, tiket, ruang, sesiId: running.id, g });
 }
