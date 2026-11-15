@@ -48,6 +48,7 @@ import { kirimNaik, useAliran, useCadangan, usePenonton } from "../../lib/aliran
 import { useProyektor } from "../../lib/proyektor";
 import { KELOMPOK_DEFAULT } from "../../lib/jadwal";
 import { useMinWidth } from "../../lib/hooks";
+import { dengar } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
 import { BOARDS, type BoardRole, type SerialEvent } from "../../lib/serial-lines";
 import { LiveRecords } from "../../lib/live-records";
@@ -362,12 +363,17 @@ export default function LiveRoom({
       }
     };
     void ask();
-    // The key appears only once the Asisten opens the hunt: ask again until it does.
+    // The key appears only once the Asisten opens the hunt (which announces `buru` and `sesi`): ask when it does,
+    // and now and then in case that was missed.
+    const lepas = dengar(["buru", "sesi"], () => {
+      if (!huntKeyRef.current) void ask();
+    });
     const id = window.setInterval(() => {
       if (!huntKeyRef.current) void ask();
-    }, 20_000);
+    }, 60_000);
     return () => {
       alive = false;
+      lepas();
       window.clearInterval(id);
     };
   }, [bolehKunci, grupForm, praktikan]);

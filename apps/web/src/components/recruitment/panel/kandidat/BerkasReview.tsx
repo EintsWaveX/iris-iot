@@ -26,6 +26,7 @@ import SegmentedControl from "../../../ui/SegmentedControl";
 import { Stepper, Switch } from "../../../ui/Controls";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recGet, recPost } from "../../../../lib/recruitment/client";
+import { useSiaran } from "../../../../lib/siaran";
 import { tanggalWib } from "../../../../lib/recruitment/gates";
 import {
   type BerkasFile,
@@ -107,6 +108,16 @@ export default function BerkasReview({
     setD(null);
     void muat();
   }, [id]);
+  // A new file or a change by someone else: the files and the candidate update, a verdict being typed stays.
+  useSiaran(
+    ["reccandidates"],
+    () =>
+      void recGet<CandidateDetailResponse>("candidate", { id: String(id) }).then((r) => {
+        if (!isFail(r)) setD(r);
+      }),
+    true,
+    1000,
+  );
   useEffect(() => {
     if (body.current && arah.current && motion !== "reduce")
       gsap.fromTo(

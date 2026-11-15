@@ -433,6 +433,8 @@ The Worker's cron and the server's timer can both run: the minute is claimed in 
 After a week without trouble, `IRIS_RELAY_LAMA=0` is the last step; the Worker stays for Konsol, TP files and as a
 fallback. `/api/sehat` shows `soket.ruang` next to `soket.siaran`.
 
+`IRIS_PANTAU_QR=0` turns off the server reading a QR wall's Google Form sheet every 2.5 s while a page watches it (pages are told with the `recqr` topic; with it off they ask every 20 s).
+
 ## 9. Tuning Postgres for this PC
 
 A stock Postgres is set for a small machine. These values suit a PC with plenty of RAM and an SSD that runs Postgres

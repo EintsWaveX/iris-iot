@@ -43,6 +43,7 @@ import { tanggalPanjang } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recGet, recPost, useRecEdition } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
+import { useSiaran } from "../../../lib/siaran";
 import {
   type CandidateDetailResponse,
   type CandidateRow,
@@ -121,6 +122,16 @@ function Lembar({
     setD(null);
     void muat();
   }, [id]);
+  // Someone else changed this candidate (a review, a new file, a scan): read it again, quietly.
+  useSiaran(
+    ["reccandidates"],
+    () =>
+      void recGet<CandidateDetailResponse>("candidate", { id: String(id) }).then((res) => {
+        if (!isFail(res)) setD(res);
+      }),
+    true,
+    1000,
+  );
 
   async function putus(decision: "approve" | "revision", note?: string): Promise<boolean> {
     setBusy(true);

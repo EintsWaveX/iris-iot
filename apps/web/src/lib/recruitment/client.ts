@@ -8,6 +8,7 @@
  * The hooks refetch at once on the three siaran topics (recedition,
  * reccalendar, reccandidates) and never poll on a timer of their own.
  */
+import { useEffect, useRef } from "react";
 import { usePoll, usePollBersama } from "../hooks";
 import type { Topik } from "../siaran";
 import { setBebasHook } from "./bebas";
@@ -251,14 +252,26 @@ export function useRecQrEvents(enabled: boolean) {
 
 /** The last four scans of an event that shows a Google Form QR, read from its responses sheet (not ours, so it polls). */
 export function useRecQrRecent(eventId: number | null, enabled: boolean) {
-  return usePoll(
+  const aktif = enabled && eventId !== null;
+  const p = usePoll(
     () => leaf(recGet<QrRecentResponse>("qr-recent", { event: String(eventId) })),
-    6_000,
-    enabled && eventId !== null,
-    [],
-    1_000,
+    20_000,
+    aktif,
+    ["recqr"],
+    500,
     eventId,
   );
+  // The server announces a new scan (recqr). This slower ask backs that up, and keeps the server reading the sheet.
+  const segarkan = useRef(p.refresh);
+  segarkan.current = p.refresh;
+  useEffect(() => {
+    if (!aktif) return;
+    const id = setInterval(() => {
+      if (!document.hidden) segarkan.current();
+    }, 20_000);
+    return () => clearInterval(id);
+  }, [aktif]);
+  return p;
 }
 
 /** The Kehadiran drawer's list for one event. */
