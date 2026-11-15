@@ -248,6 +248,38 @@ describe("/api/sehat", () => {
   });
 });
 
+describe("/api/sehat?metrik=1", () => {
+  const TOKEN = "t".repeat(24);
+
+  it("stays closed when no token is configured, and shows pool, sockets and loop lag publicly", async () => {
+    const buka = await (await ambil("/api/sehat")).json();
+    expect(buka).toHaveProperty("kolam");
+    expect(buka).toHaveProperty("soket");
+    expect(buka.jedaLoopMs).toHaveProperty("p99");
+    expect((await ambil("/api/sehat?metrik=1", { headers: { "x-metrik": TOKEN } })).status).toBe(
+      404,
+    );
+  });
+
+  it("returns per-route numbers for the right token only", async () => {
+    process.env.IRIS_METRIK_TOKEN = TOKEN;
+    try {
+      await ambil("/api/session/now");
+      expect((await ambil("/api/sehat?metrik=1")).status).toBe(404);
+      expect(
+        (await ambil("/api/sehat?metrik=1", { headers: { "x-metrik": "x".repeat(24) } })).status,
+      ).toBe(404);
+      const r = await ambil("/api/sehat?metrik=1", { headers: { "x-metrik": TOKEN } });
+      expect(r.status).toBe(200);
+      const j = await r.json();
+      expect(j.rute.some((x: { rute: string }) => x.rute === "GET /api/session/now")).toBe(true);
+      expect(j.rute[0]).toHaveProperty("p95");
+    } finally {
+      delete process.env.IRIS_METRIK_TOKEN;
+    }
+  });
+});
+
 describe("uraiBadan", () => {
   it("reads a body the way Vercel does", () => {
     expect(uraiBadan("application/json", Buffer.from('{"a":1}'))).toEqual({ a: 1 });

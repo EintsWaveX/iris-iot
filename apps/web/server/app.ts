@@ -15,12 +15,24 @@ import { hostname } from "node:os";
 import { pathToFileURL } from "node:url";
 import type { ApiHandler, ApiRequest, ApiResponse } from "../api/_lib/http.js";
 import { jumlahLatar } from "../api/_lib/tunggu.js";
+import { statusKolam } from "../src/lib/db.js";
 import { compileRules, type VercelConfig } from "./rules.js";
 import { cocokkanRute, petaRute, type Rute } from "./routes.js";
 import { akhiriJson } from "./kompres.js";
 import { sajikanBerkas, type BacaBerkas, type CekBerkas } from "./berkas.js";
 import { cariBerkas, sajikan } from "./static.js";
 import { aturKuis } from "./kuis-host.js";
+import {
+  bolehLihat,
+  catat,
+  dalamLingkup,
+  jedaLoop,
+  jumlahSoket,
+  kunciRute,
+  ringkas,
+  ulang,
+  type Lingkup,
+} from "./metrik.js";
 
 /** Vercel's own body limit, kept so a handler sees what it sees there (JSON and forms). */
 export const BATAS_BADAN = 4.5 * 1024 * 1024;
@@ -29,8 +41,9 @@ export const BATAS_BERKAS = 21 * 1024 * 1024;
 /** Vercel's default function time; vercel.json's `maxDuration` narrows it per route. */
 export const DURASI_BAWAAN_DETIK = 300;
 
-/** An answer slower than this is logged as `[server] slow ...`. */
-export const AMBANG_LAMBAT_MS = 2000;
+/** An answer slower than this is logged as `[server] slow ...` (IRIS_LAMBAT_MS, default 2000 ms). */
+export const AMBANG_LAMBAT_MS =
+  Number(process.env.IRIS_LAMBAT_MS) > 0 ? Number(process.env.IRIS_LAMBAT_MS) : 2000;
 
 export interface OpsiApp {
   /** apps/web (holds api/, vercel.json and what handlers read from disk). */
@@ -183,8 +196,10 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
     // An answer that takes long is named in the journal (route and action only, never the query string),
     // so a slow page can be traced to the request that held the process.
     const t0 = Date.now();
+    const lingkup: Lingkup = { n: 0, ms: 0 };
     res.on("close", () => {
       const ms = Date.now() - t0;
+      catat(kunciRute(req.method ?? "GET", req.url ?? "/"), res.statusCode, ms, lingkup);
       if (ms < AMBANG_LAMBAT_MS) return;
       const [jalur = "", kueri = ""] = (req.url ?? "").split("?");
       const aksi = new URLSearchParams(kueri).get("aksi");
@@ -192,7 +207,7 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
         `[server] slow ${req.method} ${jalur}${aksi ? `?aksi=${aksi.slice(0, 40)}` : ""} ${res.statusCode} ${ms} ms`,
       );
     });
-    void (async () => {
+    void dalamLingkup(lingkup, async () => {
       let url: URL;
       try {
         url = new URL(req.url ?? "/", "http://iris.local");
@@ -234,7 +249,19 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
           sha: opsi.sha ?? process.env.IRIS_BUILD_SHA ?? null,
           jalanDetik: Math.round((Date.now() - mulai) / 1000),
           latar: jumlahLatar(),
+          kolam: statusKolam(),
+          soket: jumlahSoket(),
+          jedaLoopMs: jedaLoop(),
         };
+        // The per-route numbers, only with the metrics token (closed when none is configured).
+        if (url.searchParams.get("metrik") === "1") {
+          if (!bolehLihat(String(req.headers["x-metrik"] ?? ""))) {
+            return tak(res, 404, { ok: false, kode: "tidak_ditemukan" });
+          }
+          const hasil = ringkas();
+          if (url.searchParams.get("ulang") === "1") ulang();
+          return tak(res, 200, { ...badan, ...hasil });
+        }
         if (url.searchParams.get("db") === "1" && opsi.periksaDb) {
           try {
             await Promise.race([
@@ -276,7 +303,7 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
       res.statusCode = 404;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.end("Not found");
-    })().catch((err) => {
+    }).catch((err) => {
       console.error("[server] unhandled:", err);
       if (!res.headersSent) tak(res, 500, { ok: false, kode: "galat_server" });
       else res.destroy();
