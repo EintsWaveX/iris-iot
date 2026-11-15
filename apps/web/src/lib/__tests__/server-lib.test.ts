@@ -5,7 +5,6 @@ import {
   TELEMETRI_MAX_PER_DENYUT,
   telemetriBaris,
   INTERVAL_IDLE_SEC,
-  INTERVAL_MALAM_SEC,
   INTERVAL_TES_TULIS_SEC,
   dalamJendelaTesTulis,
   downsample,
@@ -21,18 +20,13 @@ import {
 describe("batasLuringDetik", () => {
   const mulai = new Date("2026-09-24T02:30:00Z");
 
-  it("allows the night interval for a beat in the quiet hours (WIB)", () => {
-    // 03:00 WIB: the beat may have been told to wait 10 minutes.
-    expect(batasLuringDetik(new Date("2026-09-24T03:00:00+07:00"), null)).toBeGreaterThan(
-      INTERVAL_MALAM_SEC,
-    );
-    // 05:00 WIB and 23:59 WIB are the day's pace again.
-    expect(batasLuringDetik(new Date("2026-09-24T05:00:00+07:00"), null)).toBeLessThan(
-      INTERVAL_MALAM_SEC,
-    );
-    expect(batasLuringDetik(new Date("2026-09-24T23:59:00+07:00"), null)).toBeLessThan(
-      INTERVAL_MALAM_SEC,
-    );
+  it("is the same at any hour: no slower night beat any more", () => {
+    // The database is local now, so 03:00 WIB gets the resting pace like 14:00.
+    for (const jam of ["03:00:00", "05:00:00", "14:00:00", "23:59:00"]) {
+      expect(batasLuringDetik(new Date(`2026-09-24T${jam}+07:00`), null)).toBe(
+        INTERVAL_IDLE_SEC + 60,
+      );
+    }
   });
 
   it("allows the idle interval when no session is running", () => {
@@ -58,9 +52,10 @@ describe("batasLuringDetik", () => {
 });
 
 describe("the day's beat", () => {
-  it("is quick only inside a Tes Tulis window and lazy otherwise", () => {
-    expect(INTERVAL_TES_TULIS_SEC).toBe(30);
-    expect(INTERVAL_IDLE_SEC).toBe(60);
+  it("is quick inside a session or a Tes Tulis window and a few seconds slower otherwise", () => {
+    expect(INTERVAL_AKTIF_SEC).toBe(5);
+    expect(INTERVAL_TES_TULIS_SEC).toBe(5);
+    expect(INTERVAL_IDLE_SEC).toBe(10);
     expect(INTERVAL_IDLE_SEC).toBeGreaterThan(INTERVAL_TES_TULIS_SEC);
   });
 
@@ -157,7 +152,7 @@ describe("detectGaps", () => {
     expect(gaps[0].sampai).toBe("2026-09-24T01:30:00Z");
   });
 
-  it("takes the night beat's 10 minutes in the quiet hours (WIB) as no gap", () => {
+  it("takes the old night beat's 10 minutes (before 15 Nov 2026) in the quiet hours (WIB) as no gap", () => {
     const rows = [
       { pada: "2026-09-24T02:00:00+07:00" },
       { pada: "2026-09-24T02:10:00+07:00" }, // the night pace
@@ -170,6 +165,13 @@ describe("detectGaps", () => {
       "2026-09-24T02:10:00+07:00",
       "2026-09-24T02:40:00+07:00",
       "2026-09-24T09:00:00+07:00",
+    ]);
+  });
+
+  it("shows a 10-minute silence at night as a gap now that the night beat is gone", () => {
+    const rows = [{ pada: "2026-11-16T02:00:00+07:00" }, { pada: "2026-11-16T02:10:00+07:00" }];
+    expect(detectGaps(rows, GAP_AMBANG_DETIK).map((g) => g.dari)).toEqual([
+      "2026-11-16T02:00:00+07:00",
     ]);
   });
 });

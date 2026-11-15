@@ -388,11 +388,15 @@ sudo systemctl restart postgresql
 sudo -u postgres psql -d iris -c "create extension if not exists pg_stat_statements"
 ```
 
+(The file is piped through `cat` because the `postgres` user cannot read `/opt/iris-web`; `psql -f` would say
+"permission denied". The same goes for applying a migration:
+`sudo cat /opt/iris-web/apps/web/drizzle/00NN_name.sql | sudo -u postgres psql -d iris -v ON_ERROR_STOP=1`.)
+
 Then take the baseline (cache hit ratio, connections, biggest tables, sequential-scan-heavy tables, unused indexes,
 the settings that matter, top 20 statements by total time):
 
 ```sh
-sudo -u postgres psql -d iris -f /opt/iris-web/apps/web/deploy/baseline-db.sql > ~/db-baseline-$(date +%F).txt
+sudo cat /opt/iris-web/apps/web/deploy/baseline-db.sql | sudo -u postgres psql -d iris > ~/db-baseline-$(date +%F).txt
 ```
 
 **The web as a visitor sees it** (from a laptop; use `http://127.0.0.1:8787` on the PC for the server alone):
@@ -410,3 +414,54 @@ FANOUT_SECRET=... node scripts/fanout.mjs --url wss://HOST/siaran --emit bearer 
 ```
 
 Baselines taken so far are in `apps/web/perf/`.
+
+## 9. Tuning Postgres for this PC
+
+A stock Postgres is set for a small machine. These values suit a PC with plenty of RAM and an SSD that runs Postgres
+beside the site, `cloudflared` and the lab services. Sizes come from the RAM: take **RAM = 16 GB** here and scale the
+three memory lines for another machine (the second server will have more).
+
+| Setting                        | Value              | Why                                                                                |
+| ------------------------------ | ------------------ | ---------------------------------------------------------------------------------- |
+| `shared_buffers`               | 25% of RAM (4 GB)  | Postgres's own cache of table and index pages                                      |
+| `effective_cache_size`         | 60% of RAM (10 GB) | tells the planner the OS also caches; no memory is reserved                        |
+| `work_mem`                     | 16 MB              | per sort or hash in a query; the report queries sort a little                      |
+| `maintenance_work_mem`         | 512 MB             | index builds and vacuum                                                            |
+| `random_page_cost`             | 1.1                | an SSD reads a random page almost as fast as a sequential one                      |
+| `effective_io_concurrency`     | 200                | SSD                                                                                |
+| `wal_compression`              | on                 | smaller WAL for the heartbeat and telemetry writes                                 |
+| `checkpoint_completion_target` | 0.9                | spreads checkpoint writes                                                          |
+| `max_wal_size`                 | 2 GB               | fewer forced checkpoints under bursts                                              |
+| `track_io_timing`              | on                 | read and write time per query in `pg_stat_statements`                              |
+| `max_connections`              | 200                | the site's pool is 30 per process (`IRIS_DB_POOL`); leave room for several workers |
+
+```sh
+sudo -u postgres psql <<'SQL'
+alter system set shared_buffers = '4GB';
+alter system set effective_cache_size = '10GB';
+alter system set work_mem = '16MB';
+alter system set maintenance_work_mem = '512MB';
+alter system set random_page_cost = 1.1;
+alter system set effective_io_concurrency = 200;
+alter system set wal_compression = on;
+alter system set checkpoint_completion_target = 0.9;
+alter system set max_wal_size = '2GB';
+alter system set track_io_timing = on;
+alter system set max_connections = 200;
+SQL
+sudo systemctl restart postgresql      # shared_buffers and max_connections need a restart; do it at a quiet moment
+```
+
+`denyut` (a row per PC beat) and `telemetri_log` are inserted and pruned all day, so their dead rows pile up fast.
+Make autovacuum visit them sooner:
+
+```sh
+sudo -u postgres psql -d iris <<'SQL'
+alter table denyut set (autovacuum_vacuum_scale_factor = 0.02, autovacuum_analyze_scale_factor = 0.02);
+alter table telemetri_log set (autovacuum_vacuum_scale_factor = 0.02, autovacuum_analyze_scale_factor = 0.02);
+SQL
+```
+
+After a restart, check with `show shared_buffers;` and run section 8's database baseline again to compare the cache hit
+ratio and the top statements. If the site's workers (Phase 3 of the upgrade) are many, lower `IRIS_DB_POOL` so that
+workers times pool stays under `max_connections` minus a margin.

@@ -37,28 +37,19 @@ const ENROLL_TOKEN_TTL_MIN = 30;
 // (a `sesi` row with status "berjalan") -- so the server is what decides the
 // pace, rather than the agent guessing from its own local signals. The agent
 // only hears about a queued command in a heartbeat reply, so this interval is
-// also how long an assistant's button press waits: 15s during a session, 60s
-// idle (it was 10min, which made the Server tab feel stuck), and 5s "siaga"
-// for SIAGA_MENIT after any command was queued, so chained actions (run a
-// diagnostic, then fetch its log) answer within seconds. Idle stays well
-// above the 5min a Neon free-tier compute needs to suspend only overnight.
-// A Module 2 to 4 session beats every 5s too: its readings reach the live
-// page only with a beat, and 15s made the page jump in bursts.
-// In the quiet hours (jamSepi) an idle beat waits a while longer while no
-// Asisten is online, so the database can sleep between beats (2026-10-21: a
-// beat every minute or less kept Neon awake all night and spent its quota).
-// 2026-11-07: the server plan is bought now, so the beat can be quicker, but only
-// where Oprec needs it (user): the lab PC judges Tes Tulis and nothing else, so the
-// quick 30 s beat runs only inside a Tes Tulis slot's own time window (a little before
-// and after it). Any other time of day, including a day whose sessions are all some
-// other test (Wawancara, Tubes, ...), is the lazy 60 s beat. The quiet hours' beat
-// stays at 600 s, since nobody tests at midnight, unless a Tes Tulis window is on.
-export const INTERVAL_AKTIF_SEC = 15;
-/** The day's lazy beat: nothing on the lab PC is needed for Oprec right now. */
-export const INTERVAL_IDLE_SEC = 60;
+// also how long an assistant's button press waits, and the agent sleeps exactly
+// what it is told. 5 s while a session runs, a command is queued ("siaga" for
+// SIAGA_MENIT, so chained actions answer within seconds), a Tes Tulis room is
+// open or its slot's window is on; 10 s the rest of the day and night.
+// 15 Nov 2026: these were 15 s / 30 s / 60 s, and 600 s in the quiet hours, to
+// let a Neon free-tier compute sleep and save its quota. The database is on this
+// PC now and a beat costs a few local queries, so the pace no longer depends on
+// the hour, and a page shows a PC's state within seconds instead of a minute.
+export const INTERVAL_AKTIF_SEC = 5;
+/** The resting beat: nothing on the lab PC is needed right now, so a page still sees it within seconds. */
+export const INTERVAL_IDLE_SEC = 10;
 /** Inside a Tes Tulis slot's window: the lab PC stays close, so Cek Judge and the first Submit are quick. */
-export const INTERVAL_TES_TULIS_SEC = 30;
-export const INTERVAL_MALAM_SEC = 600;
+export const INTERVAL_TES_TULIS_SEC = 5;
 /** How long before a Tes Tulis slot starts, and after it ends, its window counts (set-up, Cek Judge, the judge's tail). */
 export const JENDELA_TES_TULIS_AWAL_MENIT = 30;
 export const JENDELA_TES_TULIS_AKHIR_MENIT = 30;
@@ -82,7 +73,6 @@ const TENGGANG_LURING_SEC = 60;
 export function batasLuringDetik(denyutPada: Date | null, sesiMulaiPada: Date | null): number {
   const cepat = denyutPada !== null && sesiMulaiPada !== null && denyutPada >= sesiMulaiPada;
   if (cepat) return INTERVAL_AKTIF_SEC + TENGGANG_LURING_SEC;
-  if (denyutPada !== null && jamSepi(denyutPada)) return INTERVAL_MALAM_SEC + TENGGANG_LURING_SEC;
   return INTERVAL_IDLE_SEC + TENGGANG_LURING_SEC;
 }
 
@@ -618,11 +608,16 @@ export interface GapEvent {
  */
 export const GAP_AMBANG_DETIK = INTERVAL_IDLE_SEC + TENGGANG_LURING_SEC;
 
-/** The threshold for a silence starting at `dari`: a beat in the quiet
- *  hours may have been told to wait INTERVAL_MALAM_SEC. */
+/** Until this moment the quiet hours had a 10-minute beat (removed 15 Nov 2026, ~13:00 WIB). */
+const MALAM_LAMA_SAMPAI = Date.parse("2026-11-15T06:00:00Z");
+const INTERVAL_MALAM_LAMA_SEC = 600;
+
+/** The threshold for a silence starting at `dari`: history from before the change keeps the night allowance,
+ *  so an old night's 10-minute beat is not shown as an outage. */
 function ambangSejak(dari: string | Date, ambangDetik: number): number {
-  return jamSepi(new Date(dari))
-    ? Math.max(ambangDetik, INTERVAL_MALAM_SEC + TENGGANG_LURING_SEC)
+  const t = new Date(dari);
+  return t.getTime() < MALAM_LAMA_SAMPAI && jamSepi(t)
+    ? Math.max(ambangDetik, INTERVAL_MALAM_LAMA_SEC + TENGGANG_LURING_SEC)
     : ambangDetik;
 }
 
