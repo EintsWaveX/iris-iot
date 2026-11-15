@@ -194,6 +194,53 @@ describe("a session room", () => {
     expect(laptop.json().at(-1)).toEqual({ penonton: 0, asisten: 0 });
   });
 
+  it("counts watchers per group in a mixed room: not itself, Asisten told apart, others' groups apart", async () => {
+    const { base } = await pasang();
+    const url = async (peran: TiketAliran["peran"], g: number | null) =>
+      `${base}/aliran/sesi-8?tiket=${encodeURIComponent(await tiketAliran("sesi-8", peran, g))}`;
+    const g1 = await masuk(await url("praktikan", 1));
+    const g1b = await masuk(await url("praktikan", 1));
+    const g3 = await masuk(await url("praktikan", 3));
+    const a1 = await masuk(await url("asisten", null));
+    const a2 = await masuk(await url("asisten", null));
+    await tunggu(30);
+    // Two Asisten look at group 1; one of group 1's own laptops looks at its own group; group 3 is watched by g1b.
+    a1.ws.send(JSON.stringify({ j: "lihat", g: 1 }));
+    a2.ws.send(JSON.stringify({ j: "lihat", g: 1 }));
+    g1b.ws.send(JSON.stringify({ j: "lihat", g: 3 }));
+    g1.ws.send(JSON.stringify({ j: "lihat", g: 1 }));
+    await tunggu(80);
+    const akhir = (x: typeof g1) =>
+      x
+        .json()
+        .filter((m) => "penonton" in m)
+        .at(-1);
+    // g1: the two Asisten, not itself (it looks at its own group but does not count itself).
+    expect(akhir(g1)).toEqual({ penonton: 2, asisten: 2 });
+    // g1b (also group 1): the two Asisten and g1, who looks at group 1.
+    expect(akhir(g1b)).toEqual({ penonton: 3, asisten: 2 });
+    // g3: only g1b looks at it, and g1b is not an Asisten.
+    expect(akhir(g3)).toEqual({ penonton: 1, asisten: 0 });
+    // Asisten (no group) are never told.
+    expect(akhir(a1)).toBeUndefined();
+  });
+
+  it("handles a room of hundreds of joins without blocking for long", async () => {
+    const { base } = await pasang();
+    const N = 300;
+    const t0 = performance.now();
+    const klien: Array<Awaited<ReturnType<typeof masuk>>> = [];
+    for (let i = 0; i < N; i++) {
+      const t = await tiketAliran("sesi-9", "praktikan", 1 + (i % 20));
+      klien.push(await masuk(`${base}/aliran/sesi-9?tiket=${encodeURIComponent(t)}`));
+    }
+    const ms = performance.now() - t0;
+    await tunggu(100);
+    expect(klien.length).toBe(N);
+    // 300 joins used to cost O(n^2) each; this is a loose bound that only a regression to that would break on a slow runner.
+    expect(ms).toBeLessThan(15_000);
+  }, 30_000);
+
   it("answers ping, drops a socket that talks too much, closes a silent one", async () => {
     const { base } = await pasang({ jedaPingMs: 20, sunyiMs: 80 });
     const t = await tiketAliran("sesi-7", "asisten", null);
