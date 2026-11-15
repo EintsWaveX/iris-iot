@@ -1,6 +1,8 @@
 -- Database baseline (real-time upgrade, Phase 0). READ-ONLY: only SELECTs, safe on the live database.
 --
---   sudo -u postgres psql -d iris -f /opt/iris-web/apps/web/deploy/baseline-db.sql > ~/db-baseline-$(date +%F).txt
+--   sudo cat /opt/iris-web/apps/web/deploy/baseline-db.sql | sudo -u postgres psql -d iris > ~/db-baseline-$(date +%F).txt
+--
+-- (Piped through cat: the postgres user cannot read /opt/iris-web, so psql -f would say "permission denied".)
 --
 -- Run it once before a change and once after, and compare. The pg_stat_statements part needs the extension
 -- (deploy/DEPLOY.md, "8. Measuring"); without it that part just prints a notice.

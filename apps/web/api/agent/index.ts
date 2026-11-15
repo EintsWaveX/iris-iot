@@ -105,7 +105,6 @@ import {
   sweepPerintahKedaluwarsa,
   INTERVAL_AKTIF_SEC,
   INTERVAL_IDLE_SEC,
-  INTERVAL_MALAM_SEC,
   INTERVAL_SIAGA_SEC,
   INTERVAL_TELEMETRI_SEC,
   INTERVAL_TES_TULIS_SEC,
@@ -114,8 +113,6 @@ import {
   adaPerintahBaru,
   batasLuringDetik,
 } from "../../src/lib/server-lib.js";
-import { jamSepi } from "../../src/lib/sesi-mulai.js";
-import { adaAsistenOnline } from "../_lib/kehadiran.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { bacaJaringanHunt } from "../../src/lib/jaringan-hunt.js";
@@ -358,8 +355,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // Fastest applicable pace wins: a command in flight beats the session/idle
     // cadence, so the result comes back (and the next press is claimed) fast.
     // A waiting SeeLabs read keeps the beat at the session pace, never the
-    // fast one, which stays for a save or a job someone waits on. In the
-    // quiet hours an idle beat waits 10 minutes unless an Asisten is online.
+    // fast one, which stays for a save or a job someone waits on.
     const robot = await adaTugasRobot(db, serverId);
     const siaga =
       pending.length > 0 ||
@@ -375,17 +371,15 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
           ? INTERVAL_TELEMETRI_SEC
           : sesiAktif || robot === "baca" || tugasSeelabs.length > 0
             ? INTERVAL_AKTIF_SEC
-            : // An open exam room keeps the PC close, in the quiet hours too: its first Submit is
-              // claimed at once instead of waiting out the idle beat (2026-11-07).
+            : // An open exam room keeps the PC close: its first Submit is claimed at once
+              // instead of waiting out the resting beat (2026-11-07).
               (await ujianBuka(db))
               ? INTERVAL_UJIAN_SEC
-              : // Inside a Tes Tulis slot's own window (before the room opens, the quiet hours too):
-                // the quick beat. Any other time, a day of other tests included, the lazy one.
+              : // Inside a Tes Tulis slot's own window (before the room opens): the quick beat.
+                // Any other time, a day of other tests included, the resting one.
                 (await tesTulisJalan(db))
                 ? INTERVAL_TES_TULIS_SEC
-                : jamSepi() && !(await adaAsistenOnline())
-                  ? INTERVAL_MALAM_SEC
-                  : INTERVAL_IDLE_SEC;
+                : INTERVAL_IDLE_SEC;
 
     await pruneOldTelemetryOccasionally();
 
