@@ -422,12 +422,12 @@ who-sees-what rules as the Worker's rooms. A page's ticket request now answers w
 for a while. The lab clock also runs in the server, two seconds into every minute (starts sessions at their
 attendance clock, ends them at their cap with no page open, announces it).
 
-| Variable | Default | What it does |
-| --- | --- | --- |
-| `IRIS_RUANG_HUB=0` | on | tickets point at the Worker again (rollback, then restart the service) |
-| `IRIS_RUANG_SOKET_MAKS` | 5000 | sockets in all rooms together |
-| `IRIS_JAM_LAB=0` | on | leaves the lab clock to the Worker's minute cron |
-| `IRIS_RELAY_LAMA=0` | on | stops every POST to the Worker (topics and rooms); do it only after a few quiet days |
+| Variable                | Default | What it does                                                                         |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------ |
+| `IRIS_RUANG_HUB=0`      | on      | tickets point at the Worker again (rollback, then restart the service)               |
+| `IRIS_RUANG_SOKET_MAKS` | 5000    | sockets in all rooms together                                                        |
+| `IRIS_JAM_LAB=0`        | on      | leaves the lab clock to the Worker's minute cron                                     |
+| `IRIS_RELAY_LAMA=0`     | on      | stops every POST to the Worker (topics and rooms); do it only after a few quiet days |
 
 The Worker's cron and the server's timer can both run: the minute is claimed in one SQL statement, so it runs once.
 After a week without trouble, `IRIS_RELAY_LAMA=0` is the last step; the Worker stays for Konsol, TP files and as a
