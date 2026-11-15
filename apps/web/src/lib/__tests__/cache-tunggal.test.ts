@@ -103,3 +103,40 @@ describe("cacheTunggal", () => {
     expect(await cb.ambil()).toBe(2);
   });
 });
+
+describe("with several workers", () => {
+  it("tells the others once per tick, however many times a write drops the caches, and not for a message from another worker", async () => {
+    const { batalkanSemuaCache, batalkanCacheLokal, pasangSebarBatal } =
+      await import("../cache-tunggal");
+    const sebar = vi.fn();
+    pasangSebarBatal(sebar);
+    batalkanSemuaCache();
+    batalkanSemuaCache();
+    batalkanSemuaCache();
+    expect(sebar).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(sebar).toHaveBeenCalledTimes(1);
+    batalkanSemuaCache();
+    await Promise.resolve();
+    expect(sebar).toHaveBeenCalledTimes(2);
+    // What another worker asked for drops the caches here without echoing back.
+    batalkanCacheLokal();
+    await Promise.resolve();
+    expect(sebar).toHaveBeenCalledTimes(2);
+    pasangSebarBatal(null);
+    batalkanSemuaCache();
+    await Promise.resolve();
+    expect(sebar).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops a value that was cached before the message", async () => {
+    const { cacheTunggal, batalkanCacheLokal } = await import("../cache-tunggal");
+    let n = 0;
+    const c = cacheTunggal(async () => ++n);
+    c.atur(60_000);
+    expect(await c.ambil()).toBe(1);
+    expect(await c.ambil()).toBe(1);
+    batalkanCacheLokal();
+    expect(await c.ambil()).toBe(2);
+  });
+});

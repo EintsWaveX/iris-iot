@@ -30,8 +30,10 @@ import {
   jumlahSoket,
   kunciRute,
   ringkas,
+  ringkasDari,
   ulang,
   type Lingkup,
+  type Mentah,
 } from "./metrik.js";
 
 /** Vercel's own body limit, kept so a handler sees what it sees there (JSON and forms). */
@@ -63,6 +65,8 @@ export interface OpsiApp {
   cekBerkas?: CekBerkas;
   /** Announces topics to every page on the live-update hub; returns how many it reached. */
   siarkan?: (topik: readonly string[]) => number;
+  /** Several workers: asks every worker for its numbers (stat, metrik) or to start them over (ulang). */
+  kumpulkan?: (apa: "stat" | "metrik" | "ulang") => Promise<unknown[]>;
 }
 
 /** A small JSON body (at most `maks` bytes), or null when it is too big or unreadable. */
@@ -287,13 +291,28 @@ export async function buatApp(opsi: OpsiApp): Promise<{ server: http.Server; rut
           soket: jumlahSoket(),
           jedaLoopMs: jedaLoop(),
         };
+        // Several workers: each one's own line, so a stuck or lagging worker shows (no token needed, no secrets).
+        if (url.searchParams.get("klaster") === "1" && opsi.kumpulkan) {
+          const baris = (await opsi.kumpulkan("stat")).filter((x) => x && typeof x === "object");
+          badan.pekerja = baris;
+        }
         // The per-route numbers, only with the metrics token (closed when none is configured).
         if (url.searchParams.get("metrik") === "1") {
           if (!bolehLihat(String(req.headers["x-metrik"] ?? ""))) {
             return tak(res, 404, { ok: false, kode: "tidak_ditemukan" });
           }
-          const hasil = ringkas();
-          if (url.searchParams.get("ulang") === "1") ulang();
+          // With several workers the numbers of all of them add up; `pekerja` says how many answered.
+          let hasil;
+          if (opsi.kumpulkan) {
+            const daftar = (await opsi.kumpulkan("metrik")).filter(
+              (x): x is Mentah => !!x && typeof x === "object" && Array.isArray((x as Mentah).rute),
+            );
+            hasil = { ...ringkasDari(daftar), pekerja: daftar.length };
+            if (url.searchParams.get("ulang") === "1") await opsi.kumpulkan("ulang");
+          } else {
+            hasil = ringkas();
+            if (url.searchParams.get("ulang") === "1") ulang();
+          }
           return tak(res, 200, { ...badan, ...hasil });
         }
         if (url.searchParams.get("db") === "1" && opsi.periksaDb) {

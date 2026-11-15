@@ -63,7 +63,34 @@ export function cacheTunggal<T>(muat: () => Promise<T>, salin?: (nilai: T) => T)
   return c;
 }
 
-/** Drops every cache. The API calls this after each write and each broadcast. */
-export function batalkanSemuaCache(): void {
+/** Tells the other workers of the server (when there are any) to drop their caches too. */
+let sebarBatal: (() => void) | null = null;
+
+export function pasangSebarBatal(f: (() => void) | null): void {
+  sebarBatal = f;
+}
+
+/** Drops every cache in this process only (what a message from another worker asks for). */
+export function batalkanCacheLokal(): void {
   for (const c of semua) c.batalkan();
 }
+
+/**
+ * Drops every cache. The API calls this after each write and each broadcast; with several workers the others
+ * are told as well (one message however many writes this tick made).
+ */
+export function batalkanSemuaCache(): void {
+  batalkanCacheLokal();
+  if (!sebarBatal) return;
+  if (menyebar) return;
+  menyebar = true;
+  queueMicrotask(() => {
+    menyebar = false;
+    try {
+      sebarBatal?.();
+    } catch {
+      /* the other workers keep a value for a second at most anyway */
+    }
+  });
+}
+let menyebar = false;

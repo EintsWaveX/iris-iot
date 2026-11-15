@@ -53,6 +53,16 @@ Decisions made with the user:
 - Node `cluster` with a supervisor and N workers (tunable by env); stateless cookies already allow this. Workers share events over **Postgres LISTEN/NOTIFY** (publish → NOTIFY → each worker forwards to its local sockets; also invalidates caches).
 - One leader (pg advisory lock) runs singleton jobs: lab clock, session timers, prunes, sweeps, and **the quiz game (state is in memory)**; other workers serve HTTP/sockets. Update `deploy.sh`, systemd unit, drain and `/api/sehat` aggregation.
 
+**As built (phase 3, 15 Nov 2026), and where it differs from the lines above:**
+
+- The bus is the **supervisor's IPC channel**, not Postgres NOTIFY. All workers are on one machine, the supervisor is the one process that outlives a deploy, and it already has to exist for rolling restarts, so it also _numbers_ the live stream (one order, one epoch kept across deploys, so replay survives a restart), keeps the room roster, decides tickets used once, and elects the leader. No payload limit, no extra database connection per worker, no dependency on the database to deliver a message. If a second machine ever shares the database, the bus interface (`server/klaster/pekerja.ts`) is the one place that gets a NOTIFY backend.
+- The leader is **elected by the supervisor, not by a pg advisory lock**: the newest generation of ready workers leads, and a deploy hands the duties over in order (old leader puts them down and saves, then the new one starts), so there are never two. A sitting leader is not replaced by a worker of the same generation.
+- **The quiz socket** stays on the leader: a follower passes the upgrade to the leader's own door on 127.0.0.1 (`server/klaster/teruskan.ts`, authenticated by a per-run secret), because the tunnel's connection can land on any worker.
+- **The QR sheet watch** runs on the leader; a follower forwards a page's ask to it.
+- A **rolling restart** (`SIGHUP` from `deploy.sh`, no sudo): a new worker is ready before an old one is told to drain, so the site never has fewer workers than it started with; a new worker that never gets ready stops the roll and leaves the old ones serving. The supervisor itself is replaced only when its own files changed.
+- Left per worker on purpose: login-failure and upload-report rate limits (already "per instance" by design; they are N times looser), the module-code cache (10 s), the Google sheet read cache.
+- Proven by `scripts/uji-klaster.mjs` (real supervisor, real workers: spread, one numbered stream with replay across workers, rooms and presence, tickets once, a roll under constant requests with zero failures, a killed leader) and by the unit tests in `server/__tests__/klaster-*.test.ts` and `hub-klaster.test.ts`.
+
 ### Phase 4: Make refetch nearly free
 
 - Per-(route, audience) in-memory response cache invalidated by topic version; ETag/304 for API JSON; random jitter on client refetch after a broadcast; keep the 300 ms coalescing window.

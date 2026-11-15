@@ -77,3 +77,37 @@ describe("the sheet watcher", () => {
     err.mockRestore();
   });
 });
+
+describe("the sheet watcher with several workers", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("passes a page's ask on to the leader instead of reading the sheet itself, at most once a second per sheet", async () => {
+    const baca = vi.fn(async () => [{ nama: "A" }]);
+    const teruskan = vi.fn();
+    const p = buatPantau({ baca, kabari: vi.fn(), jedaMs: 1000 });
+    p.teruskan = teruskan;
+    // Not the leader: `aktif` stays off.
+    p.diminta("s", [{ nama: "A" }]);
+    p.diminta("s", [{ nama: "A" }]);
+    p.diminta("lain", [{ nama: "B" }]);
+    expect(teruskan).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1100);
+    p.diminta("s", [{ nama: "A" }]);
+    expect(teruskan).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(baca).not.toHaveBeenCalled();
+    expect(p.jumlah()).toBe(0);
+  });
+
+  it("does not pass it on once it is the leader", () => {
+    const teruskan = vi.fn();
+    const p = buatPantau({ baca: async () => [], kabari: vi.fn(), jedaMs: 1000 });
+    p.teruskan = teruskan;
+    p.aktif = true;
+    p.diminta("s", []);
+    expect(teruskan).not.toHaveBeenCalled();
+    expect(p.jumlah()).toBe(1);
+    p.hentikan();
+  });
+});

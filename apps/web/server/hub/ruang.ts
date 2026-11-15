@@ -15,6 +15,11 @@
  * Sockets that go silent for a whole round are closed (4001, so the page reconnects), a socket that cannot
  * keep up is closed (1013), and a socket that talks too much is closed (1008). After Finish the API closes an
  * exam room with 4000 and its pages stay closed.
+ *
+ * With several workers (Phase 3) a room's sockets are spread over all of them. `sebar` hands what happens here
+ * to the supervisor (a message into the room, a close, who joined or left, a ticket used) and the `terima*`
+ * functions take what the other workers did, so a message reaches the whole room and the presence counts
+ * everybody. Without `sebar` a room is whatever is in this process, as before.
  */
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
@@ -39,6 +44,7 @@ import {
   type PesanUjian,
   type TiketUjian,
 } from "../../src/lib/recruitment/room-relay.js";
+import type { InfoHadir } from "../klaster/protokol.js";
 import { ANTRE_MAKS_BYTE } from "./siaran.js";
 import { tolakUpgrade } from "../upgrade.js";
 
@@ -65,6 +71,18 @@ export interface OpsiHubRuang {
   /** Browsers always send Origin; a request without one is a tool. Default: allowed. */
   izinTanpaOrigin?: boolean;
   now?: () => number;
+  /** Several workers: what this worker tells the supervisor so the others hear it. */
+  sebar?: SebarRuang;
+}
+
+export interface SebarRuang {
+  /** Into the room's sockets on the other workers (already checked here). */
+  kirim(ruang: string, m: unknown[]): void;
+  tutup(ruang: string): void;
+  /** A socket here joined (info) or left (null). */
+  hadir(ruang: string, id: number, info: InfoHadir | null): void;
+  /** True the first time a ticket is shown to any worker. */
+  pakaiNonce(nonce: string, expDetik: number): Promise<boolean>;
 }
 
 interface AttAliran {
@@ -88,6 +106,8 @@ interface AttUjian {
 }
 
 interface Soket {
+  /** Its number on this worker (the supervisor's roster names a socket by worker and this). */
+  id: number;
   ws: WebSocket;
   ruang: string;
   att: AttAliran | AttUjian;
@@ -107,6 +127,15 @@ export interface HubRuang {
   statistik(): { soket: number; ruang: number; dibuang: number };
   /** Closes everything with 1001 and stops the timers. */
   tutupSemua(): void;
+  /** A message another worker's socket sent into a room, for the sockets here. */
+  terimaKirim(ruang: string, m: unknown[]): void;
+  terimaTutup(ruang: string): number;
+  /** A socket on worker `w` joined or left a room. */
+  terimaHadir(w: number, ruang: string, id: number, info: InfoHadir | null): void;
+  /** Worker `w` is gone with all its sockets. */
+  terimaPergi(w: number): void;
+  /** The roster as it stood when this worker started (no one is told). */
+  sinkronHadir(baris: ReadonlyArray<[number, string, number, InfoHadir]>): void;
 }
 
 export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
@@ -129,7 +158,17 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
   /** Tickets already used, until they are long expired (single use). */
   const nonce = new Map<string, number>();
   const hadirTimer = new Map<string, ReturnType<typeof setTimeout>>();
+  /** The sockets in each room on the other workers: room, then `worker|socket`. */
+  const jauh = new Map<string, Map<string, InfoHadir>>();
   let dibuang = 0;
+  let nomorSoket = 0;
+
+  const infoDari = (att: AttAliran | AttUjian): InfoHadir =>
+    att.jenis === "aliran"
+      ? { k: "a", peran: att.peran, g: att.g, lihat: att.lihat }
+      : { k: "u", peran: att.peran, s: att.s, u: att.u };
+  /** Is anybody in this room, on any worker? */
+  const adaIsi = (ruang: string) => kamar.has(ruang) || (jauh.get(ruang)?.size ?? 0) > 0;
 
   const lepas = (s: Soket) => {
     if (!semua.delete(s.ws)) return;
@@ -137,6 +176,7 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
     if (!k) return;
     k.delete(s);
     if (!k.size) kamar.delete(s.ruang);
+    opsi.sebar?.hadir(s.ruang, s.id, null);
     if (s.att.jenis === "aliran") kabariPenonton(s.ruang);
     else jadwalkanHadir(s.ruang);
   };
@@ -183,12 +223,23 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
    *  only while someone watches. */
   function kabariPenonton(ruang: string) {
     const isi = [...(kamar.get(ruang) ?? [])].filter((s) => s.att.jenis === "aliran");
+    // Who else is in the room: the other sockets here and on the other workers.
+    const semuaDiRuang: Array<{ s: Soket | null; lihat: number | null; peran: string }> = [
+      ...isi.map((s) => ({
+        s,
+        lihat: (s.att as AttAliran).lihat,
+        peran: (s.att as AttAliran).peran,
+      })),
+      ...[...(jauh.get(ruang)?.values() ?? [])].flatMap((i) =>
+        i.k === "a" ? [{ s: null, lihat: i.lihat, peran: i.peran }] : [],
+      ),
+    ];
     isi.forEach((s) => {
       const att = s.att as AttAliran;
       if (att.g === null) return;
-      const lain = isi.filter((o) => o !== s && (o.att as AttAliran).lihat === att.g);
+      const lain = semuaDiRuang.filter((o) => o.s !== s && o.lihat === att.g);
       const n = lain.length;
-      const a = lain.filter((o) => (o.att as AttAliran).peran === "asisten").length;
+      const a = lain.filter((o) => o.peran === "asisten").length;
       if (`${n},${a}` === att.penonton) return;
       att.penonton = `${n},${a}`;
       kirimKe(s, JSON.stringify({ penonton: n, asisten: a }));
@@ -215,6 +266,11 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
       if (s.ws.readyState !== WebSocket.OPEN || s.att.jenis !== "ujian") continue;
       if (s.att.peran === "kursi" && s.att.s !== null) kursi.add(s.att.s);
       else if (s.att.peran === "panitia") panitia.add(s.att.u);
+    }
+    for (const i of jauh.get(ruang)?.values() ?? []) {
+      if (i.k !== "u") continue;
+      if (i.peran === "kursi" && i.s !== null) kursi.add(i.s);
+      else if (i.peran === "panitia") panitia.add(i.u);
     }
     return { kursi: [...kursi].sort((a, b) => a - b), panitia: [...panitia].sort() };
   }
@@ -263,6 +319,24 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
 
   // ---- entry ----
 
+  /** True the first time a ticket is shown (on any worker, when there are several). */
+  async function pakaiNonce(n: string, exp: number): Promise<boolean> {
+    if (opsi.sebar) return opsi.sebar.pakaiNonce(n, exp);
+    if (nonce.has(n)) return false;
+    nonce.set(n, exp);
+    return true;
+  }
+
+  /** Closes every socket here of an exam room with 4000 (after Finish). */
+  function tutupLokal(ruang: string): number {
+    let n = 0;
+    for (const s of [...(kamar.get(ruang) ?? [])]) {
+      tutupSoket(s, TUTUP_AKHIR, "selesai");
+      n++;
+    }
+    return n;
+  }
+
   function pasang(
     wss: WebSocketServer,
     req: IncomingMessage,
@@ -272,7 +346,15 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
     att: AttAliran | AttUjian,
   ) {
     wss.handleUpgrade(req, socket, head, (ws) => {
-      const s: Soket = { ws, ruang, att, terakhir: now(), pesan: 0, jendela: now() };
+      const s: Soket = {
+        id: ++nomorSoket,
+        ws,
+        ruang,
+        att,
+        terakhir: now(),
+        pesan: 0,
+        jendela: now(),
+      };
       semua.set(ws, s);
       let k = kamar.get(ruang);
       if (!k) kamar.set(ruang, (k = new Set()));
@@ -308,16 +390,21 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
               Number.isInteger(g) && (g as number) >= 1 && (g as number) <= 99
                 ? (g as number)
                 : null;
+            opsi.sebar?.hadir(ruang, s.id, infoDari(s.att));
             kabariPenonton(ruang);
             return;
           }
           const m = saringNaik(teks, s.att);
-          if (m) sebarAliran(ruang, [m], s);
+          if (m) {
+            sebarAliran(ruang, [m], s);
+            if (jauh.get(ruang)?.size) opsi.sebar?.kirim(ruang, [m]);
+          }
         } else {
           const m = saringNaikUjian(teks, s.att);
           if (m && t - s.att.naik >= NAIK_JEDA_UJIAN_MS) {
             s.att.naik = t;
             sebarUjian(ruang, [m], s);
+            if (jauh.get(ruang)?.size) opsi.sebar?.kirim(ruang, [m]);
           }
         }
       });
@@ -326,6 +413,7 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
         ws.terminate();
         lepas(s);
       });
+      opsi.sebar?.hadir(ruang, s.id, infoDari(att));
       if (att.jenis === "aliran") kabariPenonton(ruang);
       else {
         jadwalkanHadir(ruang);
@@ -360,8 +448,8 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
         const cek = await cekTiketAliran(tiket, rahasia, ruang);
         if (!cek.ok || socket.destroyed) return tolakUpgrade(socket, 403, "Forbidden");
         const t = cek.tiket;
-        if (nonce.has(t.n)) return tolakUpgrade(socket, 403, "Forbidden");
-        nonce.set(t.n, t.exp);
+        if (!(await pakaiNonce(t.n, t.exp)) || socket.destroyed)
+          return tolakUpgrade(socket, 403, "Forbidden");
         return pasang(wssAliran, req, socket, head, ruang, {
           jenis: "aliran",
           peran: t.peran,
@@ -375,8 +463,8 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
         const cek = await cekTiketUjian(tiket, rahasia, ruang);
         if (!cek.ok || socket.destroyed) return tolakUpgrade(socket, 403, "Forbidden");
         const t = cek.tiket;
-        if (nonce.has(t.n)) return tolakUpgrade(socket, 403, "Forbidden");
-        nonce.set(t.n, t.exp);
+        if (!(await pakaiNonce(t.n, t.exp)) || socket.destroyed)
+          return tolakUpgrade(socket, 403, "Forbidden");
         return pasang(wssUjian, req, socket, head, ruang, {
           jenis: "ujian",
           peran: t.peran,
@@ -389,25 +477,69 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
     },
 
     kirim(ruang, m) {
+      let ok: PesanUjian[] | PesanAliran[] | null = null;
+      if (UJIAN_RUANG_RE.test(ruang)) ok = saringKirimanUjian({ m });
+      else if (ALIRAN_RUANG_RE.test(ruang)) ok = saringKiriman({ m });
+      if (!ok) return 0;
+      // The other workers' sockets hear it too, but a room nobody is in anywhere costs no message.
+      if (jauh.get(ruang)?.size) opsi.sebar?.kirim(ruang, ok);
       if (!kamar.has(ruang)) return 0;
-      if (UJIAN_RUANG_RE.test(ruang)) {
-        const ok = saringKirimanUjian({ m });
-        return ok ? sebarUjian(ruang, ok, null) : 0;
-      }
-      if (ALIRAN_RUANG_RE.test(ruang)) {
-        const ok = saringKiriman({ m });
-        return ok ? sebarAliran(ruang, ok, null) : 0;
-      }
-      return 0;
+      return UJIAN_RUANG_RE.test(ruang)
+        ? sebarUjian(ruang, ok as PesanUjian[], null)
+        : sebarAliran(ruang, ok as PesanAliran[], null);
     },
 
     tutup(ruang) {
-      let n = 0;
-      for (const s of [...(kamar.get(ruang) ?? [])]) {
-        tutupSoket(s, TUTUP_AKHIR, "selesai");
-        n++;
+      if (adaIsi(ruang)) opsi.sebar?.tutup(ruang);
+      return tutupLokal(ruang);
+    },
+
+    terimaKirim(ruang, m) {
+      if (!kamar.has(ruang)) return;
+      if (UJIAN_RUANG_RE.test(ruang)) sebarUjian(ruang, m as PesanUjian[], null);
+      else if (ALIRAN_RUANG_RE.test(ruang)) sebarAliran(ruang, m as PesanAliran[], null);
+    },
+
+    terimaTutup: (ruang) => tutupLokal(ruang),
+
+    terimaHadir(w, ruang, id, info) {
+      let r = jauh.get(ruang);
+      if (info === null) {
+        r?.delete(`${w}|${id}`);
+        if (r && !r.size) jauh.delete(ruang);
+      } else {
+        if (!r) jauh.set(ruang, (r = new Map()));
+        r.set(`${w}|${id}`, info);
       }
-      return n;
+      if (ALIRAN_RUANG_RE.test(ruang)) kabariPenonton(ruang);
+      else jadwalkanHadir(ruang);
+    },
+
+    terimaPergi(w) {
+      const awal = `${w}|`;
+      for (const [ruang, r] of [...jauh]) {
+        let ada = false;
+        for (const k of [...r.keys()]) {
+          if (k.startsWith(awal)) {
+            r.delete(k);
+            ada = true;
+          }
+        }
+        if (!r.size) jauh.delete(ruang);
+        if (ada) {
+          if (ALIRAN_RUANG_RE.test(ruang)) kabariPenonton(ruang);
+          else jadwalkanHadir(ruang);
+        }
+      }
+    },
+
+    sinkronHadir(baris) {
+      jauh.clear();
+      for (const [w, ruang, id, info] of baris) {
+        let r = jauh.get(ruang);
+        if (!r) jauh.set(ruang, (r = new Map()));
+        r.set(`${w}|${id}`, info);
+      }
     },
 
     jumlah: () => semua.size,

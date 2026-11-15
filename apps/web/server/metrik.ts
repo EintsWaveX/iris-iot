@@ -20,7 +20,7 @@ export const RUTE_MAKS = 400;
 
 export { catatQuery, dalamLingkup, type Lingkup } from "../src/lib/lingkup-query.js";
 
-interface Entri {
+export interface Entri {
   n: number;
   galat: number;
   jumlahMs: number;
@@ -115,9 +115,51 @@ export function persentil(tepi: readonly number[], p: number): number {
 
 const bulat = (x: number) => Math.round(x * 10) / 10;
 
-/** The routes that took the most time in total first; `-1` as a percentile means "over 5 s". */
-export function ringkas(teratas = 60) {
-  const baris = [...rute.entries()].map(([k, e]) => ({
+/** What one process measured, as plain data (several workers send theirs to be merged, server/klaster). */
+export interface Mentah {
+  sejakDetik: number;
+  jedaLoopMs: { p50: number; p99: number; maks: number };
+  soket: Record<string, number>;
+  rute: Array<[string, Entri]>;
+}
+
+export function mentah(): Mentah {
+  return {
+    sejakDetik: Math.round((Date.now() - sejak) / 1000),
+    jedaLoopMs: jedaLoop(),
+    soket: jumlahSoket(),
+    rute: [...rute.entries()].map(([k, e]) => [k, { ...e, tepi: [...e.tepi] }]),
+  };
+}
+
+/** The routes that took the most time in total first; `-1` as a percentile means "over 5 s". Several processes' numbers add up. */
+export function ringkasDari(daftar: readonly Mentah[], teratas = 60) {
+  const gabung = new Map<string, Entri>();
+  const soketJumlah: Record<string, number> = {};
+  let loopGabung = { p50: 0, p99: 0, maks: 0 };
+  let tertua = 0;
+  for (const m of daftar) {
+    tertua = Math.max(tertua, m.sejakDetik);
+    loopGabung = {
+      p50: Math.max(loopGabung.p50, m.jedaLoopMs.p50),
+      p99: Math.max(loopGabung.p99, m.jedaLoopMs.p99),
+      maks: Math.max(loopGabung.maks, m.jedaLoopMs.maks),
+    };
+    for (const [nama, n] of Object.entries(m.soket))
+      soketJumlah[nama] = (soketJumlah[nama] ?? 0) + n;
+    for (const [k, e] of m.rute) {
+      const g = gabung.get(k) ?? entriBaru();
+      g.n += e.n;
+      g.galat += e.galat;
+      g.jumlahMs += e.jumlahMs;
+      g.maks = Math.max(g.maks, e.maks);
+      g.dbN += e.dbN;
+      g.dbMs += e.dbMs;
+      e.tepi.forEach((v, i) => (g.tepi[i] += v));
+      gabung.set(k, g);
+    }
+  }
+  const baris = [...gabung.entries()].map(([k, e]) => ({
     rute: k,
     n: e.n,
     galat: e.galat,
@@ -132,12 +174,17 @@ export function ringkas(teratas = 60) {
   }));
   baris.sort((a, b) => b.totalMs - a.totalMs);
   return {
-    sejakDetik: Math.round((Date.now() - sejak) / 1000),
-    jedaLoopMs: jedaLoop(),
-    soket: jumlahSoket(),
+    sejakDetik: tertua,
+    jedaLoopMs: loopGabung,
+    soket: soketJumlah,
     rute: baris.slice(0, teratas),
     ruteTotal: baris.length,
   };
+}
+
+/** This process's routes, the most expensive first. */
+export function ringkas(teratas = 60) {
+  return ringkasDari([mentah()], teratas);
 }
 
 /** Clears the counters (a fresh window for a load test). */

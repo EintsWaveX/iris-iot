@@ -30,6 +30,7 @@ import {
   type UploadFile,
   type UploadValues,
 } from "../../src/lib/live-build.js";
+import { ambilBersama, taruhBersama } from "./bersama.js";
 import { kanonik, kodeModul, type KodeAktif } from "./kode-aktif.js";
 import { jawabanBenar } from "./jawaban-scope.js";
 import { pasangBeaconBersama, type TambahanBeacon } from "./beacon-bersama.js";
@@ -225,13 +226,8 @@ export class Pembatas {
 
 const layanan = new LayananBangun();
 const pembatas = new Pembatas();
-/** build id -> who asked, so only they can read it back */
-const pemilik = new Map<string, { nim: string; sampai: number }>();
-
-function lupakanKadaluarsa() {
-  const t = Date.now();
-  for (const [id, p] of pemilik) if (p.sampai < t) pemilik.delete(id);
-}
+/** build id -> who asked, so only they can read it back (every worker of the server sees it, bersama.ts) */
+const kunciPemilik = (id: string) => `bangun:${id}`;
 
 const ID_RE = /^[0-9a-f]{16}$/;
 
@@ -323,15 +319,14 @@ export async function handleBangunPost(req: ApiRequest, res: ApiResponse, sessio
   }
   // Pressing Upload again with the same values joins the build already made: it cost nothing either.
   if (mulai.tampil.state === "done") pembatas.kembalikan(session.nim);
-  lupakanKadaluarsa();
-  pemilik.set(mulai.id, { nim: session.nim, sampai: Date.now() + SIMPAN_MS });
+  taruhBersama(kunciPemilik(mulai.id), session.nim, SIMPAN_MS);
   res.status(200).json({ ok: true, kind: "esp32", id: mulai.id, ...mulai.tampil });
 }
 
 function milikku(req: ApiRequest, res: ApiResponse, session: SessionPayload): string | null {
   const id = typeof req.query.id === "string" ? req.query.id : "";
-  const p = ID_RE.test(id) ? pemilik.get(id) : undefined;
-  if (!p || p.nim !== session.nim || p.sampai < Date.now()) {
+  const nim = ID_RE.test(id) ? ambilBersama<string>(kunciPemilik(id)) : undefined;
+  if (nim === undefined || nim !== session.nim) {
     res.status(200).json({ ok: false, kode: "tak_ada" });
     return null;
   }
