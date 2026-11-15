@@ -15,6 +15,7 @@ let dist: string;
 let tutup: () => void;
 let base: string;
 let dbHidup = true;
+const disiarkan: string[][] = [];
 
 /** Every route answers with what it was handed, so the test sees the plumbing. */
 const gema: ApiHandler = (req, res) => {
@@ -46,6 +47,10 @@ beforeAll(async () => {
         : gema,
     periksaDb: async () => {
       if (!dbHidup) throw new Error("down");
+    },
+    siarkan: (t) => {
+      disiarkan.push([...t]);
+      return 3;
     },
   });
   await new Promise<void>((ok) => server.listen(0, "127.0.0.1", ok));
@@ -274,6 +279,45 @@ describe("/api/sehat?metrik=1", () => {
       const j = await r.json();
       expect(j.rute.some((x: { rute: string }) => x.rute === "GET /api/session/now")).toBe(true);
       expect(j.rute[0]).toHaveProperty("p95");
+    } finally {
+      delete process.env.IRIS_METRIK_TOKEN;
+    }
+  });
+});
+
+describe("/api/sehat?siarkan=1", () => {
+  const TOKEN = "t".repeat(24);
+  const kirim = (t: unknown, header: Record<string, string> = { "x-metrik": TOKEN }) =>
+    ambil("/api/sehat?siarkan=1", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...header },
+      body: JSON.stringify({ t }),
+    });
+
+  it("is closed without the token, for a GET, and when none is configured", async () => {
+    expect((await kirim(["sesi"])).status).toBe(404);
+    process.env.IRIS_METRIK_TOKEN = TOKEN;
+    try {
+      expect((await kirim(["sesi"], {})).status).toBe(404);
+      expect((await kirim(["sesi"], { "x-metrik": "x".repeat(24) })).status).toBe(404);
+      expect((await ambil("/api/sehat?siarkan=1", { headers: { "x-metrik": TOKEN } })).status).toBe(
+        404,
+      );
+    } finally {
+      delete process.env.IRIS_METRIK_TOKEN;
+    }
+    expect(disiarkan).toEqual([]);
+  });
+
+  it("announces the topics to the hub with the right token, and rejects a bad body", async () => {
+    process.env.IRIS_METRIK_TOKEN = TOKEN;
+    try {
+      const r = await kirim(["sesi", "nilai"]);
+      expect(r.status).toBe(200);
+      expect(await r.json()).toEqual({ ok: true, sampai: 3 });
+      expect(disiarkan).toEqual([["sesi", "nilai"]]);
+      expect((await kirim([])).status).toBe(400);
+      expect((await kirim("sesi")).status).toBe(400);
     } finally {
       delete process.env.IRIS_METRIK_TOKEN;
     }

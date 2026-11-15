@@ -45,6 +45,13 @@ export function minta(emit, topik) {
       header: { "content-type": "application/json", authorization: `Bearer ${emit.rahasia}` },
     };
   }
+  if (emit.mode === "metrik") {
+    // The server's own manual announcement (POST /api/sehat?siarkan=1), gated by IRIS_METRIK_TOKEN.
+    return {
+      badan,
+      header: { "content-type": "application/json", "x-metrik": emit.rahasia },
+    };
+  }
   throw new Error(`emit mode ${emit.mode}`);
 }
 

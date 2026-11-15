@@ -27,6 +27,7 @@ import {
   type Kelas,
 } from "../src/lib/kelas.js";
 import { hostKuis } from "./kuis-host.js";
+import type { Pengarah } from "./upgrade.js";
 
 export const JALUR_WS = "/kuis/ws";
 /** The biggest message a client may send. */
@@ -60,6 +61,8 @@ export interface OpsiKuis {
   jedaSimpanMs?: number;
   jedaSesiMs?: number;
   jedaPingMs?: number;
+  /** Register on the server's upgrade dispatcher (server/upgrade.ts) instead of listening for `upgrade` itself. */
+  pengarah?: Pengarah;
 }
 
 interface Sambungan {
@@ -431,12 +434,17 @@ export function pasangKuis(server: http.Server, ctx: KonteksKuis, opsi: OpsiKuis
     });
   };
 
-  server.on("upgrade", (req, socket, head) => {
-    naik(req, socket, head).catch((err) => {
-      console.error("[kuis] upgrade failed:", err);
-      tolak(socket, 500, "Internal Server Error");
+  if (opsi.pengarah) {
+    // The dispatcher (server/upgrade.ts) hands this socket feature only its own path.
+    opsi.pengarah.daftar((jalur, host) => jalur === JALUR_WS && hostKuis(host), naik);
+  } else {
+    server.on("upgrade", (req, socket, head) => {
+      naik(req, socket, head).catch((err) => {
+        console.error("[kuis] upgrade failed:", err);
+        tolak(socket, 500, "Internal Server Error");
+      });
     });
-  });
+  }
 
   // ---------- timers ----------
 

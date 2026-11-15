@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SITE_URL } from "../lab";
-import { alamatRelay } from "../siaran";
+import { alamatRelay, alamatSiaran } from "../siaran";
 
 type Header = { key: string; value: string };
 type Vercel = {
@@ -46,5 +46,28 @@ describe("irisiotlab.com (2026-10-17)", () => {
   it("live updates use the relay on the domain, the rig its local one", () => {
     expect(alamatRelay("irisiotlab.com")).toBe("wss://konsol.irisiotlab.com/siaran");
     expect(alamatRelay("localhost")).toBe("ws://127.0.0.1:8788/siaran");
+  });
+
+  it("a page on the domain listens to the hub in the server itself, the rig to its local relay", () => {
+    const hub = (h: string, pw = false, n: number | null = null, e: string | null = null) =>
+      alamatSiaran(h, "https:", h, pw, n, e);
+    expect(hub("irisiotlab.com")).toBe("wss://irisiotlab.com/siaran");
+    expect(hub("pc.irisiotlab.com")).toBe("wss://pc.irisiotlab.com/siaran");
+    expect(alamatSiaran("localhost", "http:", "localhost:4321", false, null, null)).toBe(
+      "ws://127.0.0.1:8788/siaran",
+    );
+  });
+
+  it("falls back to the Worker relay after the hub failed, and resumes where it left off", () => {
+    expect(alamatSiaran("irisiotlab.com", "https:", "irisiotlab.com", true, 5, "ab")).toBe(
+      "wss://konsol.irisiotlab.com/siaran",
+    );
+    expect(alamatSiaran("irisiotlab.com", "https:", "irisiotlab.com", false, 41, "ab12")).toBe(
+      "wss://irisiotlab.com/siaran?sejak=41&e=ab12",
+    );
+  });
+
+  it("the CSP lets a page open the hub's socket", () => {
+    expect(csp()).toContain("wss://irisiotlab.com");
   });
 });
