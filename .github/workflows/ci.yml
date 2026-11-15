@@ -70,14 +70,41 @@ jobs:
 
       - run: npm ci
 
-      - name: Typecheck
-        run: npm run check
+      # The type-check caches (tsc's incremental files, Astro's generated types) are kept between runs, so
+      # a change to a few files re-checks a few files. A stale one is only slower, never wrong.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            apps/web/node_modules/.cache/tsc
+            apps/web/.astro
+          key: check-${{ runner.os }}-${{ hashFiles('apps/web/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            check-${{ runner.os }}-${{ hashFiles('apps/web/package-lock.json') }}-
 
-      - name: Lint
-        run: npm run lint
+      # Generates .astro/types.d.ts, which the other type checks read.
+      - run: npx astro sync
 
-      - name: Format check
-        run: npm run format:check
+      # The five checks do not depend on each other, so they run side by side (this job's runner has 4
+      # cores) and each one's output is printed whole afterwards. `astro check` already covers every .ts
+      # and .tsx file under src/ that `tsc -p tsconfig.json` does, so that second pass is not repeated
+      # here (`npm run check` still runs it for anyone checking by hand).
+      - name: Typecheck, lint, format (in parallel)
+        run: |
+          mkdir -p /tmp/cek
+          run() { n=$1; shift; ( "$@" > "/tmp/cek/$n.log" 2>&1; echo $? > "/tmp/cek/$n.rc" ) & }
+          run astro-check npx astro check
+          run tsc-api npm run check:api
+          run tsc-test npm run check:test
+          run lint npm run lint
+          run format npm run format:check
+          wait
+          gagal=0
+          for n in astro-check tsc-api tsc-test lint format; do
+            rc=$(cat "/tmp/cek/$n.rc")
+            echo "::group::$n (exit $rc)"; cat "/tmp/cek/$n.log"; echo "::endgroup::"
+            [ "$rc" = "0" ] || { echo "::error::$n failed"; gagal=1; }
+          done
+          exit $gagal
 
       - name: Unit tests
         run: npm test

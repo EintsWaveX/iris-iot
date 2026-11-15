@@ -7,6 +7,8 @@
  * is still caught by the checker.
  */
 interface Window {
+  /** Toasts raised before the Toast island hydrated (public/theme-init.js, Toast.tsx). */
+  __toastAntre?: Array<{ t: number; a: Parameters<NonNullable<Window["Toast"]>["show"]> }>;
   Toast?: {
     show(
       message: string,
