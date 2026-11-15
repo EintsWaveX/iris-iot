@@ -15,6 +15,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
+import { buatPantau } from "./pantau-sheet.js";
+import { siarkan } from "./siaran.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
 import {
@@ -413,6 +415,20 @@ async function bacaScanSheet(link: string): Promise<ScanBaru[] | null> {
   }
 }
 
+/**
+ * While a QR wall or a Kehadiran drawer is looking at a responses sheet, the server reads it every few seconds
+ * itself and tells every page (`recqr`) the moment a new scan shows up (api/_lib/pantau-sheet.ts). Off until the
+ * server turns it on (`pantauScan.aktif = true`).
+ */
+export const pantauScan = buatPantau<ScanBaru[]>({
+  baca: async (link) => {
+    const sh = bacaSheet(link);
+    if (sh) sheetCache.delete(sheetCsvUrl(sh));
+    return bacaScanSheet(link);
+  },
+  kabari: () => siarkan(["recqr"]),
+});
+
 /** GET qr-recent?event=: the last four who scanned, read from the event's responses sheet. */
 export async function handleQrTerbaru(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const id = Number(req.query.event);
@@ -430,6 +446,7 @@ export async function handleQrTerbaru(req: ApiRequest, res: ApiResponse, s: Sess
   if (q.mode !== "luar" || !q.sheet) return void tolak(res, "tidak_ditemukan", 404);
   const scans = await bacaScanSheet(q.sheet);
   if (!scans) return void tolak(res, "sheet_tertutup", 502);
+  pantauScan.diminta(q.sheet, scans);
   res.status(200).json({ ok: true, scans, now: new Date().toISOString() });
 }
 

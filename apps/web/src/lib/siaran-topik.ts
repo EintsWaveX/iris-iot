@@ -46,6 +46,8 @@ export const TOPIK = [
   "recedition",
   "reccalendar",
   "reccandidates",
+  // 2026-11-15: a new scan showed up on an event's Google Form responses sheet (the QR wall's last scans).
+  "recqr",
   // S2 (2026-10-24): Cutting and the envelopes; Pilih Jadwal and the plotting board.
   // A QR scan or a hand mark rides reccandidates (the candidate list shows it).
   "reccutting",

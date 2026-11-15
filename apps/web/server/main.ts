@@ -23,6 +23,7 @@ import { buatApp } from "./app.js";
 import { pantauJeda } from "./jeda.js";
 import { pasangPenyiar, pasangPenyiarRuang } from "../api/_lib/penyiar.js";
 import { jamLabBilaPerlu } from "../api/_lib/jam-lab.js";
+import { pantauScan } from "../api/_lib/recruitment-attendance.js";
 import { buatHubRuang } from "./hub/ruang.js";
 import { buatHubSiaran } from "./hub/siaran.js";
 import { mulaiJamLab } from "./jam.js";
@@ -41,6 +42,8 @@ const config = JSON.parse(readFileSync(join(akar, "vercel.json"), "utf8"));
 
 // The running session is asked for by nearly every request: one query a second at most, dropped after any write.
 cacheSesiBerjalan.atur(Number(process.env.IRIS_SESI_CACHE_MS ?? 1000));
+// A QR wall's responses sheet is read by the server and announced (recqr), not asked for by every page.
+pantauScan.aktif = process.env.IRIS_PANTAU_QR !== "0";
 
 const { server, rute } = await buatApp({
   akar,
