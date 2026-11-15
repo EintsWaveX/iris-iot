@@ -210,8 +210,8 @@ export default function CuttingDrawer({
           </div>
         ) : undefined
       }
-      storeKey="rec-cutting-1-3"
-      compact
+      storeKey="rec-cutting-1-2"
+      size="half"
       minWidth={440}
       closeLabel={t.close}
       resizeLabel={t.resize}
