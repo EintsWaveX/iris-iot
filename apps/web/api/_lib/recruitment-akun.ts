@@ -31,10 +31,10 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { clientIp, jsonBody, parseCookies, pgErrorCode } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
 import {
-  hashPassword,
+  hashPasswordAsync,
   perluHashUlang,
   safeEqual,
-  verifyPasswordHash,
+  verifyPasswordHashAsync,
   writeAudit,
   type SessionPayload,
 } from "../../src/lib/auth.js";
@@ -223,13 +223,13 @@ export async function handleBuatAkun(req: ApiRequest, res: ApiResponse) {
     const cocok =
       !!lama.klaimHash &&
       typeof klaim === "string" &&
-      verifyPasswordHash(klaim.trim().toUpperCase(), lama.klaimHash);
+      (await verifyPasswordHashAsync(klaim.trim().toUpperCase(), lama.klaimHash));
     if (!cocok) {
       await catat(db, b.nim, ip, false);
       return tolak(res, typeof klaim === "string" && klaim ? "klaim_salah" : "perlu_klaim", 409);
     }
   }
-  const hash = hashPassword(b.sandi);
+  const hash = await hashPasswordAsync(b.sandi);
   try {
     if (lama) {
       versi = lama.versi + 1;
@@ -260,15 +260,15 @@ export async function handleMasukAkun(req: ApiRequest, res: ApiResponse) {
   const ip = clientIp(req);
   if (await terkunci(db, b.nim, ip)) return tolak(res, "terlalu_sering", 429);
   const [a] = await db.select().from(recAccount).where(eq(recAccount.nim, b.nim)).limit(1);
-  const simpan = a?.passHash ?? (hashPalsu ??= hashPassword("bukan-sandi-siapa-pun"));
-  const cocok = verifyPasswordHash(b.sandi, simpan) && !!a?.passHash;
+  const simpan = a?.passHash ?? (hashPalsu ??= await hashPasswordAsync("bukan-sandi-siapa-pun"));
+  const cocok = (await verifyPasswordHashAsync(b.sandi, simpan)) && !!a?.passHash;
   await catat(db, b.nim, ip, cocok);
   if (!a || !cocok) return tolak(res, "salah", 401);
   await db
     .update(recAccount)
     .set({
       lastSigninAt: new Date(),
-      ...(perluHashUlang(a.passHash!) ? { passHash: hashPassword(b.sandi) } : {}),
+      ...(perluHashUlang(a.passHash!) ? { passHash: await hashPasswordAsync(b.sandi) } : {}),
     })
     .where(eq(recAccount.nim, a.nim));
   masukkan(res, a.nim, a.nama, a.versi);
@@ -291,7 +291,7 @@ export async function handleGantiSandi(req: ApiRequest, res: ApiResponse) {
   if (await terkunci(db, s.nim, ip)) return tolak(res, "terlalu_sering", 429);
   const [a] = await db.select().from(recAccount).where(eq(recAccount.nim, s.nim)).limit(1);
   if (!a?.passHash) return tolak(res, "belum_masuk_oprec", 401);
-  if (!verifyPasswordHash(b.lama, a.passHash)) {
+  if (!(await verifyPasswordHashAsync(b.lama, a.passHash))) {
     await catat(db, s.nim, ip, false);
     return tolak(res, "sandi_salah", 401);
   }
@@ -299,7 +299,7 @@ export async function handleGantiSandi(req: ApiRequest, res: ApiResponse) {
   const versi = a.versi + 1;
   const [u] = await db
     .update(recAccount)
-    .set({ passHash: hashPassword(b.baru), versi })
+    .set({ passHash: await hashPasswordAsync(b.baru), versi })
     .where(and(eq(recAccount.nim, a.nim), eq(recAccount.versi, a.versi)))
     .returning({ nim: recAccount.nim });
   if (!u) return tolak(res, "sandi_salah", 401);
@@ -338,7 +338,11 @@ export async function handleResetAkun(req: ApiRequest, res: ApiResponse, s: Sess
   const kode = buatKodeKlaim();
   const [u] = await db
     .update(recAccount)
-    .set({ passHash: null, klaimHash: hashPassword(kode), versi: sql`${recAccount.versi} + 1` })
+    .set({
+      passHash: null,
+      klaimHash: await hashPasswordAsync(kode),
+      versi: sql`${recAccount.versi} + 1`,
+    })
     .where(eq(recAccount.nim, nim))
     .returning({ nim: recAccount.nim });
   if (!u) return tolak(res, "tidak_ditemukan", 404);
