@@ -74,15 +74,17 @@ export type StatusLangsung = "live" | "putus" | "mati";
 const PING_MS = 25_000;
 const PONG_MS = 8_000;
 const ULANG = [1000, 2000, 5000, 10_000, 15_000];
-/** While the socket is down the console asks the API again this often */
-export const CADANGAN_MS = 15_000;
+/** While the socket is down the console asks the API again this often (15 s until 15 Nov 2026) */
+export const CADANGAN_MS = 5_000;
 /**
  * While the socket looks fine, a seat's page and the console still ask now and then (10 Nov 2026).
  * A message lost on the way (a hold released, a part resumed, a warning cleared) otherwise left a
  * seat on a full-screen card until siaran.ts's 5 minute safety net, and a refresh was the only way
- * out. The site runs on the lab PC now, so the extra requests cost nothing.
+ * out. The site runs on the lab PC now, so the extra requests cost nothing. 20 s until 15 Nov 2026,
+ * when the rooms moved into the server itself (reliable delivery, no 1.5 s give-up): a seat now
+ * recovers from a lost message in 10 s. A seat page and a console are tens of tabs, not hundreds.
  */
-export const CADANGAN_HIDUP_MS = 20_000;
+export const CADANGAN_HIDUP_MS = 10_000;
 
 /**
  * The room's socket for the Panitia. `onKabar` hears every message that is

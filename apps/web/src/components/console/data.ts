@@ -53,8 +53,8 @@ export function useLaporan(enabled: boolean, sesiId: number | null = null) {
     "tangkapan",
   ]);
   // The telemetry counts follow the readings in the session room, asked
-  // again at most every 15 s while they flow (each ask reads the session's
-  // whole telemetry log), and every 15 s while the room is down.
+  // again at most every 5 s while they flow (each ask reads the session's
+  // telemetry counts in SQL since 15 Nov 2026), and every 5 s while the room is down.
   const terakhir = useRef(0);
   const tunda = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshRef = useRef(poll.refresh);
@@ -115,8 +115,8 @@ function denganJawaban(x: Laporan, d: unknown): Laporan {
   };
 }
 
-/** The run report's telemetry counts are asked again at most this often */
-const TEL_JARAK = 15_000;
+/** The run report's telemetry counts are asked again at most this often (15 s until 15 Nov 2026) */
+const TEL_JARAK = 5_000;
 
 export function useAssignment(sesiId: number | null) {
   const poll = usePoll(
