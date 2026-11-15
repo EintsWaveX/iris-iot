@@ -10,6 +10,11 @@
  *     --emit hmac --emit-url https://konsol.irisiotlab.com/siaran/kirim --secret-env KONSOL_RELAY_SECRET \
  *     --sockets 300 --rounds 20 --out perf/fanout-worker-300.json --allow-live
  *
+ *   # rooms mode: the same, inside one session room or exam room (this script signs the tickets)
+ *   KONSOL_RELAY_SECRET=... node scripts/fanout.mjs --url wss://irisiotlab.com  *     --room aliran/sesi-999001 --secret-env KONSOL_RELAY_SECRET --sockets 1000 --rounds 20 --allow-live
+ *   (--room ujian/rec-999001 for an exam room: socket 0 is a seat sending progress, the rest are
+ *   Panitia consoles; at most 200 rounds, one every 1.6 s.) Use a room number no real session has.
+ *
  * The secret comes only from the environment, never from an argument or a file. Against a live host
  * (irisiotlab.com, workers.dev) it needs --allow-live, and it refuses during class hours
  * (06:00-21:00 WIB, Mon-Sat) unless --force.
@@ -33,6 +38,10 @@ if (!url) {
   process.exit(2);
 }
 const host = new URL(url).hostname;
+if (opt("--room") && new URL(url).pathname.length > 1) {
+  console.error("with --room, --url is the base only (wss://host), the room's path is added");
+  process.exit(2);
+}
 const live = /irisiotlab\.com$|workers\.dev$/.test(host);
 if (live && !flag("--allow-live")) {
   console.error(`${host} is live: add --allow-live if you mean it.`);
@@ -50,7 +59,27 @@ if (live && !flag("--force")) {
 }
 
 let emit;
+let ruang;
+const kamar = opt("--room");
+if (kamar) {
+  const m = /^(aliran|ujian)\/((?:sesi-[1-9]\d{0,8})|(?:rec-[1-9]\d{0,8}))$/.exec(kamar);
+  if (!m || (m[1] === "ujian") !== m[2].startsWith("rec-")) {
+    console.error("--room is aliran/sesi-<n> or ujian/rec-<n>");
+    process.exit(2);
+  }
+  const nama = opt("--secret-env", "KONSOL_RELAY_SECRET");
+  const rahasia = process.env[nama];
+  if (!rahasia || rahasia.length < 32) {
+    console.error(`the secret env var ${nama} is not set (or shorter than 32 characters)`);
+    process.exit(2);
+  }
+  ruang = { jenis: m[1], nama: m[2], rahasia };
+}
 const mode = opt("--emit");
+if (mode && ruang) {
+  console.error("--room and --emit are two ways to announce; pick one");
+  process.exit(2);
+}
 if (mode) {
   const nama = opt("--secret-env", "FANOUT_SECRET");
   const rahasia = process.env[nama];
@@ -74,6 +103,7 @@ const hasil = await jalankanFanout({
   rampa: Number(opt("--ramp", "100")),
   origin: opt("--origin"),
   emit,
+  ruang,
 });
 const keluar = { cap: new Date().toISOString(), nama: opt("--name", null), ...hasil };
 console.log(JSON.stringify(keluar, null, 2));

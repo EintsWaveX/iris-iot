@@ -416,6 +416,25 @@ node scripts/fanout.mjs --url ws://127.0.0.1:8787/siaran --sockets 1000 --hold 3
 FANOUT_SECRET=... node scripts/fanout.mjs --url wss://HOST/siaran --emit bearer --emit-url https://HOST/siaran/kirim   --sockets 1000 --rounds 20 --out perf/fanout-<name>.json --allow-live
 ```
 
+**Rooms mode** (phase 7). The same measurement inside one session room or exam room. The script signs the room
+tickets itself with `KONSOL_RELAY_SECRET` (read from the environment, never an argument), socket 0 is the sender and
+puts one frame per round into the room (a `tel` board reading, or a seat's `kemajuan`), the others listen. No API route
+and no database take part, so the numbers are the room hub's own. Use a room number no real session has, so no real page
+joins it. `--url` is the base only; the room's path is added:
+
+```sh
+# on the PC, the server alone (no tunnel): the source of truth for the hub itself
+export KONSOL_RELAY_SECRET=...   # the same value as in /etc/iris-web/env; set it by hand in your shell, not on a command line
+node scripts/fanout.mjs --url ws://127.0.0.1:8787 --room aliran/sesi-999001 --sockets 1000 --rounds 20 --out perf/rooms-pc-1000.json
+node scripts/fanout.mjs --url ws://127.0.0.1:8787 --room ujian/rec-999001 --sockets 300 --rounds 20 --out perf/rooms-ujian-pc-300.json
+# from a laptop, through Cloudflare: what a visitor sees (outside class hours)
+node scripts/fanout.mjs --url wss://irisiotlab.com --room aliran/sesi-999001 --sockets 1000 --rounds 20 --allow-live --out perf/rooms-edge-1000.json
+```
+
+An exam room takes at most 200 rounds, one every 1.6 s (a seat may send one progress frame per 1.5 s). The 1,000-page
+proof is two runs together: the topic hub with 1,000 sockets (`--emit metrik`, as above) and a session room with a few
+hundred, started in two terminals, with `/api/sehat?klaster=1` watched for event-loop lag and worker memory.
+
 Baselines taken so far are in `apps/web/perf/`.
 
 **Live rooms and the lab clock in this server** (real-time upgrade, phase 2b). The session rooms (`/aliran/sesi-<id>`,

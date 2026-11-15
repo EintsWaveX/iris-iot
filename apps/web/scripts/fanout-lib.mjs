@@ -3,6 +3,12 @@
  * room, makes the server announce a unique topic M times, and measures how long every socket took to hear
  * each one (p50/p95/p99/max), how many deliveries went missing, and how long the sockets took to connect.
  *
+ * Rooms mode (Phase 7): the same measurement on a session room (/aliran/sesi-N) or an exam room
+ * (/ujian/rec-N). Every socket enters with a ticket this script signs (KONSOL_RELAY_SECRET, from the
+ * environment); socket 0 is the sender, and each round it sends one frame the room fans out to all the
+ * others (a `tel` board reading in a session room, a seat's `kemajuan` in an exam room), so no API
+ * route and no database is involved and the numbers are the room hub's own.
+ *
  * Node 22+, uses the `ws` package the site already depends on. The CLI is scripts/fanout.mjs.
  */
 import { createHmac, randomBytes } from "node:crypto";
@@ -26,6 +32,81 @@ export function topikUnik() {
     .toString("hex")
     .replace(/[0-9]/g, (d) => "ghijklmnop"[Number(d)]);
   return "zz" + huruf.slice(0, 10);
+}
+
+const b64u = (b) => Buffer.from(b).toString("base64url");
+
+/** A room ticket, as src/lib/tanda.ts signs it: base64url(JSON).base64url(HMAC-SHA256 over that part). */
+export function buatTiket(isi, rahasia) {
+  const badan = b64u(JSON.stringify(isi));
+  return `${badan}.${createHmac("sha256", rahasia).update(badan).digest("base64url")}`;
+}
+
+/** The ticket for socket `i` of a rooms run: socket 0 sends, the rest listen. */
+export function tiketRuang(ruang, i, rahasia, now = Date.now()) {
+  const dasar = {
+    v: 1,
+    exp: Math.floor(now / 1000) + 60,
+    n: randomBytes(18).toString("base64url"),
+  };
+  if (ruang.jenis === "ujian") {
+    // Seat 1 sends its progress; the others are Panitia consoles, which hear every seat.
+    return buatTiket(
+      {
+        ...dasar,
+        p: "ujian",
+        r: ruang.nama,
+        peran: i === 0 ? "kursi" : "panitia",
+        s: i === 0 ? 1 : null,
+        u: `fanout${i}`,
+      },
+      rahasia,
+    );
+  }
+  // A Praktikan of group 1 sends board readings; every Praktikan in the room hears `tel`.
+  return buatTiket(
+    {
+      ...dasar,
+      p: "aliran",
+      r: ruang.nama,
+      peran: "praktikan",
+      g: i === 0 ? 1 : 2 + (i % 90),
+      u: `fanout${i}`,
+    },
+    rahasia,
+  );
+}
+
+/** The frame the sender puts into the room for round `r` (1-based), and where the receivers find `r` again. */
+export function bingkaiRuang(ruang, r) {
+  if (ruang.jenis === "ujian") {
+    // answered <= total <= 200, so a run has at most 200 rounds
+    return JSON.stringify({ j: "kemajuan", d: { part: "logika", answered: r, total: 200 } });
+  }
+  return JSON.stringify({
+    j: "tel",
+    d: [{ seq: r, tx: "12:00:00:000", rx: null, delayMs: null, nilai: null }],
+  });
+}
+
+/** Which round a frame from the room carries, as strings (null when it is not a round frame). */
+export function bulatanDariRuang(ruang, teks) {
+  let m;
+  try {
+    m = JSON.parse(teks)?.m;
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(m)) return [];
+  const hasil = [];
+  for (const x of m) {
+    if (ruang.jenis === "ujian") {
+      if (x?.j === "kemajuan" && Number.isInteger(x?.d?.answered)) hasil.push(String(x.d.answered));
+    } else if (x?.j === "tel" && Array.isArray(x.d)) {
+      for (const b of x.d) if (Number.isInteger(b?.seq)) hasil.push(String(b.seq));
+    }
+  }
+  return hasil;
 }
 
 /** How a "make the server announce a topic" request is made: the current Worker relay signs with HMAC. */
@@ -57,7 +138,9 @@ export function minta(emit, topik) {
 
 /**
  * @param {{ url: string, soket: number, putaran: number, jeda: number, tahan?: number, rampa?: number, tungguAkhir?: number,
- *           emit?: { mode: "hmac"|"bearer", url: string, rahasia: string }, origin?: string }} o
+ *           emit?: { mode: "hmac"|"bearer", url: string, rahasia: string }, origin?: string,
+ *           ruang?: { jenis: "aliran"|"ujian", nama: string, rahasia: string } }} o
+ * With `ruang`, `url` is the server's base (ws://host:port) and no `emit` is used: socket 0 is the sender.
  */
 export async function jalankanFanout(o) {
   const mulai = performance.now();
@@ -68,10 +151,20 @@ export async function jalankanFanout(o) {
   /** topic -> { t0, terima: number[] } */
   const putaran = new Map();
 
+  let nomorSoket = 0;
+  /** Socket 0 of a rooms run: the one that sends (null until it is open). */
+  let pengirim = null;
+  const urlRuang = (i) =>
+    `${o.url.replace(/\/$/, "")}/${o.ruang.jenis}/${o.ruang.nama}?tiket=${encodeURIComponent(tiketRuang(o.ruang, i, o.ruang.rahasia))}`;
+
   const buka = () =>
     new Promise((selesai) => {
       const t0 = performance.now();
-      const ws = new WebSocket(o.url, o.origin ? { headers: { origin: o.origin } } : undefined);
+      const i = nomorSoket++;
+      const ws = new WebSocket(
+        o.ruang ? urlRuang(i) : o.url,
+        o.origin ? { headers: { origin: o.origin } } : undefined,
+      );
       let sudah = false;
       const tmr = setTimeout(() => {
         if (!sudah) gagalSambung++;
@@ -83,13 +176,21 @@ export async function jalankanFanout(o) {
         sudah = true;
         clearTimeout(tmr);
         waktuSambung.push(performance.now() - t0);
-        socks.push(ws);
+        if (o.ruang && i === 0) pengirim = ws;
+        else socks.push(ws);
         selesai();
       });
       ws.on("message", (d) => {
         const t = performance.now();
         const teks = d.toString();
         if (teks === "pong") return;
+        if (o.ruang) {
+          for (const nama of bulatanDariRuang(o.ruang, teks)) {
+            const p = putaran.get(nama);
+            if (p) p.terima.push(t - p.t0);
+          }
+          return;
+        }
         let tema;
         try {
           tema = JSON.parse(teks).t;
@@ -121,11 +222,32 @@ export async function jalankanFanout(o) {
     if (i + n < o.soket) await wait(1000);
   }
   const ping = setInterval(() => {
-    for (const s of socks) if (s.readyState === WebSocket.OPEN) s.send("ping");
+    for (const s of [...socks, ...(pengirim ? [pengirim] : [])])
+      if (s.readyState === WebSocket.OPEN) s.send("ping");
   }, 20_000);
 
   const hasil = [];
-  if (o.emit) {
+  if (o.ruang) {
+    if (!pengirim) throw new Error("the sender socket (socket 0) did not connect");
+    // An exam seat may send one progress frame every 1.5 s; the room drops faster ones.
+    const gap = Math.max(o.jeda, o.ruang.jenis === "ujian" ? 1600 : 0);
+    const rondeMaks = o.ruang.jenis === "ujian" ? 200 : Infinity;
+    for (let r = 1; r <= Math.min(o.putaran, rondeMaks); r++) {
+      const kunci = String(r);
+      const p = { t0: 0, terima: [] };
+      putaran.set(kunci, p);
+      p.t0 = performance.now();
+      let status = 200;
+      try {
+        pengirim.send(bingkaiRuang(o.ruang, r));
+      } catch {
+        status = -1;
+      }
+      await wait(o.tungguAkhir ?? 1500);
+      hasil.push({ topik: kunci, status, rttEmit: 0, lat: p.terima });
+      await wait(gap);
+    }
+  } else if (o.emit) {
     for (let r = 0; r < o.putaran; r++) {
       const topik = topikUnik();
       const p = { t0: 0, terima: [] };
@@ -153,14 +275,17 @@ export async function jalankanFanout(o) {
   clearInterval(ping);
   const hidup = socks.filter((s) => s.readyState === WebSocket.OPEN).length;
   for (const s of socks) s.terminate();
+  pengirim?.terminate();
 
   const semua = hasil.flatMap((h) => h.lat);
+  // Every listener must hear every round (the sender is not told its own frame back).
   const diharap = hasil.length * socks.length;
   const rtts = hasil.map((h) => h.rttEmit);
   return {
     url: o.url,
+    ruang: o.ruang ? `${o.ruang.jenis}/${o.ruang.nama}` : undefined,
     soketDiminta: o.soket,
-    soketTersambung: socks.length,
+    soketTersambung: socks.length + (pengirim ? 1 : 0),
     gagalSambung,
     terputusSelama: terputus,
     hidupDiAkhir: hidup,
