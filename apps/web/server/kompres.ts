@@ -12,6 +12,7 @@
 import { promisify } from "node:util";
 import zlib from "node:zlib";
 import type http from "node:http";
+import { bolehDietag, buatEtag, terapkanEtag } from "./etag.js";
 
 export type Kode = "br" | "gzip";
 
@@ -101,13 +102,13 @@ export function akhiriJson(req: http.IncomingMessage, res: http.ServerResponse, 
     res.statusCode !== 204 &&
     res.statusCode !== 304 &&
     !/no-transform/i.test(String(res.getHeader("Cache-Control") ?? ""));
-  if (!layak) {
-    res.end(isi);
-    return;
+  const kode = layak ? pilihKode(req.headers["accept-encoding"]) : null;
+  if (layak) tambahVary(res);
+  // A read the browser already holds, byte for byte, goes out as a 304 before any compressing (etag.ts).
+  if (/json/i.test(jenis) && bolehDietag(req, res, isi.length)) {
+    if (terapkanEtag(req, res, buatEtag(isi, kode ?? ""))) return;
   }
-  tambahVary(res);
-  const kode = pilihKode(req.headers["accept-encoding"]);
-  if (!kode) {
+  if (!layak || !kode) {
     res.end(isi);
     return;
   }
