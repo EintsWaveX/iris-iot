@@ -220,30 +220,33 @@ export function buatHubRuang(opsi: OpsiHubRuang): HubRuang {
   }
 
   /** Tells each group's sockets how many others look at their group, so a laptop sends its board lines
-   *  only while someone watches. */
+   *  only while someone watches. One pass counts who looks at each group (sockets here and on the other
+   *  workers), then each socket is told that count minus itself: linear in the room, not a walk of the
+   *  whole room per socket (a room of 1,000 sockets blocked the loop for ~600 ms while they joined). */
   function kabariPenonton(ruang: string) {
     const isi = [...(kamar.get(ruang) ?? [])].filter((s) => s.att.jenis === "aliran");
-    // Who else is in the room: the other sockets here and on the other workers.
-    const semuaDiRuang: Array<{ s: Soket | null; lihat: number | null; peran: string }> = [
-      ...isi.map((s) => ({
-        s,
-        lihat: (s.att as AttAliran).lihat,
-        peran: (s.att as AttAliran).peran,
-      })),
-      ...[...(jauh.get(ruang)?.values() ?? [])].flatMap((i) =>
-        i.k === "a" ? [{ s: null, lihat: i.lihat, peran: i.peran }] : [],
-      ),
-    ];
-    isi.forEach((s) => {
+    const lihatPer = new Map<number, { n: number; a: number }>();
+    const hitung = (lihat: number | null, peran: string) => {
+      if (lihat === null) return;
+      const c = lihatPer.get(lihat) ?? { n: 0, a: 0 };
+      c.n++;
+      if (peran === "asisten") c.a++;
+      lihatPer.set(lihat, c);
+    };
+    for (const s of isi) hitung((s.att as AttAliran).lihat, (s.att as AttAliran).peran);
+    for (const i of jauh.get(ruang)?.values() ?? []) if (i.k === "a") hitung(i.lihat, i.peran);
+    for (const s of isi) {
       const att = s.att as AttAliran;
-      if (att.g === null) return;
-      const lain = semuaDiRuang.filter((o) => o.s !== s && o.lihat === att.g);
-      const n = lain.length;
-      const a = lain.filter((o) => o.peran === "asisten").length;
-      if (`${n},${a}` === att.penonton) return;
+      if (att.g === null) continue;
+      const semua = lihatPer.get(att.g) ?? { n: 0, a: 0 };
+      // A socket looking at its own group does not count itself.
+      const diri = att.lihat === att.g;
+      const n = semua.n - (diri ? 1 : 0);
+      const a = semua.a - (diri && att.peran === "asisten" ? 1 : 0);
+      if (`${n},${a}` === att.penonton) continue;
       att.penonton = `${n},${a}`;
       kirimKe(s, JSON.stringify({ penonton: n, asisten: a }));
-    });
+    }
   }
 
   // ---- exam rooms ----
