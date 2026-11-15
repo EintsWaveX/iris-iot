@@ -1,16 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("@vercel/functions", () => ({ waitUntil: vi.fn() }));
+import { describe, expect, it } from "vitest";
 
 const { waitUntil, tungguLatar, jumlahLatar } = await import("../tunggu.js");
-const vercel = await import("@vercel/functions");
 
-afterEach(() => {
-  delete process.env.VERCEL;
-  vi.clearAllMocks();
-});
-
-describe("waitUntil for both homes of the API", () => {
+describe("waitUntil", () => {
   it("tracks a job until it settles", async () => {
     let selesai!: () => void;
     waitUntil(new Promise<void>((r) => (selesai = r)));
@@ -30,15 +22,5 @@ describe("waitUntil for both homes of the API", () => {
     waitUntil(new Promise(() => {}));
     expect(await tungguLatar(30)).toBe(false);
     expect(jumlahLatar()).toBe(1);
-  });
-
-  it("calls Vercel's waitUntil only on Vercel", async () => {
-    waitUntil(Promise.resolve());
-    expect(vercel.waitUntil).not.toHaveBeenCalled();
-    process.env.VERCEL = "1";
-    const p = Promise.resolve();
-    waitUntil(p);
-    expect(vercel.waitUntil).toHaveBeenCalledWith(p);
-    await tungguLatar(100);
   });
 });

@@ -7,8 +7,8 @@ name: Bundel PC
 # same job on its own pushes. Secrets here:
 #   ASO_DEPLOY_KEY      read-only deploy key for EintsWaveX/iris-iot-aso
 #   BUNDEL_KUNCI_TANDA  the Ed25519 signing key (PEM)
-#   BUNDEL_TERBIT       the site's publish secret (Vercel env BUNDEL_TERBIT)
-# A push here also deploys the site; the publisher retries while that lands.
+#   BUNDEL_TERBIT       the site's publish secret (env BUNDEL_TERBIT on the PC Server)
+# The site is already running on the PC, so the publisher posts straight to it.
 
 on:
   push:

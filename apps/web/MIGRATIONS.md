@@ -1,12 +1,10 @@
 # Applying a migration
 
-Drizzle's own `db:migrate` script (`drizzle-kit migrate`) does not work
-against this project's database. `src/lib/db.ts` uses
-`drizzle-orm/neon-serverless`, which speaks Neon's proprietary WebSocket
-protocol rather than plain Postgres wire protocol, and `drizzle-kit migrate`
-hardcodes that same driver — it has no way to connect to a throwaway local
-Postgres instance for testing, and no CI job runs it, so `drizzle/*.sql`
-files are applied by hand with `psql`. This has been true since migration
+Drizzle's own `db:migrate` script (`drizzle-kit migrate`) is not used on this
+project's database. It was never set up to reach a throwaway local Postgres
+for testing (the project used to run on Neon's WebSocket driver, which it
+could not talk to), and no CI job runs it, so `drizzle/*.sql` files are
+applied by hand with `psql`. This has been true since migration
 0000; nothing about that changed in Stage 4, it was just never written down
 until the presentasi/jawaban/sesi/asisten migration made it worth doing
 before a fourth undocumented manual apply happened.

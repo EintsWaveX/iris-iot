@@ -1,18 +1,15 @@
 /**
  * Work that goes on after the answer has been sent (a relay broadcast, the
- * PC heartbeat's backups), for both homes of the API.
+ * PC heartbeat's backups).
  *
- * On Vercel a function instance freezes the moment it answers, so such work
- * is handed to `waitUntil` from @vercel/functions, which keeps it alive. On
- * the self-hosted server (apps/web/server) the process never freezes; the
- * promise just runs on, and the server drains the ones still pending before
- * it exits (`tungguLatar`, called on SIGTERM), so a restart does not drop a
- * broadcast. Both paths track the promise, so a test can see it settle.
+ * The server (apps/web/server) never freezes between requests, so the promise
+ * just runs on, and the server drains the ones still pending before it exits
+ * (`tungguLatar`, called on SIGTERM), so a restart does not drop a broadcast.
+ * The set also lets a test see a job settle.
  *
  * It never throws and never reports a rejection by itself: the caller's own
  * promise already carries its `.catch` (the sites that matter log there).
  */
-import { waitUntil as waitUntilVercel } from "@vercel/functions";
 
 const latar = new Set<Promise<void>>();
 
@@ -23,8 +20,6 @@ export function waitUntil(kerja: Promise<unknown>): void {
   );
   latar.add(selesai);
   void selesai.then(() => latar.delete(selesai));
-  // Only on Vercel: elsewhere the library has nothing to hook into.
-  if (process.env.VERCEL) waitUntilVercel(kerja);
 }
 
 /** How many background jobs are still running (for the health answer). */

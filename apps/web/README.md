@@ -40,48 +40,32 @@ All commands are run from the root of the project, from a terminal:
 
 ## Deploying
 
-Pushing to `main` deploys production. Vercel's GitHub integration builds
-this folder (the project's Root Directory is `apps/web`); any other branch
-gets a preview URL. Nothing else is needed.
+The site runs on the PC Server (a Node process, `npm run server`, behind a
+Cloudflare tunnel). Merging to `main` does not change it: the Upgrade button
+on the Server page, or `deploy/deploy.sh` on the PC, builds and restarts it
+(see `deploy/DEPLOY.md`).
 
-A manual CLI deploy (for example a preview to test before pushing) must run
-from the **repository root**, not from here. With Root Directory set to
-`apps/web`, running the CLI inside `apps/web` makes it look for
-`apps/web/apps/web` and deploy an empty site:
-
-```
-cd <repo root>
-vercel link --project iris-praktikum-jurnal   # once; delete the .env.local it writes
-vercel build            # add --prod for production
-vercel deploy --prebuilt   # add --prod for production
-```
-
-`npm run check` also typechecks `api/` under the module rules Vercel's
-function build enforces (`tsconfig.api.json`), so an import that only
-`vercel build` would reject fails locally and in CI first.
+`npm run check` also typechecks `api/` under the stricter module rules in
+`tsconfig.api.json`, so an import the server would reject fails locally and in
+CI first.
 
 ## Production checks and backups
 
 - **Smoke test.** `node scripts/rehearse.mjs` checks the live site read-only
-  (pages, headers, API, the relay's live updates). It runs on its own after
-  every production deploy (`.github/workflows/smoke.yml`).
+  (pages, headers, API, the relay's live updates). It runs on its own every
+  morning at 05:30 WIB (`.github/workflows/smoke.yml`) and can be run by hand.
 - **TOT rehearsal.** `IRIS_NIM=... IRIS_PW=... node scripts/rehearse.mjs --tot`
   switches Mode TOT on, starts a TOT session, signs dummies in with the
   session code, ends it, switches TOT off and clears the TOT history. Add
   `--load 30 --menit 3` for 30 dummy Praktikan at once. Refused during class
   hours (06:00 to 21:00 WIB, Monday to Saturday) or while a session runs,
   unless `--force`. Credentials come from the environment only.
-- **Backups.** `.github/workflows/backup.yml` dumps production every night at
-  02:00 WIB, encrypted with age, kept 30 days as the `iris-backup` artifact.
-  The private key is `~/.iris-backup/age-key.txt` on the maintainer's PC
-  (keep a copy in a password manager: without it the backups can't be read).
-  Restore into an empty database:
-
-  ```sh
-  gh run download <run-id> -R EintsWaveX/iris-iot -n iris-backup
-  age -d -i ~/.iris-backup/age-key.txt iris-*.dump.age > iris.dump
-  pg_restore --no-owner --no-acl -d "<empty database url>" iris.dump
-  ```
+- **Backups.** The PC runs a nightly `pg_dump`, encrypted with age and
+  uploaded to the R2 bucket `iris-backups` (30 days kept); see
+  `deploy/DEPLOY.md` section 2c. The private key is
+  `~/.iris-backup/age-key.txt` on the maintainer's PC (keep a copy in a
+  password manager: without it the backups can't be read).
+  `deploy/restore-drill.sh` proves a backup restores into a scratch database.
 
 ## 👀 Want to learn more?
 

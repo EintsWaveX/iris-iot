@@ -12,12 +12,9 @@ name: CI
 # the same job IRIS ASO ran before Stage 15 moved this directory here).
 # A run that a newer push to the same branch makes stale is cancelled.
 #
-# Deploying is not a job here. Vercel's own GitHub integration builds
-# apps/web (the project's Root Directory) on every push: production from
-# main, a preview for any other branch. The old deploy job was never
-# enabled, and ran the CLI from apps/web, which under that Root Directory
-# setting builds an empty site. A manual CLI deploy must run from the repo
-# root (see apps/web/README.md).
+# Deploying is not a job here. The site runs on the PC Server and is
+# deployed there (the Upgrade button on the Server page, or deploy.sh; see
+# apps/web/deploy/DEPLOY.md). A merge to main alone changes nothing live.
 #
 # This repo is the web-development half of a larger project split out of
 # Documents/Downloads/IRIS ASO into Documents/WebApps/iris-iot. Stage 15
@@ -90,7 +87,7 @@ jobs:
         env:
           # A build-time placeholder. Nothing in the static build path
           # touches the database -- getDb() is called only from api/*
-          # request handlers, which Vercel's own build never invokes -- but
+          # request handlers, which the build never invokes -- but
           # setting this avoids any future accidental import-time access
           # throwing during `astro build` instead of failing loudly with a
           # clear message the way src/lib/db.ts intends.

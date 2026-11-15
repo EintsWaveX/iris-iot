@@ -168,8 +168,8 @@ sudo -u postgres psql iris -tAc "select count(*) from audit"      # about what N
 rm -f /tmp/iris.dump
 ```
 
-The server picks its driver from `DATABASE_URL` (`src/lib/db.ts`): a `*.neon.tech` host uses Neon's WebSocket
-driver, anything else (127.0.0.1) uses plain node-postgres. Rehearsed on 8 Nov against a restored copy of
+The server talks to `DATABASE_URL` with plain node-postgres (`src/lib/db.ts`; the Neon WebSocket driver was
+removed once Neon was gone). Rehearsed on 8 Nov against a restored copy of
 production on PostgreSQL 18.4: 119 tables, the same row counts, the lab clock answering in 6 to 9 ms
 (8 queries per call) where Neon from this PC would take about 0.65 s.
 
