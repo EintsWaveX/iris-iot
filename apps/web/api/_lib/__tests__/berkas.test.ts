@@ -25,7 +25,6 @@ import {
   simpanBerkas,
   terimaUnggah,
   urlBerkasValid,
-  urlBlobLama,
 } from "../berkas.js";
 import type { ApiRequest, ApiResponse } from "../http.js";
 
@@ -34,7 +33,6 @@ const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0]);
 const WEBP = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBPVP8 ")]);
 const PDF = Buffer.from("%PDF-1.7\n...");
-const BLOB = "https://x.public.blob.vercel-storage.com";
 
 beforeEach(() => {
   masuk.length = 0;
@@ -52,13 +50,11 @@ describe("file addresses", () => {
     expect(idDariUrl(null)).toBeNull();
   });
 
-  it("accepts our address and, for the move, an old Blob address; nothing else", () => {
+  it("accepts our address and nothing else (an old Blob address no longer counts)", () => {
     expect(urlBerkasValid(`/f/${ID}/a.pdf`)).toBe(true);
-    expect(urlBerkasValid(`${BLOB}/profil/a.webp`)).toBe(true);
-    expect(urlBerkasValid("http://x.public.blob.vercel-storage.com/a")).toBe(false);
+    expect(urlBerkasValid("https://x.public.blob.vercel-storage.com/profil/a.webp")).toBe(false);
     expect(urlBerkasValid("https://evil.example/a.pdf")).toBe(false);
     expect(urlBerkasValid("javascript:alert(1)")).toBe(false);
-    expect(urlBlobLama(`${BLOB}/a`)).toBe(true);
   });
 
   it("cleans a name: no path, no control characters, bounded", () => {
@@ -108,7 +104,10 @@ describe("storing and deleting", () => {
   });
 
   it("deletes only the addresses that are ours", async () => {
-    await hapusBerkas([`${BLOB}/a`, null, "https://canva.com/x"], "t");
+    await hapusBerkas(
+      ["https://x.public.blob.vercel-storage.com/a", null, "https://canva.com/x"],
+      "t",
+    );
     expect(hapus).toHaveLength(0);
     await hapusBerkas([`/f/${ID}/a.pdf`, undefined], "t");
     expect(hapus).toHaveLength(1);
