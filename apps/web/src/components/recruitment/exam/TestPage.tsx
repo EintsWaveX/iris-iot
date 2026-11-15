@@ -6,7 +6,7 @@
  * is up: a Master action arrives as a frame, GET test is asked again only
  * when the part on screen is missing, when the seat's own state changed
  * (seat time, Kumpulkan, a move) or when the link comes back. While the link
- * is down it asks every 15 s.
+ * is down it asks every 5 s.
  *
  * The test has no navbar from the first check-in step; only "not open yet"
  * keeps the recruitment shell. Layers portal into the full screen element
@@ -121,7 +121,7 @@ export default function TestPage({ lang: routeLang }: { lang: Lang }) {
       if (m.j === "antrean" || m.j === "judge" || m.j === "kompilasi") setLcSignal((n) => n + 1);
     },
   );
-  // Asks again every 15 s while the socket is down and every 20 s while it is up, so a message lost on
+  // Asks again every 5 s while the socket is down and every 10 s while it is up, so a message lost on
   // the way (a hold released, a part resumed) never leaves the seat on a card until a refresh.
   useCadanganRuang(refresh, !!seat, live.status === "live" ? CADANGAN_HIDUP_MS : CADANGAN_MS);
   const now = useJamRuang();

@@ -71,11 +71,11 @@ interface Hadirku {
 // Deliberately shorter than the server's 15 s window, so a press never lands on its edge
 const BATAL_DETIK = 10;
 const TOPIK = ["hadir", "sesi", "jadwal"] as const;
-// A running session broadcasts `sesi` often: the heavy hadirku waits at most once per 3 s
-const JARAK_HADIR = 3_000;
-// Score saves fire on every field blur: their refetch waits at most once per 10 s
+// A running session broadcasts `sesi` often: the heavy hadirku waits at most once per 2 s (3 s until 15 Nov 2026)
+const JARAK_HADIR = 2_000;
+// Score saves fire on every field blur: their refetch waits at most once per 5 s (10 s until 15 Nov 2026)
 const TOPIK_NILAI = ["nilai", "seelabs"] as const;
-const JARAK_NILAI = 10_000;
+const JARAK_NILAI = 5_000;
 
 const rp = (n: number) => `Rp${Math.round(n).toLocaleString("id-ID")}`;
 const dua = (n: number) => String(n).padStart(2, "0");
