@@ -62,7 +62,7 @@
 }
 
 .toast__icon {
-  color: var(--accent);
+  color: var(--accent-bright);
   flex: none;
 }
 

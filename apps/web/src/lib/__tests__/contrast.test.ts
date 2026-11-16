@@ -153,6 +153,17 @@ describe.each(THEMES)("contrast contract, %s theme", (_name, raw) => {
     expect(worst).toBeGreaterThanOrEqual(AA);
   });
 
+  // The toast (Toast.css) sits on --surface-4, the brightest raised surface: its words and its icons.
+  it.each(["--text", "--text-muted"])(`${"%s"} clears ${AA}:1 on the toast surface`, (ink) => {
+    expect(contrast(color(raw, ink), color(raw, "--surface-4"))).toBeGreaterThanOrEqual(AA);
+  });
+  it.each(["--accent-bright", "--ok", "--warn", "--danger"])(
+    `toast icon %s clears ${UI}:1 on the toast surface`,
+    (ink) => {
+      expect(contrast(color(raw, ink), color(raw, "--surface-4"))).toBeGreaterThanOrEqual(UI);
+    },
+  );
+
   it(`--control-border clears ${UI}:1 on every surface`, () => {
     const worst = Math.min(
       ...SURFACES.map((s) => contrast(color(raw, "--control-border"), color(raw, s))),
