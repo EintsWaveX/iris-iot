@@ -498,7 +498,8 @@
 /* The head uses the body's own columns, so the star path starts exactly
    where the second card below starts (the live card while running). */
 .dash10__head {
-  align-items: end;
+  /* Nov 2026: top-aligned, so the greeting and the module-line card start on one line (it was end, which hung the greeting low). */
+  align-items: start;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr);

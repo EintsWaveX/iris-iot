@@ -46,6 +46,11 @@ export function rnd(seed: number): () => number {
     return s / 4294967296;
   };
 }
+/** "#rrggbb" plus an alpha, for gradients that must fade without turning grey. */
+function rgba(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
 function canvas(w: number, h: number): [HTMLCanvasElement, Ctx] {
   const cv = document.createElement("canvas");
   cv.width = w;
@@ -576,6 +581,8 @@ function cloudSprite(v: number, T: { hi: string; mid: string; lo: string }): Spr
     [[-1, 0.25, 0.45], [-0.4, -0.15, 0.7], [0.3, -0.35, 0.9], [1, 0, 0.62], [0.2, 0.2, 0.7]],
     [[-1.2, 0.2, 0.5], [-0.7, 0, 0.62], [-0.1, 0.1, 0.7], [0.5, -0.2, 0.82], [1.1, 0.1, 0.6], [1.5, 0.25, 0.42]],
   ];
+  // Flatter than a ball, and soft: each puff only fades from light to mid; one shared shadow settles under the whole cloud.
+  c.setTransform(1, 0, 0, 0.8, 0, H * 0.13);
   SH[v % 3]
     .slice()
     .sort((a, b) => b[1] - a[1])
@@ -583,15 +590,23 @@ function cloudSprite(v: number, T: { hi: string; mid: string; lo: string }): Spr
       const x = ox + p[0] * s;
       const y = oy + p[1] * s;
       const rr = p[2] * s * 0.62;
-      const g = c.createRadialGradient(x - rr * 0.3, y - rr * 0.45, rr * 0.1, x, y, rr * 1.08);
+      const g = c.createRadialGradient(x - rr * 0.25, y - rr * 0.4, rr * 0.1, x, y, rr * 1.05);
       g.addColorStop(0, T.hi);
-      g.addColorStop(0.5, T.mid);
-      g.addColorStop(1, T.lo);
+      g.addColorStop(0.7, T.mid);
+      g.addColorStop(1, T.mid);
       c.fillStyle = g;
       c.beginPath();
       c.arc(x, y, rr, 0, TAU);
       c.fill();
     });
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  const belly = c.createLinearGradient(0, H * 0.32, 0, H * 0.82);
+  belly.addColorStop(0, rgba(T.lo, 0));
+  belly.addColorStop(1, rgba(T.lo, 0.85));
+  c.globalCompositeOperation = "source-atop";
+  c.fillStyle = belly;
+  c.fillRect(0, 0, W, H);
+  c.globalCompositeOperation = "source-over";
   return { url: cv.toDataURL(), w: W, h: H };
 }
 
@@ -616,6 +631,23 @@ export function sprites(T: Theme): SpriteSet {
     const [ac, actx] = canvas(1400, 520);
     ribbon(actx, 1400, 520, 0.45, 0.09, 0.0023, 0, "rgba(110,255,220,.55)", "rgba(130,120,255,0)", 0.26, "rgba(210,255,245,.8)");
     ribbon(actx, 1400, 520, 0.55, 0.07, 0.003, 2.2, "rgba(255,140,220,.4)", "rgba(110,150,255,0)", 0.2, "rgba(255,215,245,.6)");
+    // Fade the ribbons out toward every edge, so sliding sideways never shows where the sprite ends.
+    actx.globalCompositeOperation = "destination-in";
+    const fx = actx.createLinearGradient(0, 0, 1400, 0);
+    fx.addColorStop(0, "rgba(0,0,0,0)");
+    fx.addColorStop(0.2, "rgba(0,0,0,1)");
+    fx.addColorStop(0.8, "rgba(0,0,0,1)");
+    fx.addColorStop(1, "rgba(0,0,0,0)");
+    actx.fillStyle = fx;
+    actx.fillRect(0, 0, 1400, 520);
+    const fy = actx.createLinearGradient(0, 0, 0, 520);
+    fy.addColorStop(0, "rgba(0,0,0,0)");
+    fy.addColorStop(0.22, "rgba(0,0,0,1)");
+    fy.addColorStop(0.78, "rgba(0,0,0,1)");
+    fy.addColorStop(1, "rgba(0,0,0,0)");
+    actx.fillStyle = fy;
+    actx.fillRect(0, 0, 1400, 520);
+    actx.globalCompositeOperation = "source-over";
     o.aurora = { url: ac.toDataURL(), w: 1400, h: 520 };
   }
   cache[T] = o;
@@ -714,7 +746,7 @@ export type SceneItem = {
 /** What goes where, as fractions of the viewport. `n*` is the phone variant; `hn` hides it on phones. */
 export function sceneItems(T: Theme): SceneItem[] {
   const I: SceneItem[] = [];
-  if (T === "night") I.push({ s: "aurora", x: 0.5, y: 0.3, w: 1500, cls: "aur", t: 9, d: 3, nw: 1100 }, { s: "aurora", x: 0.46, y: 0.38, w: 1250, cls: "aur aur2", t: 12, d: 3, nw: 950 });
+  if (T === "night") I.push({ s: "aurora", x: 0.5, y: 0.46, w: 1500, cls: "aur", t: 9, d: 3, nw: 1100 }, { s: "aurora", x: 0.46, y: 0.54, w: 1250, cls: "aur aur2", t: 12, d: 3, nw: 950 });
   I.push({ s: "planet", x: 0.89, y: 0.25, w: 330, cls: "bob", t: 12, d: 8, nx: 0.86, ny: 0.2, nw: 230 });
   I.push({ s: "rings", x: 0.5, y: 0.46, w: 560, cls: "spin", t: 220, d: 4, nx: 0.5, ny: 0.5, nw: 440 });
   I.push(
@@ -722,7 +754,7 @@ export function sceneItems(T: Theme): SceneItem[] {
     { s: "c1", x: 0.7, y: 0.13, w: 330, cls: "drift", t: 92, d: 6, nw: 220 },
     { s: "c2", x: 0.2, y: 0.58, w: 300, cls: "drift", t: 84, d: 8, hn: 1 },
     { s: "small", x: 0.93, y: 0.5, w: 200, cls: "bob", t: 9, d: 18, hn: 1 },
-    { s: "rock", x: 0.72, y: 0.66, w: 64, cls: "bob", t: 7, d: 24, hn: 1 },
+    { s: "rock", x: 0.9, y: 0.72, w: 64, cls: "bob", t: 7, d: 24, hn: 1 },
     { s: "big", x: 0.12, y: 0.72, w: 330, cls: "bob", t: 10, d: 22, wf: 1, tower: 1, nx: 0.5, ny: 0.9, nw: 260 },
     { s: "c1", x: 0.12, y: 0.97, w: 600, cls: "drift", t: 58, d: 12, nw: 380 },
     { s: "c0", x: 0.62, y: 1.0, w: 660, cls: "drift", t: 66, d: 13, nw: 420 },
@@ -761,6 +793,8 @@ export function sceneHTML(T: Theme): string {
   }
   if (T === "day") for (let a = 0; a < 3; a++) o += `<i class="bird" style="top:${14 + a * 7}%;--t:${46 + a * 9}s;--dl:${-a * 15}s"></i>`;
   else o += '<i class="shoot" style="left:78%;top:14%;--dl:3s"></i>';
+  // A soft light that follows the cursor (Normal and High Detail).
+  o += '<div class="glow"></div>';
   return o;
 }
 
@@ -774,7 +808,8 @@ export function layoutScene(root: HTMLElement, w: number, h: number): void {
     if (hide) return;
     const x = Number((nar && e.dataset.nx) || e.dataset.x);
     const y = Number((nar && e.dataset.ny) || e.dataset.y);
-    const bw = Number((nar && e.dataset.nw) || e.dataset.w) * u;
+    // The aurora always spans the whole viewport with room to spare, so its swaying edges stay off screen.
+    const bw = e.dataset.s === "aurora" ? w * (e.classList.contains("aur2") ? 1.45 : 1.6) : Number((nar && e.dataset.nw) || e.dataset.w) * u;
     const bh = bw * Number(e.dataset.ar);
     e.style.width = bw + "px";
     e.style.height = bh + "px";

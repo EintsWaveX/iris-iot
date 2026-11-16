@@ -2,8 +2,9 @@
  * Mounts the painted cosmos (see cosmos/painters.ts) behind every page. It follows
  * html[data-theme] (dark = Night Watch, light = Golden Hour) and html[data-detail]:
  *   ldm     Low Detail: a still painting
- *   normal  Normal (the default): islands and clouds move, sparkles twinkle, waterfalls run
- *   hd      High Detail: adds mouse parallax, petals, birds and shooting stars
+ *   normal  Normal (the default): islands and clouds move, sparkles twinkle, waterfalls run,
+ *           the layers follow the cursor (parallax plus a soft light)
+ *   hd      High Detail: adds petals, birds and shooting stars
  * The motion itself is CSS (styles/scene.css), so this file only paints on theme or size changes.
  * Cosmos.astro persists the element across navigations, so this runs once per tab.
  */
@@ -62,17 +63,21 @@ if (canvas && scene) {
     else delete html.dataset.sceneIdle;
   });
 
-  // High Detail: the layers lean a little toward the pointer.
+  // Normal and High Detail: the layers lean toward the pointer (deeper layers further) and a soft light follows it.
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
   let raf = 0;
   window.addEventListener(
     "pointermove",
     (e) => {
-      if (html.dataset.detail !== "hd" || reduce.matches || raf) return;
+      if (html.dataset.detail === "ldm" || html.dataset.motionTier === "0" || reduce.matches || raf) return;
+      const x = e.clientX;
+      const y = e.clientY;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        html.style.setProperty("--mx", ((e.clientX / window.innerWidth - 0.5) * 2).toFixed(3));
-        html.style.setProperty("--my", ((e.clientY / window.innerHeight - 0.5) * 2).toFixed(3));
+        html.style.setProperty("--mx", ((x / window.innerWidth - 0.5) * 2).toFixed(3));
+        html.style.setProperty("--my", ((y / window.innerHeight - 0.5) * 2).toFixed(3));
+        html.style.setProperty("--cx", x + "px");
+        html.style.setProperty("--cy", y + "px");
       });
     },
     { passive: true },

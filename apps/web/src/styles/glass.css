@@ -116,10 +116,12 @@
   position: absolute;
   transform: translateX(-130%);
 }
-:root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass:hover { transform: translateY(-3px); }
-:root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--gleam:hover::after {
-  transform: translateX(130%);
-  transition: transform 800ms var(--ease-out-expo);
+@media (hover: hover) {
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass:hover { transform: translateY(-3px); }
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--gleam:hover::after {
+    transform: translateX(130%);
+    transition: transform 800ms var(--ease-out-expo);
+  }
 }
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--aurora::before { animation: glass-spin 6s linear infinite; }
@@ -135,6 +137,6 @@
 /* ---- enter and leave: one rhythm for anything glass that appears ---- */
 .glass-in { animation: glass-in 420ms var(--ease-out-expo) both; animation-delay: calc(var(--i, 0) * 60ms); }
 @keyframes glass-in { from { opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(6px); } }
-.glass-out { animation: glass-out 220ms ease-in both; }
+.glass-out { animation: glass-out 220ms cubic-bezier(0.4, 0, 1, 1) both; }
 @keyframes glass-out { to { opacity: 0; transform: translateY(-8px) scale(0.98); filter: blur(5px); } }
 @media (prefers-reduced-motion: reduce) { .glass-in, .glass-out { animation: none; } }
