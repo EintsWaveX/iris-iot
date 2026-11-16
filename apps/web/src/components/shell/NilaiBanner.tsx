@@ -156,7 +156,7 @@ export default function NilaiBanner({ lang, data }: { lang: Lang; data: NilaiDat
 
   return (
     <div
-      className={`offline banner hadir banner--${tone}`}
+      className={`offline banner hadir banner--${tone} fade`}
       role="region"
       aria-live="polite"
       aria-label={t.region}

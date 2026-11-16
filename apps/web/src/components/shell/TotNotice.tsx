@@ -9,6 +9,7 @@ import { CaretRightIcon, ChalkboardTeacherIcon } from "@phosphor-icons/react";
 import { dict, getJson, href } from "../../lib/app";
 import { useSiaran } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
+import { usePresence } from "../ui/usePresence";
 
 /** Fired by Preparation's switch so this page's banner follows at once. */
 export const TOT_BERUBAH = "iris:tot";
@@ -51,9 +52,10 @@ export function useTotAktif(enabled: boolean): boolean | null {
 
 export default function TotNotice({ lang, on }: { lang: Lang; on: boolean }) {
   const t = T[lang];
-  if (!on) return null;
+  const pres = usePresence(on);
+  if (!pres.shown) return null;
   return (
-    <div className="offline banner banner--warn" role="status">
+    <div className={`offline banner banner--warn ${pres.className}`} role="status">
       <ChalkboardTeacherIcon size={20} aria-hidden="true" />
       <b>{t.h}</b>
       <span className="hint">{t.p}</span>

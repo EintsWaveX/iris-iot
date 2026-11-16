@@ -17,6 +17,7 @@
  * device, or at the first hover, focus or long press, whichever is first.
  */
 import { useEffect } from "react";
+import { calmMotion } from "../../lib/calm-motion";
 import "../ui/Tooltip.css";
 
 const SASARAN =
@@ -74,10 +75,21 @@ export default function TipLayer() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let lastHide = 0;
 
+    let keluar: ReturnType<typeof setTimeout> | undefined;
     const sembunyi = () => {
       clearTimeout(timer);
-      if (!panel.hidden) lastHide = Date.now();
-      panel.hidden = true;
+      if (!panel.hidden && !("out" in panel.dataset)) {
+        lastHide = Date.now();
+        // It fades out for 100 ms; the next tip (taruh) cancels that and appears at once.
+        if (calmMotion()) panel.hidden = true;
+        else {
+          panel.dataset.out = "";
+          keluar = setTimeout(() => {
+            panel.hidden = true;
+            delete panel.dataset.out;
+          }, 100);
+        }
+      }
       if (target?.getAttribute("aria-describedby") === panel.id)
         target.removeAttribute("aria-describedby");
       target = null;
@@ -86,6 +98,8 @@ export default function TipLayer() {
     const taruh = (el: HTMLElement, teks: string, segera = false) => {
       const host = document.fullscreenElement ?? document.body;
       if (panel.parentElement !== host) host.appendChild(panel);
+      clearTimeout(keluar);
+      delete panel.dataset.out;
       panel.textContent = teks;
       // The next tip after one just shown skips the entrance too.
       if (segera) panel.dataset.instant = "";

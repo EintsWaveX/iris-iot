@@ -15,17 +15,29 @@
   const fromHash = () => BACK[(window.location.hash || "").replace(/^#\/?/, "")] || "hunt"; /* an old #lapisan link lands on Buru */
   const STAGE = new URLSearchParams(window.location.search).get("stage") === "1";
   H.state.route = fromHash();
+  /* A screen change fades the old page out first (110 ms, not clickable meanwhile),
+     then the new one rises in. Calm motion (Display > Reduce Motion, the phone's
+     setting) and the projector switch at once. */
+  const calm = () => STAGE || H.state.reduce || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  let leaving = 0;
+  const changeRoute = (to) => {
+    const done = () => {
+      leaving = 0;
+      H.set({ route: to });
+      const s = document.querySelector(".huntapp__scroll");
+      if (s) s.scrollTop = 0;
+    };
+    const page = document.querySelector(".hpage");
+    if (calm() || !page || to === H.state.route) return done();
+    clearTimeout(leaving);
+    page.setAttribute("data-leaving", "");
+    leaving = setTimeout(done, 110);
+  };
   H.go = (k) => {
     if (HASH[k] && window.location.hash !== "#" + HASH[k]) window.location.hash = HASH[k];
-    H.set({ route: k });
-    const s = document.querySelector(".huntapp__scroll");
-    if (s) s.scrollTop = 0;
+    else changeRoute(k);
   };
-  window.addEventListener("hashchange", () => {
-    H.set({ route: fromHash() });
-    const s = document.querySelector(".huntapp__scroll");
-    if (s) s.scrollTop = 0;
-  });
+  window.addEventListener("hashchange", () => changeRoute(fromHash()));
 
   /* the group a screen shows: your own, or the one an assistant picked */
   H.viewGroup = () => {
@@ -143,7 +155,7 @@
       document.documentElement.lang = st.lang === "zh" ? "zh-Hans" : st.lang;
       document.title = H.title(L("Perburuan LoRa", "LoRa Hunt")) + " · IRIS";
     }, [st.lang]);
-    return html`<div class=${"huntapp" + (st.reduce ? " reduce" : "")} data-t=${st.sun ? "light" : st.theme} data-f="jakarta" data-zhw="700" lang=${st.lang === "zh" ? "zh-Hans" : st.lang} data-stage=${STAGE ? "yes" : "no"} data-short=${st.short ? "yes" : "no"}>
+    return html`<div class=${"huntapp" + (st.reduce ? " reduce" : "")} data-t=${st.sun ? "light" : st.theme} data-sun=${st.sun ? "yes" : "no"} data-f="jakarta" data-zhw="700" lang=${st.lang === "zh" ? "zh-Hans" : st.lang} data-stage=${STAGE ? "yes" : "no"} data-short=${st.short ? "yes" : "no"}>
       <div class="huntapp__scroll"><${Screen} /></div>
       <div class="huntapp__layers"></div>
       <${H.Toasts} />

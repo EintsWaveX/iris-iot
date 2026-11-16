@@ -1148,3 +1148,10 @@
   font-size: 0.6rem;
   max-width: 62px;
 }
+
+/* A finger needs a 44 px target, also on the quiet slots. */
+@media (pointer: coarse) {
+  .day__blk.slot {
+    min-height: 44px;
+  }
+}

@@ -7,7 +7,7 @@
  */
 import type { CSSProperties, ReactNode } from "react";
 import { KELOMPOK_NAMA, MODUL_NAMA } from "../../lib/app";
-import { placeStars } from "../../lib/home-sky";
+import { placeLinks, placeStars } from "../../lib/home-sky";
 import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import Pill from "../ui/Pill";
@@ -76,13 +76,11 @@ export function LabPane({
           ) : (
             <Pill>{t.quiet}</Pill>
           )}
+          {lab && mine.length > 0 && holder && (
+            <span className="obs__key">{holder === "praktikan" ? t.keyMine : t.keyHold}</span>
+          )}
         </div>
         {!lab && <p className="obs__hint">{t.skyQuiet}</p>}
-        {lab && mine.length > 0 && holder && (
-          <p className="obs__hint obs__hint--key">
-            {holder === "praktikan" ? t.keyMine : t.keyHold}
-          </p>
-        )}
       </header>
 
       {stats && (
@@ -110,9 +108,11 @@ export function LabPane({
               preserveAspectRatio="none"
               aria-hidden="true"
             >
-              {pts.slice(0, -1).map((p, i) => (
-                <line key={i} x1={p.x} y1={p.y} x2={pts[i + 1].x} y2={pts[i + 1].y} />
-              ))}
+              <path
+                d={placeLinks(pts)
+                  .map(([a, b]) => `M${pts[a].x} ${pts[a].y}L${pts[b].x} ${pts[b].y}`)
+                  .join("")}
+              />
             </svg>
             {bintang.map((g, i) => {
               const right = g.benar ?? g.terisi;

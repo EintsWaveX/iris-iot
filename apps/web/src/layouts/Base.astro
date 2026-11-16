@@ -211,25 +211,26 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
    * attribute selectors can never reach them; this has to be global CSS,
    * hence is:global rather than a second Base.astro <style> block.
    */
+  /* Opacity only: the panels carry the movement themselves (kit-reveal in app.css), so a page change is a
+     Crossfade of the frame plus a Reveal of its cards, not two slides on top of each other. The old page
+     leaves quicker than the new one arrives. */
   ::view-transition-old(root) {
-    animation: iris-crossfade-out 180ms var(--ease-reveal) both;
+    animation: iris-crossfade-out 120ms var(--ease-out-expo) both;
   }
 
   ::view-transition-new(root) {
-    animation: iris-crossfade-in 180ms var(--ease-reveal) both;
+    animation: iris-crossfade-in 200ms var(--ease-out-expo) both;
   }
 
   @keyframes iris-crossfade-out {
     to {
       opacity: 0;
-      transform: translateY(8px);
     }
   }
 
   @keyframes iris-crossfade-in {
     from {
       opacity: 0;
-      transform: translateY(8px);
     }
   }
 
@@ -242,5 +243,10 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
     ::view-transition-new(root) {
       animation: none;
     }
+  }
+  /* Low Detail (motion tier 0): the page just changes. */
+  :root[data-motion-tier="0"]::view-transition-old(root),
+  :root[data-motion-tier="0"]::view-transition-new(root) {
+    animation: none;
   }
 </style>

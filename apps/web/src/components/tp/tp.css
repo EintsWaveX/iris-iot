@@ -2787,3 +2787,10 @@
     max-height: max(240px, calc(100dvh - 380px));
   }
 }
+
+/* Filter chips: 44 px under a finger (the kit's chip is 40). */
+@media (pointer: coarse) {
+  .tpfilter .pill--button {
+    min-height: 44px;
+  }
+}

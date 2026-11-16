@@ -7,6 +7,28 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LANG_PREF_KEY, isLang, resolveLang, type Kelas, type Lang } from "./kelas.js";
 import { dengar, useSiaran, type Topik } from "./siaran.js";
 
+/* ------------------------------------------------------------- tetap */
+
+/** Past this many characters of JSON a poll answer is not compared (the compare would cost more than a render). */
+const TETAP_MAKS = 200_000;
+
+/**
+ * Keeps the object a view already has when a poll brings the very same data. Every poll parses fresh JSON,
+ * so without this each answer is a "new" object: effects and memos that depend on the data run again, and
+ * the whole island re-renders, for a screen that did not change. Different data, a first answer, anything
+ * that cannot be compared as text, or a very large answer: the new value, as before.
+ */
+export function tetap<T>(prev: T | null, next: T): T {
+  if (prev === null || prev === next || typeof next !== "object" || next === null) return next;
+  try {
+    const a = JSON.stringify(prev);
+    if (a.length <= TETAP_MAKS && a === JSON.stringify(next)) return prev;
+  } catch {
+    /* not comparable as text */
+  }
+  return next;
+}
+
 /* ------------------------------------------------------------- usePoll */
 
 export interface PollState<T> {
@@ -93,7 +115,7 @@ export function usePoll<T>(
         return;
       }
       failures.current = 0;
-      setData(d);
+      setData((prev) => tetap(prev, d));
       setErrors(0);
       setDitolak(false);
       setUpdatedAt(Date.now());
@@ -211,7 +233,12 @@ async function jalankanBersama<T>(b: Bersama<T>): Promise<void> {
   try {
     const d = await b.fn();
     b.failures = 0;
-    b.keadaan = { data: d, errors: 0, updatedAt: Date.now(), ditolak: false };
+    b.keadaan = {
+      data: tetap(b.keadaan.data, d),
+      errors: 0,
+      updatedAt: Date.now(),
+      ditolak: false,
+    };
     siarkanKeadaan(b);
   } catch (e) {
     b.failures += 1;

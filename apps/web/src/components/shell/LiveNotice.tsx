@@ -10,6 +10,7 @@ import { ArrowClockwiseIcon, CloudSlashIcon } from "@phosphor-icons/react";
 import { dict } from "../../lib/app";
 import { segarkanSemua, useSiaranStatus } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
+import { usePresence } from "../ui/usePresence";
 
 const T = dict({
   id: {
@@ -51,9 +52,14 @@ export default function LiveNotice({ lang }: { lang: Lang }) {
     return () => clearTimeout(id);
   }, [status]);
 
-  if (!tampil) return null;
+  const pres = usePresence(tampil);
+  if (!pres.shown) return null;
   return (
-    <div className="offline banner banner--warn" role="status" data-live="putus">
+    <div
+      className={`offline banner banner--warn ${pres.className}`}
+      role="status"
+      data-live="putus"
+    >
       <CloudSlashIcon size={20} aria-hidden="true" />
       <b>{t.h}</b>
       <span className="hint">{t.p}</span>

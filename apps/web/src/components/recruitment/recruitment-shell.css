@@ -474,3 +474,121 @@
   align-items: center;
   gap: 6px;
 }
+
+/*
+ * Plates for the Open Recruitment pages (Nov 2026 sweep). The sky behind the app is painted, so any text
+ * that sits straight on it needs a frosted plate (the same recipe as .reading in styles/glass.css).
+ * Low Detail and motion tier 0 swap the blur for a solid surface (the two variables below).
+ *
+ * "Page level" means a direct child of a tab's own column: .rec-swap > .stack, .rec-swap > * > .stack, or the
+ * Bank's .rec-swap > .stack > .fade > .stack.
+ * Anything inside a .panel (or a drawer or dialog) already has a face, so it is left alone.
+ */
+:root {
+  --rec-plate-blur: blur(26px) saturate(1.6);
+  --rec-plate-fill: var(--glass-frost);
+}
+:root[data-detail="ldm"],
+:root[data-motion-tier="0"] {
+  --rec-plate-blur: none;
+  --rec-plate-fill: var(--surface-1);
+}
+
+.rec-head2,
+.rec9-kbar,
+.rec9-group__h,
+.rec9-kcon > :is(.rec-tools, .pager),
+.b3-toolwrap__cap,
+:is(.rec-swap > .stack, .rec-swap > * > .stack, .rec-swap > .stack > .fade > .stack)
+  > :is(.rec-tools, .pager, .empty-note:not(.empty-note--sm)),
+.rec-swap > .stack > .n7-bar > :is(.hint, .n7-miniRail),
+.rec-swap > * > .stack > .tp-bar > :is(.row, .hint:not(:empty)) {
+  -webkit-backdrop-filter: var(--rec-plate-blur);
+  backdrop-filter: var(--rec-plate-blur);
+  background: var(--rec-plate-fill);
+  border: 1px solid var(--glass-bd);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 10px 26px var(--glass-sh);
+}
+
+/* The page header: icon tile, title and sub line on one plate, with the Oprec switch at its end. */
+.rec-head2 {
+  border-radius: var(--radius-xl);
+  padding: 12px 18px 12px 14px;
+}
+
+/* Kandidat: the search and action row is one plate (it used to be a hairline on the sky), each queue's
+   title sits on a slim plate of its own, and the pager under the list is one more. */
+.rec9-kbar {
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+}
+.rec9-kcon > .rec-tools {
+  border-radius: var(--radius-lg);
+  padding: 8px 10px;
+}
+.rec9-group__h {
+  border-radius: var(--radius-lg);
+  padding: 8px 14px 8px 10px;
+}
+
+/* The filter row (Cutting, Bank) and the pager under a long list: one plate each. */
+.rec9-kcon > .pager,
+:is(.rec-swap > .stack, .rec-swap > * > .stack, .rec-swap > .stack > .fade > .stack) > .pager {
+  border-radius: var(--radius-lg);
+  padding: 8px 12px;
+}
+:is(.rec-swap > .stack, .rec-swap > * > .stack, .rec-swap > .stack > .fade > .stack) > .rec-tools {
+  border-radius: var(--radius-lg);
+  padding: 8px 10px;
+}
+
+/* An empty list, drawn as a dashed hint: it keeps its dash, on a face. */
+:is(.rec-swap > .stack, .rec-swap > * > .stack, .rec-swap > .stack > .fade > .stack)
+  > .empty-note:not(.empty-note--sm) {
+  border-style: dashed;
+  border-color: var(--hairline-strong);
+}
+
+/* Cutting: the hint, the "Alur cutting" label and the stage chips beside the tabs. */
+.rec-swap > .stack > .n7-bar > .hint {
+  border-radius: var(--radius-lg);
+  padding: 4px 12px;
+}
+.rec-swap > .stack > .n7-bar > .n7-miniRail {
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+/* Tubes: the "Bagi Rata" and "Tambah Topik" buttons, and the example line. */
+.rec-swap > * > .stack > .tp-bar > .row {
+  border-radius: var(--radius-lg);
+  padding: 4px 6px;
+}
+.rec-swap > * > .stack > .tp-bar > .hint:not(:empty) {
+  border-radius: var(--radius-lg);
+  padding: 4px 12px;
+}
+
+/* Candidate page: the "Alat Untukmu" caption. */
+.b3-toolwrap__cap {
+  border-radius: 999px;
+  justify-self: start;
+  padding: 6px 14px;
+  width: fit-content;
+  max-width: 100%;
+}
+/* The quiet tool (Mundur) keeps a readable face on the sky. */
+.rec-page .b3-tool[data-tone="quiet"] {
+  background: var(--rec-plate-fill);
+}
+
+@media (max-width: 720px) {
+  .rec-head2 {
+    padding: 10px 12px;
+  }
+  .rec9-kbar {
+    padding: 8px;
+  }
+}

@@ -814,6 +814,8 @@
   }
   .appnav__me--mobile {
     display: inline-flex;
+    min-height: 44px;
+    min-width: 44px;
   }
   .appnav__disp-mobile {
     display: inline-grid;
@@ -1058,5 +1060,12 @@
 @media (max-width: 479px) {
   .appnav[data-tamu="yes"] .navclock--mobile {
     display: none;
+  }
+}
+
+/* The TOT Mode notice sits under the nav on every page: its button is a finger target too. */
+@media (pointer: coarse) {
+  .offline.banner .btn {
+    min-height: 44px;
   }
 }
