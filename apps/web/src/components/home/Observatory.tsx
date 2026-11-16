@@ -44,7 +44,12 @@ export function LabPane({
     ? [
         [String(lab.kelompok), t.groups],
         [lab.anggota ? `${lab.hadir}/${lab.anggota}` : String(lab.hadir), t.here],
-        [celah ? t.blankOf(lab.benar ?? lab.blank, celah * lab.kelompok) : String(lab.benar ?? lab.blank), t.blanks],
+        [
+          celah
+            ? t.blankOf(lab.benar ?? lab.blank, celah * lab.kelompok)
+            : String(lab.benar ?? lab.blank),
+          t.blanks,
+        ],
         [String(lab.pesan), t.pesan(lab.modul)],
       ]
     : null;
@@ -74,7 +79,9 @@ export function LabPane({
         </div>
         {!lab && <p className="obs__hint">{t.skyQuiet}</p>}
         {lab && mine.length > 0 && holder && (
-          <p className="obs__hint obs__hint--key">{holder === "praktikan" ? t.keyMine : t.keyHold}</p>
+          <p className="obs__hint obs__hint--key">
+            {holder === "praktikan" ? t.keyMine : t.keyHold}
+          </p>
         )}
       </header>
 
@@ -89,10 +96,20 @@ export function LabPane({
         </div>
       )}
 
-      <div className="obs__field" data-multi={mine.length > 1 ? "yes" : "no"} role="img" aria-label={t.skyAria}>
+      <div
+        className="obs__field"
+        data-multi={mine.length > 1 ? "yes" : "no"}
+        role="img"
+        aria-label={t.skyAria}
+      >
         {lab ? (
           <>
-            <svg className="obs__links" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true">
+            <svg
+              className="obs__links"
+              viewBox="0 0 100 60"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
               {pts.slice(0, -1).map((p, i) => (
                 <line key={i} x1={p.x} y1={p.y} x2={pts[i + 1].x} y2={pts[i + 1].y} />
               ))}
@@ -125,7 +142,9 @@ export function LabPane({
                   <span className="obs__plaque">
                     <b>
                       <span className="obs__n">{g.nomor}</span>
-                      {KELOMPOK_NAMA[g.nomor] ? <span className="obs__nm"> · {KELOMPOK_NAMA[g.nomor]}</span> : null}
+                      {KELOMPOK_NAMA[g.nomor] ? (
+                        <span className="obs__nm"> · {KELOMPOK_NAMA[g.nomor]}</span>
+                      ) : null}
                     </b>
                     <span className="mono">{p === 1 ? t.starDone : t.starP(right, celah)}</span>
                   </span>
@@ -136,7 +155,11 @@ export function LabPane({
         ) : (
           <div className="obs__quiet">
             {[1, 2, 3, 4].map((m) => (
-              <div className="obs__mini" key={m} style={{ "--m": `var(--mod-${m})` } as CSSProperties}>
+              <div
+                className="obs__mini"
+                key={m}
+                style={{ "--m": `var(--mod-${m})` } as CSSProperties}
+              >
                 <ModConstellation m={m} h={96} lang={lang} />
                 <span>{modulLabel(m, lang)}</span>
               </div>

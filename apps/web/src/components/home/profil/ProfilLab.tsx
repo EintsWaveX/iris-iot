@@ -81,48 +81,48 @@ export function HeroLab({ lang, data }: { lang: Lang; data: ProfilData | null | 
   return (
     <section className="pl-hero" onAnimationEnd={set} aria-labelledby="pl-hero-title">
       <div className="pl-hero__stage">
-      <div
-        className="pl-hero__mark pl-blend"
-        style={{ "--i": 0 } as CSSProperties}
-        aria-hidden="true"
-      >
-        <span className="pl-hero__aura">
-          <i />
-          <i />
-          <i />
-        </span>
-        <img
-          src="/brand/iris-logo-1200.webp"
-          srcSet="/brand/iris-logo-640.webp 640w, /brand/iris-logo-1200.webp 1200w"
-          sizes="(max-width: 720px) 78vw, 560px"
-          alt=""
-          width={1200}
-          height={567}
-          fetchPriority="high"
-        />
-        <span className="pl-hero__shine" />
-      </div>
-      {/* Glass readouts around the logo; 3 mirrors 1 and 4 mirrors 2 (see observatory.css). */}
-      <dl className="pl-orbit pl-blend" style={{ "--i": 4 } as CSSProperties}>
-        <div className="pl-orb pl-orb--1">
-          <Hitung to={asisten} tier={tier} />
-          <dt>{t.statAsisten}</dt>
+        <div
+          className="pl-hero__mark pl-blend"
+          style={{ "--i": 0 } as CSSProperties}
+          aria-hidden="true"
+        >
+          <span className="pl-hero__aura">
+            <i />
+            <i />
+            <i />
+          </span>
+          <img
+            src="/brand/iris-logo-1200.webp"
+            srcSet="/brand/iris-logo-640.webp 640w, /brand/iris-logo-1200.webp 1200w"
+            sizes="(max-width: 720px) 78vw, 560px"
+            alt=""
+            width={1200}
+            height={567}
+            fetchPriority="high"
+          />
+          <span className="pl-hero__shine" />
         </div>
-        <div className="pl-orb pl-orb--2">
-          <Hitung to={6} tier={tier} />
-          <dt>{t.statDivisi}</dt>
-        </div>
-        <div className="pl-orb pl-orb--3">
-          <Hitung to={4} tier={tier} />
-          <dt>{t.statModul}</dt>
-        </div>
-        {acara !== 0 && (
-          <div className="pl-orb pl-orb--4">
-            <Hitung to={acara} tier={tier} />
-            <dt>{t.statAcara}</dt>
+        {/* Glass readouts around the logo; 3 mirrors 1 and 4 mirrors 2 (see observatory.css). */}
+        <dl className="pl-orbit pl-blend" style={{ "--i": 4 } as CSSProperties}>
+          <div className="pl-orb pl-orb--1">
+            <Hitung to={asisten} tier={tier} />
+            <dt>{t.statAsisten}</dt>
           </div>
-        )}
-      </dl>
+          <div className="pl-orb pl-orb--2">
+            <Hitung to={6} tier={tier} />
+            <dt>{t.statDivisi}</dt>
+          </div>
+          <div className="pl-orb pl-orb--3">
+            <Hitung to={4} tier={tier} />
+            <dt>{t.statModul}</dt>
+          </div>
+          {acara !== 0 && (
+            <div className="pl-orb pl-orb--4">
+              <Hitung to={acara} tier={tier} />
+              <dt>{t.statAcara}</dt>
+            </div>
+          )}
+        </dl>
       </div>
       <h1
         className="home__display pl-hero__title pl-blend"

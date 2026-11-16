@@ -9,17 +9,29 @@
    ========================================================================= */
 
 :root {
-  --glass-panel: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)), rgba(14, 18, 40, 0.8);
-  --glass-frost: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)), rgba(16, 20, 44, 0.9);
-  --glass-clear: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.03)), rgba(12, 16, 34, 0.58);
+  --glass-panel:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
+    rgba(14, 18, 40, 0.8);
+  --glass-frost:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
+    rgba(16, 20, 44, 0.9);
+  --glass-clear:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.03)),
+    rgba(12, 16, 34, 0.58);
   --glass-bd: rgba(255, 255, 255, 0.2);
   --glass-hi: rgba(255, 255, 255, 0.28);
   --glass-sh: rgba(0, 0, 0, 0.34);
 }
 :root[data-theme="light"] {
-  --glass-panel: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.62)), rgba(255, 255, 255, 0.3);
-  --glass-frost: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78)), rgba(255, 255, 255, 0.5);
-  --glass-clear: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.42)), rgba(255, 255, 255, 0.3);
+  --glass-panel:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.62)),
+    rgba(255, 255, 255, 0.3);
+  --glass-frost:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78)),
+    rgba(255, 255, 255, 0.5);
+  --glass-clear:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.42)),
+    rgba(255, 255, 255, 0.3);
   --glass-bd: rgba(255, 255, 255, 0.9);
   --glass-hi: #fff;
   --glass-sh: rgba(16, 34, 70, 0.16);
@@ -32,7 +44,9 @@
   border-color: var(--glass-bd);
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
   backdrop-filter: blur(16px) saturate(1.4);
-  box-shadow: inset 0 1px 0 var(--glass-hi), 0 14px 34px var(--glass-sh);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
 }
 .dialog__panel,
 .drawer,
@@ -41,7 +55,9 @@
   border-color: var(--glass-bd);
   -webkit-backdrop-filter: blur(26px) saturate(1.6);
   backdrop-filter: blur(26px) saturate(1.6);
-  box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow-lift);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    var(--shadow-lift);
 }
 /* ---- reading plates: solid, for whatever is read closely ---- */
 .plate,
@@ -72,24 +88,34 @@
 }
 
 /* ---- kit variants (opt-in classes) ---- */
-@property --glass-ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@property --glass-ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
 
 .glass {
   --tc: var(--accent);
   background: var(--glass-clear);
   border: 1px solid var(--glass-bd);
   border-radius: var(--radius-xl);
-  box-shadow: inset 0 1px 0 var(--glass-hi), 0 14px 34px var(--glass-sh);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
   color: var(--text);
   isolation: isolate;
   overflow: hidden;
   position: relative;
   -webkit-backdrop-filter: blur(18px) saturate(1.5);
   backdrop-filter: blur(18px) saturate(1.5);
-  transition: transform 260ms var(--ease-out-expo), box-shadow 260ms;
+  transition:
+    transform 260ms var(--ease-out-expo),
+    box-shadow 260ms;
 }
 .glass--tint {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--tc) 34%, transparent), transparent 72%), var(--glass-clear);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tc) 34%, transparent), transparent 72%),
+    var(--glass-clear);
   border-color: color-mix(in srgb, var(--tc) 55%, var(--glass-bd));
 }
 .glass--frost {
@@ -98,11 +124,20 @@
   backdrop-filter: blur(34px) saturate(1.9);
 }
 .glass--aurora::before {
-  background: conic-gradient(from var(--glass-ang), transparent 0 55%, var(--accent-bright), var(--mod-2), var(--mod-3), transparent);
+  background: conic-gradient(
+    from var(--glass-ang),
+    transparent 0 55%,
+    var(--accent-bright),
+    var(--mod-2),
+    var(--mod-3),
+    transparent
+  );
   border-radius: inherit;
   content: "";
   inset: 0;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   padding: 1.5px;
@@ -110,7 +145,12 @@
   z-index: -1;
 }
 .glass--gleam::after {
-  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 65%
+  );
   content: "";
   inset: 0;
   pointer-events: none;
@@ -118,15 +158,23 @@
   transform: translateX(-130%);
 }
 @media (hover: hover) {
-  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass:hover { transform: translateY(-3px); }
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass:hover {
+    transform: translateY(-3px);
+  }
   :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--gleam:hover::after {
     transform: translateX(130%);
     transition: transform 800ms var(--ease-out-expo);
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--aurora::before { animation: glass-spin 6s linear infinite; }
-  @keyframes glass-spin { to { --glass-ang: 360deg; } }
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--aurora::before {
+    animation: glass-spin 6s linear infinite;
+  }
+  @keyframes glass-spin {
+    to {
+      --glass-ang: 360deg;
+    }
+  }
 }
 :root[data-detail="ldm"] .glass,
 :root[data-motion-tier="0"] .glass {
@@ -142,7 +190,9 @@
   background: var(--glass-frost);
   border: 1px solid var(--glass-bd);
   border-radius: var(--radius-xl);
-  box-shadow: inset 0 1px 0 var(--glass-hi), 0 14px 34px var(--glass-sh);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
   padding: var(--space-6) var(--space-7);
 }
 :root[data-detail="ldm"] .reading,
@@ -151,11 +201,37 @@
   backdrop-filter: none;
   background: var(--surface-1);
 }
-@media (max-width: 759px) { .reading { padding: var(--space-5); } }
+@media (max-width: 759px) {
+  .reading {
+    padding: var(--space-5);
+  }
+}
 
 /* ---- enter and leave: one rhythm for anything glass that appears ---- */
-.glass-in { animation: glass-in 420ms var(--ease-out-expo) both; animation-delay: calc(var(--i, 0) * 60ms); }
-@keyframes glass-in { from { opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(6px); } }
-.glass-out { animation: glass-out 220ms cubic-bezier(0.4, 0, 1, 1) both; }
-@keyframes glass-out { to { opacity: 0; transform: translateY(-8px) scale(0.98); filter: blur(5px); } }
-@media (prefers-reduced-motion: reduce) { .glass-in, .glass-out { animation: none; } }
+.glass-in {
+  animation: glass-in 420ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+@keyframes glass-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+    filter: blur(6px);
+  }
+}
+.glass-out {
+  animation: glass-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes glass-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    filter: blur(5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-in,
+  .glass-out {
+    animation: none;
+  }
+}

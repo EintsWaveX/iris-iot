@@ -46,7 +46,8 @@ if (canvas && scene) {
   };
 
   // First paint after the page itself, so the sky never delays the content.
-  const idle = (window as unknown as { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
+  const idle = (window as unknown as { requestIdleCallback?: (cb: () => void) => void })
+    .requestIdleCallback;
   if (idle) idle(paint);
   else setTimeout(paint, 30);
 
@@ -69,7 +70,8 @@ if (canvas && scene) {
   window.addEventListener(
     "pointermove",
     (e) => {
-      if (html.dataset.detail === "ldm" || html.dataset.motionTier === "0" || reduce.matches || raf) return;
+      if (html.dataset.detail === "ldm" || html.dataset.motionTier === "0" || reduce.matches || raf)
+        return;
       const x = e.clientX;
       const y = e.clientY;
       raf = requestAnimationFrame(() => {

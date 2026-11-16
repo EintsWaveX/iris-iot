@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { placeStars } from "../home-sky";
 
-const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
+const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+  Math.hypot(a.x - b.x, a.y - b.y);
 
 describe("placeStars", () => {
   it("returns n points, and none for zero or fewer", () => {
@@ -25,7 +26,8 @@ describe("placeStars", () => {
     for (let n = 2; n <= 12; n++) {
       const pts = placeStars(n);
       let min = Infinity;
-      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) min = Math.min(min, dist(pts[i], pts[j]));
+      for (let i = 0; i < pts.length; i++)
+        for (let j = i + 1; j < pts.length; j++) min = Math.min(min, dist(pts[i], pts[j]));
       expect(min).toBeGreaterThanOrEqual(n <= 10 ? 12 : 10);
     }
   });

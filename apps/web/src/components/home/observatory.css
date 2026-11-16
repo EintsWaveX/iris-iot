@@ -6,250 +6,703 @@
 
 /* ---------------------------------------------------------------- Langit Lab pane */
 
-.obs { display: grid; gap: clamp(22px, 3vw, 40px); }
+.obs {
+  display: grid;
+  gap: clamp(22px, 3vw, 40px);
+}
 
 /* No big glass card here: the scene stays clear and unblurred, and only small glass chips float on it. */
 .obs__pane {
   min-height: clamp(600px, calc(100svh - 100px), 860px);
   position: relative;
 }
-.obs__wait { inset: 0; position: absolute; }
-
-.obs__head { display: grid; gap: 12px; left: 8px; position: absolute; right: 8px; top: 8px; z-index: 3; justify-items: start; }
-.obs__headrow {
-  align-items: center; background: var(--glass-panel); border: 1px solid var(--glass-bd); border-radius: 18px; display: flex; flex-wrap: wrap; gap: 10px 12px;
-  padding: 9px 16px; -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
-  box-shadow: inset 0 1px 0 var(--glass-hi), 0 10px 26px var(--glass-sh);
+.obs__wait {
+  inset: 0;
+  position: absolute;
 }
-.obs__title { font-size: 1.25rem; margin-right: 4px; }
+
+.obs__head {
+  display: grid;
+  gap: 12px;
+  left: 8px;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 3;
+  justify-items: start;
+}
+.obs__headrow {
+  align-items: center;
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-bd);
+  border-radius: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  padding: 9px 16px;
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 10px 26px var(--glass-sh);
+}
+.obs__title {
+  font-size: 1.25rem;
+  margin-right: 4px;
+}
 .obs__hint {
-  background: var(--glass-panel); border: 1px solid var(--glass-bd); border-radius: 14px; color: var(--text);
-  font-size: 0.88rem; margin: 0; max-width: 42ch; padding: 9px 14px;
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-bd);
+  border-radius: 14px;
+  color: var(--text);
+  font-size: 0.88rem;
+  margin: 0;
+  max-width: 42ch;
+  padding: 9px 14px;
 }
 
 /* the live counts: a slim glass strip, top right, never in the way of the sky */
 .obs__stats {
-  background: var(--glass-panel); border: 1px solid var(--glass-bd); border-radius: 16px; display: flex;
-  position: absolute; right: 8px; top: 8px; z-index: 3;
-  -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-bd);
+  border-radius: 16px;
+  display: flex;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 3;
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
   box-shadow: inset 0 1px 0 var(--glass-hi);
 }
-.obs__stats > div { display: grid; padding: 8px 16px; }
-.obs__stats > div + div { border-left: 1px solid var(--hairline-faint); }
-.obs__stats b { font-size: 1.15rem; letter-spacing: -0.02em; line-height: 1.15; }
-.obs__stats span { color: var(--text-muted); font-size: 0.72rem; }
+.obs__stats > div {
+  display: grid;
+  padding: 8px 16px;
+}
+.obs__stats > div + div {
+  border-left: 1px solid var(--hairline-faint);
+}
+.obs__stats b {
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.obs__stats span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
 
 /* the sky itself: stars spread across the full width, above the card */
 /* The stars sit beside the card, not above it: the card takes the left, the constellation the rest of the width. */
-.obs__field { bottom: 40px; left: calc(min(520px, 42%) + 24px); position: absolute; right: clamp(110px, 8%, 160px); top: 100px; }
-.obs__links { height: 100%; inset: 0; overflow: visible; position: absolute; width: 100%; }
+.obs__field {
+  bottom: 40px;
+  left: calc(min(520px, 42%) + 24px);
+  position: absolute;
+  right: clamp(110px, 8%, 160px);
+  top: 100px;
+}
+.obs__links {
+  height: 100%;
+  inset: 0;
+  overflow: visible;
+  position: absolute;
+  width: 100%;
+}
 .obs__links line {
-  filter: drop-shadow(0 0 5px var(--accent-bright)); opacity: 0.95; stroke: #fff; stroke-linecap: round; stroke-width: 1.8;
+  filter: drop-shadow(0 0 5px var(--accent-bright));
+  opacity: 0.95;
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-width: 1.8;
   vector-effect: non-scaling-stroke;
 }
 /* On the day sky a white line vanishes: a deep blue one with a white halo reads on every cloud and sun patch. */
-:root[data-theme="light"] .obs__links line { filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.95)); opacity: 0.9; stroke: #0b5fb0; }
-.obs__star { --r: calc(14px + var(--p, 0) * 14px); height: 0; position: absolute; width: 0; }
-.obs__halo, .obs__core, .obs__ring { border-radius: 50%; left: 0; position: absolute; top: 0; transform: translate(-50%, -50%); }
-.obs__halo { background: radial-gradient(circle, var(--c), transparent 66%); height: calc(var(--r) * 2.4); opacity: 0.4; width: calc(var(--r) * 2.4); }
+:root[data-theme="light"] .obs__links line {
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.95));
+  opacity: 0.9;
+  stroke: #0b5fb0;
+}
+.obs__star {
+  --r: calc(14px + var(--p, 0) * 14px);
+  height: 0;
+  position: absolute;
+  width: 0;
+}
+.obs__halo,
+.obs__core,
+.obs__ring {
+  border-radius: 50%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  transform: translate(-50%, -50%);
+}
+.obs__halo {
+  background: radial-gradient(circle, var(--c), transparent 66%);
+  height: calc(var(--r) * 2.4);
+  opacity: 0.4;
+  width: calc(var(--r) * 2.4);
+}
 .obs__core {
-  background: radial-gradient(circle, #fff 0 22%, var(--c) 70%); border-radius: 0; height: calc(18px + var(--p, 0) * 16px);
+  background: radial-gradient(circle, #fff 0 22%, var(--c) 70%);
+  border-radius: 0;
+  height: calc(18px + var(--p, 0) * 16px);
   width: calc(18px + var(--p, 0) * 16px);
   clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
 }
 /* The group's own ring: thick, glowing and turning, so "that one is yours" is obvious at a glance. */
 .obs__ring {
-  border: 3px dashed #fff; box-shadow: 0 0 16px 2px var(--accent-bright), inset 0 0 12px var(--accent-bright); height: calc(var(--r) * 2 + 18px);
+  border: 3px dashed #fff;
+  box-shadow:
+    0 0 16px 2px var(--accent-bright),
+    inset 0 0 12px var(--accent-bright);
+  height: calc(var(--r) * 2 + 18px);
   width: calc(var(--r) * 2 + 18px);
 }
-:root[data-theme="light"] .obs__ring { border-color: #0b5fb0; box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.95), inset 0 0 8px rgba(255, 255, 255, 0.9); }
+:root[data-theme="light"] .obs__ring {
+  border-color: #0b5fb0;
+  box-shadow:
+    0 0 10px 2px rgba(255, 255, 255, 0.95),
+    inset 0 0 8px rgba(255, 255, 255, 0.9);
+}
 @media (prefers-reduced-motion: no-preference) {
-  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .obs__ring { animation: obs-ring 14s linear infinite; }
-  @keyframes obs-ring { to { transform: translate(-50%, -50%) rotate(360deg); } }
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .obs__ring {
+    animation: obs-ring 14s linear infinite;
+  }
+  @keyframes obs-ring {
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
 }
-.obs__lead { background: var(--hairline-strong); height: 1px; left: 4px; position: absolute; top: 4px; transform: rotate(45deg); transform-origin: 0 0; width: 20px; }
+.obs__lead {
+  background: var(--hairline-strong);
+  height: 1px;
+  left: 4px;
+  position: absolute;
+  top: 4px;
+  transform: rotate(45deg);
+  transform-origin: 0 0;
+  width: 20px;
+}
 .obs__plaque {
-  background: var(--surface-1); border: 1px solid color-mix(in srgb, var(--c) 60%, var(--hairline)); border-radius: 8px;
-  display: grid; left: 18px; padding: 3px 9px 4px; position: absolute; top: 18px; white-space: nowrap;
+  background: var(--surface-1);
+  border: 1px solid color-mix(in srgb, var(--c) 60%, var(--hairline));
+  border-radius: 8px;
+  display: grid;
+  left: 18px;
+  padding: 3px 9px 4px;
+  position: absolute;
+  top: 18px;
+  white-space: nowrap;
 }
-.obs__plaque b { font-size: 0.78rem; line-height: 1.25; }
-.obs__plaque > span { color: var(--text-muted); font-size: 0.7rem; line-height: 1.3; }
+.obs__plaque b {
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+.obs__plaque > span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
 /* A star near the right edge puts its label to the left, so nothing runs past the pane (on phones the whole right half does). */
-.obs__star[data-flip="far"] .obs__plaque { left: auto; right: 18px; }
-.obs__star[data-flip="far"] .obs__lead { left: auto; right: 4px; transform: rotate(-45deg); transform-origin: 100% 0; }
+.obs__star[data-flip="far"] .obs__plaque {
+  left: auto;
+  right: 18px;
+}
+.obs__star[data-flip="far"] .obs__lead {
+  left: auto;
+  right: 4px;
+  transform: rotate(-45deg);
+  transform-origin: 100% 0;
+}
 @media (max-width: 899px) {
-  .obs__star[data-flip="mid"] .obs__plaque { left: auto; right: 18px; }
-  .obs__star[data-flip="mid"] .obs__lead { left: auto; right: 4px; transform: rotate(-45deg); transform-origin: 100% 0; }
+  .obs__star[data-flip="mid"] .obs__plaque {
+    left: auto;
+    right: 18px;
+  }
+  .obs__star[data-flip="mid"] .obs__lead {
+    left: auto;
+    right: 4px;
+    transform: rotate(-45deg);
+    transform-origin: 100% 0;
+  }
 }
 /* Phones: only your own group keeps its full label; the others are just their number, so labels never stack. */
 @media (max-width: 639px) {
-  .obs__star[data-me="no"] .obs__nm, .obs__star[data-me="no"] .obs__plaque > span,
-  .obs__field[data-multi="yes"] .obs__nm, .obs__field[data-multi="yes"] .obs__plaque > span { display: none; }
-  .obs__star[data-me="no"] .obs__plaque, .obs__field[data-multi="yes"] .obs__plaque { padding: 1px 7px; }
+  .obs__star[data-me="no"] .obs__nm,
+  .obs__star[data-me="no"] .obs__plaque > span,
+  .obs__field[data-multi="yes"] .obs__nm,
+  .obs__field[data-multi="yes"] .obs__plaque > span {
+    display: none;
+  }
+  .obs__star[data-me="no"] .obs__plaque,
+  .obs__field[data-multi="yes"] .obs__plaque {
+    padding: 1px 7px;
+  }
 }
 
-.obs__quiet { align-items: center; display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); height: 100%; }
-.obs__mini { align-items: center; display: grid; gap: 6px; justify-items: center; }
-.obs__mini span {
-  background: var(--glass-panel); border: 1px solid var(--m); border-radius: 999px; color: var(--m);
-  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; padding: 3px 11px; text-transform: uppercase;
+.obs__quiet {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: 100%;
 }
-.obs__mini svg { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--m) 55%, transparent)); }
+.obs__mini {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+.obs__mini span {
+  background: var(--glass-panel);
+  border: 1px solid var(--m);
+  border-radius: 999px;
+  color: var(--m);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  padding: 3px 11px;
+  text-transform: uppercase;
+}
+.obs__mini svg {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--m) 55%, transparent));
+}
 
 /* the main focus: the person's own card, compact and centred */
 .obs__center {
-  background: var(--glass-panel); border: 1px solid var(--glass-bd); border-radius: 24px; display: grid; gap: 14px; left: 8px; top: 54%;
-  padding: 20px 22px; position: absolute; translate: 0 -50%; width: min(520px, 42%); z-index: 4;
-  -webkit-backdrop-filter: blur(20px) saturate(1.5); backdrop-filter: blur(20px) saturate(1.5);
-  box-shadow: inset 0 1px 0 var(--glass-hi), 0 18px 44px var(--glass-sh);
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-bd);
+  border-radius: 24px;
+  display: grid;
+  gap: 14px;
+  left: 8px;
+  top: 54%;
+  padding: 20px 22px;
+  position: absolute;
+  translate: 0 -50%;
+  width: min(520px, 42%);
+  z-index: 4;
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 18px 44px var(--glass-sh);
 }
-.obs__hello { font-size: clamp(1.5rem, 1.1rem + 1.3vw, 2.25rem); line-height: 1.1; overflow-wrap: anywhere; }
+.obs__hello {
+  font-size: clamp(1.5rem, 1.1rem + 1.3vw, 2.25rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
 /* the role content brings its own .panel: here the card is the glass, so the inner panel goes flat */
 .obs__center .panel {
-  -webkit-backdrop-filter: none; backdrop-filter: none; background: none; border: 0; box-shadow: none; padding: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }
-.obs__center .panel--key::before { border-radius: 2px; left: 0; right: 0; top: -2px; }
+.obs__center .panel--key::before {
+  border-radius: 2px;
+  left: 0;
+  right: 0;
+  top: -2px;
+}
 
 /* ---------------------------------------------------------------- Rasi Modul: one glass band */
 
-.obs__rasi-wrap { display: grid; gap: 18px; }
+.obs__rasi-wrap {
+  display: grid;
+  gap: 18px;
+}
 .obs__rasi {
-  background: var(--glass-clear); border-radius: 26px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0;
+  background: var(--glass-clear);
+  border-radius: 26px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0;
 }
 .obs__seg {
   --tcs: color-mix(in srgb, var(--m) 16%, transparent);
-  border-left: 1px solid var(--glass-bd); border-top: 1px solid var(--glass-bd); color: inherit; display: grid; gap: 10px; padding: 22px;
-  text-decoration: none; transition: background-color 240ms;
+  border-left: 1px solid var(--glass-bd);
+  border-top: 1px solid var(--glass-bd);
+  color: inherit;
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  text-decoration: none;
+  transition: background-color 240ms;
 }
-.obs__seg:nth-child(odd) { border-left: 0; }
-.obs__seg:nth-child(-n + 2) { border-top: 0; }
-.obs__seg:focus-visible { background: var(--tcs); }
-@media (hover: hover) { .obs__seg:hover { background: var(--tcs); } }
-.obs__seghead { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
-.obs__seg svg { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--m) 50%, transparent)); transition: transform 280ms var(--ease-out-expo); }
-@media (hover: hover) { .obs__seg:hover svg { transform: translateY(-3px); } }
-.obs__go { align-items: center; color: var(--m); display: inline-flex; font-weight: 700; gap: 6px; }
-:root[data-theme="light"] .obs__seg svg { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.9)); }
+.obs__seg:nth-child(odd) {
+  border-left: 0;
+}
+.obs__seg:nth-child(-n + 2) {
+  border-top: 0;
+}
+.obs__seg:focus-visible {
+  background: var(--tcs);
+}
+@media (hover: hover) {
+  .obs__seg:hover {
+    background: var(--tcs);
+  }
+}
+.obs__seghead {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+.obs__seg svg {
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--m) 50%, transparent));
+  transition: transform 280ms var(--ease-out-expo);
+}
+@media (hover: hover) {
+  .obs__seg:hover svg {
+    transform: translateY(-3px);
+  }
+}
+.obs__go {
+  align-items: center;
+  color: var(--m);
+  display: inline-flex;
+  font-weight: 700;
+  gap: 6px;
+}
+:root[data-theme="light"] .obs__seg svg {
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.9));
+}
 
 /* ---------------------------------------------------------------- visitor hero: glass readouts around the logo */
 
-.pl-hero { gap: clamp(18px, 3.2vh, 34px); }
-.pl-hero__stage { margin-bottom: clamp(8px, 2vw, 24px); position: relative; width: min(700px, 82vw, 118svh); }
-.pl-hero__stage .pl-hero__mark { margin-bottom: 0; width: 100%; }
-.pl-orbit { inset: 0; margin: 0; pointer-events: none; position: absolute; }
-.pl-orb {
-  background: var(--glass-clear); border: 1px solid var(--glass-bd); border-radius: 18px; display: grid; gap: 2px; justify-items: start;
-  padding: 12px 16px 13px; pointer-events: auto; position: absolute; text-align: left; width: 156px;
-  -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
-  box-shadow: inset 0 1px 0 var(--glass-hi), 0 14px 34px var(--glass-sh);
+.pl-hero {
+  gap: clamp(18px, 3.2vh, 34px);
 }
-.pl-orb .pl-stat__n { font-family: var(--font-mono); font-size: 1.9rem; letter-spacing: -0.03em; }
-.pl-orb dt { color: var(--text); font-size: 0.78rem; opacity: 0.9; }
+.pl-hero__stage {
+  margin-bottom: clamp(8px, 2vw, 24px);
+  position: relative;
+  width: min(700px, 82vw, 118svh);
+}
+.pl-hero__stage .pl-hero__mark {
+  margin-bottom: 0;
+  width: 100%;
+}
+.pl-orbit {
+  inset: 0;
+  margin: 0;
+  pointer-events: none;
+  position: absolute;
+}
+.pl-orb {
+  background: var(--glass-clear);
+  border: 1px solid var(--glass-bd);
+  border-radius: 18px;
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  padding: 12px 16px 13px;
+  pointer-events: auto;
+  position: absolute;
+  text-align: left;
+  width: 156px;
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
+}
+.pl-orb .pl-stat__n {
+  font-family: var(--font-mono);
+  font-size: 1.9rem;
+  letter-spacing: -0.03em;
+}
+.pl-orb dt {
+  color: var(--text);
+  font-size: 0.78rem;
+  opacity: 0.9;
+}
 /* 3 mirrors 1, 4 mirrors 2, across the logo's centre line */
-.pl-orb--1 { right: calc(100% + 28px); top: 4%; }
-.pl-orb--2 { right: calc(100% + 76px); top: 60%; }
-.pl-orb--3 { left: calc(100% + 28px); top: 4%; }
-.pl-orb--4 { left: calc(100% + 76px); top: 60%; }
+.pl-orb--1 {
+  right: calc(100% + 28px);
+  top: 4%;
+}
+.pl-orb--2 {
+  right: calc(100% + 76px);
+  top: 60%;
+}
+.pl-orb--3 {
+  left: calc(100% + 28px);
+  top: 4%;
+}
+.pl-orb--4 {
+  left: calc(100% + 76px);
+  top: 60%;
+}
 
 /* ---------------------------------------------------------------- narrower screens */
 
 @media (min-width: 1000px) {
-  .obs__rasi { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .obs__seg { border-top: 0; }
-  .obs__seg:nth-child(odd) { border-left: 1px solid var(--glass-bd); }
-  .obs__seg:first-child { border-left: 0; }
+  .obs__rasi {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .obs__seg {
+    border-top: 0;
+  }
+  .obs__seg:nth-child(odd) {
+    border-left: 1px solid var(--glass-bd);
+  }
+  .obs__seg:first-child {
+    border-left: 0;
+  }
 }
 @media (max-width: 1099px) {
-  .pl-orbit { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px; pointer-events: auto; position: static; }
-  .pl-orb { position: static; width: auto; }
-  .pl-hero__stage { width: min(440px, 100%); }
+  .pl-orbit {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 14px;
+    pointer-events: auto;
+    position: static;
+  }
+  .pl-orb {
+    position: static;
+    width: auto;
+  }
+  .pl-hero__stage {
+    width: min(440px, 100%);
+  }
 }
 @media (max-width: 899px) {
-  .obs__pane { display: grid; gap: 14px; min-height: 0; padding: 16px; }
-  .obs__head, .obs__stats, .obs__center { inset: auto; position: static; translate: none; width: auto; }
-  .obs__stats { justify-self: start; overflow-x: auto; max-width: 100%; }
-  .obs__field { height: 360px; inset: auto; position: relative; }
-  .obs__quiet { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .obs__pane {
+    display: grid;
+    gap: 14px;
+    min-height: 0;
+    padding: 16px;
+  }
+  .obs__head,
+  .obs__stats,
+  .obs__center {
+    inset: auto;
+    position: static;
+    translate: none;
+    width: auto;
+  }
+  .obs__stats {
+    justify-self: start;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .obs__field {
+    height: 360px;
+    inset: auto;
+    position: relative;
+  }
+  .obs__quiet {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 639px) {
-  .obs__rasi { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }
-  .obs__seg { border-top: 0; flex: 0 0 82%; scroll-snap-align: start; }
+  .obs__rasi {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  .obs__seg {
+    border-top: 0;
+    flex: 0 0 82%;
+    scroll-snap-align: start;
+  }
 }
 @media (min-width: 900px) and (max-height: 700px) {
-  .obs__pane { min-height: 600px; }
-  .obs__field { bottom: 24px; }
+  .obs__pane {
+    min-height: 600px;
+  }
+  .obs__field {
+    bottom: 24px;
+  }
 }
-:root[data-detail="ldm"] .obs__rasi, :root[data-motion-tier="0"] .obs__rasi { background: var(--surface-1); }
+:root[data-detail="ldm"] .obs__rasi,
+:root[data-motion-tier="0"] .obs__rasi {
+  background: var(--surface-1);
+}
 
 /* ---------------------------------------------------------------- Open Recruitment banner, glass (Nov 2026)
    Same words and the same rule as before (no stage names on the banner); the card becomes glass over the sky,
    roomier, with a broadcast tile on the left. */
-.rec-bn--home { box-shadow: 0 18px 44px var(--glass-sh); }
+.rec-bn--home {
+  box-shadow: 0 18px 44px var(--glass-sh);
+}
 .rec-bn--home.rec-bn--rich .rec-bn__in {
   background:
-    radial-gradient(60% 140% at 0% 0%, color-mix(in srgb, var(--rec) 22%, transparent), transparent 62%),
+    radial-gradient(
+      60% 140% at 0% 0%,
+      color-mix(in srgb, var(--rec) 22%, transparent),
+      transparent 62%
+    ),
     radial-gradient(50% 120% at 100% 100%, rgba(167, 139, 250, 0.22), transparent 64%),
     var(--glass-panel);
-  -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
   box-shadow: inset 0 1px 0 var(--glass-hi);
   padding: 22px 26px 22px 26px;
   gap: 18px;
 }
 .rec-bn__ic2 {
-  align-items: center; background: linear-gradient(140deg, color-mix(in srgb, var(--rec) 30%, transparent), rgba(167, 139, 250, 0.24));
-  border: 1px solid var(--glass-bd); border-radius: 16px; color: var(--accent-bright); display: none; height: 54px; justify-content: center;
-  left: 26px; position: absolute; top: 50%; translate: 0 -50%; width: 54px; z-index: 2;
+  align-items: center;
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--rec) 30%, transparent),
+    rgba(167, 139, 250, 0.24)
+  );
+  border: 1px solid var(--glass-bd);
+  border-radius: 16px;
+  color: var(--accent-bright);
+  display: none;
+  height: 54px;
+  justify-content: center;
+  left: 26px;
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  width: 54px;
+  z-index: 2;
 }
 @media (min-width: 700px) {
-  .rec-bn--home.rec-bn--rich .rec-bn__in { padding-left: 98px; }
-  .rec-bn__ic2 { display: inline-flex; }
+  .rec-bn--home.rec-bn--rich .rec-bn__in {
+    padding-left: 98px;
+  }
+  .rec-bn__ic2 {
+    display: inline-flex;
+  }
 }
-:root[data-detail="ldm"] .rec-bn--home.rec-bn--rich .rec-bn__in, :root[data-motion-tier="0"] .rec-bn--home.rec-bn--rich .rec-bn__in { background-color: var(--surface-1); }
+:root[data-detail="ldm"] .rec-bn--home.rec-bn--rich .rec-bn__in,
+:root[data-motion-tier="0"] .rec-bn--home.rec-bn--rich .rec-bn__in {
+  background-color: var(--surface-1);
+}
 
 /* ---------------------------------------------------------------- Filosofi Logo (Nov 2026)
    Same spotlight behaviour; the stage is a blueprint sheet, the four meanings are numbered glass cards. */
-.pl-logo { counter-reset: logo; }
+.pl-logo {
+  counter-reset: logo;
+}
 .pl-logo__stage {
   background:
     linear-gradient(var(--hairline-faint) 1px, transparent 1px) 0 0 / 28px 28px,
     linear-gradient(90deg, var(--hairline-faint) 1px, transparent 1px) 0 0 / 28px 28px,
     var(--glass-clear);
-  border: 1px solid var(--glass-bd); border-radius: 26px; box-shadow: inset 0 1px 0 var(--glass-hi), 0 18px 44px var(--glass-sh);
-  padding: 28px 24px 46px; position: relative;
-  -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--glass-bd);
+  border-radius: 26px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 18px 44px var(--glass-sh);
+  padding: 28px 24px 46px;
+  position: relative;
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
 }
 .pl-logo__stage::after {
-  bottom: 14px; color: var(--text-muted); content: "FIG. 1"; font: 500 0.7rem var(--font-mono); left: 18px; letter-spacing: 0.1em; position: absolute;
+  bottom: 14px;
+  color: var(--text-muted);
+  content: "FIG. 1";
+  font: 500 0.7rem var(--font-mono);
+  left: 18px;
+  letter-spacing: 0.1em;
+  position: absolute;
 }
 .pl-logo__card {
-  background: var(--glass-panel); border: 1px solid var(--glass-bd); border-radius: 20px; box-shadow: inset 0 1px 0 var(--glass-hi), 0 12px 30px var(--glass-sh);
-  counter-increment: logo; position: relative; transition: transform 240ms var(--ease-out-expo), border-color 240ms, box-shadow 240ms;
-  -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-bd);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 12px 30px var(--glass-sh);
+  counter-increment: logo;
+  position: relative;
+  transition:
+    transform 240ms var(--ease-out-expo),
+    border-color 240ms,
+    box-shadow 240ms;
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
 }
 .pl-logo__card::before {
-  color: var(--accent-bright); content: "0" counter(logo); font: 600 0.78rem var(--font-mono); letter-spacing: 0.08em; position: absolute; right: 16px; top: 14px;
+  color: var(--accent-bright);
+  content: "0" counter(logo);
+  font: 600 0.78rem var(--font-mono);
+  letter-spacing: 0.08em;
+  position: absolute;
+  right: 16px;
+  top: 14px;
 }
-.pl-logo__card[aria-pressed="true"] { border-color: var(--accent-bright); box-shadow: 0 0 0 1px var(--accent-bright), 0 0 26px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 0 var(--glass-hi); }
-@media (hover: hover) { .pl-logo__card:hover { border-color: var(--accent-bright); transform: translateY(-3px); } }
+.pl-logo__card[aria-pressed="true"] {
+  border-color: var(--accent-bright);
+  box-shadow:
+    0 0 0 1px var(--accent-bright),
+    0 0 26px color-mix(in srgb, var(--accent) 45%, transparent),
+    inset 0 1px 0 var(--glass-hi);
+}
+@media (hover: hover) {
+  .pl-logo__card:hover {
+    border-color: var(--accent-bright);
+    transform: translateY(-3px);
+  }
+}
 
 /* ---------------------------------------------------------------- Enam Divisi: PCB-module boards
    The card keeps its photo, code, name and members; it gains an LED, a silkscreen edge and a trace motif in the
    division's own colour (--c). */
-.pl-div { overflow: hidden; position: relative; }
+.pl-div {
+  overflow: hidden;
+  position: relative;
+}
 .pl-div::before {
-  background: var(--c); border-radius: 50%; box-shadow: 0 0 10px 1px var(--c); content: ""; height: 8px; position: absolute; right: 14px; top: 14px; width: 8px; z-index: 3;
+  background: var(--c);
+  border-radius: 50%;
+  box-shadow: 0 0 10px 1px var(--c);
+  content: "";
+  height: 8px;
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  width: 8px;
+  z-index: 3;
 }
 .pl-div::after {
-  background: var(--c); bottom: auto; content: ""; height: 74px; inset-inline-start: auto; left: auto; opacity: 0.35; pointer-events: none; position: absolute; right: -6px; top: 26px; width: 150px; z-index: 2;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 74'%3E%3Cpath d='M0 16H46L60 30H150M0 40H34L48 54H150M84 0V14L98 28H150' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ccircle cx='60' cy='30' r='3'/%3E%3Ccircle cx='48' cy='54' r='3'/%3E%3Ccircle cx='98' cy='28' r='3'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 74'%3E%3Cpath d='M0 16H46L60 30H150M0 40H34L48 54H150M84 0V14L98 28H150' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ccircle cx='60' cy='30' r='3'/%3E%3Ccircle cx='48' cy='54' r='3'/%3E%3Ccircle cx='98' cy='28' r='3'/%3E%3C/svg%3E") center / contain no-repeat;
+  background: var(--c);
+  bottom: auto;
+  content: "";
+  height: 74px;
+  inset-inline-start: auto;
+  left: auto;
+  opacity: 0.35;
+  pointer-events: none;
+  position: absolute;
+  right: -6px;
+  top: 26px;
+  width: 150px;
+  z-index: 2;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 74'%3E%3Cpath d='M0 16H46L60 30H150M0 40H34L48 54H150M84 0V14L98 28H150' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ccircle cx='60' cy='30' r='3'/%3E%3Ccircle cx='48' cy='54' r='3'/%3E%3Ccircle cx='98' cy='28' r='3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 74'%3E%3Cpath d='M0 16H46L60 30H150M0 40H34L48 54H150M84 0V14L98 28H150' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ccircle cx='60' cy='30' r='3'/%3E%3Ccircle cx='48' cy='54' r='3'/%3E%3Ccircle cx='98' cy='28' r='3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
   transition: opacity 240ms;
 }
-@media (hover: hover) { .pl-div:hover::after { opacity: 0.8; } }
-.pl-div { border-color: color-mix(in srgb, var(--c) 40%, var(--glass-bd)); }
+@media (hover: hover) {
+  .pl-div:hover::after {
+    opacity: 0.8;
+  }
+}
+.pl-div {
+  border-color: color-mix(in srgb, var(--c) 40%, var(--glass-bd));
+}
 
 /* Light theme: the banner's amber eyebrow measured 3.2:1 on the pastel glass; a deeper amber reaches 5:1. */
-:root[data-theme="light"] .rec-bn__eyebrow { color: #8a5a0a; }
+:root[data-theme="light"] .rec-bn__eyebrow {
+  color: #8a5a0a;
+}
 
 /* ---------------------------------------------------------------- Profil Lab headings and captions
    Section titles, event-kind titles and photo captions sat straight on the painted sky; each rides a frosted plate. */
@@ -261,11 +714,22 @@
   background: var(--glass-frost);
   border: 1px solid var(--glass-bd);
   border-radius: var(--radius-xl);
-  box-shadow: inset 0 1px 0 var(--glass-hi), 0 12px 28px var(--glass-sh);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 12px 28px var(--glass-sh);
 }
-.pl-head { padding: 16px 22px; width: fit-content; }
-.pl-ev-block__head > .stack { padding: 12px 20px; }
-.pl-group__cap { padding: 10px 18px; width: fit-content; margin-top: 12px; }
+.pl-head {
+  padding: 16px 22px;
+  width: fit-content;
+}
+.pl-ev-block__head > .stack {
+  padding: 12px 20px;
+}
+.pl-group__cap {
+  padding: 10px 18px;
+  width: fit-content;
+  margin-top: 12px;
+}
 :root[data-detail="ldm"] :is(.pl-head, .pl-ev-block__head > .stack, .pl-group__cap),
 :root[data-motion-tier="0"] :is(.pl-head, .pl-ev-block__head > .stack, .pl-group__cap) {
   -webkit-backdrop-filter: none;

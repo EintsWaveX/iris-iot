@@ -7,10 +7,18 @@
    ========================================================================= */
 
 /* What shows before the sprites are painted, so the sky never flashes empty. */
-.sky { background: linear-gradient(180deg, #070b2b, #1a1a5e 40%, #4b2b88 70%, #a34e95); }
-:root[data-theme="light"] .sky { background: linear-gradient(180deg, #3a9bff, #78c2ff 34%, #c0e6ff 64%, #ffe9d2); }
+.sky {
+  background: linear-gradient(180deg, #070b2b, #1a1a5e 40%, #4b2b88 70%, #a34e95);
+}
+:root[data-theme="light"] .sky {
+  background: linear-gradient(180deg, #3a9bff, #78c2ff 34%, #c0e6ff 64%, #ffe9d2);
+}
 
-#iris-scene { position: absolute; inset: 0; overflow: hidden; }
+#iris-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
 #iris-scene .sp {
   position: absolute;
   pointer-events: none;
@@ -21,112 +29,347 @@
 }
 /* A soft light that follows the cursor. */
 #iris-scene .glow {
-  position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; opacity: 0;
-  background: radial-gradient(circle 190px at var(--cx, 50%) var(--cy, 50%), rgba(190, 226, 255, 0.2), transparent);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0;
+  background: radial-gradient(
+    circle 190px at var(--cx, 50%) var(--cy, 50%),
+    rgba(190, 226, 255, 0.2),
+    transparent
+  );
   transition: opacity 0.6s;
 }
-:root:not([data-detail="ldm"]):not([data-motion-tier="0"]) #iris-scene .glow { opacity: 1; }
-:root[data-theme="light"] #iris-scene .glow { background: radial-gradient(circle 190px at var(--cx, 50%) var(--cy, 50%), rgba(255, 244, 200, 0.3), transparent); }
-@media (hover: none) { #iris-scene .glow { display: none; } }
-#iris-scene .sp > img { display: block; width: 100%; height: 100%; user-select: none; }
-#iris-scene .sp[hidden] { display: none; }
+:root:not([data-detail="ldm"]):not([data-motion-tier="0"]) #iris-scene .glow {
+  opacity: 1;
+}
+:root[data-theme="light"] #iris-scene .glow {
+  background: radial-gradient(
+    circle 190px at var(--cx, 50%) var(--cy, 50%),
+    rgba(255, 244, 200, 0.3),
+    transparent
+  );
+}
+@media (hover: none) {
+  #iris-scene .glow {
+    display: none;
+  }
+}
+#iris-scene .sp > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+#iris-scene .sp[hidden] {
+  display: none;
+}
 
 #iris-scene .wf {
-  position: absolute; width: 2.6%; height: 36%; transform: translateX(-50%); border-radius: 4px;
-  background: repeating-linear-gradient(180deg, rgba(235, 252, 255, 0.95) 0 9px, rgba(190, 240, 255, 0.35) 9px 22px);
-  -webkit-mask: linear-gradient(180deg, #000 40%, transparent); mask: linear-gradient(180deg, #000 40%, transparent);
+  position: absolute;
+  width: 2.6%;
+  height: 36%;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(235, 252, 255, 0.95) 0 9px,
+    rgba(190, 240, 255, 0.35) 9px 22px
+  );
+  -webkit-mask: linear-gradient(180deg, #000 40%, transparent);
+  mask: linear-gradient(180deg, #000 40%, transparent);
 }
 #iris-scene .mist {
-  position: absolute; width: 14%; height: 7%; transform: translate(-50%, -50%); border-radius: 50%;
+  position: absolute;
+  width: 14%;
+  height: 7%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
   background: radial-gradient(closest-side, rgba(235, 252, 255, 0.75), transparent);
 }
 #iris-scene .ping {
-  position: absolute; width: 8%; aspect-ratio: 1; border-radius: 50%; opacity: 0;
-  border: 2px solid var(--accent-bright); transform: translate(-50%, -50%);
+  position: absolute;
+  width: 8%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0;
+  border: 2px solid var(--accent-bright);
+  transform: translate(-50%, -50%);
 }
 #iris-scene .spk {
-  position: absolute; width: var(--s); height: var(--s); opacity: 0.8; pointer-events: none;
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  opacity: 0.8;
+  pointer-events: none;
   background: radial-gradient(circle, #fff 0 24%, var(--c, #bff3ff) 70%);
   clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
 }
 #iris-scene .petal {
-  position: absolute; width: var(--s); height: calc(var(--s) * 0.62); border-radius: 80% 0 80% 0;
-  background: var(--c); opacity: 0; pointer-events: none;
+  position: absolute;
+  width: var(--s);
+  height: calc(var(--s) * 0.62);
+  border-radius: 80% 0 80% 0;
+  background: var(--c);
+  opacity: 0;
+  pointer-events: none;
 }
-#iris-scene .bird { position: absolute; left: -8%; width: 22px; height: 10px; pointer-events: none; }
-#iris-scene .bird::before, #iris-scene .bird::after {
-  content: ""; position: absolute; top: 0; width: 11px; height: 7px; border-radius: 60% 60% 0 0;
-  border-top: 2px solid rgba(30, 50, 110, 0.7); transform-origin: 50% 100%;
+#iris-scene .bird {
+  position: absolute;
+  left: -8%;
+  width: 22px;
+  height: 10px;
+  pointer-events: none;
 }
-#iris-scene .bird::before { left: 0; transform: rotate(-12deg); }
-#iris-scene .bird::after { right: 0; transform: rotate(12deg) scaleX(-1); }
+#iris-scene .bird::before,
+#iris-scene .bird::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 11px;
+  height: 7px;
+  border-radius: 60% 60% 0 0;
+  border-top: 2px solid rgba(30, 50, 110, 0.7);
+  transform-origin: 50% 100%;
+}
+#iris-scene .bird::before {
+  left: 0;
+  transform: rotate(-12deg);
+}
+#iris-scene .bird::after {
+  right: 0;
+  transform: rotate(12deg) scaleX(-1);
+}
 /* A comet: the bright head is the right end, and the element is turned to face its travel direction. */
 #iris-scene .shoot {
-  position: absolute; width: 200px; height: 3px; border-radius: 3px; opacity: 0; pointer-events: none;
-  rotate: 155deg; transform-origin: 100% 50%;
+  position: absolute;
+  width: 200px;
+  height: 3px;
+  border-radius: 3px;
+  opacity: 0;
+  pointer-events: none;
+  rotate: 155deg;
+  transform-origin: 100% 50%;
   background: linear-gradient(90deg, transparent, rgba(190, 243, 255, 0.55) 60%, #fff);
   filter: drop-shadow(0 0 6px #bff3ff);
 }
 #iris-scene .shoot::after {
-  content: ""; position: absolute; right: -3px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
-  background: #fff; box-shadow: 0 0 10px 3px #bff3ff;
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px 3px #bff3ff;
 }
 #iris-scene .rays {
-  position: absolute; left: var(--rx, 17%); top: var(--ry, 60%); width: 260vmax; height: 260vmax; margin: -130vmax 0 0 -130vmax; pointer-events: none;
-  background: repeating-conic-gradient(from 0deg, rgba(255, 246, 205, 0.22) 0 2.4deg, transparent 2.4deg 11deg);
-  -webkit-mask: radial-gradient(circle, #000, transparent 38%); mask: radial-gradient(circle, #000, transparent 38%);
+  position: absolute;
+  left: var(--rx, 17%);
+  top: var(--ry, 60%);
+  width: 260vmax;
+  height: 260vmax;
+  margin: -130vmax 0 0 -130vmax;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 246, 205, 0.22) 0 2.4deg,
+    transparent 2.4deg 11deg
+  );
+  -webkit-mask: radial-gradient(circle, #000, transparent 38%);
+  mask: radial-gradient(circle, #000, transparent 38%);
 }
 /* Falling petals, birds and comets only exist in High Detail. */
-:root:not([data-detail="hd"]) #iris-scene :is(.petal, .bird, .shoot) { display: none; }
-:root[data-scene-idle] #iris-scene * { animation-play-state: paused !important; }
+:root:not([data-detail="hd"]) #iris-scene :is(.petal, .bird, .shoot) {
+  display: none;
+}
+:root[data-scene-idle] #iris-scene * {
+  animation-play-state: paused !important;
+}
 
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) #iris-scene {
-    .bob { animation: scene-bob var(--t, 8s) ease-in-out var(--dl, 0s) infinite alternate; }
-    .drift { animation: scene-drift var(--t, 50s) ease-in-out var(--dl, 0s) infinite alternate; }
-    .spin { animation: scene-spin var(--t, 140s) linear infinite; }
-    .aur { animation: scene-aur var(--t, 9s) ease-in-out var(--dl, 0s) infinite; mix-blend-mode: screen; }
-    .aur2 { animation-name: scene-aur2; animation-duration: 12s; }
-    .spk { animation: scene-tw var(--t, 3s) ease-in-out var(--dl, 0s) infinite; }
-    .wf { animation: scene-fall 1s linear infinite; }
-    .mist { animation: scene-mist 2s ease-in-out infinite; }
-    .ping { animation: scene-ping 2.4s ease-out infinite; }
-    .rays { animation: scene-spin 260s linear infinite; }
+    .bob {
+      animation: scene-bob var(--t, 8s) ease-in-out var(--dl, 0s) infinite alternate;
+    }
+    .drift {
+      animation: scene-drift var(--t, 50s) ease-in-out var(--dl, 0s) infinite alternate;
+    }
+    .spin {
+      animation: scene-spin var(--t, 140s) linear infinite;
+    }
+    .aur {
+      animation: scene-aur var(--t, 9s) ease-in-out var(--dl, 0s) infinite;
+      mix-blend-mode: screen;
+    }
+    .aur2 {
+      animation-name: scene-aur2;
+      animation-duration: 12s;
+    }
+    .spk {
+      animation: scene-tw var(--t, 3s) ease-in-out var(--dl, 0s) infinite;
+    }
+    .wf {
+      animation: scene-fall 1s linear infinite;
+    }
+    .mist {
+      animation: scene-mist 2s ease-in-out infinite;
+    }
+    .ping {
+      animation: scene-ping 2.4s ease-out infinite;
+    }
+    .rays {
+      animation: scene-spin 260s linear infinite;
+    }
   }
   :root[data-detail="hd"]:not([data-motion-tier="0"]) #iris-scene {
-    .petal { animation: scene-petal var(--t, 12s) linear var(--dl, 0s) infinite; }
-    .bird { animation: scene-fly var(--t, 40s) linear var(--dl, 0s) infinite; }
-    .bird::before { animation: scene-flap-l 0.42s ease-in-out infinite alternate; }
-    .bird::after { animation: scene-flap-r 0.42s ease-in-out infinite alternate; }
-    .shoot { animation: scene-shoot var(--t, 11s) linear var(--dl, 3s) infinite; }
+    .petal {
+      animation: scene-petal var(--t, 12s) linear var(--dl, 0s) infinite;
+    }
+    .bird {
+      animation: scene-fly var(--t, 40s) linear var(--dl, 0s) infinite;
+    }
+    .bird::before {
+      animation: scene-flap-l 0.42s ease-in-out infinite alternate;
+    }
+    .bird::after {
+      animation: scene-flap-r 0.42s ease-in-out infinite alternate;
+    }
+    .shoot {
+      animation: scene-shoot var(--t, 11s) linear var(--dl, 3s) infinite;
+    }
   }
   @keyframes scene-bob {
-    from { transform: translateY(calc(var(--amp, 16) * -1px)) rotate(-1.4deg); }
-    to { transform: translateY(calc(var(--amp, 16) * 1px)) rotate(1.5deg); }
+    from {
+      transform: translateY(calc(var(--amp, 16) * -1px)) rotate(-1.4deg);
+    }
+    to {
+      transform: translateY(calc(var(--amp, 16) * 1px)) rotate(1.5deg);
+    }
   }
-  @keyframes scene-drift { from { transform: translateX(-13%); } to { transform: translateX(13%); } }
-  @keyframes scene-spin { to { transform: rotate(360deg); } }
+  @keyframes scene-drift {
+    from {
+      transform: translateX(-13%);
+    }
+    to {
+      transform: translateX(13%);
+    }
+  }
+  @keyframes scene-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
   @keyframes scene-aur {
-    0%, 100% { transform: translateX(-6%) skewX(-3deg) scaleY(0.9); opacity: 0.62; filter: hue-rotate(-28deg); }
-    50% { transform: translateX(6%) skewX(3deg) scaleY(1.14); opacity: 1; filter: hue-rotate(28deg); }
+    0%,
+    100% {
+      transform: translateX(-6%) skewX(-3deg) scaleY(0.9);
+      opacity: 0.62;
+      filter: hue-rotate(-28deg);
+    }
+    50% {
+      transform: translateX(6%) skewX(3deg) scaleY(1.14);
+      opacity: 1;
+      filter: hue-rotate(28deg);
+    }
   }
   @keyframes scene-aur2 {
-    0%, 100% { transform: translateX(6%) skewX(3deg) scaleY(1.1); opacity: 0.55; filter: hue-rotate(40deg); }
-    50% { transform: translateX(-6%) skewX(-3deg) scaleY(0.88); opacity: 0.95; filter: hue-rotate(-20deg); }
+    0%,
+    100% {
+      transform: translateX(6%) skewX(3deg) scaleY(1.1);
+      opacity: 0.55;
+      filter: hue-rotate(40deg);
+    }
+    50% {
+      transform: translateX(-6%) skewX(-3deg) scaleY(0.88);
+      opacity: 0.95;
+      filter: hue-rotate(-20deg);
+    }
   }
-  @keyframes scene-tw { 0%, 100% { opacity: 0.2; transform: scale(0.65); } 50% { opacity: 1; transform: scale(1.2); } }
+  @keyframes scene-tw {
+    0%,
+    100% {
+      opacity: 0.2;
+      transform: scale(0.65);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+  }
   @keyframes scene-petal {
-    0% { opacity: 0; transform: translate(0, 0) rotate(0); } 12% { opacity: 0.9; } 88% { opacity: 0.9; }
-    100% { opacity: 0; transform: translate(var(--dx, 80px), var(--dy, 260px)) rotate(420deg); }
+    0% {
+      opacity: 0;
+      transform: translate(0, 0) rotate(0);
+    }
+    12% {
+      opacity: 0.9;
+    }
+    88% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--dx, 80px), var(--dy, 260px)) rotate(420deg);
+    }
   }
-  @keyframes scene-fall { to { background-position: 0 22px; } }
-  @keyframes scene-mist { 50% { transform: translate(-50%, -50%) scale(1.25); opacity: 0.6; } }
-  @keyframes scene-ping { 0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; } 100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; } }
-  @keyframes scene-fly { from { transform: translateX(0); } to { transform: translateX(125vw); } }
-  @keyframes scene-flap-l { to { transform: rotate(14deg) scaleY(0.5); } }
-  @keyframes scene-flap-r { to { transform: rotate(-14deg) scaleY(0.5) scaleX(-1); } }
+  @keyframes scene-fall {
+    to {
+      background-position: 0 22px;
+    }
+  }
+  @keyframes scene-mist {
+    50% {
+      transform: translate(-50%, -50%) scale(1.25);
+      opacity: 0.6;
+    }
+  }
+  @keyframes scene-ping {
+    0% {
+      transform: translate(-50%, -50%) scale(0.3);
+      opacity: 0.9;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(2.6);
+      opacity: 0;
+    }
+  }
+  @keyframes scene-fly {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(125vw);
+    }
+  }
+  @keyframes scene-flap-l {
+    to {
+      transform: rotate(14deg) scaleY(0.5);
+    }
+  }
+  @keyframes scene-flap-r {
+    to {
+      transform: rotate(-14deg) scaleY(0.5) scaleX(-1);
+    }
+  }
   @keyframes scene-shoot {
-    0% { opacity: 0; translate: 0 0; } 3% { opacity: 1; } 60% { opacity: 1; }
-    78%, 100% { opacity: 0; translate: -540px 245px; }
+    0% {
+      opacity: 0;
+      translate: 0 0;
+    }
+    3% {
+      opacity: 1;
+    }
+    60% {
+      opacity: 1;
+    }
+    78%,
+    100% {
+      opacity: 0;
+      translate: -540px 245px;
+    }
   }
 }
