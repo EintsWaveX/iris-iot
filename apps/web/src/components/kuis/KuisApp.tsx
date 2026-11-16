@@ -16,10 +16,11 @@ import { bahasaKonten, resolveLang, type Lang } from "../../lib/kelas";
 import { tiketDariAlamat } from "../../lib/kuis";
 import { setSound, soundOn } from "../../lib/prefs";
 import { useRevealMotion } from "../recruitment/reveal/fx";
+import Fade from "../ui/Fade";
 import { bunyi } from "./fx";
 import HostLayar from "./Host";
 import { K, type KuisTeks } from "./kuisStrings";
-import { Latar } from "./parts";
+import { Latar, Selimut } from "./parts";
 import PemainLayar from "./Pemain";
 import { useKuis } from "./useKuis";
 
@@ -35,7 +36,7 @@ function Info({
   ikon?: string;
 }) {
   return (
-    <main className="kz__tubuh kz__tubuh--info" data-anim="1">
+    <main className="kz__tubuh kz__tubuh--info">
       <div className="kz__info">
         <span className="kz__info-ikon" data-ikon={ikon} aria-hidden="true">
           <i />
@@ -228,6 +229,8 @@ export default function KuisApp({ lang: bahasaHalaman = "id" }: { lang?: Lang })
     return () => window.clearTimeout(id);
   }, [kuis.galat, t]);
 
+  // Which kind of screen is up: when it changes the old one fades out and the new one fades in.
+  let kunciLayar = "info";
   let isi;
   if (
     tukar !== "selesai" ||
@@ -284,10 +287,14 @@ export default function KuisApp({ lang: bahasaHalaman = "id" }: { lang?: Lang })
   } else if (!lihat || !aku) {
     isi = <Info judul={t.menyambung} />;
   } else if (lihat.peran === "host") {
+    kunciLayar = "host";
     isi = <HostLayar v={lihat} k={kuis} aku={aku} t={t} m={m} kodeSesi={sesi?.kodeMasuk} />;
   } else {
+    kunciLayar = "pemain";
     isi = <PemainLayar v={lihat} k={kuis} aku={aku} t={t} m={m} />;
   }
+  // Loading, signed out, waiting and closed are one calm "info" family: they swap without a flash between them.
+  if (kunciLayar === "info" && isi.props?.judul) kunciLayar = `info-${isi.props.judul}`;
 
   return (
     <div
@@ -299,17 +306,19 @@ export default function KuisApp({ lang: bahasaHalaman = "id" }: { lang?: Lang })
     >
       <Latar m={m} fase={lihat?.fase ?? "lobi"} />
       <Atas t={t} lang={lang} ganti={ganti} status={status} />
-      {(status === "putus" || status === "menyambung") && lihat && (
-        <div className="kz__banner" role="status">
-          {status === "putus" ? t.terputus : t.menyambung}
-        </div>
-      )}
-      {pesan && (
-        <div className="kz__banner kz__banner--galat" role="alert">
-          {pesan}
-        </div>
-      )}
-      {isi}
+      <Selimut
+        tampil={(status === "putus" || status === "menyambung") && !!lihat}
+        kelas="kz__banner"
+        role="status"
+      >
+        {status === "putus" ? t.terputus : t.menyambung}
+      </Selimut>
+      <Selimut tampil={!!pesan} kelas="kz__banner kz__banner--galat" role="alert">
+        {pesan}
+      </Selimut>
+      <Fade k={kunciLayar} className="kz__layar-kunci">
+        {isi}
+      </Fade>
     </div>
   );
 }
