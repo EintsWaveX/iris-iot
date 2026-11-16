@@ -9,6 +9,7 @@ import { CheckIcon, DesktopIcon, MoonIcon, SunIcon } from "@phosphor-icons/react
 import { dict } from "../../lib/app";
 import { ZH_ENABLED, type Lang } from "../../lib/kelas";
 import {
+  setBgBlur,
   setClock,
   setDetail,
   setSound,
@@ -35,6 +36,8 @@ const T = dict({
     ldm: "Latar diam. Paling ringan, bawaan.",
     normal: "Bintang berkelip, meteor sesekali.",
     hd: "Planet, satelit, komet, aurora.",
+    bgBlur: "Blur latar",
+    bgBlurHint: "Hanya saat kamu sudah masuk. Bawaannya 60%. Geser ke 0% kalau mau latar jelas.",
     language: "Bahasa",
     langSub: {
       id: "Indonesia",
@@ -64,6 +67,9 @@ const T = dict({
     ldm: "Still background. Lightest, the default.",
     normal: "Twinkling stars, a meteor now and then.",
     hd: "Planets, a satellite, comets, aurora.",
+    bgBlur: "Background blur",
+    bgBlurHint:
+      "Only while you are signed in. The default is 60%. Slide to 0% for a sharp background.",
     language: "Language",
     langSub: { id: "Indonesian", en: "English", zh: "Mandarin, Simplified. Still in development." },
     clock: "Clock in the navigation",
@@ -89,6 +95,8 @@ const T = dict({
     ldm: "静止背景。最轻，默认。",
     normal: "星星闪烁，偶尔有流星。",
     hd: "行星、卫星、彗星、极光。",
+    bgBlur: "背景模糊",
+    bgBlurHint: "仅在登录后生效。默认 60%。拖到 0% 即为清晰背景。",
     language: "语言",
     langSub: { id: "印尼语", en: "英语", zh: "中文，简体。仍在开发中。" },
     clock: "导航栏时钟",
@@ -178,6 +186,28 @@ export default function DisplayPanel({ lang, onLang }: { lang: Lang; onLang: (to
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="disp__group">
+        <span className="disp__label" id="disp-blur">
+          {t.bgBlur}
+        </span>
+        <div className="disp__range">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={p.bgBlur}
+            aria-labelledby="disp-blur"
+            aria-valuetext={`${p.bgBlur}%`}
+            onChange={(e) => setBgBlur(Number(e.target.value))}
+          />
+          <output className="mono" htmlFor="disp-blur">
+            {p.bgBlur}%
+          </output>
+        </div>
+        <span className="hint">{t.bgBlurHint}</span>
       </div>
 
       <div className="disp__group">
@@ -284,6 +314,7 @@ export function DisplaySummary({ lang, wide = false }: { lang: Lang; wide?: bool
   const rows: [string, string][] = [
     [t.theme, theme],
     [t.detail, detail],
+    [t.bgBlur, `${p.bgBlur}%`],
     [t.language, bahasa],
     [t.clock, clock],
     [t.sound, p.sound ? t.soundOn : t.soundOff],
