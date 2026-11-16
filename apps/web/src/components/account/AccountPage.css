@@ -396,3 +396,11 @@
   gap: 12px;
   padding-block: 12px;
 }
+
+/* iOS zooms the page when a field under 16 px is focused. */
+@media (max-width: 759px) {
+  .acctpage .field__input,
+  .acctpage .pwfield__input {
+    font-size: 16px;
+  }
+}
