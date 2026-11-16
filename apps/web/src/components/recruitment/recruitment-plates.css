@@ -6,6 +6,7 @@
 .rec-head2,
 .rec9-kbar,
 .rec9-group__h,
+.rec9-kcon > .rec-tools,
 .b3-toolwrap__cap {
   -webkit-backdrop-filter: blur(26px) saturate(1.6);
   backdrop-filter: blur(26px) saturate(1.6);
@@ -15,8 +16,10 @@
     inset 0 1px 0 var(--glass-hi),
     0 10px 26px var(--glass-sh);
 }
-:root[data-detail="ldm"] :is(.rec-head2, .rec9-kbar, .rec9-group__h, .b3-toolwrap__cap),
-:root[data-motion-tier="0"] :is(.rec-head2, .rec9-kbar, .rec9-group__h, .b3-toolwrap__cap) {
+:root[data-detail="ldm"]
+  :is(.rec-head2, .rec9-kbar, .rec9-group__h, .rec9-kcon > .rec-tools, .b3-toolwrap__cap),
+:root[data-motion-tier="0"]
+  :is(.rec-head2, .rec9-kbar, .rec9-group__h, .rec9-kcon > .rec-tools, .b3-toolwrap__cap) {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   background: var(--surface-1);
@@ -33,6 +36,10 @@
 .rec9-kbar {
   border-radius: var(--radius-lg);
   padding: 10px 12px;
+}
+.rec9-kcon > .rec-tools {
+  border-radius: var(--radius-lg);
+  padding: 8px 10px;
 }
 .rec9-group__h {
   border-radius: var(--radius-lg);
