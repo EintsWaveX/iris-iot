@@ -8,6 +8,7 @@ import gsap from "gsap";
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -95,7 +96,14 @@ export function Cincin({
   detik: number | null;
   kunci: string | number;
 }) {
-  const lewat = sisaMs === null ? 0 : Math.max(0, totalMs - sisaMs);
+  // How far into the phase the sweep starts. It is fixed per phase (and per pause or resume): the clock
+  // ticks ten times a second, and feeding every tick back in as the delay made a running animation jump
+  // ahead by the time already elapsed each time, so the ring sped up and emptied before the number hit 0.
+  const sudahTahu = sisaMs !== null;
+  const lewat = useMemo(
+    () => (sisaMs === null ? 0 : Math.max(0, totalMs - sisaMs)),
+    [kunci, dijeda, totalMs, sudahTahu],
+  );
   const gaya = {
     "--kz-dur": `${totalMs}ms`,
     "--kz-tunda": `${-lewat}ms`,
@@ -110,7 +118,17 @@ export function Cincin({
     >
       <svg viewBox="0 0 100 100" aria-hidden="true">
         <circle className="kz__cincin-alas" cx="50" cy="50" r="44" />
-        <circle key={kunci} className="kz__cincin-isi" cx="50" cy="50" r="44" pathLength="100" />
+        {/* drawn once the clock is known, so the sweep starts at the right point instead of at full */}
+        {sudahTahu && (
+          <circle
+            key={`${kunci}-${dijeda ? "j" : "m"}`}
+            className="kz__cincin-isi"
+            cx="50"
+            cy="50"
+            r="44"
+            pathLength="100"
+          />
+        )}
       </svg>
       <b className="kz__cincin-angka" aria-live="off">
         {detik ?? "·"}

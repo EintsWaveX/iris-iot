@@ -52,6 +52,11 @@ export interface KuisTeks {
   lanjut: string;
   selesaikan: string;
   mainLagi: string;
+  lihatTA: string;
+  kembaliSkor: string;
+  taTitle: string;
+  taRumus: (n: number) => string;
+  taNilai: string;
   sebaran: string;
   tidakJawab: string;
   penjelasan: string;
@@ -96,6 +101,8 @@ export interface KuisTeks {
     | "lanjut"
     | "selesaikan"
     | "mainLagi"
+    | "lihatTA"
+    | "kembaliSkor"
     | "ambilAlih"
     | "coba",
     string
@@ -146,6 +153,11 @@ export const K: Record<Lang, KuisTeks> = {
     lanjut: "Lanjut",
     selesaikan: "Selesaikan Kuis",
     mainLagi: "Main Lagi",
+    lihatTA: "Lihat Nilai TA",
+    kembaliSkor: "Kembali ke Skor",
+    taTitle: "Nilai TA Akhir",
+    taRumus: (n) => `Total poin ÷ (${n} soal × 1000) × 100, dibulatkan ke atas, 0 sampai 100.`,
+    taNilai: "Nilai TA",
     sebaran: "Sebaran jawaban",
     tidakJawab: "Tidak jawab",
     penjelasan: "Penjelasan",
@@ -191,6 +203,8 @@ export const K: Record<Lang, KuisTeks> = {
       lanjut: "Ke layar berikutnya (bisa juga pakai Spasi).",
       selesaikan: "Akhiri kuis sekarang dan tampilkan juara.",
       mainLagi: "Balik ke lobi dengan pemain yang sama, skor dikosongkan.",
+      lihatTA: "Tampilkan nilai TA akhir tiap pemain.",
+      kembaliSkor: "Balik ke daftar skor.",
       ambilAlih: "Kamu yang pegang kendali kuis ini.",
       coba: "Sambungkan lagi ke kuis.",
     },
@@ -249,6 +263,11 @@ export const K: Record<Lang, KuisTeks> = {
     lanjut: "Next",
     selesaikan: "End Quiz",
     mainLagi: "Play Again",
+    lihatTA: "Show TA Scores",
+    kembaliSkor: "Back to Scores",
+    taTitle: "Final TA Scores",
+    taRumus: (n) => `Total points ÷ (${n} questions × 1000) × 100, rounded up, 0 to 100.`,
+    taNilai: "TA score",
     sebaran: "Answer spread",
     tidakJawab: "No answer",
     penjelasan: "Explanation",
@@ -294,6 +313,8 @@ export const K: Record<Lang, KuisTeks> = {
       lanjut: "Goes to the next screen (Space works too).",
       selesaikan: "Ends the quiz now and shows the winners.",
       mainLagi: "Back to the lobby with the same players, scores cleared.",
+      lihatTA: "Shows each player's final TA score.",
+      kembaliSkor: "Back to the score list.",
       ambilAlih: "You take control of this quiz.",
       coba: "Reconnects to the quiz.",
     },
@@ -351,6 +372,11 @@ export const K: Record<Lang, KuisTeks> = {
     lanjut: "下一步",
     selesaikan: "结束测验",
     mainLagi: "再玩一次",
+    lihatTA: "查看 TA 分数",
+    kembaliSkor: "返回得分",
+    taTitle: "最终 TA 分数",
+    taRumus: (n) => `总分 ÷（${n} 题 × 1000）× 100，向上取整，0 到 100。`,
+    taNilai: "TA 分数",
     sebaran: "答案分布",
     tidakJawab: "未作答",
     penjelasan: "解析",
@@ -391,6 +417,8 @@ export const K: Record<Lang, KuisTeks> = {
       lanjut: "进入下一个画面（也可按空格键）。",
       selesaikan: "立即结束测验并显示冠军。",
       mainLagi: "用同一批玩家回到大厅，分数清零。",
+      lihatTA: "显示每位玩家的最终 TA 分数。",
+      kembaliSkor: "返回得分列表。",
       ambilAlih: "由你来控制本次测验。",
       coba: "重新连接测验。",
     },

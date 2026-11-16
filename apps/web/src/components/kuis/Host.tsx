@@ -27,6 +27,7 @@ import {
   useDaftarKeluar,
   useDetikSisa,
 } from "./parts";
+import { nilaiTA } from "../../lib/kuis/ta";
 import type { Aku, Kuis } from "./useKuis";
 
 interface Props {
@@ -100,7 +101,14 @@ function TombolYakin({
   );
 }
 
-function BilahAksi({ v, k, aku, t }: Pick<Props, "v" | "k" | "aku" | "t">) {
+function BilahAksi({
+  v,
+  k,
+  aku,
+  t,
+  ta,
+  setTa,
+}: Pick<Props, "v" | "k" | "aku" | "t"> & { ta: boolean; setTa: (b: boolean) => void }) {
   if (aku.peran === "penonton") {
     return (
       <div className="kz__aksi kz__aksi--info">
@@ -128,14 +136,16 @@ function BilahAksi({ v, k, aku, t }: Pick<Props, "v" | "k" | "aku" | "t">) {
         }
       : f === "buka" || f === "papan"
         ? { label: t.lanjut, tip: t.tip.lanjut, jalan: () => k.kirim({ t: "lanjut" }), mati: false }
-        : f === "podium"
-          ? {
-              label: t.mainLagi,
-              tip: t.tip.mainLagi,
-              jalan: () => k.kirim({ t: "main-lagi" }),
-              mati: false,
-            }
-          : null;
+        : f === "podium" && !ta
+          ? { label: t.lihatTA, tip: t.tip.lihatTA, jalan: () => setTa(true), mati: false }
+          : f === "podium"
+            ? {
+                label: t.mainLagi,
+                tip: t.tip.mainLagi,
+                jalan: () => k.kirim({ t: "main-lagi" }),
+                mati: false,
+              }
+            : null;
   const berjalan = f === "hitung" || f === "soal";
 
   // Space is the host's "next", so the projector never needs a mouse.
@@ -158,6 +168,16 @@ function BilahAksi({ v, k, aku, t }: Pick<Props, "v" | "k" | "aku" | "t">) {
   return (
     <div className="kz__aksi">
       <div className="kz__aksi-kiri">
+        {f === "podium" && ta && (
+          <button
+            type="button"
+            className="btn btn--secondary"
+            data-tip={t.tip.kembaliSkor}
+            onClick={() => setTa(false)}
+          >
+            {t.kembaliSkor}
+          </button>
+        )}
         {f !== "lobi" && f !== "podium" && (
           <TombolYakin
             label={t.selesaikan}
@@ -507,13 +527,35 @@ function Papan({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
 
 // -------------------------------------------------------------- podium
 
-function Podium({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
+function Podium({ v, t, m, ta }: Pick<Props, "v" | "t" | "m"> & { ta: boolean }) {
   useEffect(() => {
     bunyi("juara");
     void rayakan(m, true);
   }, [m]);
   const top = v.papan.slice(0, 3);
   const urutan = [top[1], top[0], top[2]];
+  // The next button swaps the podium for each player's final TA score; the swap fades like every other screen.
+  return (
+    <Fade k={ta ? "ta" : "skor"} className="kz__podium-ganti">
+      {ta ? (
+        <NilaiTA v={v} t={t} m={m} />
+      ) : (
+        <PodiumSkor v={v} t={t} m={m} top={top} urutan={urutan} />
+      )}
+    </Fade>
+  );
+}
+
+function PodiumSkor({
+  v,
+  t,
+  m,
+  top,
+  urutan,
+}: Pick<Props, "v" | "t" | "m"> & {
+  top: LihatHost["papan"];
+  urutan: (LihatHost["papan"][number] | undefined)[];
+}) {
   return (
     <div className="kz__podium-layar">
       <h2 className="kz__judul-besar">{t.podiumTitle}</h2>
@@ -557,9 +599,37 @@ function Podium({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
       </div>
       {v.papan.length > 3 && (
         <div className="kz__podium-sisa">
-          <DaftarPapan baris={v.papan.slice(3)} m={m} t={t} maks={5} />
+          <DaftarPapan baris={v.papan.slice(3)} m={m} t={t} maks={v.papan.length} />
         </div>
       )}
+    </div>
+  );
+}
+
+/** Everyone's final TA score, 0 to 100, from their total points (see lib/kuis/ta.ts). */
+function NilaiTA({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
+  return (
+    <div className="kz__podium-layar kz__ta">
+      <h2 className="kz__judul-besar">{t.taTitle}</h2>
+      <p className="kz__ta-rumus">{t.taRumus(v.total)}</p>
+      <ol className="kz__ta-daftar">
+        {v.papan.map((b) => (
+          <li key={b.nim} data-top={b.peringkat <= 3 ? b.peringkat : undefined}>
+            <span className="kz__papan-rank">{b.peringkat}</span>
+            <Avatar nim={b.nim} nama={b.nama} />
+            <span className="kz__papan-nama">
+              <b>{b.nama}</b>
+              {b.kelompok !== null && <small>{t.rataKelompok(b.kelompok)}</small>}
+            </span>
+            <span className="kz__ta-poin mono">
+              {b.skor.toLocaleString()} <small>{t.skor}</small>
+            </span>
+            <b className="kz__ta-nilai" aria-label={`${t.taNilai} ${nilaiTA(b.skor, v.total)}`}>
+              <Angka nilai={nilaiTA(b.skor, v.total)} m={m} durasi={1.1} awal={0} />
+            </b>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -570,6 +640,10 @@ export default function HostLayar(p: Props) {
   const { v, k, t, m } = p;
   const sisaHitung = useDetikSisa(v.akhir, v.sisa, k.sekarang, v.fase === "hitung");
   const lalu = useRef<number | null>(null);
+  const [ta, setTa] = useState(false);
+  useEffect(() => {
+    if (v.fase !== "podium") setTa(false);
+  }, [v.fase]);
   useEffect(() => {
     if (v.fase !== "hitung" || sisaHitung === null || sisaHitung === lalu.current) return;
     lalu.current = sisaHitung;
@@ -586,11 +660,11 @@ export default function HostLayar(p: Props) {
           {v.fase === "soal" && v.soal && <Soal {...p} />}
           {v.fase === "buka" && v.soal && v.buka && <Buka v={v} t={t} />}
           {v.fase === "papan" && <Papan v={v} t={t} m={m} />}
-          {v.fase === "podium" && <Podium v={v} t={t} m={m} />}
+          {v.fase === "podium" && <Podium v={v} t={t} m={m} ta={ta} />}
         </Fade>
       </main>
       <Fade k={v.fase} className="kz__aksi-wrap">
-        <BilahAksi v={v} k={k} aku={p.aku} t={t} />
+        <BilahAksi v={v} k={k} aku={p.aku} t={t} ta={ta} setTa={setTa} />
       </Fade>
     </>
   );

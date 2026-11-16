@@ -104,7 +104,7 @@
   bottom: 40px;
   left: calc(min(520px, 42%) + 24px);
   position: absolute;
-  right: clamp(110px, 8%, 160px);
+  right: clamp(28px, 3.5%, 56px);
   top: 100px;
 }
 /* stars sit at y/60 of 94% of the field (see Observatory.tsx), so the lines share that height */
