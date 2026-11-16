@@ -79,7 +79,6 @@ import { REC } from "./recruitmentStrings";
 import "../shell/AppNav.css";
 import "./recruitment.css";
 import "./recruitment-shell.css";
-import "./recruitment-plates.css";
 
 type Ikon = ComponentType<IconProps>;
 
