@@ -383,10 +383,16 @@
     pushToast = (msg, opts) => {
       const id = Math.random();
       setList((l) => [...l.slice(-3), { id, msg, ...opts }]);
-      setTimeout(() => setList((l) => l.filter((x) => x.id !== id)), opts.ms || 4200);
+      /* it leaves the way it came (htoast-out, 180 ms), then goes; calm motion removes it at once */
+      const gone = () => setList((l) => l.filter((x) => x.id !== id));
+      setTimeout(() => {
+        if (state.reduce) return gone();
+        setList((l) => l.map((x) => (x.id === id ? { ...x, leaving: true } : x)));
+        setTimeout(gone, 180);
+      }, opts.ms || 4200);
     };
     return html`<${H.Portal}><div class="toasts" aria-live="polite">
-      ${list.map((t) => html`<div class=${"toast" + (t.tone ? " toast--" + t.tone : "")}>
+      ${list.map((t) => html`<div class=${"toast" + (t.tone ? " toast--" + t.tone : "")} data-leaving=${t.leaving ? "" : undefined}>
         <${Icon} n=${t.icon || (t.tone === "danger" || t.tone === "warn" ? "warning" : "check-circle")} /><span>${t.msg}</span>
       </div>`)}
     </div></${H.Portal}>`;
