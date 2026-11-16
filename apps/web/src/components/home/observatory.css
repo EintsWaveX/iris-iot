@@ -83,8 +83,9 @@
 }
 /* Phones: only your own group keeps its full label; the others are just their number, so labels never stack. */
 @media (max-width: 639px) {
-  .obs__star[data-me="no"] .obs__nm, .obs__star[data-me="no"] .obs__plaque > span { display: none; }
-  .obs__star[data-me="no"] .obs__plaque { padding: 1px 7px; }
+  .obs__star[data-me="no"] .obs__nm, .obs__star[data-me="no"] .obs__plaque > span,
+  .obs__field[data-multi="yes"] .obs__nm, .obs__field[data-multi="yes"] .obs__plaque > span { display: none; }
+  .obs__star[data-me="no"] .obs__plaque, .obs__field[data-multi="yes"] .obs__plaque { padding: 1px 7px; }
 }
 
 .obs__quiet { align-items: center; display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); height: 100%; }
@@ -246,3 +247,6 @@
 }
 @media (hover: hover) { .pl-div:hover::after { opacity: 0.8; } }
 .pl-div { border-color: color-mix(in srgb, var(--c) 40%, var(--glass-bd)); }
+
+/* Light theme: the banner's amber eyebrow measured 3.2:1 on the pastel glass; a deeper amber reaches 5:1. */
+:root[data-theme="light"] .rec-bn__eyebrow { color: #8a5a0a; }

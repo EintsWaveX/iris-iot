@@ -89,7 +89,7 @@ export function LabPane({
         </div>
       )}
 
-      <div className="obs__field" role="img" aria-label={t.skyAria}>
+      <div className="obs__field" data-multi={mine.length > 1 ? "yes" : "no"} role="img" aria-label={t.skyAria}>
         {lab ? (
           <>
             <svg className="obs__links" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true">

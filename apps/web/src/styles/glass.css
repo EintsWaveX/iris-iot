@@ -2,15 +2,16 @@
    GLASS KIT (Nov 2026): "glass shell, solid reading plates".
    The shell (cards, dialogs, drawers, menus, the navbar) is glass over the painted cosmos.
    Whatever a reader has to read closely sits on a solid plate: tables, forms, scores.
-   The tints are strong enough that --text-muted keeps 4.5:1 over the brightest part of either sky.
+   The tints are strong enough that --text-muted keeps 4.5:1 over the brightest part of either sky
+   (measured 16 Nov: dark panel 4.7 over the lavender aurora, light panel 5.9 over the deepest blue).
    Low Detail and motion tier 0 drop the blur and fall back to the old solid surfaces,
    so the lab PCs pay nothing for it.
    ========================================================================= */
 
 :root {
-  --glass-panel: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)), rgba(14, 18, 40, 0.74);
+  --glass-panel: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)), rgba(14, 18, 40, 0.8);
   --glass-frost: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)), rgba(16, 20, 44, 0.9);
-  --glass-clear: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.03)), rgba(12, 16, 34, 0.5);
+  --glass-clear: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.03)), rgba(12, 16, 34, 0.58);
   --glass-bd: rgba(255, 255, 255, 0.2);
   --glass-hi: rgba(255, 255, 255, 0.28);
   --glass-sh: rgba(0, 0, 0, 0.34);
@@ -18,7 +19,7 @@
 :root[data-theme="light"] {
   --glass-panel: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.62)), rgba(255, 255, 255, 0.3);
   --glass-frost: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78)), rgba(255, 255, 255, 0.5);
-  --glass-clear: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.42)), rgba(255, 255, 255, 0.2);
+  --glass-clear: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.42)), rgba(255, 255, 255, 0.3);
   --glass-bd: rgba(255, 255, 255, 0.9);
   --glass-hi: #fff;
   --glass-sh: rgba(16, 34, 70, 0.16);
