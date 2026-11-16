@@ -360,6 +360,24 @@
   gap: 16px;
 }
 
+.disp__range {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.disp__range input[type="range"] {
+  accent-color: var(--accent);
+  flex: 1;
+  min-width: 0;
+}
+
+.disp__range output {
+  color: var(--text);
+  min-width: 3.2ch;
+  text-align: right;
+}
+
 .disp__group {
   display: grid;
   gap: 6px;

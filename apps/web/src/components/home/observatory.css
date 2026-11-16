@@ -242,20 +242,29 @@
   }
 }
 
+/* No session running: the four modules as four readable glass tiles beside the welcome card (2 by 2). */
 .obs__quiet {
-  align-items: center;
+  align-content: center;
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   height: 100%;
 }
 .obs__mini {
-  align-items: center;
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
+  background: var(--glass-clear);
+  border: 1px solid color-mix(in srgb, var(--m) 55%, var(--glass-bd));
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 30px var(--glass-sh);
   display: grid;
-  gap: 6px;
-  justify-items: center;
+  gap: 8px;
+  justify-items: start;
+  padding: 14px 18px 16px;
 }
-.obs__mini span {
+.obs__mini-tag {
   background: var(--glass-panel);
   border: 1px solid var(--m);
   border-radius: 999px;
@@ -266,8 +275,19 @@
   padding: 3px 11px;
   text-transform: uppercase;
 }
+.obs__mini-name {
+  font-size: 0.95rem;
+}
 .obs__mini svg {
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--m) 55%, transparent));
+}
+.obs__mini .cst__link {
+  stroke: color-mix(in srgb, var(--m) 85%, #fff);
+  stroke-width: 0.9;
+}
+.obs__mini .cst__name,
+.obs__mini .cst__via {
+  fill: var(--text);
 }
 
 /* the main focus: the person's own card, compact and centred */
@@ -296,7 +316,9 @@
   overflow-wrap: anywhere;
 }
 /* the role content brings its own .panel: here the card is the glass, so the inner panel goes flat */
-.obs__center .panel {
+.obs__center .panel,
+.obs__center .panel.panel--key,
+.obs__center .h11card {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   background: none;
@@ -500,8 +522,16 @@
     inset: auto;
     position: relative;
   }
+  .obs__field:has(.obs__quiet) {
+    height: auto;
+  }
   .obs__quiet {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 479px) {
+  .obs__quiet {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 639px) {
@@ -755,4 +785,10 @@
 /* The welcome card is already one glass card; the key panel's accent bar inside it ran across the first line of text. */
 .obs__center .panel--key::before {
   display: none;
+}
+
+/* The day strip's "now" tag can sit past the last slot; the card must not clip it. */
+.obs__center .panel.panel--key,
+.obs__center .h11card {
+  overflow: visible;
 }

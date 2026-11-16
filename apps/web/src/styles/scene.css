@@ -19,6 +19,12 @@
   inset: 0;
   overflow: hidden;
 }
+/* Signed in: the painted background softens by the reader's Blur Latar choice (Tampilan, 60% unless changed).
+   The slight scale keeps the blurred edges from showing a pale rim. */
+:root[data-masuk="yes"] #iris-scene {
+  filter: blur(calc(var(--bg-blur, 60) * 0.16px));
+  scale: calc(1 + var(--bg-blur, 60) * 0.0006);
+}
 #iris-scene .sp {
   position: absolute;
   pointer-events: none;

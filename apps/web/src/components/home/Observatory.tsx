@@ -160,8 +160,9 @@ export function LabPane({
                 key={m}
                 style={{ "--m": `var(--mod-${m})` } as CSSProperties}
               >
-                <ModConstellation m={m} h={96} lang={lang} />
-                <span>{modulLabel(m, lang)}</span>
+                <span className="obs__mini-tag">{modulLabel(m, lang)}</span>
+                <ModConstellation m={m} h={118} lang={lang} />
+                <b className="obs__mini-name">{MODUL_NAMA[m]}</b>
               </div>
             ))}
           </div>

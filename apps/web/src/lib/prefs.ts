@@ -10,6 +10,7 @@
  *   iris-keys       on | off                keyboard shortcuts (the "?" sheet)
  *   iris-keyhints   on | off                shortcut keys shown on buttons (off)
  *   iris-sound      on | off                sound, for now the envelope's chime (on)
+ *   iris-bg-blur    0 to 100                how much the painted background blurs while signed in (60)
  *
  * A change fires "iris-prefs" on window so open islands follow along.
  */
@@ -38,8 +39,19 @@ function write(key: string, value: string) {
   window.dispatchEvent(new Event("iris-prefs"));
 }
 
+/** The painted background's blur while signed in, in percent. 60 unless the reader chose otherwise. */
+export const BG_BLUR_DEFAULT = 60;
+
+export function parseBgBlur(v: string | null): number {
+  if (v === null || v.trim() === "") return BG_BLUR_DEFAULT;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return BG_BLUR_DEFAULT;
+  return Math.min(100, Math.max(0, Math.round(n)));
+}
+
 export interface Prefs {
   theme: ThemePref;
+  bgBlur: number;
   detail: DetailPref;
   clock: ClockPref;
   zhWeight: ZhWeight;
@@ -56,6 +68,7 @@ export function readPrefs(): Prefs {
     clock: clock === "on" || clock === "off" ? clock : "auto",
     zhWeight: read("iris-zh-weight") === "500" ? "500" : "700",
     sound: read("iris-sound") !== "off",
+    bgBlur: parseBgBlur(read("iris-bg-blur")),
   };
 }
 
@@ -78,6 +91,7 @@ export const setSound = (on: boolean) => write("iris-sound", on ? "on" : "off");
 export function soundOn(): boolean {
   return read("iris-sound") !== "off";
 }
+export const setBgBlur = (n: number) => write("iris-bg-blur", String(parseBgBlur(String(n))));
 export const setClock = (v: ClockPref) => write("iris-clock", v);
 export const setZhWeight = (v: ZhWeight) => write("iris-zh-weight", v);
 export function setDetail(v: DetailPref) {
@@ -94,6 +108,7 @@ export function usePrefs(): Prefs {
     clock: "auto",
     zhWeight: "700",
     sound: true,
+    bgBlur: BG_BLUR_DEFAULT,
   });
   useEffect(() => {
     const on = () => setP(readPrefs());

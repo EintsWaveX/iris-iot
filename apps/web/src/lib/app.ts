@@ -119,6 +119,8 @@ export function pernahMasuk(): boolean {
 }
 
 function tandaiMasuk(m: Me | null): Me | null {
+  // The stylesheet blurs the painted background only while someone is signed in (Tampilan, Blur Latar).
+  document.documentElement.setAttribute("data-masuk", m ? "yes" : "no");
   if (m) {
     try {
       window.localStorage.setItem(PERNAH_MASUK, "1");

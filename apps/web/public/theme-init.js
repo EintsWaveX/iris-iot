@@ -50,6 +50,14 @@
     return old === "penuh" || old === "0" ? "hd" : "normal";
   }
 
+  // The painted background blurs while signed in (Tampilan, default 60%). The blur is a number the stylesheet reads.
+  function bgBlur() {
+    var v = get("iris-bg-blur");
+    if (v === null || v === "") return 60;
+    var n = Math.round(Number(v));
+    return isFinite(n) ? Math.min(100, Math.max(0, n)) : 60;
+  }
+
   // Phone status bar and browser chrome follow the nav colour of the theme.
   var BAR = { dark: "#0a0c14", light: "#f6faff" };
 
@@ -59,6 +67,11 @@
     var bar = root.querySelector('meta[name="theme-color"]');
     if (bar) bar.setAttribute("content", BAR[t]);
     root.setAttribute("data-detail", detail());
+    root.style.setProperty("--bg-blur", String(bgBlur()));
+    // Signed in or not: the page being left knows (app.ts loadMe keeps data-masuk current); a first paint guesses from
+    // "was ever signed in here", and loadMe corrects it a moment later.
+    var live = document.documentElement.getAttribute("data-masuk");
+    root.setAttribute("data-masuk", live || (get("iris-pernah-masuk") === "1" ? "yes" : "no"));
     if (get("iris-zh-weight") === "500") root.setAttribute("data-zh-weight", "500");
     else root.removeAttribute("data-zh-weight");
     if (get("iris-keyhints") === "on") root.setAttribute("data-keyhints", "on");
