@@ -73,7 +73,19 @@
   display: grid; left: 18px; padding: 3px 9px 4px; position: absolute; top: 18px; white-space: nowrap;
 }
 .obs__plaque b { font-size: 0.78rem; line-height: 1.25; }
-.obs__plaque span { color: var(--text-muted); font-size: 0.7rem; line-height: 1.3; }
+.obs__plaque > span { color: var(--text-muted); font-size: 0.7rem; line-height: 1.3; }
+/* A star near the right edge puts its label to the left, so nothing runs past the pane (on phones the whole right half does). */
+.obs__star[data-flip="far"] .obs__plaque { left: auto; right: 18px; }
+.obs__star[data-flip="far"] .obs__lead { left: auto; right: 4px; transform: rotate(-45deg); transform-origin: 100% 0; }
+@media (max-width: 899px) {
+  .obs__star[data-flip="mid"] .obs__plaque { left: auto; right: 18px; }
+  .obs__star[data-flip="mid"] .obs__lead { left: auto; right: 4px; transform: rotate(-45deg); transform-origin: 100% 0; }
+}
+/* Phones: only your own group keeps its full label; the others are just their number, so labels never stack. */
+@media (max-width: 639px) {
+  .obs__star[data-me="no"] .obs__nm, .obs__star[data-me="no"] .obs__plaque > span { display: none; }
+  .obs__star[data-me="no"] .obs__plaque { padding: 1px 7px; }
+}
 
 .obs__quiet { align-items: center; display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); height: 100%; }
 .obs__mini { align-items: center; display: grid; gap: 6px; justify-items: center; }

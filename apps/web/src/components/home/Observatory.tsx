@@ -107,6 +107,7 @@ export function LabPane({
                   className="obs__star"
                   key={g.nomor}
                   data-me={me ? "yes" : "no"}
+                  data-flip={pt.x > 78 ? "far" : pt.x > 58 ? "mid" : "no"}
                   style={
                     {
                       left: `${pt.x}%`,
@@ -122,7 +123,10 @@ export function LabPane({
                   <span className="obs__core" />
                   <span className="obs__lead" />
                   <span className="obs__plaque">
-                    <b>{KELOMPOK_NAMA[g.nomor] ? `${g.nomor} · ${KELOMPOK_NAMA[g.nomor]}` : String(g.nomor)}</b>
+                    <b>
+                      <span className="obs__n">{g.nomor}</span>
+                      {KELOMPOK_NAMA[g.nomor] ? <span className="obs__nm"> · {KELOMPOK_NAMA[g.nomor]}</span> : null}
+                    </b>
                     <span className="mono">{p === 1 ? t.starDone : t.starP(right, celah)}</span>
                   </span>
                 </div>
