@@ -52,7 +52,7 @@ export function readPrefs(): Prefs {
   const clock = read("iris-clock");
   return {
     theme: theme === "light" || theme === "system" ? theme : "dark",
-    detail: detail === "normal" || detail === "hd" ? detail : "ldm",
+    detail: detail === "ldm" || detail === "hd" ? detail : "normal",
     clock: clock === "on" || clock === "off" ? clock : "auto",
     zhWeight: read("iris-zh-weight") === "500" ? "500" : "700",
     sound: read("iris-sound") !== "off",
@@ -90,7 +90,7 @@ export function setDetail(v: DetailPref) {
 export function usePrefs(): Prefs {
   const [p, setP] = useState<Prefs>({
     theme: "dark",
-    detail: "ldm",
+    detail: "normal",
     clock: "auto",
     zhWeight: "700",
     sound: true,

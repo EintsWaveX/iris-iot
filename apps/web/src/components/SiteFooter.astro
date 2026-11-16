@@ -20,45 +20,46 @@ const year = new Date().getFullYear();
 
 <footer class="sitefoot" aria-label={tri(lang, "Tentang situs ini", "About this site", "关于本站")}>
   <div class="sitefoot__in page-wide">
-    <div class="sitefoot__who">
-      <b class="sitefoot__lab">{LAB_FULL}</b>
-      <span>{place.unit}</span>
-      <span>{place.room}</span>
-      {(LAB_CONTACT.email || insta) && (
-        <span class="sitefoot__contact">
-          {LAB_CONTACT.email && <a href={`mailto:${LAB_CONTACT.email}`}>{LAB_CONTACT.email}</a>}
-          {insta && (
-            <a href={insta} rel="noopener" target="_blank">
-              Instagram @{LAB_CONTACT.instagram}
-            </a>
-          )}
-        </span>
-      )}
+    <div class="sitefoot__plate">
+      <div class="sitefoot__who">
+        <b class="sitefoot__lab">{LAB_FULL}</b>
+        <span>{place.unit}</span>
+        <span>{place.room}</span>
+        {(LAB_CONTACT.email || insta) && (
+          <span class="sitefoot__contact">
+            {LAB_CONTACT.email && <a href={`mailto:${LAB_CONTACT.email}`}>{LAB_CONTACT.email}</a>}
+            {insta && (
+              <a href={insta} rel="noopener" target="_blank">
+                Instagram @{LAB_CONTACT.instagram}
+              </a>
+            )}
+          </span>
+        )}
+      </div>
+      <nav class="sitefoot__links" aria-label={tri(lang, "Tautan situs", "Site links", "站点链接")}>
+        <a href={href(lang, "/modules")}>{tri(lang, "Modul", "Modules", "模块")}</a>
+        <a href={href(lang, "/privacy")}>
+          {tri(lang, "Kebijakan Privasi", "Privacy Notice", "隐私声明")}
+        </a>
+        <a href={href(lang, "/terms")}>
+          {tri(lang, "Ketentuan Penggunaan", "Terms of Use", "使用条款")}
+        </a>
+      </nav>
+      <p class="sitefoot__fine">
+        © {year} IRIS Laboratory, Telkom University.{" "}
+        {tri(
+          lang,
+          "Ikon Phosphor (MIT). Huruf Inter, Plus Jakarta Sans, JetBrains Mono dan Noto Sans SC (SIL Open Font License).",
+          "Phosphor icons (MIT). Inter, Plus Jakarta Sans, JetBrains Mono and Noto Sans SC typefaces (SIL Open Font License).",
+          "Phosphor 图标（MIT）。Inter、Plus Jakarta Sans、JetBrains Mono 与 Noto Sans SC 字体（SIL Open Font License）。",
+        )}
+      </p>
     </div>
-    <nav class="sitefoot__links" aria-label={tri(lang, "Tautan situs", "Site links", "站点链接")}>
-      <a href={href(lang, "/modules")}>{tri(lang, "Modul", "Modules", "模块")}</a>
-      <a href={href(lang, "/privacy")}>
-        {tri(lang, "Kebijakan Privasi", "Privacy Notice", "隐私声明")}
-      </a>
-      <a href={href(lang, "/terms")}>
-        {tri(lang, "Ketentuan Penggunaan", "Terms of Use", "使用条款")}
-      </a>
-    </nav>
-    <p class="sitefoot__fine">
-      © {year} IRIS Laboratory, Telkom University.{" "}
-      {tri(
-        lang,
-        "Ikon Phosphor (MIT). Huruf Inter, Plus Jakarta Sans, JetBrains Mono dan Noto Sans SC (SIL Open Font License).",
-        "Phosphor icons (MIT). Inter, Plus Jakarta Sans, JetBrains Mono and Noto Sans SC typefaces (SIL Open Font License).",
-        "Phosphor 图标（MIT）。Inter、Plus Jakarta Sans、JetBrains Mono 与 Noto Sans SC 字体（SIL Open Font License）。",
-      )}
-    </p>
   </div>
 </footer>
 
 <style>
   .sitefoot {
-    border-top: 1px solid var(--hairline);
     color: var(--text-muted);
     font-size: 0.86rem;
     margin-top: var(--space-7);
@@ -66,10 +67,27 @@ const year = new Date().getFullYear();
     position: relative;
   }
 
-  .sitefoot__in {
+  /* The footer text sits on the painted sky, so it gets a frosted reading plate (Nov 2026). */
+  .sitefoot__plate {
+    -webkit-backdrop-filter: blur(30px) saturate(1.7);
+    backdrop-filter: blur(30px) saturate(1.7);
+    background: var(--glass-frost);
+    border: 1px solid var(--glass-bd);
+    border-radius: var(--radius-xl);
+    box-shadow:
+      inset 0 1px 0 var(--glass-hi),
+      0 14px 34px var(--glass-sh);
     display: grid;
     gap: var(--space-6) var(--space-7);
     grid-template-columns: minmax(0, 1fr) auto;
+    padding: var(--space-6) var(--space-7);
+  }
+
+  :global(:root[data-detail="ldm"]) .sitefoot__plate,
+  :global(:root[data-motion-tier="0"]) .sitefoot__plate {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--surface-1);
   }
 
   .sitefoot__who {
@@ -125,8 +143,9 @@ const year = new Date().getFullYear();
   }
 
   @media (max-width: 759px) {
-    .sitefoot__in {
+    .sitefoot__plate {
       grid-template-columns: minmax(0, 1fr);
+      padding: var(--space-5);
     }
   }
 

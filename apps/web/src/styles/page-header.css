@@ -29,6 +29,36 @@
   gap: 10px;
   margin-top: var(--space-page-top);
   margin-bottom: 26px;
+  /* Nov 2026: the title block sits on the painted sky, so it rides a frosted reading plate. */
+  -webkit-backdrop-filter: blur(30px) saturate(1.7);
+  backdrop-filter: blur(30px) saturate(1.7);
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
+  padding: var(--space-5) var(--space-6);
+}
+
+:root[data-detail="ldm"] .page-header,
+:root[data-motion-tier="0"] .page-header {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--surface-1);
+}
+
+/* Already inside a panel or plate: no second plate. */
+.panel .page-header,
+.reading .page-header,
+.dash__sumhead .page-header {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 @media (max-width: 639px) {

@@ -306,7 +306,8 @@
   left: 50%;
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + var(--nav-size) / 2);
-  transform: translate(-50%, -50%);
+  /* translate, not transform: a button's hover and press lift owns transform, and would drop the centring. */
+  translate: -50% -50%;
 }
 
 .appnav__center .appnav__signin {
@@ -790,7 +791,8 @@
     left: 50%;
     position: absolute;
     top: calc(env(safe-area-inset-top, 0px) + var(--nav-size) / 2);
-    transform: translate(-50%, -50%);
+    /* The bug the Praktikum button had: this was a transform, so hover and press replaced it and the button jumped sideways. */
+    translate: -50% -50%;
   }
   .appnav__me--mobile {
     display: inline-flex;

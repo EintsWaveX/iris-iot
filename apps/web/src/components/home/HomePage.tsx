@@ -10,6 +10,7 @@
  * schedule here.
  */
 import { useEffect, useState, type CSSProperties } from "react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import {
   getJson,
   href,
@@ -33,11 +34,13 @@ import { Journey, journeyFrom, MissionClock, ModConstellation } from "../shared/
 import { H, LANES } from "./homeStrings";
 import "../ui/Display.css";
 import "./home.css";
+import "./observatory.css";
 import { openSignIn } from "../../lib/signin";
 import { useSegar } from "../../lib/siaran";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import DayCard from "../console/DayCard";
 import ProfilLab from "./profil/ProfilLab";
+import { LabPane } from "./Observatory";
 import RecBanner from "../recruitment/home-banner/RecBanner";
 import { useRecBanner } from "../../lib/recruitment/client";
 
@@ -500,56 +503,49 @@ export default function HomePage({ lang }: { lang: Lang }) {
   if (me === undefined || !bannerSiap) return <div className="homewait" aria-busy="true" />;
   if (me === null) return <ProfilLab lang={lang} me={null} hero banner={banner} />;
 
+  const hello = t.hello(pro ? (KELOMPOK_NAMA[pro] ?? kelompokLabel(pro, lang)) : me.nama);
   return (
     <>
-      <div className="home home10">
+      <div className="home obs">
         {/* Open Recruitment (2026-10-26): above the practicum's own top. */}
         <RecBanner lang={lang} state={banner} />
-        <div className="home10__top">
-          <div className="stack stack--lg">
-            <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
-            {me ? (
-              <h1 className="home__display home__display--hello">
-                {t.hello(pro ? (KELOMPOK_NAMA[pro] ?? kelompokLabel(pro, lang)) : me.nama)}
-              </h1>
-            ) : (
-              <>
-                <h1 className="home__display">{t.title}</h1>
-                <p className="home__lede">{t.lede}</p>
-              </>
-            )}
-            <RoleCard lang={lang} lab={labData ?? null} pegang={pegang} />
-          </div>
-          <LabSky lang={lang} lab={labData} mine={mine} holder={holder} />
-        </div>
+        <LabPane
+          lang={lang}
+          lab={labData}
+          mine={mine}
+          holder={holder}
+          center={
+            <>
+              <h1 className="obs__hello">{hello}</h1>
+              <RoleCard lang={lang} lab={labData ?? null} pegang={pegang} />
+            </>
+          }
+        />
 
-        <section className="stack">
-          <div className="home10__head">
-            <span className="eyebrow">{t.rasiEyebrow}</span>
-            <h2 className="home__h1">{t.rasiTitle}</h2>
-          </div>
-          <div className="home10__rasi">
+        <section className="obs__rasi-wrap">
+          <h2 className="home__h1">{t.rasiTitle}</h2>
+          <div className="obs__rasi glass">
             {LANES.map((l) => (
-              <article
-                className="panel rasi"
+              <a
+                className="obs__seg"
                 key={l.m}
+                href={href(lang, `/modules/${l.m}`)}
                 style={{ "--m": `var(--mod-${l.m})` } as CSSProperties}
               >
-                <div className="panel__head rasi__head">
+                <div className="obs__seghead">
                   <Pill modul={l.m}>{modulLabel(l.m, lang)}</Pill>
                   <span className="hint mono">
                     {l.a} · {l.via}
                   </span>
                 </div>
-                <ModConstellation m={l.m} h={150} lang={lang} />
+                <ModConstellation m={l.m} h={96} lang={lang} />
                 <h3 className="home__h2">{MODUL_NAMA[l.m]}</h3>
                 <p className="panel__sub">{t.lanes[l.m]}</p>
-                <div className="panel__actions">
-                  <a className="btn" href={href(lang, `/modules/${l.m}`)}>
-                    {t.read}
-                  </a>
-                </div>
-              </article>
+                <span className="obs__go">
+                  {t.read}
+                  <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
+                </span>
+              </a>
             ))}
           </div>
         </section>

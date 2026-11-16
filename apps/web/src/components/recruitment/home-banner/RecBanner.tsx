@@ -14,6 +14,7 @@ import type { PollState } from "../../../lib/hooks";
 import type { BannerResponse } from "../../../lib/recruitment/types";
 import {
   ArrowRightIcon,
+  BroadcastIcon,
   ChalkboardTeacherIcon,
   ClipboardTextIcon,
   CpuIcon,
@@ -139,6 +140,10 @@ export default function RecBanner({
     <section className="rec-bn rec-bn--home rec-bn--rich" aria-label={t.label}>
       <div className="rec-bn__in">
         <Seni />
+        {/* Nov 2026: a broadcast tile, the banner's own signal; decoration only. */}
+        <span className="rec-bn__ic2" aria-hidden="true">
+          <BroadcastIcon size={28} weight="duotone" />
+        </span>
         <div className="rec-bn__body">{body}</div>
         {extra && <div className="rec-bn__extra">{extra}</div>}
         <div className="rec-bn__cta">{cta}</div>
