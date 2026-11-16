@@ -44,9 +44,11 @@
 .obs__field { bottom: 40px; left: calc(min(520px, 42%) + 24px); position: absolute; right: clamp(110px, 8%, 160px); top: 100px; }
 .obs__links { height: 100%; inset: 0; overflow: visible; position: absolute; width: 100%; }
 .obs__links line {
-  filter: drop-shadow(0 0 3px var(--accent-bright)); opacity: 0.55; stroke: var(--accent-bright); stroke-width: 1.2;
+  filter: drop-shadow(0 0 5px var(--accent-bright)); opacity: 0.95; stroke: #fff; stroke-linecap: round; stroke-width: 1.8;
   vector-effect: non-scaling-stroke;
 }
+/* On the day sky a white line vanishes: a deep blue one with a white halo reads on every cloud and sun patch. */
+:root[data-theme="light"] .obs__links line { filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.95)); opacity: 0.9; stroke: #0b5fb0; }
 .obs__star { --r: calc(14px + var(--p, 0) * 14px); height: 0; position: absolute; width: 0; }
 .obs__halo, .obs__core, .obs__ring { border-radius: 50%; left: 0; position: absolute; top: 0; transform: translate(-50%, -50%); }
 .obs__halo { background: radial-gradient(circle, var(--c), transparent 66%); height: calc(var(--r) * 2.4); opacity: 0.4; width: calc(var(--r) * 2.4); }
@@ -55,7 +57,16 @@
   width: calc(18px + var(--p, 0) * 16px);
   clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
 }
-.obs__ring { border: 1px dashed var(--accent-bright); height: calc(var(--r) * 2 + 8px); width: calc(var(--r) * 2 + 8px); }
+/* The group's own ring: thick, glowing and turning, so "that one is yours" is obvious at a glance. */
+.obs__ring {
+  border: 3px dashed #fff; box-shadow: 0 0 16px 2px var(--accent-bright), inset 0 0 12px var(--accent-bright); height: calc(var(--r) * 2 + 18px);
+  width: calc(var(--r) * 2 + 18px);
+}
+:root[data-theme="light"] .obs__ring { border-color: #0b5fb0; box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.95), inset 0 0 8px rgba(255, 255, 255, 0.9); }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .obs__ring { animation: obs-ring 14s linear infinite; }
+  @keyframes obs-ring { to { transform: translate(-50%, -50%) rotate(360deg); } }
+}
 .obs__lead { background: var(--hairline-strong); height: 1px; left: 4px; position: absolute; top: 4px; transform: rotate(45deg); transform-origin: 0 0; width: 20px; }
 .obs__plaque {
   background: var(--surface-1); border: 1px solid color-mix(in srgb, var(--c) 60%, var(--hairline)); border-radius: 8px;
