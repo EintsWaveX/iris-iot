@@ -134,6 +134,24 @@
   backdrop-filter: none;
 }
 
+/* ---- reading plate: long prose or page headings that would otherwise sit straight on the painted sky ---- */
+.reading {
+  -webkit-backdrop-filter: blur(30px) saturate(1.7);
+  backdrop-filter: blur(30px) saturate(1.7);
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-xl);
+  box-shadow: inset 0 1px 0 var(--glass-hi), 0 14px 34px var(--glass-sh);
+  padding: var(--space-6) var(--space-7);
+}
+:root[data-detail="ldm"] .reading,
+:root[data-motion-tier="0"] .reading {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--surface-1);
+}
+@media (max-width: 759px) { .reading { padding: var(--space-5); } }
+
 /* ---- enter and leave: one rhythm for anything glass that appears ---- */
 .glass-in { animation: glass-in 420ms var(--ease-out-expo) both; animation-delay: calc(var(--i, 0) * 60ms); }
 @keyframes glass-in { from { opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(6px); } }
