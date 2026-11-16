@@ -45,7 +45,12 @@
 }
 
 .tabs {
+  /* Nov 2026: a tab strip on the bare sky rides a frosted plate (none inside a panel, which is glass already). */
+  -webkit-backdrop-filter: blur(26px) saturate(1.6);
+  backdrop-filter: blur(26px) saturate(1.6);
+  background: var(--glass-frost);
   border-bottom: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   display: flex;
   flex-wrap: nowrap;
   gap: 2px;
@@ -56,6 +61,25 @@
 
 .tabs::-webkit-scrollbar {
   display: none;
+}
+
+/* Already inside glass: no second plate. */
+.panel .tabs,
+.reading .tabs,
+.drawer .tabs,
+.dialog__panel .tabs,
+:root[data-detail="ldm"] .panel .tabs,
+:root[data-motion-tier="0"] .panel .tabs {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: none;
+}
+
+:root[data-detail="ldm"] .tabs,
+:root[data-motion-tier="0"] .tabs {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--surface-1);
 }
 
 /* Tabs, underline form (Phase 9 kit): for the main sections of a page. A
