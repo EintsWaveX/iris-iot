@@ -85,3 +85,16 @@ These supersede anything above that conflicts. Mockup: `2026-11-16-home-observat
 - Everything not yet browser-checked: Praktikan idle, Asisten slot and live, each banner kind, worst case (ten groups, long name) in the new style, 1280x600, both themes of the Logo and Divisi sections.
 - Foto Bersama and Acara keep today's content and behaviour; their new look is not designed yet.
 - The "Golden Hour" and "Night Watch" names, the stage names in the banner rail, and the example numbers are placeholders.
+
+---
+
+## Revision 2 (16 Nov 2026, afternoon: whole-web scope, built)
+- **Scope grew from Home to the whole web.** Decisions: glass shell with solid reading plates; everything defaults to Normal detail (Low and High Detail stay a choice in Tampilan); animated by default, still when Low Detail or motion tier 0.
+- **Built:** a site-wide painted scene behind every page (`scripts/cosmos/painters.ts`, `scripts/scene.ts`, `styles/scene.css`, mounted by `Cosmos.astro`, replacing `sky.ts` as the mounted sky). Islands bob, clouds drift, sparkles twinkle, waterfalls run, the aurora sways (edges faded, sized to the viewport); layers lean toward the cursor and a soft light follows it (Normal and High Detail); petals, birds and comets are High Detail only. Comet bug fixed (it travelled tail-first).
+- **Glass kit** (`styles/glass.css`): `.panel`, dialogs, drawers and popovers are glass; `.glass` variants (tint, frost, aurora, gleam) and `.plate` for solid reading areas; Low Detail and tier 0 fall back to the old solid surfaces. Hover rules are behind `(hover: hover)` and no plain `ease-in` is used, as the repo's motion tests require.
+- **Home, signed in** (`home/Observatory.tsx`, `observatory.css`): no big glass card (it blurred the sky away, user rejected it). The sky stays clear; small glass chips carry the Langit Lab title and the live counts; the compact welcome card sits on the left and the constellation of group stars fills the rest of the width beside it, as sparkle stars (`lib/home-sky.ts` `placeStars`, tested) with glowing lines and a thick glowing own-group ring. Rasi Modul is one glass band whose segments are the links.
+- **Visitor hero:** a bigger logo with four glass readouts around it; 3 mirrors 1 and 4 mirrors 2.
+- **Banner:** glass with a broadcast tile. **The 3 Nov rule stands: no stage names on the banner** (Revision 1's named rail is dropped).
+- **Filosofi Logo and Enam Divisi:** restyled on their existing markup (blueprint stage, numbered glass cards, PCB-board details); content and behaviour unchanged.
+- **Fixes:** the navbar Praktikum button no longer jumps (centering moved from `transform` to `translate` on desktop and phone); Dasbor greeting and module-line card are top-aligned.
+- **Not done yet:** a per-screen visual and contrast sweep of the rest of the web (Konsol, Oprec panel, Penilaian, Praktikan screens) under the new glass; measured contrast of `.panel` glass over the brightest sky regions; phone width of the new signed-in Home; the Asisten card and every banner kind in the new style; Foto Bersama and Acara restyle; push, PR and deploy.
