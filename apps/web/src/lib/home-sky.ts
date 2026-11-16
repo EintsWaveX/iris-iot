@@ -25,3 +25,32 @@ export function placeStars(n: number): StarPoint[] {
   }
   return out;
 }
+
+/**
+ * Which stars the constellation lines join: the shortest tree over all of them (Prim's). Its lines are
+ * short, never cross, and branch like a drawn constellation, where joining stars in spiral order
+ * drew long lines straight through the others.
+ */
+export function placeLinks(pts: StarPoint[]): [number, number][] {
+  const out: [number, number][] = [];
+  if (pts.length < 2) return out;
+  const inTree = new Set<number>([0]);
+  while (inTree.size < pts.length) {
+    let best: [number, number] | null = null;
+    let bestD = Infinity;
+    for (const i of inTree) {
+      for (let j = 0; j < pts.length; j++) {
+        if (inTree.has(j)) continue;
+        const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+        if (d < bestD) {
+          bestD = d;
+          best = [i, j];
+        }
+      }
+    }
+    if (!best) break;
+    out.push(best);
+    inTree.add(best[1]);
+  }
+  return out;
+}

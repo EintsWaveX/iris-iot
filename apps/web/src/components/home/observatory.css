@@ -50,6 +50,12 @@
   font-size: 1.25rem;
   margin-right: 4px;
 }
+.obs__key {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding-left: 12px;
+  border-left: 1px solid var(--hairline-faint);
+}
 .obs__hint {
   background: var(--glass-panel);
   border: 1px solid var(--glass-bd);
@@ -101,14 +107,17 @@
   right: clamp(110px, 8%, 160px);
   top: 100px;
 }
+/* stars sit at y/60 of 94% of the field (see Observatory.tsx), so the lines share that height */
 .obs__links {
-  height: 100%;
+  height: 94%;
   inset: 0;
   overflow: visible;
   position: absolute;
   width: 100%;
 }
-.obs__links line {
+.obs__links path {
+  fill: none;
+  stroke-linejoin: round;
   filter: drop-shadow(0 0 5px var(--accent-bright));
   opacity: 0.95;
   stroke: #fff;
@@ -117,7 +126,7 @@
   vector-effect: non-scaling-stroke;
 }
 /* On the day sky a white line vanishes: a deep blue one with a white halo reads on every cloud and sun patch. */
-:root[data-theme="light"] .obs__links line {
+:root[data-theme="light"] .obs__links path {
   filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.95));
   opacity: 0.9;
   stroke: #0b5fb0;
@@ -231,10 +240,22 @@
 /* Phones: only your own group keeps its full label; the others are just their number, so labels never stack. */
 @media (max-width: 639px) {
   .obs__star[data-me="no"] .obs__nm,
-  .obs__star[data-me="no"] .obs__plaque > span,
-  .obs__field[data-multi="yes"] .obs__nm,
-  .obs__field[data-multi="yes"] .obs__plaque > span {
+  .obs__field[data-multi="yes"] .obs__nm {
     display: none;
+  }
+  /* the progress line is on the stats strip and in the star's glow; a one-line label never hides its neighbour */
+  .obs__plaque > span {
+    display: none;
+  }
+  /* yours sits above the star, so it never covers a neighbour's number */
+  .obs__star[data-me="yes"] .obs__plaque {
+    bottom: 18px;
+    top: auto;
+  }
+  .obs__key {
+    border-left: 0;
+    flex-basis: 100%;
+    padding-left: 0;
   }
   .obs__star[data-me="no"] .obs__plaque,
   .obs__field[data-multi="yes"] .obs__plaque {
