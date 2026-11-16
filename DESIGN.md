@@ -174,13 +174,13 @@ Containers: `--container-narrow` 720 to 820px (forms, reading), `--container-reg
 
 Every screen is designed per breakpoint (360, 390, 820, 1024, 1280x720, 1280, 1680), checked in dark and light, in Indonesian, English and Mandarin, and must still work with ten groups.
 
-### Home bento (Nov 2026 redesign)
-- **Grid:** 12 columns from 1280px, 2 columns from 640px, one column on phones; gap 16px (20px from 1280px). Cells stretch to share row heights. Named cells: `.hb__greet`, `.hb__role`, `.hb__sky`, `.hb__mod`.
-- **Hero cell:** the live Langit Lab sky is the largest cell (about two rows tall). Its stars and constellation sit on a solid panel; any numbers (stat tiles, counts) sit on `--surface-1`, never directly on the animated scene.
-- **Role cell:** holds the one primary action for the viewer's role (a `--inverse` or `--primary` button); the greeting sits above it. One `.panel--key` per screen.
-- **Module tiles:** four equal tiles tinted with `--mod-N-soft`, constellation fills the tile, a mono line for the protocol, the whole tile is the link and "Baca Modul" stays visible.
-- **Banner:** the recruitment banner is a slim one-row strip above the grid; detail is one tap away.
-- **Rule:** merge before adding. A new cell earns its place by replacing an old card.
+### Home Observatory (Nov 2026 redesign)
+- **Scene:** the first screen is one bounded, solid, static scene (container-regular wide, `--radius-xl`, height `min(100svh - nav, 760px)`, never under 520px) showing the live Langit Lab: the running module's constellation faint behind, group stars large in front. Dark = deep-space gradient, light = Daylight sky gradient. Labels sit on the static scene; only the own-group ring turns and the live dot pulses.
+- **Control panel:** one solid `.panel--key` anchored bottom-left of the scene holds the greeting and the viewer's one next action. Role content (Praktikan live or idle, Asisten, Visitor) swaps inside it. On phones the scene becomes a short band and the panel flows below.
+- **Stats strip:** four mono tiles on `--surface-1`, bottom-right of the scene, never directly on the sky. Visitors see profile stats instead of live counts (guests get no per-group data).
+- **Modules:** one wide band split into four segments by hairlines, not four boxes. Each segment is the whole link.
+- **Banner:** the recruitment banner is a slim one-row strip above the scene.
+- **Rule:** merge before adding. A new layer earns its place by replacing an old card.
 
 ## Elevation & Depth
 
