@@ -28,10 +28,13 @@
 #iris-scene .sp {
   position: absolute;
   pointer-events: none;
-  will-change: transform;
   /* The cursor moves each layer by its depth: islands and clouds lean visibly, the planet and rings barely. */
   translate: calc(var(--mx, 0) * var(--d, 0) * -1.7px) calc(var(--my, 0) * var(--d, 0) * -1.1px);
   transition: translate 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* A layer of its own only while something moves it: Low Detail and motion tier 0 keep the painting flat. */
+:root:not([data-detail="ldm"]):not([data-motion-tier="0"]) #iris-scene .sp {
+  will-change: transform;
 }
 /* A soft light that follows the cursor. */
 #iris-scene .glow {
