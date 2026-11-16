@@ -549,10 +549,19 @@
   .obs__quiet {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  /* No session running: the welcome card and its action come first, the module tiles after it. */
+  .obs__pane[data-quiet="yes"] .obs__center {
+    order: 1;
+  }
+  .obs__pane[data-quiet="yes"] .obs__field {
+    order: 2;
+  }
 }
-@media (max-width: 479px) {
-  .obs__quiet {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 639px) {
+  /* On a phone the four modules are right below as the Constellations band; showing them twice only
+     pushes the welcome card's actions off the first screen. */
+  .obs__pane[data-quiet="yes"] .obs__field {
+    display: none;
   }
 }
 @media (max-width: 639px) {
