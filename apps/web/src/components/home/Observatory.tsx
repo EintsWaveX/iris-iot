@@ -110,7 +110,7 @@ export function LabPane({
                   style={
                     {
                       left: `${pt.x}%`,
-                      top: `${(pt.y / 60) * 88}%`,
+                      top: `${(pt.y / 60) * 94}%`,
                       "--c": `var(--group-${((g.nomor - 1) % 10) + 1})`,
                       "--p": p,
                       "--i": i,
