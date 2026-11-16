@@ -8,7 +8,7 @@
 
 **Tech Stack:** Astro 7 + React 19 islands, plain global CSS on kosmik tokens, vitest (node env, `.test.ts` only), Phosphor icons. Work in `apps/web`.
 
-**Spec:** `docs/superpowers/specs/2026-11-16-home-observatory-design.md`
+**Spec:** `docs/superpowers/specs/2026-11-16-home-observatory-design.md` (read its **Revision 1** first: it changes the visual world to a painted fantasy-modernistic cosmos in two themes, and adds the banner, Filosofi Logo and Enam Divisi redesigns, glass stat cards, and the navbar button bug fix. Tasks 3 to 7 below follow Revision 1 wherever they conflict with the older wording, and gain these items: a `components/home/cosmos/` painter module, the Filosofi Logo and Divisi sections, the real banner stage names, and a fix of the real `AppNav` Praktikum button hover jump.)
 
 ## Global Constraints
 

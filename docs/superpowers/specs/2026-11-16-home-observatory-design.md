@@ -56,3 +56,32 @@ Opaque surfaces (global navbar stays glass); tokens only, 4.5:1 text in both the
 ## Open items
 - Exact scene height, panel width and the slim banner form are settled in the mockup.
 - Whether the sticky chapter nav stays (carried over from the rejected plan as a small win) is the user's call at mockup review.
+
+---
+
+## Revision 1 (16 Nov 2026, from the user's live feedback on the mockup)
+These supersede anything above that conflicts. Mockup: `2026-11-16-home-observatory-mockup.html` (private Artifact `AAiN9cmtoBHeZyyWkHM1sA`).
+
+**Visual world: "fantasy-modernistic with small anime touches", Genshin Impact as the style reference, in both themes, with IRIS's own astronomy as the signature.** The photoreal sky was tried and rejected as too realistic; the first flat-vector sky was rejected as too cartoonish.
+- The cosmos is a full-bleed painted scene behind the first screen, drawn on a canvas by a new painter (replaces the idea of a bounded solid scene box). Two scenes, not one inverted: dark "Night Watch" (indigo to violet to magenta horizon, aurora ribbons, crescent moon, rim-lit ringed planet) and light "Golden Hour" (bright azure to peach, a low sun with a lens flare, cel-shaded clouds, a pastel ringed planet).
+- Shared ingredients: sparkle-shaped stars and motes, floating islands (one carries the IRIS ground-station dish with signal arcs), misty layered ridges, thin edge ticks, orbit rings with a tick scale and riding bodies, and the four module constellations as line art. Group stars are 4-point sparkles joined by a glowing constellation line; label plaques are solid and tinted by the group hue.
+- UI stays modern and restrained: solid panels, hairlines, mono figures, one small sparkle ornament on the control panel.
+- **Glass exception (user's explicit request):** the four visitor stat cards (Asisten Aktif, Divisi, Modul Praktikum, Acara Terlaksana) are liquid-glass (backdrop blur, tinted gradient, inner highlight) and sit around the logo: 24 and 6 on the left, 4 and 1 on the right as X-mirrors of 24 and 6. Every other surface stays opaque. This overrides the "no translucent surfaces" rule for these four cards only.
+- Gradient on the "IRIS" word in the visitor title returns (it is part of the user's theme), overriding the earlier eyebrow and gradient-text removal.
+
+**Visitor hero:** centered, much larger logo (clamp(250px, 56svh, 600px)), title, lede, two buttons; roomier vertical rhythm (gaps up to 34px, section padding 52px, page gap 32px). Phones: cards become a 2x2 grid under the logo; side islands are dropped.
+
+**Navbar "Praktikum" button:** shown only to visitors, centered, with the door icon. Bug found: it was centered with `transform: translateX(-50%)` and the button hover lift sets `transform`, so it jumped sideways on hover and click. Fix: center with the separate `translate` property. **Check the real `AppNav` button for the same bug when porting.**
+
+**Open Recruitment banner:** redesigned, not slim. Broadcast icon tile, title, a "Buka Sekarang" pill (visitor), a 7-stage rail (Daftar, Berkas, Tes Tulis, Cutting, Wawancara, Tubes, Penerimaan; stage names are example data, take the real ones from the recruitment types) with a progress line, countdown or facts, and the actions. Every `kind` still renders.
+
+**Filosofi Logo (new design):** a blueprint stage (grid, "Fig. 1" title block) holding the logo, with a spotlight that moves to the chosen part and a pin, beside a list of the four real meanings (Awan, Wi-Fi, Warna with a swatch, Huruf IRIS). Heading "Setiap Garis Punya Makna", lede "Pilih satu bagian untuk melihatnya di logo." The eyebrow "Filosofi logo" is dropped.
+
+**Enam Divisi, Satu Lab (reuse live content, new design):** same six divisions (ASO, ARD, ADS, ADC, AER, ARM with names, one-liners, member counts and the open-for-people behaviour) restyled as PCB-module boards: silkscreen code, an LED, a trace motif in the division hue, avatar stack. Ties to the logo's "huruf IRIS = jalur PCB" meaning. Data comes from `/api/profil/baca` as today.
+
+**Port implications (changes to the plan):** the sky painter belongs in a new `components/home/cosmos/` module (canvas, two painters, resize and theme aware, reduced motion and Low Detail honoured, painted once and on resize, not per frame); the existing global sky (`sky.ts`) is untouched for now and the Home painter can later be offered site-wide. `placeStars` is still needed for up to ten groups. Contrast: label plaques and panels are solid, so text contrast is unaffected by the sky; the glass cards need a measured 4.5:1 check against both scenes.
+
+## Open after Revision 1
+- Everything not yet browser-checked: Praktikan idle, Asisten slot and live, each banner kind, worst case (ten groups, long name) in the new style, 1280x600, both themes of the Logo and Divisi sections.
+- Foto Bersama and Acara keep today's content and behaviour; their new look is not designed yet.
+- The "Golden Hour" and "Night Watch" names, the stage names in the banner rail, and the example numbers are placeholders.
