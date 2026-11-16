@@ -39,7 +39,7 @@
     } catch (e) {
       /* storage disabled (private mode, locked-down browser): fall through */
     }
-    return "ldm";
+    return "normal";
   }
 
   function applyDetail() {

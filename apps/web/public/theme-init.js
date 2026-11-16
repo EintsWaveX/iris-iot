@@ -46,7 +46,8 @@
     var v = get("iris-detail");
     if (v === "ldm" || v === "normal" || v === "hd") return v;
     var old = get("iris-kurangi-efek");
-    return old === "penuh" || old === "0" ? "hd" : "ldm";
+    // Normal is the default since the painted cosmos (Nov 2026); Low and High Detail stay a choice in Tampilan.
+    return old === "penuh" || old === "0" ? "hd" : "normal";
   }
 
   // Phone status bar and browser chrome follow the nav colour of the theme.
