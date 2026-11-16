@@ -250,3 +250,40 @@
 
 /* Light theme: the banner's amber eyebrow measured 3.2:1 on the pastel glass; a deeper amber reaches 5:1. */
 :root[data-theme="light"] .rec-bn__eyebrow { color: #8a5a0a; }
+
+/* ---------------------------------------------------------------- Profil Lab headings and captions
+   Section titles, event-kind titles and photo captions sat straight on the painted sky; each rides a frosted plate. */
+.pl-head,
+.pl-ev-block__head > .stack,
+.pl-group__cap {
+  -webkit-backdrop-filter: blur(26px) saturate(1.6);
+  backdrop-filter: blur(26px) saturate(1.6);
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-xl);
+  box-shadow: inset 0 1px 0 var(--glass-hi), 0 12px 28px var(--glass-sh);
+}
+.pl-head { padding: 16px 22px; width: fit-content; }
+.pl-ev-block__head > .stack { padding: 12px 20px; }
+.pl-group__cap { padding: 10px 18px; width: fit-content; margin-top: 12px; }
+:root[data-detail="ldm"] :is(.pl-head, .pl-ev-block__head > .stack, .pl-group__cap),
+:root[data-motion-tier="0"] :is(.pl-head, .pl-ev-block__head > .stack, .pl-group__cap) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--surface-1);
+}
+.pl-ev-block__head > .hint.mono {
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: 999px;
+  color: var(--text);
+  padding: 4px 12px;
+}
+:root[data-detail="ldm"] .pl-ev-block__head > .hint.mono,
+:root[data-motion-tier="0"] .pl-ev-block__head > .hint.mono {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--surface-1);
+}
