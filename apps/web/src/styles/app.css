@@ -965,6 +965,57 @@ samp {
   }
 }
 
+/* ------------------------------------------------------ page reveal (cards, panels, reading plates)
+   Reveal (opacity plus 8 px of Translate, ease-out-expo, 320 ms) for the outermost panels of a page as they
+   arrive: a route change, or a loading skeleton giving way to the real cards. A light Stagger: the first three
+   siblings follow at 50 ms steps, so a grid never lands all at once nor drags.
+
+   - Only the panel itself animates, never a wrapper: an ancestor with opacity below 1 becomes a backdrop
+     root, and the glass panels inside would lose their blur until the fade ends.
+   - :where() keeps the specificity at zero, so a panel that carries its own animation (a pulse, a live
+     sweep) keeps it.
+   - Not for panels inside a panel, a Fade view (it already fades) or the app's dialogs, drawers and popovers
+     (portaled, with their own in and out).
+   - "backwards", and the keyframes name only the start: nothing is left on the box afterwards.
+   - Reduced motion and Low Detail (motion tier 0) get no reveal at all. */
+@media (prefers-reduced-motion: no-preference) {
+  :where(
+    :root:not([data-motion-tier="0"])
+      .page-main
+      :is(.panel, .reading, .plate):not(:is(.panel, .reading, .plate, .fade) *)
+  ) {
+    animation: kit-reveal 320ms var(--ease-out-expo) backwards;
+  }
+  :where(
+    :root:not([data-motion-tier="0"])
+      .page-main
+      :is(.panel, .reading, .plate):not(:is(.panel, .reading, .plate, .fade) *)
+  ):nth-child(2) {
+    animation-delay: 50ms;
+  }
+  :where(
+    :root:not([data-motion-tier="0"])
+      .page-main
+      :is(.panel, .reading, .plate):not(:is(.panel, .reading, .plate, .fade) *)
+  ):nth-child(3) {
+    animation-delay: 100ms;
+  }
+  :where(
+    :root:not([data-motion-tier="0"])
+      .page-main
+      :is(.panel, .reading, .plate):not(:is(.panel, .reading, .plate, .fade) *)
+  ):nth-child(n + 4) {
+    animation-delay: 150ms;
+  }
+}
+
+@keyframes kit-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 /* ------------------------------------------------------ filter chips
 /* ------------------------------------------------------ filter chips
    (the board's filter row; also used by /servers and /reports) */
