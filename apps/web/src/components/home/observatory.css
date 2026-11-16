@@ -751,3 +751,8 @@
   backdrop-filter: none;
   background: var(--surface-1);
 }
+
+/* The welcome card is already one glass card; the key panel's accent bar inside it ran across the first line of text. */
+.obs__center .panel--key::before {
+  display: none;
+}
