@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { WifiSlashIcon } from "@phosphor-icons/react";
 import { dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
+import { usePresence } from "../ui/usePresence";
 
 const T = dict({
   id: {
@@ -43,9 +44,10 @@ export default function OfflineNotice({ lang }: { lang: Lang }) {
       window.removeEventListener("online", up);
     };
   }, [t.back]);
-  if (!off) return null;
+  const pres = usePresence(off);
+  if (!pres.shown) return null;
   return (
-    <div className="offline banner banner--warn" role="status">
+    <div className={`offline banner banner--warn ${pres.className}`} role="status">
       <WifiSlashIcon size={20} aria-hidden="true" />
       <b>{t.h}</b>
       <span className="hint">{t.p}</span>
