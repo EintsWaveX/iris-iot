@@ -2872,6 +2872,7 @@ async def handle(connection: ServerConnection) -> None:
     waktu_n = 0                         # permintaan waktu yang sudah dilayani
     balas_kunci_at = 0.0                # kapan balasan "kunci salah" terakhir
     mengaku: int | None = None          # kelompok yang disebut pesan berkunci salah
+    ditutup_kita: str | None = None     # alasan bila SERVER yang menutup soket ini
 
     try:
         async for raw in connection:
@@ -2900,6 +2901,7 @@ async def handle(connection: ServerConnection) -> None:
                 HUNT.rev += 1
                 salah += 1
                 if salah >= MAX_KUNCI_SALAH:
+                    ditutup_kita = "kunci salah terus-menerus (1008)"
                     await connection.close(1008, "kunci papan salah")
                     break
                 # Papannya diberi tahu, supaya Serial Monitor-nya menyebut
@@ -2968,7 +2970,9 @@ async def handle(connection: ServerConnection) -> None:
               f"{siapa}, hidup "
               f"{time.monotonic() - dibuka:.1f} dtk, {pesan_n} pesan, "
               f"{dibuang} dibuang, {salah} kunci salah, kode "
-              f"{kode if kode is not None else '?'})")
+              f"{kode if kode is not None else '?'}"
+              # "kode" adalah yang dikirim papan; papan yang kita tutup membalas 1000
+              f"{', ditutup server: ' + ditutup_kita if ditutup_kita else ''})")
         tersisa = 0
         if dihitung is not None:
             tersisa = HUNT.soket.get(dihitung, 1) - 1

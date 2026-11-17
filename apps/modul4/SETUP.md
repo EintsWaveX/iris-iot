@@ -300,8 +300,10 @@ Log kini menyebut siapa: `hunter terputus (kelompok 2, hidup 3.4 dtk, 120
 pesan, 0 dibuang, 0 kunci salah, kode 1006)`. Papan yang hanya pernah mengirim
 kunci salah dicatat sebagai `kelompok ? (mengaku 2)`, yaitu papan kelompok 2
 yang salah menempel `HUNT_KEY`. Kode 1000/1001 penutupan biasa, 1006 putus
-tanpa salam (hotspot hilang), 1008 kunci salah terus-menerus, 1011 pengecualian
-di server atau ping 40 detik tanpa jawaban. Soket lama yang baru ketahuan mati
+tanpa salam (hotspot hilang), 1011 pengecualian di server atau ping 40 detik
+tanpa jawaban. `kode` adalah yang dikirim papan: soket yang server tutup karena
+kunci salah terus-menerus dibalas papan dengan 1000, jadi log menambahkan
+`ditutup server: kunci salah terus-menerus (1008)` supaya jelas siapa yang menutup. Soket lama yang baru ketahuan mati
 tidak menandai papan offline selagi soket barunya dari papan yang sama sudah
 mengirim.
 
