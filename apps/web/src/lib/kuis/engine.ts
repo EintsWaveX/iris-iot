@@ -16,6 +16,7 @@
  * or later, so a player's socket never holds them while a question is open.
  */
 import type { BahasaKonten } from "../kelas.js";
+import { nilaiTA, unitTA } from "./ta.js";
 import {
   BATAS_DETIK,
   BONUS_STREAK,
@@ -49,6 +50,8 @@ export interface Pemain {
   benar: number;
   /** Total answer time of the right answers, to break ties by speed. */
   msBenar: number;
+  /** Summed TA units of the right answers (see ta.ts); the TA score is worked out from this. */
+  poinTA: number;
   online: boolean;
 }
 
@@ -87,6 +90,8 @@ export interface BarisPapan {
   naik: number;
   streak: number;
   online: boolean;
+  /** The TA score so far, 0 to 100, over the whole deck (see ta.ts). */
+  ta: number;
 }
 
 export interface BarisKelompok {
@@ -214,6 +219,7 @@ export class RuangKuis {
       streak: 0,
       benar: 0,
       msBenar: 0,
+      poinTA: 0,
       online: true,
     });
     return ok;
@@ -267,7 +273,7 @@ export class RuangKuis {
     this.dek = bangunDek(this.bank, this.pengaturan, this.acak);
     this.indeks = -1;
     for (const p of this.pemain.values())
-      Object.assign(p, { skor: 0, streak: 0, benar: 0, msBenar: 0 });
+      Object.assign(p, { skor: 0, streak: 0, benar: 0, msBenar: 0, poinTA: 0 });
     this.mulaiSoalBerikut();
     return ok;
   }
@@ -328,7 +334,7 @@ export class RuangKuis {
     this.rankAwal.clear();
     this.akhirFase = null;
     for (const p of this.pemain.values())
-      Object.assign(p, { skor: 0, streak: 0, benar: 0, msBenar: 0 });
+      Object.assign(p, { skor: 0, streak: 0, benar: 0, msBenar: 0, poinTA: 0 });
     return ok;
   }
 
@@ -362,6 +368,7 @@ export class RuangKuis {
       p.skor += poin + bonus;
       p.benar += 1;
       p.msBenar += ms;
+      p.poinTA += unitTA(poin);
     } else {
       p.streak = 0;
     }
@@ -466,6 +473,7 @@ export class RuangKuis {
     kelompok: number | null;
     skor: number;
     benar: number;
+    ta: number;
     peringkat: number;
   }[] {
     return this.papan().map((b) => ({
@@ -474,6 +482,7 @@ export class RuangKuis {
       kelompok: b.kelompok,
       skor: b.skor,
       benar: this.pemain.get(b.nim)?.benar ?? 0,
+      ta: b.ta,
       peringkat: b.peringkat,
     }));
   }
@@ -512,7 +521,11 @@ export class RuangKuis {
     r.pengaturan = { ...PENGATURAN_AWAL, ...s.pengaturan };
     r.dek = dek;
     r.indeks = s.indeks;
-    for (const p of s.pemain) r.pemain.set(p.nim, { ...p, online: false });
+    // A save from before TA units existed: count each right answer at its lowest (4000).
+    for (const p of s.pemain) {
+      const poinTA = typeof p.poinTA === "number" ? p.poinTA : (p.benar ?? 0) * 4000;
+      r.pemain.set(p.nim, { ...p, poinTA, online: false });
+    }
     r.jawaban = new Map(Object.entries(s.jawaban ?? {}));
     r.rankAwal = new Map(Object.entries(s.rankAwal ?? {}));
     if (s.fase === "hitung" || s.fase === "soal") {
@@ -584,6 +597,7 @@ export class RuangKuis {
         naik: sebelum === undefined ? 0 : sebelum - (i + 1),
         streak: p.streak,
         online: p.online,
+        ta: nilaiTA(p.poinTA, this.dek.length),
       };
     });
   }

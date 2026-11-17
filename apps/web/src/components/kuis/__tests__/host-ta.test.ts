@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * The Host's final scene: the podium and everyone's score first, then Next shows each player's TA score
- * (points over questions x 1000, as a percentage, rounded up, held to 0 to 100); Back returns to the scores.
+ * (right answers first, speed a small bonus, 0 to 100, worked out by the engine); Back returns to the scores.
  */
 import { createElement as h, act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -17,7 +17,7 @@ vi.mock("../fx", () => ({ bunyi: () => {}, rayakan: async () => {} }));
 let root: Root | null = null;
 let box: HTMLElement | null = null;
 
-const pemain = (i: number, skor: number) => ({
+const pemain = (i: number, skor: number, ta: number) => ({
   nim: `110322${String(i).padStart(4, "0")}`,
   nama: `Player ${i}`,
   kelompok: null,
@@ -26,6 +26,7 @@ const pemain = (i: number, skor: number) => ({
   naik: 0,
   streak: 0,
   online: true,
+  ta,
 });
 
 const view = {
@@ -45,7 +46,16 @@ const view = {
   soal: null,
   buka: null,
   pemain: [],
-  papan: [4800, 3001, 3000, 2500, 900, 50, 0].map((s, i) => pemain(i + 1, s)),
+  // points and TA are separate: TA is right answers first, speed a small bonus
+  papan: [
+    [4800, 100],
+    [3001, 73],
+    [3000, 64],
+    [2500, 50],
+    [900, 18],
+    [50, 1],
+    [0, 0],
+  ].map(([s, ta], i) => pemain(i + 1, s, ta)),
   kelompok: [],
 } as unknown as LihatHost;
 
@@ -103,8 +113,8 @@ describe("Host final scene", () => {
     const rows = [...box!.querySelectorAll(".kz__ta-daftar li")];
     expect(rows).toHaveLength(7);
     const nilai = rows.map((r) => r.querySelector(".kz__ta-nilai")!.textContent);
-    // 4800/5000 = 96, 3001 -> 61, 3000 -> 60, 2500 -> 50, 900 -> 18, 50 -> 1, 0 -> 0
-    expect(nilai).toEqual(["96", "61", "60", "50", "18", "1", "0"]);
+    // each row shows its own TA score, not one worked out from its points
+    expect(nilai).toEqual(["100", "73", "64", "50", "18", "1", "0"]);
     expect(button("Play Again")).toBeTruthy();
     await act(async () => button("Back to Scores").click());
     expect(box!.querySelector(".kz__ta-daftar")).toBeNull();
