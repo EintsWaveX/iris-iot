@@ -94,6 +94,24 @@ DEMO_REGU = {
 PERAN_BOT = ("pemandu", "pengintai", "operator")
 
 BEACON_PERIOD = 0.2
+
+# Papan sungguhan melapor kesehatannya tiap 10 detik; simulasi cukup tiap 2
+# detik supaya kartu "Papan kelompok" di ruang kendali cepat terisi. Tiap
+# kelompok diberi watak berbeda supaya ada yang bisa dilihat: Wi-Fi lemah dan
+# jam yang disetel papan skor (NTP diblokir hotspot) di kelompok 3, soket yang
+# sering putus di kelompok 4.
+STATUS_PERIOD = 2.0
+WATAK = {3: {"wifi": -84, "jam": "papan"}, 4: {"putus": 5}}
+
+
+def laporan(gid: int, peran: str, mulai: float) -> str:
+    w = WATAK.get(gid, {})
+    return json.dumps({
+        "tipe": "status", "grup": gid, "peran": peran,
+        "wifi": w.get("wifi", -50 - 3 * gid), "jam": w.get("jam", "ntp"),
+        "naik": int(time.monotonic() - mulai), "mem": 158000,
+        "putus": w.get("putus", 0),
+    })
 GROUPS = (1, 2, 3, 4, 5)
 
 
@@ -127,6 +145,8 @@ class Beacon:
     async def run(self, url: str, stop: asyncio.Event) -> None:
         async with connect(url + "/beacon") as ws:
             print(f"beacon {self.gid} connected")
+            mulai = time.monotonic()
+            terakhir = 0.0
             while not stop.is_set():
                 self.seq += 1
                 sent_at = timestamp()
@@ -134,6 +154,9 @@ class Beacon:
                     "grup": self.gid, "seq": self.seq, "tx": sent_at,
                 }))
                 self.last = (self.seq, sent_at)
+                if time.monotonic() - terakhir >= STATUS_PERIOD:
+                    terakhir = time.monotonic()
+                    await ws.send(laporan(self.gid, "beacon", mulai))
                 await asyncio.sleep(BEACON_PERIOD)
 
 
@@ -156,9 +179,14 @@ async def hunter(url: str, gid: int, beacon: Beacon, stop: asyncio.Event,
 
     async with connect(url + "/hunter") as ws:
         print(f"hunter {gid} connected at {distance:.0f} m")
+        mulai = time.monotonic()
+        terakhir = 0.0
         while not stop.is_set():
             await asyncio.sleep(BEACON_PERIOD)
             elapsed += BEACON_PERIOD
+            if time.monotonic() - terakhir >= STATUS_PERIOD:
+                terakhir = time.monotonic()
+                await ws.send(laporan(gid, "hunter", mulai))
 
             if drop_at is not None and elapsed > drop_at:
                 print(f"hunter {gid} dropping off the network")
@@ -250,8 +278,12 @@ async def hunter_jalur(url: str, gid: int, beacon: Beacon, stop: asyncio.Event,
     async with connect(url + "/hunter") as ws:
         print(f"hunter {gid} berjalan dari {jalur.awal:.0f} m, "
               f"temu sekitar detik {jalur.temu:.0f}")
+        terakhir = 0.0
         while not stop.is_set():
             await asyncio.sleep(BEACON_PERIOD)
+            if time.monotonic() - terakhir >= STATUS_PERIOD:
+                terakhir = time.monotonic()
+                await ws.send(laporan(gid, "hunter", mulai))
             if not hasattr(beacon, "last") or random.random() < 0.03:
                 continue
             t = asyncio.get_event_loop().time() - mulai

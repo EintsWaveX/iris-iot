@@ -341,6 +341,15 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
               </div>
               {kunciBlok}
               <span className="hint">{t.hotspotHint}</span>
+              <details className="huntjoin__tips" open>
+                <summary>{t.hotspotSetupTitle}</summary>
+                <div className="stack stack--sm">
+                  <span className="hint">{t.hotspotIphone}</span>
+                  <span className="hint">{t.hotspotAndroid}</span>
+                  <span className="hint">{t.hotspotData}</span>
+                  <span className="hint">{t.hotspotSerial}</span>
+                </div>
+              </details>
               <span className="hint">{t.hotspotOthers}</span>
             </div>
           )}

@@ -353,6 +353,8 @@
       .map((x) => x[0].toUpperCase())
       .join("");
   H.row = (g) => (N.frame && N.frame.grup ? N.frame.grup.find((r) => r.grup === g) : null);
+  /* what a group's two boards report about themselves (Wi-Fi, clock, socket drops); null before they do */
+  H.papan = (g) => (N.frame && N.frame.papan ? N.frame.papan[String(g)] || null : null);
   H.groups = () => {
     const ids = new Set(Object.keys(N.roster.regu).map(Number));
     if (N.frame) for (const r of N.frame.grup || []) ids.add(r.grup);

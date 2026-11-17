@@ -69,9 +69,9 @@
     "在 Arduino IDE 的库管理器里安装 Sandeep Mistry 的 LoRa 库",
     "在 Arduino IDE 的库管理器里安装 Markus Sattler 的 WebSockets 库",
     "在 Arduino IDE 里选择 ESP32 Dev Module 板",
-    "连接助教选定的寻踪网络：PC 的 IRIS_IOT Wi-Fi，或你们组一部手机上的 IRIS-G<n> 热点（名称和密码在网站的寻踪步骤里）",
+    "连接助教选定的寻踪网络：PC 的 IRIS_IOT Wi-Fi，或你们组一部手机上的 IRIS-G<n> 热点（名称和密码在网站的寻踪步骤里）。热点必须是 2.4 GHz 频段、WPA2 加密，并打开移动数据（iPhone：最大化兼容性）",
     "从代码步骤下载你们组的代码（助教开始寻踪后，板子密钥会自动填进 HUNT_KEY），然后把 hunter.ino 和 beacon.ino 上传到各自的板子上",
-    "确认 Serial Monitor 打印出 IP 地址和已同步的时钟",
+    "确认 Serial Monitor 的 [status] 行显示 Wi-Fi 正常、时钟已设好、记分板已连上（Beacon 还会打印 READY TO HIDE：等它出现后再去藏）",
     "打开记分板，输入你的学号，确认自己的组出现了",
     "在离 Beacon 1 米处校准距离基准"
   ],
