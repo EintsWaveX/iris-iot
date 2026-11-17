@@ -480,9 +480,9 @@
  * that sits straight on it needs a frosted plate (the same recipe as .reading in styles/glass.css).
  * Low Detail and motion tier 0 swap the blur for a solid surface (the two variables below).
  *
- * "Page level" means a direct child of a tab's own column: .rec-swap > .stack, .rec-swap > * > .stack, or the
- * Bank's .rec-swap > .stack > .fade > .stack.
- * Anything inside a .panel (or a drawer or dialog) already has a face, so it is left alone.
+ * The page-level pieces are found by what they are, not by how deep a tab nests them: a filter row, a pager,
+ * an empty note, a section heading, a row of buttons or a button bar under a tab's own column. Anything
+ * inside a panel, a drawer or a dialog already has a face and is left alone (the :not(... *) on each).
  */
 :root {
   --rec-plate-blur: blur(26px) saturate(1.6);
@@ -499,10 +499,19 @@
 .rec9-group__h,
 .rec9-kcon > :is(.rec-tools, .pager),
 .b3-toolwrap__cap,
-:is(.rec-swap > .stack, .rec-swap > * > .stack, .rec-swap > .stack > .fade > .stack)
-  > :is(.rec-tools, .pager, .empty-note:not(.empty-note--sm)),
-.rec-swap > .stack > .n7-bar > :is(.hint, .n7-miniRail),
-.rec-swap > * > .stack > .tp-bar > :is(.row, .hint:not(:empty)) {
+.rec-swap .n7-bar > :is(.hint, .n7-miniRail),
+.r2board .r2colgrp__h,
+.rec-swap
+  .stack
+  > :is(.rec-tools, .pager, .empty-note:not(.empty-note--sm), h2.h4):not(
+    :is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *
+  ),
+.rec-swap
+  .stack
+  > .row:not(.rec-tools):has(> :is(.btn, .hint)):not(
+    :is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *
+  ),
+.rec-swap .tp-bar:not(:is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *) {
   -webkit-backdrop-filter: var(--rec-plate-blur);
   backdrop-filter: var(--rec-plate-blur);
   background: var(--rec-plate-fill);
@@ -524,51 +533,70 @@
   border-radius: var(--radius-lg);
   padding: 10px 12px;
 }
-.rec9-kcon > .rec-tools {
-  border-radius: var(--radius-lg);
-  padding: 8px 10px;
-}
 .rec9-group__h {
   border-radius: var(--radius-lg);
   padding: 8px 14px 8px 10px;
 }
-
-/* The filter row (Cutting, Bank) and the pager under a long list: one plate each. */
-.rec9-kcon > .pager,
-:is(.rec-swap > .stack, .rec-swap > * > .stack, .rec-swap > .stack > .fade > .stack) > .pager {
-  border-radius: var(--radius-lg);
-  padding: 8px 12px;
-}
-:is(.rec-swap > .stack, .rec-swap > * > .stack, .rec-swap > .stack > .fade > .stack) > .rec-tools {
+.rec9-kcon > .rec-tools,
+.rec-swap
+  .stack
+  > .rec-tools:not(:is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *) {
   border-radius: var(--radius-lg);
   padding: 8px 10px;
 }
+.rec9-kcon > .pager,
+.rec-swap .stack > .pager:not(:is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *) {
+  border-radius: var(--radius-lg);
+  padding: 8px 12px;
+}
 
 /* An empty list, drawn as a dashed hint: it keeps its dash, on a face. */
-:is(.rec-swap > .stack, .rec-swap > * > .stack, .rec-swap > .stack > .fade > .stack)
-  > .empty-note:not(.empty-note--sm) {
+.rec-swap
+  .stack
+  > .empty-note:not(.empty-note--sm):not(
+    :is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *
+  ) {
   border-style: dashed;
   border-color: var(--hairline-strong);
 }
 
+/* A section heading that sits loose in a tab's column (Tubes: Malam pengerjaan, Penguji meja). */
+.rec-swap .stack > h2.h4:not(:is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *) {
+  border-radius: var(--radius-lg);
+  padding: 6px 14px;
+  width: fit-content;
+}
+
+/* A loose row of buttons and hints (Wawancara's template: Download Template, Simpan, Kembalikan Bawaan). */
+.rec-swap
+  .stack
+  > .row:not(.rec-tools):has(> :is(.btn, .hint)):not(
+    :is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *
+  ) {
+  border-radius: var(--radius-lg);
+  padding: 6px 12px;
+}
+
 /* Cutting: the hint, the "Alur cutting" label and the stage chips beside the tabs. */
-.rec-swap > .stack > .n7-bar > .hint {
+.rec-swap .n7-bar > .hint {
   border-radius: var(--radius-lg);
   padding: 4px 12px;
 }
-.rec-swap > .stack > .n7-bar > .n7-miniRail {
+.rec-swap .n7-bar > .n7-miniRail {
   border-radius: 999px;
   padding: 4px 8px;
 }
 
-/* Tubes: the "Bagi Rata" and "Tambah Topik" buttons, and the example line. */
-.rec-swap > * > .stack > .tp-bar > .row {
+/* Plotting and Wawancara boards: the day header above each group of columns (its line runs on inside the plate). */
+.r2board .r2colgrp__h {
   border-radius: var(--radius-lg);
-  padding: 4px 6px;
+  padding: 6px 12px;
 }
-.rec-swap > * > .stack > .tp-bar > .hint:not(:empty) {
+
+/* Tubes: a bar with a heading or an example line and its buttons (Bagi Rata, Tambah Topik, Buka Layar QR). */
+.rec-swap .tp-bar:not(:is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *) {
   border-radius: var(--radius-lg);
-  padding: 4px 12px;
+  padding: 6px 12px;
 }
 
 /* Candidate page: the "Alat Untukmu" caption. */
