@@ -30,7 +30,16 @@ export const H = dict({
     hotspotName: "Nama hotspot",
     hotspotPass: "Sandi",
     hotspotHint:
-      "Hunter dan Beacon kelompokmu menyambung ke hotspot ini. Sambungkan Beacon dulu selagi dekat HP itu, baru sembunyikan. Setelah menyala, Beacon tidak perlu Wi-Fi lagi dan terus memancar sendiri, jadi boleh disembunyikan jauh dari hotspot. Jangan matikan; kalau mati, ia harus kembali dekat hotspot. HP pemilik hotspot dibawa berburu bersama Hunter.",
+      "Hunter dan Beacon kelompokmu menyambung ke hotspot ini. Sambungkan Beacon dulu selagi dekat HP itu, baru sembunyikan. Setelah menyala, Beacon tidak perlu Wi-Fi lagi dan terus memancar sendiri, jadi boleh disembunyikan jauh dari hotspot. Tunggu sampai Serial Monitor-nya mencetak SIAP DISEMBUNYIKAN sebelum menyembunyikannya. Kalau Beacon mati lalu menyala lagi saat tersembunyi, ia tetap memancar LoRa, tetapi laporannya ke papan skor baru jalan lagi setelah ia dibawa dekat hotspot. HP pemilik hotspot dibawa berburu bersama Hunter.",
+    hotspotSetupTitle: "Pengaturan hotspot yang sering terlewat",
+    hotspotIphone:
+      "iPhone: Pengaturan > Hotspot Pribadi > nyalakan Maksimalkan Kompatibilitas (pita 2,4 GHz), dan tetap di layar itu selagi papan menyambung pertama kali. Nama hotspot mengikuti nama iPhone-nya (Pengaturan > Umum > Tentang > Nama).",
+    hotspotAndroid:
+      "Android: Hotspot > Pita 2,4 GHz (bukan 5 GHz atau Otomatis), Keamanan WPA2-Personal (bukan WPA3 saja), lalu matikan Matikan hotspot otomatis serta Penghemat Data dan Penghemat Baterai untuk hotspot.",
+    hotspotData:
+      "HP hotspot harus punya data seluler yang benar-benar aktif: tanpa data, papan bisa masuk Wi-Fi tetapi tidak menjangkau papan skor.",
+    hotspotSerial:
+      "Serial Monitor papan mencetak baris [status] tiap 5 detik dan [saran] untuk hal pertama yang salah. Beacon mencetak SIAP DISEMBUNYIKAN bila semuanya sudah naik.",
     hotspotOthers:
       "HP anggota lain tidak perlu menyambung ke mana pun. Cukup pakai data selulernya sendiri.",
     huntTitle: "Buka Perburuan",
@@ -131,7 +140,16 @@ export const H = dict({
     hotspotName: "Hotspot name",
     hotspotPass: "Password",
     hotspotHint:
-      "Your group's Hunter and Beacon join this hotspot. Connect the Beacon first while it's next to that phone, then hide it. Once it's running, the Beacon doesn't need Wi-Fi any more and keeps transmitting on its own, so you can hide it far from the hotspot. Don't switch it off; if it restarts, it has to come back near the hotspot. The hotspot phone goes hunting with the Hunter.",
+      "Your group's Hunter and Beacon join this hotspot. Connect the Beacon first while it's next to that phone, then hide it. Once it's running, the Beacon doesn't need Wi-Fi any more and keeps transmitting on its own, so you can hide it far from the hotspot. Wait for its Serial Monitor to print READY TO HIDE before hiding it. If the Beacon restarts while hidden it still transmits over LoRa, but it only reports to the scoreboard again once it is brought back near the hotspot. The hotspot phone goes hunting with the Hunter.",
+    hotspotSetupTitle: "Hotspot settings that are easy to miss",
+    hotspotIphone:
+      "iPhone: Settings > Personal Hotspot > turn on Maximize Compatibility (the 2.4 GHz band), and stay on that screen while the board joins for the first time. The hotspot's name is the iPhone's own name (Settings > General > About > Name).",
+    hotspotAndroid:
+      "Android: Hotspot > Band 2.4 GHz (not 5 GHz or Auto), Security WPA2-Personal (not WPA3 only), and switch off Turn off hotspot automatically plus Data Saver and Battery Saver for the hotspot.",
+    hotspotData:
+      "The hotspot phone needs working mobile data: without it the board joins the Wi-Fi but reaches nothing.",
+    hotspotSerial:
+      "The board's Serial Monitor prints a [status] line every 5 seconds and a [hint] for the first thing that is wrong. A Beacon prints READY TO HIDE once everything is up.",
     hotspotOthers: "Everyone else's phone joins nothing. It just stays on its own mobile data.",
     huntTitle: "Open the Hunt",
     huntQr: "Hunt page QR",
@@ -230,7 +248,16 @@ export const H = dict({
     hotspotName: "热点名称",
     hotspotPass: "密码",
     hotspotHint:
-      "你们组的 Hunter 和 Beacon 都连这个热点。先在这部手机旁边把 Beacon 连上，再去藏它。Beacon 启动后不再需要 Wi-Fi，会自己继续发射，所以可以藏在离热点很远的地方。不要关掉它；一旦重启，就要回到热点附近。开热点的手机和 Hunter 一起去寻踪。",
+      "你们组的 Hunter 和 Beacon 都连这个热点。先在这部手机旁边把 Beacon 连上，再去藏它。Beacon 启动后不再需要 Wi-Fi，会自己继续发射，所以可以藏在离热点很远的地方。等它的串口监视器打印出 READY TO HIDE 再去藏。如果 Beacon 在藏好后重启，它仍会继续发射 LoRa，但只有把它带回热点附近，它才会重新向记分板上报。开热点的手机和 Hunter 一起去寻踪。",
+    hotspotSetupTitle: "容易被忽略的热点设置",
+    hotspotIphone:
+      "iPhone：设置 > 个人热点 > 打开“最大化兼容性”（2.4 GHz 频段），并在板子第一次连接时停留在这个页面。热点名称就是这部 iPhone 的名称（设置 > 通用 > 关于本机 > 名称）。",
+    hotspotAndroid:
+      "安卓：热点 > 频段选 2.4 GHz（不要选 5 GHz 或自动），安全性选 WPA2-Personal（不要只选 WPA3），并关闭“自动关闭热点”以及热点的流量节省和省电模式。",
+    hotspotData:
+      "开热点的手机必须有可用的移动数据：没有数据时，板子能连上 Wi-Fi，却什么都访问不了。",
+    hotspotSerial:
+      "板子的串口监视器每 5 秒打印一行 [status]，并用 [hint] 指出第一个出错的地方。Beacon 全部就绪后会打印 READY TO HIDE。",
     hotspotOthers: "其他人的手机不用连任何网络，用自己的移动数据就行。",
     huntTitle: "打开寻踪",
     huntQr: "寻踪页面二维码",

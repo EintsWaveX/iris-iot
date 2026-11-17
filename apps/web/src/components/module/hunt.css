@@ -119,3 +119,13 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* The per-phone hotspot checklist: the settings that decided which groups got online. */
+.huntjoin__tips summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: 0.25rem;
+}
+.huntjoin__tips[open] summary {
+  margin-block-end: 0.35rem;
+}

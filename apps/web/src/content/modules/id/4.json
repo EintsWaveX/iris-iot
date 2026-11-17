@@ -69,9 +69,9 @@
     "Memasang pustaka LoRa karya Sandeep Mistry melalui Library Manager Arduino IDE",
     "Memasang pustaka WebSockets karya Markus Sattler melalui Library Manager Arduino IDE",
     "Memilih board ESP32 Dev Module pada Arduino IDE",
-    "Menyambung ke jaringan perburuan pilihan asisten: Wi-Fi IRIS_IOT milik PC, atau hotspot IRIS-G<n> di satu ponsel kelompok kalian (nama dan sandinya ada di langkah Perburuan situs)",
+    "Menyambung ke jaringan perburuan pilihan asisten: Wi-Fi IRIS_IOT milik PC, atau hotspot IRIS-G<n> di satu ponsel kelompok kalian (nama dan sandinya ada di langkah Perburuan situs). Hotspot harus di pita 2,4 GHz dengan keamanan WPA2 dan data seluler menyala (iPhone: Maksimalkan Kompatibilitas)",
     "Mengunduh sketsa kelompok sendiri dari langkah Kode (kunci papan terisi di HUNT_KEY begitu asisten memulai perburuan), lalu mengunggah hunter.ino dan beacon.ino ke papan masing-masing",
-    "Memastikan Serial Monitor mencetak alamat IP dan jam hasil sinkronisasi",
+    "Memastikan baris [status] di Serial Monitor menunjukkan Wi-Fi OK, jam terisi, dan papan skor tersambung (Beacon juga mencetak SIAP DISEMBUNYIKAN: sembunyikan hanya sesudah itu)",
     "Membuka papan skor, memasukkan NIM, dan memastikan nama kelompok yang muncul benar",
     "Mengkalibrasi acuan jarak pada jarak 1 meter dari Beacon"
   ],
