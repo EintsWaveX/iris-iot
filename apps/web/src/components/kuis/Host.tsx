@@ -27,7 +27,6 @@ import {
   useDaftarKeluar,
   useDetikSisa,
 } from "./parts";
-import { nilaiTA } from "../../lib/kuis/ta";
 import type { Aku, Kuis } from "./useKuis";
 
 interface Props {
@@ -606,7 +605,7 @@ function PodiumSkor({
   );
 }
 
-/** Everyone's final TA score, 0 to 100, from their total points (see lib/kuis/ta.ts). */
+/** Everyone's final TA score, 0 to 100: right answers first, speed a small bonus (see lib/kuis/ta.ts). */
 function NilaiTA({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
   return (
     <div className="kz__podium-layar kz__ta">
@@ -624,8 +623,8 @@ function NilaiTA({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
             <span className="kz__ta-poin mono">
               {b.skor.toLocaleString()} <small>{t.skor}</small>
             </span>
-            <b className="kz__ta-nilai" aria-label={`${t.taNilai} ${nilaiTA(b.skor, v.total)}`}>
-              <Angka nilai={nilaiTA(b.skor, v.total)} m={m} durasi={1.1} awal={0} />
+            <b className="kz__ta-nilai" aria-label={`${t.taNilai} ${b.ta}`}>
+              <Angka nilai={b.ta} m={m} durasi={1.1} awal={0} />
             </b>
           </li>
         ))}

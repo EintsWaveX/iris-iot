@@ -156,7 +156,8 @@ export const K: Record<Lang, KuisTeks> = {
     lihatTA: "Lihat Nilai TA",
     kembaliSkor: "Kembali ke Skor",
     taTitle: "Nilai TA Akhir",
-    taRumus: (n) => `Total poin ÷ (${n} soal × 1000) × 100, dibulatkan ke atas, 0 sampai 100.`,
+    taRumus: (n) =>
+      `Tiap jawaban benar dapat 80, ditambah sampai 20 kalau cepat. Salah atau kosong dapat 0. Dijumlah, dibagi ${n} soal, dibulatkan ke atas, 0 sampai 100.`,
     taNilai: "Nilai TA",
     sebaran: "Sebaran jawaban",
     tidakJawab: "Tidak jawab",
@@ -266,7 +267,8 @@ export const K: Record<Lang, KuisTeks> = {
     lihatTA: "Show TA Scores",
     kembaliSkor: "Back to Scores",
     taTitle: "Final TA Scores",
-    taRumus: (n) => `Total points ÷ (${n} questions × 1000) × 100, rounded up, 0 to 100.`,
+    taRumus: (n) =>
+      `Each right answer is worth 80, plus up to 20 more for speed. A wrong or empty answer is 0. Added up, divided by ${n} questions, rounded up, 0 to 100.`,
     taNilai: "TA score",
     sebaran: "Answer spread",
     tidakJawab: "No answer",
@@ -375,7 +377,8 @@ export const K: Record<Lang, KuisTeks> = {
     lihatTA: "查看 TA 分数",
     kembaliSkor: "返回得分",
     taTitle: "最终 TA 分数",
-    taRumus: (n) => `总分 ÷（${n} 题 × 1000）× 100，向上取整，0 到 100。`,
+    taRumus: (n) =>
+      `每道答对的题得 80 分，答得快最多再加 20 分；答错或没答得 0 分。总和除以 ${n} 题，向上取整，0 到 100。`,
     taNilai: "TA 分数",
     sebaran: "答案分布",
     tidakJawab: "未作答",

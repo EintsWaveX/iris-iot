@@ -75,6 +75,28 @@ describe("scoring", () => {
     expect(hasil.saya?.skor).toBe(hitungPoin(5_000, 20_000) + 1000 + 100);
   });
 
+  it("works the TA score from right answers (80) plus speed (up to 20), not from the streak bonus", () => {
+    const { r, jam } = dasar();
+    r.gabung({ nim: "1", nama: "Ani", kelompok: 1 });
+    r.gabung({ nim: "2", nama: "Budi", kelompok: 2 });
+    r.atur({ detik: 20, jumlah: 3, acak: false });
+    mainkanSampaiSoal(r, jam);
+    jam.maju(5_000);
+    r.jawab("1", 1); // right at 5 s: 875 points, 4750 TA units
+    r.jawab("2", 0); // wrong
+    r.lanjut();
+    r.lanjut();
+    jam.maju(MS_HITUNG);
+    r.tick();
+    r.jawab("1", 2); // right at once: 1000 points (+100 streak), 5000 TA units
+    r.jawab("2", 0); // wrong again
+    const baris = (nim: string) => host(r).papan.find((b) => b.nim === nim)!;
+    // (4750 + 5000) over 3 questions x 50 = 65; the 100 streak bonus is not in it
+    expect(baris("1").ta).toBe(65);
+    expect(baris("1").skor).toBe(875 + 1000 + 100);
+    expect(baris("2").ta).toBe(0);
+  });
+
   it("resets the streak on a wrong answer and on no answer", () => {
     const { r, jam } = dasar();
     r.gabung({ nim: "1", nama: "Ani", kelompok: null });
