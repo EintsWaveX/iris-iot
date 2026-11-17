@@ -71,6 +71,11 @@ lapangan, dan jangkauan Wi-Fi PC tidak menjangkau arena ratusan meter.
   Beacon dan Hunter satu kelompok memakai sumber dan hotspot yang sama, jadi
   selisih keduanya tetap sahih; ketelitiannya puluhan milidetik, tidak lagi
   di bawah satu milidetik seperti NTP lokal, dan jurnal menyebutnya.
+- Sebagian ponsel dan operator membuang UDP port 123, sehingga NTP tidak pernah
+  menjawab. Papan lalu meminta waktu lewat soketnya sendiri (`tipe: "waktu"`,
+  TCP 443, yang tidak bisa diblokir hotspot). Ketelitiannya separuh waktu
+  pulang-pergi, jadi papan menandai jamnya `jam: "papan"` di laporan statusnya,
+  dan ruang kendali menulis bahwa kolom delay kelompok itu kurang teliti.
 
 | Parameter | Nilai |
 |---|---|
@@ -267,6 +272,65 @@ Buka `https://hunt.irisiotlab.com` untuk papan skor, dan
 `https://hunt.irisiotlab.com/?stage=1` untuk mode proyektor.
 
 ---
+
+## 2b. Pesan papan dan cek hotspot sebelum sesi
+
+Selain data permainan (`/hunter`: `seq`, `rssi`, `halus`, `snr`, `tx`, `rx`;
+`/beacon`: `seq`, `tx`), papan mengirim dua pesan lain, keduanya berkunci
+kelompok seperti pesan lainnya dan tidak menjadi data permainan:
+
+| Pesan | Dari | Gunanya |
+|---|---|---|
+| `{"tipe":"status","grup":N,"k":..,"peran":..,"wifi":dBm,"jam":"ntp"/"papan"/"-","naik":detik,"mem":bait,"putus":n}` | tiap papan, tiap ~10 detik | kartu **Papan kelompok** di ruang kendali: papan mana yang hidup, seberapa kuat Wi-Fi-nya, dari mana jamnya, berapa kali soketnya putus. Peran diambil dari jalur soket (`/hunter` atau `/beacon`), bukan dari medan `peran`. |
+| `{"tipe":"waktu","grup":N,"k":..,"t0":ms}` | papan yang NTP-nya tidak menjawab | dibalas `{"tipe":"waktu","t0":..,"ts":epoch_ms}`; dibatasi 30 permintaan per soket |
+
+Server mengirim satu pesan balik ke papan: `{"tipe":"galat","kode":"kunci",..}`,
+paling sering sekali tiap 5 detik, bila kunci papannya salah. Sebelumnya pesan
+berkunci salah dibuang dalam diam dan papan tampak tersambung di Serial
+Monitor padahal tidak muncul di papan skor; kini Serial Monitor-nya mencetak
+`[papan skor berkata] ... HUNT_KEY`.
+
+Satu pesan rusak tidak lagi menutup soket papan. Nilai `seq`, `rssi`, `snr`,
+atau `halus` yang kosong, berupa teks, NaN, atau di luar rentang membatalkan
+pesan itu saja (paket LoRa yang rusak di udara bisa membawa apa saja); dulu
+pengecualian yang lolos menutup soket dengan kode 1011 dan papan mengulang
+tersambung-putus tanpa satu baris pun di log.
+
+Log kini menyebut siapa: `hunter terputus (kelompok 2, hidup 3.4 dtk, 120
+pesan, 0 dibuang, 0 kunci salah, kode 1006)`. Papan yang hanya pernah mengirim
+kunci salah dicatat sebagai `kelompok ? (mengaku 2)`, yaitu papan kelompok 2
+yang salah menempel `HUNT_KEY`. Kode 1000/1001 penutupan biasa, 1006 putus
+tanpa salam (hotspot hilang), 1008 kunci salah terus-menerus, 1011 pengecualian
+di server atau ping 40 detik tanpa jawaban. Soket lama yang baru ketahuan mati
+tidak menandai papan offline selagi soket barunya dari papan yang sama sudah
+mengirim.
+
+### Cek hotspot sebelum sesi (3 menit, tiap ponsel)
+
+Sesi pertama kehilangan beberapa kelompok bukan karena kodenya, melainkan
+karena hotspot ponsel. ESP32 hanya bisa **2,4 GHz**, dan ponsel baru
+memberi hotspot pita 5 GHz atau otomatis. Minta tiap kelompok memeriksa:
+
+1. **iPhone**: Pengaturan > Hotspot Pribadi > nyalakan **Maksimalkan
+   Kompatibilitas**; nama hotspot adalah nama ponselnya (Pengaturan > Umum >
+   Tentang > Nama: ubah jadi `IRIS-G<n>`); tetap di layar Hotspot Pribadi
+   selagi papan menyambung pertama kali.
+2. **Android** (Pixel, Samsung, Xiaomi, dan lainnya): Hotspot > **Pita 2,4 GHz**
+   (bukan 5 GHz atau Otomatis), Keamanan **WPA2-Personal** (bukan WPA3 saja),
+   matikan **Matikan hotspot otomatis** dan Penghemat Data/Baterai untuk
+   hotspot, dan nama persis `IRIS-G<n>`.
+3. Data seluler **menyala dan benar-benar punya paket**. Hotspot tanpa data
+   membuat papan masuk Wi-Fi tetapi tidak menjangkau apa pun.
+4. Uji dari laptop yang tersambung ke hotspot itu: `sntp time.cloudflare.com`
+   (atau `ntpdate -q time.cloudflare.com`). Tidak ada jawaban berarti UDP 123
+   diblokir di hotspot itu; papan akan memakai jam papan skor, dan kolom delay
+   kelompok itu kurang teliti. Kalau soal delay penting, pindahkan kelompok itu
+   ke ponsel lain.
+5. Serial Monitor papan mencetak `[status]` tiap 5 detik dan `[saran]` untuk
+   hal pertama yang salah. Beacon mencetak **SIAP DISEMBUNYIKAN** hanya bila
+   Wi-Fi, jam, dan papan skor semuanya naik; jangan sembunyikan sebelum itu.
+   Beacon yang dimatikan lalu dinyalakan saat tersembunyi tetap memancar LoRa
+   (radionya didahulukan), hanya laporannya ke papan skor yang menunggu Wi-Fi.
 
 ## 3. Menjalankan permainan
 
@@ -649,10 +713,25 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
   tangga panas jatuh di dalam beberapa meter pertama. Naikkan `--arena`, dan
   naikkan pula `BEACON_TX_POWER` bila kelompok terjauh memang tidak menerima
   apa pun.
+- **Serial Monitor hunter berhenti di "Terhubung".** Dulu jawabannya: jam tidak
+  pernah tersinkron (UDP 123 diblokir), dan papan menunggu selamanya. Sketsa kini
+  menyerah setelah 20 detik, mencoba server NTP cadangan, lalu meminta jam dari
+  papan skor lewat soketnya. Bila masih terjebak, baca baris `[saran]`-nya dan
+  jalankan cek hotspot di bagian 2b.
+- **Kartu Papan kelompok: hunter online tetapi tidak mendengar beacon.** Papan
+  hunter-nya sehat; yang salah ada di sisi LoRa: beacon belum menyala atau tidak
+  di slotnya, `LORA_SYNC_WORD` beda antara beacon dan hunter, beacon dan hunter
+  bukan dari folder kelompok yang sama, atau jaraknya terlalu jauh.
+- **Papan tersambung di Serial Monitor tetapi tidak muncul.** Hampir pasti
+  `HUNT_KEY` salah atau basi (kunci berganti tiap sesi berakhir). Serial
+  Monitor-nya mencetak `[papan skor berkata] ... HUNT_KEY`, dan log PC menulis
+  `kelompok ? (mengaku N)` untuk soket itu.
 - **Kolom delay kosong.** Salah satu papan gagal menyelaraskan jam ke PC.
   Di mode `iris_iot`, periksa bahwa PC benar-benar melayani NTP (chrony) dan
   jamnya sudah disetel; di mode `internet`, bahwa Wi-Fi hotspot ponselnya
-  punya data dan menjangkau `time.cloudflare.com`.
+  punya data dan menjangkau `time.cloudflare.com`. Kolom yang terisi tetapi
+  melompat-lompat puluhan milidetik berarti salah satu papan kelompok itu memakai
+  jam papan skor (NTP diblokir); ruang kendali menulisnya di kartu Papan kelompok.
 - **Halaman menampilkan "Papan skor belum dibangun".** `modul4/build.py` belum
   dijalankan, sehingga `modul4/public/index.html` belum ada.
 - **"NIM ini tidak terdaftar di sesi yang sedang berjalan".** Tiga sebab, dan

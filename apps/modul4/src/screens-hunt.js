@@ -530,7 +530,7 @@
           ["SF / BW", `SF${radio.sf || 7} · ${radio.bw || "250 kHz"}`],
           [L("Daya", "Power"), radio.daya || "10 dBm"],
           H.sync(g) ? ["Sync word", H.sync(g)] : null,
-          [L("Jadwal kirim", "Send schedule"), L("TDMA 500 ms, slot 100 ms per kelompok", "TDMA 500 ms, a 100 ms slot per group")],
+          [L("Jadwal kirim", "Send schedule"), L("TDMA 500 ms, slot 50 ms per kelompok", "TDMA 500 ms, a 50 ms slot per group")],
           [L("Model jarak", "Distance model"), L(`RSSI 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, batas 2000 m`, `RSSI at 1 m ${H.fmt(model.rssi_1m, 0)} dBm, n ${H.fmt(model.n, 1)}, capped at 2000 m`)],
         ].filter(Boolean).map(([a, b]) => html`<span class="label">${a}</span><span class="mono">${b}</span>`)}</div>
       </section>
@@ -560,9 +560,14 @@
     if (!row && f && (f.kunci_salah || []).includes(g))
       return html`<${H.HuntApp} tab="hunt"><div class="hpage__in">${head}
         <section class="card card--raised hjoin"><${H.StateView} icon="lock-key" title=${L("Kunci papan kelompokmu salah", "Your group's board key is wrong")} body=${L("Papan kelompokmu mengirim kunci yang salah, jadi pesannya dibuang. Tempel kunci dari langkah Perburuan situs ke HUNT_KEY di hunter.ino dan beacon.ino, lalu unggah ulang.", "Your group's board is sending the wrong key, so its messages are dropped. Paste the key from the site's Hunt step into HUNT_KEY in hunter.ino and beacon.ino, then upload again.")} /></section></div></${H.HuntApp}>`;
-    if (!row)
+    if (!row) {
+      /* the hunter's own report tells "online but hears nothing" apart from "not on the network" */
+      const online = H.papan(g) && H.papan(g).hunter && H.papan(g).hunter.online;
       return html`<${H.HuntApp} tab="hunt"><div class="hpage__in">${head}
-        <section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menunggu hunter kelompokmu", "Waiting for your group's hunter")} body=${L("Papan skor belum menerima paket dari hunter kelompok ini. Nyalakan papan hunter dan pastikan tersambung ke hotspot kelompokmu.", "The scoreboard hasn't had a packet from this group's hunter yet. Power the hunter board and make sure it's on your group's hotspot.")} /></section></div></${H.HuntApp}>`;
+        <section class="card card--raised hjoin">${online
+          ? html`<${H.StateView} icon="broadcast" title=${L("Hunter kelompokmu online, belum mendengar beacon", "Your hunter is online but hears no beacon yet")} body=${L("Hunter sudah tersambung ke papan skor. Pastikan beacon menyala dan sudah mencetak SIAP DISEMBUNYIKAN, lalu dekati. Beacon dan hunter harus memakai folder kelompok yang sama.", "The hunter is connected to the scoreboard. Make sure the beacon is on and has printed READY TO HIDE, then walk closer. The beacon and the hunter must both come from your group's folder.")} />`
+          : html`<${H.StateView} icon="broadcast" title=${L("Menunggu hunter kelompokmu", "Waiting for your group's hunter")} body=${L("Papan skor belum menerima apa pun dari hunter kelompok ini. Nyalakan papan hunter dan pastikan tersambung ke hotspot kelompokmu: pita 2,4 GHz, keamanan WPA2, data seluler menyala (iPhone: Maksimalkan Kompatibilitas). Serial Monitor-nya menyebut sebabnya.", "The scoreboard hasn't heard anything from this group's hunter yet. Power the hunter board and make sure it's on your group's hotspot: 2.4 GHz band, WPA2 security, mobile data on (iPhone: Maximize Compatibility). Its Serial Monitor says why not.")} />`}</section></div></${H.HuntApp}>`;
+    }
     const band = row.jarak_dekat != null ? [metres(row.jarak_dekat), metres(row.jarak_jauh)] : null;
     const sw = f && f.sapuan ? f.sapuan[String(g)] : null;
     const swAge = H.sweepAge(sw);

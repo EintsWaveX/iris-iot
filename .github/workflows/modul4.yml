@@ -11,11 +11,13 @@ on:
     paths:
       - "apps/modul4/**"
       - "apps/web/package.json"
+      - "apps/web/src/content/sketches/*/modul4_*.ino"
       - ".github/workflows/modul4.yml"
   pull_request:
     paths:
       - "apps/modul4/**"
       - "apps/web/package.json"
+      - "apps/web/src/content/sketches/*/modul4_*.ino"
       - ".github/workflows/modul4.yml"
   workflow_dispatch:
 
@@ -57,8 +59,15 @@ jobs:
             sleep 0.5
           done
 
-      - name: Protocol suite (128 assertions)
+      - name: Protocol suite
         run: python tools/uji_protokol.py --token UJICI
+
+      - name: Sketch contract (the firmware's own message formats against the live server)
+        run: |
+          python tools/uji_sketsa.py
+          python tools/uji_sketsa.py \
+            --hunter ../web/src/content/sketches/id/modul4_hunter.ino \
+            --beacon ../web/src/content/sketches/id/modul4_beacon.ino
 
       - name: Stop the server
         if: always()
