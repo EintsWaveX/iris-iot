@@ -1388,14 +1388,18 @@ button.kz__pil:focus-visible {
   height: 60px;
   width: 60px;
 }
-/* the four answers sit at the bottom of the screen, under the thumb */
+/* The answers take the room under the question card, so there is no empty band between them.
+   They are still the lower part of the screen, under the thumb. A short screen keeps each tile's
+   own minimum and the page scrolls. */
 .kz__p-jawab {
-  margin-top: auto;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 }
 .kz__pilihan[data-u="ponsel"] {
-  flex: none;
+  flex: 1;
   gap: 10px;
-  grid-auto-rows: auto;
+  grid-auto-rows: minmax(64px, 1fr);
   grid-template-columns: 1fr;
   padding-bottom: 0;
 }
@@ -1406,6 +1410,30 @@ button.kz__pil:focus-visible {
 }
 .kz__pilihan[data-u="ponsel"][data-n="2"] .kz__pil {
   min-height: 96px;
+}
+/* A laptop or a tablet: a wider column, the answers in a 2x2 like the projector, bigger type.
+   True/False stays as two stacked tiles. (The sideways-phone rules further down win over these.) */
+@media (min-width: 760px) {
+  .kz__tubuh--p {
+    max-width: 780px;
+  }
+  .kz__p-soal {
+    gap: clamp(12px, 2vh, 22px);
+  }
+  .kz__pilihan[data-u="ponsel"] {
+    gap: clamp(10px, 1.8vh, 20px);
+  }
+  .kz__pilihan[data-u="ponsel"]:not([data-n="2"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kz__pilihan[data-u="ponsel"][data-n="3"] > li:last-child {
+    grid-column: 1 / -1;
+  }
+  .kz__pilihan[data-u="ponsel"] .kz__pil {
+    border-radius: 26px;
+    font-size: clamp(1.1rem, 2.6vh, 1.6rem);
+    padding: 14px clamp(16px, 2vw, 28px);
+  }
 }
 .kz__p-pilihan-besar {
   align-items: center;
