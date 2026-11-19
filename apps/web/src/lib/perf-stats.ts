@@ -250,7 +250,7 @@ export interface BenchReport {
    * The long frames the page had before the test began: its load (hydration, the sky painter). It is the
    * freeze a visitor feels on opening the page. Null when the browser has no long-frame entries.
    */
-  startup: { loaf: LoafStats; scripts: ScriptCost[] } | null;
+  startup: { loaf: LoafStats; scripts: ScriptCost[]; busyUntilMs: number } | null;
   notes: string[];
 }
 
@@ -308,7 +308,7 @@ export function formatReport(r: BenchReport): string {
     const l = r.startup.loaf;
     lines.push("");
     lines.push(
-      `Page load froze the main thread: ${l.n} long frames, ${l.totalMs} ms (script ${l.scriptMs} ms) before the test`,
+      `Page load froze the main thread: ${l.n} long frames, ${l.totalMs} ms (script ${l.scriptMs} ms) before the test; busy until ${r.startup.busyUntilMs} ms after the page began loading`,
     );
     for (const c of r.startup.scripts) lines.push(`  ${c.ms} ms  ${c.src}`);
   }

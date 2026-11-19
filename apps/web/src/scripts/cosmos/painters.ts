@@ -5,9 +5,16 @@
  *   - paintBg()       the sky gradient, glows, sparkles, constellations and misty ridges
  *   - sprites()       islands, clouds, a ringed planet, orbit rings and the aurora, as PNG data URLs
  * scene.ts then lays the sprites out as DOM and scene.css moves them. Nothing here runs per frame.
+ *
+ * The sprites are drawn and encoded off the main thread (sky.worker.ts calls spritesAsync() on an
+ * OffscreenCanvas). On a 6x slower CPU that work took 0.7 s of main thread on every full page load, even at
+ * Low Detail. So nothing in this file may touch the DOM except canvas() below, which picks the canvas for the
+ * thread it runs on (a test holds that line). sprites() stays as the main-thread fallback for browsers
+ * without Workers or OffscreenCanvas.
  */
 
-type Ctx = CanvasRenderingContext2D;
+type Surface = HTMLCanvasElement | OffscreenCanvas;
+type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 export type Theme = "night" | "day";
 export type Sprite = {
   url: string;
@@ -15,6 +22,8 @@ export type Sprite = {
   h: number;
   wf?: { x: number; y: number };
   tip?: { x: number; y: number };
+  /** The drawn canvas until it is encoded into `url`; never sent between threads */
+  cv?: Surface;
 };
 export type SpriteSet = Record<string, Sprite>;
 
@@ -51,7 +60,12 @@ function rgba(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
-function canvas(w: number, h: number): [HTMLCanvasElement, Ctx] {
+/** A canvas for the thread this runs on: an OffscreenCanvas in a worker, a DOM canvas on the page. */
+function canvas(w: number, h: number): [Surface, Ctx] {
+  if (typeof document === "undefined") {
+    const oc = new OffscreenCanvas(w, h);
+    return [oc, oc.getContext("2d") as Ctx];
+  }
   const cv = document.createElement("canvas");
   cv.width = w;
   cv.height = h;
@@ -713,7 +727,8 @@ function islandSprite(kind: string, P: Pal): Sprite {
   if (K.trees > 1) treeDraw(c, cx + hw * 0.74, gy, 0.85, P);
   if (K.dish) dishDraw(c, cx - hw * 0.3, gy, 1.2, P.tower, P.rim);
   return {
-    url: cv.toDataURL(),
+    cv,
+    url: "",
     w: W,
     h: H,
     wf: { x: (cx - hw * 0.6) / W, y: (top + 10) / H },
@@ -779,14 +794,13 @@ function cloudSprite(v: number, T: { hi: string; mid: string; lo: string }): Spr
   c.fillStyle = belly;
   c.fillRect(0, 0, W, H);
   c.globalCompositeOperation = "source-over";
-  return { url: cv.toDataURL(), w: W, h: H };
+  return { cv, url: "", w: W, h: H };
 }
 
 const cache: Partial<Record<Theme, SpriteSet>> = {};
-/** Every sprite of one theme, painted once and cached. */
-export function sprites(T: Theme): SpriteSet {
-  const hit = cache[T];
-  if (hit) return hit;
+
+/** Draws every sprite of one theme onto canvases (in `cv`) without encoding them. */
+function drawSprites(T: Theme): SpriteSet {
   const P = PAL[T];
   const o: SpriteSet = {};
   ["big", "mid", "small", "rock"].forEach((k) => (o[k] = islandSprite(k, P)));
@@ -795,7 +809,7 @@ export function sprites(T: Theme): SpriteSet {
   o.c2 = cloudSprite(2, CLOUD[T]);
   const [pc, pctx] = canvas(400, 280);
   planetCel(pctx, 200, 140, 74, PLANET[T]);
-  o.planet = { url: pc.toDataURL(), w: 400, h: 280 };
+  o.planet = { cv: pc, url: "", w: 400, h: 280 };
   const [rc, rctx] = canvas(640, 640);
   astro(
     rctx,
@@ -806,7 +820,7 @@ export function sprites(T: Theme): SpriteSet {
     T === "day" ? "rgba(255,214,120,1)" : "rgba(255,226,160,.95)",
     T === "day" ? 0.85 : 0.55,
   );
-  o.rings = { url: rc.toDataURL(), w: 640, h: 640 };
+  o.rings = { cv: rc, url: "", w: 640, h: 640 };
   if (T === "night") {
     const [ac, actx] = canvas(1400, 520);
     ribbon(
@@ -852,7 +866,50 @@ export function sprites(T: Theme): SpriteSet {
     actx.fillStyle = fy;
     actx.fillRect(0, 0, 1400, 520);
     actx.globalCompositeOperation = "source-over";
-    o.aurora = { url: ac.toDataURL(), w: 1400, h: 520 };
+    o.aurora = { cv: ac, url: "", w: 1400, h: 520 };
+  }
+  return o;
+}
+
+/** Standard base64 of some bytes, in slices so a large PNG never overflows the argument limit. */
+export function toBase64(bytes: Uint8Array): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+/** A canvas as a PNG data URL: synchronous on the page, through a blob in a worker. */
+async function encodePng(cv: Surface): Promise<string> {
+  if ("toDataURL" in cv) return cv.toDataURL();
+  const blob = await cv.convertToBlob({ type: "image/png" });
+  return "data:image/png;base64," + toBase64(new Uint8Array(await blob.arrayBuffer()));
+}
+
+/** Every sprite of one theme, painted once and cached. Main thread: use spritesAsync() from a worker instead. */
+export function sprites(T: Theme): SpriteSet {
+  const hit = cache[T];
+  if (hit) return hit;
+  const o = drawSprites(T);
+  for (const s of Object.values(o)) {
+    if (!s.cv || !("toDataURL" in s.cv))
+      throw new Error("sprites() needs a page; use spritesAsync()");
+    s.url = s.cv.toDataURL();
+    delete s.cv;
+  }
+  cache[T] = o;
+  return o;
+}
+
+/** The same sprites, encoded asynchronously so it can run in a worker. Nothing but plain data comes back. */
+export async function spritesAsync(T: Theme): Promise<SpriteSet> {
+  const hit = cache[T];
+  if (hit) return hit;
+  const o = drawSprites(T);
+  for (const s of Object.values(o)) {
+    if (s.cv) s.url = await encodePng(s.cv);
+    delete s.cv;
   }
   cache[T] = o;
   return o;
@@ -1037,9 +1094,11 @@ export function sceneItems(T: Theme): SceneItem[] {
   return I;
 }
 
-/** The scene's DOM (sprites plus the CSS-only sparkles, petals, birds and shooting star). */
-export function sceneHTML(T: Theme): string {
-  const S = sprites(T);
+/**
+ * The scene's DOM (sprites plus the CSS-only sparkles, petals, birds and shooting star). Pass the sprites
+ * when a worker made them; without them they are painted here on the main thread.
+ */
+export function sceneHTML(T: Theme, S: SpriteSet = sprites(T)): string {
   const R = rnd(T === "day" ? 5 : 11);
   let o = "";
   if (T === "day") o += '<div class="rays" style="--rx:17%;--ry:60%"></div>';
