@@ -200,6 +200,7 @@ describe("formatReport", () => {
     startup: {
       loaf: { n: 3, totalMs: 1800, scriptMs: 1700, forcedMs: 20 },
       scripts: [{ src: "https://x/sky.js", ms: 1687 }],
+      busyUntilMs: 5400,
     },
     notes: ["note one"],
   };
@@ -213,13 +214,17 @@ describe("formatReport", () => {
   });
   it("reports the freeze from the page load, with the script that caused it", () => {
     expect(text).toContain(
-      "Page load froze the main thread: 3 long frames, 1800 ms (script 1700 ms) before the test",
+      "Page load froze the main thread: 3 long frames, 1800 ms (script 1700 ms) before the test; busy until 5400 ms after the page began loading",
     );
     expect(text).toContain("1687 ms  https://x/sky.js");
   });
   it("says nothing about startup when there was none or the browser cannot tell", () => {
     expect(formatReport({ ...report, startup: null })).not.toContain("Page load froze");
-    const calm = { loaf: { n: 0, totalMs: 0, scriptMs: 0, forcedMs: 0 }, scripts: [] };
+    const calm = {
+      loaf: { n: 0, totalMs: 0, scriptMs: 0, forcedMs: 0 },
+      scripts: [],
+      busyUntilMs: 0,
+    };
     expect(formatReport({ ...report, startup: calm })).not.toContain("Page load froze");
   });
   it("names the animations that were running", () => {

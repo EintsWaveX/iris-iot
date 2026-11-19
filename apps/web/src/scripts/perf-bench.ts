@@ -142,8 +142,13 @@ function startupLongFrames(): BenchReport["startup"] {
   try {
     const loaf: LoafStats = { n: 0, totalMs: 0, scriptMs: 0, forcedMs: 0 };
     const scripts: ScriptSample[] = [];
-    tally(performance.getEntriesByType("long-animation-frame"), loaf, scripts);
-    return { loaf: rounded(loaf), scripts: topScripts(scripts) };
+    const entries = performance.getEntriesByType("long-animation-frame");
+    tally(entries, loaf, scripts);
+    // When the last long frame ended, in ms since the page began loading: until then the page can freeze
+    const busyUntilMs = Math.round(
+      entries.reduce((m, e) => Math.max(m, e.startTime + e.duration), 0),
+    );
+    return { loaf: rounded(loaf), scripts: topScripts(scripts), busyUntilMs };
   } catch {
     return null;
   }

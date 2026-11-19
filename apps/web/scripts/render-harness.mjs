@@ -23,6 +23,8 @@
  * --only      comma list of switch ids (default all), e.g. baseline,no-backdrop,no-motion
  * --label     file label (default <as>-<detail>-<device>-cpu<N>)
  * --out       report path (default perf/render-<label>.json)
+ * --no-worker  delete window.Worker before the page runs, so the sky is drawn on the main thread (the
+ *             behaviour before the sky worker): an A/B against the same build, under the same machine load
  * --headless  run without a window (default is a visible window, so the real GPU is used)
  * --chrome    path to a Chrome/Chromium executable (default: the installed Chrome)
  *
@@ -182,7 +184,7 @@ const context = await browser.newContext({
 });
 
 await context.addInitScript(
-  ([detail, theme, signedIn]) => {
+  ([detail, theme, signedIn, noWorker]) => {
     try {
       localStorage.setItem("iris-detail", detail);
       localStorage.setItem("iris-theme", theme);
@@ -190,8 +192,10 @@ await context.addInitScript(
     } catch {
       /* storage blocked: the page falls back to its defaults */
     }
+    // The page falls back to drawing its sky on the main thread when there is no Worker: the old behaviour
+    if (noWorker) delete window.Worker;
   },
-  [DETAIL, THEME, AS !== "visitor"],
+  [DETAIL, THEME, AS !== "visitor", flag("--no-worker")],
 );
 
 await context.route("**/api/**", (route) => {

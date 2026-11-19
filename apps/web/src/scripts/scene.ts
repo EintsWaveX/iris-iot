@@ -9,17 +9,37 @@
  * Cosmos.astro persists the element across navigations, so this runs once per tab.
  */
 import { layoutScene, paintBg, sceneHTML, type Theme } from "./cosmos/painters";
+import { loadSprites } from "./cosmos/sky-client";
 
 const html = document.documentElement;
 const canvas = document.getElementById("iris-sky") as HTMLCanvasElement | null;
 const scene = document.getElementById("iris-scene");
 
 if (canvas && scene) {
+  // The theme whose sprites are in the scene, and the one whose sprites are on their way
   let built: Theme | null = null;
+  let building: Theme | null = null;
   let w = 0;
   let h = 0;
 
   const theme = (): Theme => (html.dataset.theme === "light" ? "day" : "night");
+
+  // Ask for the sprites straight away: a worker draws them while the page hydrates, so the main thread never
+  // pays for them (cosmos/sky-client.ts). Until they arrive the page shows the gradient and the painted
+  // backdrop, exactly as scene.css's "before the sprites are painted" fallback intends.
+  void loadSprites(theme());
+
+  const install = (T: Theme) => {
+    building = T;
+    void loadSprites(T).then((set) => {
+      if (building !== T) return; // a newer theme choice replaced this one
+      building = null;
+      scene.innerHTML = sceneHTML(T, set);
+      built = T;
+      layoutScene(scene, w, h);
+      html.dataset.sceneReady = "yes";
+    });
+  };
 
   const paint = () => {
     const T = theme();
@@ -37,12 +57,16 @@ if (canvas && scene) {
     if (!c) return;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     paintBg(c, w, h, T);
-    if (built !== T) {
-      scene.innerHTML = sceneHTML(T);
-      built = T;
+    if (built === T) {
+      layoutScene(scene, w, h);
+    } else {
+      if (built) {
+        // A night sky never shows under a day backdrop while the new sprites are on their way
+        scene.innerHTML = "";
+        built = null;
+      }
+      if (building !== T) install(T);
     }
-    layoutScene(scene, w, h);
-    html.dataset.sceneReady = "yes";
   };
 
   // First paint after the page itself, so the sky never delays the content.
