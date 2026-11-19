@@ -347,12 +347,26 @@ export function localeOf(lang: Lang): string {
 export function tanggalPanjang(iso: string, lang: Lang): string {
   const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(localeOf(lang), {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return longDateFormat(localeOf(lang)).format(d);
+}
+
+// One formatter per locale. d.toLocaleDateString() builds a new Intl.DateTimeFormat on every call, which
+// cost 1.5 ms each on a 6x slower CPU and is called for every date on a calendar, plus once a second by the
+// navigation clock; a built one formats in 0.016 ms. The text is the same: toLocaleDateString makes exactly
+// this formatter from these options.
+const longDates = new Map<string, Intl.DateTimeFormat>();
+function longDateFormat(locale: string): Intl.DateTimeFormat {
+  let f = longDates.get(locale);
+  if (!f) {
+    f = new Intl.DateTimeFormat(locale, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    longDates.set(locale, f);
+  }
+  return f;
 }
 
 /** Prefix a path for the page language ("/dashboard" -> "/en/dashboard"). */
