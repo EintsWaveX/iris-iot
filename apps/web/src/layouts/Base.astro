@@ -189,6 +189,14 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
     <TipLayer client:idle />
     <slot />
     {footer && <SiteFooter lang={lang} />}
+    <script>
+      // ?perf=1 on any page opens the on-device speed test (scripts/perf-bench.ts, Phase 0 of the performance
+      // work). It is a separate chunk, fetched only then, so nobody else downloads or runs any of it.
+      if (/[?&]perf=/.test(location.search)) {
+        const auto = /[?&]perf=auto\b/.test(location.search);
+        void import("../scripts/perf-bench").then((m) => m.mountPerfBench({ autorun: auto }));
+      }
+    </script>
   </body>
 </html>
 
