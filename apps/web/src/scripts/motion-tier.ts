@@ -53,6 +53,8 @@
  * turns out to be 0 or 1 after all.
  */
 
+import { probeNeeded } from "../lib/motion-probe";
+
 type Tier = 0 | 1 | 2;
 
 // v2 (Stage 6): bumped alongside the Otomatis/Penuh/Kurangi setting --
@@ -310,6 +312,12 @@ function effectiveTier(measured: Tier): Tier {
 // motion -- kept separate so effectiveTier() can recompute the combined
 // result whenever reduced motion changes, without re-probing.
 let measuredTier: Tier = 1;
+// A real measurement (or a cached one) is in hand
+let haveMeasurement = false;
+
+// The level in force, from <html data-detail> (theme-init.js sets it before paint). Not
+// window.CosmosRouter: that script is imported after this one, so it does not exist yet at load.
+const detailNow = (): string | undefined => document.documentElement.dataset.detail;
 
 function runProbe(): void {
   // Pessimistic interim (see the module header for why 1, not 2): CSS
@@ -318,6 +326,7 @@ function runProbe(): void {
   applyTier(effectiveTier(measuredTier));
   void probeTier().then((tier) => {
     measuredTier = tier;
+    haveMeasurement = true;
     writeCachedTier(tier);
     applyTier(effectiveTier(measuredTier));
   });
@@ -326,9 +335,14 @@ function runProbe(): void {
 const cached = readCachedTier();
 if (cached !== null) {
   measuredTier = cached;
+  haveMeasurement = true;
   applyTier(effectiveTier(measuredTier));
-} else {
+} else if (probeNeeded(detailNow(), haveMeasurement)) {
   runProbe();
+} else {
+  // Low and High Detail ignore the measurement (effectiveTier), so the 400 ms probe is skipped there; it
+  // runs from reapply() below if the reader later switches to Normal.
+  applyTier(effectiveTier(measuredTier));
 }
 
 window.Motion?.onReducedChange?.(() => {
@@ -338,7 +352,10 @@ window.Motion?.onReducedChange?.(() => {
 // reprobe(): one fresh measurement, clearing the cached tier first.
 // reapply(): recompute after the detail level changes, without probing.
 window.IrisMotionTier = {
-  reapply: () => applyTier(effectiveTier(measuredTier)),
+  reapply: () => {
+    if (probeNeeded(detailNow(), haveMeasurement)) runProbe();
+    else applyTier(effectiveTier(measuredTier));
+  },
   reprobe: () => {
     try {
       window.localStorage.removeItem(TIER_CACHE_KEY);

@@ -1,5 +1,7 @@
 # build output
 dist/
+# the CPU-profiling build (IRIS_PROFILE_BUILD=1, see astro.config.mjs)
+dist-profile/
 # generated types
 .astro/
 

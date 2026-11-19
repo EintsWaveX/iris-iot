@@ -1,4 +1,5 @@
 dist/
+dist-profile/
 .astro/
 node_modules/
 drizzle/
