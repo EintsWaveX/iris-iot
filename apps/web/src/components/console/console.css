@@ -3685,7 +3685,6 @@ button.lib__name {
   display: none;
 }
 .btn--nilai::before {
-  animation: kit-sweep 4s linear infinite;
   background: var(--nl-sweep);
   background-size: 300% 100%;
   border-radius: inherit;
@@ -3700,7 +3699,14 @@ button.lib__name {
 .btn--nilai:focus-visible::before {
   opacity: 1;
 }
+/* The sweep runs only while the fill is shown, never idle (see controls.css). */
+:root:not([data-motion-tier="0"]) .btn--nilai:focus-visible::before {
+  animation: kit-sweep 4s linear infinite;
+}
 @media (hover: hover) and (pointer: fine) {
+  :root:not([data-motion-tier="0"]) .btn--nilai:hover::before {
+    animation: kit-sweep 4s linear infinite;
+  }
   .btn--nilai:hover::before {
     opacity: 1;
   }

@@ -206,11 +206,23 @@
   }
 }
 
-/* The sweep keeps running in every detail level, as in the mockup; only the
-   OS reduced-motion setting stops it (motion.css), leaving a static ring. */
-.btn::after,
-.btn--primary::before {
+/* The sweep runs only while the ring or fill is shown (hover and keyboard focus), never idle.
+   background-position cannot run on the compositor, so a loop keeps the main thread producing a frame on
+   every screen refresh, even for a pseudo-element that is invisible at opacity 0 and even when only two or
+   three are on the page. Measured (Dashboard, Low Detail, 6x slower CPU): 81-90 fps idle with them,
+   143 without; about 50 fps scrolling with them, 88-97 without. Low Detail (motion tier 0) and the OS
+   reduced-motion setting keep the ring still. The same rule holds for every sweep: nothing loops while idle. */
+:root:not([data-motion-tier="0"]) .btn:focus-visible:not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"]) .btn--primary:focus-visible:not([aria-disabled="true"])::before {
   animation: kit-sweep 4s linear infinite;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root:not([data-motion-tier="0"]) .btn:hover:not(:disabled):not([aria-disabled="true"])::after,
+  :root:not([data-motion-tier="0"])
+    .btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before {
+    animation: kit-sweep 4s linear infinite;
+  }
 }
 
 @keyframes kit-sweep {

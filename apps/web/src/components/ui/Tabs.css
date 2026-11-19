@@ -125,8 +125,9 @@
   right: 10px;
 }
 
-.tabs__tab[aria-selected="true"]::after {
-  animation: kit-sweep 6s linear infinite;
+/* One pass when a tab becomes the selected one, then still: nothing loops while idle (see controls.css). */
+:root:not([data-motion-tier="0"]) .tabs__tab[aria-selected="true"]::after {
+  animation: kit-sweep 3s ease-out 1;
 }
 
 /* The swept ring on hover and focus, like every other switch (2026-10-07). */

@@ -1,0 +1,816 @@
+{
+  "harness": 1,
+  "at": "2026-11-19T14:22:42.562Z",
+  "base": "http://127.0.0.1:4173",
+  "as": "praktikan",
+  "detail": "ldm",
+  "theme": "dark",
+  "device": "phone",
+  "cpu": 6,
+  "gl": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001900) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "chrome": "158.0.8127.36",
+  "pages": {
+    "/": {
+      "v": 1,
+      "at": "2026-11-19T14:24:03.038Z",
+      "env": {
+        "path": "/",
+        "detail": "ldm",
+        "motionTier": "0",
+        "theme": "dark",
+        "signedIn": "yes",
+        "dpr": 2.625,
+        "viewport": "390x844",
+        "cores": 12,
+        "memoryGb": 8,
+        "saveData": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "animations": 0,
+        "animationList": [],
+        "backdropElements": 0,
+        "domNodes": 349,
+        "scrollable": true
+      },
+      "steps": [
+        {
+          "id": "baseline",
+          "label": "As it is",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 295,
+            "fps": 118.2,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 69.5,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 2,
+            "totalMs": 108,
+            "scriptMs": 86,
+            "forcedMs": 7
+          }
+        },
+        {
+          "id": "no-backdrop",
+          "label": "No backdrop blur",
+          "idle": {
+            "frames": 357,
+            "fps": 142.7,
+            "p50": 7,
+            "p95": 7.2,
+            "worst": 14,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 272,
+            "fps": 109,
+            "p50": 7,
+            "p95": 14,
+            "worst": 62.4,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-sky",
+          "label": "No sky",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 6.9,
+            "p95": 7.1,
+            "worst": 7.7,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 305,
+            "fps": 122.2,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 48.7,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-scene-blur",
+          "label": "No sky blur",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 303,
+            "fps": 121.4,
+            "p50": 7,
+            "p95": 14,
+            "worst": 55.5,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-scene-anim",
+          "label": "Sky stands still",
+          "idle": {
+            "frames": 355,
+            "fps": 142.3,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 20.7,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 322,
+            "fps": 129.1,
+            "p50": 7,
+            "p95": 13.8,
+            "worst": 48.7,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-fog",
+          "label": "No fog",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 6.9,
+            "p95": 7.1,
+            "worst": 7.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 313,
+            "fps": 125.4,
+            "p50": 7,
+            "p95": 13.8,
+            "worst": 62.7,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 1,
+            "totalMs": 51,
+            "scriptMs": 37,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-sweeps",
+          "label": "No sweeps",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.8,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 309,
+            "fps": 123.9,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 55.7,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-shadows",
+          "label": "No shadows",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 319,
+            "fps": 127.5,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 48.7,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-filters",
+          "label": "No filters or masks",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.5,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 330,
+            "fps": 132.3,
+            "p50": 7,
+            "p95": 7.5,
+            "worst": 34.8,
+            "slow": 0.01,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-motion",
+          "label": "No animation at all",
+          "idle": {
+            "frames": 351,
+            "fps": 140.7,
+            "p50": 6.9,
+            "p95": 7.1,
+            "worst": 41.7,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 340,
+            "fps": 136.3,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 41.8,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "bare",
+          "label": "Everything off",
+          "idle": {
+            "frames": 358,
+            "fps": 143.5,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 14,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 332,
+            "fps": 133.1,
+            "p50": 7,
+            "p95": 7.2,
+            "worst": 41.7,
+            "slow": 0.01,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "baseline-end",
+          "label": "As it is (again)",
+          "idle": {
+            "frames": 360,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.8,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 291,
+            "fps": 116.6,
+            "p50": 7,
+            "p95": 14,
+            "worst": 48.6,
+            "slow": 0.02,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        }
+      ],
+      "scripts": [
+        {
+          "src": "http://127.0.0.1:4173/_astro/react.HqF9Ix5Q.js",
+          "ms": 79
+        },
+        {
+          "src": "http://127.0.0.1:4173/_astro/AppNav._1Ou_3kb.js",
+          "ms": 7
+        }
+      ],
+      "startup": {
+        "loaf": {
+          "n": 23,
+          "totalMs": 6757,
+          "scriptMs": 2796,
+          "forcedMs": 14
+        },
+        "scripts": [
+          {
+            "src": "http://127.0.0.1:4173/_astro/Cosmos.astro_astro_type_script_index_0_lang.Qk5-KfvM.js",
+            "ms": 1509
+          },
+          {
+            "src": "http://127.0.0.1:4173/_astro/react.HqF9Ix5Q.js",
+            "ms": 786
+          },
+          {
+            "src": "http://127.0.0.1:4173/_astro/client.CXrSLl4n.js",
+            "ms": 202
+          },
+          {
+            "src": "http://127.0.0.1:4173/?perf=1",
+            "ms": 119
+          },
+          {
+            "src": "http://127.0.0.1:4173/_astro/AppNav._1Ou_3kb.js",
+            "ms": 94
+          }
+        ]
+      },
+      "notes": []
+    },
+    "/dashboard": {
+      "v": 1,
+      "at": "2026-11-19T14:25:21.938Z",
+      "env": {
+        "path": "/dashboard",
+        "detail": "ldm",
+        "motionTier": "0",
+        "theme": "dark",
+        "signedIn": "yes",
+        "dpr": 2.625,
+        "viewport": "390x844",
+        "cores": 12,
+        "memoryGb": 8,
+        "saveData": false,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "animations": 0,
+        "animationList": [],
+        "backdropElements": 0,
+        "domNodes": 412,
+        "scrollable": true
+      },
+      "steps": [
+        {
+          "id": "baseline",
+          "label": "As it is",
+          "idle": {
+            "frames": 360,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.4,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 323,
+            "fps": 129.5,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 62.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 1,
+            "totalMs": 51,
+            "scriptMs": 42,
+            "forcedMs": 4
+          }
+        },
+        {
+          "id": "no-backdrop",
+          "label": "No backdrop blur",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.5,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 308,
+            "fps": 123.4,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 69.6,
+            "slow": 0.01,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 2,
+            "totalMs": 135,
+            "scriptMs": 117,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-sky",
+          "label": "No sky",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 347,
+            "fps": 139.1,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 41.8,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-scene-blur",
+          "label": "No sky blur",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 6.9,
+            "p95": 7.1,
+            "worst": 7.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 327,
+            "fps": 131.1,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 41,
+            "slow": 0.01,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-scene-anim",
+          "label": "Sky stands still",
+          "idle": {
+            "frames": 326,
+            "fps": 130.7,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 83.5,
+            "slow": 0.01,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 338,
+            "fps": 135.5,
+            "p50": 7,
+            "p95": 7.6,
+            "worst": 41.7,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 3,
+            "totalMs": 213,
+            "scriptMs": 201,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-fog",
+          "label": "No fog",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.7,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 335,
+            "fps": 134.3,
+            "p50": 7,
+            "p95": 13.1,
+            "worst": 55.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-sweeps",
+          "label": "No sweeps",
+          "idle": {
+            "frames": 360,
+            "fps": 143.9,
+            "p50": 6.9,
+            "p95": 7.1,
+            "worst": 7.7,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 291,
+            "fps": 116.6,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 83.3,
+            "slow": 0.01,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 2,
+            "totalMs": 151,
+            "scriptMs": 137,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-shadows",
+          "label": "No shadows",
+          "idle": {
+            "frames": 358,
+            "fps": 143.9,
+            "p50": 6.9,
+            "p95": 7.1,
+            "worst": 7.5,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 346,
+            "fps": 138.7,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 48.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-filters",
+          "label": "No filters or masks",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 7.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 340,
+            "fps": 135.9,
+            "p50": 7,
+            "p95": 7.6,
+            "worst": 41.5,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "no-motion",
+          "label": "No animation at all",
+          "idle": {
+            "frames": 327,
+            "fps": 131.1,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 69.6,
+            "slow": 0.01,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 350,
+            "fps": 140.3,
+            "p50": 7,
+            "p95": 7.1,
+            "worst": 34.8,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 3,
+            "totalMs": 185,
+            "scriptMs": 175,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "bare",
+          "label": "Everything off",
+          "idle": {
+            "frames": 359,
+            "fps": 143.9,
+            "p50": 6.9,
+            "p95": 7.1,
+            "worst": 7.6,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 341,
+            "fps": 136.7,
+            "p50": 7,
+            "p95": 7.5,
+            "worst": 41.2,
+            "slow": 0,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 0,
+            "totalMs": 0,
+            "scriptMs": 0,
+            "forcedMs": 0
+          }
+        },
+        {
+          "id": "baseline-end",
+          "label": "As it is (again)",
+          "idle": {
+            "frames": 358,
+            "fps": 143.9,
+            "p50": 6.9,
+            "p95": 7.1,
+            "worst": 7.7,
+            "slow": 0,
+            "throttled": false
+          },
+          "scroll": {
+            "frames": 301,
+            "fps": 120.6,
+            "p50": 7,
+            "p95": 13.9,
+            "worst": 69.4,
+            "slow": 0.01,
+            "throttled": false
+          },
+          "loaf": {
+            "n": 2,
+            "totalMs": 130,
+            "scriptMs": 118,
+            "forcedMs": 0
+          }
+        }
+      ],
+      "scripts": [
+        {
+          "src": "http://127.0.0.1:4173/_astro/react.HqF9Ix5Q.js",
+          "ms": 36
+        },
+        {
+          "src": "http://127.0.0.1:4173/_astro/AppNav._1Ou_3kb.js",
+          "ms": 5
+        }
+      ],
+      "startup": {
+        "loaf": {
+          "n": 20,
+          "totalMs": 4152,
+          "scriptMs": 2008,
+          "forcedMs": 97
+        },
+        "scripts": [
+          {
+            "src": "http://127.0.0.1:4173/_astro/Cosmos.astro_astro_type_script_index_0_lang.Qk5-KfvM.js",
+            "ms": 791
+          },
+          {
+            "src": "http://127.0.0.1:4173/_astro/react.HqF9Ix5Q.js",
+            "ms": 718
+          },
+          {
+            "src": "http://127.0.0.1:4173/_astro/client.CXrSLl4n.js",
+            "ms": 203
+          },
+          {
+            "src": "http://127.0.0.1:4173/_astro/ClientRouter.astro_astro_type_script_index_0_lang.Bcn-gyid.js",
+            "ms": 101
+          },
+          {
+            "src": "http://127.0.0.1:4173/dashboard?perf=1",
+            "ms": 64
+          }
+        ]
+      },
+      "notes": []
+    }
+  }
+}

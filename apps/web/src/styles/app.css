@@ -218,8 +218,10 @@ body > .page-main {
   top: 0;
 }
 
-.panel--key::before {
-  animation: kit-sweep 7s linear infinite;
+/* One pass of the rainbow when the card appears, then it stands still: nothing loops while idle (see the
+   sweep note in controls.css). --sweep starts and ends on the same colour, so the pass ends where it began. */
+:root:not([data-motion-tier="0"]) .panel--key::before {
+  animation: kit-sweep 3s ease-out 1;
 }
 
 /* A card alone on its view is centred (round 4). */

@@ -120,8 +120,10 @@
   right: var(--space-3);
 }
 
+/* One pass when the page opens, then still: a loop here sat under the navbar's blur on every page and
+   repainted it on every frame (see the sweep note in controls.css). */
 :root:not([data-motion-tier="0"]) .appnav__link[aria-current="page"]::after {
-  animation: aurora-sweep 5s linear infinite;
+  animation: aurora-sweep 3s ease-out 1;
 }
 
 /* Desktop links are words only; the icons belong to the phone tab bar.
@@ -270,7 +272,7 @@
 }
 
 :root:not([data-motion-tier="0"]) .appnav__tot[aria-current="page"]::after {
-  animation: aurora-sweep 5s linear infinite;
+  animation: aurora-sweep 3s ease-out 1;
 }
 
 .appnav__tot-lamp {
