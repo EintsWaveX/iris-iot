@@ -25,6 +25,8 @@
  * --out       report path (default perf/render-<label>.json)
  * --no-worker  delete window.Worker before the page runs, so the sky is drawn on the main thread (the
  *             behaviour before the sky worker): an A/B against the same build, under the same machine load
+ * --inject-css "<css>"  add this stylesheet to every page before it loads, to try a CSS change as an A/B
+ *             against the same build (e.g. "--inject-css '.tpkal__body{content-visibility:auto}'")
  * --headless  run without a window (default is a visible window, so the real GPU is used)
  * --chrome    path to a Chrome/Chromium executable (default: the installed Chrome)
  *
@@ -183,6 +185,9 @@ const context = await browser.newContext({
   serviceWorkers: "block",
 });
 
+// A CSS experiment without touching the app: this stylesheet is added before the page's own, on every page
+const INJECT_CSS = opt("--inject-css", "");
+
 await context.addInitScript(
   ([detail, theme, signedIn, noWorker]) => {
     try {
@@ -197,6 +202,20 @@ await context.addInitScript(
   },
   [DETAIL, THEME, AS !== "visitor", flag("--no-worker")],
 );
+
+// Add the experimental stylesheet to the HTML itself, in <head>, before the page's own. (An init script that
+// appends a <style> before <head> exists is silently discarded by the parser: the first attempt at this
+// measured two identical pages.)
+if (INJECT_CSS) {
+  await context.route("**/*", async (route) => {
+    if (route.request().resourceType() !== "document") return route.fallback();
+    const res = await route.fetch();
+    const html = await res.text();
+    const tag = `<style data-harness="inject-css">${INJECT_CSS}</style>`;
+    const body = html.includes("</head>") ? html.replace("</head>", `${tag}</head>`) : tag + html;
+    return route.fulfill({ response: res, body });
+  });
+}
 
 await context.route("**/api/**", (route) => {
   const a = answer(route.request().url());
@@ -236,6 +255,13 @@ for (const path of PAGES) {
       });
     }
     await page.waitForTimeout(2000); // islands hydrate and the first fetches settle
+    if (INJECT_CSS) {
+      // An experiment that did not apply measures two identical pages, so refuse to carry on
+      const applied = await page.evaluate(
+        () => !!document.head.querySelector("style[data-harness]"),
+      );
+      if (!applied) throw new Error("--inject-css was not applied to this page");
+    }
     if (!out.gl) {
       out.gl = await page.evaluate(() => {
         const g = document.createElement("canvas").getContext("webgl");
