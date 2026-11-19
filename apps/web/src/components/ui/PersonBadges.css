@@ -20,10 +20,12 @@
   font-family: var(--font-mono);
 }
 
-/* The Creator: a gold-to-sky pill that keeps sweeping in every detail level
-   (only the OS reduced-motion setting stops it, as with the kit sweeps). */
+/* The Creator: a gold-to-sky pill. One sweep when it appears, then still (nothing loops while idle, see
+   controls.css); Low Detail and reduced motion never sweep it. */
+:root:not([data-motion-tier="0"]) .pbadge--pencipta {
+  animation: kit-sweep 3s ease-out 1;
+}
 .pbadge--pencipta {
-  animation: kit-sweep 6s linear infinite;
   background: linear-gradient(100deg, #ffe08a, #ffb36b, #f2a3ff, #8ed0ff, #ffe08a);
   background-size: 300% 100%;
   box-shadow:

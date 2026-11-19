@@ -181,8 +181,12 @@
   font-size: clamp(2.3rem, 6.4vw, 4.6rem);
 }
 
+/* The hero title: one slow pass of the rainbow after it appears, then still. A looping gradient on clipped
+   text repainted the title on every frame (see the sweep note in controls.css). */
+:root:not([data-motion-tier="0"]) .pl-sweep {
+  animation: kit-sweep 6s ease-out 1;
+}
 .pl-sweep {
-  animation: kit-sweep 9s linear infinite;
   background: var(--sweep);
   background-clip: text;
   background-size: 300% 100%;

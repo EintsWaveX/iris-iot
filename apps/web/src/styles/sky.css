@@ -142,8 +142,9 @@
   position: absolute;
 }
 
+/* One pass when it appears, then still: nothing loops while idle (see the sweep note in controls.css). */
 :root:not([data-motion-tier="0"]) .sweep-live::after {
-  animation: aurora-sweep 5s linear infinite;
+  animation: aurora-sweep 3s ease-out 1;
 }
 
 /* ---------------------------------------------------------- scrollbars
