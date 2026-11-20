@@ -80,3 +80,15 @@ describe("Praktikum views sit in the shared column", () => {
   for (const [file, re] of views)
     it(`${file} uses .page-col`, () => expect(read(file)).toMatch(re));
 });
+
+describe("page header matches the section band", () => {
+  const css = read("styles/page-header.css");
+  it("has the band's padding, heading size and weight, and sub width", () => {
+    expect(css).toMatch(/\.page-header \{[^}]*padding: 20px 28px/);
+    expect(css).toMatch(
+      /\.page-header__title \{[^}]*font-weight: 700;[^}]*font-size: clamp\(1\.75rem, 1\.3rem \+ 1\.5vw, 2\.75rem\)/,
+    );
+    expect(css).toMatch(/\.page-header__subtitle \{[^}]*max-width: 60ch/);
+    expect(css).toMatch(/\.page-header__title \{[^}]*overflow-wrap: anywhere/);
+  });
+});
