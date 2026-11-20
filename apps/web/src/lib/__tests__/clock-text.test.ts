@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { clockTime, dayKey } from "../clock-text";
 import { localeOf, tanggalPanjang } from "../app";
-import { probeNeeded } from "../motion-probe";
 import type { Lang } from "../kelas";
 
 /**
@@ -79,23 +78,5 @@ describe("tanggalPanjang (one cached formatter per locale)", () => {
 
   it("uses a time of day only to pick the day: an ISO timestamp reads as its date", () => {
     expect(tanggalPanjang("2026-11-19T23:30:00", "id")).toBe(tanggalPanjang("2026-11-19", "id"));
-  });
-});
-
-describe("probeNeeded", () => {
-  it("runs the 400 ms probe only at Normal, because Low and High Detail ignore the result", () => {
-    expect(probeNeeded("normal", false)).toBe(true);
-    expect(probeNeeded("ldm", false)).toBe(false);
-    expect(probeNeeded("hd", false)).toBe(false);
-  });
-  it("does not run it again once something is measured or cached", () => {
-    expect(probeNeeded("normal", true)).toBe(false);
-  });
-  it("treats a missing level as Normal, the site's default", () => {
-    expect(probeNeeded(undefined, false)).toBe(true);
-  });
-  it("runs when a reader moves from Low Detail to Normal with nothing measured", () => {
-    expect(probeNeeded("ldm", false)).toBe(false);
-    expect(probeNeeded("normal", false)).toBe(true);
   });
 });

@@ -5,9 +5,12 @@
  * need its hash in vercel.json.
  *
  *   data-theme      dark | light   from iris-theme (dark, light, system)
- *   data-detail     ldm | normal | hd   from iris-detail (Low Detail is the
- *                   default; the pre-Phase 9 iris-kurangi-efek "penuh"
- *                   becomes hd, anything else ldm)
+ *   data-detail     ldm | normal | hd   the detail level IN FORCE. iris-detail holds the
+ *                   reader's choice: auto (the default), ldm, normal or hd; the pre-Phase 9
+ *                   iris-kurangi-efek "penuh" counts as hd. Otomatis resolves to ldm for a device
+ *                   that is plainly weak (Save-Data, reduced motion, <= 2 GB, <= 2 cores) or that
+ *                   the speed watcher (scripts/auto-detail.ts) found too slow in the last 14 days,
+ *                   and to normal for everything else. Otomatis never picks hd: that stays a choice.
  *   data-zh-weight  500 when Mandarin headings are set lighter than 700
  *   data-keyhints   on when the reader asked to see shortcut keys on buttons
  *                   (iris-keyhints, the "?" sheet)
@@ -42,12 +45,42 @@
     return "dark";
   }
 
-  function detail() {
+  /** What the reader chose: auto, ldm, normal or hd */
+  function detailPref() {
     var v = get("iris-detail");
-    if (v === "ldm" || v === "normal" || v === "hd") return v;
+    if (v === "auto" || v === "ldm" || v === "normal" || v === "hd") return v;
     var old = get("iris-kurangi-efek");
-    // Normal is the default since the painted cosmos (Nov 2026); Low and High Detail stay a choice in Tampilan.
-    return old === "penuh" || old === "0" ? "hd" : "normal";
+    return old === "penuh" || old === "0" ? "hd" : "auto";
+  }
+
+  // The speed watcher's verdict stays for two weeks, then the device gets another chance.
+  var DEMOTION_MS = 14 * 24 * 60 * 60 * 1000;
+
+  function demoted() {
+    if (window.__irisDemoted) return true;
+    var at = Number(get("iris-auto-ldm"));
+    return isFinite(at) && at > 0 && Date.now() - at < DEMOTION_MS;
+  }
+
+  /** Otomatis: Low Detail for a device that is plainly weak or was found slow, Normal for the rest */
+  function autoDetail() {
+    var nav = window.navigator || {};
+    var conn = nav.connection;
+    if (conn && conn.saveData) return "ldm";
+    if (typeof nav.deviceMemory === "number" && nav.deviceMemory <= 2) return "ldm";
+    if (typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 2) return "ldm";
+    try {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return "ldm";
+    } catch (e) {
+      /* no matchMedia: carry on */
+    }
+    return demoted() ? "ldm" : "normal";
+  }
+
+  /** The level in force */
+  function detail() {
+    var p = detailPref();
+    return p === "auto" ? autoDetail() : p;
   }
 
   // The painted background blurs while signed in (Tampilan, default 60%). The blur is a number the stylesheet reads.
@@ -86,6 +119,17 @@
     },
     theme: theme,
     detail: detail,
+    detailPref: detailPref,
+    /** The speed watcher found this device too slow: Otomatis drops to Low Detail for two weeks */
+    demote: function () {
+      try {
+        window.localStorage.setItem("iris-auto-ldm", String(Date.now()));
+      } catch (e) {
+        /* storage blocked: it holds for this page only */
+        window.__irisDemoted = true;
+      }
+      apply(document.documentElement);
+    },
   };
 
   // Toast hydrates when the page is idle (Base.astro), so a toast raised before that waits here and is

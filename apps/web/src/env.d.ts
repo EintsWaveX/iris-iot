@@ -9,6 +9,8 @@
 interface Window {
   /** Toasts raised before the Toast island hydrated (public/theme-init.js, Toast.tsx). */
   __toastAntre?: Array<{ t: number; a: Parameters<NonNullable<Window["Toast"]>["show"]> }>;
+  /** public/theme-init.js: the speed watcher demoted this page while storage is blocked */
+  __irisDemoted?: boolean;
   Toast?: {
     show(
       message: string,
@@ -70,8 +72,11 @@ interface Window {
   CustomEase?: unknown;
   // src/scripts/cosmos-router.js
   CosmosRouter?: {
-    setDetail(level: "ldm" | "normal" | "hd"): void;
+    setDetail(level: "auto" | "ldm" | "normal" | "hd"): void;
+    /** The level in force (what Otomatis resolved to, if that is the choice) */
     getDetail(): "ldm" | "normal" | "hd";
+    /** What the reader chose, which can be "auto" */
+    getChoice(): "auto" | "ldm" | "normal" | "hd";
   };
   // public/theme-init.js: re-stamps data-theme, data-detail and
   // data-zh-weight on <html> after a display choice is saved.
@@ -79,14 +84,12 @@ interface Window {
     apply(): void;
     theme(): "dark" | "light";
     detail(): "ldm" | "normal" | "hd";
+    detailPref(): "auto" | "ldm" | "normal" | "hd";
+    demote(): void;
   };
-  // src/scripts/motion-tier.ts (P6.4/B10): forces one fresh capability
-  // measurement, clearing the cached tier first. cosmos-router.js calls
-  // this when the "Otomatis" setting is (re-)selected, so a device stuck
-  // at a stale or wrong verdict is not limited to waiting out the 7-day
-  // cache expiry.
+  // src/scripts/motion-tier.ts: recomputes data-motion-tier from the level in force
+  // (cosmos-router.js calls it after a choice, auto-detail.ts after a demotion).
   IrisMotionTier?: {
-    reprobe(): void;
     reapply(): void;
   };
 }

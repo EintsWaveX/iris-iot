@@ -1,0 +1,22 @@
+{
+  "what": "Otomatis detail level: Normal by default, Low Detail for a plainly weak device or one the watcher found slow; the canvas probe is gone",
+  "method": "built site served locally, emulated phone 390x844 DPR 2.6, signed-in mock, no stored choice, CPU throttle as shown, watcher windows at load+4 s and load+25 s",
+  "results": [
+    { "cpu_throttle": 6, "page_load_s": 1.1, "p75_frame_ms": 21, "outcome": "stays Normal" },
+    {
+      "cpu_throttle": 12,
+      "page_load_s": 4.3,
+      "p75_frame_ms": 76,
+      "outcome": "demoted to Low Detail (tier 0)"
+    },
+    { "cpu_throttle": 14, "outcome": "demoted; toast shown once the toast island hydrated" },
+    { "cpu_throttle": 18, "page_load_s": 11.1, "p75_frame_ms": 125, "outcome": "demoted" },
+    {
+      "cpu_throttle": 30,
+      "choice": "Normal",
+      "outcome": "stays Normal (a reader's choice is never overridden)"
+    },
+    { "cpu_throttle": 30, "choice": "High Detail", "outcome": "stays High Detail" }
+  ],
+  "note": "6x is roughly the lab's low-end phone proxy: it is judged fine with the fixes already merged. The threshold is p75 frame time above 33.4 ms (under 30 fps for most frames)."
+}

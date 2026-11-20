@@ -33,7 +33,9 @@ const T = dict({
     light: "Terang",
     system: "Sistem",
     detail: "Detail latar",
-    ldm: "Latar diam. Paling ringan, bawaan.",
+    detailAuto: "Normal, atau Low Detail kalau perangkatmu terasa berat. Bawaan.",
+    autoNow: "Sekarang:",
+    ldm: "Latar diam. Paling ringan.",
     normal: "Bintang berkelip, meteor sesekali.",
     hd: "Planet, satelit, komet, aurora.",
     bgBlur: "Blur latar",
@@ -68,7 +70,9 @@ const T = dict({
     light: "Light",
     system: "System",
     detail: "Background detail",
-    ldm: "Still background. Lightest, the default.",
+    detailAuto: "Normal, or Low Detail if your device feels heavy. The default.",
+    autoNow: "Right now:",
+    ldm: "Still background. Lightest.",
     normal: "Twinkling stars, a meteor now and then.",
     hd: "Planets, a satellite, comets, aurora.",
     bgBlur: "Background blur",
@@ -100,7 +104,9 @@ const T = dict({
     light: "浅色",
     system: "跟随系统",
     detail: "背景细节",
-    ldm: "静止背景。最轻，默认。",
+    detailAuto: "普通；如果设备较卡则自动降为低细节。默认。",
+    autoNow: "当前：",
+    ldm: "静止背景。最轻。",
     normal: "星星闪烁，偶尔有流星。",
     hd: "行星、卫星、彗星、极光。",
     bgBlur: "背景模糊",
@@ -150,7 +156,9 @@ export default function DisplayPanel({
     { v: "light", l: t.light, Icon: SunIcon },
     { v: "system", l: t.system, Icon: DesktopIcon },
   ];
+  const levelName = { ldm: "Low Detail", normal: "Normal", hd: "High Detail" }[p.level];
   const details: { v: DetailPref; l: string; tag?: string; d: string }[] = [
+    { v: "auto", l: t.auto, d: `${t.detailAuto} ${t.autoNow} ${levelName}.` },
     { v: "ldm", l: "Low Detail", tag: "LDM", d: t.ldm },
     { v: "normal", l: "Normal", d: t.normal },
     { v: "hd", l: "High Detail", tag: "HD", d: t.hd },
@@ -343,7 +351,8 @@ export function DisplaySummary({ lang, wide = false }: { lang: Lang; wide?: bool
   const t = T[lang];
   const p = usePrefs();
   const theme = { dark: t.dark, light: t.light, system: t.system }[p.theme];
-  const detail = { ldm: "Low Detail", normal: "Normal", hd: "High Detail" }[p.detail];
+  const names = { ldm: "Low Detail", normal: "Normal", hd: "High Detail" };
+  const detail = p.detail === "auto" ? `${t.auto} (${names[p.level]})` : names[p.detail];
   const clock = { auto: t.auto, on: t.on, off: t.off }[p.clock];
   const bahasa = LANGS.find((l) => l.v === lang)?.l ?? lang;
   const rows: [string, string][] = [

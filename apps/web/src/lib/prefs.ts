@@ -4,7 +4,8 @@
  * (public/theme-init.js reads the same keys):
  *
  *   iris-theme      dark | light | system   (dark by default)
- *   iris-detail     ldm | normal | hd       (cosmos-router.js owns it)
+ *   iris-detail     auto | ldm | normal | hd   (auto by default; cosmos-router.js owns it)
+ *   iris-auto-ldm   a time: the speed watcher demoted Otomatis to Low Detail then (14 days)
  *   iris-zh-weight  700 | 500               Mandarin headings only
  *   iris-clock      auto | on | off         the clock in the navigation
  *   iris-keys       on | off                keyboard shortcuts (the "?" sheet)
@@ -17,7 +18,9 @@
 import { useEffect, useState } from "react";
 
 export type ThemePref = "dark" | "light" | "system";
-export type DetailPref = "ldm" | "normal" | "hd";
+/** What the reader chose. Otomatis resolves to the level in force: Normal, or Low Detail on a weak or slow device. */
+export type DetailPref = "auto" | "ldm" | "normal" | "hd";
+export type DetailLevel = "ldm" | "normal" | "hd";
 export type ClockPref = "auto" | "on" | "off";
 export type ZhWeight = "700" | "500";
 
@@ -52,7 +55,10 @@ export function parseBgBlur(v: string | null): number {
 export interface Prefs {
   theme: ThemePref;
   bgBlur: number;
+  /** The choice, which can be Otomatis */
   detail: DetailPref;
+  /** The level in force (what Otomatis resolved to, if that is the choice) */
+  level: DetailLevel;
   clock: ClockPref;
   zhWeight: ZhWeight;
   sound: boolean;
@@ -60,11 +66,13 @@ export interface Prefs {
 
 export function readPrefs(): Prefs {
   const theme = read("iris-theme");
-  const detail = window.CosmosRouter?.getDetail() ?? read("iris-detail");
+  const detail = window.CosmosRouter?.getChoice() ?? read("iris-detail");
+  const level = window.CosmosRouter?.getDetail() ?? document.documentElement.dataset.detail;
   const clock = read("iris-clock");
   return {
     theme: theme === "light" || theme === "system" ? theme : "dark",
-    detail: detail === "ldm" || detail === "hd" ? detail : "normal",
+    detail: detail === "ldm" || detail === "normal" || detail === "hd" ? detail : "auto",
+    level: level === "ldm" || level === "hd" ? level : "normal",
     clock: clock === "on" || clock === "off" ? clock : "auto",
     zhWeight: read("iris-zh-weight") === "500" ? "500" : "700",
     sound: read("iris-sound") !== "off",
@@ -104,7 +112,8 @@ export function setDetail(v: DetailPref) {
 export function usePrefs(): Prefs {
   const [p, setP] = useState<Prefs>({
     theme: "dark",
-    detail: "normal",
+    detail: "auto",
+    level: "normal",
     clock: "auto",
     zhWeight: "700",
     sound: true,
