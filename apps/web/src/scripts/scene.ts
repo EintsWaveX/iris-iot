@@ -27,11 +27,13 @@ if (canvas && scene) {
   let h = 0;
 
   const theme = (): Theme => (html.dataset.theme === "light" ? "day" : "night");
+  // A page that turned the sky off (exam rooms, the Konsol, the QR wall: Base's `sky={false}`) gets none of it
+  const off = () => html.dataset.sky === "off";
 
   // Ask for the sprites straight away: a worker draws them while the page hydrates, so the main thread never
   // pays for them (cosmos/sky-client.ts). Until they arrive the page shows the gradient and the painted
   // backdrop, exactly as scene.css's "before the sprites are painted" fallback intends.
-  void loadSprites(theme());
+  if (!off()) void loadSprites(theme());
 
   const install = (T: Theme) => {
     building = T;
@@ -48,6 +50,7 @@ if (canvas && scene) {
   };
 
   const paint = () => {
+    if (off()) return;
     const T = theme();
     const nw = window.innerWidth;
     const nh = window.innerHeight;
@@ -89,7 +92,11 @@ if (canvas && scene) {
     window.clearTimeout(rz);
     rz = window.setTimeout(paint, 200);
   });
-  new MutationObserver(paint).observe(html, { attributes: true, attributeFilter: ["data-theme"] });
+  // data-theme: the reader switched theme. data-sky: a navigation to or from a page that has no sky.
+  new MutationObserver(paint).observe(html, {
+    attributes: true,
+    attributeFilter: ["data-theme", "data-sky"],
+  });
 
   // Nothing to animate in a hidden tab.
   document.addEventListener("visibilitychange", () => {
@@ -103,7 +110,13 @@ if (canvas && scene) {
   window.addEventListener(
     "pointermove",
     (e) => {
-      if (html.dataset.detail === "ldm" || html.dataset.motionTier === "0" || reduce.matches || raf)
+      if (
+        html.dataset.detail === "ldm" ||
+        html.dataset.motionTier === "0" ||
+        html.dataset.sky === "off" ||
+        reduce.matches ||
+        raf
+      )
         return;
       const x = e.clientX;
       const y = e.clientY;
