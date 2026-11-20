@@ -9,6 +9,7 @@ import * as RadixDialog from "@radix-ui/react-dialog";
 import { CaretLeftIcon, CaretRightIcon, XIcon } from "@phosphor-icons/react";
 import IconButton from "../../ui/IconButton";
 import type { Lang } from "../../../lib/kelas";
+import { calmMotion } from "../../../lib/calm-motion";
 import { useGerakProfil } from "./parts";
 import { P } from "./profilStrings";
 
@@ -18,6 +19,9 @@ export interface FotoLihat {
   alt: string;
   cap?: string;
 }
+
+/** How long the exit fade holds the viewer. Matches `.pl-lb[data-state="closed"]` in profil.css (150 ms). */
+const EXIT_MS = 150;
 
 export default function Lightbox({
   lang,
@@ -49,9 +53,24 @@ export default function Lightbox({
       ?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [i]);
 
+  // Closing keeps the viewer mounted while it fades out (the .pl-lb[data-state="closed"] rules), then tells the
+  // parent. Reduced motion and Low Detail go at once (calm-motion.ts).
+  const [open, setOpen] = useState(true);
+  const leave = useRef(onClose);
+  leave.current = onClose;
+  useEffect(() => {
+    if (open) return;
+    if (calmMotion()) {
+      leave.current();
+      return;
+    }
+    const id = window.setTimeout(() => leave.current(), EXIT_MS + 30);
+    return () => window.clearTimeout(id);
+  }, [open]);
+
   const p = pics[i];
   return (
-    <RadixDialog.Root open onOpenChange={(o) => !o && onClose()}>
+    <RadixDialog.Root open={open} onOpenChange={(o) => !o && setOpen(false)}>
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="pl-lb__overlay" />
         <RadixDialog.Content

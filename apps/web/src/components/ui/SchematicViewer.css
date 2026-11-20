@@ -86,3 +86,17 @@
     display: none;
   }
 }
+
+/* Exit (the overlay already fades in): Radix holds the viewer while data-state="closed" animates. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion-tier="0"]) .schemv__overlay[data-state="closed"] {
+    animation: dialog-fade-out 140ms ease both;
+  }
+  :root:not([data-motion-tier="0"]) .schemv[data-state="open"] {
+    animation: dialog-fade-in 180ms ease both;
+  }
+  :root:not([data-motion-tier="0"]) .schemv[data-state="closed"] {
+    animation: dialog-fade-out 140ms ease both;
+    pointer-events: none;
+  }
+}
