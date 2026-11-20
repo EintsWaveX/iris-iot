@@ -1869,11 +1869,19 @@ html[data-detail="ldm"] .rec-funnel__bar i {
     );
   }
 }
+/*
+ * The fog moves by TRANSFORM only (Nov 2026 perf pass). It used to animate `mask-position` on three masked
+ * layers plus two blurred wisps: a mask moved that way is repainted on the main thread every frame, which is what
+ * made the Oprec pages heavy. Now each layer is a box one noise tile wider than it needs to be and slides exactly
+ * one tile (the noise is stitchTiles, so the loop is seamless); the mask travels with the box and is never redrawn.
+ *   Low Detail, motion tier 0, reduced motion   one layer, standing still
+ *   Normal                                      one layer, drifting
+ *   High Detail                                 three layers and two wisps, drifting
+ */
 .n7-mist i {
-  animation: n7-fog-r 95s linear infinite;
   background: rgb(var(--fogc));
   bottom: -10%;
-  left: -30%;
+  left: calc(-30% - 760px);
   -webkit-mask-image: var(--noise);
   mask-image: var(--noise);
   -webkit-mask-size: 760px 380px;
@@ -1884,24 +1892,21 @@ html[data-detail="ldm"] .rec-funnel__bar i {
   top: -10%;
 }
 .n7-mist i:nth-child(2) {
-  animation:
-    n7-fog-l 140s linear infinite,
-    n7-fog-breathe 11s ease-in-out -4s infinite alternate;
+  left: -30%;
+  right: calc(-30% - 1180px);
   -webkit-mask-size: 1180px 590px;
   mask-size: 1180px 590px;
   opacity: calc(var(--fogk) * 1.7);
 }
 .n7-mist i:nth-child(3) {
-  animation:
-    n7-fog-r 62s linear -20s infinite reverse,
-    n7-fog-breathe 7s ease-in-out -2s infinite alternate;
+  left: -30%;
+  right: calc(-30% - 520px);
   -webkit-mask-size: 520px 260px;
   mask-size: 520px 260px;
   opacity: calc(var(--fogk) * 1.4);
 }
 .n7-mist b,
 .n7-mist u {
-  animation: n7-wisp-run 19s ease-in-out infinite;
   background: radial-gradient(
     closest-side,
     rgba(var(--fogc), calc(var(--fogk) * 1.1)),
@@ -1909,7 +1914,6 @@ html[data-detail="ldm"] .rec-funnel__bar i {
   );
   border-radius: 50%;
   bottom: 4%;
-  filter: blur(14px);
   height: 34%;
   left: 0;
   opacity: 0;
@@ -1918,45 +1922,25 @@ html[data-detail="ldm"] .rec-funnel__bar i {
   width: 70%;
 }
 .n7-mist u {
-  animation-delay: -9s;
-  animation-direction: reverse;
-  animation-duration: 27s;
   bottom: auto;
   height: 28%;
   top: 8%;
   width: 55%;
 }
 .n7-mist::after {
-  animation: n7-fog-breathe 9s ease-in-out infinite alternate;
-  backdrop-filter: blur(4px);
   background: color-mix(in srgb, var(--surface-1) 30%, transparent);
   content: "";
   inset: 0;
   position: absolute;
 }
-@keyframes n7-fog-r {
-  from {
-    -webkit-mask-position: 0 0;
-    mask-position: 0 0;
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(3%);
-  }
+@keyframes n7-fog-slide {
   to {
-    -webkit-mask-position: 760px 190px;
-    mask-position: 760px 190px;
-    transform: translateY(0);
+    translate: var(--slide) 0;
   }
 }
-@keyframes n7-fog-l {
-  from {
-    -webkit-mask-position: 0 0;
-    mask-position: 0 0;
-  }
-  to {
-    -webkit-mask-position: -1180px 120px;
-    mask-position: -1180px 120px;
+@keyframes n7-fog-sway {
+  50% {
+    transform: translateY(3%);
   }
 }
 @keyframes n7-fog-breathe {
@@ -1981,137 +1965,39 @@ html[data-detail="ldm"] .rec-funnel__bar i {
     transform: translateX(140%);
   }
 }
-html[data-detail="ldm"] .n7-mist i:nth-child(n + 2),
-html[data-detail="ldm"] .n7-mist b,
-html[data-detail="ldm"] .n7-mist u {
+/* Below High Detail: the first layer only, no wisps, nothing in the second and third layers */
+:root:not([data-detail="hd"]) .n7-mist :is(i:nth-child(n + 2), b, u),
+:root[data-motion-tier="0"] .n7-mist :is(i:nth-child(n + 2), b, u) {
   display: none;
 }
-html[data-detail="ldm"] .n7-mist i:nth-child(1) {
-  animation-duration: 160s;
-}
-@media (prefers-reduced-motion: reduce) {
-  .n7-mist i,
-  .n7-mist b,
-  .n7-mist u,
-  .n7-mist::after,
-  .rkal__d[data-fog="yes"]::after {
-    animation: none;
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .n7-mist i:nth-child(1) {
+    --slide: 760px;
+    animation:
+      n7-fog-slide 95s linear infinite,
+      n7-fog-sway 95s ease-in-out infinite;
   }
-  .n7-mist b,
-  .n7-mist u {
-    opacity: 0.5;
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .n7-mist i:nth-child(2) {
+    --slide: -1180px;
+    animation:
+      n7-fog-slide 140s linear infinite,
+      n7-fog-breathe 11s ease-in-out -4s infinite alternate;
   }
-}
-
-/* The mockup's forms use its large tap size (styles.css --tap-lg 52px) for inputs and lists. */
-.rec-form .field__input,
-.rec-form .dropdown__trigger,
-.rec-form .ctl-clock,
-.rec-form .ctl-date__trigger,
-.r9docs .field__input {
-  min-height: 52px;
-}
-
-/* ======================================================= Banner, richer (2026-11-03)
-   The card keeps its one-card height and its rainbow edge, and gets a surface with a
-   mood: a teal glow and a violet glow over a faint dot grid, a radio drawing on the
-   right, a sticker and a gradient title. The stage names stay off the banner on purpose
-   (2026-11-03: newcomers must not see the full timeline). All of it is
-   decoration over the same words; the motion stops at Low Detail and with reduced
-   motion. */
-.rec-bn--rich .rec-bn__in {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  background:
-    radial-gradient(
-      60% 140% at 0% 0%,
-      color-mix(in srgb, var(--rec) 20%, transparent),
-      transparent 62%
-    ),
-    radial-gradient(50% 120% at 100% 100%, rgba(167, 139, 250, 0.2), transparent 64%),
-    radial-gradient(
-        circle at 1px 1px,
-        color-mix(in srgb, var(--text) 9%, transparent) 1px,
-        transparent 1.4px
-      )
-      0 0 / 16px 16px,
-    var(--surface-1);
-}
-.rec-bn--rich .rec-bn__body,
-.rec-bn--rich .rec-bn__extra,
-.rec-bn--rich .rec-bn__cta {
-  position: relative;
-  z-index: 1;
-}
-.rec-bn__art {
-  position: absolute;
-  z-index: 0;
-  right: 0;
-  top: 0;
-  height: 100%;
-  width: min(60%, 340px);
-  opacity: 0.4;
-  pointer-events: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 60%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 60%);
-}
-@media (min-width: 900px) {
-  .rec-bn__art {
-    opacity: 0.75;
-    width: min(48%, 460px);
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .n7-mist i:nth-child(3) {
+    --slide: -520px;
+    animation:
+      n7-fog-slide 42s linear -14s infinite,
+      n7-fog-breathe 7s ease-in-out -2s infinite alternate;
   }
-}
-.rec-bn__top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.rec-bn__sticker {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 11px 3px 9px;
-  border-radius: 999px;
-  background: var(--rec);
-  color: var(--rec-ink);
-  font-size: max(11px, 0.78rem);
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  transform: rotate(-2.5deg);
-  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--rec) 70%, transparent);
-}
-.rec-bn__sticker::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-}
-.rec-bn__title--hot {
-  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  background: linear-gradient(95deg, var(--text) 30%, var(--rec) 70%, #a78bfa);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-/* The candidate's own tile and steps get the same lift. */
-.rec-bn--rich .rec9-bn__ic {
-  background: linear-gradient(
-    140deg,
-    color-mix(in srgb, var(--rec) 30%, transparent),
-    rgba(167, 139, 250, 0.22)
-  );
-  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--rec) 80%, transparent);
-}
-.rec-bn--rich .rec-bn__stat b {
-  background: linear-gradient(95deg, var(--text), var(--rec));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .n7-mist b {
+    animation: n7-wisp-run 19s ease-in-out infinite;
+  }
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .n7-mist u {
+    animation: n7-wisp-run 27s ease-in-out -9s infinite reverse;
+  }
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .n7-mist::after {
+    animation: n7-fog-breathe 9s ease-in-out infinite alternate;
+  }
 }
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-motion-tier="0"]) .rec-bn__arcs path {

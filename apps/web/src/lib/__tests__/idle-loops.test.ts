@@ -145,11 +145,6 @@ function offenders(): string[] {
  * make the animation hover/focus-only, one pass, or compositor-only (transform, opacity) instead.
  */
 const KNOWN: readonly string[] = [
-  // Oprec fog: one pre-rendered texture moved by transform (phase 1.3)
-  'components/recruitment/recruitment-calendar.css | .rkal__d[data-fog="yes"]::after | n7-fog-cell',
-  "components/recruitment/recruitment.css | .n7-mist i | n7-fog-r",
-  "components/recruitment/recruitment.css | .n7-mist i:nth-child(2) | n7-fog-l",
-  "components/recruitment/recruitment.css | .n7-mist i:nth-child(3) | n7-fog-r",
   // The painted sky's waterfall and the glass border spin (phase 1.2, phase 2)
   "styles/scene.css | .wf | scene-fall",
   'styles/glass.css | :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--aurora::before | glass-spin',
