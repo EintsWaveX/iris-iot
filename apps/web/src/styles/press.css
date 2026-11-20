@@ -1,0 +1,25 @@
+/* =========================================================================
+   PRESS FEEDBACK BASE LAYER (Nov 2026, motion phase 5).
+   Every button, [role="button"] and <summary> shrinks a hair while it is held down, so nothing in the app feels
+   dead under a finger. `.btn` and `.control-hover` already do this themselves (controls.css), so they are left
+   out. The whole selector sits inside :where(), so its specificity is zero: any component's own :active or
+   transition rule wins without a fight. It uses the individual `scale` property, which composes with the
+   component's own `transform` (lifts, rotations) instead of replacing it, and runs on the compositor.
+   Off at motion tier 0 and for reduced motion.
+   ========================================================================= */
+@media (prefers-reduced-motion: no-preference) {
+  :where(:root:not([data-motion-tier="0"]) :is(button, [role="button"], summary)) {
+    transition: scale var(--dur-fast) var(--ease-out-expo);
+  }
+  :where(
+    :root:not([data-motion-tier="0"])
+      :is(button, [role="button"], summary):active:not(
+        :disabled,
+        [aria-disabled="true"],
+        .btn,
+        .control-hover
+      )
+  ) {
+    scale: 0.98;
+  }
+}
