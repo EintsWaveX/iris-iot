@@ -171,7 +171,7 @@
   pointer-events: none;
   background: var(--sweep);
   background-size: 300% 100%;
-  animation: rec-s2-sweep 9s linear infinite;
+  animation: rec-s2-sweep 9s linear 1;
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -600,7 +600,7 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: rec-s2-edgespin 6s linear infinite;
+  animation: rec-s2-edgespin 6s linear 2;
 }
 .r2inbox__list {
   list-style: none;
@@ -1745,7 +1745,7 @@ li.r2cutline {
   stroke-width: 1.1;
   stroke-linecap: round;
   stroke-dasharray: 100;
-  animation: rec-s2-drain 20s linear infinite;
+  animation: rec-s2-drain 20s linear 3;
 }
 @keyframes rec-s2-drain {
   to {

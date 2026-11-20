@@ -169,7 +169,7 @@
 }
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--aurora::before {
-    animation: glass-spin 6s linear infinite;
+    animation: glass-spin 6s linear 2;
   }
   @keyframes glass-spin {
     to {
