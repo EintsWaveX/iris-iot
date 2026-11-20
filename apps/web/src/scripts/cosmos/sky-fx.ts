@@ -102,7 +102,9 @@ export function mountSkyFx(scene: HTMLElement, T: Theme, w: number, h: number): 
 
   const sync = () => {
     if (dead) return;
-    const animated = !still() && !document.hidden;
+    // A page with no sky (html[data-sky="off"]) draws nothing, and stops the loop it had
+    const skyOff = html.dataset.sky === "off";
+    const animated = !still() && !document.hidden && !skyOff;
     if (animated) {
       if (!raf) raf = requestAnimationFrame(loop);
       return;
@@ -112,14 +114,17 @@ export function mountSkyFx(scene: HTMLElement, T: Theme, w: number, h: number): 
       raf = 0;
     }
     // A hidden tab keeps whatever it showed; Low Detail and reduced motion show the still painting
-    if (!document.hidden) frame(0, false);
+    if (!document.hidden && !skyOff) frame(0, false);
   };
 
   size(w, h);
   sync();
 
   const mo = new MutationObserver(sync);
-  mo.observe(html, { attributes: true, attributeFilter: ["data-detail", "data-motion-tier"] });
+  mo.observe(html, {
+    attributes: true,
+    attributeFilter: ["data-detail", "data-motion-tier", "data-sky"],
+  });
   document.addEventListener("visibilitychange", sync);
   reduce.addEventListener("change", sync);
 

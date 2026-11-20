@@ -236,3 +236,9 @@
     }
   }
 }
+
+/* A page that turned the sky off (Base's `sky={false}`): exam rooms, the Konsol, the QR wall. Hidden, it costs
+   nothing: no layers, no animation, and scripts/scene.ts builds nothing. The body's own dark floor shows. */
+html[data-sky="off"] .sky {
+  display: none;
+}
