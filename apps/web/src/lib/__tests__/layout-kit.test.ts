@@ -133,3 +133,23 @@ describe("Home hero and closing band", () => {
     );
   });
 });
+
+describe("Asisten console views sit in the shared column", () => {
+  const views = [
+    "GradingView",
+    "PreparationView",
+    "ScheduleView",
+    "TeamView",
+    "ServersPage",
+    "ReportsPage",
+    "KelolaTpView",
+    "LabProfileView",
+    "TotView",
+  ];
+  for (const v of views)
+    it(`views/${v}.astro uses .page-col`, () =>
+      expect(read(`views/${v}.astro`)).toMatch(/<main id="main" class="page-col page-main">/));
+  it("the Session page keeps the wide container until its running views are seen at 1360 px", () => {
+    expect(read("views/SessionPage.astro")).toMatch(/class="page-wide page-main"/);
+  });
+});
