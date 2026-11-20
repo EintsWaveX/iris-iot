@@ -69,3 +69,14 @@ describe("SectionBand", () => {
     expect(css).toMatch(/background: var\(--surface-1\)/);
   });
 });
+describe("Praktikum views sit in the shared column", () => {
+  const views: [string, RegExp][] = [
+    ["views/DashboardPage.astro", /<main id="main" class="page-col page-main">/],
+    ["components/ModulesIndexView.astro", /<main id="main" class="page-col page-main">/],
+    ["components/ModuleDetailView.astro", /<main id="main" class="page-col page-main modpage"/],
+    ["components/ModuleLiveView.astro", /<main id="main" class="page-col page-main">/],
+    ["views/AccountView.astro", /<main id="main" class="page-col page-main">/],
+  ];
+  for (const [file, re] of views)
+    it(`${file} uses .page-col`, () => expect(read(file)).toMatch(re));
+});
