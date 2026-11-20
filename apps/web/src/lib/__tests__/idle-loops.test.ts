@@ -148,15 +148,6 @@ const KNOWN: readonly string[] = [
   // The painted sky's waterfall and the glass border spin (phase 1.2, phase 2)
   "styles/scene.css | .wf | scene-fall",
   'styles/glass.css | :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--aurora::before | glass-spin',
-  // Skeleton shimmer: a transform-moved highlight instead of background-position (phase 1.4b)
-  'components/ui/Display.css | :root:not([data-motion-tier="0"]) .skeleton | skeleton-shimmer',
-  // Live-dot pulses animate box-shadow: a transform/opacity ring instead (phase 1.4b)
-  'components/shell/AppNav.css | :root:not([data-motion-tier="0"]) .appnav__live-dot | appnav-live',
-  'components/shell/SessionMiniBar.css | :root:not([data-motion-tier="0"]) .minibar__dot | appnav-live',
-  'styles/app.css | :root:not([data-motion-tier="0"]) .dot--pulse | appnav-live',
-  'components/recruitment/recruitment.css | :root:not([data-motion-tier="0"]) .rec-bn__sticker::before | appnav-live',
-  'components/recruitment/recruitment-shell.css | :root:not([data-motion-tier="0"]) .rec-labpc__dot | rec-labpc-pulse',
-  'components/recruitment/recruitment-shell.css | :root:not([data-motion-tier="0"]) .rec-oprec__dot | rec-blip',
   // Oprec reveal and celebration screens: short-lived, one pass or transform (phase 6, Oprec sweep)
   "components/recruitment/recruitment-s2.css | .r2env::before | rec-s2-sweep",
   'components/recruitment/recruitment-s2.css | .r2mini[data-st="sealed"]::after | rec-s2-edgespin',

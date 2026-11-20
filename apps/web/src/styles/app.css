@@ -523,8 +523,45 @@ body > .page-main {
   border: 1.5px solid var(--text-faint);
 }
 
-:root:not([data-motion-tier="0"]) .dot--pulse {
-  animation: appnav-live 2s ease-out infinite;
+/* "Live" dots: a ring that grows and fades. It used to animate box-shadow, which the main thread repaints every
+   frame (and kept the page from ever going idle); the ring is now a pseudo-element moved by transform and opacity.
+   The ring takes the dot's own colour. */
+.minibar__dot,
+.dot--pulse,
+.rec-labpc__dot,
+.rec-oprec__dot {
+  position: relative;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion-tier="0"])
+    :is(.appnav__live-dot, .minibar__dot, .dot--pulse, .rec-labpc__dot, .rec-oprec__dot)::after {
+    animation: live-ring 2s ease-out infinite;
+    background: inherit;
+    border-radius: 50%;
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+  :root:not([data-motion-tier="0"]) .rec-labpc[data-tone="retry"] .rec-labpc__dot::after {
+    animation-duration: 0.9s;
+  }
+}
+@keyframes live-ring {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+@keyframes live-pulse {
+  50% {
+    opacity: 0.55;
+    transform: scale(1.5);
+  }
 }
 
 /* Code anywhere reads in the code editor's font (2026-10-18): the browser's

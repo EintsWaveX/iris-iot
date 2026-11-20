@@ -63,10 +63,20 @@
 
 /* Skeleton */
 .skeleton {
-  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
-  background-size: 300% 100%;
+  background: var(--surface-2);
   border-radius: var(--radius-md);
   display: block;
+  overflow: hidden;
+  position: relative;
+}
+/* The shimmer is a highlight band moved by transform (it used to move a background-position, which the main
+   thread repaints every frame). Standing still, it waits off to the left. */
+.skeleton::after {
+  background: linear-gradient(90deg, transparent, var(--surface-3) 50%, transparent);
+  content: "";
+  inset: 0;
+  position: absolute;
+  translate: -100% 0;
 }
 
 /* The hidden "loading" word: Indonesian unless the page is English or Chinese. */
@@ -83,14 +93,14 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root:not([data-motion-tier="0"]) .skeleton {
+  :root:not([data-motion-tier="0"]) .skeleton::after {
     animation: skeleton-shimmer 1.4s linear infinite;
   }
 }
 
 @keyframes skeleton-shimmer {
   to {
-    background-position: -150% 0;
+    translate: 100% 0;
   }
 }
 
