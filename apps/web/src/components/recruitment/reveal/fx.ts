@@ -34,7 +34,7 @@ const reducedServer = () => false;
 
 export function useRevealMotion(): MotionLevel {
   const tier = useMotionTier();
-  const { detail } = usePrefs();
+  const { level: detail } = usePrefs();
   const reduced = useSyncExternalStore(ikutReduced, reducedKini, reducedServer);
   return motionLevel({ reduced, tier, detail });
 }
