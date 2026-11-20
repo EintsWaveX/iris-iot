@@ -208,6 +208,18 @@ describe.each(THEMES)("contrast contract, %s theme", (_name, raw) => {
     expect(raw.get("sweep-surface")!).not.toMatch(/--neb-/);
   });
 
+  // Matrix extension (colour 3b, Nov 2026): the module hues are written as text ("Modul 3"), and the focus ring
+  // is what a keyboard user finds controls by. (The accent fill is not measured against the surface: a button wears a border
+  // and its label is held to 4.5:1 against the fill by --accent-ink above.)
+  it.each([1, 2, 3, 4].map((n) => `--mod-${n}`))(`%s clears ${AA}:1 on every surface`, (ink) => {
+    const worst = Math.min(...SURFACES.map((s) => contrast(color(raw, ink), color(raw, s))));
+    expect(worst).toBeGreaterThanOrEqual(AA);
+  });
+  it.each(["--focus-ring"])(`%s clears ${UI}:1 on every surface`, (ink) => {
+    const worst = Math.min(...SURFACES.map((s) => contrast(color(raw, ink), color(raw, s))));
+    expect(worst).toBeGreaterThanOrEqual(UI);
+  });
+
   it("declares a hue for every group a session can hold (up to ten)", () => {
     for (let n = 1; n <= 10; n++) {
       expect(raw.has(`group-${n}`), `--group-${n} should be declared`).toBe(true);
