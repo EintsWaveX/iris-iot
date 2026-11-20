@@ -4,8 +4,9 @@
    Whatever a reader has to read closely sits on a solid plate: tables, forms, scores.
    The tints are strong enough that --text-muted keeps 4.5:1 over the brightest part of either sky
    (measured 16 Nov: dark panel 4.7 over the lavender aurora, light panel 5.9 over the deepest blue).
-   Low Detail and motion tier 0 drop the blur and fall back to the old solid surfaces,
-   so the lab PCs pay nothing for it.
+   NOTE (20 Nov 2026): the blur below is only live at High Detail, on a short list of elements. styles/plates.css
+   is loaded after this file, turns these glass tokens into near-opaque plates below High Detail and removes every
+   other backdrop-filter. Low Detail and motion tier 0 also fall back to the old solid surfaces.
    ========================================================================= */
 
 :root {
