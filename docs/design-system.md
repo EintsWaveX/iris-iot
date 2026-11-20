@@ -227,7 +227,8 @@ These are `apps/web`'s values: `src/styles/layout.css` overrides the shared
 **The column.** `.page-col` caps readable content at `--col` (1360px) inside
 `--gutter: clamp(16px, 3.4vw, 56px)`; sections are `--sec-gap` apart
 (56px phone, 112px laptop) and each starts with a `SectionBand`. Home, Modul,
-Dasbor and Akun use it; the consoles and Oprec move one view at a time.
+Dasbor, Akun and the Asisten console pages use it; the Session page and the
+Oprec views keep `--container-wide` (their boards and tables need it).
 
 `--lift-control` is how far anything moves on hover. Space is a 4px base
 scale, `--space-1` through `--space-11`.
