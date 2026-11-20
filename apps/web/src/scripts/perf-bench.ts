@@ -17,6 +17,7 @@
 import {
   SWITCHES,
   formatReport,
+  headline,
   isBaseline,
   summarize,
   topScripts,
@@ -324,6 +325,7 @@ const PANEL_CSS = `
 #${UI_ID} h2{margin:0 0 4px;font:700 14px/1.3 system-ui,sans-serif}
 #${UI_ID} p{margin:0 0 8px;color:var(--text-muted,#b0b8c8)}
 #${UI_ID} pre{margin:8px 0 0;white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,monospace;user-select:text}
+#${UI_ID} .sum p{margin:0 0 6px;color:var(--text,#fff);font:600 14px/1.4 system-ui,sans-serif}
 #${UI_ID} .row{display:flex;gap:8px;flex-wrap:wrap}
 #${UI_ID} button{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--hairline-strong,#4a5470);background:var(--surface-3,#1d2238);color:inherit;font:600 13px system-ui,sans-serif;cursor:pointer}
 #${UI_ID} button.go{background:var(--accent,#40b0ff);color:var(--accent-ink,#04121d);border-color:transparent}
@@ -365,13 +367,16 @@ export function mountPerfBench(opts: { autorun?: boolean } = {}) {
   const out = el("pre", { hidden: true });
   const go = el("button", { className: "go", type: "button", textContent: "Mulai tes" });
   const copy = el("button", { type: "button", textContent: "Salin hasil", hidden: true });
+  const share = el("button", { type: "button", textContent: "Bagikan", hidden: true });
+  const sum = el("div", { className: "sum", hidden: true });
   const close = el("button", { type: "button", textContent: "Tutup" });
   const box = el(
     "section",
     { id: UI_ID, ariaLabel: "Tes kecepatan" },
     el("h2", { textContent: "Tes kecepatan IRIS" }),
     status,
-    el("div", { className: "row" }, go, copy, close),
+    sum,
+    el("div", { className: "row" }, go, copy, share, close),
     out,
   );
   document.head.appendChild(style);
@@ -388,6 +393,8 @@ export function mountPerfBench(opts: { autorun?: boolean } = {}) {
     stop = false;
     go.textContent = "Berhenti";
     copy.hidden = true;
+    share.hidden = true;
+    sum.hidden = true;
     out.hidden = true;
     const report = await runBench({
       onStep: (label, i, n) => {
@@ -397,10 +404,17 @@ export function mountPerfBench(opts: { autorun?: boolean } = {}) {
     });
     running = false;
     go.textContent = "Ulangi tes";
-    status.textContent = "Selesai. Tekan Salin hasil lalu kirim ke aku.";
-    out.textContent = formatReport(report);
+    status.textContent = "Selesai. Tekan Salin hasil (atau Bagikan) lalu kirim ke aku.";
+    const text = formatReport(report);
+    out.textContent = text;
     out.hidden = false;
     copy.hidden = false;
+    share.hidden = typeof navigator.share !== "function";
+    sum.replaceChildren(...headline(report).map((l) => el("p", { textContent: l })));
+    sum.hidden = false;
+    // A browser with a console but no clipboard (or a person who can only reach the console) still gets the text
+    // eslint-disable-next-line no-console -- the report is the point
+    console.info(text);
   };
   go.addEventListener("click", () => void start());
   copy.addEventListener("click", () => {
@@ -409,9 +423,16 @@ export function mountPerfBench(opts: { autorun?: boolean } = {}) {
       copy.textContent = ok ? "Tersalin" : "Pilih teks lalu salin sendiri";
     });
   });
+  share.addEventListener("click", () => {
+    void navigator
+      .share?.({ title: "Tes kecepatan IRIS", text: out.textContent ?? "" })
+      .catch(() => {});
+  });
   close.addEventListener("click", () => {
     stop = true;
     box.remove();
+    // So a reload does not start the test again
+    history.replaceState(history.state, "", location.pathname + location.hash);
     style.remove();
     setFx("");
   });
