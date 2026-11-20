@@ -56,6 +56,11 @@ describe("a page with no sky draws nothing", () => {
   it("scene.css hides the sky", () => {
     expect(read("styles/scene.css")).toMatch(/html\[data-sky="off"\] \.sky \{\s*display: none;/);
   });
+  it("the page ground there is the theme's own, not kosmik's dark-only gradient", () => {
+    expect(read("styles/scene.css")).toMatch(
+      /html\[data-sky="off"\] body \{\s*background: var\(--bg\);/,
+    );
+  });
   it("scene.ts builds nothing and ignores the pointer there", () => {
     const code = read("scripts/scene.ts");
     expect(code).toMatch(/const off = \(\) => html\.dataset\.sky === "off"/);

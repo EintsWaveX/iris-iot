@@ -250,7 +250,13 @@
 }
 
 /* A page that turned the sky off (Base's `sky={false}`): exam rooms, the Konsol, the QR wall. Hidden, it costs
-   nothing: no layers, no animation, and scripts/scene.ts builds nothing. The body's own dark floor shows. */
+   nothing: no layers, no animation, and scripts/scene.ts builds nothing. */
 html[data-sky="off"] .sky {
   display: none;
+}
+/* What shows instead is a flat page ground in the current theme. The body's own floor (kosmik base.css) is a
+   dark-theme gradient with hard-coded dark ends, so in the light theme these pages were dark, pale, dark in
+   bands (found on the Konsol, 21 Nov 2026). */
+html[data-sky="off"] body {
+  background: var(--bg);
 }
