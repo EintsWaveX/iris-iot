@@ -94,6 +94,13 @@
   z-index: 0;
 }
 
+/* On a phone the blurred glow stops at the screen's edge: it stuck out 5 px and the page scrolled sideways. */
+@media (max-width: 639px) {
+  .pl-hero__aura {
+    inset: -38% 0;
+  }
+}
+
 .pl-hero__aura i {
   border-radius: 50%;
   mix-blend-mode: screen;
@@ -178,7 +185,9 @@
 }
 
 .pl-hero__title {
-  font-size: clamp(2.3rem, 6.4vw, 4.6rem);
+  /* Layout kit: 64 px at most and weight 700 (it was 73.6 px / 800); a phone keeps 32 */
+  font-size: clamp(32px, 5vw, 64px);
+  font-weight: 700;
 }
 
 /* The hero title: one slow pass of the rainbow after it appears, then still. A looping gradient on clipped
@@ -195,8 +204,30 @@
 }
 
 .pl-hero .home__lede {
-  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.15rem);
+  font-size: 1rem;
   max-width: 60ch;
+}
+@media (min-width: 640px) {
+  .pl-hero .home__lede {
+    font-size: 1.125rem;
+  }
+}
+
+/* The closing band's two buttons: side by side on a laptop, stacked full width on a phone. */
+.pl-close__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+@media (max-width: 639px) {
+  .pl-close__cta {
+    flex-direction: column;
+    width: 100%;
+  }
+  .pl-close__cta > .btn {
+    justify-content: center;
+    width: 100%;
+  }
 }
 
 .pl-hero__cta {
@@ -1147,12 +1178,12 @@
 }
 
 .pl[data-tier="2"] [data-rv].pl-group .pl-group__frame {
-  clip-path: inset(10% 8% round 20px);
+  clip-path: inset(10% 8% round 16px);
   transition: clip-path 1100ms var(--ease-out-expo);
 }
 
 .pl[data-tier="2"] [data-rv].pl-group.is-in .pl-group__frame {
-  clip-path: inset(0 round 20px);
+  clip-path: inset(0 round 16px);
 }
 
 .pl-group__cap {

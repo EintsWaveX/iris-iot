@@ -92,3 +92,44 @@ describe("page header matches the section band", () => {
     expect(css).toMatch(/\.page-header__title \{[^}]*overflow-wrap: anywhere/);
   });
 });
+
+describe("radius scale reaches the whole app", () => {
+  const css = read("styles/layout.css");
+  it("maps the shared kosmik radius tokens onto 16 / 12", () => {
+    expect(css).toMatch(/--radius-xl: var\(--r-card\);/);
+    expect(css).toMatch(/--radius-lg: var\(--r-card\);/);
+    expect(css).toMatch(/--radius-md: var\(--r-ctl\);/);
+  });
+  it("Home's glass cards and bands no longer use their own 18 to 26 px corners", () => {
+    const css2 = read("components/home/observatory.css");
+    expect(css2).not.toMatch(/border-radius: (18|20|22|24|26)px/);
+  });
+});
+
+describe("Home hero and closing band", () => {
+  it("hero title is 32 to 64 px at weight 700, the lede 18 px on a laptop", () => {
+    const css = read("components/home/profil/profil.css");
+    expect(css).toMatch(
+      /\.pl-hero__title \{[^}]*font-size: clamp\(32px, 5vw, 64px\);[^}]*font-weight: 700/,
+    );
+    expect(css).toMatch(/min-width: 640px\) \{\s*\.pl-hero \.home__lede \{\s*font-size: 1\.125rem/);
+  });
+  it("the hero's glow stays inside a phone screen (no sideways scroll)", () => {
+    expect(read("components/home/profil/profil.css")).toMatch(
+      /max-width: 639px\) \{\s*\.pl-hero__aura \{\s*inset: -38% 0/,
+    );
+  });
+  it("hero is at most 760 px tall and the first screen", () => {
+    expect(read("components/home/observatory.css")).toMatch(
+      /min-height: min\(calc\(100svh - var\(--nav-size\)\), 760px\)/,
+    );
+  });
+  it("a visitor's Home ends on the Mulai praktikum band with both buttons", () => {
+    const tsx = read("components/home/profil/ProfilLab.tsx");
+    expect(tsx).toMatch(/\{hero && <PenutupLab lang=\{lang\} data=\{data\} \/>\}/);
+    expect(tsx).toMatch(/<SectionBand[\s\S]*?title=\{t\.closeTitle\}[\s\S]*?btn--primary/);
+    expect(read("components/home/profil/profilStrings.ts")).toMatch(
+      /closeTitle: "Mulai praktikum"/,
+    );
+  });
+});

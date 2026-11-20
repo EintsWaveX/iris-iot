@@ -80,6 +80,9 @@ export const P = dict({
     acaraTitle: "Acara IRIS",
     acaraLede:
       "Dari workshop terbuka sampai pelatihan Asisten dan rekruitasi tiap tahun. Geser kartunya, buka satu untuk melihat semua fotonya.",
+    closeTitle: "Mulai praktikum",
+    closeLede: "Masuk buat ikut sesi praktikum, atau lihat dulu modul-modulnya.",
+    closeNext: (judul: string, tgl: string) => `Acara berikutnya: ${judul}, ${tgl}.`,
     jenis: {
       workshop: "Workshop",
       tot: "Training of Trainers",
@@ -184,6 +187,9 @@ export const P = dict({
     acaraTitle: "IRIS Events",
     acaraLede:
       "From open workshops to Asisten training and the yearly recruitment. Swipe the cards, open one to see all its photos.",
+    closeTitle: "Start practicum",
+    closeLede: "Sign in to join a practicum session, or have a look at the modules first.",
+    closeNext: (judul: string, tgl: string) => `Next event: ${judul}, ${tgl}.`,
     jenis: {
       workshop: "Workshop",
       tot: "Training of Trainers",
@@ -271,6 +277,9 @@ export const P = dict({
     acaraEyebrow: "我们做过的事",
     acaraTitle: "IRIS 活动",
     acaraLede: "从公开的 Workshop 到助教培训和每年的招新。滑动卡片，打开一张查看全部照片。",
+    closeTitle: "开始实验",
+    closeLede: "登录后加入实验课，或者先看看各个模块。",
+    closeNext: (judul: string, tgl: string) => `下一场活动：${judul}，${tgl}。`,
     jenis: {
       workshop: "Workshop",
       tot: "Training of Trainers",
