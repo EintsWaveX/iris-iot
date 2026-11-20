@@ -172,8 +172,10 @@
 .labmenu__t .hint {
   font-size: 0.84rem;
 }
+/* In the menu row the dot sits in the flow. relative, not static: its pulse ring (a ::after, styles/app.css) is
+   positioned against the dot, and against a static dot it was sized to the whole navbar. */
 .labmenu__dot {
-  position: static;
+  position: relative;
 }
 .labmenu__o:active {
   transform: scale(0.98);
@@ -1002,6 +1004,10 @@
 :root:not([data-motion-tier="0"]) .appnav__langsung .appnav__live-dot {
   animation: none;
   position: static;
+}
+/* The "Langsung" dot does not pulse (above), so it gets no ring either */
+:root:not([data-motion-tier="0"]) .appnav__langsung .appnav__live-dot::after {
+  content: none;
 }
 
 @media (max-width: 899px) {

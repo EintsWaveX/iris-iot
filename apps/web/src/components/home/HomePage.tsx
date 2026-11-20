@@ -30,6 +30,7 @@ import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, kelasLabel, kelompokLabel, modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import Pill from "../ui/Pill";
+import SectionBand from "../ui/SectionBand";
 import { Journey, journeyFrom, MissionClock, ModConstellation } from "../shared/Instruments";
 import { H, LANES } from "./homeStrings";
 import "../ui/Display.css";
@@ -523,7 +524,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
         />
 
         <section className="obs__rasi-wrap">
-          <h2 className="home__h1">{t.rasiTitle}</h2>
+          <SectionBand title={t.rasiTitle} />
           <div className="obs__rasi glass">
             {LANES.map((l) => (
               <a
