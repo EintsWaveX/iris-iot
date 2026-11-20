@@ -79,7 +79,7 @@ describe("Praktikum views sit in the shared column", () => {
   ];
   for (const [file, re] of views)
     it(`${file} uses .page-col`, () => expect(read(file)).toMatch(re));
-
+});
 
 describe("page header matches the section band", () => {
   const css = read("styles/page-header.css");
