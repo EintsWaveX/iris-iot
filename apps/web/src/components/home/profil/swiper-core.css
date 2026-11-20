@@ -17,7 +17,7 @@
    not needed. Update this copy with the swiper version in package.json. */
 
 :root {
-  --swiper-theme-color: #007aff;
+  --swiper-theme-color: var(--hex-007aff);
   /*
   --swiper-preloader-color: var(--swiper-theme-color);
   --swiper-wrapper-transition-timing-function: initial;
@@ -176,19 +176,31 @@
   z-index: 10;
 }
 .swiper-3d .swiper-slide-shadow {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgb(var(--rgb-0-0-0) / 0.15);
 }
 .swiper-3d .swiper-slide-shadow-left {
-  background-image: linear-gradient(to left, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  background-image: linear-gradient(
+    to left,
+    rgb(var(--rgb-0-0-0) / 0.5),
+    rgb(var(--rgb-0-0-0) / 0)
+  );
 }
 .swiper-3d .swiper-slide-shadow-right {
-  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  background-image: linear-gradient(
+    to right,
+    rgb(var(--rgb-0-0-0) / 0.5),
+    rgb(var(--rgb-0-0-0) / 0)
+  );
 }
 .swiper-3d .swiper-slide-shadow-top {
-  background-image: linear-gradient(to top, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  background-image: linear-gradient(to top, rgb(var(--rgb-0-0-0) / 0.5), rgb(var(--rgb-0-0-0) / 0));
 }
 .swiper-3d .swiper-slide-shadow-bottom {
-  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  background-image: linear-gradient(
+    to bottom,
+    rgb(var(--rgb-0-0-0) / 0.5),
+    rgb(var(--rgb-0-0-0) / 0)
+  );
 }
 .swiper-lazy-preloader {
   width: 42px;
@@ -210,10 +222,10 @@
   animation: swiper-preloader-spin 1s infinite linear;
 }
 .swiper-lazy-preloader-white {
-  --swiper-preloader-color: #fff;
+  --swiper-preloader-color: var(--hex-ffffff);
 }
 .swiper-lazy-preloader-black {
-  --swiper-preloader-color: #000;
+  --swiper-preloader-color: var(--hex-000000);
 }
 @keyframes swiper-preloader-spin {
   0% {

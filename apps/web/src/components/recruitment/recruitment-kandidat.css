@@ -1,11 +1,11 @@
 /* Kandidat, matched to the mockup (rec9.css): status chips, queues and one row per candidate. */
 .rec9-kand {
-  --a: var(--tc, #5eead4);
+  --a: var(--tc, var(--hex-5eead4));
   --ai: color-mix(in srgb, var(--a) 62%, var(--text));
   gap: 14px;
 }
 :root[data-theme="light"] .rec9-kand {
-  --ai: color-mix(in srgb, var(--a) 40%, #0a0f1c);
+  --ai: color-mix(in srgb, var(--a) 40%, var(--hex-0a0f1c));
 }
 .rec9-kbar {
   align-items: center;
@@ -104,7 +104,7 @@
 }
 .rec9-chip[aria-pressed="true"] b {
   background: var(--k);
-  color: #0a0f1c;
+  color: var(--hex-0a0f1c);
 }
 @media (hover: hover) and (pointer: fine) {
   .rec9-chip:hover {
@@ -422,7 +422,7 @@
 .rec9-tsteps li[data-st="done"] .num {
   background: var(--ok);
   border-color: var(--ok);
-  color: #06210f;
+  color: var(--hex-06210f);
 }
 .rec9-tsteps li[data-st="cur"] {
   color: var(--text);
@@ -544,10 +544,10 @@
 /* The Berkas review drawer, as in the mockup (rec2.css and rec11.css). */
 /* The Kandidat area colour on the head: a bar along the top edge and a dot before the name. */
 .drawer:has(.r2rev) .drawer__head {
-  box-shadow: inset 0 3px 0 #a78bfa;
+  box-shadow: inset 0 3px 0 var(--hex-a78bfa);
 }
 .drawer:has(.r2rev) .drawer__title::before {
-  background: #a78bfa;
+  background: var(--hex-a78bfa);
   border-radius: 50%;
   content: "";
   display: inline-block;
@@ -558,8 +558,8 @@
 }
 /* The body scrolls under the footer: a 28px fade at the bottom edge says there is more, and the same padding keeps the last block clear of it. */
 .drawer:has(.r2rev) .drawer__body {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, var(--hex-000000) calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, var(--hex-000000) calc(100% - 28px), transparent);
   padding-bottom: 46px;
 }
 /* The documents' tabs hug their words and start at the left, like the mockup's tab line (the shared kit stretches them to fill the row). */
@@ -591,7 +591,7 @@
 .rec9-sum td {
   padding: 10px 8px;
   text-align: left;
-  border-bottom: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+  border-bottom: 1px solid var(--line, rgb(var(--rgb-127-127-127) / 0.25));
   white-space: nowrap;
 }
 .rec9-sum th.num,

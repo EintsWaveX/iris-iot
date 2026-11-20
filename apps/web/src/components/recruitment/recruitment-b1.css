@@ -1,6 +1,6 @@
 /* Ringkasan, rebuilt (B1) and matched to the mockup (rec9.css). Tokens only, so both themes read. */
 .b1-sum {
-  --a: var(--tc, #40b0ff);
+  --a: var(--tc, var(--hex-40b0ff));
   --ai: color-mix(in srgb, var(--a) 62%, var(--text));
   align-items: stretch;
   display: grid;
@@ -8,7 +8,7 @@
   grid-template-columns: minmax(0, 1fr);
 }
 :root[data-theme="light"] .b1-sum {
-  --ai: color-mix(in srgb, var(--a) 40%, #0a0f1c);
+  --ai: color-mix(in srgb, var(--a) 40%, var(--hex-0a0f1c));
 }
 @media (min-width: 1000px) {
   .b1-sum {
@@ -131,7 +131,7 @@
 .b1-steps li[data-st="done"] .b1-steps__n {
   background: var(--ok);
   border-color: var(--ok);
-  color: #06210f;
+  color: var(--hex-06210f);
 }
 .b1-fun {
   gap: 16px;
@@ -180,11 +180,11 @@
 }
 .b1-fun__rail li[data-st="done"] .b1-fun__ic {
   background: var(--ok);
-  color: #06210f;
+  color: var(--hex-06210f);
 }
 .b1-fun__rail li[data-st="cur"] .b1-fun__ic {
   background: var(--a);
-  color: #0a0f1c;
+  color: var(--hex-0a0f1c);
 }
 .b1-fun__n {
   font-size: 1.55rem;
@@ -463,31 +463,31 @@
 /* Area colours on the Panitia tabs (mockup M4): Kalender teal, Papan pink. The page's own
    --rec drives the eyebrow, today and the selected day; dark and light each get a legible pair. */
 .rec-page[data-area="kalender"] {
-  --rec: #5eead4;
-  --rec-ink: #04211d;
-  --rec-soft: rgba(94, 234, 212, 0.14);
+  --rec: var(--hex-5eead4);
+  --rec-ink: var(--hex-04211d);
+  --rec-soft: rgb(var(--rgb-94-234-212) / 0.14);
 }
 :root[data-theme="light"] .rec-page[data-area="kalender"] {
-  --rec: #0f766e;
-  --rec-ink: #f0fdfa;
-  --rec-soft: rgba(15, 118, 110, 0.12);
+  --rec: var(--hex-0f766e);
+  --rec-ink: var(--hex-f0fdfa);
+  --rec-soft: rgb(var(--rgb-15-118-110) / 0.12);
 }
 .rec-page[data-area="panitia"] {
-  --rec: #f472b6;
-  --rec-ink: #2a0716;
-  --rec-soft: rgba(244, 114, 182, 0.14);
+  --rec: var(--hex-f472b6);
+  --rec-ink: var(--hex-2a0716);
+  --rec-soft: rgb(var(--rgb-244-114-182) / 0.14);
 }
 :root[data-theme="light"] .rec-page[data-area="panitia"] {
-  --rec: #be185d;
-  --rec-ink: #fff1f7;
-  --rec-soft: rgba(190, 24, 93, 0.12);
+  --rec: var(--hex-be185d);
+  --rec-ink: var(--hex-fff1f7);
+  --rec-soft: rgb(var(--rgb-190-24-93) / 0.12);
 }
 .rec-page[data-area="kalender"] .rec-calcard {
   border-color: color-mix(in srgb, var(--rec) 35%, var(--hairline));
 }
 /* Papan, the mockup's compact board (rec9.css rec9-board, rec9-pool, rec9-col; rec11.css name clamp). --a is the area colour. */
 .rec9-board {
-  --a: var(--tc, #f472b6);
+  --a: var(--tc, var(--hex-f472b6));
   --ai: color-mix(in srgb, var(--a) 62%, var(--text));
   gap: 14px;
 }
@@ -606,10 +606,10 @@
 /* The Koordinator's star is filled with its division colour, brighter on the dark theme and
    deeper on the light one so it holds contrast on either surface (4 Nov 2026) */
 .rec9-board .rec-pp__star[aria-pressed="true"] {
-  color: color-mix(in srgb, var(--c, var(--a)) 88%, #ffffff);
+  color: color-mix(in srgb, var(--c, var(--a)) 88%, var(--hex-ffffff));
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c, var(--a)) 40%, transparent));
 }
 :root[data-theme="light"] .rec9-board .rec-pp__star[aria-pressed="true"] {
-  color: color-mix(in srgb, var(--c, var(--a)) 74%, #0a0f1c);
+  color: color-mix(in srgb, var(--c, var(--a)) 74%, var(--hex-0a0f1c));
   filter: none;
 }

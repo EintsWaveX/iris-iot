@@ -157,7 +157,7 @@
   align-items: center;
   background: var(--text);
   border-radius: 50%;
-  color: var(--bg, #000);
+  color: var(--bg, var(--hex-000000));
   display: inline-flex;
   font-size: 0.78rem;
   height: 20px;

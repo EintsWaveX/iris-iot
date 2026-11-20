@@ -710,8 +710,8 @@
   border-radius: inherit;
   content: "";
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
@@ -1363,8 +1363,8 @@ thead .ntable__name {
   content: "";
   inset: 0;
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
@@ -1697,7 +1697,7 @@ button.lib__name {
 }
 
 .lib__thumb {
-  background: #fff;
+  background: var(--hex-ffffff);
   border-radius: var(--radius-sm);
   height: 44px;
   object-fit: contain;
@@ -1718,7 +1718,7 @@ button.lib__name {
 }
 
 .schem-cur__thumb {
-  background: #fff;
+  background: var(--hex-ffffff);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
   cursor: zoom-in;
@@ -1738,10 +1738,10 @@ button.lib__name {
 
 .schem-cur__zoom {
   align-items: center;
-  background: rgba(5, 6, 11, 0.8);
+  background: rgb(var(--rgb-5-6-11) / 0.8);
   border-radius: 999px;
   bottom: var(--space-2);
-  color: #fff;
+  color: var(--hex-ffffff);
   display: inline-flex;
   font-size: var(--fs-small);
   gap: 6px;
@@ -2157,21 +2157,21 @@ button.lib__name {
 }
 
 .checks__i:focus-visible {
-  background: var(--surface-hover, rgb(255 255 255 / 0.05));
+  background: var(--surface-hover, rgb(var(--rgb-255-255-255) / 0.05));
   border-color: var(--hairline-strong);
   outline: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .checks__i:hover {
-    background: var(--surface-hover, rgb(255 255 255 / 0.05));
+    background: var(--surface-hover, rgb(var(--rgb-255-255-255) / 0.05));
     border-color: var(--hairline-strong);
     outline: none;
   }
 }
 
 .checks__i[data-ok="no"] {
-  background: var(--warn-soft, rgb(245 166 35 / 0.1));
+  background: var(--warn-soft, rgb(var(--rgb-245-166-35) / 0.1));
   border-color: color-mix(in srgb, var(--warn) 45%, transparent);
   margin-inline: 0;
 }
@@ -2685,7 +2685,7 @@ button.lib__name {
 
 .schem-card__thumb {
   aspect-ratio: 4 / 3;
-  background: #fff;
+  background: var(--hex-ffffff);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   cursor: zoom-in;
@@ -3670,16 +3670,30 @@ button.lib__name {
    Like the blue one, the colour is solid and its sweep runs on hover and
    focus. */
 .btn--nilai {
-  --nl-a: #f5b544;
-  --nl-sweep: linear-gradient(100deg, #f5b544, #ffd98a, #f59e0b, #ffe3a3, #f5b544);
+  --nl-a: var(--hex-f5b544);
+  --nl-sweep: linear-gradient(
+    100deg,
+    var(--hex-f5b544),
+    var(--hex-ffd98a),
+    var(--hex-f59e0b),
+    var(--hex-ffe3a3),
+    var(--hex-f5b544)
+  );
   background: var(--nl-a);
   border-color: var(--nl-a);
-  color: #1c1300;
+  color: var(--hex-1c1300);
 }
 .btn--nilai[data-st="sent"] {
-  --nl-a: #34d399;
-  --nl-sweep: linear-gradient(100deg, #34d399, #86efac, #5eead4, #a7f3d0, #34d399);
-  color: #03170f;
+  --nl-a: var(--hex-34d399);
+  --nl-sweep: linear-gradient(
+    100deg,
+    var(--hex-34d399),
+    var(--hex-86efac),
+    var(--hex-5eead4),
+    var(--hex-a7f3d0),
+    var(--hex-34d399)
+  );
+  color: var(--hex-03170f);
 }
 .btn--nilai::after {
   display: none;

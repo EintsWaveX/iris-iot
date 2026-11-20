@@ -184,7 +184,7 @@
   top: 4px;
 }
 .r3cell__sp {
-  color: #c4a1ff;
+  color: var(--hex-c4a1ff);
   left: 5px;
   top: 4px;
 }
@@ -195,10 +195,10 @@
 .r3cell[data-b="yes"] {
   background-image: linear-gradient(
     160deg,
-    color-mix(in srgb, #a78bfa 22%, transparent),
+    color-mix(in srgb, var(--hex-a78bfa) 22%, transparent),
     color-mix(in srgb, var(--gold) 12%, transparent)
   );
-  border-color: color-mix(in srgb, #a78bfa 60%, transparent);
+  border-color: color-mix(in srgb, var(--hex-a78bfa) 60%, transparent);
 }
 .r3cell[aria-current="true"] {
   box-shadow:
@@ -220,8 +220,8 @@
   border-style: dashed;
 }
 .r3lg[data-b="yes"] {
-  background: color-mix(in srgb, #a78bfa 30%, transparent);
-  border-color: #a78bfa;
+  background: color-mix(in srgb, var(--hex-a78bfa) 30%, transparent);
+  border-color: var(--hex-a78bfa);
 }
 
 /* -------------------------------------------------------- the question box */
@@ -357,14 +357,14 @@ body:has(.r3top) .toast[data-shown="yes"] {
 }
 .r3stars i {
   animation: r3-twinkle var(--t, 7s) ease-in-out var(--d, 0s) infinite;
-  background: var(--gold, #e8b64d);
+  background: var(--gold, var(--hex-e8b64d));
   clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
   display: block;
   opacity: 0;
   position: absolute;
 }
 .r3stars i[data-c="b"] {
-  background: #9ad8ff;
+  background: var(--hex-9ad8ff);
 }
 @keyframes r3-twinkle {
   0%,
@@ -391,8 +391,8 @@ body:has(.r3top) .toast[data-shown="yes"] {
    steady glow that only dips a little, so the last minutes feel urgent without flashing. */
 .r3glow {
   --a: 0.34;
-  --c1: #4ade80;
-  --c2: #22c55e;
+  --c1: var(--hex-4ade80);
+  --c2: var(--hex-22c55e);
   --dur: 16s;
   --dip: 0.5;
   inset: 0;

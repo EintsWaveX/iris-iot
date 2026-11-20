@@ -142,16 +142,48 @@
    hue, so the sweep reads as a moving gradient and not a flat colour. The
    first and last stop match so it loops without a seam. */
 .cdown__g[data-g="0"] {
-  --sw: linear-gradient(100deg, #f5b544, #ffe0a3, #fb7185, #ffb8c1, #f59e0b, #f5b544);
+  --sw: linear-gradient(
+    100deg,
+    var(--hex-f5b544),
+    var(--hex-ffe0a3),
+    var(--hex-fb7185),
+    var(--hex-ffb8c1),
+    var(--hex-f59e0b),
+    var(--hex-f5b544)
+  );
 }
 .cdown__g[data-g="1"] {
-  --sw: linear-gradient(100deg, #a78bfa, #d9ccff, #e879f9, #f6c0ff, #8b5cf6, #a78bfa);
+  --sw: linear-gradient(
+    100deg,
+    var(--hex-a78bfa),
+    var(--hex-d9ccff),
+    var(--hex-e879f9),
+    var(--hex-f6c0ff),
+    var(--hex-8b5cf6),
+    var(--hex-a78bfa)
+  );
 }
 .cdown__g[data-g="2"] {
-  --sw: linear-gradient(100deg, #40b0ff, #c2e8ff, #7dd3fc, #1d8fe8, #a5dcff, #40b0ff);
+  --sw: linear-gradient(
+    100deg,
+    var(--hex-40b0ff),
+    var(--hex-c2e8ff),
+    var(--hex-7dd3fc),
+    var(--hex-1d8fe8),
+    var(--hex-a5dcff),
+    var(--hex-40b0ff)
+  );
 }
 .cdown__g[data-g="3"] {
-  --sw: linear-gradient(100deg, #5eead4, #ccfff3, #86efac, #22c9a6, #b9f8c9, #5eead4);
+  --sw: linear-gradient(
+    100deg,
+    var(--hex-5eead4),
+    var(--hex-ccfff3),
+    var(--hex-86efac),
+    var(--hex-22c9a6),
+    var(--hex-b9f8c9),
+    var(--hex-5eead4)
+  );
 }
 /* Moving, every group runs from the same start, a step behind the last;
    still (tier 0, reduced motion), each keeps its own slice instead. The sweep
@@ -1814,7 +1846,7 @@
   background: var(--surface-3);
 }
 .tpteks__img {
-  background: #fff;
+  background: var(--hex-ffffff);
   border-radius: var(--radius-md);
   max-width: 100%;
   padding: 6px;
@@ -1994,7 +2026,7 @@
   position: relative;
 }
 .tpbq__img img {
-  background: #fff;
+  background: var(--hex-ffffff);
   border-radius: 4px;
   max-height: 140px;
   max-width: 100%;
@@ -2154,7 +2186,7 @@
   touch-action: manipulation;
 }
 .tpup__item[data-drag="yes"] {
-  box-shadow: 0 10px 28px -12px rgb(0 0 0 / 0.55);
+  box-shadow: 0 10px 28px -12px rgb(var(--rgb-0-0-0) / 0.55);
   z-index: 2;
 }
 .tpup__grip {
@@ -2682,7 +2714,7 @@
 }
 [data-k="praktikum"]:is(i) {
   background: var(--m);
-  color: var(--accent-ink, #04121d);
+  color: var(--accent-ink, var(--hex-04121d));
 }
 [data-k="praktikum"][data-off]:is(i) {
   background: transparent;

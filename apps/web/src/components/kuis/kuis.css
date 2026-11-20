@@ -18,8 +18,8 @@
   --kz-ease: var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
   --kz-radius: 22px;
   --kz-tile-sh:
-    0 14px 28px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.38), inset 0 -4px 0 rgba(0, 0, 0, 0.14);
+    0 14px 28px rgb(var(--rgb-0-0-0) / 0.3), 0 2px 6px rgb(var(--rgb-0-0-0) / 0.2),
+    inset 0 1px 0 rgb(var(--rgb-255-255-255) / 0.38), inset 0 -4px 0 rgb(var(--rgb-0-0-0) / 0.14);
   background: transparent;
   color: var(--text);
   display: flex;
@@ -41,8 +41,8 @@
 /* ------------------------------------------------------------ scrim over the sky */
 .kz__latar {
   background:
-    radial-gradient(120% 70% at 50% 115%, rgba(139, 92, 246, 0.3), transparent 62%),
-    linear-gradient(rgba(6, 8, 26, 0.3), rgba(6, 8, 26, 0.52));
+    radial-gradient(120% 70% at 50% 115%, rgb(var(--rgb-139-92-246) / 0.3), transparent 62%),
+    linear-gradient(rgb(var(--rgb-6-8-26) / 0.3), rgb(var(--rgb-6-8-26) / 0.52));
   inset: 0;
   pointer-events: none;
   position: absolute;
@@ -51,19 +51,19 @@
 }
 :root[data-theme="light"] .kz__latar {
   background:
-    radial-gradient(120% 70% at 50% 115%, rgba(255, 173, 107, 0.28), transparent 62%),
-    linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3));
+    radial-gradient(120% 70% at 50% 115%, rgb(var(--rgb-255-173-107) / 0.28), transparent 62%),
+    linear-gradient(rgb(var(--rgb-255-255-255) / 0.1), rgb(var(--rgb-255-255-255) / 0.3));
 }
 .kz__latar[data-fase="soal"],
 .kz__latar[data-fase="hitung"] {
   background:
-    radial-gradient(120% 70% at 50% 115%, rgba(255, 173, 107, 0.32), transparent 62%),
-    linear-gradient(rgba(6, 8, 26, 0.3), rgba(6, 8, 26, 0.52));
+    radial-gradient(120% 70% at 50% 115%, rgb(var(--rgb-255-173-107) / 0.32), transparent 62%),
+    linear-gradient(rgb(var(--rgb-6-8-26) / 0.3), rgb(var(--rgb-6-8-26) / 0.52));
 }
 .kz__latar[data-fase="podium"] {
   background:
-    radial-gradient(90% 60% at 50% 100%, rgba(245, 181, 68, 0.4), transparent 65%),
-    linear-gradient(rgba(6, 8, 26, 0.26), rgba(6, 8, 26, 0.5));
+    radial-gradient(90% 60% at 50% 100%, rgb(var(--rgb-245-181-68) / 0.4), transparent 65%),
+    linear-gradient(rgb(var(--rgb-6-8-26) / 0.26), rgb(var(--rgb-6-8-26) / 0.5));
 }
 
 /* ------------------------------------------------------------------- glass plates */
@@ -131,7 +131,7 @@
   gap: 8px;
 }
 .kz__status {
-  background: var(--ok, #5eead4);
+  background: var(--ok, var(--hex-5eead4));
   border-radius: 50%;
   height: 10px;
   margin-right: 4px;
@@ -140,7 +140,7 @@
 .kz__status[data-status="putus"],
 .kz__status[data-status="menyambung"] {
   animation: kz-denyut 1s ease-in-out infinite;
-  background: var(--warn, #f5b544);
+  background: var(--warn, var(--hex-f5b544));
 }
 .kz__status[data-status="ditutup"] {
   background: var(--danger);
@@ -318,7 +318,7 @@
   color: var(--text);
 }
 .kz__pil-api svg {
-  color: var(--gold, #f5b544);
+  color: var(--gold, var(--hex-f5b544));
 }
 
 /* ------------------------------------------------------------ info screens */
@@ -442,7 +442,7 @@
 }
 .kz__qr {
   border-radius: 16px;
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 12px 26px rgb(var(--rgb-0-0-0) / 0.32);
   height: auto;
   max-height: 30vh;
   max-width: 100%;
@@ -773,11 +773,11 @@
   }
   61%,
   85% {
-    stroke: var(--gold, #f5b544);
+    stroke: var(--gold, var(--hex-f5b544));
   }
   86%,
   100% {
-    stroke: var(--danger-solid, #ff5a5a);
+    stroke: var(--danger-solid, var(--hex-ff5a5a));
   }
 }
 @keyframes kz-genting {
@@ -810,7 +810,12 @@
 .kz__pil {
   align-items: center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 46%), var(--kz-bg);
+    linear-gradient(
+      180deg,
+      rgb(var(--rgb-255-255-255) / 0.18),
+      rgb(var(--rgb-255-255-255) / 0) 46%
+    ),
+    var(--kz-bg);
   border: 0;
   border-radius: 22px;
   box-shadow: var(--kz-tile-sh);
@@ -859,7 +864,7 @@ button.kz__pil:focus-visible {
 }
 .kz__pil-bentuk {
   align-items: center;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgb(var(--rgb-0-0-0) / 0.18);
   border-radius: 50%;
   display: inline-flex;
   height: 2.2em;
@@ -867,9 +872,9 @@ button.kz__pil:focus-visible {
   width: 2.2em;
 }
 .kz__pil-jumlah {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(var(--rgb-0-0-0) / 0.3);
   border-radius: var(--radius-pill);
-  color: #fff;
+  color: var(--hex-ffffff);
   font-family: var(--font-mono);
   font-size: 1.05em;
   min-width: 2.4em;
@@ -882,7 +887,7 @@ button.kz__pil:focus-visible {
   top: 10px;
 }
 .kz__pil-batang {
-  background: rgba(0, 0, 0, 0.34);
+  background: rgb(var(--rgb-0-0-0) / 0.34);
   bottom: 0;
   height: 9px;
   left: 0;
@@ -1026,7 +1031,7 @@ button.kz__pil:focus-visible {
 }
 .kz__papan li[data-top="1"] {
   background: var(--gold-soft);
-  border-color: var(--gold, #f5b544);
+  border-color: var(--gold, var(--hex-f5b544));
 }
 .kz__papan li[data-top="2"] {
   border-color: var(--text-muted);
@@ -1051,8 +1056,8 @@ button.kz__pil:focus-visible {
   width: 2.2em;
 }
 .kz__papan li[data-top="1"] .kz__papan-rank {
-  background: var(--gold, #f5b544);
-  color: #1b1300;
+  background: var(--gold, var(--hex-f5b544));
+  color: var(--hex-1b1300);
 }
 .kz__papan-nama {
   display: flex;
@@ -1080,13 +1085,13 @@ button.kz__pil:focus-visible {
   gap: 3px;
 }
 .kz__papan-delta[data-arah="naik"] {
-  color: var(--ok, #5eead4);
+  color: var(--ok, var(--hex-5eead4));
 }
 .kz__papan-delta[data-arah="turun"] {
   color: var(--danger);
 }
 .kz__papan-api svg {
-  color: var(--gold, #f5b544);
+  color: var(--gold, var(--hex-f5b544));
 }
 .kz__papan-skor {
   font-family: var(--font-mono);
@@ -1208,9 +1213,9 @@ button.kz__pil:focus-visible {
   background: var(--kz-balok, var(--accent));
   border-radius: 18px 18px 0 0;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgb(var(--rgb-255-255-255) / 0.4),
     0 14px 30px var(--glass-sh);
-  color: #ffffff;
+  color: var(--hex-ffffff);
   display: flex;
   flex-direction: column;
   font-family: var(--font-display);
@@ -1233,17 +1238,17 @@ button.kz__pil:focus-visible {
   font-size: 0.8em;
 }
 .kz__podium-kolom[data-rank="1"] .kz__podium-balok {
-  --kz-balok: linear-gradient(180deg, #f8c75d, #c47f00);
-  color: #1b1300;
+  --kz-balok: linear-gradient(180deg, var(--hex-f8c75d), var(--hex-c47f00));
+  color: var(--hex-1b1300);
   height: min(26vh, 220px);
 }
 .kz__podium-kolom[data-rank="2"] .kz__podium-balok {
-  --kz-balok: linear-gradient(180deg, #8fa5c2, #4f6488);
-  color: #0b1220;
+  --kz-balok: linear-gradient(180deg, var(--hex-8fa5c2), var(--hex-4f6488));
+  color: var(--hex-0b1220);
   height: min(18vh, 150px);
 }
 .kz__podium-kolom[data-rank="3"] .kz__podium-balok {
-  --kz-balok: linear-gradient(180deg, #d58a4b, #8f4f1d);
+  --kz-balok: linear-gradient(180deg, var(--hex-d58a4b), var(--hex-8f4f1d));
   height: min(12vh, 106px);
 }
 .kz[data-m="full"] .kz__podium-balok,
@@ -1285,8 +1290,8 @@ button.kz__pil:focus-visible {
 .kz__avatar {
   align-items: center;
   border-radius: 50%;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgb(var(--rgb-255-255-255) / 0.3);
+  color: var(--hex-ffffff);
   display: inline-flex;
   flex: none;
   font-family: var(--font-display);
@@ -1336,7 +1341,7 @@ button.kz__pil:focus-visible {
 }
 .kz__p-avatar {
   display: inline-flex;
-  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 14px 22px rgb(var(--rgb-0-0-0) / 0.3));
 }
 .kz__p-nama {
   display: -webkit-box;
@@ -1433,7 +1438,12 @@ button.kz__pil:focus-visible {
   align-items: center;
   animation: kz-masuk 0.4s var(--kz-ease) backwards;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 46%), var(--kz-bg);
+    linear-gradient(
+      180deg,
+      rgb(var(--rgb-255-255-255) / 0.18),
+      rgb(var(--rgb-255-255-255) / 0) 46%
+    ),
+    var(--kz-bg);
   border-radius: 22px;
   box-shadow: var(--kz-tile-sh);
   color: var(--kz-ink);
@@ -1478,12 +1488,17 @@ button.kz__pil:focus-visible {
 .kz__p-hasil-atas {
   align-items: center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%), var(--kz-hasil);
+    linear-gradient(
+      180deg,
+      rgb(var(--rgb-255-255-255) / 0.16),
+      rgb(var(--rgb-255-255-255) / 0) 55%
+    ),
+    var(--kz-hasil);
   border-radius: 26px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 18px 38px rgba(0, 0, 0, 0.32);
-  color: #ffffff;
+    inset 0 1px 0 rgb(var(--rgb-255-255-255) / 0.3),
+    0 18px 38px rgb(var(--rgb-0-0-0) / 0.32);
+  color: var(--hex-ffffff);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1492,7 +1507,7 @@ button.kz__pil:focus-visible {
 }
 .kz__p-ikon {
   align-items: center;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgb(var(--rgb-255-255-255) / 0.2);
   border-radius: 50%;
   display: inline-flex;
   height: 92px;
@@ -1500,13 +1515,13 @@ button.kz__pil:focus-visible {
   width: 92px;
 }
 .kz__p-hasil[data-hasil="benar"] {
-  --kz-hasil: #16803c;
+  --kz-hasil: var(--hex-16803c);
 }
 .kz__p-hasil[data-hasil="salah"] {
-  --kz-hasil: #c92a3a;
+  --kz-hasil: var(--hex-c92a3a);
 }
 .kz__p-hasil[data-hasil="kosong"] {
-  --kz-hasil: #4b5568;
+  --kz-hasil: var(--hex-4b5568);
 }
 .kz[data-m="full"] .kz__p-hasil-atas {
   animation: kz-masuk 0.45s var(--kz-ease) backwards;
@@ -1534,12 +1549,12 @@ button.kz__pil:focus-visible {
   line-height: 1;
 }
 .kz__p-hasil .kz__pil-kecil {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(var(--rgb-0-0-0) / 0.3);
   border-color: transparent;
-  color: #ffffff;
+  color: var(--hex-ffffff);
 }
 .kz__p-hasil .kz__pil-api svg {
-  color: #ffd27a;
+  color: var(--hex-ffd27a);
 }
 .kz__p-rank {
   align-items: center;
@@ -1592,7 +1607,7 @@ button.kz__pil:focus-visible {
   line-height: 1;
 }
 .kz__p-delta[data-arah="naik"] {
-  color: var(--ok, #5eead4);
+  color: var(--ok, var(--hex-5eead4));
 }
 .kz__p-delta[data-arah="turun"] {
   color: var(--danger);
@@ -1841,7 +1856,7 @@ button.kz__pil:focus-visible {
 }
 .kz__ta-daftar li[data-top="1"] {
   background: var(--gold-soft);
-  border-color: var(--gold, #f5b544);
+  border-color: var(--gold, var(--hex-f5b544));
 }
 .kz__ta-daftar li[data-top="2"] {
   border-color: var(--text-muted);

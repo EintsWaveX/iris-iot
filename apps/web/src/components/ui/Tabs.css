@@ -11,35 +11,55 @@
 }
 
 .tabs-scroll {
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 100%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, var(--hex-000000) 0%, var(--hex-000000) 100%);
+  mask-image: linear-gradient(90deg, var(--hex-000000) 0%, var(--hex-000000) 100%);
   transition: -webkit-mask-image var(--dur-fast) var(--ease-reveal);
   transition: mask-image var(--dur-fast) var(--ease-reveal);
 }
 
 .tabs-scroll[data-edge="start"] {
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 24px, #000 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 24px, #000 100%);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hex-000000) 24px,
+    var(--hex-000000) 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hex-000000) 24px,
+    var(--hex-000000) 100%
+  );
 }
 
 .tabs-scroll[data-edge="end"] {
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 24px), transparent 100%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    var(--hex-000000) 0%,
+    var(--hex-000000) calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    var(--hex-000000) 0%,
+    var(--hex-000000) calc(100% - 24px),
+    transparent 100%
+  );
 }
 
 .tabs-scroll[data-edge="both"] {
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent 0%,
-    #000 24px,
-    #000 calc(100% - 24px),
+    var(--hex-000000) 24px,
+    var(--hex-000000) calc(100% - 24px),
     transparent 100%
   );
   mask-image: linear-gradient(
     90deg,
     transparent 0%,
-    #000 24px,
-    #000 calc(100% - 24px),
+    var(--hex-000000) 24px,
+    var(--hex-000000) calc(100% - 24px),
     transparent 100%
   );
 }
@@ -131,8 +151,8 @@
   border-radius: var(--radius-md);
   content: "";
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
@@ -236,9 +256,9 @@
 }
 
 :root[data-theme="light"] .seg button[data-tone="ok"][aria-selected="true"] {
-  background: color-mix(in srgb, var(--ok) 16%, #fff);
+  background: color-mix(in srgb, var(--ok) 16%, var(--hex-ffffff));
 }
 
 :root[data-theme="light"] .seg button[data-tone="warn"][aria-selected="true"] {
-  background: color-mix(in srgb, var(--warn) 16%, #fff);
+  background: color-mix(in srgb, var(--warn) 16%, var(--hex-ffffff));
 }

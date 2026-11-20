@@ -1,12 +1,12 @@
 /* The panel's Kalender card, matched to the mockup (rec9.css rec9-cal): an accent top edge, the bar above the month. */
 .rec9-cal {
-  --a: var(--tc, #5eead4);
+  --a: var(--tc, var(--hex-5eead4));
   --ai: color-mix(in srgb, var(--a) 62%, var(--text));
   border-top: 3px solid var(--a);
   gap: 14px;
 }
 :root[data-theme="light"] .rec9-cal {
-  --ai: color-mix(in srgb, var(--a) 40%, #0a0f1c);
+  --ai: color-mix(in srgb, var(--a) 40%, var(--hex-0a0f1c));
 }
 .rec9-cal__bar {
   align-items: center;
@@ -38,7 +38,7 @@
 .rec9-cal .rkal__d[data-today] > b {
   background: var(--a);
   border-radius: 99px;
-  color: #0a0f1c;
+  color: var(--hex-0a0f1c);
   justify-self: start;
   padding: 0 7px;
 }
@@ -84,7 +84,7 @@
   }
 }
 :root[data-theme="light"] .rec9-cal .rkal__sub {
-  color: color-mix(in srgb, var(--ai) 55%, #0a0f1c);
+  color: color-mix(in srgb, var(--ai) 55%, var(--hex-0a0f1c));
 }
 .rec9-cal__bar .segmented {
   width: auto;

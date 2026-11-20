@@ -8,10 +8,22 @@
 
 /* What shows before the sprites are painted, so the sky never flashes empty. */
 .sky {
-  background: linear-gradient(180deg, #070b2b, #1a1a5e 40%, #4b2b88 70%, #a34e95);
+  background: linear-gradient(
+    180deg,
+    var(--hex-070b2b),
+    var(--hex-1a1a5e) 40%,
+    var(--hex-4b2b88) 70%,
+    var(--hex-a34e95)
+  );
 }
 :root[data-theme="light"] .sky {
-  background: linear-gradient(180deg, #3a9bff, #78c2ff 34%, #c0e6ff 64%, #ffe9d2);
+  background: linear-gradient(
+    180deg,
+    var(--hex-3a9bff),
+    var(--hex-78c2ff) 34%,
+    var(--hex-c0e6ff) 64%,
+    var(--hex-ffe9d2)
+  );
 }
 
 #iris-scene {
@@ -45,7 +57,7 @@
   opacity: 0;
   background: radial-gradient(
     circle 190px at var(--cx, 50%) var(--cy, 50%),
-    rgba(190, 226, 255, 0.2),
+    rgb(var(--rgb-190-226-255) / 0.2),
     transparent
   );
   transition: opacity 0.6s;
@@ -56,7 +68,7 @@
 :root[data-theme="light"] #iris-scene .glow {
   background: radial-gradient(
     circle 190px at var(--cx, 50%) var(--cy, 50%),
-    rgba(255, 244, 200, 0.3),
+    rgb(var(--rgb-255-244-200) / 0.3),
     transparent
   );
 }
@@ -83,11 +95,11 @@
   border-radius: 4px;
   background: repeating-linear-gradient(
     180deg,
-    rgba(235, 252, 255, 0.95) 0 9px,
-    rgba(190, 240, 255, 0.35) 9px 22px
+    rgb(var(--rgb-235-252-255) / 0.95) 0 9px,
+    rgb(var(--rgb-190-240-255) / 0.35) 9px 22px
   );
-  -webkit-mask: linear-gradient(180deg, #000 40%, transparent);
-  mask: linear-gradient(180deg, #000 40%, transparent);
+  -webkit-mask: linear-gradient(180deg, var(--hex-000000) 40%, transparent);
+  mask: linear-gradient(180deg, var(--hex-000000) 40%, transparent);
 }
 #iris-scene .mist {
   position: absolute;
@@ -95,7 +107,7 @@
   height: 7%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(235, 252, 255, 0.75), transparent);
+  background: radial-gradient(closest-side, rgb(var(--rgb-235-252-255) / 0.75), transparent);
 }
 #iris-scene .ping {
   position: absolute;
@@ -125,11 +137,11 @@
   pointer-events: none;
   background: repeating-conic-gradient(
     from 0deg,
-    rgba(255, 246, 205, 0.22) 0 2.4deg,
+    rgb(var(--rgb-255-246-205) / 0.22) 0 2.4deg,
     transparent 2.4deg 11deg
   );
-  -webkit-mask: radial-gradient(circle, #000, transparent 38%);
-  mask: radial-gradient(circle, #000, transparent 38%);
+  -webkit-mask: radial-gradient(circle, var(--hex-000000), transparent 38%);
+  mask: radial-gradient(circle, var(--hex-000000), transparent 38%);
 }
 :root[data-scene-idle] #iris-scene * {
   animation-play-state: paused !important;

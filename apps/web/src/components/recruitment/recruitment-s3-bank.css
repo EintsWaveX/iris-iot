@@ -656,7 +656,7 @@
   height: min(70vh, 640px);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--hex-ffffff);
 }
 .bkref[data-bad="yes"] {
   border-color: color-mix(in srgb, var(--danger) 55%, transparent);
@@ -721,13 +721,13 @@
    Bank Soal's code and Markdown fields: a real editor (CodeField.tsx). The box grows from --bk-rows lines
    to --bk-max lines, then scrolls. 13px at 1.55 is one 20.15px line, plus the 10px padding top and bottom. */
 .bkcode {
-  --syn-keyword: #c3a6ff;
-  --syn-type: #6fd6e3;
-  --syn-string: #8fe3b0;
-  --syn-number: #f5c77e;
-  --syn-func: #7cc4ff;
-  --syn-preproc: #ff9ecf;
-  --syn-const: #ffb38a;
+  --syn-keyword: var(--hex-c3a6ff);
+  --syn-type: var(--hex-6fd6e3);
+  --syn-string: var(--hex-8fe3b0);
+  --syn-number: var(--hex-f5c77e);
+  --syn-func: var(--hex-7cc4ff);
+  --syn-preproc: var(--hex-ff9ecf);
+  --syn-const: var(--hex-ffb38a);
   --syn-comment: var(--text-faint);
   --bk-line: 20.15px;
   background: var(--bg-sunken);
@@ -740,13 +740,13 @@
     box-shadow var(--dur-fast) var(--ease-reveal);
 }
 :root[data-theme="light"] .bkcode {
-  --syn-keyword: #6a3fc8;
-  --syn-type: #0a6f7c;
-  --syn-string: #1d7a3e;
-  --syn-number: #8a5a00;
-  --syn-func: #0b5ea8;
-  --syn-preproc: #b0236e;
-  --syn-const: #a04a12;
+  --syn-keyword: var(--hex-6a3fc8);
+  --syn-type: var(--hex-0a6f7c);
+  --syn-string: var(--hex-1d7a3e);
+  --syn-number: var(--hex-8a5a00);
+  --syn-func: var(--hex-0b5ea8);
+  --syn-preproc: var(--hex-b0236e);
+  --syn-const: var(--hex-a04a12);
 }
 .bkcode:focus-within {
   border-color: var(--accent);
@@ -938,7 +938,7 @@
 .lcsteps li[data-st="now"] .lcsteps__n {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--on-accent, #fff);
+  color: var(--on-accent, var(--hex-ffffff));
 }
 .lcsteps li[data-st="now"] > span:last-child {
   font-weight: 600;

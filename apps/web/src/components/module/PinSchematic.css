@@ -292,7 +292,7 @@
 /* ---------------------------------------------------------- schematic */
 
 .schem-thumb {
-  background: #fff;
+  background: var(--hex-ffffff);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
   cursor: zoom-in;
@@ -317,9 +317,9 @@
 
 .schem-thumb__bar {
   align-items: center;
-  background: rgba(5, 6, 11, 0.85);
+  background: rgb(var(--rgb-5-6-11) / 0.85);
   bottom: 0;
-  color: #fff;
+  color: var(--hex-ffffff);
   display: flex;
   font-size: var(--fs-small);
   gap: var(--space-2);

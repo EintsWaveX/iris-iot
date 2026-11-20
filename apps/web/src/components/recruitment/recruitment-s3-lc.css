@@ -188,8 +188,8 @@
   background-image: var(--sweep-ring);
   background-size: 200% auto;
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
@@ -460,7 +460,7 @@
   opacity: 0.55;
 }
 .r3bar[data-k="ok"] i {
-  background: var(--ok, #5eead4);
+  background: var(--ok, var(--hex-5eead4));
 }
 .r3bar[data-k="retry"] i {
   background: var(--gold);
@@ -550,7 +550,7 @@
   background: var(--text-faint);
 }
 .r3side__link[data-s="live"] i {
-  background: var(--ok, #5eead4);
+  background: var(--ok, var(--hex-5eead4));
 }
 .r3side__link[data-s="down"] i {
   background: var(--danger);
