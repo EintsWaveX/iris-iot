@@ -135,7 +135,7 @@ A cold, deep-space ground (`#0a0c14`) with raised navy-violet surfaces, one elec
 
 ### Neutral
 - **Void** (`#05060b`) and **Ground** (`#0a0c14`): the floor behind the starfield and the page ground.
-- **Surfaces 1 to 4** (`#10131f`, `#161a2b`, `#1d2238`, `#262c47`) and **Elevated** (`#181c2c`): solid cards, popovers, dialogs, one luminance step apart.
+- **Surfaces 1 to 4** (`#10131f`, `#161a2b`, `#1d2238`, `#262c47`) and **Elevated** (`#181c2c`): the solid surfaces (Low Detail and Normal turn the translucent glass tokens into near-opaque plates of the same tint), one luminance step apart.
 - **Ink** (`#eef1f6`), **Muted** (`#b0b8c8`), **Faint** (`#98a1b3`): text, secondary labels, the faintest allowed text. All hold at least 4.5:1 on every surface they sit on.
 - **Hairlines** (`rgba(205,220,255,.11 / .22 / .38)` dark; navy `rgba(16,34,70,.1 / .2 / .36)` light): borders and dividers. `--control-border` (.4 / .5) for inputs.
 - **Status hues**: ok mint, warn amber, danger `#ff6b6b` (light `#c4242f`), plus violet, teal, orange, red, yellow, each with a `-soft` tint.
@@ -157,7 +157,8 @@ A cold, deep-space ground (`#0a0c14`) with raised navy-violet surfaces, one elec
 **Character:** Plus Jakarta's heavy, tightly tracked geometry gives headings an instrument-label confidence; Inter stays out of the way for reading; mono makes every number subtractable. All self-hosted, so first paint never waits on a third party.
 
 ### Hierarchy
-- **Display** (800, `clamp(2.3rem, 6.4vw, 4.4rem)`, tracking -0.025em): hero lines such as the Home greeting and "Laboratorium IRIS".
+- **Display** (700, `clamp(32px, 5vw, 64px)`, tracking -0.025em): hero lines such as "Laboratorium IRIS". It was 73.6px at 800 until Nov 2026.
+- **Section band heading** (700, `clamp(1.75rem, 1.3rem + 1.5vw, 2.75rem)`): the one heading every section starts with (`SectionBand`).
 - **Headline** (800, 1.7rem): page and major card titles (`.home__h1`).
 - **Title** (800, 1.28rem): card and section titles (`.home__h2`).
 - **Body** (400 to 500, 1rem, line-height about 1.55): prose, bounded to `--measure-prose` (68ch).
@@ -170,37 +171,44 @@ A cold, deep-space ground (`#0a0c14`) with raised navy-violet surfaces, one elec
 
 ## Layout
 
-Containers: `--container-narrow` 720 to 820px (forms, reading), `--container-regular` 1200 to 1240px (most pages, Home), `--container-wide` 1440 to 1640px (consoles). Page margin 24px (36px from 1280px, 14px under 640px); section spacing 48 to 80px. Spacing is a 4px-base scale (`--space-1..11`). The top navbar is 64 to 68px; below 640px links move to a bottom tab bar. Extra width goes to data and side panels, never to longer prose lines.
+**The column (layout kit, Nov 2026, `src/styles/layout.css`).** Readable content never gets wider than `--col` (1360px) however big the monitor, inside a gutter `--gutter: clamp(16px, 3.4vw, 56px)`. A page opts in with `.page-col`. Sections are 56px apart on a phone and up to 112px (`--sec-gap`) on a laptop. Every section starts with a `SectionBand` (eyebrow, heading, one line of sub, optional action), the full width of the column. Home, Modul list and detail, Dasbor and Akun use the column; the Asisten consoles and Oprec still use `--container-wide` (1640px) until their own PRs move them. `--container-narrow` (820px) stays for forms and the sign-in card.
+
+Spacing is a 4px-base scale (`--space-1..11`). The top navbar is 64px; below 640px links move to a bottom tab bar. Extra width goes to data and side panels, never to longer prose lines.
 
 Every screen is designed per breakpoint (360, 390, 820, 1024, 1280x720, 1280, 1680), checked in dark and light, in Indonesian, English and Mandarin, and must still work with ten groups.
 
-### Home Observatory (Nov 2026 redesign)
-- **Scene:** the first screen is one bounded, solid, static scene (container-regular wide, `--radius-xl`, height `min(100svh - nav, 760px)`, never under 520px) showing the live Langit Lab: the running module's constellation faint behind, group stars large in front. Dark = deep-space gradient, light = Daylight sky gradient. Labels sit on the static scene; only the own-group ring turns and the live dot pulses.
-- **Control panel:** one solid `.panel--key` anchored bottom-left of the scene holds the greeting and the viewer's one next action. Role content (Praktikan live or idle, Asisten, Visitor) swaps inside it. On phones the scene becomes a short band and the panel flows below.
-- **Stats strip:** four mono tiles on `--surface-1`, bottom-right of the scene, never directly on the sky. Visitors see profile stats instead of live counts (guests get no per-group data).
-- **Modules:** one wide band split into four segments by hairlines, not four boxes. Each segment is the whole link.
-- **Banner:** the recruitment banner is a slim one-row strip above the scene.
+### Home (Nov 2026)
+Full anatomy and the measurements it came from: `docs/design/home-anatomy.md`.
+- **Visitor:** recruitment banner, hero (the painted sky, four stat plates round the logo, title, lede, two buttons; at most `min(100svh - nav, 760px)` tall), Tentang Kami, Filosofi Logo, Siapa Kami (six division cards), Jejak Kami (events), then a closing "Mulai praktikum" band with the same two buttons and the next event before the footer.
+- **Signed in:** banner, the Observatory (greeting and role card on the left, the Langit Lab pane), the four-module Rasi row under a `SectionBand`, then the same profile sections.
 - **Rule:** merge before adding. A new layer earns its place by replacing an old card.
 
 ## Elevation & Depth
 
-Hybrid: tonal layering first, soft shadow second. Surfaces step up in luminance (`--surface-1` to `--surface-4`), and a panel carries a faint inset top highlight plus a deep ambient shadow. Cards are always opaque; only buttons and chips may be tinted. The global navbar is the single deliberate exception: glass with backdrop blur.
+Hybrid: tonal layering first, soft shadow second. The sky behind the app always moves, and a blurred backdrop is re-sampled on every frame it changes, so the glass look is made of tint, a highlight edge and a shadow, not of blur (measured Nov 2026: 26 blurred elements on Home cost 12 fps idle and 16 fps scrolling at High Detail).
+
+| Detail level | Surfaces |
+|---|---|
+| Low Detail, Normal | Plates: the glass tokens (`--glass-panel`, `--glass-frost`, `--glass-clear`, `--nav-bg`) are near-opaque (alpha 0.86 and up). No `backdrop-filter` anywhere. |
+| High Detail | The same plates, plus a real backdrop blur on a short allowlist only: the navbar and phone bottom bar (`.appnav`, `.appbar`), an open dialog, drawer or menu (`.dialog__panel`, `.drawer`, `.popover__panel`) and the page heading (`.page-header`). Chrome has never blurred the navbar (see `plates.css`) and it stays off there. |
+
+`src/styles/plates.css` decides this by selector and loads last; `blur-diet.test.ts` fails on any other blur declaration.
 
 ### Shadow Vocabulary
 - **Panel** (`--shadow-panel`, dark: `0 1px 0 rgba(255,255,255,.05) inset, 0 18px 48px rgba(0,0,0,.5)`; light: `0 1px 2px rgba(16,34,70,.08), 0 12px 32px rgba(16,34,70,.1)`): resting cards.
 - **Lift** (`--shadow-lift`): hover and popovers. Movement is `--lift-control` (translateY -2px) for controls and `--lift-card` (-4px) for cards.
 
 ### Named Rules
-**The Solid Surface Rule.** No translucent cards, bars, popovers, drawers or dialogs, and no `backdrop-filter` on content. Only the global navbar and cinematic full-screen veils are glass.
+**The Plate Rule.** Text never sits straight on the painted sky: it sits on a plate (a card, a band, a stat plate). A plate may carry a tint but must stay readable with the sky behind it at 4.5:1. Blur is a High Detail extra on the allowlist above, never what makes a plate readable.
 
 ## Shapes
 
-Soft but disciplined: 6px inputs and chips, 10px buttons and tabs, 14px cards and popovers, 20px dialogs, full pills for badges. One bright hairline border on every card. A rainbow `--sweep` hairline edge marks the single key card per screen. Constellation line art (dashed links, ring halos) is the recurring silhouette of the product.
+One radius scale (`layout.css` maps the shared kosmik tokens onto it for the whole app): **16px** for cards, bands, dialogs and popovers (`--r-card`, also `--radius-lg` and `--radius-xl`), **12px** for buttons, tabs, inputs and other controls (`--r-ctl`, also `--radius-md`), **999px** for pills, chips and badges (`--r-pill`), 6px (`--radius-sm`) only for the smallest tags. It was 20px on everything. One bright hairline border on every card. A rainbow `--sweep` hairline edge marks the single key card per screen. Constellation line art (dashed links, ring halos) is the recurring silhouette of the product.
 
 ## Components
 
 ### Buttons (`.btn`)
-- **Shape:** 10px radius; heights `--sm` 44px, base 48px, `--lg` 60px.
+- **Shape:** 12px radius; heights `--sm` 44px, base 48px, `--lg` 60px.
 - **Primary:** `--accent` fill with `--accent-ink` label; at most one per view. The `--sweep-surface` gradient sweeps across the fill on hover.
 - **Inverse:** the key action on a key card: dark, then bright with dark text.
 - **Base / Ghost:** surface fill with a bright border and a rainbow ring sweep on hover; ghost for Cancel and Close.
@@ -208,14 +216,14 @@ Soft but disciplined: 6px inputs and chips, 10px buttons and tabs, 14px cards an
 - **Hover / Focus:** lift `translateY(-2px)`; focus uses the single non-animated `--glow-ring` (dark) or `--focus-ring` (light).
 
 ### Cards / Containers (`.panel`)
-- **Corner:** 14px. **Background:** `--surface-1` (raised: `--surface-2`). **Border:** one bright hairline.
+- **Corner:** 16px. **Background:** `--surface-1` (raised: `--surface-2`). **Border:** one bright hairline.
 - **Variants:** `--key` adds the rainbow top edge, `--tight`, `--flush`. `.panel__actions` pins buttons to the card bottom so neighbouring cards line up.
 
 ### Badges (`.pill`)
 - Always upper case, bright edge, a tone (ok, warn, danger, accent, gold, violet, teal, or a group or module hue). Codes and identifiers keep their own case.
 
 ### Navigation (`AppNav`)
-- Sticky glass bar, 64px; links start after the logo, then the clock, command palette (from 1100px), Tampilan and account. Active link has a `--sweep` underline. Below 640px: bottom tab bar with icons.
+- Sticky plate bar, 64px (glass tint; real blur only at High Detail, and not in Chrome); links start after the logo, then the clock, command palette (from 1100px), Tampilan and account. Active link has a `--sweep` underline. Below 640px: bottom tab bar with icons.
 
 ### Fields and overlays
 - No native widgets: `Dropdown`, `DateField`, `TimeField`, `Disclose`, `Tooltip`. Drawers 1/3, 1/2 or 2/3 wide; dialogs sm (confirm), md (small form), lg (fuller form). Every overlay animates in and out; Esc closes the top layer only.
@@ -236,6 +244,6 @@ Soft but disciplined: 6px inputs and chips, 10px buttons and tabs, 14px cards an
 ### Don't:
 - **Don't** put `--sweep-ring` or any `--neb-*` colour under text.
 - **Don't** use em or en dashes, abbreviations ("K3", "M4", "mnt"), or native `<select>`, date inputs, `<details>` or `title` tooltips.
-- **Don't** animate anything behind a reading, or use translucent or blurred surfaces for cards, popovers, drawers and dialogs.
+- **Don't** animate anything behind a reading, or add a `backdrop-filter` outside the High Detail allowlist (`blur-diet.test.ts` fails).
 - **Don't** stack bordered boxes to separate sections of one page; use a hairline and space.
 - **Don't** add a feature or tab without removing or merging an old one.

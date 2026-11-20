@@ -81,12 +81,6 @@
   border-radius: var(--kz-radius);
   padding: clamp(14px, 2vh, 24px) clamp(16px, 1.8vw, 28px);
 }
-@media (min-width: 900px) {
-  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) :is(.kz__kartu, .kz__atas, .kz__aksi) {
-    -webkit-backdrop-filter: blur(14px) saturate(1.3);
-    backdrop-filter: blur(14px) saturate(1.3);
-  }
-}
 :root[data-detail="ldm"] :is(.kz__kartu, .kz__atas, .kz__aksi, .kz__p-bar),
 :root[data-motion-tier="0"] :is(.kz__kartu, .kz__atas, .kz__aksi, .kz__p-bar) {
   background: var(--surface-2);

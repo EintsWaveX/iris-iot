@@ -169,8 +169,6 @@
   position: absolute;
   inset: 0;
   background: color-mix(in srgb, var(--void, #05070d) 94%, transparent);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
 }
 .r8cel__glow {
   position: absolute;

@@ -452,19 +452,18 @@
 /*
  * Plates for the Open Recruitment pages (Nov 2026 sweep). The sky behind the app is painted, so any text
  * that sits straight on it needs a frosted plate (the same recipe as .reading in styles/glass.css).
- * Low Detail and motion tier 0 swap the blur for a solid surface (the two variables below).
+ * Low Detail and motion tier 0 swap the fill for a solid surface (the variable below). There is no blur here: the
+ * blur diet (styles/plates.css) allows it only on the navbar, dialogs, drawers, menus and the page heading.
  *
  * The page-level pieces are found by what they are, not by how deep a tab nests them: a filter row, a pager,
  * an empty note, a section heading, a row of buttons or a button bar under a tab's own column. Anything
  * inside a panel, a drawer or a dialog already has a face and is left alone (the :not(... *) on each).
  */
 :root {
-  --rec-plate-blur: blur(26px) saturate(1.6);
   --rec-plate-fill: var(--glass-frost);
 }
 :root[data-detail="ldm"],
 :root[data-motion-tier="0"] {
-  --rec-plate-blur: none;
   --rec-plate-fill: var(--surface-1);
 }
 
@@ -486,8 +485,6 @@
     :is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *
   ),
 .rec-swap .tp-bar:not(:is(.panel, .plate, .glass, .reading, .drawer, .dialog__panel) *) {
-  -webkit-backdrop-filter: var(--rec-plate-blur);
-  backdrop-filter: var(--rec-plate-blur);
   background: var(--rec-plate-fill);
   border: 1px solid var(--glass-bd);
   box-shadow:

@@ -1,4 +1,4 @@
-/* The tabs' styling, as a plain CSS import rather than an Astro <style>
+/* The tabs' styling, as a plain CSS import rather than an Astro \3c style>
    block -- a .tsx file has no template to attach one to.
 
    P7.1: `.tabs-scroll` wraps the scrollable `.tabs` list and paints a
@@ -46,8 +46,6 @@
 
 .tabs {
   /* Nov 2026: a tab strip on the bare sky rides a frosted plate (none inside a panel, which is glass already). */
-  -webkit-backdrop-filter: blur(26px) saturate(1.6);
-  backdrop-filter: blur(26px) saturate(1.6);
   background: var(--glass-frost);
   border-bottom: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -70,15 +68,11 @@
 .dialog__panel .tabs,
 :root[data-detail="ldm"] .panel .tabs,
 :root[data-motion-tier="0"] .panel .tabs {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   background: none;
 }
 
 :root[data-detail="ldm"] .tabs,
 :root[data-motion-tier="0"] .tabs {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   background: var(--surface-1);
 }
 

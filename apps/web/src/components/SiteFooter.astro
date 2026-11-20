@@ -69,8 +69,6 @@ const year = new Date().getFullYear();
 
   /* The footer text sits on the painted sky, so it gets a frosted reading plate (Nov 2026). */
   .sitefoot__plate {
-    -webkit-backdrop-filter: blur(30px) saturate(1.7);
-    backdrop-filter: blur(30px) saturate(1.7);
     background: var(--glass-frost);
     border: 1px solid var(--glass-bd);
     border-radius: var(--radius-xl);
@@ -85,8 +83,6 @@ const year = new Date().getFullYear();
 
   :global(:root[data-detail="ldm"]) .sitefoot__plate,
   :global(:root[data-motion-tier="0"]) .sitefoot__plate {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
     background: var(--surface-1);
   }
 

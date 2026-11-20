@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 
@@ -114,4 +115,36 @@ describe("the plates stay opaque enough to read without a blur", () => {
       }
     },
   );
+});
+
+describe("no other stylesheet declares a blur (Phase 2 deleted them)", () => {
+  const ALLOWED = /\.(appnav|appbar|dialog__panel|drawer|popover__panel|page-header)\b/;
+  const dir = fileURLToPath(new URL("../..", import.meta.url));
+  const files: string[] = [];
+  const walk = (d: string) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (/\.(css|astro)$/.test(e.name) && !p.endsWith("plates.css")) files.push(p);
+    }
+  };
+  walk(dir);
+
+  it("a backdrop-filter that blurs sits only on the High Detail allowlist", () => {
+    const bad: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      if (!src.includes("backdrop-filter")) continue;
+      const css = f.endsWith(".astro")
+        ? [...src.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join("\n")
+        : src;
+      postcss.parse(css).walkDecls(/^(-webkit-)?backdrop-filter$/, (d) => {
+        if (d.value.trim() === "none") return;
+        const sel = d.parent && "selector" in d.parent ? String(d.parent.selector) : "";
+        if (!ALLOWED.test(sel))
+          bad.push(`${f.slice(dir.length)}: ${sel.replace(/\s+/g, " ").slice(0, 80)}`);
+      });
+    }
+    expect(bad).toEqual([]);
+  });
 });
