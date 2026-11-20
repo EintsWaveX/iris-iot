@@ -11,6 +11,11 @@
   --r-card: 16px;
   --r-ctl: 12px;
   --r-pill: 999px;
+  /* The shared kosmik tokens (packages/kosmik, also used by Arena) say 8 / 14 / 20. Here they follow the scale:
+     --radius-xl and --radius-lg are cards and bands, --radius-md is a control. */
+  --radius-xl: var(--r-card);
+  --radius-lg: var(--r-card);
+  --radius-md: var(--r-ctl);
   /* Vertical rhythm between sections (Home already used this) */
   --sec-gap: clamp(56px, 8vw, 112px);
 }

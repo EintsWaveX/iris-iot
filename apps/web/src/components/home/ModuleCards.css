@@ -90,7 +90,7 @@
   align-items: center;
   background: color-mix(in srgb, var(--m) 22%, var(--surface-1));
   border: 1.5px solid color-mix(in srgb, var(--m) 70%, transparent);
-  border-radius: 14px;
+  border-radius: var(--r-ctl);
   color: var(--m);
   display: inline-grid;
   flex: none;

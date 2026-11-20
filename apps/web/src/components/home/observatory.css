@@ -35,7 +35,7 @@
   align-items: center;
   background: var(--glass-panel);
   border: 1px solid var(--glass-bd);
-  border-radius: 18px;
+  border-radius: var(--r-card);
   display: flex;
   flex-wrap: wrap;
   gap: 10px 12px;
@@ -57,7 +57,7 @@
 .obs__hint {
   background: var(--glass-panel);
   border: 1px solid var(--glass-bd);
-  border-radius: 14px;
+  border-radius: var(--r-ctl);
   color: var(--text);
   font-size: 0.88rem;
   margin: 0;
@@ -69,7 +69,7 @@
 .obs__stats {
   background: var(--glass-panel);
   border: 1px solid var(--glass-bd);
-  border-radius: 16px;
+  border-radius: var(--r-card);
   display: flex;
   position: absolute;
   right: 8px;
@@ -270,7 +270,7 @@
 .obs__mini {
   background: var(--glass-clear);
   border: 1px solid color-mix(in srgb, var(--m) 55%, var(--glass-bd));
-  border-radius: 22px;
+  border-radius: var(--r-card);
   box-shadow:
     inset 0 1px 0 var(--glass-hi),
     0 14px 30px var(--glass-sh);
@@ -309,7 +309,7 @@
 .obs__center {
   background: var(--glass-panel);
   border: 1px solid var(--glass-bd);
-  border-radius: 24px;
+  border-radius: var(--r-card);
   display: grid;
   gap: 14px;
   left: 8px;
@@ -352,7 +352,7 @@
 }
 .obs__rasi {
   background: var(--glass-clear);
-  border-radius: 26px;
+  border-radius: var(--r-card);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 0;
@@ -412,7 +412,15 @@
 /* ---------------------------------------------------------------- visitor hero: glass readouts around the logo */
 
 .pl-hero {
+  align-content: center;
   gap: clamp(18px, 3.2vh, 34px);
+  /* Layout kit: the hero is the first screen, but never taller than 760 px */
+  min-height: min(calc(100svh - var(--nav-size)), 760px);
+}
+@media (max-width: 639px) {
+  .pl-hero {
+    min-height: 0;
+  }
 }
 .pl-hero__stage {
   margin-bottom: clamp(8px, 2vw, 24px);
@@ -432,7 +440,7 @@
 .pl-orb {
   background: var(--glass-clear);
   border: 1px solid var(--glass-bd);
-  border-radius: 18px;
+  border-radius: var(--r-card);
   display: grid;
   gap: 2px;
   justify-items: start;
@@ -640,7 +648,7 @@
     linear-gradient(90deg, var(--hairline-faint) 1px, transparent 1px) 0 0 / 28px 28px,
     var(--glass-clear);
   border: 1px solid var(--glass-bd);
-  border-radius: 26px;
+  border-radius: var(--r-card);
   box-shadow:
     inset 0 1px 0 var(--glass-hi),
     0 18px 44px var(--glass-sh);
@@ -659,7 +667,7 @@
 .pl-logo__card {
   background: var(--glass-panel);
   border: 1px solid var(--glass-bd);
-  border-radius: 20px;
+  border-radius: var(--r-card);
   box-shadow:
     inset 0 1px 0 var(--glass-hi),
     0 12px 30px var(--glass-sh);
