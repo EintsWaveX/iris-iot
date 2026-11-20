@@ -1339,6 +1339,13 @@
   z-index: 120;
 }
 
+.pl-lb__overlay[data-state="closed"] {
+  animation: dialog-fade-out 150ms ease both;
+}
+.pl-lb[data-state="closed"] {
+  animation: dialog-fade-out 150ms ease both;
+  pointer-events: none;
+}
 .pl-lb {
   color: #eef1f6;
   display: grid;
