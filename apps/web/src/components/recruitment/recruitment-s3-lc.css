@@ -199,7 +199,7 @@
   opacity: 1;
 }
 .r3reel[data-phase="landed"] .r3reel__ring[data-ring="yes"] {
-  animation: aurora-sweep 6s linear infinite;
+  animation: aurora-sweep 6s linear 2;
 }
 .r3reel__cell.is-landed .r3reel__label {
   color: var(--text);

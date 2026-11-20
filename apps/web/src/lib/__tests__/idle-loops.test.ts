@@ -145,20 +145,8 @@ function offenders(): string[] {
  * make the animation hover/focus-only, one pass, or compositor-only (transform, opacity) instead.
  */
 const KNOWN: readonly string[] = [
-  // The painted sky's waterfall and the glass border spin (phase 1.2, phase 2)
+  // The painted sky's waterfall (a tiny sprite, paused off screen; phase 1.2)
   "styles/scene.css | .wf | scene-fall",
-  'styles/glass.css | :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--aurora::before | glass-spin',
-  // Oprec reveal and celebration screens: short-lived, one pass or transform (phase 6, Oprec sweep)
-  "components/recruitment/recruitment-s2.css | .r2env::before | rec-s2-sweep",
-  'components/recruitment/recruitment-s2.css | .r2mini[data-st="sealed"]::after | rec-s2-edgespin',
-  "components/recruitment/recruitment-s2.css | .r2proj__ring rect | rec-s2-drain",
-  'components/recruitment/recruitment-s3-lc.css | .r3reel[data-phase="landed"] .r3reel__ring[data-ring="yes"] | aurora-sweep',
-  'components/recruitment/recruitment-s3-runner.css | html:not([data-motion-tier="0"]) .r3bonus__card::before | r3bonus-spin',
-  // Module pages: the wiring pulse and the jumper hint (phase 6, Praktikum sweep)
-  'components/module/PinSchematic.css | :root:not([data-motion-tier="0"]) .jumper__pad[data-ok="yes"] | jumper-boleh',
-  'components/module/PinSchematic.css | :root:not([data-motion-tier="0"]) .wiring__pulse | wiring-flow',
-  'components/module/lstep.css | :root:not([data-motion-tier="0"]) .lstep__line i | kit-sweep',
-  'components/tp/tp.css | :root:not([data-motion-tier="0"]) .cdown--pelangi .cdown__d b | kit-sweep',
   // Popover edges and open or current ring: only while a menu is open or an item is current (phase 1.4b)
   'styles/sky.css | :root:not([data-motion-tier="0"]) .sweep-edge::before | aurora-sweep',
   'styles/sky.css | :root:not([data-motion-tier="0"]) .sweep-hover:focus-visible::after, :root:not([data-motion-tier="0"]) .sweep-hover[aria-current="true"]::after, :root:not([data-motion-tier="0"]) .sweep-hover[data-state="open"]::after | aurora-sweep',

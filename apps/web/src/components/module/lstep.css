@@ -77,7 +77,7 @@
 }
 
 :root:not([data-motion-tier="0"]) .lstep__line i {
-  animation: kit-sweep 7s linear infinite;
+  animation: kit-sweep 7s linear 1;
 }
 
 .lstep__track li {
