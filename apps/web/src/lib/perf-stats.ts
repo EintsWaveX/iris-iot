@@ -274,6 +274,68 @@ const sign = (n: number | null) => (n === null ? "-" : `${n >= 0 ? "+" : ""}${n}
 const cell = (s: FrameStats | null) =>
   s ? (s.throttled ? "THROTTLED" : `${s.fps} fps (p95 ${s.p95} ms)`) : "n/a";
 
+/**
+ * The result in three plain lines for a phone screen: how smooth the page is as it is, and which switched-off
+ * effects gained more than the noise (so they are real). Indonesian, because it is read by a person on the device.
+ */
+const EFEK: Record<string, string> = {
+  "no-backdrop": "blur kaca",
+  "no-sky": "latar langit",
+  "no-scene-blur": "blur latar",
+  "no-scene-anim": "gerak latar",
+  "no-fog": "kabut",
+  "no-sweeps": "kilap tombol",
+  "no-shadows": "bayangan",
+  "no-filters": "filter dan masker",
+  "no-motion": "semua animasi",
+  bare: "semua efek sekaligus",
+};
+
+export function headline(r: BenchReport): string[] {
+  const base = r.steps.find((s) => s.id === "baseline");
+  const last = r.steps.find((s) => s.id === "baseline-end");
+  if (!base || base.idle.throttled) {
+    return ["Tes tidak bisa dibaca: tabnya diperlambat browser. Ulangi dengan tab di depan."];
+  }
+  const out: string[] = [];
+  const verdict = (fps: number) => (fps >= 50 ? "mulus" : fps >= 30 ? "agak berat" : "patah-patah");
+  out.push(
+    `Halaman ini: ${base.idle.fps} fps diam (${verdict(base.idle.fps)})` +
+      (base.scroll ? `, ${base.scroll.fps} fps saat digulir (${verdict(base.scroll.fps)}).` : "."),
+  );
+  const smooth = base.idle.fps >= 50 && (base.scroll?.fps ?? 50) >= 50;
+  if (smooth) {
+    out.push("Sudah mulus. Tidak ada yang perlu dikurangi di halaman ini.");
+    if (r.startup && r.startup.loaf.n > 0)
+      out.push(`Saat dibuka, halaman macet ${(r.startup.loaf.totalMs / 1000).toFixed(1)} detik.`);
+    return out;
+  }
+  const floor = Math.max(
+    noise(base.idle, last?.idle ?? null) ?? 0,
+    noise(base.scroll, last?.scroll ?? null) ?? 0,
+    3,
+  );
+  const wins = r.steps
+    .filter((s) => !isBaseline(s.id) && s.idle.frames > 0)
+    .map((s) => ({
+      label: EFEK[s.id] ?? s.label.toLowerCase(),
+      g: Math.max(gain(base.idle, s.idle) ?? 0, s.scroll ? (gain(base.scroll, s.scroll) ?? 0) : 0),
+    }))
+    .filter((w) => w.g > floor)
+    .sort((a, b) => b.g - a.g)
+    .slice(0, 3);
+  out.push(
+    wins.length === 0
+      ? "Mematikan satu efek tidak menambah fps secara berarti, jadi beban utamanya bukan di efek tampilan."
+      : "Yang paling menahan: " +
+          wins.map((w) => `${w.label} (+${round1(w.g)} fps)`).join(", ") +
+          ".",
+  );
+  if (r.startup && r.startup.loaf.n > 0)
+    out.push(`Saat dibuka, halaman macet ${(r.startup.loaf.totalMs / 1000).toFixed(1)} detik.`);
+  return out;
+}
+
 /** A report as plain text a person can paste into a chat */
 export function formatReport(r: BenchReport): string {
   const e = r.env;

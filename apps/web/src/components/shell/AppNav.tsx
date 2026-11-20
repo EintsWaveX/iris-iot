@@ -703,7 +703,7 @@ export default function AppNav({
                 sideOffset={10}
                 collisionPadding={12}
               >
-                <DisplayPanel lang={lang} onLang={switchLang} />
+                <DisplayPanel lang={lang} onLang={switchLang} speedTest />
               </RadixPopover.Content>
             </RadixPopover.Portal>
           </RadixPopover.Root>
@@ -833,7 +833,7 @@ export default function AppNav({
       </nav>
 
       <Dialog open={dispSheet} onOpenChange={setDispSheet} title={t.display} sheet lang={lang}>
-        <DisplayPanel lang={lang} onLang={switchLang} />
+        <DisplayPanel lang={lang} onLang={switchLang} speedTest />
       </Dialog>
 
       <Dialog open={sheet} onOpenChange={setSheet} title={t.account} sheet lang={lang}>

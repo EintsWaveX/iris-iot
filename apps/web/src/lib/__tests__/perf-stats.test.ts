@@ -6,6 +6,7 @@ import {
   SWITCHES,
   formatReport,
   gain,
+  headline,
   isBaseline,
   noise,
   percentile,
@@ -259,5 +260,76 @@ describe("formatReport", () => {
       ],
     });
     expect(held).toContain("THROTTLED");
+  });
+});
+
+describe("headline", () => {
+  const frames = (ms: number) => summarize([0, ...Array(20).fill(ms)]);
+  const st = (id: string, label: string, idleMs: number, scrollMs: number): StepResult => ({
+    id,
+    label,
+    idle: frames(idleMs),
+    scroll: frames(scrollMs),
+    loaf: { n: 0, totalMs: 0, scriptMs: 0, forcedMs: 0 },
+  });
+  const rep = (steps: StepResult[], startup: BenchReport["startup"] = null): BenchReport => ({
+    v: 1,
+    at: "t",
+    env: {} as BenchReport["env"],
+    steps,
+    scripts: [],
+    startup,
+    notes: [],
+  });
+
+  it("says how smooth the page is and names the effects that gained more than the noise", () => {
+    // 100 ms frames = 10 fps; switching the sky off gives 20 ms = 50 fps; blur off gives nothing
+    const lines = headline(
+      rep([
+        st("baseline", "As it is", 100, 100),
+        st("no-sky", "No sky", 20, 20),
+        st("no-backdrop", "No backdrop blur", 100, 100),
+        st("baseline-end", "As it is (again)", 100, 100),
+      ]),
+    );
+    expect(lines[0]).toMatch(/10 fps diam \(patah-patah\).*10 fps saat digulir/);
+    expect(lines[1]).toContain("latar langit (+40 fps)");
+    expect(lines[1]).not.toContain("backdrop");
+  });
+
+  it("does not blame an effect when nothing moved more than the noise", () => {
+    const lines = headline(
+      rep([
+        st("baseline", "As it is", 40, 40),
+        st("no-sky", "No sky", 39, 39),
+        st("baseline-end", "As it is (again)", 40, 40),
+      ]),
+    );
+    expect(lines[1]).toMatch(/bukan di efek tampilan/);
+  });
+
+  it("says a smooth page needs nothing", () => {
+    const lines = headline(
+      rep([
+        st("baseline", "As it is", 16, 16),
+        st("no-sky", "No sky", 8, 8),
+        st("baseline-end", "x", 16, 16),
+      ]),
+    );
+    expect(lines[1]).toMatch(/Sudah mulus/);
+    expect(lines.join(" ")).not.toContain("langit");
+  });
+
+  it("mentions a frozen page load, and refuses a throttled run", () => {
+    const frozen = headline(
+      rep([st("baseline", "As it is", 20, 20)], {
+        loaf: { n: 9, totalMs: 3700, scriptMs: 100, forcedMs: 0 },
+        scripts: [],
+        busyUntilMs: 3800,
+      }),
+    );
+    expect(frozen.join(" ")).toContain("macet 3.7 detik");
+    const throttled = headline(rep([{ ...st("baseline", "As it is", 1000, 1000) }]));
+    expect(throttled[0]).toMatch(/diperlambat browser/);
   });
 });

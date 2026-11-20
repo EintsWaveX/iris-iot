@@ -52,6 +52,10 @@ const T = dict({
     soundOn: "Nyala",
     soundOff: "Mati",
     soundHint: "Bunyi kecil saat amplop dibuka. Hanya jalan setelah kamu sendiri yang membukanya.",
+    speed: "Tes kecepatan",
+    speedGo: "Mulai tes di halaman ini",
+    speedHint:
+      "Mengukur FPS halaman ini sekitar 1 menit, lalu menunjukkan efek mana yang paling berat. Halaman dimuat ulang dan tesnya jalan sendiri. Tutup tesnya untuk kembali.",
     clockHint: {
       auto: "Saat sesimu berjalan, jam pindah ke bilah sesi.",
       on: "Jam selalu ada di navigasi, juga saat sesi.",
@@ -80,6 +84,10 @@ const T = dict({
     soundOn: "On",
     soundOff: "Off",
     soundHint: "A small chime when an envelope opens. It only plays after you open it yourself.",
+    speed: "Speed test",
+    speedGo: "Run the test on this page",
+    speedHint:
+      "Measures this page's frame rate for about a minute, then shows which effect costs the most. The page reloads and the test starts by itself. Close the test to come back.",
     clockHint: {
       auto: "While your session runs, the clock moves to the session bar.",
       on: "The clock stays in the navigation, also during a session.",
@@ -107,6 +115,10 @@ const T = dict({
     soundOn: "开",
     soundOff: "关",
     soundHint: "打开信封时的轻柔提示音。只有你自己打开信封时才会响。",
+    speed: "速度测试",
+    speedGo: "在此页面运行测试",
+    speedHint:
+      "测量本页约一分钟的帧率，并显示哪种效果最耗资源。页面会重新加载，测试自动开始。关闭测试即可返回。",
     clockHint: {
       auto: "你上课时，时钟会移到上课栏。",
       on: "时钟一直显示在导航栏，上课时也是。",
@@ -121,7 +133,16 @@ const LANGS: { v: Lang; l: string }[] = [
   ...(ZH_ENABLED ? [{ v: "zh" as Lang, l: "中文" }] : []),
 ];
 
-export default function DisplayPanel({ lang, onLang }: { lang: Lang; onLang: (to: Lang) => void }) {
+export default function DisplayPanel({
+  lang,
+  onLang,
+  speedTest = false,
+}: {
+  lang: Lang;
+  onLang: (to: Lang) => void;
+  /** Show the speed-test button (the navigation's panel only: never inside an exam room) */
+  speedTest?: boolean;
+}) {
   const t = T[lang];
   const p = usePrefs();
   const themes: { v: ThemePref; l: string; Icon: typeof MoonIcon }[] = [
@@ -298,6 +319,20 @@ export default function DisplayPanel({ lang, onLang }: { lang: Lang; onLang: (to
         </div>
         <span className="hint">{t.soundHint}</span>
       </div>
+
+      {speedTest && (
+        <div className="disp__group">
+          <span className="disp__label">{t.speed}</span>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => window.location.assign(`${window.location.pathname}?perf=auto`)}
+          >
+            {t.speedGo}
+          </button>
+          <span className="hint">{t.speedHint}</span>
+        </div>
+      )}
     </div>
   );
 }
