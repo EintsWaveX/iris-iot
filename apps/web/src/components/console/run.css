@@ -219,7 +219,7 @@
 .strack__now b {
   background: var(--ok);
   border-radius: 5px;
-  color: #04130b;
+  color: var(--hex-04130b);
   font-size: 0.7rem;
   left: 50%;
   padding: 0 5px;

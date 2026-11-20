@@ -181,9 +181,9 @@
 }
 
 .pl-pick__swap {
-  background: rgb(5 7 15 / 0.78);
+  background: rgb(var(--rgb-5-7-15) / 0.78);
   border-radius: var(--radius-pill);
-  color: #eef1f6;
+  color: var(--hex-eef1f6);
   font-size: 0.85rem;
   font-weight: 650;
   padding: 6px 12px;
@@ -196,8 +196,8 @@
 }
 
 .pl-pick__del.btn {
-  background: rgb(5 7 15 / 0.78);
-  color: #eef1f6;
+  background: rgb(var(--rgb-5-7-15) / 0.78);
+  color: var(--hex-eef1f6);
 }
 
 .pl-pick[data-busy="yes"] > img {
@@ -361,7 +361,7 @@
 }
 
 .pl-edphotos__bar {
-  background: linear-gradient(transparent, rgb(5 7 15 / 0.85));
+  background: linear-gradient(transparent, rgb(var(--rgb-5-7-15) / 0.85));
   bottom: 0;
   display: flex;
   gap: 2px;
@@ -374,7 +374,7 @@
 
 .pl-edphotos__bar .iconbtn,
 .pl-edphotos__star .iconbtn {
-  color: #eef1f6;
+  color: var(--hex-eef1f6);
 }
 
 /* The cover star in the top corner, so the bar keeps three buttons. */
@@ -385,7 +385,7 @@
 }
 
 .pl-edphotos__star .iconbtn {
-  background: rgb(5 7 15 / 0.7);
+  background: rgb(var(--rgb-5-7-15) / 0.7);
 }
 
 .pl-edphotos__cover {

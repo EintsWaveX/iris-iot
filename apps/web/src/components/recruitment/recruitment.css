@@ -4,14 +4,14 @@
 /* Open Recruitment S1 mockup. Every keyframe is prefixed rec-; the banner
    edge reuses the kit's --sweep gradient and sweep keyframes. */
 :root {
-  --rec: #f5b544;
-  --rec-ink: #1d1400;
-  --rec-soft: rgba(245, 181, 68, 0.14);
+  --rec: var(--hex-f5b544);
+  --rec-ink: var(--hex-1d1400);
+  --rec-soft: rgb(var(--rgb-245-181-68) / 0.14);
 }
 :root[data-theme="light"] {
-  --rec: #b7791f;
-  --rec-ink: #fffaf0;
-  --rec-soft: rgba(183, 121, 31, 0.12);
+  --rec: var(--hex-b7791f);
+  --rec-ink: var(--hex-fffaf0);
+  --rec-soft: rgb(var(--rgb-183-121-31) / 0.12);
 }
 
 /* ============================================================ shared */
@@ -773,12 +773,12 @@
 .rkal__bar[data-k="test"] {
   background: var(--c);
   /* The fallback for a browser without relative colours: the dark theme's colours are light, the light theme's are dark. */
-  color: #160b00;
+  color: var(--hex-160b00);
   box-shadow: none;
 }
 :root[data-theme="light"] .rkal__bar[data-k="announcement"],
 :root[data-theme="light"] .rkal__bar[data-k="test"] {
-  color: #fff;
+  color: var(--hex-ffffff);
 }
 /* The text follows the bar's own colour, whatever the theme or a custom event colour: a dark bar gets
    white text, a light one gets near-black (the lightness where black and white read equally well is
@@ -1830,18 +1830,18 @@ html[data-detail="ldm"] .rec-funnel__bar i {
     linear-gradient(
       90deg,
       transparent calc(var(--fx) - 2%),
-      rgba(0, 0, 0, 0.35) calc(var(--fx) + 9%),
-      #000 calc(var(--fx) + 24%)
+      rgb(var(--rgb-0-0-0) / 0.35) calc(var(--fx) + 9%),
+      var(--hex-000000) calc(var(--fx) + 24%)
     ),
-    linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+    linear-gradient(180deg, transparent, var(--hex-000000) 22%, var(--hex-000000) 78%, transparent);
   mask-image:
     linear-gradient(
       90deg,
       transparent calc(var(--fx) - 2%),
-      rgba(0, 0, 0, 0.35) calc(var(--fx) + 9%),
-      #000 calc(var(--fx) + 24%)
+      rgb(var(--rgb-0-0-0) / 0.35) calc(var(--fx) + 9%),
+      var(--hex-000000) calc(var(--fx) + 24%)
     ),
-    linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+    linear-gradient(180deg, transparent, var(--hex-000000) 22%, var(--hex-000000) 78%, transparent);
   overflow: hidden;
   pointer-events: none;
   position: absolute;
@@ -1858,14 +1858,14 @@ html[data-detail="ldm"] .rec-funnel__bar i {
     -webkit-mask-image: linear-gradient(
       180deg,
       transparent calc(var(--fy) - 2%),
-      rgba(0, 0, 0, 0.35) calc(var(--fy) + 4%),
-      #000 calc(var(--fy) + 12%)
+      rgb(var(--rgb-0-0-0) / 0.35) calc(var(--fy) + 4%),
+      var(--hex-000000) calc(var(--fy) + 12%)
     );
     mask-image: linear-gradient(
       180deg,
       transparent calc(var(--fy) - 2%),
-      rgba(0, 0, 0, 0.35) calc(var(--fy) + 4%),
-      #000 calc(var(--fy) + 12%)
+      rgb(var(--rgb-0-0-0) / 0.35) calc(var(--fy) + 4%),
+      var(--hex-000000) calc(var(--fy) + 12%)
     );
   }
 }
@@ -2032,7 +2032,7 @@ html[data-detail="ldm"] .rec-funnel__bar i {
       color-mix(in srgb, var(--rec) 20%, transparent),
       transparent 62%
     ),
-    radial-gradient(50% 120% at 100% 100%, rgba(167, 139, 250, 0.2), transparent 64%),
+    radial-gradient(50% 120% at 100% 100%, rgb(var(--rgb-167-139-250) / 0.2), transparent 64%),
     radial-gradient(
         circle at 1px 1px,
         color-mix(in srgb, var(--text) 9%, transparent) 1px,
@@ -2056,8 +2056,8 @@ html[data-detail="ldm"] .rec-funnel__bar i {
   width: min(60%, 340px);
   opacity: 0.4;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 60%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 60%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, var(--hex-000000) 60%);
+  mask-image: linear-gradient(90deg, transparent 0%, var(--hex-000000) 60%);
 }
 @media (min-width: 900px) {
   .rec-bn__art {
@@ -2096,7 +2096,7 @@ html[data-detail="ldm"] .rec-funnel__bar i {
   font-size: clamp(1.3rem, 2.6vw, 1.7rem);
   line-height: 1.15;
   letter-spacing: -0.02em;
-  background: linear-gradient(95deg, var(--text) 30%, var(--rec) 70%, #a78bfa);
+  background: linear-gradient(95deg, var(--text) 30%, var(--rec) 70%, var(--hex-a78bfa));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -2106,7 +2106,7 @@ html[data-detail="ldm"] .rec-funnel__bar i {
   background: linear-gradient(
     140deg,
     color-mix(in srgb, var(--rec) 30%, transparent),
-    rgba(167, 139, 250, 0.22)
+    rgb(var(--rgb-167-139-250) / 0.22)
   );
   box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--rec) 80%, transparent);
 }

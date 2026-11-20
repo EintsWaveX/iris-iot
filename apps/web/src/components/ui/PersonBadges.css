@@ -26,12 +26,19 @@
   animation: kit-sweep 3s ease-out 1;
 }
 .pbadge--pencipta {
-  background: linear-gradient(100deg, #ffe08a, #ffb36b, #f2a3ff, #8ed0ff, #ffe08a);
+  background: linear-gradient(
+    100deg,
+    var(--hex-ffe08a),
+    var(--hex-ffb36b),
+    var(--hex-f2a3ff),
+    var(--hex-8ed0ff),
+    var(--hex-ffe08a)
+  );
   background-size: 300% 100%;
   box-shadow:
-    0 0 0 1px rgba(255, 224, 138, 0.6),
-    0 0 16px rgba(255, 190, 120, 0.35);
-  color: #1a1200;
+    0 0 0 1px rgb(var(--rgb-255-224-138) / 0.6),
+    0 0 16px rgb(var(--rgb-255-190-120) / 0.35);
+  color: var(--hex-1a1200);
 }
 
 .pbadge--sm {

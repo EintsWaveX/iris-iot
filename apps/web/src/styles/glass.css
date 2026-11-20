@@ -11,31 +11,31 @@
 
 :root {
   --glass-panel:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
-    rgba(14, 18, 40, 0.8);
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.1), rgb(var(--rgb-255-255-255) / 0.02)),
+    rgb(var(--rgb-14-18-40) / 0.8);
   --glass-frost:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
-    rgba(16, 20, 44, 0.9);
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.14), rgb(var(--rgb-255-255-255) / 0.03)),
+    rgb(var(--rgb-16-20-44) / 0.9);
   --glass-clear:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.03)),
-    rgba(12, 16, 34, 0.58);
-  --glass-bd: rgba(255, 255, 255, 0.2);
-  --glass-hi: rgba(255, 255, 255, 0.28);
-  --glass-sh: rgba(0, 0, 0, 0.34);
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.15), rgb(var(--rgb-255-255-255) / 0.03)),
+    rgb(var(--rgb-12-16-34) / 0.58);
+  --glass-bd: rgb(var(--rgb-255-255-255) / 0.2);
+  --glass-hi: rgb(var(--rgb-255-255-255) / 0.28);
+  --glass-sh: rgb(var(--rgb-0-0-0) / 0.34);
 }
 :root[data-theme="light"] {
   --glass-panel:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.62)),
-    rgba(255, 255, 255, 0.3);
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.9), rgb(var(--rgb-255-255-255) / 0.62)),
+    rgb(var(--rgb-255-255-255) / 0.3);
   --glass-frost:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78)),
-    rgba(255, 255, 255, 0.5);
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.96), rgb(var(--rgb-255-255-255) / 0.78)),
+    rgb(var(--rgb-255-255-255) / 0.5);
   --glass-clear:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.42)),
-    rgba(255, 255, 255, 0.3);
-  --glass-bd: rgba(255, 255, 255, 0.9);
-  --glass-hi: #fff;
-  --glass-sh: rgba(16, 34, 70, 0.16);
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.8), rgb(var(--rgb-255-255-255) / 0.42)),
+    rgb(var(--rgb-255-255-255) / 0.3);
+  --glass-bd: rgb(var(--rgb-255-255-255) / 0.9);
+  --glass-hi: var(--hex-ffffff);
+  --glass-sh: rgb(var(--rgb-16-34-70) / 0.16);
 }
 
 /* ---- the shell: every card, dialog, drawer and menu ---- */
@@ -127,8 +127,8 @@
   content: "";
   inset: 0;
   -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   padding: 1.5px;
@@ -139,7 +139,7 @@
   background: linear-gradient(
     105deg,
     transparent 35%,
-    rgba(255, 255, 255, 0.35) 50%,
+    rgb(var(--rgb-255-255-255) / 0.35) 50%,
     transparent 65%
   );
   content: "";

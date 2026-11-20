@@ -1,15 +1,15 @@
 /* Cutting, matched to the mockup (rec7.css n7-cut*): the stage bar, the cut line beside the lock card, the table. */
 .n7-cut {
-  --tc: #fb7185;
+  --tc: var(--hex-fb7185);
   --tx: var(--tc);
   display: grid;
   gap: 16px;
 }
 :root[data-theme="light"] .n7-cut {
   --tx: color-mix(in srgb, var(--tc) 42%, var(--text));
-  --n7-ok: #0b6b5f;
-  --n7-bad: #b42318;
-  --n7-warn: #8a5200;
+  --n7-ok: var(--hex-0b6b5f);
+  --n7-bad: var(--hex-b42318);
+  --n7-warn: var(--hex-8a5200);
 }
 .n7-cut {
   --n7-ok: var(--ok);
@@ -17,9 +17,9 @@
   --n7-warn: var(--warn);
 }
 :root[data-theme="light"] .n7-cut {
-  --n7-ok: #0b6b5f;
-  --n7-bad: #b42318;
-  --n7-warn: #8a5200;
+  --n7-ok: var(--hex-0b6b5f);
+  --n7-bad: var(--hex-b42318);
+  --n7-warn: var(--hex-8a5200);
 }
 .n7-bar {
   align-items: center;
@@ -287,14 +287,14 @@
 }
 .n7-seg button[data-v="lolos"][aria-pressed="true"] {
   background: var(--n7-ok);
-  color: #04130f;
+  color: var(--hex-04130f);
 }
 .n7-seg button[data-v="gagal"][aria-pressed="true"] {
   background: var(--n7-bad);
-  color: #1a0505;
+  color: var(--hex-1a0505);
 }
 :root[data-theme="light"] .n7-seg button[aria-pressed="true"] {
-  color: #fff;
+  color: var(--hex-ffffff);
 }
 .n7-by {
   background: var(--surface-3);
@@ -361,7 +361,7 @@
   outline-offset: -3px;
 }
 :root[data-theme="light"] .n7-bar .tabs__tab[aria-selected="true"] {
-  color: color-mix(in srgb, var(--tc, var(--text)) 32%, #0a0f1c);
+  color: color-mix(in srgb, var(--tc, var(--text)) 32%, var(--hex-0a0f1c));
 }
 :root[data-theme="light"] .n7-bar .tabs__tab[aria-selected="true"]::after {
   box-shadow: none;
@@ -452,20 +452,20 @@
   white-space: nowrap;
 }
 .cwd-tag[data-tone="warn"] {
-  background: color-mix(in srgb, var(--warn, #f5c77e) 18%, transparent);
-  border-color: color-mix(in srgb, var(--warn, #f5c77e) 50%, transparent);
+  background: color-mix(in srgb, var(--warn, var(--hex-f5c77e)) 18%, transparent);
+  border-color: color-mix(in srgb, var(--warn, var(--hex-f5c77e)) 50%, transparent);
 }
 .cwd-tag[data-tone="danger"] {
   background: color-mix(in srgb, var(--danger) 16%, transparent);
   border-color: color-mix(in srgb, var(--danger) 50%, transparent);
 }
 .cwd-tag[data-tone="gold"] {
-  background: color-mix(in srgb, var(--gold, #e6b450) 18%, transparent);
-  border-color: color-mix(in srgb, var(--gold, #e6b450) 55%, transparent);
+  background: color-mix(in srgb, var(--gold, var(--hex-e6b450)) 18%, transparent);
+  border-color: color-mix(in srgb, var(--gold, var(--hex-e6b450)) 55%, transparent);
 }
 .cwd-tag[data-tone="violet"] {
-  background: color-mix(in srgb, #a78bfa 18%, transparent);
-  border-color: color-mix(in srgb, #a78bfa 50%, transparent);
+  background: color-mix(in srgb, var(--hex-a78bfa) 18%, transparent);
+  border-color: color-mix(in srgb, var(--hex-a78bfa) 50%, transparent);
 }
 .cwd-tag--more {
   color: var(--text-muted);
@@ -639,8 +639,8 @@
 }
 :root[data-theme="light"] .cwd,
 :root[data-theme="light"] .drawer .n7-seg {
-  --n7-ok: #0b6b5f;
-  --n7-bad: #b42318;
+  --n7-ok: var(--hex-0b6b5f);
+  --n7-bad: var(--hex-b42318);
 }
 .cwd__why li::marker {
   color: var(--accent);

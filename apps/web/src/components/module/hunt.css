@@ -31,7 +31,7 @@
 }
 
 .qrbox {
-  background: #fff;
+  background: var(--hex-ffffff);
   border-radius: 10px;
   line-height: 0;
   padding: 6px;

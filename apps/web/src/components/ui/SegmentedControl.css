@@ -63,14 +63,14 @@
   background: var(--surface-4);
   border-color: var(--hairline-strong);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 4px 14px rgba(0, 0, 0, 0.22);
+    0 1px 0 rgb(var(--rgb-255-255-255) / 0.06) inset,
+    0 4px 14px rgb(var(--rgb-0-0-0) / 0.22);
   color: var(--text);
 }
 
 :root[data-theme="light"] .segmented__item[data-state="on"] {
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(16, 34, 70, 0.14);
+  background: var(--hex-ffffff);
+  box-shadow: 0 2px 8px rgb(var(--rgb-16-34-70) / 0.14);
 }
 
 @media (max-width: 1279px) {
@@ -95,8 +95,8 @@
   content: "";
   inset: 0;
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;

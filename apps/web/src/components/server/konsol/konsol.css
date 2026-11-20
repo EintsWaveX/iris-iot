@@ -222,7 +222,7 @@
 
 .pkpane__over {
   align-items: center;
-  background: rgb(5 7 11 / 0.82);
+  background: rgb(var(--rgb-5-7-11) / 0.82);
   border-radius: var(--radius-lg);
   display: grid;
   inset: 0;
@@ -234,7 +234,7 @@
 
 .pkstatus {
   align-items: center;
-  color: #e4ebf7;
+  color: var(--hex-e4ebf7);
   display: grid;
   gap: 12px;
   justify-items: center;
@@ -248,17 +248,17 @@
 
 /* ------------------------------------------------------------ terminal */
 .term {
-  background: #0b0f17;
+  background: var(--hex-0b0f17);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
-  color: #d8e1f0;
+  color: var(--hex-d8e1f0);
   overflow: hidden;
 }
 
 .term__bar {
   align-items: center;
-  background: rgb(255 255 255 / 0.04);
-  border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(var(--rgb-255-255-255) / 0.04);
+  border-bottom: 1px solid rgb(var(--rgb-255-255-255) / 0.1);
   display: flex;
   gap: 10px;
   justify-content: space-between;
@@ -273,14 +273,14 @@
 }
 
 .term__who b {
-  color: #f2f5fb;
+  color: var(--hex-f2f5fb);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .term__hint {
-  color: #8d99ad;
+  color: var(--hex-8d99ad);
 }
 
 @media (max-width: 639px) {
@@ -296,7 +296,7 @@
 }
 
 .term__tools .iconbtn {
-  color: #c8d2e4;
+  color: var(--hex-c8d2e4);
 }
 
 .term__xterm {
@@ -339,7 +339,7 @@
 }
 
 .vnc__frame {
-  background: #05070b;
+  background: var(--hex-05070b);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
   padding: 10px;
@@ -385,7 +385,7 @@
 .vnc__wait {
   align-content: center;
   animation: vnc-tunggu-masuk 200ms var(--ease-out-expo) 400ms both;
-  color: rgb(255 255 255 / 0.85);
+  color: rgb(var(--rgb-255-255-255) / 0.85);
   display: grid;
   font-size: 0.85rem;
   gap: 6px;
@@ -398,7 +398,7 @@
 }
 
 .vnc__wait > span {
-  color: rgb(255 255 255 / 0.6);
+  color: rgb(var(--rgb-255-255-255) / 0.6);
   max-width: 36ch;
 }
 
@@ -426,10 +426,10 @@
 
 .vnc__ro {
   align-items: center;
-  background: rgb(0 0 0 / 0.7);
+  background: rgb(var(--rgb-0-0-0) / 0.7);
   border-radius: 999px;
   bottom: 20px;
-  color: #fff;
+  color: var(--hex-ffffff);
   display: inline-flex;
   font-size: 0.85rem;
   font-weight: 600;
@@ -471,7 +471,7 @@
 /* The pane is what goes full screen, so a request for control and the
    short notes show there too. */
 .pkpane:fullscreen {
-  background: #05070b;
+  background: var(--hex-05070b);
   display: flex;
   flex-direction: column;
   padding: 12px;
@@ -508,97 +508,98 @@
    a surface and an edge of their own, so they stand out from the black. */
 :root[data-theme="light"] .pkpane:fullscreen {
   color-scheme: dark;
-  --void: #05060b;
-  --bg: #0a0c14;
-  --bg-sunken: #04050a;
-  --bg-elevated: #181c2c;
-  --surface-1: #10131f;
-  --surface-2: #161a2b;
-  --surface-3: #1d2238;
-  --surface-4: #262c47;
-  --panel-bg: rgba(24, 28, 44, 0.55);
-  --panel-bg-solid: #181c2c;
-  --glass: rgba(12, 15, 26, 0.72);
-  --scrim: rgba(3, 4, 8, 0.72);
-  --scrim-text: rgba(5, 6, 11, 0.55);
-  --hairline-faint: rgba(205, 220, 255, 0.11);
-  --hairline: rgba(205, 220, 255, 0.22);
-  --hairline-strong: rgba(205, 220, 255, 0.38);
-  --control-border: rgba(205, 220, 255, 0.4);
-  --text: #eef1f6;
-  --text-muted: #b0b8c8;
-  --text-faint: #98a1b3;
-  --accent: #40b0ff;
-  --accent-bright: #8ed0ff;
-  --accent-soft: rgba(64, 176, 255, 0.16);
-  --accent-ink: #04121d;
-  --accent-glow: rgba(64, 176, 255, 0.42);
-  --focus-ring: #8ed0ff;
-  --invert-bg: #eef1f6;
-  --invert-ink: #05060b;
-  --sel-bg: #2f6fb0;
-  --sel-ink: #ffffff;
-  --gold: #e8b64d;
-  --gold-bright: #f7d488;
-  --gold-soft: rgba(232, 182, 77, 0.16);
-  --gold-ink: #1a1200;
-  --gold-glow: rgba(232, 182, 77, 0.45);
-  --silver: #c3ccd8;
-  --bronze: #cf9468;
-  --danger: #ff6b6b;
-  --danger-solid: #ff5a5a;
-  --danger-ink: #0b0000;
-  --danger-soft: rgba(255, 107, 107, 0.15);
-  --warn: #f5b544;
-  --warn-soft: rgba(245, 181, 68, 0.15);
-  --ok: #5eead4;
-  --ok-soft: rgba(94, 234, 212, 0.15);
-  --violet: #b9a2ff;
-  --violet-soft: rgba(185, 162, 255, 0.18);
-  --teal: #7ff0e0;
-  --teal-soft: rgba(127, 240, 224, 0.16);
-  --orange: #ff9d3c;
-  --orange-soft: rgba(255, 157, 60, 0.2);
-  --red: #ff5a5a;
-  --red-soft: rgba(255, 90, 90, 0.2);
-  --yellow: #ffe066;
-  --yellow-soft: rgba(255, 224, 102, 0.2);
-  --group-1: #5eead4;
-  --group-2: #a78bfa;
-  --group-3: #fb7185;
-  --group-4: #f59e6a;
-  --group-5: #7dd3fc;
-  --group-6: #a3e635;
-  --group-7: #f472b6;
-  --group-8: #fde047;
-  --group-9: #93a5ff;
-  --group-10: #e2a3ff;
-  --mod-1: #6cc4ff;
-  --mod-2: #a39cff;
-  --mod-3: #5fe0b0;
-  --mod-4: #ffad6b;
-  --mod-1-soft: rgba(108, 196, 255, 0.14);
-  --mod-2-soft: rgba(163, 156, 255, 0.14);
-  --mod-3-soft: rgba(95, 224, 176, 0.14);
-  --mod-4-soft: rgba(255, 173, 107, 0.14);
-  --heat-lost: rgba(255, 255, 255, 0.22);
-  --neb-indigo: #1b1f4a;
-  --neb-violet: #3a2a6b;
-  --neb-teal: #0f3f4a;
-  --neb-plum: #2a1338;
+  --void: var(--hex-05060b);
+  --bg: var(--hex-0a0c14);
+  --bg-sunken: var(--hex-04050a);
+  --bg-elevated: var(--hex-181c2c);
+  --surface-1: var(--hex-10131f);
+  --surface-2: var(--hex-161a2b);
+  --surface-3: var(--hex-1d2238);
+  --surface-4: var(--hex-262c47);
+  --panel-bg: rgb(var(--rgb-24-28-44) / 0.55);
+  --panel-bg-solid: var(--hex-181c2c);
+  --glass: rgb(var(--rgb-12-15-26) / 0.72);
+  --scrim: rgb(var(--rgb-3-4-8) / 0.72);
+  --scrim-text: rgb(var(--rgb-5-6-11) / 0.55);
+  --hairline-faint: rgb(var(--rgb-205-220-255) / 0.11);
+  --hairline: rgb(var(--rgb-205-220-255) / 0.22);
+  --hairline-strong: rgb(var(--rgb-205-220-255) / 0.38);
+  --control-border: rgb(var(--rgb-205-220-255) / 0.4);
+  --text: var(--hex-eef1f6);
+  --text-muted: var(--hex-b0b8c8);
+  --text-faint: var(--hex-98a1b3);
+  --accent: var(--hex-40b0ff);
+  --accent-bright: var(--hex-8ed0ff);
+  --accent-soft: rgb(var(--rgb-64-176-255) / 0.16);
+  --accent-ink: var(--hex-04121d);
+  --accent-glow: rgb(var(--rgb-64-176-255) / 0.42);
+  --focus-ring: var(--hex-8ed0ff);
+  --invert-bg: var(--hex-eef1f6);
+  --invert-ink: var(--hex-05060b);
+  --sel-bg: var(--hex-2f6fb0);
+  --sel-ink: var(--hex-ffffff);
+  --gold: var(--hex-e8b64d);
+  --gold-bright: var(--hex-f7d488);
+  --gold-soft: rgb(var(--rgb-232-182-77) / 0.16);
+  --gold-ink: var(--hex-1a1200);
+  --gold-glow: rgb(var(--rgb-232-182-77) / 0.45);
+  --silver: var(--hex-c3ccd8);
+  --bronze: var(--hex-cf9468);
+  --danger: var(--hex-ff6b6b);
+  --danger-solid: var(--hex-ff5a5a);
+  --danger-ink: var(--hex-0b0000);
+  --danger-soft: rgb(var(--rgb-255-107-107) / 0.15);
+  --warn: var(--hex-f5b544);
+  --warn-soft: rgb(var(--rgb-245-181-68) / 0.15);
+  --ok: var(--hex-5eead4);
+  --ok-soft: rgb(var(--rgb-94-234-212) / 0.15);
+  --violet: var(--hex-b9a2ff);
+  --violet-soft: rgb(var(--rgb-185-162-255) / 0.18);
+  --teal: var(--hex-7ff0e0);
+  --teal-soft: rgb(var(--rgb-127-240-224) / 0.16);
+  --orange: var(--hex-ff9d3c);
+  --orange-soft: rgb(var(--rgb-255-157-60) / 0.2);
+  --red: var(--hex-ff5a5a);
+  --red-soft: rgb(var(--rgb-255-90-90) / 0.2);
+  --yellow: var(--hex-ffe066);
+  --yellow-soft: rgb(var(--rgb-255-224-102) / 0.2);
+  --group-1: var(--hex-5eead4);
+  --group-2: var(--hex-a78bfa);
+  --group-3: var(--hex-fb7185);
+  --group-4: var(--hex-f59e6a);
+  --group-5: var(--hex-7dd3fc);
+  --group-6: var(--hex-a3e635);
+  --group-7: var(--hex-f472b6);
+  --group-8: var(--hex-fde047);
+  --group-9: var(--hex-93a5ff);
+  --group-10: var(--hex-e2a3ff);
+  --mod-1: var(--hex-6cc4ff);
+  --mod-2: var(--hex-a39cff);
+  --mod-3: var(--hex-5fe0b0);
+  --mod-4: var(--hex-ffad6b);
+  --mod-1-soft: rgb(var(--rgb-108-196-255) / 0.14);
+  --mod-2-soft: rgb(var(--rgb-163-156-255) / 0.14);
+  --mod-3-soft: rgb(var(--rgb-95-224-176) / 0.14);
+  --mod-4-soft: rgb(var(--rgb-255-173-107) / 0.14);
+  --heat-lost: rgb(var(--rgb-255-255-255) / 0.22);
+  --neb-indigo: var(--hex-1b1f4a);
+  --neb-violet: var(--hex-3a2a6b);
+  --neb-teal: var(--hex-0f3f4a);
+  --neb-plum: var(--hex-2a1338);
   --shadow-color: 0 0 0;
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 48px rgba(0, 0, 0, 0.5);
-  --shadow-lift: 0 24px 70px rgba(0, 0, 0, 0.6);
-  --nav-bg: rgba(10, 12, 20, 0.62);
-  --nav-bg-scrolled: rgba(10, 12, 20, 0.9);
+  --shadow-panel:
+    0 1px 0 rgb(var(--rgb-255-255-255) / 0.05) inset, 0 18px 48px rgb(var(--rgb-0-0-0) / 0.5);
+  --shadow-lift: 0 24px 70px rgb(var(--rgb-0-0-0) / 0.6);
+  --nav-bg: rgb(var(--rgb-10-12-20) / 0.62);
+  --nav-bg-scrolled: rgb(var(--rgb-10-12-20) / 0.9);
   --logo-filter: none;
-  --chart-1: #7dd3fc;
-  --chart-2: #c4b5fd;
-  --chart-3: #fca5a5;
-  --chart-4: #5eead4;
-  --chart-axis: #959da7;
-  --chart-grid: rgba(255, 255, 255, 0.06);
-  --chart-tick: rgba(255, 255, 255, 0.1);
+  --chart-1: var(--hex-7dd3fc);
+  --chart-2: var(--hex-c4b5fd);
+  --chart-3: var(--hex-fca5a5);
+  --chart-4: var(--hex-5eead4);
+  --chart-axis: var(--hex-959da7);
+  --chart-grid: rgb(var(--rgb-255-255-255) / 0.06);
+  --chart-tick: rgb(var(--rgb-255-255-255) / 0.1);
 }
 
 .pkpane:fullscreen {
@@ -672,10 +673,10 @@
 }
 
 .pkkabar {
-  background: rgb(0 0 0 / 0.78);
+  background: rgb(var(--rgb-0-0-0) / 0.78);
   border-radius: 999px;
   bottom: 18px;
-  color: #fff;
+  color: var(--hex-ffffff);
   font-size: 0.9rem;
   font-weight: 600;
   left: 50%;

@@ -1,11 +1,11 @@
 /* =========================================================================
    CONTROLS -- the one interaction language for every clickable control.
 
-   Global (imported once by Base.astro), not a scoped Astro <style> block,
+   Global (imported once by Base.astro), not a scoped Astro \3c style> block,
    because a scoped block only ever matches markup the SAME component
    renders -- PresentationManager.tsx, SessionConsole.tsx and every other
    React island are compiled outside Astro's scoping entirely and could
-   never reach a `.btn` declared inside Button.astro's own <style> tag. That
+   never reach a `.btn` declared inside Button.astro's own \3c style> tag. That
    gap is exactly why this project grew eight independently-styled button
    families (P6.3/B11): each one that needed a button outside Button.astro's
    own render tree had no shared class to reach for and wrote its own.
@@ -57,8 +57,8 @@
   content: "";
   inset: 0;
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
@@ -185,8 +185,8 @@
   content: "";
   inset: -1px;
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
@@ -312,16 +312,16 @@
 /* -- inverse, green: a choice that is in use. At rest a green-edged
    outline, tinted on hover; chosen, solid green with near-black words. -- */
 .btn--inverse-ok {
-  --pick: #34d399;
-  --pick-hover: #6ee7b7;
-  --pick-ink: #03140c;
+  --pick: var(--hex-34d399);
+  --pick-hover: var(--hex-6ee7b7);
+  --pick-ink: var(--hex-03140c);
   background: var(--surface-3);
   border: 1.5px solid color-mix(in srgb, var(--pick) 45%, transparent);
   color: var(--text);
 }
 :root[data-theme="light"] .btn--inverse-ok {
-  --pick: #22c55e;
-  --pick-hover: #16a34a;
+  --pick: var(--hex-22c55e);
+  --pick-hover: var(--hex-16a34a);
 }
 .btn--inverse-ok[aria-checked="true"],
 .btn--inverse-ok[aria-pressed="true"] {
@@ -394,7 +394,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
-    background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+    background: color-mix(in srgb, var(--danger-solid) 82%, var(--hex-ffffff));
     box-shadow: 0 10px 30px color-mix(in srgb, var(--danger-solid) 40%, transparent);
   }
 }
@@ -519,8 +519,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .iconbtn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
-    background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
-    border-color: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+    background: color-mix(in srgb, var(--danger-solid) 82%, var(--hex-ffffff));
+    border-color: color-mix(in srgb, var(--danger-solid) 82%, var(--hex-ffffff));
     color: var(--danger-ink);
   }
 }
@@ -629,7 +629,7 @@
 }
 
 /* -----------------------------------------------------------------------
-   Module access (P6.5) -- global, not scoped to any one page's <style>
+   Module access (P6.5) -- global, not scoped to any one page's \3c style>
    block, because modul-akses.ts inserts these elements at runtime with
    plain DOM calls. Astro's per-component CSS scoping works by stamping a
    data-astro-cid-* attribute onto markup the template itself renders; an

@@ -5,7 +5,7 @@
   animation: tooltip-in 140ms var(--ease-out-expo) both;
   background: var(--invert-bg);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgb(var(--rgb-0-0-0) / 0.35);
   color: var(--invert-ink);
   font: 600 13px/1.35 var(--font-body);
   max-width: min(280px, calc(100vw - 16px));

@@ -1,6 +1,6 @@
 /* Plotting, matched to the mockup (rec7.css n7-plot, n7-win, n7-eve, n7-room). --sc is the stage's colour. */
 .n7-plot {
-  --sc: #fb7185;
+  --sc: var(--hex-fb7185);
   --tx: var(--sc);
   --n7-ok: var(--ok);
   --n7-warn: var(--warn);
@@ -9,8 +9,8 @@
 }
 :root[data-theme="light"] .n7-plot {
   --tx: color-mix(in srgb, var(--sc) 42%, var(--text));
-  --n7-ok: #0b6b5f;
-  --n7-warn: #8a5200;
+  --n7-ok: var(--hex-0b6b5f);
+  --n7-warn: var(--hex-8a5200);
 }
 .n7-stagepick {
   align-items: center;
@@ -98,7 +98,7 @@
   margin-top: auto;
 }
 .n7-eve[data-s="yes"] {
-  border-top-color: #ff9d3c;
+  border-top-color: var(--hex-ff9d3c);
   border-top-style: dashed;
 }
 .n7-eve__h {

@@ -10,7 +10,7 @@
   width: 100%;
 }
 .lcc-draw__title {
-  color: color-mix(in srgb, var(--text) 82%, var(--gold, #e8b64d));
+  color: color-mix(in srgb, var(--text) 82%, var(--gold, var(--hex-e8b64d)));
   font-size: 2.6rem;
   letter-spacing: -0.02em;
   line-height: 1.1;

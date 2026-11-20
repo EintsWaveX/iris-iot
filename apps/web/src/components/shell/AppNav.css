@@ -36,8 +36,8 @@
   content: "";
   height: 22px;
   left: 0;
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
-  mask-image: linear-gradient(to bottom, #000, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, var(--hex-000000), transparent);
+  mask-image: linear-gradient(to bottom, var(--hex-000000), transparent);
   pointer-events: none;
   position: absolute;
   right: 0;
@@ -503,7 +503,7 @@
 .appnav__avatar[data-pencipta="yes"] {
   box-shadow:
     0 0 0 2px var(--surface-2),
-    0 0 0 4px #ffb36b;
+    0 0 0 4px var(--hex-ffb36b);
 }
 
 .appnav__avatar--lg {

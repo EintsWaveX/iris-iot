@@ -1,6 +1,6 @@
 /* Check-in as one card (mockup r3-checkin): the hero tile, the two-column check list, the help line. */
 .r3gate__card--check {
-  border-top: 3px solid var(--gold, #e8b64d);
+  border-top: 3px solid var(--gold, var(--hex-e8b64d));
   width: min(780px, 100%);
 }
 .n7t-gatehead {
@@ -9,7 +9,7 @@
   gap: 18px;
 }
 .n7t-hero {
-  --hero: var(--gold, #e8b64d);
+  --hero: var(--gold, var(--hex-e8b64d));
   background: color-mix(in srgb, var(--hero) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--hero) 45%, transparent);
   border-radius: 20px;

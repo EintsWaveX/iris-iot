@@ -257,22 +257,22 @@
 .rec-nav .appnav__link[data-k="ringkasan"],
 .rec-nav .appnav__link[data-k="kalender"],
 .rec-nav .appnav__link[data-k="panitia"] {
-  --tc: #7dd3fc;
+  --tc: var(--hex-7dd3fc);
 }
 .rec-nav .appnav__link[data-k="kandidat"],
 .rec-nav .appnav__link[data-k="cutting"],
 .rec-nav .appnav__link[data-k="plotting"] {
-  --tc: #5eead4;
+  --tc: var(--hex-5eead4);
 }
 .rec-nav .appnav__link[data-k="tes"],
 .rec-nav .appnav__link[data-k="bank"],
 .rec-nav .appnav__link[data-k="wawancara"],
 .rec-nav .appnav__link[data-k="tubes"],
 .rec-nav .appnav__link[data-k="mengajar"] {
-  --tc: #8fb0ff;
+  --tc: var(--hex-8fb0ff);
 }
 .rec-nav .appnav__link[data-k="penerimaan"] {
-  --tc: #e879f9;
+  --tc: var(--hex-e879f9);
 }
 .rec-nav__n {
   align-items: center;
