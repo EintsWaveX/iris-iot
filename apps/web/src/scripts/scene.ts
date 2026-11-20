@@ -5,10 +5,12 @@
  *   normal  Normal (the default): islands and clouds move, sparkles twinkle, waterfalls run,
  *           the layers follow the cursor (parallax plus a soft light)
  *   hd      High Detail: adds petals, birds and shooting stars
- * The motion itself is CSS (styles/scene.css), so this file only paints on theme or size changes.
+ * The islands, clouds and waterfalls move by CSS (styles/scene.css); the sparkles, petals, birds and shooting star
+ * are drawn on two canvases (cosmos/sky-fx.ts), because as 60 elements they were the costliest part of the sky.
  * Cosmos.astro persists the element across navigations, so this runs once per tab.
  */
 import { layoutScene, paintBg, sceneHTML, type Theme } from "./cosmos/painters";
+import { mountSkyFx, type SkyFx } from "./cosmos/sky-fx";
 import { loadSprites } from "./cosmos/sky-client";
 
 const html = document.documentElement;
@@ -19,6 +21,8 @@ if (canvas && scene) {
   // The theme whose sprites are in the scene, and the one whose sprites are on their way
   let built: Theme | null = null;
   let building: Theme | null = null;
+  // The canvases for the sparkles, petals, birds and shooting star (cosmos/sky-fx.ts)
+  let fx: SkyFx | null = null;
   let w = 0;
   let h = 0;
 
@@ -34,9 +38,11 @@ if (canvas && scene) {
     void loadSprites(T).then((set) => {
       if (building !== T) return; // a newer theme choice replaced this one
       building = null;
+      fx?.stop();
       scene.innerHTML = sceneHTML(T, set);
       built = T;
       layoutScene(scene, w, h);
+      fx = mountSkyFx(scene, T, w, h);
       html.dataset.sceneReady = "yes";
     });
   };
@@ -59,9 +65,12 @@ if (canvas && scene) {
     paintBg(c, w, h, T);
     if (built === T) {
       layoutScene(scene, w, h);
+      fx?.resize(w, h);
     } else {
       if (built) {
         // A night sky never shows under a day backdrop while the new sprites are on their way
+        fx?.stop();
+        fx = null;
         scene.innerHTML = "";
         built = null;
       }
