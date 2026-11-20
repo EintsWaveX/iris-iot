@@ -250,7 +250,14 @@ export function RecCalendar({
                       data-today={day.date === hariIni ? "yes" : undefined}
                       data-past={fog && day.date < hariIni ? "yes" : undefined}
                       data-fog={fog && day.date > hariIni && here.length === 0 ? "yes" : undefined}
-                      style={{ "--d": `${col * 25 + wi * 20}ms` } as CSSProperties}
+                      style={
+                        {
+                          "--d": `${col * 25 + wi * 20}ms`,
+                          // Where this cell's fog starts in the noise, so neighbours do not look copied
+                          "--fx": `${(col * 53 + wi * 97) % 320}px`,
+                          "--fy": `${(col * 31 + wi * 41) % 160}px`,
+                        } as CSSProperties
+                      }
                       data-sun={col === 6 ? "yes" : undefined}
                       aria-pressed={pick === day.date}
                       data-tip=""
