@@ -1,0 +1,24 @@
+/* =========================================================================
+   LAYOUT KIT (Nov 2026, docs/design/home-anatomy.md): the shared column and the scales every view builds on.
+   Home is the first user; the other Praktikum and Oprec views move onto it one view at a time.
+   ========================================================================= */
+
+:root {
+  /* The column: readable content never gets wider than this, however big the monitor (Home was 1568 px at 1920) */
+  --col: 1360px;
+  --gutter: clamp(16px, 3.4vw, 56px);
+  /* Radius scale: cards and bands, controls, pills. (The app used 20 px on everything.) */
+  --r-card: 16px;
+  --r-ctl: 12px;
+  --r-pill: 999px;
+  /* Vertical rhythm between sections (Home already used this) */
+  --sec-gap: clamp(56px, 8vw, 112px);
+}
+
+/* A page in the column. Like .page-wide, but capped at --col of content with a gutter that grows with the screen. */
+.page-col {
+  margin-inline: auto;
+  max-width: calc(var(--col) + 2 * var(--gutter));
+  padding-inline: var(--gutter);
+  width: 100%;
+}
