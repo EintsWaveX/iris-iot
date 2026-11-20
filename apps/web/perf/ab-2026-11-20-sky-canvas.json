@@ -1,0 +1,39 @@
+{
+  "what": "Sparkles, petals, birds and the shooting star: ~60 animated DOM elements vs two canvases",
+  "method": "scripts/render-harness.mjs, Home, signed-in mock, headless Chrome, 1920x935, no CPU throttle, interleaved live (control) and this branch, idle fps at start / end of run (p95 ms in the console)",
+  "live_is": "origin/main ffcd2a8a (DOM elements)",
+  "high_detail_light": {
+    "live": [
+      [69.9, 104.6],
+      [88.4, 83.2],
+      [97.7, 91.1]
+    ],
+    "canvas": [
+      [126.7, 121.8],
+      [141.1, 130.7],
+      [143.1, 131.1]
+    ]
+  },
+  "normal_light": {
+    "live": [
+      [107.6, 122.6],
+      [117, 127]
+    ],
+    "canvas": [
+      [143.9, 141.5],
+      [143.5, 143.1]
+    ]
+  },
+  "high_detail_dark": {
+    "live": [
+      [69.2, 70.1],
+      [68.9, 69.5]
+    ],
+    "canvas": [
+      [78.2, 93.5],
+      [87, 93.5]
+    ]
+  },
+  "user_laptop_before": "HD light signed in: as-is 62.5 idle / 41 scroll; no sky 143.9 / 116.2",
+  "note": "Dark High Detail gains less: other dark-sky costs remain (aurora blend, glow). Headless numbers drift with PC load; only the interleaved comparison is meaningful."
+}

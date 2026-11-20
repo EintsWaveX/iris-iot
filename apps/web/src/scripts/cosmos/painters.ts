@@ -1094,18 +1094,73 @@ export function sceneItems(T: Theme): SceneItem[] {
   return I;
 }
 
+/** One twinkling star: where it is (fractions of the viewport), its size in px, its period and phase in seconds. */
+export type Sparkle = { x: number; y: number; s: number; t: number; dl: number; c: string };
+/** One falling petal (High Detail): start (fractions), size, colour, how far it drifts in px, period and phase. */
+export type Petal = {
+  x: number;
+  y: number;
+  s: number;
+  c: string;
+  dx: number;
+  dy: number;
+  t: number;
+  dl: number;
+};
+/** One bird (day, High Detail): height as a fraction of the viewport, seconds to cross it, phase. */
+export type Bird = { y: number; t: number; dl: number };
+export type SkyBits = { spk: Sparkle[]; pet: Petal[]; birds: Bird[]; shoot: boolean };
+
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
 /**
- * The scene's DOM (sprites plus the CSS-only sparkles, petals, birds and shooting star). Pass the sprites
- * when a worker made them; without them they are painted here on the main thread.
+ * The small things that move over the painting: sparkles, petals, birds and a shooting star. They used to be 59 to
+ * 62 animated DOM elements; at High Detail they were the biggest cost in the sky (hiding them took the sky from
+ * 88-100 fps to ~130 on a laptop, and one canvas drawing them all reached ~142). They are data now, and
+ * sky-fx.ts draws them. The numbers below only decide where each one is and how fast it goes.
+ */
+export function skyBits(T: Theme): SkyBits {
+  const R = rnd(T === "day" ? 105 : 111);
+  const cs = T === "day" ? ["#fff", "#fff4c0", "#d6f1ff"] : ["#bff3ff", "#fff0b8", "#ffd2f0"];
+  const spk: Sparkle[] = [];
+  for (let i = 0; i < 38; i++)
+    spk.push({
+      x: R(),
+      y: R() * 0.62,
+      s: Math.round(6 + R() * 12),
+      t: r1(3 + R() * 4),
+      dl: -r1(R() * 6),
+      c: cs[i % 3],
+    });
+  const pc = T === "day" ? ["#ffd1e6", "#fff", "#ffe9a8"] : ["#aef4ff", "#ffe9a8", "#ffc4e6"];
+  const pet: Petal[] = [];
+  for (let i = 0; i < 18; i++)
+    pet.push({
+      x: R(),
+      y: R() * 0.4,
+      s: Math.round(6 + R() * 8),
+      c: pc[i % 3],
+      dx: Math.round(40 + R() * 160),
+      dy: Math.round(200 + R() * 260),
+      t: r1(11 + R() * 9),
+      dl: -r1(R() * 14),
+    });
+  const birds: Bird[] = [];
+  if (T === "day")
+    for (let a = 0; a < 3; a++) birds.push({ y: (14 + a * 7) / 100, t: 46 + a * 9, dl: -a * 15 });
+  return { spk, pet, birds, shoot: T === "night" };
+}
+
+/**
+ * The scene's DOM (the sprites, and two canvases for the small moving things: one behind the islands for the
+ * sparkles, one in front for petals, birds and the shooting star). Pass the sprites when a worker made them;
+ * without them they are painted here on the main thread.
  */
 export function sceneHTML(T: Theme, S: SpriteSet = sprites(T)): string {
   const R = rnd(T === "day" ? 5 : 11);
   let o = "";
   if (T === "day") o += '<div class="rays" style="--rx:17%;--ry:60%"></div>';
-  const spk = T === "day" ? ["#fff", "#fff4c0", "#d6f1ff"] : ["#bff3ff", "#fff0b8", "#ffd2f0"];
-  for (let i = 0; i < 38; i++) {
-    o += `<i class="spk" style="left:${(R() * 100).toFixed(1)}%;top:${(R() * 62).toFixed(1)}%;--s:${(6 + R() * 12).toFixed(0)}px;--t:${(3 + R() * 4).toFixed(1)}s;--dl:${(-R() * 6).toFixed(1)}s;--c:${spk[i % 3]}"></i>`;
-  }
+  o += '<canvas class="fx fx-back"></canvas>';
   sceneItems(T).forEach((it) => {
     const sp = S[it.s];
     // Livelier than the first mockup: islands bob faster and further, clouds drift faster.
@@ -1121,14 +1176,7 @@ export function sceneHTML(T: Theme, S: SpriteSet = sprites(T)): string {
       inner += `<i class="ping" style="left:${(sp.tip.x * 100).toFixed(1)}%;top:${(sp.tip.y * 100).toFixed(1)}%"></i>`;
     o += `<div class="sp ${it.cls}" data-s="${it.s}" data-x="${it.x}" data-y="${it.y}" data-w="${it.w}" data-nx="${it.nx ?? ""}" data-ny="${it.ny ?? ""}" data-nw="${it.nw ?? ""}" data-hn="${it.hn ? 1 : 0}" data-ar="${(sp.h / sp.w).toFixed(4)}" style="--t:${tt.toFixed(1)}s;--d:${it.d};--amp:${amp};--dl:${dl}s">${inner}</div>`;
   });
-  const pet = T === "day" ? ["#ffd1e6", "#fff", "#ffe9a8"] : ["#aef4ff", "#ffe9a8", "#ffc4e6"];
-  for (let i = 0; i < 18; i++) {
-    o += `<i class="petal" style="left:${(R() * 100).toFixed(1)}%;top:${(R() * 40).toFixed(1)}%;--s:${(6 + R() * 8).toFixed(0)}px;--c:${pet[i % 3]};--dx:${(40 + R() * 160).toFixed(0)}px;--dy:${(200 + R() * 260).toFixed(0)}px;--t:${(11 + R() * 9).toFixed(1)}s;--dl:${(-R() * 14).toFixed(1)}s"></i>`;
-  }
-  if (T === "day")
-    for (let a = 0; a < 3; a++)
-      o += `<i class="bird" style="top:${14 + a * 7}%;--t:${46 + a * 9}s;--dl:${-a * 15}s"></i>`;
-  else o += '<i class="shoot" style="left:78%;top:14%;--dl:3s"></i>';
+  o += '<canvas class="fx fx-front" hidden></canvas>';
   // A soft light that follows the cursor (Normal and High Detail).
   o += '<div class="glow"></div>';
   return o;

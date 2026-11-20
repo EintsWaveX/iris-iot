@@ -25,6 +25,7 @@
  * --out       report path (default perf/render-<label>.json)
  * --no-worker  delete window.Worker before the page runs, so the sky is drawn on the main thread (the
  *             behaviour before the sky worker): an A/B against the same build, under the same machine load
+ * --size WxH  override the viewport of the chosen device, e.g. 1920x935 to match a real window
  * --inject-css "<css>"  add this stylesheet to every page before it loads, to try a CSS change as an A/B
  *             against the same build (e.g. "--inject-css '.tpkal__body{content-visibility:auto}'")
  * --headless  run without a window (default is a visible window, so the real GPU is used)
@@ -179,8 +180,11 @@ const browser = await chromium.launch({
   ],
 });
 
+// --size 1920x935 overrides the device's viewport, to match a real window
+const SIZE = /^(\d{3,5})x(\d{3,5})$/.exec(opt("--size", ""));
 const context = await browser.newContext({
   ...DEVICES[DEVICE],
+  ...(SIZE ? { viewport: { width: Number(SIZE[1]), height: Number(SIZE[2]) } } : {}),
   colorScheme: THEME,
   serviceWorkers: "block",
 });

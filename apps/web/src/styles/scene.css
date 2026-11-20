@@ -106,74 +106,14 @@
   border: 2px solid var(--accent-bright);
   transform: translate(-50%, -50%);
 }
-#iris-scene .spk {
+/* The sparkles, petals, birds and shooting star are two canvases (scripts/cosmos/sky-fx.ts), not elements: as 60
+   animated elements they cost more than the islands and clouds together. */
+#iris-scene canvas.fx {
   position: absolute;
-  width: var(--s);
-  height: var(--s);
-  opacity: 0.8;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  background: radial-gradient(circle, #fff 0 24%, var(--c, #bff3ff) 70%);
-  clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
-}
-#iris-scene .petal {
-  position: absolute;
-  width: var(--s);
-  height: calc(var(--s) * 0.62);
-  border-radius: 80% 0 80% 0;
-  background: var(--c);
-  opacity: 0;
-  pointer-events: none;
-}
-#iris-scene .bird {
-  position: absolute;
-  left: -8%;
-  width: 22px;
-  height: 10px;
-  pointer-events: none;
-}
-#iris-scene .bird::before,
-#iris-scene .bird::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 11px;
-  height: 7px;
-  border-radius: 60% 60% 0 0;
-  border-top: 2px solid rgba(30, 50, 110, 0.7);
-  transform-origin: 50% 100%;
-}
-#iris-scene .bird::before {
-  left: 0;
-  transform: rotate(-12deg);
-}
-#iris-scene .bird::after {
-  right: 0;
-  transform: rotate(12deg) scaleX(-1);
-}
-/* A comet: the bright head is the right end, and the element is turned to face its travel direction. */
-#iris-scene .shoot {
-  position: absolute;
-  width: 200px;
-  height: 3px;
-  border-radius: 3px;
-  opacity: 0;
-  pointer-events: none;
-  rotate: 155deg;
-  transform-origin: 100% 50%;
-  background: linear-gradient(90deg, transparent, rgba(190, 243, 255, 0.55) 60%, #fff);
-  filter: drop-shadow(0 0 6px #bff3ff);
-}
-#iris-scene .shoot::after {
-  content: "";
-  position: absolute;
-  right: -3px;
-  top: 50%;
-  width: 9px;
-  height: 9px;
-  margin-top: -4.5px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 10px 3px #bff3ff;
 }
 #iris-scene .rays {
   position: absolute;
@@ -190,10 +130,6 @@
   );
   -webkit-mask: radial-gradient(circle, #000, transparent 38%);
   mask: radial-gradient(circle, #000, transparent 38%);
-}
-/* Falling petals, birds and comets only exist in High Detail. */
-:root:not([data-detail="hd"]) #iris-scene :is(.petal, .bird, .shoot) {
-  display: none;
 }
 :root[data-scene-idle] #iris-scene * {
   animation-play-state: paused !important;
@@ -218,9 +154,6 @@
       animation-name: scene-aur2;
       animation-duration: 12s;
     }
-    .spk {
-      animation: scene-tw var(--t, 3s) ease-in-out var(--dl, 0s) infinite;
-    }
     .wf {
       animation: scene-fall 1s linear infinite;
     }
@@ -232,23 +165,6 @@
     }
     .rays {
       animation: scene-spin 260s linear infinite;
-    }
-  }
-  :root[data-detail="hd"]:not([data-motion-tier="0"]) #iris-scene {
-    .petal {
-      animation: scene-petal var(--t, 12s) linear var(--dl, 0s) infinite;
-    }
-    .bird {
-      animation: scene-fly var(--t, 40s) linear var(--dl, 0s) infinite;
-    }
-    .bird::before {
-      animation: scene-flap-l 0.42s ease-in-out infinite alternate;
-    }
-    .bird::after {
-      animation: scene-flap-r 0.42s ease-in-out infinite alternate;
-    }
-    .shoot {
-      animation: scene-shoot var(--t, 11s) linear var(--dl, 3s) infinite;
     }
   }
   @keyframes scene-bob {
@@ -298,33 +214,6 @@
       filter: hue-rotate(-20deg);
     }
   }
-  @keyframes scene-tw {
-    0%,
-    100% {
-      opacity: 0.2;
-      transform: scale(0.65);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.2);
-    }
-  }
-  @keyframes scene-petal {
-    0% {
-      opacity: 0;
-      transform: translate(0, 0) rotate(0);
-    }
-    12% {
-      opacity: 0.9;
-    }
-    88% {
-      opacity: 0.9;
-    }
-    100% {
-      opacity: 0;
-      transform: translate(var(--dx, 80px), var(--dy, 260px)) rotate(420deg);
-    }
-  }
   @keyframes scene-fall {
     to {
       background-position: 0 22px;
@@ -344,41 +233,6 @@
     100% {
       transform: translate(-50%, -50%) scale(2.6);
       opacity: 0;
-    }
-  }
-  @keyframes scene-fly {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(125vw);
-    }
-  }
-  @keyframes scene-flap-l {
-    to {
-      transform: rotate(14deg) scaleY(0.5);
-    }
-  }
-  @keyframes scene-flap-r {
-    to {
-      transform: rotate(-14deg) scaleY(0.5) scaleX(-1);
-    }
-  }
-  @keyframes scene-shoot {
-    0% {
-      opacity: 0;
-      translate: 0 0;
-    }
-    3% {
-      opacity: 1;
-    }
-    60% {
-      opacity: 1;
-    }
-    78%,
-    100% {
-      opacity: 0;
-      translate: -540px 245px;
     }
   }
 }
