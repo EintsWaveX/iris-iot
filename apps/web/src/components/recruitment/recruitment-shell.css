@@ -161,18 +161,6 @@
   height: 8px;
   width: 8px;
 }
-:root:not([data-motion-tier="0"]) .rec-oprec__dot {
-  animation: rec-blip 2s ease-in-out infinite;
-}
-@keyframes rec-blip {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 6px transparent;
-  }
-}
 .rec-oprec__pop {
   width: min(360px, calc(100vw - 16px));
 }
@@ -380,20 +368,6 @@
   flex: none;
   height: 8px;
   width: 8px;
-}
-:root:not([data-motion-tier="0"]) .rec-labpc__dot {
-  animation: rec-labpc-pulse 1.8s ease-out infinite;
-}
-:root:not([data-motion-tier="0"]) .rec-labpc[data-tone="retry"] .rec-labpc__dot {
-  animation-duration: 0.9s;
-}
-@keyframes rec-labpc-pulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--lp) 60%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 8px transparent;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .rec-labpc__dot {

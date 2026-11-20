@@ -2134,7 +2134,7 @@ html[data-detail="ldm"] .n7-mist i:nth-child(1) {
     animation-delay: 1.5s;
   }
   :root:not([data-motion-tier="0"]) .rec-bn__sticker::before {
-    animation: appnav-live 2s ease-out infinite;
+    animation: live-pulse 2s ease-in-out infinite;
   }
 }
 @keyframes rec-bn-ping {

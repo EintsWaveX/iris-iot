@@ -195,19 +195,6 @@
   background: var(--warn);
 }
 
-:root:not([data-motion-tier="0"]) .appnav__live-dot {
-  animation: appnav-live 2s ease-out infinite;
-}
-
-@keyframes appnav-live {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 8px transparent;
-  }
-}
-
 .appnav__side {
   align-items: center;
   display: flex;
