@@ -5,8 +5,6 @@
 
 .dialog__overlay {
   animation: dialog-fade-in 220ms ease both;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
   background: var(--scrim);
   inset: 0;
   position: fixed;

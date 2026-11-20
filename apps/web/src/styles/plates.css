@@ -11,9 +11,11 @@
      High Detail            blur only on PLATES_BLUR below: the navbar, the phone bottom bar, whichever dialog,
                             drawer or menu is open, and the page heading. Everything else is a plate too.
 
-   This file loads last and decides by selector, so the ~100 older `backdrop-filter` declarations in the other
-   stylesheets stay untouched for now (they are dead below High Detail; Phase 2 deletes them). Two rules keep it
-   honest: src/lib/__tests__/blur-diet.test.ts parses this file, and the perf harness counts computed blurs.
+   This file loads last and decides by selector. The older per-component `backdrop-filter` declarations were
+   deleted (Nov 2026, Phase 2); what is left outside this file is the allowlist itself (AppNav.css, glass.css for
+   dialogs, drawers and menus, page-header.css) plus the resets that keep those from blurring inside a panel.
+   src/lib/__tests__/blur-diet.test.ts parses this file and fails on any other blur, and the perf harness counts
+   computed blurs.
    ========================================================================= */
 
 /* ---- 1. the glass tokens become plates below High Detail ---- */

@@ -40,8 +40,6 @@
   flex-wrap: wrap;
   gap: 10px 12px;
   padding: 9px 16px;
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  backdrop-filter: blur(16px) saturate(1.4);
   box-shadow:
     inset 0 1px 0 var(--glass-hi),
     0 10px 26px var(--glass-sh);
@@ -77,8 +75,6 @@
   right: 8px;
   top: 8px;
   z-index: 3;
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  backdrop-filter: blur(16px) saturate(1.4);
   box-shadow: inset 0 1px 0 var(--glass-hi);
 }
 .obs__stats > div {
@@ -272,8 +268,6 @@
   height: 100%;
 }
 .obs__mini {
-  -webkit-backdrop-filter: blur(22px) saturate(1.6);
-  backdrop-filter: blur(22px) saturate(1.6);
   background: var(--glass-clear);
   border: 1px solid color-mix(in srgb, var(--m) 55%, var(--glass-bd));
   border-radius: 22px;
@@ -325,8 +319,6 @@
   translate: 0 -50%;
   width: min(520px, 42%);
   z-index: 4;
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  backdrop-filter: blur(20px) saturate(1.5);
   box-shadow:
     inset 0 1px 0 var(--glass-hi),
     0 18px 44px var(--glass-sh);
@@ -340,8 +332,6 @@
 .obs__center .panel,
 .obs__center .panel.panel--key,
 .obs__center .h11card {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   background: none;
   border: 0;
   box-shadow: none;
@@ -451,8 +441,6 @@
   position: absolute;
   text-align: left;
   width: 156px;
-  -webkit-backdrop-filter: blur(18px) saturate(1.5);
-  backdrop-filter: blur(18px) saturate(1.5);
   box-shadow:
     inset 0 1px 0 var(--glass-hi),
     0 14px 34px var(--glass-sh);
@@ -604,8 +592,6 @@
     ),
     radial-gradient(50% 120% at 100% 100%, rgba(167, 139, 250, 0.22), transparent 64%),
     var(--glass-panel);
-  -webkit-backdrop-filter: blur(18px) saturate(1.5);
-  backdrop-filter: blur(18px) saturate(1.5);
   box-shadow: inset 0 1px 0 var(--glass-hi);
   padding: 22px 26px 22px 26px;
   gap: 18px;
@@ -660,8 +646,6 @@
     0 18px 44px var(--glass-sh);
   padding: 28px 24px 46px;
   position: relative;
-  -webkit-backdrop-filter: blur(14px) saturate(1.4);
-  backdrop-filter: blur(14px) saturate(1.4);
 }
 .pl-logo__stage::after {
   bottom: 14px;
@@ -685,8 +669,6 @@
     transform 240ms var(--ease-out-expo),
     border-color 240ms,
     box-shadow 240ms;
-  -webkit-backdrop-filter: blur(14px) saturate(1.4);
-  backdrop-filter: blur(14px) saturate(1.4);
 }
 .pl-logo__card::before {
   color: var(--accent-bright);
@@ -769,8 +751,6 @@
    SectionBand plates now, components/ui/SectionBand.css.) */
 .pl-ev-block__head > .stack,
 .pl-group__cap {
-  -webkit-backdrop-filter: blur(26px) saturate(1.6);
-  backdrop-filter: blur(26px) saturate(1.6);
   background: var(--glass-frost);
   border: 1px solid var(--glass-bd);
   border-radius: var(--radius-xl);
@@ -788,13 +768,9 @@
 }
 :root[data-detail="ldm"] :is(.pl-ev-block__head > .stack, .pl-group__cap),
 :root[data-motion-tier="0"] :is(.pl-ev-block__head > .stack, .pl-group__cap) {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   background: var(--surface-1);
 }
 .pl-ev-block__head > .hint.mono {
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  backdrop-filter: blur(20px) saturate(1.6);
   background: var(--glass-frost);
   border: 1px solid var(--glass-bd);
   border-radius: 999px;
@@ -803,8 +779,6 @@
 }
 :root[data-detail="ldm"] .pl-ev-block__head > .hint.mono,
 :root[data-motion-tier="0"] .pl-ev-block__head > .hint.mono {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   background: var(--surface-1);
 }
 

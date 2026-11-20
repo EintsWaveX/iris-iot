@@ -214,11 +214,20 @@ below 640px.
 ## 5. Geometry
 
 ```css
---radius-sm: 4px;    /* chips, inputs */
---radius-md: 8px;    /* buttons, tabs, small cards */
---radius-lg: 14px;   /* cards, popovers */
---radius-xl: 20px;   /* dialogs */
+--radius-sm: 6px;    /* the smallest tags */
+--radius-md: 12px;   /* buttons, tabs, inputs: --r-ctl */
+--radius-lg: 16px;   /* cards, popovers: --r-card */
+--radius-xl: 16px;   /* dialogs, bands: --r-card */
+--r-pill: 999px;     /* pills, chips, badges */
 ```
+
+These are `apps/web`'s values: `src/styles/layout.css` overrides the shared
+`packages/kosmik` tokens (8 / 14 / 20), which Arena and Modul 4 still use.
+
+**The column.** `.page-col` caps readable content at `--col` (1360px) inside
+`--gutter: clamp(16px, 3.4vw, 56px)`; sections are `--sec-gap` apart
+(56px phone, 112px laptop) and each starts with a `SectionBand`. Home, Modul,
+Dasbor and Akun use it; the consoles and Oprec move one view at a time.
 
 `--lift-control` is how far anything moves on hover. Space is a 4px base
 scale, `--space-1` through `--space-11`.
@@ -325,8 +334,11 @@ The detail level is about the background only. The interface's own motion
 detail level; only the operating system's reduced-motion setting stops it
 (`packages/kosmik/style/motion.css`), leaving every state still visible.
 
-Nothing animates behind a reading: cards are solid, so the sky never shows
-through under text or figures.
+Nothing animates behind a reading: text sits on plates (near-opaque glass
+tokens), so the sky never shows through under text or figures. Real
+backdrop blur exists only at High Detail and only on the navbar, an open
+dialog, drawer or menu, and the page heading (`src/styles/plates.css`,
+enforced by `blur-diet.test.ts`).
 
 ---
 
