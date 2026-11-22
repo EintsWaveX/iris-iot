@@ -85,9 +85,9 @@ describe("a page with no sky draws nothing", () => {
 describe("a still sky is painted once and never moves", () => {
   it("scene.css moves no layer and promotes none to a compositor layer", () => {
     const css = read("styles/scene.css");
-    expect(css).toMatch(/:not\(\[data-sky="still"\]\) #iris-scene \.sp \{/);
+    expect(css).toMatch(/:not\(\[data-sky="still"\]\) \.scene \.sp \{/);
     expect(css).toMatch(
-      /@media \(prefers-reduced-motion: no-preference\) \{\s*:root:not\(\[data-detail="ldm"\]\):not\(\[data-motion-tier="0"\]\):not\(\[data-sky="still"\]\) #iris-scene \{/,
+      /@media \(prefers-reduced-motion: no-preference\) \{\s*:root:not\(\[data-detail="ldm"\]\):not\(\[data-motion-tier="0"\]\):not\(\[data-sky="still"\]\) \.scene \{/,
     );
   });
   it("sky-fx.ts draws one frame of sparkles and no loop", () => {

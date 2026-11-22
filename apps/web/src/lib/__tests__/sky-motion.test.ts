@@ -78,11 +78,11 @@ describe("skyBits", () => {
     expect(skyBits("night")).toEqual(skyBits("night"));
     expect(skyBits("day")).toEqual(skyBits("day"));
   });
-  it("keeps the counts: 38 sparkles, 18 petals, birds by day and a shooting star by night", () => {
+  it("keeps the counts: 38 sparkles by night and 12 glints by day, 18 petals, birds by day and a shooting star by night", () => {
     const n = skyBits("night");
     const d = skyBits("day");
     expect([n.spk.length, n.pet.length, n.birds.length, n.shoot]).toEqual([38, 18, 0, true]);
-    expect([d.spk.length, d.pet.length, d.birds.length, d.shoot]).toEqual([38, 18, 3, false]);
+    expect([d.spk.length, d.pet.length, d.birds.length, d.shoot]).toEqual([12, 18, 3, false]);
   });
   it("puts every sparkle in the top 62 % and every petal in the top 40 % of the screen", () => {
     for (const T of ["night", "day"] as const) {

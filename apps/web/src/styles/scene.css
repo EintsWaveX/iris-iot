@@ -26,18 +26,18 @@
   );
 }
 
-#iris-scene {
+.scene {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
 /* Signed in: the painted background softens by the reader's Blur Latar choice (Tampilan, 60% unless changed).
    The slight scale keeps the blurred edges from showing a pale rim. */
-:root[data-masuk="yes"] #iris-scene {
+:root[data-masuk="yes"] .scene {
   filter: blur(calc(var(--bg-blur, 60) * 0.16px));
   scale: calc(1 + var(--bg-blur, 60) * 0.0006);
 }
-#iris-scene .sp {
+.scene .sp {
   position: absolute;
   pointer-events: none;
   /* The cursor moves each layer by its depth: islands and clouds lean visibly, the planet and rings barely. */
@@ -45,11 +45,11 @@
   transition: translate 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 /* A layer of its own only while something moves it: Low Detail, motion tier 0 and a still sky keep the painting flat. */
-:root:not([data-detail="ldm"]):not([data-motion-tier="0"]):not([data-sky="still"]) #iris-scene .sp {
+:root:not([data-detail="ldm"]):not([data-motion-tier="0"]):not([data-sky="still"]) .scene .sp {
   will-change: transform;
 }
 /* A soft light that follows the cursor. */
-#iris-scene .glow {
+.scene .glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -62,10 +62,10 @@
   );
   transition: opacity 0.6s;
 }
-:root:not([data-detail="ldm"]):not([data-motion-tier="0"]) #iris-scene .glow {
+:root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .scene .glow {
   opacity: 1;
 }
-:root[data-theme="light"] #iris-scene .glow {
+:root[data-theme="light"] .scene .glow {
   background: radial-gradient(
     circle 190px at var(--cx, 50%) var(--cy, 50%),
     rgb(var(--rgb-255-244-200) / 0.3),
@@ -73,21 +73,21 @@
   );
 }
 @media (hover: none) {
-  #iris-scene .glow {
+  .scene .glow {
     display: none;
   }
 }
-#iris-scene .sp > img {
+.scene .sp > img {
   display: block;
   width: 100%;
   height: 100%;
   user-select: none;
 }
-#iris-scene .sp[hidden] {
+.scene .sp[hidden] {
   display: none;
 }
 
-#iris-scene .wf {
+.scene .wf {
   position: absolute;
   width: 2.6%;
   height: 36%;
@@ -101,7 +101,7 @@
   -webkit-mask: linear-gradient(180deg, var(--hex-000000) 40%, transparent);
   mask: linear-gradient(180deg, var(--hex-000000) 40%, transparent);
 }
-#iris-scene .mist {
+.scene .mist {
   position: absolute;
   width: 14%;
   height: 7%;
@@ -109,7 +109,7 @@
   border-radius: 50%;
   background: radial-gradient(closest-side, rgb(var(--rgb-235-252-255) / 0.75), transparent);
 }
-#iris-scene .ping {
+.scene .ping {
   position: absolute;
   width: 8%;
   aspect-ratio: 1;
@@ -120,14 +120,14 @@
 }
 /* The sparkles, petals, birds and shooting star are two canvases (scripts/cosmos/sky-fx.ts), not elements: as 60
    animated elements they cost more than the islands and clouds together. */
-#iris-scene canvas.fx {
+.scene canvas.fx {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
 }
-#iris-scene .rays {
+.scene .rays {
   position: absolute;
   left: var(--rx, 17%);
   top: var(--ry, 60%);
@@ -143,12 +143,12 @@
   -webkit-mask: radial-gradient(circle, var(--hex-000000), transparent 38%);
   mask: radial-gradient(circle, var(--hex-000000), transparent 38%);
 }
-:root[data-scene-idle] #iris-scene * {
+:root[data-scene-idle] .scene * {
   animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]):not([data-sky="still"]) #iris-scene {
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]):not([data-sky="still"]) .scene {
     .bob {
       animation: scene-bob var(--t, 8s) ease-in-out var(--dl, 0s) infinite alternate;
     }
@@ -259,4 +259,69 @@ html[data-sky="off"] .sky {
    bands (found on the Konsol, 21 Nov 2026). */
 html[data-sky="off"] body {
   background: var(--bg);
+}
+
+/* -------------------------------------------------------------------------
+   MATAHARI (the theme that follows the sun over the lab, public/theme-init.js).
+   At dawn and dusk scripts/scene.ts lays the other theme's painting over this one (.sky-alt) and fades it by
+   html's --sun; the UI colours flip at the halfway point. A warm horizon (.sky::after) swells in the middle of
+   the window: peach and gold at dawn, rose and amber at dusk. Outside the two windows none of this exists.
+   ------------------------------------------------------------------------- */
+.sky-alt {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.2s linear;
+}
+.sky-alt > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* The cursor light belongs to the painting underneath */
+.sky-alt .glow {
+  display: none;
+}
+.sky::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--sun-glow, 0);
+  transition: opacity 1.2s linear;
+  /* Dawn: the sun comes up behind the left island, so the warmth gathers low on that side */
+  background:
+    radial-gradient(
+      70% 55% at 17% 78%,
+      rgb(var(--rgb-255-214-150) / 0.55),
+      rgb(var(--rgb-255-190-140) / 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--rgb-255-170-160) / 0) 35%,
+      rgb(var(--rgb-255-176-150) / 0.28) 66%,
+      rgb(var(--rgb-255-205-150) / 0.45) 100%
+    );
+}
+/* Dusk: the light goes down on the right, rose over amber, with violet settling above it */
+:root[data-sun="dusk"] .sky::after {
+  background:
+    radial-gradient(
+      70% 55% at 84% 80%,
+      rgb(var(--rgb-255-140-110) / 0.5),
+      rgb(var(--rgb-255-120-110) / 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--rgb-110-70-170) / 0.12) 0%,
+      rgb(var(--rgb-230-110-150) / 0.22) 55%,
+      rgb(var(--rgb-255-160-100) / 0.42) 100%
+    );
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky-alt,
+  .sky::after {
+    transition: none;
+  }
 }

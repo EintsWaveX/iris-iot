@@ -96,8 +96,8 @@ const ALL = "*,*::before,*::after";
 
 export const NO_BACKDROP = `${ALL}{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}`;
 export const NO_SKY = ".sky{display:none!important}";
-export const NO_SCENE_BLUR = "#iris-scene{filter:none!important;scale:none!important}";
-export const NO_SCENE_ANIM = "#iris-scene,#iris-scene *{animation:none!important}";
+export const NO_SCENE_BLUR = ".scene{filter:none!important;scale:none!important}";
+export const NO_SCENE_ANIM = ".scene,.scene *{animation:none!important}";
 export const NO_FOG =
   '.n7-mist,.rkal__d[data-fog="yes"]::after{display:none!important;animation:none!important}';
 /** The infinite background-position sweeps (controls.css notes they run at every detail level) */
@@ -141,7 +141,7 @@ export const SWITCHES: readonly FxSwitch[] = [
     label: "Sky stands still",
     off: "every animation inside the sky",
     css: NO_SCENE_ANIM,
-    anchors: [{ file: "styles/scene.css", text: "#iris-scene" }],
+    anchors: [{ file: "styles/scene.css", text: ".scene" }],
   },
   {
     id: "no-fog",

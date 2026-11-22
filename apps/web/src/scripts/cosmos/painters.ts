@@ -807,9 +807,12 @@ function drawSprites(T: Theme): SpriteSet {
   o.c0 = cloudSprite(0, CLOUD[T]);
   o.c1 = cloudSprite(1, CLOUD[T]);
   o.c2 = cloudSprite(2, CLOUD[T]);
-  const [pc, pctx] = canvas(400, 280);
-  planetCel(pctx, 200, 140, 74, PLANET[T]);
-  o.planet = { cv: pc, url: "", w: 400, h: 280 };
+  // Square, so the halo (radius 2.6R = 192) fades out inside the sprite. At 400 x 280 the glow was
+  // still ~40% bright where the canvas ended, which drew a hard-edged rectangle behind the planet.
+  // layoutScene() centres a sprite on its point and sizes it by width, so the planet does not move.
+  const [pc, pctx] = canvas(400, 400);
+  planetCel(pctx, 200, 200, 74, PLANET[T]);
+  o.planet = { cv: pc, url: "", w: 400, h: 400 };
   const [rc, rctx] = canvas(640, 640);
   astro(
     rctx,
@@ -960,7 +963,16 @@ export function paintBg(c: Ctx, w: number, h: number, T: Theme): void {
         cols[Math.floor(r() * 4)],
         0.4 + r() * 0.45,
       );
-    crescent(c, w * 0.12, h * 0.2, Math.max(22, h * 0.04), "#fff0c9", "rgba(255,230,170,.34)");
+    // On a phone the moon at 20% sat behind the IRIS wordmark; it moves down beside the stat cards
+    const nar = w < 700;
+    crescent(
+      c,
+      w * (nar ? 0.1 : 0.12),
+      h * (nar ? 0.42 : 0.2),
+      Math.max(22, h * 0.04),
+      "#fff0c9",
+      "rgba(255,230,170,.34)",
+    );
     conArt(c, w * 0.035, h * 0.33, 1.3, 1, "#bff3ff", 0.55);
     conArt(c, w * 0.58, h * 0.2, 1.2, 4, "#ffe9b0", 0.5);
     mountains(
@@ -1001,8 +1013,10 @@ export function paintBg(c: Ctx, w: number, h: number, T: Theme): void {
       c.arc(sx + (w * 0.5 - sx) * i * 0.3, sy + (h * 0.35 - sy) * i * 0.3, 10 + i * 7, 0, TAU);
       c.fill();
     }
-    conArt(c, w * 0.035, h * 0.33, 1.3, 1, "#ffffff", 0.75);
-    conArt(c, w * 0.58, h * 0.2, 1.2, 4, "#fff2c0", 0.7);
+    // By day the constellations are only a trace of the night chart (they were 0.75 / 0.7: stars at noon).
+    // Matahari's dawn and dusk blend the night painting in, so they come back as the sun goes down.
+    conArt(c, w * 0.035, h * 0.33, 1.3, 1, "#ffffff", 0.2);
+    conArt(c, w * 0.58, h * 0.2, 1.2, 4, "#fff2c0", 0.18);
     mountains(
       c,
       w,
@@ -1047,9 +1061,10 @@ export function sceneItems(T: Theme): SceneItem[] {
     cls: "bob",
     t: 12,
     d: 8,
-    nx: 0.86,
-    ny: 0.2,
-    nw: 230,
+    // Phones: beside the stat cards, below the IRIS wordmark (it filled the logo's cloud at ny 0.2)
+    nx: 0.9,
+    ny: 0.4,
+    nw: 170,
   });
   I.push({
     s: "rings",
@@ -1064,8 +1079,9 @@ export function sceneItems(T: Theme): SceneItem[] {
     nw: 440,
   });
   I.push(
-    { s: "c0", x: 0.34, y: 0.22, w: 420, cls: "drift", t: 72, d: 7, nw: 260 },
-    { s: "c1", x: 0.7, y: 0.13, w: 330, cls: "drift", t: 92, d: 6, nw: 220 },
+    // The two upper clouds sit inside the IRIS wordmark on a phone, so phones skip them (hn)
+    { s: "c0", x: 0.34, y: 0.22, w: 420, cls: "drift", t: 72, d: 7, hn: 1 },
+    { s: "c1", x: 0.7, y: 0.13, w: 330, cls: "drift", t: 92, d: 6, hn: 1 },
     { s: "c2", x: 0.2, y: 0.58, w: 300, cls: "drift", t: 84, d: 8, hn: 1 },
     { s: "small", x: 0.93, y: 0.5, w: 200, cls: "bob", t: 9, d: 18, hn: 1 },
     { s: "rock", x: 0.9, y: 0.72, w: 64, cls: "bob", t: 7, d: 24, hn: 1 },
@@ -1123,7 +1139,8 @@ export function skyBits(T: Theme): SkyBits {
   const R = rnd(T === "day" ? 105 : 111);
   const cs = T === "day" ? ["#fff", "#fff4c0", "#d6f1ff"] : ["#bff3ff", "#fff0b8", "#ffd2f0"];
   const spk: Sparkle[] = [];
-  for (let i = 0; i < 38; i++)
+  // A day sky keeps a few glints of light, not a starfield
+  for (let i = 0; i < (T === "day" ? 12 : 38); i++)
     spk.push({
       x: R(),
       y: R() * 0.62,

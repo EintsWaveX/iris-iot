@@ -83,6 +83,10 @@ interface Window {
   IrisPrefs?: {
     apply(): void;
     theme(): "dark" | "light";
+    /** Matahari: the sun over the lab now (sun 0 = night, 1 = day) */
+    sun(): { phase: "night" | "dawn" | "day" | "dusk"; sun: number };
+    /** Sunrise and sunset over the lab on the day of `ms` (epoch ms) */
+    sunTimes(ms: number): { rise: number; set: number };
     detail(): "ldm" | "normal" | "hd";
     detailPref(): "auto" | "ldm" | "normal" | "hd";
     demote(): void;
