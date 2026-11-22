@@ -47,7 +47,9 @@
   text-align: center;
 }
 
-.login-form__nim::placeholder {
+/* The sample NIM must read as a hint, not a typed value. Specific enough to beat field.css's light-theme placeholder
+   rule (:root[data-theme="light"] :is(.input, ...)::placeholder), which painted it in full muted text by day. */
+:root[data-theme] input.login-form__nim::placeholder {
   color: var(--text-faint);
   opacity: 0.6;
 }

@@ -526,17 +526,19 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         <span className="hint">{t.apply.formHint}</span>
       </div>
       <span className="row rec-apply__btn" style={{ gap: 8, flexWrap: "wrap" }}>
+        {/* Open, the form is the primary action and these two are ghosts beside it. Closed, the form is gone and
+            two ghosts read as plain text: signing in becomes the primary and the LINE group a visible secondary. */}
         {tamu && (
           <button
             type="button"
-            className="btn btn--ghost btn--lg"
+            className={`btn ${buka ? "btn--ghost" : "btn--primary"} btn--lg`}
             onClick={() => bukaAkun("masuk")}
           >
             {t.apply.masuk}
           </button>
         )}
         <a
-          className="btn btn--ghost btn--lg"
+          className={`btn ${buka ? "btn--ghost" : "btn--secondary"} btn--lg`}
           href={FORMULIR.grupLine}
           target="_blank"
           rel="noopener noreferrer"

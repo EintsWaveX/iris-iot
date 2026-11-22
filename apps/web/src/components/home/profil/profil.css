@@ -159,6 +159,13 @@
   opacity: 0.22;
 }
 
+/* The logo is a light neon outline made for the night sky; on Daylight's pale blue it washed out to a ghost.
+   By day it runs a little deeper, with a thin dark-blue rim so every stroke keeps its edge. */
+:root[data-theme="light"] .pl-hero__mark img {
+  filter: saturate(1.35) brightness(0.82) drop-shadow(0 0 1px rgb(var(--rgb-7-91-159) / 0.55))
+    drop-shadow(0 2px 8px rgb(var(--rgb-7-91-159) / 0.25));
+}
+
 /* Low Detail keeps the aurora, standing still. */
 :root[data-detail="ldm"] .pl-hero__aura i {
   animation: none;
@@ -211,6 +218,17 @@
 .pl-hero .home__lede {
   font-size: 1rem;
   max-width: 60ch;
+  /* The lede sits straight on the sky: the aurora band by night, the sun's glare by day (phones). Full-strength
+     text and a soft halo in the ground's colour keep it legible whatever is behind it. */
+  color: var(--text);
+  text-shadow:
+    0 1px 2px rgb(var(--rgb-5-6-11) / 0.55),
+    0 0 18px rgb(var(--rgb-10-12-20) / 0.6);
+}
+:root[data-theme="light"] .pl-hero .home__lede {
+  text-shadow:
+    0 0 2px rgb(var(--rgb-255-255-255) / 0.9),
+    0 0 18px rgb(var(--rgb-246-250-255) / 0.85);
 }
 @media (min-width: 640px) {
   .pl-hero .home__lede {

@@ -38,10 +38,84 @@
     }
   }
 
+  /*
+   * Matahari: the sky follows the real sun over the lab (Gedung P, Telkom University, Bandung).
+   * Sunrise and sunset come from the standard solar equations (the ones suncalc uses), so no
+   * location is ever asked of the reader. Dawn runs from 40 min before sunrise to 20 min after it,
+   * dusk from 20 min before sunset to 40 min after; in between the sky is fully day or night.
+   *   data-sun   night | dawn | day | dusk
+   *   --sun      0 (night) .. 1 (day): how much of the day sky shows
+   * A test hook, ?langit=<ISO time> or localStorage iris-langit-at, pretends it is that moment.
+   */
+  var LAB = { lat: -6.9147, lng: 107.6098 };
+  var RAD = Math.PI / 180;
+  var DAWN = [40, 20];
+  var DUSK = [20, 40];
+
+  function sunTimes(ms) {
+    var lw = RAD * -LAB.lng;
+    var phi = RAD * LAB.lat;
+    var d = ms / 86400000 - 0.5 + 2440588 - 2451545;
+    var n = Math.round(d - 0.0009 - lw / (2 * Math.PI));
+    var ds = 0.0009 + lw / (2 * Math.PI) + n;
+    var M = RAD * (357.5291 + 0.98560028 * ds);
+    var C = RAD * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+    var L = M + C + RAD * 102.9372 + Math.PI;
+    var dec = Math.asin(Math.sin(L) * Math.sin(RAD * 23.4397));
+    var transit = 2451545 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+    var w = Math.acos(
+      (Math.sin(RAD * -0.833) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec)),
+    );
+    var a = 0.0009 + (w + lw) / (2 * Math.PI) + n;
+    var set = 2451545 + a + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+    var rise = transit - (set - transit);
+    var toMs = function (j) {
+      return (j + 0.5 - 2440588) * 86400000;
+    };
+    return { rise: toMs(rise), set: toMs(set) };
+  }
+
+  function langitNow() {
+    var at = null;
+    try {
+      at = new URLSearchParams(window.location.search).get("langit");
+    } catch (e) {
+      /* old browser: no test hook */
+    }
+    at = at || get("iris-langit-at");
+    var t = at ? Date.parse(at) : NaN;
+    return isFinite(t) ? t : Date.now();
+  }
+
+  // 0..1 with an eased start and end, so the sky never visibly lurches into or out of a transition.
+  function ease(x) {
+    x = Math.min(1, Math.max(0, x));
+    return x * x * (3 - 2 * x);
+  }
+
+  /** Where the sun is over the lab right now: { phase, sun } (sun 0 = night, 1 = day). */
+  function sun() {
+    var now = langitNow();
+    var s = sunTimes(now);
+    var m = 60000;
+    if (now >= s.rise - DAWN[0] * m && now <= s.rise + DAWN[1] * m)
+      return {
+        phase: "dawn",
+        sun: ease((now - (s.rise - DAWN[0] * m)) / ((DAWN[0] + DAWN[1]) * m)),
+      };
+    if (now >= s.set - DUSK[0] * m && now <= s.set + DUSK[1] * m)
+      return {
+        phase: "dusk",
+        sun: 1 - ease((now - (s.set - DUSK[0] * m)) / ((DUSK[0] + DUSK[1]) * m)),
+      };
+    return now > s.rise && now < s.set ? { phase: "day", sun: 1 } : { phase: "night", sun: 0 };
+  }
+
   function theme() {
     var p = get("iris-theme");
     if (p === "light" || p === "dark") return p;
     if (p === "system") return systemLight() ? "light" : "dark";
+    if (p === "matahari") return sun().sun >= 0.5 ? "light" : "dark";
     return "dark";
   }
 
@@ -97,6 +171,30 @@
   function apply(root) {
     var t = theme();
     root.setAttribute("data-theme", t);
+    // Gelap can be Malam or Senja, Terang Siang or Fajar (iris-langit): the Matahari transition held at one point,
+    // dusk 35% of the way to night, dawn 65% of the way to day, so the UI keeps its theme.
+    var pref = get("iris-theme");
+    var held = get("iris-langit");
+    var s = null;
+    if (pref === "matahari") s = sun();
+    else if (t === "dark" && held === "senja") s = { phase: "dusk", sun: 0.35 };
+    else if (t === "light" && held === "fajar") s = { phase: "dawn", sun: 0.65 };
+    if (s) {
+      root.setAttribute("data-sun", s.phase);
+      root.style.setProperty("--sun", s.sun.toFixed(3));
+      // The warm horizon peaks halfway through a dawn or dusk and is gone at either end
+      root.style.setProperty("--sun-glow", (1 - Math.abs(2 * s.sun - 1)).toFixed(3));
+    } else {
+      root.removeAttribute("data-sun");
+      // An empty value removes a custom property (and is all setProperty needs)
+      root.style.setProperty("--sun", "");
+      root.style.setProperty("--sun-glow", "");
+    }
+    try {
+      window.dispatchEvent(new Event("iris-sun"));
+    } catch (e) {
+      /* very old browser: the sky catches up on the next theme change */
+    }
     var bar = root.querySelector('meta[name="theme-color"]');
     if (bar) bar.setAttribute("content", BAR[t]);
     root.setAttribute("data-detail", detail());
@@ -113,11 +211,19 @@
 
   apply(document.documentElement);
 
+  // Matahari: follow the sun. Once a minute is plenty (a dawn takes an hour); a hidden tab skips the work.
+  if (typeof window.setInterval === "function")
+    window.setInterval(function () {
+      if (get("iris-theme") === "matahari" && !document.hidden) apply(document.documentElement);
+    }, 60000);
+
   window.IrisPrefs = {
     apply: function () {
       apply(document.documentElement);
     },
     theme: theme,
+    sun: sun,
+    sunTimes: sunTimes,
     detail: detail,
     detailPref: detailPref,
     /** The speed watcher found this device too slow: Otomatis drops to Low Detail for two weeks */

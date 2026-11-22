@@ -15,7 +15,7 @@
 <div class="sky" aria-hidden="true" transition:persist transition:name="cosmos">
   <canvas id="iris-sky"></canvas>
   <!-- The painted layers (islands, clouds, planet, sparkles): scripts/scene.ts fills it, styles/scene.css moves it. -->
-  <div id="iris-scene"></div>
+  <div id="iris-scene" class="scene"></div>
 </div>
 
 <script>
@@ -32,6 +32,9 @@
     overflow: hidden;
     pointer-events: none;
     position: fixed;
+    /* 100vw, not inset: 0 alone: html keeps scrollbar-gutter: stable, which left the sky 15 px short */
+    /* where scrollbars are hidden or overlay; sky.ts and scene.ts paint window.innerWidth, gutter included. */
+    width: 100vw;
     z-index: -1;
   }
 

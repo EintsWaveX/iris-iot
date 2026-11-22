@@ -647,9 +647,11 @@
 /* --------------------------------------------------------- bottom bar */
 
 .appbar {
-  background: var(--panel-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* Mostly solid: at 55% glass, a large heading scrolling under the bar stayed legible through it and fought the
+     tab labels (Beranda over "Integration System"). The blur still lets the sky's colour through. */
+  background: color-mix(in srgb, var(--panel-bg-solid) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
   border-top: 1px solid var(--hairline);
   bottom: 0;
   display: none;
