@@ -76,6 +76,7 @@ import {
   readNotes,
 } from "./MengajarParts";
 import { PN } from "./penilaianStrings";
+import CatatanKhusus from "./CatatanKhusus";
 import Skeleton from "../../../ui/Skeleton";
 
 type Step = "tanya" | "simpul" | "putus";
@@ -541,10 +542,16 @@ export default function Lembar({
     return tpl.questions
       .filter(
         (q) =>
-          !q.only || (q.only === "fm" && data?.cond.fm) || (q.only === "lab" && ans._lab === "1"),
+          !q.only ||
+          (q.only === "fm" && data?.cond.fm) ||
+          (q.only === "lab" && ans._lab === "1") ||
+          // The form says whether the CaAs is angkatan 24 on the IoT course, or Elektro on the IoT practicum;
+          // when it did not say (null) the card shows anyway, with a note to ask.
+          (q.only === "a24" && data?.cond.a24 !== false) ||
+          (q.only === "te" && data?.cond.te !== false),
       )
       .concat(own);
-  }, [tpl, data?.cond.fm, ans._lab, own]);
+  }, [tpl, data?.cond.fm, data?.cond.a24, data?.cond.te, ans._lab, own]);
 
   if (fail)
     return (
@@ -987,6 +994,9 @@ export default function Lembar({
                   <span className="r4rail__d" aria-hidden="true" />
                   <span className="r4rail__t">{bi(x.t, lang)}</span>
                   {x.only && <span className="r4rail__k">{L.special.toLowerCase()}</span>}
+                  {x.prio && x.prio !== "penting" && (
+                    <span className="r4rail__k">{L.prio[x.prio].toLowerCase()}</span>
+                  )}
                   {x.m ? <span className="hint num">{x.m}′</span> : ""}
                 </button>
               </li>
@@ -1051,6 +1061,9 @@ export default function Lembar({
               </span>
               <span className="grow" />
               {q.only && <Pill tone="warn">{L.special}</Pill>}
+              {q.prio && (
+                <Pill tone={q.prio === "wajib" ? "accent" : undefined}>{L.prio[q.prio]}</Pill>
+              )}
               {q.g === "inggris" && <Pill>{L.en}</Pill>}
               {q.m ? (
                 <Pill>
@@ -1065,6 +1078,10 @@ export default function Lembar({
               </div>
             )}
             {q.only && <span className="hint">{L.shownBecause(L.cond[q.only])}</span>}
+            {((q.only === "a24" && data?.cond.a24 === null) ||
+              (q.only === "te" && data?.cond.te === null)) && (
+              <span className="hint">{L.checkData}</span>
+            )}
             {q.reveal && (
               <div className="r4reveal">
                 {score && data.scores ? (
@@ -1298,6 +1315,7 @@ export default function Lembar({
         </div>
         <span className="hint">{mg ? M.verdictHint(mates.join(", ")) : L.verdictHint(mate)}</span>
       </section>
+      {tpl?.tags && <CatatanKhusus stage={stage} id={id} lang={lang} locked={locked} />}
       <section className="panel r4p">
         <h3 className="h3">{L.ba}</h3>
         <div className="rec-chips">

@@ -477,6 +477,13 @@
       "when": 1794722516232,
       "tag": "0067_indeks_pangkas_dan_jawaban",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1795353476610,
+      "tag": "0068_rec_sheet_catatan",
+      "breakpoints": true
     }
   ]
 }

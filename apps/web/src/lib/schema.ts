@@ -53,6 +53,7 @@ import type {
   CTest,
   Outcome,
 } from "./recruitment/c-problem.js";
+import type { Catatan } from "./recruitment/interview.js";
 import type { KitBoard, RoomHotspot, SeatCheckin } from "./recruitment/room-types.js";
 import type { ScoreRow, StatRow } from "./recruitment/score-api.js";
 import {
@@ -3172,6 +3173,11 @@ export const recSheetShared = pgTable(
     recording: boolean("recording").notNull().default(false),
     startedAt: timestamp("started_at", { withTimezone: true }),
     caseInfo: jsonb("case_info").$type<SheetCase | null>(),
+    /**
+     * Catatan Khusus (the interview workbook): red notes, plus points, a label picked by hand, notes by who
+     * wrote them and the committee's conclusion. Kept apart from the sheet so a PJ can write without one.
+     */
+    catatan: jsonb("catatan").$type<Partial<Catatan>>().notNull().default({}),
     /** Bumps on every write, so two examiners saving at once are told */
     version: integer("version").notNull().default(1),
     updatedBy: text("updated_by"),

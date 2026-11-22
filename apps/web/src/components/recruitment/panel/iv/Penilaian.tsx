@@ -25,12 +25,14 @@ import {
 import type { IvStage, Verdict } from "../../../../lib/recruitment/interview";
 import { IV, bi } from "./ivStrings";
 import { PN } from "./penilaianStrings";
+import CatatanKhusus, { LabelPill } from "./CatatanKhusus";
+import { CK } from "./catatanStrings";
 import { SK } from "./slotStrings";
 import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
 const TONE = { lolos: "ok", ragu: "warn", cut: "danger" } as const;
-type Filter = "semua" | "selisih" | "ragu" | "belum" | "absen";
+type Filter = "semua" | "selisih" | "ragu" | "belum" | "absen" | "flag";
 type Sort = "rata" | "sebar" | "slot";
 
 const dayLong = (iso: string | number, lang: Lang) =>
@@ -82,6 +84,21 @@ function Verd({ r, lang }: { r: IvNilaiRow; lang: Lang }) {
     );
   if (!r.verdict) return <span className="hint">-</span>;
   return <Pill tone={TONE[r.verdict]}>{w.verdict[r.verdict]}</Pill>;
+}
+
+/** The red flag and the Catatan Khusus label beside the verdict (only where the template has them). */
+function Marks({ r, lang }: { r: IvNilaiRow; lang: Lang }) {
+  const k = CK[lang];
+  return (
+    <>
+      {r.flag && (
+        <span title={k.flagTip}>
+          <Pill tone="danger">{k.flagChip}</Pill>
+        </span>
+      )}
+      {r.label && r.label !== "standar" && <LabelPill label={r.label} lang={lang} />}
+    </>
+  );
 }
 
 /** The sheets as a strip on the real 0 to 100 scale: the range between the examiners, one dot each, the mean as a bar. */
@@ -154,11 +171,13 @@ function Rincian({
   d,
   me,
   lang,
+  stage,
 }: {
   r: IvNilaiRow;
   d: IvNilaiResponse;
   me: string | null;
   lang: Lang;
+  stage: IvStage;
 }) {
   const p = PN[lang];
   const sh = r.detail;
@@ -235,6 +254,7 @@ function Rincian({
           <span>{r.ba}</span>
         </div>
       )}
+      {d.tags && <CatatanKhusus stage={stage} id={r.id} lang={lang} />}
     </div>
   );
 }
@@ -363,6 +383,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
   const isAbsent = rows.filter(absent);
   const wideRows = rows.filter((r) => r.wide);
   const ragu = rows.filter((r) => r.verdict === "ragu");
+  const flagRows = rows.filter((r) => r.flag);
   const missing = rows.filter((r) => !absent(r) && r.sheets.length < r.expected);
   const sheetsIn = rows.reduce((a, r) => a + r.sheets.length, 0);
   const sheetsWant = rows.reduce((a, r) => a + (absent(r) ? 0 : r.expected), 0);
@@ -377,7 +398,9 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
           ? missing.includes(r)
           : f === "ragu"
             ? ragu.includes(r)
-            : absent(r)));
+            : f === "flag"
+              ? r.flag
+              : absent(r)));
   const list = rows
     .filter(pass)
     .sort((a, b) =>
@@ -406,6 +429,8 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
         p.cols.mean,
         p.cols.gap,
         p.cols.verdict,
+        ...(d.flag ? [CK[lang].flagChip] : []),
+        ...(d.tags ? [CK[lang].col] : []),
         ...(showTes ? [p.cols.tes] : []),
       ],
       list.map((r) => [
@@ -417,6 +442,8 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
         r.mean === null ? "" : Math.round(r.mean * 10) / 10,
         r.spread,
         r.case?.status ? w.case[r.case.status] : r.verdict ? w.verdict[r.verdict] : "",
+        ...(d.flag ? [r.flag ? CK[lang].flagChip : ""] : []),
+        ...(d.tags ? [r.label ? CK[lang].labels[r.label] : ""] : []),
         ...(showTes ? [r.total] : []),
       ]),
       "Penilaian",
@@ -478,6 +505,9 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
             { value: "semua", label: p.filters.all },
             { value: "selisih", label: p.filters.wide(wideRows.length) },
             { value: "ragu", label: p.filters.ragu(ragu.length) },
+            ...(d.flag
+              ? [{ value: "flag", label: `${CK[lang].filterFlag} (${flagRows.length})` }]
+              : []),
             { value: "belum", label: p.filters.waiting(missing.length) },
             { value: "absen", label: p.filters.absent(isAbsent.length) },
           ]}
@@ -541,9 +571,10 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
                 <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                   <Chips r={r} me={me} lang={lang} />
                   <Verd r={r} lang={lang} />
+                  <Marks r={r} lang={lang} />
                 </div>
                 {openK === r.id && r.detail.length > 0 && (
-                  <Rincian r={r} d={d} me={me} lang={lang} />
+                  <Rincian r={r} d={d} me={me} lang={lang} stage={stage} />
                 )}
               </li>
             ))}
@@ -599,7 +630,10 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
                           <Spread r={r} lang={lang} />
                         </td>
                         <td>
-                          <Verd r={r} lang={lang} />
+                          <span className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                            <Verd r={r} lang={lang} />
+                            <Marks r={r} lang={lang} />
+                          </span>
                         </td>
                         {showTes && <td className="num hint">{r.total ?? "-"}</td>}
                         {showCtx && (
@@ -627,7 +661,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
                       {openK === r.id && (
                         <tr className="r4tab__bd">
                           <td colSpan={showTes || showCtx ? 9 : 8}>
-                            <Rincian r={r} d={d} me={me} lang={lang} />
+                            <Rincian r={r} d={d} me={me} lang={lang} stage={stage} />
                           </td>
                         </tr>
                       )}

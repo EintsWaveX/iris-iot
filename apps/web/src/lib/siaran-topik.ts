@@ -300,6 +300,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:iv-sheet-send": ["reciv", "reccutting"],
   "recruitment:iv-sheet-reopen": ["reciv", "reccutting"],
   "recruitment:iv-case": ["reciv", "reccutting", "recplotting"],
+  // Catatan Khusus: the label shows on Penilaian and the Cutting, and an open sheet re-reads its notes.
+  "recruitment:iv-catatan-save": ["recsheet", "reciv", "reccutting"],
   "recruitment:ms-offer": ["recplotting", "reccutting", "reccandidates"],
   "recruitment:ms-record": ["recplotting", "reccutting", "reccandidates"],
   "recruitment:ms-retract": ["recplotting", "reccutting", "reccandidates"],

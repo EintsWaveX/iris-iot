@@ -2473,3 +2473,65 @@
   font-size: 0.8rem;
   padding: 3px 9px;
 }
+
+/* ------------------------------------------------------------ Catatan Khusus */
+
+.ck {
+  display: grid;
+  gap: var(--space-3);
+}
+.ck__top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  justify-content: space-between;
+}
+.ck__label {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ck__cols {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.ck__col {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-3);
+}
+.ck__col[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--hairline));
+}
+.ck__col[data-tone="ok"] {
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--hairline));
+}
+.ck__h {
+  font-weight: 700;
+}
+.ck__note {
+  margin: 0;
+}
+.ck__note b {
+  color: var(--text-muted);
+  margin-right: var(--space-2);
+}
+.ck__ctl {
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+.ck__pick {
+  max-width: 420px;
+}
+.ck__state {
+  min-height: 1.2em;
+}

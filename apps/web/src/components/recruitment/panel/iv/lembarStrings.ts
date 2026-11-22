@@ -35,7 +35,11 @@ interface LmWords {
   en: string;
   about: (m: number) => string;
   shownBecause: (c: string) => string;
-  cond: { fm: string; lab: string };
+  cond: { fm: string; lab: string; a24: string; te: string };
+  /** Wajib, Penting, Bisa dilewati: how much a card matters when time is short */
+  prio: { wajib: string; penting: string; lewat: string };
+  /** A special card shown because the form did not say whether it applies */
+  checkData: string;
   revealBtn: string;
   revealTotal: string;
   revealRank: string;
@@ -154,7 +158,14 @@ export const LM = dict<LmWords>({
     about: (m) => `sekitar ${m} menit`,
     shownBecause: (c) =>
       `Muncul karena: ${c}. Datanya dari kehadiran First Meet dan data pendaftaran.`,
-    cond: { fm: "tidak ikut atau telat First Meet", lab: "mendaftar lab lain" },
+    cond: {
+      fm: "tidak ikut atau telat First Meet",
+      lab: "mendaftar lab lain",
+      a24: "angkatan 24 yang mengambil mata kuliah IoT",
+      te: "Teknik Elektro yang mengambil praktikum IoT",
+    },
+    prio: { wajib: "Wajib", penting: "Penting", lewat: "Bisa dilewati" },
+    checkData: "Formulirnya tidak bilang apakah ini berlaku. Tanyakan langsung.",
     revealBtn: "Tampilkan Nilai Sebenarnya",
     revealTotal: "Total Tes Tulis dan Program",
     revealRank: "Peringkat",
@@ -285,7 +296,14 @@ export const LM = dict<LmWords>({
     about: (m) => `about ${m} minutes`,
     shownBecause: (c) =>
       `Shown because: ${c}. From First Meet attendance and the application form.`,
-    cond: { fm: "missed or late for First Meet", lab: "applying to another lab" },
+    cond: {
+      fm: "missed or late for First Meet",
+      lab: "applying to another lab",
+      a24: "angkatan 24 taking the IoT course",
+      te: "Teknik Elektro taking the IoT practicum",
+    },
+    prio: { wajib: "Must ask", penting: "Important", lewat: "Can skip" },
+    checkData: "The form did not say whether this applies. Ask them directly.",
     revealBtn: "Show the Real Scores",
     revealTotal: "Written and Coding Test total",
     revealRank: "Rank",
@@ -406,7 +424,14 @@ export const LM = dict<LmWords>({
     en: "EN",
     about: (m) => `约 ${m} 分钟`,
     shownBecause: (c) => `显示原因：${c}。数据来自 First Meet 出席和报名资料。`,
-    cond: { fm: "缺席或迟到 First Meet", lab: "报名其他实验室" },
+    cond: {
+      fm: "缺席或迟到 First Meet",
+      lab: "报名其他实验室",
+      a24: "修读物联网课程的 24 届学生",
+      te: "修读物联网实验课的电气工程学生",
+    },
+    prio: { wajib: "必问", penting: "重要", lewat: "可跳过" },
+    checkData: "表格没有说明是否适用，请直接询问。",
     revealBtn: "显示真实分数",
     revealTotal: "笔试与编程总分",
     revealRank: "排名",

@@ -77,6 +77,30 @@ interface TpWords {
     special: string;
   };
   newQ: string;
+  /** The interview workbook's additions (22 Nov 2026) */
+  wb: {
+    prio: string;
+    prios: { wajib: string; penting: string; lewat: string };
+    noPrio: string;
+    a24: string;
+    te: string;
+    sumLeft: string;
+    sumPrio: (w: string, p: string, l: string) => string;
+    outdated: string;
+    floor: { name: string; hint: string };
+    flag: { title: string; hint: string; on: string; keys: string; max: string };
+    many: { name: string; hint: string };
+    jago: { name: string; hint: string };
+    tags: {
+      title: string;
+      hint: string;
+      red: string;
+      plus: string;
+      add: string;
+      del: string;
+      label: string;
+    };
+  };
   newParam: string;
   newInd: string;
   dur: (min: number) => string;
@@ -169,6 +193,46 @@ export const TP = dict<TpWords>({
       special: "Khusus",
     },
     newQ: "Pertanyaan baru",
+    wb: {
+      prio: "Prioritas",
+      prios: { wajib: "Wajib", penting: "Penting", lewat: "Bisa dilewati" },
+      noPrio: "Tanpa prioritas",
+      a24: "Angkatan 24 yang mengambil mata kuliah IoT",
+      te: "Teknik Elektro yang mengambil praktikum IoT",
+      sumLeft: "menit sisa dari satu shift",
+      sumPrio: (w, p, l) =>
+        `Menit per prioritas: Wajib ${w}, Penting ${p}, Bisa dilewati ${l}. Kalau waktu mepet, potong yang Bisa dilewati dulu, baru Penting.`,
+      outdated:
+        "Template yang tersimpan lebih lama dari bawaan terbaru (bobot, red flag, prioritas kartu, catatan khusus). Tekan Kembalikan Bawaan untuk memakai yang terbaru; perubahanmu yang sekarang akan hilang.",
+      floor: {
+        name: "Skor dihitung dari nol",
+        hint: "Nyala: skor = bobot × level ÷ level tertinggi, jadi level 1 dari 5 bernilai 20. Mati: level terendah bernilai 0.",
+      },
+      flag: {
+        title: "Red flag",
+        hint: "Kalau salah satu penguji menilai parameter ini rendah, hasil Fix Lolos ditahan di Ragu-ragu supaya dibahas panitia dulu.",
+        on: "Pakai red flag",
+        keys: "Parameter yang dicek",
+        max: "Dianggap rendah bila level sama dengan atau di bawah",
+      },
+      many: {
+        name: "Banyak masalah mulai",
+        hint: "Jumlah catatan merah yang membuat label Banyak masalah.",
+      },
+      jago: {
+        name: "Jago mulai",
+        hint: "Jumlah nilai plus yang membuat label Jago, bila tidak ada catatan merah.",
+      },
+      tags: {
+        title: "Catatan khusus",
+        hint: "Daftar centang yang diisi panitia untuk tiap CaAs. Label Jago, Perlu perhatian, Banyak masalah atau Standar muncul dari jumlah centang.",
+        red: "Catatan merah",
+        plus: "Nilai plus",
+        add: "Tambah",
+        del: "Hapus",
+        label: "Nama",
+      },
+    },
     newParam: "Parameter baru",
     newInd: "Indikator pertama",
     dur: (m) => {
@@ -263,6 +327,46 @@ export const TP = dict<TpWords>({
       special: "Special",
     },
     newQ: "New question",
+    wb: {
+      prio: "Priority",
+      prios: { wajib: "Must ask", penting: "Important", lewat: "Can skip" },
+      noPrio: "No priority",
+      a24: "Angkatan 24 taking the IoT course",
+      te: "Teknik Elektro taking the IoT practicum",
+      sumLeft: "minutes left in a shift",
+      sumPrio: (w, p, l) =>
+        `Minutes by priority: Must ask ${w}, Important ${p}, Can skip ${l}. When time is short, cut Can skip first, then Important.`,
+      outdated:
+        "The saved template is older than the latest default (weights, red flag, card priority, special notes). Press Restore Defaults to use the latest; your current changes will be lost.",
+      floor: {
+        name: "Score counts from zero",
+        hint: "On: score = weight × level ÷ top level, so level 1 of 5 is worth 20. Off: the lowest level is worth 0.",
+      },
+      flag: {
+        title: "Red flag",
+        hint: "If any examiner rates one of these parameters low, a Fix Pass is held at Undecided so the committee talks about it first.",
+        on: "Use a red flag",
+        keys: "Parameters checked",
+        max: "Counts as low at or below level",
+      },
+      many: {
+        name: "Many problems from",
+        hint: "How many red notes make the label Many problems.",
+      },
+      jago: {
+        name: "Standout from",
+        hint: "How many plus points make the label Standout, when there is no red note.",
+      },
+      tags: {
+        title: "Special notes",
+        hint: "The checklists the committee fills in for each CaAs. The label Standout, Needs attention, Many problems or Standard comes from how many are ticked.",
+        red: "Red notes",
+        plus: "Plus points",
+        add: "Add",
+        del: "Delete",
+        label: "Name",
+      },
+    },
     newParam: "New parameter",
     newInd: "First indicator",
     dur: (m) => {
@@ -354,6 +458,46 @@ export const TP = dict<TpWords>({
       special: "特殊",
     },
     newQ: "新问题",
+    wb: {
+      prio: "优先级",
+      prios: { wajib: "必问", penting: "重要", lewat: "可跳过" },
+      noPrio: "无优先级",
+      a24: "修读物联网课程的 24 届学生",
+      te: "修读物联网实验课的电气工程学生",
+      sumLeft: "一场剩余的分钟数",
+      sumPrio: (w, p, l) =>
+        `按优先级的分钟数：必问 ${w}，重要 ${p}，可跳过 ${l}。时间紧时，先删可跳过的，再删重要的。`,
+      outdated:
+        "已保存的模板比最新默认版本旧（权重、红旗、卡片优先级、特别备注）。点击恢复默认以使用最新版；你当前的修改会丢失。",
+      floor: {
+        name: "分数从零算起",
+        hint: "开启：分数 = 权重 × 等级 ÷ 最高等级，所以 5 级中的 1 级值 20 分。关闭：最低等级值 0 分。",
+      },
+      flag: {
+        title: "红旗",
+        hint: "只要有一位考官给这些参数打低分，确定通过就会被压在犹豫，先由委员会讨论。",
+        on: "启用红旗",
+        keys: "检查的参数",
+        max: "等级小于或等于此值算低",
+      },
+      many: {
+        name: "问题较多的起点",
+        hint: "多少条红色备注算“问题较多”。",
+      },
+      jago: {
+        name: "出色的起点",
+        hint: "没有红色备注时，多少个加分项算“出色”。",
+      },
+      tags: {
+        title: "特别备注",
+        hint: "委员会为每位 CaAs 填写的勾选清单。出色、需要关注、问题较多或标准的标签由勾选数量决定。",
+        red: "红色备注",
+        plus: "加分项",
+        add: "添加",
+        del: "删除",
+        label: "名称",
+      },
+    },
     newParam: "新参数",
     newInd: "第一个指标",
     dur: (m) => {
