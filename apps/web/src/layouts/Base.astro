@@ -97,11 +97,12 @@ interface Props {
   /** The site footer (lab, privacy, terms); full screen views turn it off */
   footer?: boolean;
   /**
-   * The painted sky behind the page. A page that needs every frame it can get (an exam room, the Konsol, the QR
-   * wall) turns it off: nothing of the sky is drawn, animated or even built there (scripts/scene.ts honours
-   * html[data-sky="off"]), and the body's own dark floor shows.
+   * The painted sky behind the page. A page that needs every frame it can get (an exam room, the QR wall) turns
+   * it off: nothing of the sky is drawn, animated or even built there (scripts/scene.ts honours
+   * html[data-sky="off"]), and the theme's flat ground shows. "still" (the Konsol) paints the sky once and never
+   * moves it: no drifting layers, no sparkle loop, no pointer lean, the same as Low Detail for this one page.
    */
-  sky?: boolean;
+  sky?: boolean | "still";
 }
 
 const {
@@ -139,7 +140,11 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
 ---
 
 <!doctype html>
-<html lang={langTag(lang)} data-cosmos-scene={cosmosScene} data-sky={sky ? undefined : "off"}>
+<html
+  lang={langTag(lang)}
+  data-cosmos-scene={cosmosScene}
+  data-sky={sky === false ? "off" : sky === "still" ? "still" : undefined}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

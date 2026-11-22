@@ -3,7 +3,8 @@
  * They were 59 to 62 animated elements; on a laptop at High Detail they cost more than all the islands and clouds
  * together. See sky-motion.ts for what each one does and painters.ts skyBits() for where they are.
  *
- *   Low Detail, motion tier 0, reduced motion   one still frame of sparkles, no loop
+ *   Low Detail, motion tier 0, reduced motion,
+ *   a page with sky="still" (the Konsol)         one still frame of sparkles, no loop
  *   Normal                                      sparkles twinkle, drawn at 30 frames a second
  *   High Detail                                 adds petals, birds and the shooting star, at the screen's rate
  *   hidden tab                                  no loop
@@ -77,7 +78,10 @@ export function mountSkyFx(scene: HTMLElement, T: Theme, w: number, h: number): 
 
   const hd = () => html.dataset.detail === "hd";
   const still = () =>
-    html.dataset.detail === "ldm" || html.dataset.motionTier === "0" || reduce.matches;
+    html.dataset.detail === "ldm" ||
+    html.dataset.motionTier === "0" ||
+    html.dataset.sky === "still" ||
+    reduce.matches;
 
   /** One frame at the given time */
   const frame = (t: number, animated: boolean) => {
