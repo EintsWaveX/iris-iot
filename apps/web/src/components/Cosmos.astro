@@ -29,13 +29,12 @@
   .sky {
     contain: layout paint style;
     inset: 0;
-    /* Under the scrollbar gutter too: html keeps scrollbar-gutter: stable, so inset: 0 alone stops
-             15 px short where scrollbars are hidden or overlay (kiosk, headless, some Linux/macOS setups),
-             while sky.ts and scene.ts paint window.innerWidth, which includes the gutter. */
-    width: 100vw;
     overflow: hidden;
     pointer-events: none;
     position: fixed;
+    /* 100vw, not inset: 0 alone: html keeps scrollbar-gutter: stable, which left the sky 15 px short */
+    /* where scrollbars are hidden or overlay; sky.ts and scene.ts paint window.innerWidth, gutter included. */
+    width: 100vw;
     z-index: -1;
   }
 
