@@ -21,6 +21,8 @@ import type {
 import { S2 } from "../../s2Strings";
 import { tgl } from "../../shared";
 import { CW } from "./cutWhyStrings";
+import { LabelPill } from "../iv/CatatanKhusus";
+import { CK } from "../iv/catatanStrings";
 import TesResult from "./TesResult";
 import { RB } from "../rollback/rollbackStrings";
 import Skeleton from "../../../ui/Skeleton";
@@ -399,6 +401,13 @@ export default function CuttingDrawer({
                       )}
                     </Fact>
                   </dl>
+                  {d.iv.flag && (
+                    <div className="rec-note">
+                      <span>
+                        <b>{CK[lang].flagChip}</b> {CK[lang].flagTip}
+                      </span>
+                    </div>
+                  )}
                   <span className="hint">{t.ivSheets(d.iv.sheets.length, d.iv.expected)}</span>
                   <h5 className="cwd__sub">{t.ivConcl}</h5>
                   <ul className="cwd__concl">
@@ -411,6 +420,8 @@ export default function CuttingDrawer({
                   </ul>
                 </Sec>
               )}
+
+              {d.iv?.catatan && <CatatanRingkas c={d.iv.catatan} lang={lang} />}
 
               <Sec title={t.history}>
                 {d.history.length === 0 ? (
@@ -501,5 +512,65 @@ export default function CuttingDrawer({
         </div>
       )}
     </Drawer>
+  );
+}
+
+/** Catatan Khusus of the stage as the Cutting reads it: the label, what was ticked, the notes and the conclusion. */
+function CatatanRingkas({
+  c,
+  lang,
+}: {
+  c: NonNullable<NonNullable<CutDetailResponse["iv"]>["catatan"]>;
+  lang: Lang;
+}) {
+  const k = CK[lang];
+  const name = (x: { id: string; en: string }) => (lang === "id" ? x.id : x.en);
+  return (
+    <Sec title={k.title}>
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        <LabelPill label={c.label} lang={lang} />
+        <span className="hint">{k.counts(c.red.length, c.plus.length)}</span>
+        {c.manual && <span className="hint">{k.labelPick}</span>}
+      </div>
+      {c.red.length + c.plus.length === 0 && c.notes.length === 0 && !c.final ? (
+        <p className="empty-note empty-note--sm">{k.none}</p>
+      ) : (
+        <>
+          {c.red.length > 0 && (
+            <ul className="cwd__concl">
+              <li>
+                <b>{k.red}</b>
+                <span>{c.red.map(name).join(", ")}</span>
+              </li>
+            </ul>
+          )}
+          {c.plus.length > 0 && (
+            <ul className="cwd__concl">
+              <li>
+                <b>{k.plus}</b>
+                <span>{c.plus.map(name).join(", ")}</span>
+              </li>
+            </ul>
+          )}
+          {c.notes.length > 0 && (
+            <ul className="cwd__concl">
+              {c.notes.map((n) => (
+                <li key={n.who}>
+                  <b>{k.roles[n.who] ?? n.who}</b>
+                  <span>{n.text}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {c.final && (
+            <div className="rec-note">
+              <span>
+                <b>{k.final}</b> {c.final}
+              </span>
+            </div>
+          )}
+        </>
+      )}
+    </Sec>
   );
 }

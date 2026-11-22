@@ -77,6 +77,8 @@ import "../../recruitment-kandidat.css";
 import "../../recruitment-cutting.css";
 import { TUBES } from "../../tubes/tubesStrings";
 import { CS } from "./cutStrings";
+import { LabelPill } from "../iv/CatatanKhusus";
+import { CK } from "../iv/catatanStrings";
 import { CW } from "./cutWhyStrings";
 import RollbackDialog, { ringkasCounts } from "../rollback/RollbackDialog";
 import { RB } from "../rollback/rollbackStrings";
@@ -1212,6 +1214,14 @@ export default function CuttingTab({
                               </Pill>
                             ) : (
                               <span className="hint">-</span>
+                            )}
+                            {c.iv?.flag && (
+                              <span title={CK[lang].flagTip}>
+                                <Pill tone="danger">{CK[lang].flagChip}</Pill>
+                              </span>
+                            )}
+                            {c.iv?.label && c.iv.label !== "standar" && (
+                              <LabelPill label={c.iv.label} lang={lang} />
                             )}
                           </td>
                         </>

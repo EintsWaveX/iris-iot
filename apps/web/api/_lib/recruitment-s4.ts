@@ -43,20 +43,28 @@ import {
   caseKindsFor,
   EXCUSE_WHY,
   LATE_WHY,
+  FINAL_MAX,
+  NOTE_MAX,
   caseOutcome,
+  checkCatatan,
   crewFor,
   isIvStage,
+  isLabel,
+  labelOf,
   levelsDone,
   meanScore,
   sheetMissing,
   sheetScore,
   spreadScore,
-  verdictOf,
+  suggestVerdict,
+  type Catatan,
   type CaseKind,
   type IvStage,
   type IvTemplate,
+  type Label,
   type Verdict,
 } from "../../src/lib/recruitment/interview.js";
+import type { Biodata } from "../../src/lib/recruitment/types.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatEvents, muatKolam, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
@@ -388,6 +396,8 @@ async function handleMine(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       minutes: t.minutes,
       maxMinutes: t.maxMinutes,
       gap: t.gap,
+      // The template has Catatan Khusus checklists: the PJ's room list then offers a note button per CaAs
+      catatan: !!t.tags,
       // The rubric is still the sample one: the mockup shows a "Rubrik Contoh" badge until Akademik replaces it
       example: t.params.some((p) => p.example),
     },
@@ -442,7 +452,7 @@ export const sheetBolehKirim = (kurang: readonly unknown[]): boolean =>
 interface Akses {
   t: IvTemplate;
   edisiId: number;
-  kandidat: { id: number; nim: string; bio: { kelas: string } };
+  kandidat: { id: number; nim: string; bio: Biodata };
   tempat: NonNullable<Awaited<ReturnType<typeof tempatKandidat>>>;
   penuh: boolean;
   penguji: boolean;
@@ -502,6 +512,22 @@ async function bukaAkses(
 
 const bersih = (v: unknown, max = MAX_TEXT): string | null =>
   typeof v === "string" && v.length <= max ? v : null;
+
+/**
+ * When each special card applies to a CaAs. fm comes from the attendance. a24 (angkatan 24 taking the IoT course)
+ * and te (Teknik Elektro taking the IoT practicum) come from the form the CaAs filled in; null means the form did
+ * not say, and the card then shows anyway with a "check the data" note, because asking is cheaper than skipping.
+ */
+export function kondisiKhusus(
+  bio: Pick<Biodata, "angkatan" | "prodi" | "mkIot" | "praktikumIot">,
+  fm: boolean,
+): { fm: boolean; a24: boolean | null; te: boolean | null } {
+  return {
+    fm,
+    a24: bio.angkatan === 2024 ? (bio.mkIot ?? null) : false,
+    te: bio.prodi === undefined ? null : bio.prodi === "te" ? (bio.praktikumIot ?? null) : false,
+  };
+}
 
 async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const a = await bukaAkses(res, s, req.query?.stage, req.query?.id, false);
@@ -607,7 +633,7 @@ async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     })),
     penuh: a.penuh,
     me: s.nim,
-    cond: { fm: !hadirFm },
+    cond: kondisiKhusus(a.kandidat.bio, !hadirFm),
     locked: a.terkunci,
     shared: shared
       ? {
@@ -875,8 +901,14 @@ export interface NilaiBaris {
   mean: number | null;
   spread: number | null;
   wide: boolean;
+  /** A red flag: Attitude or Komitmen rated low by an examiner, so a Fix Lolos is held at Ragu-ragu */
+  flag: boolean;
   verdict: Verdict | null;
   suggested: Verdict | null;
+  /** Catatan Khusus: how many red notes and plus points, and the label they come to (null with no checklist) */
+  red: number;
+  plus: number;
+  label: Label | null;
   case: { kind: string; status: "susulan" | "gugur" | null } | null;
 }
 
@@ -934,21 +966,27 @@ export async function muatNilaiTahap(
         by: kode.get(r.graderNim) ?? r.graderNim,
         levels: r.levels,
       }));
-      const mean = meanScore(lv, t.params);
+      const mean = meanScore(lv, t.params, t.floor);
       const sd = shared.find((r) => r.candidateId === bth.id);
-      const spread = spreadScore(lv, t.params);
+      const spread = spreadScore(lv, t.params, t.floor);
+      const sug = mean === null ? null : suggestVerdict(mean, lv, t);
+      const ct = checkCatatan(sd?.catatan, t.tags);
       out.push({
         id: bth.id,
         nim: bth.nim,
         nama: bth.nama,
         slotId: sl.id,
-        sheets: lv.map((x) => ({ by: x.by, score: sheetScore(x.levels, t.params) })),
+        sheets: lv.map((x) => ({ by: x.by, score: sheetScore(x.levels, t.params, t.floor) })),
         expected: Math.max(crew.length, t.mode === "panel" ? t.per : t.per),
         mean,
         spread,
         wide: spread !== null && spread >= t.wide,
+        flag: sug?.flag ?? false,
         verdict: sd?.verdict ?? null,
-        suggested: mean === null ? null : verdictOf(mean, t.cut),
+        suggested: sug?.verdict ?? null,
+        red: ct.red.length,
+        plus: ct.plus.length,
+        label: t.tags ? labelOf(ct, t.tags) : null,
         case: kasusAkhir(
           sd?.caseInfo ?? null,
           posisiMakeup(mctx, mrows.get(bth.id), sl.startsAt, now).state,
@@ -1080,6 +1118,7 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
       detail: byKode,
       concl: sd?.concl ?? {},
       ba: sd?.ba ?? "",
+      ct: t.tags ? tampilCatatan(checkCatatan(sd?.catatan, t.tags), kode, "") : null,
       waiting: (w?.crew ?? []).filter((c) => !byKode.some((x) => x.by === c)),
     };
   });
@@ -1089,12 +1128,194 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     cut: t.cut,
     wide: t.wide,
     per: t.per,
+    flag: t.flag,
+    tags: t.tags,
     example: t.params.some((x) => x.example),
     params: t.params,
     levels: t.levels,
     rows: rinci,
     penguji: [...perPenguji.entries()].map(([by, c]) => ({ by, n: c.n, avg: c.sum / c.n })),
     avg: all.length ? all.reduce((a, x) => a + x, 0) / all.length : null,
+  });
+}
+
+/* ---------------------------------------------------------------- Catatan Khusus */
+
+type PeranCatatan = "penguji" | "pjDalam" | "pjLuar" | "lain";
+
+/**
+ * A Catatan as the screens read it: the notes as a list (an examiner's NIM shown as their code), and which one is
+ * the reader's own. `mijnKey` is the key the reader's own note is kept under.
+ */
+function tampilCatatan(c: Catatan, kode: Map<string, string>, mijnKey: string) {
+  const roles = ["pjDalam", "pjLuar", "lain"];
+  return {
+    red: c.red,
+    plus: c.plus,
+    label: c.label,
+    final: c.final,
+    notes: Object.entries(c.notes).map(([key, text]) => ({
+      key,
+      who: roles.includes(key) ? key : (kode.get(key) ?? key),
+      text,
+      mine: key === mijnKey,
+    })),
+  };
+}
+
+/**
+ * Who may touch a CaAs's Catatan Khusus: the examiners of the booth, the PJ of its room, any committee member, and
+ * the control seats (who may also set the label and the conclusion). Anyone else is refused. The sheet itself stays
+ * closed to a PJ; only this note is open to them.
+ */
+async function bukaCatatan(
+  res: ApiResponse,
+  s: SessionPayload,
+  stageRaw: unknown,
+  idRaw: unknown,
+  tulis: boolean,
+) {
+  if (!isIvStage(stageRaw)) return void tolak(res, "data_salah", 400);
+  const id = Number(idRaw);
+  if (!Number.isInteger(id) || id <= 0) return void tolak(res, "data_salah", 400);
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  const [k] = await db
+    .select({ id: recCandidate.id, nim: recCandidate.nim })
+    .from(recCandidate)
+    .where(and(eq(recCandidate.id, id), eq(recCandidate.editionId, edisi.id)))
+    .limit(1);
+  if (!k) return void tolak(res, "kandidat_tidak_ada", 404);
+  const t = await bacaSetting(db, stageRaw);
+  if (!t.tags) return void tolak(res, "tanpa_catatan", 404);
+  const tempat = await tempatKandidat(db, edisi.id, stageRaw, k.id, t);
+  const semua = bolehNilai(p);
+  let peran: PeranCatatan | null = null;
+  if (tempat?.crew.includes(s.nim)) peran = "penguji";
+  else if (tempat?.slot.pjIn.includes(s.nim)) peran = "pjDalam";
+  else if (tempat?.slot.pjOut.includes(s.nim)) peran = "pjLuar";
+  else if (anggotaPanitia(p)) peran = "lain";
+  if (!peran && !semua) return void tolak(res, "tanpa_hak", 403);
+  if (tulis && !semua) {
+    const [hasil] = await db
+      .select({ locked: recStageResult.locked })
+      .from(recStageResult)
+      .where(and(eq(recStageResult.candidateId, k.id), eq(recStageResult.stage, stageRaw)))
+      .limit(1);
+    if (sheetTertutup(true, !!hasil?.locked)) return void tolak(res, "terkunci", 409);
+  }
+  const mijnKey = peran === "penguji" ? s.nim : (peran ?? "lain");
+  return {
+    db,
+    t,
+    tags: t.tags,
+    stage: stageRaw,
+    edisiId: edisi.id,
+    kandidat: k,
+    semua,
+    peran,
+    mijnKey,
+  };
+}
+
+async function handleCatatan(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const a = await bukaCatatan(res, s, req.query?.stage, req.query?.id, false);
+  if (!a) return;
+  const [sd] = await a.db
+    .select({ catatan: recSheetShared.catatan })
+    .from(recSheetShared)
+    .where(and(eq(recSheetShared.candidateId, a.kandidat.id), eq(recSheetShared.stage, a.stage)))
+    .limit(1);
+  const c = checkCatatan(sd?.catatan, a.tags);
+  const kode = await kodeMap(a.db);
+  const nama = (await namaPerNim(a.db, [a.kandidat.nim])).get(a.kandidat.nim) ?? a.kandidat.nim;
+  return void res.status(200).json({
+    ok: true,
+    nama,
+    tags: a.tags,
+    catatan: tampilCatatan(c, kode, a.mijnKey),
+    auto: labelOf({ ...c, label: null }, a.tags),
+    label: labelOf(c, a.tags),
+    peran: a.peran,
+    semua: a.semua,
+    mijnKey: a.mijnKey,
+  });
+}
+
+/**
+ * One change at a time, so two people writing about the same CaAs never overwrite each other: tick (or untick)
+ * a red note or plus point, write your own note, and (control seats only) set the label, the conclusion or
+ * someone else's note. The row is locked while it is read and written back.
+ */
+async function handleCatatanSave(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const a = await bukaCatatan(res, s, b.stage, b.id, true);
+  if (!a) return;
+  const tick = b.tick as { list?: unknown; key?: unknown; on?: unknown } | undefined;
+  if (tick !== undefined) {
+    const ok =
+      (tick.list === "red" || tick.list === "plus") &&
+      typeof tick.key === "string" &&
+      typeof tick.on === "boolean" &&
+      a.tags[tick.list].some((x) => x.key === tick.key);
+    if (!ok) return void tolak(res, "data_salah", 400, { field: "tick" });
+  }
+  if (b.note !== undefined && (typeof b.note !== "string" || b.note.length > NOTE_MAX))
+    return void tolak(res, "data_salah", 400, { field: "note" });
+  // Only a control seat writes under another name; everyone else writes under their own.
+  if (b.noteKey !== undefined && !a.semua) return void tolak(res, "tanpa_hak", 403);
+  const noteKey = typeof b.noteKey === "string" ? b.noteKey : a.mijnKey;
+  if (!/^[A-Za-z0-9_-]{1,24}$/.test(noteKey)) return void tolak(res, "data_salah", 400);
+  if (b.label !== undefined && b.label !== null && !isLabel(b.label))
+    return void tolak(res, "data_salah", 400, { field: "label" });
+  if (b.final !== undefined && (typeof b.final !== "string" || b.final.length > FINAL_MAX))
+    return void tolak(res, "data_salah", 400, { field: "final" });
+  if ((b.label !== undefined || b.final !== undefined) && !a.semua)
+    return void tolak(res, "tanpa_hak", 403);
+  const now = new Date();
+  const saved = await a.db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ catatan: recSheetShared.catatan })
+      .from(recSheetShared)
+      .where(and(eq(recSheetShared.candidateId, a.kandidat.id), eq(recSheetShared.stage, a.stage)))
+      .limit(1)
+      .for("update");
+    const c = checkCatatan(row?.catatan, a.tags);
+    if (tick) {
+      const list = tick.list as "red" | "plus";
+      const rest = c[list].filter((k) => k !== tick.key);
+      c[list] = tick.on ? [...rest, tick.key as string] : rest;
+    }
+    if (typeof b.note === "string") {
+      const text = b.note.trim();
+      if (text) c.notes[noteKey] = text;
+      else delete c.notes[noteKey];
+    }
+    if (b.label !== undefined) c.label = b.label as Label | null;
+    if (typeof b.final === "string") c.final = b.final.trim();
+    const next = checkCatatan(c, a.tags);
+    await tx
+      .insert(recSheetShared)
+      .values({ candidateId: a.kandidat.id, stage: a.stage, catatan: next, updatedAt: now })
+      .onConflictDoUpdate({
+        target: [recSheetShared.candidateId, recSheetShared.stage],
+        set: { catatan: next },
+      });
+    return next;
+  });
+  await writeAudit(s.nim, "rec_iv_catatan", {
+    stage: a.stage,
+    candidateId: a.kandidat.id,
+    peran: a.peran,
+  });
+  const kode = await kodeMap(a.db);
+  return void res.status(200).json({
+    ok: true,
+    catatan: tampilCatatan(saved, kode, a.mijnKey),
+    auto: labelOf({ ...saved, label: null }, a.tags),
+    label: labelOf(saved, a.tags),
   });
 }
 
@@ -1106,6 +1327,7 @@ export const S4_GET: Record<string, H> = {
   "iv-mine": handleMine,
   "iv-sheet": handleSheet,
   "iv-nilai": handleNilai,
+  "iv-catatan": handleCatatan,
 };
 export const S4_POST: Record<string, H> = {
   "iv-crew-set": handleCrewSet,
@@ -1114,4 +1336,5 @@ export const S4_POST: Record<string, H> = {
   "iv-sheet-send": handleSheetSend,
   "iv-sheet-reopen": handleSheetReopen,
   "iv-case": handleCase,
+  "iv-catatan-save": handleCatatanSave,
 };

@@ -27,6 +27,8 @@ import { TeachCard, TeachPj, teachSample, teachTop } from "./TeachSlotku";
 import { PN } from "./penilaianStrings";
 import { IV } from "./ivStrings";
 import { SK } from "./slotStrings";
+import CatatanKhusus from "./CatatanKhusus";
+import { CK } from "./catatanStrings";
 import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
@@ -241,16 +243,21 @@ function PjCard({
   s,
   qr,
   refresh,
+  catatan,
 }: {
   lang: Lang;
   stage: IvStage;
   s: IvMineSlot;
   qr: boolean;
   refresh: () => void;
+  /** The stage has Catatan Khusus: each CaAs of the room gets a note button */
+  catatan: boolean;
 }) {
   const k = SK[lang];
   const luar = s.role === "pj_luar";
   const [dlg, setDlg] = useState(false);
+  const [catId, setCatId] = useState<number | null>(null);
+  const room = s.booths.filter((b) => b.candidate);
   const [siapa, setSiapa] = useState("");
   const [sibuk, setSibuk] = useState(false);
   async function ganti() {
@@ -280,6 +287,24 @@ function PjCard({
           <li key={x}>{x}</li>
         ))}
       </ul>
+      {catatan && room.length > 0 && (
+        <ul className="r4prep r4prep--duty ck__room">
+          {room.map((b) => (
+            <li key={b.index} className="row row--between">
+              <span>
+                <b>{b.candidate!.nama}</b> <span className="hint num">{b.candidate!.nim}</span>
+              </span>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => setCatId(b.candidate!.id)}
+              >
+                <span className="btn__label">{CK[lang].open}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="row r4slot__acts">
         {luar ? (
           qr && (
@@ -294,6 +319,15 @@ function PjCard({
           </button>
         )}
       </div>
+      <Dialog
+        open={catId !== null}
+        onOpenChange={(o) => !o && setCatId(null)}
+        title={CK[lang].title}
+        size="lg"
+        lang={lang}
+      >
+        {catId !== null && <CatatanKhusus stage={stage} id={catId} lang={lang} />}
+      </Dialog>
       <Dialog
         open={dlg}
         onOpenChange={setDlg}
@@ -427,6 +461,7 @@ function Slotku({
             s={s}
             qr={qr || (qrPj && s.role === "pj_luar")}
             refresh={mine.refresh}
+            catatan={mine.data!.template.catatan}
           />
         ))}
       </div>

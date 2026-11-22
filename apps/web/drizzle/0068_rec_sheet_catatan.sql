@@ -1,0 +1,1 @@
+ALTER TABLE "rec_sheet_shared" ADD COLUMN "catatan" jsonb DEFAULT '{}'::jsonb NOT NULL;
