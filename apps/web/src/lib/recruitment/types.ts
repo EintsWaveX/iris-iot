@@ -903,7 +903,7 @@ export interface CutDetailResponse {
     flag: boolean;
     verdict: "lolos" | "ragu" | "cut" | null;
     suggested: "lolos" | "ragu" | "cut" | null;
-    sheets: { by: string; score: number }[];
+    sheets: { by: string; score: number; editedAt?: string | null; edits?: number }[];
     expected: number;
     case: { kind: string; status: "susulan" | "gugur" | null } | null;
     /** The examiners' shared conclusion per parameter, empty text when none was written */

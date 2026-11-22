@@ -27,6 +27,8 @@ import { IV, bi } from "./ivStrings";
 import { PN } from "./penilaianStrings";
 import CatatanKhusus, { LabelPill } from "./CatatanKhusus";
 import { CK } from "./catatanStrings";
+import EditedMark from "./EditedMark";
+import { ED, fmtEdit } from "./editedStrings";
 import { SK } from "./slotStrings";
 import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
@@ -152,6 +154,7 @@ function Chips({ r, me, lang }: { r: IvNilaiRow; me: string | null; lang: Lang }
           <span className="r4sc__c" data-me={x.by === me ? "yes" : undefined}>
             <b>{x.by}</b>
             <span className="num">{x.score}</span>
+            <EditedMark at={x.editedAt} n={x.edits} lang={lang} />
           </span>
         </Tooltip>
       ))}
@@ -249,6 +252,20 @@ function Rincian({
         </table>
       </div>
       {worstOn && <span className="hint">{p.bd.worst(bi(worst.label, lang))}</span>}
+      {sh.some((x) => x.editedAt) && (
+        <div className="rec-note rec-note--warn">
+          <span>
+            <b>{ED[lang].title}</b>
+            {sh
+              .filter((x) => x.editedAt)
+              .map((x) => (
+                <span key={x.by} style={{ display: "block" }}>
+                  {ED[lang].line(x.by, fmtEdit(x.editedAt!, lang), x.edits || 1)}
+                </span>
+              ))}
+          </span>
+        </div>
+      )}
       {r.ba.trim() && (
         <div className="rec-note">
           <span>{r.ba}</span>
@@ -429,6 +446,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
         p.cols.mean,
         p.cols.gap,
         p.cols.verdict,
+        ED[lang].title,
         ...(d.flag ? [CK[lang].flagChip] : []),
         ...(d.tags ? [CK[lang].col] : []),
         ...(showTes ? [p.cols.tes] : []),
@@ -442,6 +460,10 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
         r.mean === null ? "" : Math.round(r.mean * 10) / 10,
         r.spread,
         r.case?.status ? w.case[r.case.status] : r.verdict ? w.verdict[r.verdict] : "",
+        r.sheets
+          .filter((x) => x.editedAt)
+          .map((x) => `${x.by} ${fmtEdit(x.editedAt!, lang)} (${x.edits || 1}x)`)
+          .join(", "),
         ...(d.flag ? [r.flag ? CK[lang].flagChip : ""] : []),
         ...(d.tags ? [r.label ? CK[lang].labels[r.label] : ""] : []),
         ...(showTes ? [r.total] : []),
@@ -693,7 +715,10 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
         )}
       </div>
       {tally}
-      <div className="r4nilai">
+      <div
+        className="r4nilai"
+        data-solo={d.penguji.length > 0 && d.avg !== null ? undefined : "yes"}
+      >
         <div className="stack" style={{ minWidth: 0 }}>
           {tools}
           {list.length ? table : <p className="empty-note">{p.empty}</p>}

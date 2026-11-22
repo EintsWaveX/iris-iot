@@ -3148,6 +3148,12 @@ export const recSheet = pgTable(
     /** Level per parameter key */
     levels: jsonb("levels").$type<Record<string, number>>().notNull().default({}),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    /**
+     * The last time this sheet was changed after it was sent, or pulled back to be edited (and sent again).
+     * editCount counts editing sittings, not saves: a new sitting starts when the last mark is 10 minutes old.
+     */
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    editCount: integer("edit_count").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("rec_sheet_unik").on(t.candidateId, t.stage, t.graderNim)],

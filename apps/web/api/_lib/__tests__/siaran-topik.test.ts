@@ -90,6 +90,7 @@ const BACA: Record<string, string[]> = {
     "iv-sheet",
     "iv-nilai",
     "iv-catatan",
+    "iv-tes",
     // The Susulan offer
     "ms-list",
     "ms-mine",

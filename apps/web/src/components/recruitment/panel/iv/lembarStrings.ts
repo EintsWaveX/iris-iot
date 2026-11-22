@@ -103,6 +103,8 @@ interface LmWords {
   back: string;
   send: string;
   sendLeft: (n: number) => string;
+  /** The held send button: pressing it is not enough */
+  sendHold: string;
   saveChanges: string;
   changesSaved: string;
   withdraw: string;
@@ -134,9 +136,10 @@ export const LM = dict<LmWords>({
     filesHint: "Kalau ada yang kurang, tanyakan di akhir wawancara.",
     filesNone: "CaAs ini belum punya berkas.",
     fileOpened: (n) => `${n} dibuka di tab baru.`,
-    recOn: "Merekam",
-    recOff: "Rekaman mati",
-    recTip: "Merekam suara wajib. Kalau rekamannya hilang, catatan jawaban harus lengkap.",
+    recOn: "Rekaman suara: nyala",
+    recOff: "Rekaman suara: mati",
+    recTip:
+      "Tombol ini hanya penanda, tidak merekam apa pun. Nyalakan setelah kamu mulai merekam suara wawancara di HP atau laptop (wajib). Penanda ini tersimpan di lembar supaya panitia tahu ada rekamannya atau tidak.",
     clockOf: (m) => `dari ${m}`,
     clockTip: (a, b) => `Rencana ${a}. Maksimal ${b}.`,
     clock: "Lama wawancara",
@@ -241,7 +244,8 @@ export const LM = dict<LmWords>({
     toVerdict: "Ke Keputusan",
     back: "Kembali",
     send: "Kirim Lembar",
-    sendLeft: (n) => `Kirim Lembar · ${n} lagi`,
+    sendHold: "Tahan untuk Kirim Lembar",
+    sendLeft: (n) => `Lengkapi dulu · ${n} lagi`,
     saveChanges: "Simpan Perubahan",
     changesSaved: "Perubahan lembar tersimpan.",
     withdraw: "Tarik Lembar",
@@ -271,10 +275,10 @@ export const LM = dict<LmWords>({
     filesHint: "If something is missing, ask at the end of the interview.",
     filesNone: "This CaAs has no files yet.",
     fileOpened: (n) => `${n} opened in a new tab.`,
-    recOn: "Recording",
-    recOff: "Not recording",
+    recOn: "Voice recording: on",
+    recOff: "Voice recording: off",
     recTip:
-      "Voice recording is required. If the recording is lost, the written answers must be complete.",
+      "This button is only a marker, it does not record anything. Turn it on once you have started recording the interview audio on a phone or laptop (required). The marker is saved on the sheet so the committee knows whether a recording exists.",
     clockOf: (m) => `of ${m}`,
     clockTip: (a, b) => `Planned ${a}. Maximum ${b}.`,
     clock: "Interview time",
@@ -375,7 +379,8 @@ export const LM = dict<LmWords>({
     toVerdict: "To the Verdict",
     back: "Back",
     send: "Send Sheet",
-    sendLeft: (n) => `Send Sheet · ${n} to go`,
+    sendHold: "Hold to Send Sheet",
+    sendLeft: (n) => `Finish first · ${n} to go`,
     saveChanges: "Save Changes",
     changesSaved: "Sheet changes saved.",
     withdraw: "Withdraw Sheet",
@@ -401,9 +406,10 @@ export const LM = dict<LmWords>({
     filesHint: "如有缺少，请在面试结束时询问。",
     filesNone: "这位 CaAs 还没有文件。",
     fileOpened: (n) => `${n} 已在新标签页打开。`,
-    recOn: "录音中",
-    recOff: "未录音",
-    recTip: "必须录音。若录音丢失，书面记录必须完整。",
+    recOn: "录音：开",
+    recOff: "录音：关",
+    recTip:
+      "此按钮只是标记，不会录音。用手机或电脑开始录下面试声音后再打开（必须录音）。标记会保存在表格上，方便委员会知道是否有录音。",
     clockOf: (m) => `共 ${m}`,
     clockTip: (a, b) => `计划 ${a}。硬性上限 ${b}。`,
     clock: "面试时长",
@@ -497,7 +503,8 @@ export const LM = dict<LmWords>({
     toVerdict: "前往结果",
     back: "返回",
     send: "提交表格",
-    sendLeft: (n) => `提交表格 · 还差 ${n} 项`,
+    sendHold: "按住提交表格",
+    sendLeft: (n) => `请先补全 · 还差 ${n} 项`,
     saveChanges: "保存修改",
     changesSaved: "表格修改已保存。",
     withdraw: "撤回表格",

@@ -9,6 +9,7 @@ import type { Lang } from "../../../../lib/kelas";
 import type { SeatPartDetail, TesDetail } from "../../../../lib/recruitment/score-api";
 import { PN } from "../tes/penilaian/penilaianStrings";
 import { CW } from "./cutWhyStrings";
+import "../../recruitment-cutting.css";
 
 const DATA_V = { full: "ok", partial: "mid", wrong: "fix", blank: "none", void: "none" } as const;
 
@@ -49,14 +50,23 @@ function Questions({ lang, p }: { lang: Lang; p: SeatPartDetail }) {
   );
 }
 
-export default function TesResult({ lang, tes }: { lang: Lang; tes: TesDetail | null }) {
+export default function TesResult({
+  lang,
+  tes,
+  compact = false,
+}: {
+  lang: Lang;
+  tes: TesDetail | null;
+  /** The interview's reveal card: scores and right, wrong and empty counts, without the question lines */
+  compact?: boolean;
+}) {
   const t = CW[lang].tes;
   const pn = PN[lang];
   const sec = (children: React.ReactNode) => (
     <section className="cwd__sec">
       <div className="cwd__sechead">
         <h4 className="label-caps">{t.title}</h4>
-        <span className="hint">{t.hint}</span>
+        {!compact && <span className="hint">{t.hint}</span>}
       </div>
       {children}
     </section>
@@ -106,10 +116,10 @@ export default function TesResult({ lang, tes }: { lang: Lang; tes: TesDetail | 
           {p.cut !== undefined && p.was !== undefined && (
             <span className="hint">{pn.cutOf(p.cut, p.was)}</span>
           )}
-          {p.questions.length > 0 && (
+          {(compact || p.questions.length > 0) && (
             <span className="hint">{t.counts(p.full, p.partial, p.wrong, p.blank, p.voided)}</span>
           )}
-          <Questions lang={lang} p={p} />
+          {!compact && <Questions lang={lang} p={p} />}
         </div>
       ))}
 

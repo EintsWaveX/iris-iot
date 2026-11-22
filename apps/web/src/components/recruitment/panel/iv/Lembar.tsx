@@ -43,6 +43,7 @@ import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
 import {
   fetchIvSheet,
+  fetchIvTes,
   useIvMine,
   type IvSheetResponse,
 } from "../../../../lib/recruitment/iv-client";
@@ -77,6 +78,10 @@ import {
 } from "./MengajarParts";
 import { PN } from "./penilaianStrings";
 import CatatanKhusus from "./CatatanKhusus";
+import { ED, fmtEdit } from "./editedStrings";
+import HoldButton from "../../../ui/HoldButton";
+import TesResult from "../cutting/TesResult";
+import type { TesDetail } from "../../../../lib/recruitment/score-api";
 import Skeleton from "../../../ui/Skeleton";
 
 type Step = "tanya" | "simpul" | "putus";
@@ -293,6 +298,8 @@ export default function Lembar({
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [ba, setBa] = useState("");
   const [rec, setRec] = useState(false);
+  const [tes, setTes] = useState<TesDetail | null>(null);
+  const [tesBusy, setTesBusy] = useState(false);
   const [step, setStep] = useState<Step>("tanya");
   const [qi, setQi] = useState(0);
   const [sent, setSent] = useState(false);
@@ -768,6 +775,8 @@ export default function Lembar({
     if (isFail(r)) return toast(w.err[r.kode] ?? r.kode, "danger");
     setSent(false);
     setView("sheet");
+    const fresh = await fetchIvSheet(stage, id);
+    if (!isFail(fresh)) setData(fresh);
     toast(mg ? M.withdrawn : L.withdrawn(mate), "warn");
   };
   const mulai = async () => {
@@ -875,6 +884,11 @@ export default function Lembar({
           </span>
         </Tooltip>
         {data.here && <Pill tone="ok">{L.here(hm(data.here))}</Pill>}
+        {data.mine.editedAt && (
+          <Pill tone="warn">
+            {ED[lang].mark(fmtEdit(data.mine.editedAt, lang), data.mine.edits || 1)}
+          </Pill>
+        )}
         {!mg && !tb && files}
         {!mg && !tb && (
           <button
@@ -1098,11 +1112,24 @@ export default function Lembar({
                     )}
                   </div>
                 ) : (
-                  <button type="button" className="btn btn--inverse" onClick={() => setScore(true)}>
+                  <button
+                    type="button"
+                    className="btn btn--inverse"
+                    onClick={() => {
+                      setScore(true);
+                      setTesBusy(true);
+                      void fetchIvTes(id).then((r) => {
+                        setTesBusy(false);
+                        if (!isFail(r)) setTes(r.tes);
+                      });
+                    }}
+                  >
                     <EyeIcon size={18} aria-hidden="true" />
                     <span className="btn__label">{L.revealBtn}</span>
                   </button>
                 )}
+                {score && tesBusy && <Skeleton height={96} />}
+                {score && tes && <TesResult lang={lang} tes={tes} compact />}
                 <span className="hint">{L.revealHint}</span>
               </div>
             )}
@@ -1708,11 +1735,24 @@ export default function Lembar({
             <ArrowRightIcon size={18} aria-hidden="true" />
           </button>
         ) : (
-          !locked && (
+          !locked &&
+          (mySent ? (
             <button type="button" className="btn btn--primary" onClick={() => void kirim()}>
-              {mySent ? L.saveChanges : left ? L.sendLeft(left) : L.send}
+              {L.saveChanges}
             </button>
-          )
+          ) : left ? (
+            <button type="button" className="btn btn--inverse" onClick={() => void kirim()}>
+              {L.sendLeft(left)}
+            </button>
+          ) : (
+            <HoldButton
+              label={L.sendHold}
+              tone="primary"
+              size="compact"
+              ms={1200}
+              onDone={() => void kirim()}
+            />
+          ))
         )}
       </>
     );
