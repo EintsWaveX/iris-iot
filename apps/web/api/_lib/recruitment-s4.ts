@@ -72,7 +72,7 @@ import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { KURSI_KENDALI } from "../../src/lib/recruitment/rights.js";
 import { anggotaPanitia, muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
-import { muatNilaiCutting } from "./recruitment-score.js";
+import { muatNilaiCutting, muatRinciTes } from "./recruitment-score.js";
 import { anggotaPerPemimpin, labelTim, muatSemuaPeserta, muatTim } from "./recruitment-tim.js";
 import { muatBarisMakeup, muatMakeupCtx, posisiMakeup } from "./recruitment-makeup.js";
 
@@ -513,6 +513,21 @@ async function bukaAkses(
 const bersih = (v: unknown, max = MAX_TEXT): string | null =>
   typeof v === "string" && v.length <= max ? v : null;
 
+/** A new editing sitting starts when the last edit mark is older than this. */
+const SITTING_MS = 10 * 60_000;
+
+/**
+ * The edit mark of a sheet changed after it was sent: when, and how many sittings. Typing for ten minutes is
+ * one sitting (autosave must not count each keystroke), coming back later is another.
+ */
+export function tandaiEdit(
+  prev: { editedAt: Date | null; editCount: number },
+  now: Date,
+): { editedAt: Date; editCount: number } {
+  const baru = !prev.editedAt || now.getTime() - prev.editedAt.getTime() > SITTING_MS;
+  return { editedAt: now, editCount: prev.editCount + (baru ? 1 : 0) };
+}
+
 /**
  * When each special card applies to a CaAs. fm comes from the attendance. a24 (angkatan 24 taking the IoT course)
  * and te (Teknik Elektro taking the IoT practicum) come from the form the CaAs filled in; null means the form did
@@ -649,7 +664,12 @@ async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload)
           version: shared.version,
         }
       : null,
-    mine: { levels: mine?.levels ?? {}, sentAt: mine?.sentAt?.toISOString() ?? null },
+    mine: {
+      levels: mine?.levels ?? {},
+      sentAt: mine?.sentAt?.toISOString() ?? null,
+      editedAt: mine?.editedAt?.toISOString() ?? null,
+      edits: mine?.editCount ?? 0,
+    },
     // The other examiners' levels stay hidden until every sheet is in.
     others:
       semuaKirim || !a.t.hideLevels || a.penuh
@@ -738,6 +758,27 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
     }
   }
   const now = new Date();
+  // Changing a sheet that is already sent leaves a mark (when, and which sitting), shown to the Penilaian.
+  const [ownRow] = a.penguji
+    ? await db
+        .select()
+        .from(recSheet)
+        .where(
+          and(
+            eq(recSheet.candidateId, a.kandidat.id),
+            eq(recSheet.stage, stage),
+            eq(recSheet.graderNim, s.nim),
+          ),
+        )
+        .limit(1)
+    : [];
+  const beda = (x: unknown, y: unknown) => JSON.stringify(x) !== JSON.stringify(y);
+  const diubah =
+    (levelsBaru !== null &&
+      Object.entries(levelsBaru).some(([k, v]) => ownRow?.levels?.[k] !== v)) ||
+    (["answers", "skipped", "concl", "other", "ba", "verdict", "recording"] as const).some(
+      (k) => k in upd && beda(upd[k], old?.[k]),
+    );
   const [row] = await db
     .insert(recSheetShared)
     .values({
@@ -774,6 +815,8 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
         set: { levels: lv, updatedAt: now },
       });
   }
+  if (ownRow?.sentAt && diubah)
+    await db.update(recSheet).set(tandaiEdit(ownRow, now)).where(eq(recSheet.id, ownRow.id));
   return void res.status(200).json({ ok: true, version: row.version });
 }
 
@@ -808,7 +851,12 @@ async function handleSheetSend(req: ApiRequest, res: ApiResponse, s: SessionPayl
   const now = new Date();
   await db
     .update(recSheet)
-    .set({ sentAt: now, updatedAt: now })
+    .set({
+      sentAt: now,
+      updatedAt: now,
+      // Sent again after being pulled back or changed: the edit mark moves to this send.
+      ...(mine && mine.editCount > 0 ? tandaiEdit(mine, now) : {}),
+    })
     .where(
       and(
         eq(recSheet.candidateId, a.kandidat.id),
@@ -820,6 +868,22 @@ async function handleSheetSend(req: ApiRequest, res: ApiResponse, s: SessionPayl
   return void res.status(200).json({ ok: true });
 }
 
+/** The edit mark for pulling a sent sheet back; nothing when the sheet was not sent. */
+async function tandaiTarik(candidateId: number, stage: IvStage, grader: string, now: Date) {
+  const [r] = await getDb()
+    .select()
+    .from(recSheet)
+    .where(
+      and(
+        eq(recSheet.candidateId, candidateId),
+        eq(recSheet.stage, stage),
+        eq(recSheet.graderNim, grader),
+      ),
+    )
+    .limit(1);
+  return r?.sentAt ? tandaiEdit(r, now) : {};
+}
+
 async function handleSheetReopen(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const b = jsonBody(req);
   const a = await bukaAkses(res, s, b.stage, b.id, true);
@@ -827,9 +891,15 @@ async function handleSheetReopen(req: ApiRequest, res: ApiResponse, s: SessionPa
   // My own sheet needs me to examine the CaAs; another examiner's (`grader`) needs the control seats.
   const grader = typeof b.grader === "string" && b.grader.trim() ? b.grader.trim() : s.nim;
   if (grader === s.nim ? !a.penguji : !a.penuh) return void tolak(res, "tanpa_hak", 403);
+  const jam = new Date();
   await getDb()
     .update(recSheet)
-    .set({ sentAt: null, updatedAt: new Date() })
+    .set({
+      sentAt: null,
+      updatedAt: jam,
+      // Only a sheet that was sent counts: pulling back one still being written is not an edit.
+      ...(await tandaiTarik(a.kandidat.id, b.stage as IvStage, grader, jam)),
+    })
     .where(
       and(
         eq(recSheet.candidateId, a.kandidat.id),
@@ -843,6 +913,23 @@ async function handleSheetReopen(req: ApiRequest, res: ApiResponse, s: SessionPa
     ...(grader !== s.nim ? { grader } : {}),
   });
   return void res.status(200).json({ ok: true });
+}
+
+/**
+ * The Tes Tulis and Koding result of the CaAs, for the one interview card that tells it to them: every
+ * part with its score and how many answers were right, partly right, wrong and empty, and the Live Coding
+ * problems with the tests they passed. No question text. Fetched only when the examiner presses the reveal
+ * button, so opening a sheet stays light.
+ */
+async function handleTes(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (req.query?.stage !== "wawancara") return void tolak(res, "data_salah", 400);
+  const a = await bukaAkses(res, s, req.query.stage, req.query?.id, false);
+  if (!a) return;
+  const tes = await muatRinciTes(getDb(), a.edisiId, a.kandidat.id);
+  return void res.status(200).json({
+    ok: true,
+    tes: tes ? { ...tes, parts: tes.parts.map((p) => ({ ...p, questions: [] })) } : null,
+  });
 }
 
 async function handleCase(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
@@ -896,7 +983,7 @@ export interface NilaiBaris {
   nim: string;
   nama: string;
   slotId: number | null;
-  sheets: { by: string; score: number }[];
+  sheets: { by: string; score: number; editedAt: string | null; edits: number }[];
   expected: number;
   mean: number | null;
   spread: number | null;
@@ -965,6 +1052,8 @@ export async function muatNilaiTahap(
       const lv = dikirim.map((r) => ({
         by: kode.get(r.graderNim) ?? r.graderNim,
         levels: r.levels,
+        editedAt: r.editedAt?.toISOString() ?? null,
+        edits: r.editCount,
       }));
       const mean = meanScore(lv, t.params, t.floor);
       const sd = shared.find((r) => r.candidateId === bth.id);
@@ -976,7 +1065,12 @@ export async function muatNilaiTahap(
         nim: bth.nim,
         nama: bth.nama,
         slotId: sl.id,
-        sheets: lv.map((x) => ({ by: x.by, score: sheetScore(x.levels, t.params, t.floor) })),
+        sheets: lv.map((x) => ({
+          by: x.by,
+          score: sheetScore(x.levels, t.params, t.floor),
+          editedAt: x.editedAt,
+          edits: x.edits,
+        })),
         expected: Math.max(crew.length, t.mode === "panel" ? t.per : t.per),
         mean,
         spread,
@@ -1107,6 +1201,8 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
       by: kode.get(x.graderNim) ?? x.graderNim,
       levels: x.levels,
       at: x.sentAt ? x.sentAt.toISOString() : null,
+      editedAt: x.editedAt ? x.editedAt.toISOString() : null,
+      edits: x.editCount,
     }));
     return {
       ...r,
@@ -1328,6 +1424,7 @@ export const S4_GET: Record<string, H> = {
   "iv-sheet": handleSheet,
   "iv-nilai": handleNilai,
   "iv-catatan": handleCatatan,
+  "iv-tes": handleTes,
 };
 export const S4_POST: Record<string, H> = {
   "iv-crew-set": handleCrewSet,

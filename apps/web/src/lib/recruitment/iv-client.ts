@@ -4,6 +4,7 @@
  */
 import { usePoll } from "../hooks";
 import { isFail, recGet } from "./client";
+import type { TesDetail } from "./score-api";
 import type {
   Bi,
   IvFlag,
@@ -125,7 +126,13 @@ export interface IvSheetResponse {
   files: { id: number; kind: string; label: Bi }[];
   locked: boolean;
   shared: IvSharedView | null;
-  mine: { levels: Record<string, number>; sentAt: string | null };
+  /** editedAt: the last time this sheet was changed after it was sent, or pulled back; edits: editing sittings */
+  mine: {
+    levels: Record<string, number>;
+    sentAt: string | null;
+    editedAt: string | null;
+    edits: number;
+  };
   others: { kode: string; levels: SheetLevels["levels"]; sentAt: string | null }[];
 }
 
@@ -134,7 +141,7 @@ export interface IvNilaiRow {
   nim: string;
   nama: string;
   slotId: number | null;
-  sheets: { by: string; score: number }[];
+  sheets: { by: string; score: number; editedAt: string | null; edits: number }[];
   expected: number;
   mean: number | null;
   spread: number | null;
@@ -155,7 +162,13 @@ export interface IvNilaiRow {
   total: number | null;
   /** Teaching test: the interview average and the Tubes score, for context */
   ctx: [number | null, number | null] | null;
-  detail: { by: string; levels: Record<string, number>; at: string | null }[];
+  detail: {
+    by: string;
+    levels: Record<string, number>;
+    at: string | null;
+    editedAt: string | null;
+    edits: number;
+  }[];
   concl: Record<string, string>;
   ba: string;
   /** The whole Catatan Khusus, for the Rincian; null with no checklist */
@@ -268,6 +281,10 @@ export const useCatatan = (stage: IvStage, id: number, enabled = true) =>
     1_000,
     `${stage}:${id}`,
   );
+
+/** The Tes Tulis and Koding result behind the reveal card: scores and right, wrong and empty counts, no questions. */
+export const fetchIvTes = (id: number) =>
+  recGet<{ ok: true; tes: TesDetail | null }>("iv-tes", { stage: "wawancara", id: String(id) });
 
 /** One CaAs's sheet. Fetched on open and after a send; typing is local until it is saved. */
 export const fetchIvSheet = (stage: IvStage, id: number) =>

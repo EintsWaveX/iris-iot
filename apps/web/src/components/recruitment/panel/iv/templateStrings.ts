@@ -84,6 +84,11 @@ interface TpWords {
     noPrio: string;
     a24: string;
     te: string;
+    weights: {
+      title: string;
+      intro: string;
+      share: (pct: number) => string;
+    };
     sumLeft: string;
     sumPrio: (w: string, p: string, l: string) => string;
     outdated: string;
@@ -153,10 +158,13 @@ export const TP = dict<TpWords>({
     },
     cutLolos: { name: "Fix Lolos mulai", hint: "rata-rata dari 100" },
     cutRagu: { name: "Ragu-ragu mulai", hint: "rata-rata dari 100" },
-    wide: { name: "Tandai selisih penguji mulai", hint: "poin dari 100" },
+    wide: {
+      name: "Tandai bila nilai dua penguji beda jauh",
+      hint: "Selisih skor dua penguji, dari 100. Segini atau lebih, barisnya ditandai selisih besar dan masuk filter Selisih.",
+    },
     hide: {
-      name: "Sembunyikan tingkat antar penguji",
-      hint: "Tingkat tiap penguji tersembunyi sampai semua lembar terkirim.",
+      name: "Sembunyikan nilai teman sampai semua kirim",
+      hint: "Nyala: pewawancara tidak bisa melihat tingkat nilai pasangannya sebelum semua lembar terkirim, supaya tidak saling terpengaruh.",
     },
     minutes: { name: "Menit per sesi", hint: "rencana satu sesi" },
     maxMinutes: { name: "Batas maksimal", hint: "menit, sesi dihentikan" },
@@ -172,7 +180,7 @@ export const TP = dict<TpWords>({
       planned: "menit rencana, tanpa kartu khusus",
       special: "kartu khusus",
       hint: (a, b) =>
-        `Satu shift ${a} dan paling lama ${b}. Kartu khusus hanya muncul untuk CaAs yang tidak ikut atau telat First Meet, atau mendaftar lab lain.`,
+        `Satu shift ${a} dan paling lama ${b}. Kartu khusus hanya muncul untuk CaAs yang tidak ikut atau telat First Meet, mendaftar lab lain, angkatan 24 yang mengambil mata kuliah IoT, atau Elektro yang mengambil praktikum IoT.`,
     },
     other: "Lainnya",
     up: "Naikkan",
@@ -199,6 +207,12 @@ export const TP = dict<TpWords>({
       noPrio: "Tanpa prioritas",
       a24: "Angkatan 24 yang mengambil mata kuliah IoT",
       te: "Teknik Elektro yang mengambil praktikum IoT",
+      weights: {
+        title: "Bobot dan contoh kesimpulan",
+        intro:
+          "Bobot: seberapa besar parameter ini mempengaruhi skor (makin besar, makin berpengaruh). Contoh kesimpulan: kalimat abu-abu di kotak kesimpulan lembar sebagai petunjuk cara menulis. Hanya contoh, tidak tersimpan sebagai jawaban.",
+        share: (pct) => `${pct}% dari skor`,
+      },
       sumLeft: "menit sisa dari satu shift",
       sumPrio: (w, p, l) =>
         `Menit per prioritas: Wajib ${w}, Penting ${p}, Bisa dilewati ${l}. Kalau waktu mepet, potong yang Bisa dilewati dulu, baru Penting.`,
@@ -287,10 +301,13 @@ export const TP = dict<TpWords>({
     },
     cutLolos: { name: "Fix Lolos from", hint: "average out of 100" },
     cutRagu: { name: "Undecided from", hint: "average out of 100" },
-    wide: { name: "Flag a gap between examiners from", hint: "points out of 100" },
+    wide: {
+      name: "Flag when the two examiners' scores are far apart",
+      hint: "The gap between the two examiners' scores, out of 100. At this gap or more, the row is marked as a big gap and shows under the Gap filter.",
+    },
     hide: {
-      name: "Hide levels between examiners",
-      hint: "Each examiner's levels stay hidden until every sheet is sent.",
+      name: "Hide a partner's levels until everyone has sent",
+      hint: "On: an examiner cannot see their partner's levels before all sheets are sent, so neither is swayed.",
     },
     minutes: { name: "Minutes per session", hint: "plan for one session" },
     maxMinutes: { name: "Maximum time", hint: "minutes, the session is stopped" },
@@ -306,7 +323,7 @@ export const TP = dict<TpWords>({
       planned: "planned minutes, without special cards",
       special: "special cards",
       hint: (a, b) =>
-        `A shift is ${a}, ${b} at most. Special cards only show for CaAs who missed or were late to First Meet, or applied to another lab.`,
+        `A shift is ${a}, ${b} at most. Special cards only show for CaAs who missed or were late to First Meet, applied to another lab, are angkatan 24 taking the IoT course, or are Elektro taking the IoT practicum.`,
     },
     other: "Other",
     up: "Move up",
@@ -333,6 +350,12 @@ export const TP = dict<TpWords>({
       noPrio: "No priority",
       a24: "Angkatan 24 taking the IoT course",
       te: "Teknik Elektro taking the IoT practicum",
+      weights: {
+        title: "Weight and example conclusion",
+        intro:
+          "Weight: how much this parameter counts toward the score (bigger counts more). Example conclusion: the grey sentence in the sheet's conclusion box that shows how to write one. It is only a hint and is never saved as an answer.",
+        share: (pct) => `${pct}% of the score`,
+      },
       sumLeft: "minutes left in a shift",
       sumPrio: (w, p, l) =>
         `Minutes by priority: Must ask ${w}, Important ${p}, Can skip ${l}. When time is short, cut Can skip first, then Important.`,
@@ -421,8 +444,14 @@ export const TP = dict<TpWords>({
     },
     cutLolos: { name: "Fix Lolos 起点", hint: "平均分，满分 100" },
     cutRagu: { name: "未决定起点", hint: "平均分，满分 100" },
-    wide: { name: "标记面试官分歧起点", hint: "分，满分 100" },
-    hide: { name: "隐藏面试官之间的等级", hint: "在所有表格提交之前，每位面试官的等级保持隐藏。" },
+    wide: {
+      name: "两位考官分数相差过大时标记",
+      hint: "两位考官分数的差距，满分 100。达到或超过此差距，该行会被标记为差距大，并出现在“差距”筛选中。",
+    },
+    hide: {
+      name: "全部提交前隐藏搭档的等级",
+      hint: "开启：所有表格提交之前，考官看不到搭档给的等级，以免互相影响。",
+    },
     minutes: { name: "每场分钟数", hint: "一场的计划时间" },
     maxMinutes: { name: "硬性上限", hint: "分钟，到时停止" },
     gap: { name: "轮换间隔", hint: "分钟" },
@@ -437,7 +466,7 @@ export const TP = dict<TpWords>({
       planned: "计划分钟数（不含特殊卡片）",
       special: "张特殊卡片",
       hint: (a, b) =>
-        `一场为 ${a}，最长 ${b}。特殊卡片只对缺席或迟到 First Meet、或报名其他实验室的 CaAs 显示。`,
+        `一场为 ${a}，最长 ${b}。特殊卡片只对缺席或迟到 First Meet、报名其他实验室、修读物联网课程的 24 届、或修读物联网实验课的电气工程学生显示。`,
     },
     other: "其他",
     up: "上移",
@@ -464,6 +493,12 @@ export const TP = dict<TpWords>({
       noPrio: "无优先级",
       a24: "修读物联网课程的 24 届学生",
       te: "修读物联网实验课的电气工程学生",
+      weights: {
+        title: "权重与示例结论",
+        intro:
+          "权重：该参数对分数的影响有多大（越大影响越大）。示例结论：表格结论框里的灰色提示句，教人怎么写。它只是提示，不会被保存为答案。",
+        share: (pct) => `占分数的 ${pct}%`,
+      },
       sumLeft: "一场剩余的分钟数",
       sumPrio: (w, p, l) =>
         `按优先级的分钟数：必问 ${w}，重要 ${p}，可跳过 ${l}。时间紧时，先删可跳过的，再删重要的。`,

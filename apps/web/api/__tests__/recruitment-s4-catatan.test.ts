@@ -4,7 +4,7 @@
  * null (the card still shows, with a note to ask).
  */
 import { describe, expect, it } from "vitest";
-import { kondisiKhusus } from "../_lib/recruitment-s4";
+import { kondisiKhusus, tandaiEdit } from "../_lib/recruitment-s4";
 
 describe("kondisiKhusus", () => {
   it("angkatan 24 is asked only when they take the IoT course", () => {
@@ -35,5 +35,33 @@ describe("kondisiKhusus", () => {
   it("passes First Meet through", () => {
     expect(kondisiKhusus({ angkatan: 2025 }, true).fm).toBe(true);
     expect(kondisiKhusus({ angkatan: 2025 }, false).fm).toBe(false);
+  });
+});
+
+describe("tandaiEdit", () => {
+  const t0 = new Date("2026-11-23T00:00:00+07:00");
+  const min = (n: number) => new Date(t0.getTime() + n * 60_000);
+
+  it("the first change after sending is sitting number one", () => {
+    expect(tandaiEdit({ editedAt: null, editCount: 0 }, t0)).toEqual({
+      editedAt: t0,
+      editCount: 1,
+    });
+  });
+
+  it("autosave inside one sitting moves the time but does not count again", () => {
+    const first = tandaiEdit({ editedAt: null, editCount: 0 }, t0);
+    expect(tandaiEdit(first, min(3))).toEqual({ editedAt: min(3), editCount: 1 });
+    expect(tandaiEdit({ editedAt: min(3), editCount: 1 }, min(12))).toEqual({
+      editedAt: min(12),
+      editCount: 1,
+    });
+  });
+
+  it("coming back after ten minutes is a new sitting", () => {
+    expect(tandaiEdit({ editedAt: t0, editCount: 1 }, min(11))).toEqual({
+      editedAt: min(11),
+      editCount: 2,
+    });
   });
 });

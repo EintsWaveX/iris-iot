@@ -747,6 +747,10 @@
     grid-template-columns: minmax(0, 1fr) 340px;
     align-items: start;
   }
+  /* No per-examiner panel yet (no sheet is in): the table takes the whole width instead of leaving it empty */
+  .r4nilai[data-solo] {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .r4per {
     position: sticky;
     top: 76px;
@@ -1193,7 +1197,7 @@
 }
 @media (min-width: 900px) {
   .r4qa {
-    grid-template-columns: 290px minmax(0, 1fr);
+    grid-template-columns: 360px minmax(0, 1fr);
   }
   .r4rail {
     position: sticky;
@@ -1600,6 +1604,13 @@
   align-items: center;
   min-height: 44px;
   padding: 4px 12px;
+}
+/* The Khusus and priority pills share one cell, so a card with two of them keeps the row's six columns */
+.r4tpl__tags {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  justify-content: flex-end;
 }
 .r4tpl__t {
   overflow: hidden;
@@ -2534,4 +2545,16 @@
 }
 .ck__state {
   min-height: 1.2em;
+}
+
+/* A sheet changed after it was sent: a small amber pencil beside the examiner's code */
+.r4ed {
+  align-items: center;
+  background: color-mix(in srgb, var(--warn) 22%, var(--surface-1));
+  border-radius: 999px;
+  color: var(--warn);
+  display: inline-flex;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
 }

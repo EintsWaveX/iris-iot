@@ -23,6 +23,7 @@ import { tgl } from "../../shared";
 import { CW } from "./cutWhyStrings";
 import { LabelPill } from "../iv/CatatanKhusus";
 import { CK } from "../iv/catatanStrings";
+import { ED, fmtEdit } from "../iv/editedStrings";
 import TesResult from "./TesResult";
 import { RB } from "../rollback/rollbackStrings";
 import Skeleton from "../../../ui/Skeleton";
@@ -409,6 +410,13 @@ export default function CuttingDrawer({
                     </div>
                   )}
                   <span className="hint">{t.ivSheets(d.iv.sheets.length, d.iv.expected)}</span>
+                  {d.iv.sheets
+                    .filter((x) => x.editedAt)
+                    .map((x) => (
+                      <span key={x.by} className="hint" data-t="warn">
+                        {ED[lang].line(x.by, fmtEdit(x.editedAt!, lang), x.edits || 1)}
+                      </span>
+                    ))}
                   <h5 className="cwd__sub">{t.ivConcl}</h5>
                   <ul className="cwd__concl">
                     {d.iv.conclusions.map((q) => (

@@ -284,6 +284,7 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
 
   const total = d.questions.reduce((a, x) => a + (x.only ? 0 : x.m), 0);
   const over = total > d.minutes;
+  const wsum = d.params.reduce((a, x) => a + x.weight, 0) || 1;
   const byPrio = (k: IvPrio) => {
     const n = d.questions.filter((x) => x.prio === k).reduce((a, x) => a + x.m, 0);
     return String(Math.round(n * 10) / 10);
@@ -447,13 +448,8 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
             </li>
           ))}
         </ul>
-        <Disclose
-          head={
-            <b>
-              {p.weight.name} · {p.eg.name}
-            </b>
-          }
-        >
+        <Disclose head={<b>{p.wb.weights.title}</b>}>
+          <span className="hint">{p.wb.weights.intro}</span>
           <ul className="r4ptl">
             {d.params.map((x, i) => (
               <li key={x.key}>
@@ -475,15 +471,20 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                   />
                 </label>
                 {!mg && (
-                  <Stepper
-                    value={x.weight}
-                    onChange={(n) => setParam(i, { weight: n })}
-                    min={1}
-                    max={100}
-                    label={p.weight.name}
-                    disabled={!can}
-                    {...STEP(lang)}
-                  />
+                  <label className="stack stack--sm">
+                    <span className="hint">
+                      {p.weight.name} · {p.wb.weights.share(Math.round((x.weight / wsum) * 100))}
+                    </span>
+                    <Stepper
+                      value={x.weight}
+                      onChange={(n) => setParam(i, { weight: n })}
+                      min={1}
+                      max={100}
+                      label={p.weight.name}
+                      disabled={!can}
+                      {...STEP(lang)}
+                    />
+                  </label>
                 )}
               </li>
             ))}
@@ -764,12 +765,14 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                       <div className="r4tpl__row">
                         <span className="num hint">{i + 1}</span>
                         <span className="r4tpl__t">{bi(x.t, lang)}</span>
-                        {x.only && <Pill tone="warn">{p.q.special}</Pill>}
-                        {x.prio && (
-                          <Pill tone={x.prio === "wajib" ? "accent" : undefined}>
-                            {p.wb.prios[x.prio]}
-                          </Pill>
-                        )}
+                        <span className="r4tpl__tags">
+                          {x.only && <Pill tone="warn">{p.q.special}</Pill>}
+                          {x.prio && (
+                            <Pill tone={x.prio === "wajib" ? "accent" : undefined}>
+                              {p.wb.prios[x.prio]}
+                            </Pill>
+                          )}
+                        </span>
                         <span className="hint num">{x.m ? `${x.m}′` : "-"}</span>
                         <span className="hint r4tpl__p">{par ? bi(par.label, lang) : ""}</span>
                         <span className="r4tpl__a">
