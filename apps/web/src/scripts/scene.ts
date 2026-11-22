@@ -27,7 +27,8 @@ if (canvas && scene) {
   let h = 0;
 
   const theme = (): Theme => (html.dataset.theme === "light" ? "day" : "night");
-  // A page that turned the sky off (exam rooms, the Konsol, the QR wall: Base's `sky={false}`) gets none of it
+  // A page that turned the sky off (exam rooms, the QR wall: Base's `sky={false}`) gets none of it. The Konsol's
+  // `sky="still"` is painted once like Low Detail and then never moves (the CSS, sky-fx and the pointer lean skip it).
   const off = () => html.dataset.sky === "off";
 
   // Ask for the sprites straight away: a worker draws them while the page hydrates, so the main thread never
@@ -114,6 +115,7 @@ if (canvas && scene) {
         html.dataset.detail === "ldm" ||
         html.dataset.motionTier === "0" ||
         html.dataset.sky === "off" ||
+        html.dataset.sky === "still" ||
         reduce.matches ||
         raf
       )

@@ -44,8 +44,8 @@
   translate: calc(var(--mx, 0) * var(--d, 0) * -1.7px) calc(var(--my, 0) * var(--d, 0) * -1.1px);
   transition: translate 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
-/* A layer of its own only while something moves it: Low Detail and motion tier 0 keep the painting flat. */
-:root:not([data-detail="ldm"]):not([data-motion-tier="0"]) #iris-scene .sp {
+/* A layer of its own only while something moves it: Low Detail, motion tier 0 and a still sky keep the painting flat. */
+:root:not([data-detail="ldm"]):not([data-motion-tier="0"]):not([data-sky="still"]) #iris-scene .sp {
   will-change: transform;
 }
 /* A soft light that follows the cursor. */
@@ -148,7 +148,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) #iris-scene {
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]):not([data-sky="still"]) #iris-scene {
     .bob {
       animation: scene-bob var(--t, 8s) ease-in-out var(--dl, 0s) infinite alternate;
     }
@@ -249,7 +249,7 @@
   }
 }
 
-/* A page that turned the sky off (Base's `sky={false}`): exam rooms, the Konsol, the QR wall. Hidden, it costs
+/* A page that turned the sky off (Base's `sky={false}`): exam rooms, the QR wall, attendance. Hidden, it costs
    nothing: no layers, no animation, and scripts/scene.ts builds nothing. */
 html[data-sky="off"] .sky {
   display: none;
