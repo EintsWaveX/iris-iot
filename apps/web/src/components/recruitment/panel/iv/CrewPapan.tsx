@@ -87,6 +87,23 @@ function boothStarts(s: IvCrewSlot, per: number): Map<number, number> {
   return m;
 }
 
+/** The examiners of each CaAs of a slot, in booth order: the group each CaAs sits with and how many seats it has. */
+function boothRows(s: IvCrewSlot, per: number) {
+  const out: { booth: number; name: string; size: number; members: string[] }[] = [];
+  let at = 0;
+  for (let i = 0; i < s.booths.length; i++) {
+    const size = boothSize(s.crewSizes, i, per);
+    out.push({
+      booth: i + 1,
+      name: s.booths[i].nama,
+      size,
+      members: s.penguji.slice(at, at + size),
+    });
+    at += size;
+  }
+  return out;
+}
+
 function LaneChip({
   env,
   s,
@@ -144,6 +161,9 @@ export function CrewLane({ env, s }: { env: LaneEnv; s: IvCrewSlot }) {
   const zone = useDroppable({ id: `ex:${s.id}`, disabled: !env.can });
   const per = Math.max(1, env.d.template.per);
   const starts = boothStarts(s, per);
+  // Booth mode with candidates: one row per CaAs with a column for each examiner set for them, so a CaAs
+  // with one examiner has one column and a CaAs with three has three. Open seats show as dashed cells.
+  const rows = !panel && s.booths.length > 0 ? boothRows(s, per) : null;
   return (
     <>
       <div
@@ -159,12 +179,94 @@ export function CrewLane({ env, s }: { env: LaneEnv; s: IvCrewSlot }) {
         <div
           ref={zone.setNodeRef}
           className="r4lane__z"
+          data-rows={rows ? "yes" : undefined}
           data-over={zone.isOver && env.can ? "yes" : undefined}
         >
-          {s.penguji.map((n, i) => (
-            <LaneChip key={n} env={env} s={s} nim={n} booth={starts.get(i)} />
-          ))}
-          {!s.penguji.length && <span className="r4lane__none">{t.empty}</span>}
+          {rows ? (
+            <>
+              {rows.map((r, ri) => {
+                const next = rows.findIndex((x) => x.members.length < x.size) === ri;
+                return (
+                  <div
+                    key={r.booth}
+                    className="r4lane__booth"
+                    data-short={r.members.length < r.size ? "yes" : undefined}
+                  >
+                    <div className="r4lane__bh">
+                      <span className="r4lane__bn num">{r.booth}</span>
+                      <span className="r4lane__nm" title={r.name}>
+                        {r.name}
+                      </span>
+                      {env.can && (
+                        <span
+                          className="r4lane__step"
+                          role="group"
+                          aria-label={t.sizeTip(r.booth, r.name, r.size)}
+                        >
+                          <button
+                            type="button"
+                            aria-label={t.sizeLess(r.booth)}
+                            disabled={env.busy || r.size <= 1 || r.size <= r.members.length}
+                            onClick={() => env.onSize(s, ri, r.size - 1)}
+                          >
+                            −
+                          </button>
+                          <b className="num">{r.size}</b>
+                          <button
+                            type="button"
+                            aria-label={t.sizeMore(r.booth)}
+                            disabled={env.busy || r.size >= 8}
+                            onClick={() => env.onSize(s, ri, r.size + 1)}
+                          >
+                            +
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className="r4lane__row"
+                      style={{ gridTemplateColumns: `repeat(${r.size}, minmax(0, 1fr))` }}
+                    >
+                      {r.members.map((n) => (
+                        <LaneChip key={n} env={env} s={s} nim={n} booth={undefined} />
+                      ))}
+                      {Array.from({ length: r.size - r.members.length }, (_, j) =>
+                        env.can && next ? (
+                          <button
+                            key={`open${j}`}
+                            type="button"
+                            className="r4lane__open"
+                            data-next="yes"
+                            aria-label={t.add(s.room, env.when(s))}
+                            onClick={() => env.onPlus(s)}
+                          >
+                            <PlusIcon size={14} aria-hidden="true" />
+                          </button>
+                        ) : (
+                          <span key={`open${j}`} className="r4lane__open" aria-hidden="true" />
+                        ),
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {s.penguji.length > want && (
+                <div
+                  className="r4lane__row"
+                  style={{ gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))` }}
+                >
+                  {s.penguji.slice(want).map((n) => (
+                    <LaneChip key={n} env={env} s={s} nim={n} booth={undefined} />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            s.penguji.map((n, i) => (
+              <LaneChip key={n} env={env} s={s} nim={n} booth={starts.get(i)} />
+            ))
+          )}
+          {!s.penguji.length && !rows && <span className="r4lane__none">{t.empty}</span>}
         </div>
         {env.can && (
           <span className="r4lane__add">
@@ -177,31 +279,6 @@ export function CrewLane({ env, s }: { env: LaneEnv; s: IvCrewSlot }) {
           </span>
         )}
       </div>
-      {!panel && s.booths.length > 0 && (
-        <div className="r4lane__sizes" role="group" aria-label={t.sizeHead}>
-          <span className="hint">{t.sizeHead}</span>
-          {s.booths.map((b, i) => {
-            const size = boothSize(s.crewSizes, i, per);
-            // 1, 2, 3 and round again; a size above that (set elsewhere) steps down to 1.
-            const next = size >= Math.max(3, per) ? 1 : size + 1;
-            return (
-              <button
-                key={b.id}
-                type="button"
-                className="r4lane__size num"
-                data-diff={size !== per ? "yes" : undefined}
-                title={t.sizeTip(i + 1, b.nama, size)}
-                aria-label={t.sizeTip(i + 1, b.nama, size)}
-                disabled={!env.can || env.busy}
-                onClick={() => env.onSize(s, i, next)}
-              >
-                {i + 1}
-                <b>·{size}</b>
-              </button>
-            );
-          })}
-        </div>
-      )}
     </>
   );
 }
