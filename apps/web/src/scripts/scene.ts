@@ -93,6 +93,25 @@ if (canvas && scene) {
     alt?.el.remove();
     alt = null;
   };
+  // Put every sprite of the overlay painting on exactly the same motion as its twin in the main painting (matched by data-s):
+  // the same period, depth, amplitude and phase (the two paintings differ a little, e.g. the clouds drift at 36 s and 38.4 s),
+  // then on the same animation clock. Otherwise each sprite is drawn twice, drifting in and out of step.
+  const syncAltClock = (base: HTMLElement, over: HTMLElement) => {
+    const pairs: Array<[HTMLElement, HTMLElement]> = [];
+    base.querySelectorAll<HTMLElement>(".sp[data-s]").forEach((e) => {
+      const twin = over.querySelector<HTMLElement>(`.sp[data-s="${e.dataset.s}"]`);
+      if (!twin) return;
+      for (const v of ["--t", "--d", "--amp", "--dl"])
+        twin.style.setProperty(v, e.style.getPropertyValue(v));
+      pairs.push([e, twin]);
+    });
+    void over.offsetHeight; // apply the new variables to the running animations before touching their clocks
+    for (const [e, twin] of pairs) {
+      const a = e.getAnimations()[0];
+      const b = twin.getAnimations()[0];
+      if (a && b && a.startTime !== null) b.startTime = a.startTime;
+    }
+  };
   const syncSun = () => {
     const phase = html.dataset.sun;
     const s = Number.parseFloat(html.style.getPropertyValue("--sun"));
@@ -147,8 +166,12 @@ if (canvas && scene) {
       sky.insertBefore(el, scene.nextSibling);
       layoutScene(sc, w, h);
       alt = { el, T: other, w, h };
-      // Let the browser lay it out at 0 first, so it fades in rather than popping
-      requestAnimationFrame(() => syncSun());
+      // Both paintings give a sprite the same timing now (painters.ts), but the overlay's CSS animations start when it is inserted.
+      // Start each on its twin's clock so the two copies coincide, then let the browser lay it out at 0 first so it fades in rather than popping.
+      requestAnimationFrame(() => {
+        syncAltClock(scene, sc);
+        syncSun();
+      });
     });
   };
   window.addEventListener("iris-sun", syncSun);

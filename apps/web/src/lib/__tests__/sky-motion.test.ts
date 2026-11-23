@@ -123,3 +123,28 @@ describe("the scene no longer carries them as elements", () => {
     expect(css).not.toMatch(/@keyframes scene-(tw|petal|fly|flap-[lr]|shoot)\b/);
   });
 });
+
+describe("the day and night paintings start every sprite at the same point of its cycle", () => {
+  // Matahari lays the other theme's painting over the main one at dawn and dusk. A per-theme random phase drew every island twice,
+  // out of step (a ghost that read as blur). The phase now comes from the sprite's name, so the overlay can be locked to the main
+  // painting (scene.ts syncAltClock); the periods may differ a little (clouds), so compare the fraction of the cycle, not seconds.
+  const fake = new Proxy({}, { get: () => ({ url: "x", w: 100, h: 50 }) }) as SpriteSet;
+  const phases = (T: "day" | "night") => {
+    const m = new Map<string, number>();
+    for (const x of sceneHTML(T, fake).matchAll(
+      /data-s="(\w+)"[^>]*style="--t:([\d.]+)s;[^"]*--dl:(-?[\d.]+)s"/g,
+    ))
+      m.set(x[1], Number(x[3]) / Number(x[2]));
+    return m;
+  };
+  it("has the same start fraction for every sprite both paintings have", () => {
+    const day = phases("day");
+    const night = phases("night");
+    const shared = [...day.keys()].filter((k) => night.has(k));
+    expect(shared.length).toBeGreaterThanOrEqual(6);
+    for (const k of shared) expect(night.get(k) ?? NaN, k).toBeCloseTo(day.get(k) ?? NaN, 1);
+  });
+  it("is stable: the same markup every time", () => {
+    expect(sceneHTML("day", fake)).toBe(sceneHTML("day", fake));
+  });
+});

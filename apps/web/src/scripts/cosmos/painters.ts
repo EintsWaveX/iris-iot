@@ -1168,13 +1168,22 @@ export function skyBits(T: Theme): SkyBits {
   return { spk, pet, birds, shoot: T === "night" };
 }
 
+/** A stable 0 to 1 from a name (FNV-1a), so a sprite's bob phase does not depend on draw order or on a per-theme seed. */
+function unit(key: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return ((h >>> 0) % 10000) / 10000;
+}
+
 /**
  * The scene's DOM (the sprites, and two canvases for the small moving things: one behind the islands for the
  * sparkles, one in front for petals, birds and the shooting star). Pass the sprites when a worker made them;
  * without them they are painted here on the main thread.
  */
 export function sceneHTML(T: Theme, S: SpriteSet = sprites(T)): string {
-  const R = rnd(T === "day" ? 5 : 11);
   let o = "";
   if (T === "day") o += '<div class="rays" style="--rx:17%;--ry:60%"></div>';
   o += '<canvas class="fx fx-back"></canvas>';
@@ -1183,7 +1192,9 @@ export function sceneHTML(T: Theme, S: SpriteSet = sprites(T)): string {
     // Livelier than the first mockup: islands bob faster and further, clouds drift faster.
     const tt = it.cls.includes("drift") ? it.t * 0.62 : it.cls.includes("bob") ? it.t * 0.75 : it.t;
     const amp = it.s === "planet" ? 10 : it.s === "rock" ? 22 : 16;
-    const dl = (-(R() * tt)).toFixed(1);
+    // The phase comes from the sprite's name, not from a per-theme random sequence: Matahari lays the other theme's painting over this
+    // one at dawn and dusk, and a different phase per painting drew every island twice, out of step (a ghost that read as blur).
+    const dl = (-(unit(it.cls.includes("aur2") ? `${it.s}2` : it.s) * tt)).toFixed(1); // the two auroras keep their own phases
     let inner = `<img alt="" draggable="false" src="${sp.url}">`;
     if (it.wf && sp.wf) {
       const fx = (sp.wf.x * 100).toFixed(1);
