@@ -2558,3 +2558,32 @@
   justify-content: center;
   width: 18px;
 }
+
+/* the size of each CaAs's examiner group, under a lane (1 when the shift is short of Asisten) */
+.r4lane__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+}
+.r4lane__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--hairline-faint);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.r4lane__size[data-diff] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.r4lane__size:disabled {
+  cursor: default;
+}

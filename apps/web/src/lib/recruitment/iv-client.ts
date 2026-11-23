@@ -31,6 +31,8 @@ export interface IvCrewSlot {
   endsAt: string;
   capacity: number;
   booths: IvCandidate[];
+  /** Examiners per CaAs set for this slot, in booth order; null follows the template */
+  crewSizes: number[] | null;
   penguji: string[];
   pjOut: string[];
   pjIn: string[];
