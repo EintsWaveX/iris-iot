@@ -3477,3 +3477,31 @@ export const berkas = pgTable("berkas", {
   pemilik: text("pemilik"),
   dibuat: timestamp("dibuat", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * The voice recording of a Wawancara, kept as evidence for Penilaian to hear. The examiner's browser records
+ * in parts of a few minutes (each part plays on its own, so a crash or a closed tab costs at most the part
+ * in progress) and uploads each one as it ends; a CaAs's recording is its parts in order. The bytes live here
+ * (like `berkas`) and are served only through iv-audio, never by an open address: Never `select()` the whole
+ * row in a list, `isi` is the audio.
+ */
+export const recIvAudio = pgTable(
+  "rec_iv_audio",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    /** The examiner whose device recorded it */
+    recordedBy: text("recorded_by").notNull(),
+    mime: text("mime").notNull(),
+    durationMs: integer("duration_ms").notNull(),
+    size: integer("size").notNull(),
+    isi: bytea("isi").notNull(),
+    /** When the part began, by the recording device's clock */
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_iv_audio_kandidat_idx").on(t.candidateId, t.stage, t.startedAt)],
+);
