@@ -2587,3 +2587,104 @@
 .r4lane__size:disabled {
   cursor: default;
 }
+
+/* the lane in rows, one per CaAs, with a column for each examiner set for that CaAs */
+.r4lane__z[data-rows] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+.r4lane__row {
+  display: grid;
+  gap: 4px;
+  align-items: stretch;
+}
+.r4lane__row[data-short] {
+  padding-bottom: 0;
+}
+.r4lane__open {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 6px;
+  border: 1px dashed color-mix(in srgb, var(--warn) 55%, transparent);
+  border-radius: 8px;
+  background: transparent;
+}
+.r4lane__open[data-b]::before {
+  content: attr(data-b);
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  color: var(--text-muted);
+  font: 700 max(11px, 0.72rem) var(--font-body, inherit);
+}
+
+/* one CaAs in the lane: who it is for, how many examiners sit with them, and the seats */
+.r4lane__booth {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.r4lane__bh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.r4lane__bn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  font: 700 max(11px, 0.72rem) var(--font-body, inherit);
+}
+.r4lane__nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: max(11px, 0.78rem);
+}
+.r4lane__booth[data-short] .r4lane__nm {
+  color: var(--warn);
+}
+.r4lane__step {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+.r4lane__step button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--hairline-faint);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.r4lane__step button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.r4lane__step b {
+  min-width: 16px;
+  text-align: center;
+}
+button.r4lane__open {
+  justify-content: center;
+  color: var(--warn);
+  cursor: pointer;
+}
