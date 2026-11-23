@@ -49,6 +49,13 @@ export const PN = dict({
       "Nilai semua peserta dan statistik soal dibekukan. Papan Cutting memakai angka beku ini. Untuk mengubah kunci atau membatalkan soal, buka bekunya dulu dan tulis catatan.",
     finalizeNote: "Catatan (boleh kosong)",
     finalizeGo: "Finalkan",
+    force: "Paksa Finalkan",
+    forceTitle: "Paksa Finalkan Nilai?",
+    forceBody:
+      "Nilai dibekukan walaupun masih ada hal yang menghalangi (daftar di bawah). Nilai yang belum lengkap ikut beku apa adanya. Tulis siapa yang memutuskan dan kenapa; catatan ini tersimpan di jejak audit. Kamu masih bisa membukanya lagi dengan Buka Beku.",
+    forceNote: "Alasan (wajib)",
+    forceGo: "Paksa Finalkan",
+    forceHint: "Masih ada yang menghalangi. Kamu bisa memaksa dengan alasan tertulis.",
     unfreeze: "Buka Beku",
     unfreezeTitle: "Buka Beku Nilai?",
     unfreezeBody:
@@ -176,6 +183,13 @@ export const PN = dict({
       "Every candidate's scores and the question statistics are frozen. The Cutting board reads the frozen numbers. To fix a key or withdraw a question, unfreeze first and add a note.",
     finalizeNote: "Note (optional)",
     finalizeGo: "Finalise",
+    force: "Force Finalise",
+    forceTitle: "Force Finalise the Scores?",
+    forceBody:
+      "The scores are frozen although something still stops it (listed below). Scores that are not complete freeze as they are. Write who decided and why; the note is kept in the audit trail. You can still reopen them with Unfreeze.",
+    forceNote: "Reason (required)",
+    forceGo: "Force Finalise",
+    forceHint: "Something still stops it. You can force it with a written reason.",
     unfreeze: "Unfreeze",
     unfreezeTitle: "Unfreeze the Scores?",
     unfreezeBody:
@@ -296,6 +310,13 @@ export const PN = dict({
       "所有候选人的分数和题目统计将被冻结，筛选看板读取冻结后的数字。之后修改答案或作废题目，需要先解冻并写明备注。",
     finalizeNote: "备注（可不填）",
     finalizeGo: "最终确定",
+    force: "强制最终确定",
+    forceTitle: "强制最终确定分数？",
+    forceBody:
+      "即使仍有阻碍（见下方列表），分数也会被冻结。不完整的分数将按现状冻结。请写明由谁决定以及原因；备注会记入审计记录。之后仍可用“解除冻结”重新打开。",
+    forceNote: "原因（必填）",
+    forceGo: "强制最终确定",
+    forceHint: "仍有阻碍。可以写明原因后强制执行。",
     unfreeze: "解冻",
     unfreezeTitle: "解冻分数？",
     unfreezeBody: "分数将按当前的答案、答案键和作废情况重新计算。请写明为什么要解冻。",

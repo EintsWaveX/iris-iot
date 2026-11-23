@@ -627,6 +627,35 @@ describe("score-finalize and score-unfreeze", () => {
     expect((await jalan("score-finalize", sesi("AKD"), {})).body.kode).toBe("tanpa_kursi");
   });
 
+  it("Paksa Finalkan freezes past an open room, with a note, and the audit keeps what it passed", async () => {
+    (rows.room as Row[])[0].state = { stage: "parts" };
+    // forcing needs a reason
+    const tanpa = await jalan("score-finalize", sesi("AKD"), { force: true });
+    expect(tanpa.body.kode).toBe("perlu_catatan");
+    expect(rows.freeze).toEqual([]);
+    const r = await jalan("score-finalize", sesi("AKD"), { force: true, note: "Ketua memutuskan" });
+    expect(r.status).toBe(200);
+    expect(rows.freeze).toHaveLength(1);
+    expect(rows.freeze[0]).toMatchObject({ by: "AKD", note: "Ketua memutuskan" });
+    expect(audit[0]).toMatchObject({
+      aksi: "rec_nilai_final",
+      detail: { forced: true, blockers: [{ kode: "ruang_terbuka", rooms: 1 }] },
+    });
+  });
+
+  it("Paksa Finalkan does not freeze nothing: with no seat it is still refused", async () => {
+    rows.seat = [];
+    const r = await jalan("score-finalize", sesi("AKD"), { force: true, note: "tetap" });
+    expect(r.body.kode).toBe("tanpa_kursi");
+    expect(rows.freeze).toEqual([]);
+  });
+
+  it("without force the blockers still hold", async () => {
+    (rows.room as Row[])[0].state = { stage: "parts" };
+    const r = await jalan("score-finalize", sesi("AKD"), { note: "tolong" });
+    expect(r.body.kode).toBe("ruang_terbuka");
+  });
+
   it("freezes the scores; later changes to the bank do not move them", async () => {
     const f = await jalan("score-finalize", sesi("AKD"), { note: "Susulan selesai" });
     expect(f.status).toBe(200);
