@@ -609,16 +609,26 @@ async function finalkan(k: Konteks) {
   const note = b.note === undefined || b.note === null || b.note === "" ? null : catatan(b.note);
   if (b.note !== undefined && b.note !== null && b.note !== "" && !note)
     return galat(k.res, "data_salah");
+  // Paksa Finalkan: freeze although something still stops it. It needs a note (who decided, and why), the
+  // blockers it passed are recorded in the audit, and a freeze can be undone with Buka Beku. With no seat
+  // at all there is nothing to freeze, so that one is never forced.
+  const paksa = b.force === true;
+  if (paksa && !note) return galat(k.res, "perlu_catatan");
   let hasil:
     | { kode: string; blockers?: FinalBlocker[] }
-    | { baris: RecScoreFreezeRow; hitung: Awaited<ReturnType<typeof hitungSekarang>> };
+    | {
+        baris: RecScoreFreezeRow;
+        hitung: Awaited<ReturnType<typeof hitungSekarang>>;
+        dilewati: FinalBlocker[];
+      };
   try {
     // Under the score lock, so a void or a Live Coding sheet cannot land between the numbers and the freeze.
     hasil = await denganKunciNilai(k.db, k.edisiId, async (tx) => {
       if (await nilaiBeku(tx, k.edisiId)) return { kode: "sudah_final" };
       const hitung = await hitungSekarang(tx, k.edisiId);
       const hal = await halangan(tx, k.edisiId, hitung);
-      if (hal.length) return { kode: hal[0].kode, blockers: hal };
+      const tegas = hal.filter((x) => !paksa || x.kode === "tanpa_kursi");
+      if (tegas.length) return { kode: tegas[0].kode, blockers: hal };
       const [baris] = await tx
         .insert(recScoreFreeze)
         .values({
@@ -629,7 +639,7 @@ async function finalkan(k: Konteks) {
           stats: hitung.stats,
         })
         .returning();
-      return { baris, hitung };
+      return { baris, hitung, dilewati: hal };
     });
   } catch (e) {
     // The one-live-freeze index: still the last word if a writer slips past the lock.
@@ -643,6 +653,7 @@ async function finalkan(k: Konteks) {
     edition: k.edisiId,
     seats: hasil.hitung.rows.length,
     note,
+    ...(paksa ? { forced: true, blockers: hasil.dilewati } : {}),
   });
   const body: FreezeResponse = { ok: true, freeze: await infoBeku(k.db, hasil.baris) };
   k.res.status(200).json(body);
