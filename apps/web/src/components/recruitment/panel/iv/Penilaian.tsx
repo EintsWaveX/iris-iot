@@ -25,6 +25,7 @@ import {
 import type { IvStage, Verdict } from "../../../../lib/recruitment/interview";
 import { IV, bi } from "./ivStrings";
 import { PN } from "./penilaianStrings";
+import AudioEvidence from "./AudioEvidence";
 import CatatanKhusus, { LabelPill } from "./CatatanKhusus";
 import { CK } from "./catatanStrings";
 import EditedMark from "./EditedMark";
@@ -271,6 +272,7 @@ function Rincian({
           <span>{r.ba}</span>
         </div>
       )}
+      {stage === "wawancara" && <AudioEvidence id={r.id} lang={lang} />}
       {d.tags && <CatatanKhusus stage={stage} id={r.id} lang={lang} />}
     </div>
   );

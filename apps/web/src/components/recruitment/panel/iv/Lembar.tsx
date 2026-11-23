@@ -83,6 +83,7 @@ import HoldButton from "../../../ui/HoldButton";
 import TesResult from "../cutting/TesResult";
 import type { TesDetail } from "../../../../lib/recruitment/score-api";
 import Skeleton from "../../../ui/Skeleton";
+import VoiceRecorder from "./VoiceRecorder";
 
 type Step = "tanya" | "simpul" | "putus";
 const VERDICTS: Verdict[] = ["lolos", "ragu", "cut"];
@@ -890,6 +891,15 @@ export default function Lembar({
           </Pill>
         )}
         {!mg && !tb && files}
+        {!mg && !tb && (
+          <VoiceRecorder
+            key={id}
+            lang={lang}
+            id={id}
+            disabled={locked || mySent}
+            onStart={() => setRec(true)}
+          />
+        )}
         {!mg && !tb && (
           <button
             type="button"

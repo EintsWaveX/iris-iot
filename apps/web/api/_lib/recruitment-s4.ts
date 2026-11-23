@@ -20,7 +20,7 @@
  * a CaAs never sees who examines them. The levels of the other examiners stay
  * hidden until every sheet is sent, unless the template says otherwise.
  */
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
@@ -35,6 +35,7 @@ import {
   recSheetShared,
   recSlot,
   recSlotAssignment,
+  recIvAudio,
   recSlotExaminer,
   recStageResult,
   type SheetCase,
@@ -67,6 +68,15 @@ import {
   type Verdict,
 } from "../../src/lib/recruitment/interview.js";
 import type { Biodata } from "../../src/lib/recruitment/types.js";
+import {
+  AUDIO_BAGIAN_BANYAK,
+  AUDIO_BAGIAN_MAKS,
+  AUDIO_MS_MAKS,
+  AUDIO_TIPE,
+  audioCocok,
+  bacaRentang,
+  tipeDasar,
+} from "./recruitment-iv-audio.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatEvents, muatKolam, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
@@ -320,6 +330,155 @@ async function handleCrewSize(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   await db.update(recSlot).set({ crewSizes: sizes }).where(eq(recSlot.id, slotId));
   await writeAudit(s.nim, "rec_iv_crew_size", { stage: b.stage, slotId, sizes });
   return void res.status(200).json({ ok: true });
+}
+
+/* ---------------------------------------------------------------- voice recording */
+
+/**
+ * One part of the voice recording of a Wawancara, uploaded by the examiner's browser as the part ends: the
+ * audio bytes in the body (`?stage=wawancara&id=<candidate>&ms=<length>&at=<start, ISO>`). Only an examiner of
+ * that CaAs's booth records; the control seats hear, they do not record. Closed with the sheet's stage lock.
+ */
+async function handleAudioUp(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (req.query?.stage !== "wawancara") return void tolak(res, "data_salah", 400);
+  const tipe = tipeDasar(req.headers["content-type"]);
+  if (!(AUDIO_TIPE as readonly string[]).includes(tipe)) return void tolak(res, "tipe_salah", 415);
+  const isi = Buffer.isBuffer(req.body) ? req.body : null;
+  if (!isi || isi.length === 0) return void tolak(res, "kosong", 400);
+  if (isi.length > AUDIO_BAGIAN_MAKS) return void tolak(res, "terlalu_besar", 413);
+  if (!audioCocok(tipe, isi)) return void tolak(res, "isi_tidak_cocok", 400);
+  const ms = Number(req.query?.ms);
+  const mulai = new Date(String(req.query?.at ?? ""));
+  if (!Number.isInteger(ms) || ms < 1 || ms > AUDIO_MS_MAKS || Number.isNaN(mulai.getTime()))
+    return void tolak(res, "data_salah", 400);
+  const a = await bukaAkses(res, s, "wawancara", req.query?.id, true);
+  if (!a) return;
+  if (!a.penguji) return void tolak(res, "tanpa_hak", 403);
+  const db = getDb();
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(recIvAudio)
+    .where(and(eq(recIvAudio.candidateId, a.kandidat.id), eq(recIvAudio.stage, "wawancara")));
+  if (n >= AUDIO_BAGIAN_BANYAK) return void tolak(res, "terlalu_banyak", 409);
+  const [baris] = await db
+    .insert(recIvAudio)
+    .values({
+      candidateId: a.kandidat.id,
+      stage: "wawancara",
+      recordedBy: s.nim,
+      mime: tipe,
+      durationMs: ms,
+      size: isi.length,
+      isi,
+      startedAt: mulai,
+    })
+    .returning({ id: recIvAudio.id });
+  return void res.status(200).json({ ok: true, id: baris.id });
+}
+
+/** Who may hear a CaAs's recording: the Penilaian seats, and the examiners of that booth. Null after answering a refusal. */
+async function bolehDengar(
+  res: ApiResponse,
+  s: SessionPayload,
+  idRaw: unknown,
+): Promise<number | null> {
+  const id = Number(idRaw);
+  if (!Number.isInteger(id) || id <= 0) {
+    tolak(res, "data_salah", 400);
+    return null;
+  }
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return null;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (bolehNilai(p)) {
+    const [k] = await db
+      .select({ id: recCandidate.id })
+      .from(recCandidate)
+      .where(and(eq(recCandidate.id, id), eq(recCandidate.editionId, edisi.id)))
+      .limit(1);
+    if (!k) {
+      tolak(res, "kandidat_tidak_ada", 404);
+      return null;
+    }
+    return k.id;
+  }
+  const a = await bukaAkses(res, s, "wawancara", id, false);
+  return a ? a.kandidat.id : null;
+}
+
+/** The parts of a CaAs's recording in order: who recorded, how long, and the address to play (iv-audio). */
+async function handleAudioList(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (req.query?.stage !== "wawancara") return void tolak(res, "data_salah", 400);
+  const id = await bolehDengar(res, s, req.query?.id);
+  if (id === null) return;
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: recIvAudio.id,
+      by: recIvAudio.recordedBy,
+      ms: recIvAudio.durationMs,
+      size: recIvAudio.size,
+      at: recIvAudio.startedAt,
+    })
+    .from(recIvAudio)
+    .where(and(eq(recIvAudio.candidateId, id), eq(recIvAudio.stage, "wawancara")))
+    .orderBy(asc(recIvAudio.startedAt), asc(recIvAudio.id));
+  const kode = await kodeMap(db);
+  return void res.status(200).json({
+    ok: true,
+    parts: rows.map((r) => ({
+      id: r.id,
+      by: kode.get(r.by) ?? r.by,
+      mine: r.by === s.nim,
+      ms: r.ms,
+      size: r.size,
+      at: r.at.toISOString(),
+    })),
+  });
+}
+
+/** One part's audio, with byte ranges so a player can seek (`?id=<candidate>&part=<id>`). */
+async function handleAudio(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (req.query?.stage !== "wawancara") return void tolak(res, "data_salah", 400);
+  const kandidatId = await bolehDengar(res, s, req.query?.id);
+  if (kandidatId === null) return;
+  const part = Number(req.query?.part);
+  if (!Number.isInteger(part) || part <= 0) return void tolak(res, "data_salah", 400);
+  const db = getDb();
+  const [r] = await db
+    .select({ mime: recIvAudio.mime, isi: recIvAudio.isi })
+    .from(recIvAudio)
+    .where(
+      and(
+        eq(recIvAudio.id, part),
+        eq(recIvAudio.candidateId, kandidatId),
+        eq(recIvAudio.stage, "wawancara"),
+      ),
+    )
+    .limit(1);
+  if (!r) return void tolak(res, "tidak_ada", 404);
+  const size = r.isi.length;
+  const rentang = bacaRentang(req.headers.range, size);
+  res.setHeader("Content-Type", r.mime);
+  res.setHeader("Accept-Ranges", "bytes");
+  // An examiner's recording is an interview: kept in this browser only, for the session.
+  res.setHeader("Cache-Control", "private, max-age=3600");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  if (rentang === "salah") {
+    res.setHeader("Content-Range", `bytes */${size}`);
+    res.statusCode = 416;
+    return void res.end();
+  }
+  if (rentang) {
+    res.statusCode = 206;
+    res.setHeader("Content-Range", `bytes ${rentang.mulai}-${rentang.akhir}/${size}`);
+    res.setHeader("Content-Length", String(rentang.akhir - rentang.mulai + 1));
+    return void res.end(r.isi.subarray(rentang.mulai, rentang.akhir + 1));
+  }
+  res.statusCode = 200;
+  res.setHeader("Content-Length", String(size));
+  return void res.end(r.isi);
 }
 
 /**
@@ -1461,10 +1620,13 @@ export const S4_GET: Record<string, H> = {
   "iv-nilai": handleNilai,
   "iv-catatan": handleCatatan,
   "iv-tes": handleTes,
+  "iv-audio-list": handleAudioList,
+  "iv-audio": handleAudio,
 };
 export const S4_POST: Record<string, H> = {
   "iv-crew-set": handleCrewSet,
   "iv-crew-size": handleCrewSize,
+  "iv-audio-up": handleAudioUp,
   "iv-standin": handleStandIn,
   "iv-sheet-save": handleSheetSave,
   "iv-sheet-send": handleSheetSend,

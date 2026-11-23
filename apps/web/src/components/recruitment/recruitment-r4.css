@@ -2587,3 +2587,41 @@
 .r4lane__size:disabled {
   cursor: default;
 }
+
+/* the voice recorder on the interview sheet, and the player in Penilaian */
+.r4voice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.r4voice[data-on] .r4voice__btn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.r4voice__st {
+  min-width: 0;
+}
+.r4voice__fail {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+}
+.r4voice__err {
+  flex-basis: 100%;
+}
+.r4audio {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--hairline-faint);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.r4audio__parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
