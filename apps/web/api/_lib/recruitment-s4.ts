@@ -47,6 +47,8 @@ import {
   NOTE_MAX,
   caseOutcome,
   checkCatatan,
+  boothSize,
+  cleanSizes,
   crewFor,
   isIvStage,
   isLabel,
@@ -121,6 +123,8 @@ interface SlotCrew {
   endsAt: Date;
   capacity: number;
   booths: Booth[];
+  /** Examiners per CaAs set for this slot's booths (null: the template's `per` everywhere) */
+  crewSizes: number[] | null;
   penguji: string[];
   pjOut: string[];
   pjIn: string[];
@@ -167,6 +171,7 @@ async function muatSlotCrew(db: Db, edisiId: number, stage: IvStage): Promise<Sl
     startsAt: s.startsAt,
     endsAt: s.endsAt,
     capacity: s.capacity,
+    crewSizes: s.crewSizes ?? null,
     booths: asg
       .filter((a) => a.slotId === s.id)
       .map((a) => ({
@@ -192,7 +197,7 @@ async function tempatKandidat(
   const semua = await muatSlotCrew(db, edisiId, stage);
   for (const s of semua) {
     const i = s.booths.findIndex((b) => b.id === kandidatId);
-    if (i >= 0) return { slot: s, index: i, crew: crewFor(s.penguji, i, t) };
+    if (i >= 0) return { slot: s, index: i, crew: crewFor(s.penguji, i, t, s.crewSizes) };
   }
   return null;
 }
@@ -286,6 +291,34 @@ async function handleCrewSet(req: ApiRequest, res: ApiResponse, s: SessionPayloa
         );
   });
   await writeAudit(s.nim, "rec_iv_crew", { stage: b.stage, slotIds, role: b.role, nims });
+  return void res.status(200).json({ ok: true });
+}
+
+/**
+ * Examiners per CaAs for one slot: the template says two, but a shift short of Asisten seats one with a CaAs (or
+ * three with a hard one). `sizes` lists the group size of each booth in booth order; null goes back to the
+ * template everywhere. The examiners stay as plotted, so the groups simply re-cut along the same list.
+ */
+async function handleCrewSize(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const slotId = Number(b.slotId);
+  if (!isIvStage(b.stage) || !Number.isInteger(slotId) || slotId <= 0)
+    return void tolak(res, "data_salah", 400);
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (!wajibHak(res, p, "plotPengawas")) return;
+  const t = await bacaSetting(db, b.stage);
+  if (t.mode === "panel") return void tolak(res, "data_salah", 400, { field: "sizes" });
+  const [slot] = await muatSlotCrew(db, edisi.id, b.stage).then((a) =>
+    a.filter((x) => x.id === slotId),
+  );
+  if (!slot) return void tolak(res, "slot_tidak_ada", 404);
+  const sizes = cleanSizes(b.sizes, slot.booths.length, t.per);
+  if (sizes === undefined) return void tolak(res, "data_salah", 400, { field: "sizes" });
+  await db.update(recSlot).set({ crewSizes: sizes }).where(eq(recSlot.id, slotId));
+  await writeAudit(s.nim, "rec_iv_crew_size", { stage: b.stage, slotId, sizes });
   return void res.status(200).json({ ok: true });
 }
 
@@ -417,7 +450,7 @@ async function handleMine(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
         pjOut: x.pjOut.map((n) => kode.get(n) ?? n),
         pjIn: x.pjIn.map((n) => kode.get(n) ?? n),
         booths: x.booths.map((bth, i) => {
-          const crew = crewFor(x.penguji, i, t);
+          const crew = crewFor(x.penguji, i, t, x.crewSizes);
           const mineBooth = crew.includes(s.nim);
           const sh = sheets.filter((r) => r.candidateId === bth.id);
           const sd = shared.find((r) => r.candidateId === bth.id);
@@ -1045,7 +1078,7 @@ export async function muatNilaiTahap(
   const out: NilaiBaris[] = [];
   for (const sl of slots)
     sl.booths.forEach((bth, i) => {
-      const crew = crewFor(sl.penguji, i, t);
+      const crew = crewFor(sl.penguji, i, t, sl.crewSizes);
       const dikirim = sheets.filter(
         (r) => r.candidateId === bth.id && r.sentAt && levelsDone(r.levels, t.params),
       );
@@ -1071,7 +1104,10 @@ export async function muatNilaiTahap(
           editedAt: x.editedAt,
           edits: x.edits,
         })),
-        expected: Math.max(crew.length, t.mode === "panel" ? t.per : t.per),
+        expected: Math.max(
+          crew.length,
+          t.mode === "panel" ? t.per : boothSize(sl.crewSizes, i, t.per),
+        ),
         mean,
         spread,
         wide: spread !== null && spread >= t.wide,
@@ -1188,7 +1224,7 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
         room: sl.room,
         startsAt: sl.startsAt.toISOString(),
         booth: i + 1,
-        crew: crewFor(sl.penguji, i, t).map((n) => kode.get(n) ?? n),
+        crew: crewFor(sl.penguji, i, t, sl.crewSizes).map((n) => kode.get(n) ?? n),
       }),
     );
   const rinci = rows.map((r) => {
@@ -1428,6 +1464,7 @@ export const S4_GET: Record<string, H> = {
 };
 export const S4_POST: Record<string, H> = {
   "iv-crew-set": handleCrewSet,
+  "iv-crew-size": handleCrewSize,
   "iv-standin": handleStandIn,
   "iv-sheet-save": handleSheetSave,
   "iv-sheet-send": handleSheetSend,

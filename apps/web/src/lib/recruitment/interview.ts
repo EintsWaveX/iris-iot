@@ -1159,21 +1159,63 @@ export function labelOf(
 /* ------------------------------------------------------------ who sits with whom */
 
 /**
- * The examiners of the CaAs at `index` in a slot. Booth mode splits the crew in
- * pairs (positions 0 and 1 take the first CaAs); panel mode is the whole crew.
+ * How many examiners sit with the CaAs at `index`: the slot's own size for that booth when someone set one
+ * (a shift short of Asisten seats one examiner instead of two), otherwise the template's `per`.
+ */
+export function boothSize(
+  sizes: readonly number[] | null | undefined,
+  index: number,
+  per: number,
+): number {
+  const n = sizes?.[index];
+  return typeof n === "number" && Number.isInteger(n) && n >= 1 ? n : per;
+}
+
+/**
+ * The examiners of the CaAs at `index` in a slot. Booth mode splits the crew into groups in booth order
+ * (positions 0 and 1 take the first CaAs when the group is two); each group is `per` strong unless the slot
+ * sets its own size for that booth. Panel mode is the whole crew.
  */
 export function crewFor(
   roster: readonly string[],
   index: number,
   t: Pick<IvTemplate, "mode" | "per">,
+  sizes?: readonly number[] | null,
 ): string[] {
   if (t.mode === "panel") return [...roster];
-  return roster.slice(index * t.per, index * t.per + t.per);
+  let from = 0;
+  for (let i = 0; i < index; i++) from += boothSize(sizes, i, t.per);
+  return roster.slice(from, from + boothSize(sizes, index, t.per));
 }
 
 /** Examiners needed for `n` CaAs in a slot. */
-export const crewNeed = (n: number, t: Pick<IvTemplate, "mode" | "per">): number =>
-  t.mode === "panel" ? (n > 0 ? t.per : 0) : t.per * n;
+export function crewNeed(
+  n: number,
+  t: Pick<IvTemplate, "mode" | "per">,
+  sizes?: readonly number[] | null,
+): number {
+  if (t.mode === "panel") return n > 0 ? t.per : 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += boothSize(sizes, i, t.per);
+  return sum;
+}
+
+/**
+ * The sizes to store for a slot: whole numbers 1 to 8, cut to the booths there are, with the template's
+ * size left out at the end (those booths follow the template). Null when nothing differs, so a slot
+ * nobody touched keeps following the template.
+ */
+export function cleanSizes(v: unknown, booths: number, per: number): number[] | null | undefined {
+  if (v === null) return null;
+  if (!Array.isArray(v) || v.length > 100) return undefined;
+  const out: number[] = [];
+  for (const x of v.slice(0, Math.max(0, booths))) {
+    if (typeof x !== "number" || !Number.isInteger(x) || x < 1 || x > 8) return undefined;
+    out.push(x);
+  }
+  while (out.length && out[out.length - 1] === per) out.pop();
+  return out.length ? out : null;
+}
 
 /** Turns that fit in a window of `window` minutes (panel mode): n turns and n-1 changeovers. */
 export const turnsFit = (window: number, t: Pick<IvTemplate, "minutes" | "gap">): number =>

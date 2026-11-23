@@ -2423,6 +2423,8 @@ export const recSlot = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     capacity: integer("capacity").notNull(),
+    /** Examiners per CaAs for this slot's booths, in booth order; null follows the template's `per` (a short shift seats one) */
+    crewSizes: jsonb("crew_sizes").$type<number[]>(),
   },
   (t) => [
     index("rec_slot_stage_idx").on(t.editionId, t.stage, t.startsAt),

@@ -16,6 +16,7 @@ import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
 import { useMinWidth } from "../../../../lib/hooks";
 import type { IvCrewResponse, IvCrewSlot } from "../../../../lib/recruitment/iv-client";
+import { boothSize } from "../../../../lib/recruitment/interview";
 import { warnaDivisi } from "../divisi";
 import { CB, type CrewBoardWords } from "./crewBoardStrings";
 import { IV } from "./ivStrings";
@@ -60,6 +61,8 @@ export interface LaneEnv {
   when: (s: IvCrewSlot) => string;
   onRemove: (s: IvCrewSlot, nim: string) => void;
   onPlus: (s: IvCrewSlot) => void;
+  /** Seat `size` examiners with the CaAs at booth `index` of the slot */
+  onSize: (s: IvCrewSlot, index: number, size: number) => void;
 }
 
 function useBoth<T extends HTMLElement>(a: (n: T | null) => void, b: (n: T | null) => void) {
@@ -73,10 +76,30 @@ function useBoth<T extends HTMLElement>(a: (n: T | null) => void, b: (n: T | nul
   }).current;
 }
 
-function LaneChip({ env, s, nim, i }: { env: LaneEnv; s: IvCrewSlot; nim: string; i: number }) {
+/** Where each booth's examiners start in the roster: roster index to booth number (the slot's own sizes, else the template's). */
+function boothStarts(s: IvCrewSlot, per: number): Map<number, number> {
+  const m = new Map<number, number>();
+  let at = 0;
+  for (let b = 0; at < s.penguji.length; b++) {
+    m.set(at, b + 1);
+    at += boothSize(s.crewSizes, b, per);
+  }
+  return m;
+}
+
+function LaneChip({
+  env,
+  s,
+  nim,
+  booth,
+}: {
+  env: LaneEnv;
+  s: IvCrewSlot;
+  nim: string;
+  booth: number | undefined;
+}) {
   const t = CB(env.lang);
   const panel = env.d.template.mode === "panel";
-  const per = Math.max(1, env.d.template.per);
   const drag = useDraggable({
     id: `exl:${s.id}:${nim}`,
     data: { ex: true, nim, from: s.id } satisfies ExData,
@@ -91,7 +114,7 @@ function LaneChip({ env, s, nim, i }: { env: LaneEnv; s: IvCrewSlot; nim: string
       ref={ref}
       className="r4ex"
       data-clash={clash ? "yes" : undefined}
-      data-b={!panel && i % per === 0 ? Math.floor(i / per) + 1 : undefined}
+      data-b={!panel ? booth : undefined}
       data-static={env.can ? undefined : "yes"}
       style={drag.isDragging ? { opacity: 0.4 } : undefined}
       {...(env.can ? { ...drag.attributes, ...drag.listeners } : {})}
@@ -119,38 +142,67 @@ export function CrewLane({ env, s }: { env: LaneEnv; s: IvCrewSlot }) {
   const panel = env.d.template.mode === "panel";
   const want = env.want(s);
   const zone = useDroppable({ id: `ex:${s.id}`, disabled: !env.can });
+  const per = Math.max(1, env.d.template.per);
+  const starts = boothStarts(s, per);
   return (
-    <div
-      className={`r4lane${panel ? " r6lane" : ""}`}
-      data-short={s.penguji.length < want ? "yes" : undefined}
-    >
-      <span className="r4lane__l">
-        {panel ? t.lanePanel : t.laneBooth}{" "}
-        <span className="r4lane__n num">
-          {s.penguji.length}/{want || env.d.template.per}
-        </span>
-      </span>
+    <>
       <div
-        ref={zone.setNodeRef}
-        className="r4lane__z"
-        data-over={zone.isOver && env.can ? "yes" : undefined}
+        className={`r4lane${panel ? " r6lane" : ""}`}
+        data-short={s.penguji.length < want ? "yes" : undefined}
       >
-        {s.penguji.map((n, i) => (
-          <LaneChip key={n} env={env} s={s} nim={n} i={i} />
-        ))}
-        {!s.penguji.length && <span className="r4lane__none">{t.empty}</span>}
-      </div>
-      {env.can && (
-        <span className="r4lane__add">
-          <IconButton
-            sm
-            icon={PlusIcon}
-            label={t.add(s.room, env.when(s))}
-            onClick={() => env.onPlus(s)}
-          />
+        <span className="r4lane__l">
+          {panel ? t.lanePanel : t.laneBooth}{" "}
+          <span className="r4lane__n num">
+            {s.penguji.length}/{want || env.d.template.per}
+          </span>
         </span>
+        <div
+          ref={zone.setNodeRef}
+          className="r4lane__z"
+          data-over={zone.isOver && env.can ? "yes" : undefined}
+        >
+          {s.penguji.map((n, i) => (
+            <LaneChip key={n} env={env} s={s} nim={n} booth={starts.get(i)} />
+          ))}
+          {!s.penguji.length && <span className="r4lane__none">{t.empty}</span>}
+        </div>
+        {env.can && (
+          <span className="r4lane__add">
+            <IconButton
+              sm
+              icon={PlusIcon}
+              label={t.add(s.room, env.when(s))}
+              onClick={() => env.onPlus(s)}
+            />
+          </span>
+        )}
+      </div>
+      {!panel && s.booths.length > 0 && (
+        <div className="r4lane__sizes" role="group" aria-label={t.sizeHead}>
+          <span className="hint">{t.sizeHead}</span>
+          {s.booths.map((b, i) => {
+            const size = boothSize(s.crewSizes, i, per);
+            // 1, 2, 3 and round again; a size above that (set elsewhere) steps down to 1.
+            const next = size >= Math.max(3, per) ? 1 : size + 1;
+            return (
+              <button
+                key={b.id}
+                type="button"
+                className="r4lane__size num"
+                data-diff={size !== per ? "yes" : undefined}
+                title={t.sizeTip(i + 1, b.nama, size)}
+                aria-label={t.sizeTip(i + 1, b.nama, size)}
+                disabled={!env.can || env.busy}
+                onClick={() => env.onSize(s, i, next)}
+              >
+                {i + 1}
+                <b>·{size}</b>
+              </button>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </>
   );
 }
 

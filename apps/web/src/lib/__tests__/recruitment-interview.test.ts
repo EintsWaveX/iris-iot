@@ -6,6 +6,8 @@ import {
   caseOutcome,
   checkCatatan,
   checkTemplate,
+  boothSize,
+  cleanSizes,
   crewFor,
   crewNeed,
   labelOf,
@@ -282,6 +284,35 @@ describe("the crew", () => {
     expect(crewFor(roster, 0, W)).toEqual(["A", "B"]);
     expect(crewFor(roster, 2, W)).toEqual(["E", "F"]);
     expect(crewFor(roster, 3, W)).toEqual([]);
+  });
+
+  it("lets a slot seat one examiner with a CaAs and two with the next", () => {
+    const sizes = [1, 2, 1];
+    expect(crewFor(roster, 0, W, sizes)).toEqual(["A"]);
+    expect(crewFor(roster, 1, W, sizes)).toEqual(["B", "C"]);
+    expect(crewFor(roster, 2, W, sizes)).toEqual(["D"]);
+    // booths past the list follow the template
+    expect(crewFor(roster, 3, W, sizes)).toEqual(["E", "F"]);
+    expect(crewNeed(4, W, sizes)).toBe(6);
+    expect(crewNeed(3, W, [1, 1, 1])).toBe(3);
+    expect(boothSize(sizes, 1, 2)).toBe(2);
+    expect(boothSize(null, 0, 2)).toBe(2);
+  });
+
+  it("ignores sizes in panel mode", () => {
+    expect(crewFor(["A", "B", "C"], 1, M, [1, 1])).toEqual(["A", "B", "C"]);
+    expect(crewNeed(8, M, [1, 1])).toBe(3);
+  });
+
+  it("cleans the sizes to store: 1 to 8, cut to the booths, the template's size trimmed off the end", () => {
+    expect(cleanSizes([1, 2, 2], 3, 2)).toEqual([1]);
+    expect(cleanSizes([2, 2, 2], 3, 2)).toBeNull();
+    expect(cleanSizes([1, 3, 1, 1], 2, 2)).toEqual([1, 3]);
+    expect(cleanSizes(null, 3, 2)).toBeNull();
+    expect(cleanSizes([0, 2], 2, 2)).toBeUndefined();
+    expect(cleanSizes([9], 1, 2)).toBeUndefined();
+    expect(cleanSizes([1.5], 1, 2)).toBeUndefined();
+    expect(cleanSizes("1", 1, 2)).toBeUndefined();
   });
 
   it("is the whole panel for every turn in teaching", () => {

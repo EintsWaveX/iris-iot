@@ -295,6 +295,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:score-finalize": ["recscore", "reccutting"],
   "recruitment:score-unfreeze": ["recscore", "reccutting"],
   "recruitment:iv-crew-set": ["reciv", "recplotting"],
+  "recruitment:iv-crew-size": ["reciv", "recplotting"],
   "recruitment:iv-standin": ["reciv", "recplotting"],
   "recruitment:iv-sheet-save": ["recsheet"],
   "recruitment:iv-sheet-send": ["reciv", "reccutting"],
