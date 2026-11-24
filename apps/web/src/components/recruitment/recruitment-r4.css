@@ -1095,19 +1095,19 @@
   background: var(--surface-2);
   color: var(--text-muted);
   font: 600 0.82rem inherit;
-  cursor: pointer;
-  touch-action: manipulation;
+  cursor: default;
+  user-select: none;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
     color 160ms ease;
 }
-.r4rec[aria-pressed="true"] {
+.r4rec[data-on] {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 55%, var(--hairline));
   background: var(--danger-soft);
 }
-.r4rec[aria-pressed="true"] svg {
+.r4rec[data-on] svg {
   animation: rec4-pulse 1.6s ease-in-out infinite;
 }
 .r4rec[data-warn] {
@@ -1124,7 +1124,7 @@
     opacity: 0.35;
   }
 }
-.reduce .r4rec[aria-pressed="true"] svg {
+.reduce .r4rec[data-on] svg {
   animation: none;
 }
 .r4files {
