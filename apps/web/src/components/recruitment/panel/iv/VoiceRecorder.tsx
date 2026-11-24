@@ -199,6 +199,17 @@ export default function VoiceRecorder({
     setGagal([]);
     for (const b of sisa) void kirimBagian(b);
   };
+
+  // A part that did not go through (the server was down for a while, the network dropped) is tried again by
+  // itself every 30 seconds while the page is open, so nobody has to remember to press Send again.
+  useEffect(() => {
+    if (gagal.length === 0 || kirim > 0) return;
+    const tm = setTimeout(() => {
+      setGagal([]);
+      for (const b of gagal) void kirimBagian(b);
+    }, 30_000);
+    return () => clearTimeout(tm);
+  }, [gagal, kirim, kirimBagian]);
   const simpan = () =>
     gagal.forEach((b, i) => {
       const a = document.createElement("a");
