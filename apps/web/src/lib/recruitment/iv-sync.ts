@@ -157,3 +157,29 @@ export function mixSheet(
     changed: [answers, concl, skipped, other, verdict, ba, recording].some((x) => x.changed),
   };
 }
+
+/* ------------------------------------------------------------ how fast typing is shared */
+
+/** After a word ends (a space or punctuation), a save goes out this soon. */
+export const SAVE_WORD_MS = 250;
+/** Otherwise a save waits for this short pause in typing. */
+export const SAVE_PAUSE_MS = 450;
+/** Typing without a pause still goes out this often, counted from the first unsaved change. */
+export const SAVE_MAX_MS = 1000;
+/** After a failed save the next try waits this long. */
+export const SAVE_RETRY_MS = 4000;
+/** The other examiner's change is asked for at most this often. */
+export const SYNC_EVERY_MS = 200;
+
+/** Does this text end on a finished word (whitespace or a closing punctuation mark)? */
+export const endsWord = (text: string): boolean => /[\s.,;:!?)\]]$/.test(text);
+
+/**
+ * How long to wait before the next autosave: soon after a word, a short pause otherwise, never longer than
+ * SAVE_MAX_MS since the first change that is still unsaved (`pendingMs`), and a long wait after a failure.
+ */
+export function saveDelay(wordEnd: boolean, pendingMs: number, failed: boolean): number {
+  if (failed) return SAVE_RETRY_MS;
+  const wait = wordEnd ? SAVE_WORD_MS : SAVE_PAUSE_MS;
+  return Math.max(0, Math.min(wait, SAVE_MAX_MS - pendingMs));
+}

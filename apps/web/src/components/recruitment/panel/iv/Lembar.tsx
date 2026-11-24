@@ -49,7 +49,15 @@ import {
   type IvSheetResponse,
 } from "../../../../lib/recruitment/iv-client";
 import { useSiaran } from "../../../../lib/siaran";
-import { baseOf, mixSheet, sheetDelta, type SheetBase } from "../../../../lib/recruitment/iv-sync";
+import {
+  SYNC_EVERY_MS,
+  baseOf,
+  endsWord,
+  mixSheet,
+  saveDelay,
+  sheetDelta,
+  type SheetBase,
+} from "../../../../lib/recruitment/iv-sync";
 import {
   caseKindsFor,
   EXCUSE_WHY,
@@ -341,6 +349,9 @@ export default function Lembar({
     () => typeof window !== "undefined" && window.innerWidth < 900,
   );
   const inflight = useRef<Promise<boolean> | null>(null);
+  /** When the first change that is still unsaved was made, and whether the last typing ended a word */
+  const pendingSince = useRef(0);
+  const wordEnd = useRef(false);
   const [leave, setLeave] = useState(false);
   useEffect(() => {
     const on = () => setNarrow(window.innerWidth < 900);
@@ -508,6 +519,7 @@ export default function Lembar({
     // One save at a time: a slow answer must not send the same change twice.
     // Whatever changed meanwhile goes out when this one is done (the save state changes, which re-arms the autosave).
     if (inflight.current) return inflight.current;
+    pendingSince.current = 0;
     const sent_ = sheetDelta(base.current, {
       answers: ans,
       skipped: skip,
@@ -553,7 +565,8 @@ export default function Lembar({
     else setLeave(true);
   }, [flush, onClose]);
 
-  // Autosave 1.2 s after the last change; a failed save tries again.
+  // Autosave soon after a word, after a short pause otherwise, and at least once a second while typing
+  // continues; a failed save tries again.
   useEffect(() => {
     if (!ready.current || locked) return;
     if (
@@ -567,9 +580,15 @@ export default function Lembar({
         recording: rec,
         levels: lv,
       })
-    )
+    ) {
+      pendingSince.current = 0;
       return;
-    const tm = setTimeout(() => void flush(), save === "fail" ? 4000 : 1200);
+    }
+    if (!pendingSince.current) pendingSince.current = Date.now();
+    const tm = setTimeout(
+      () => void flush(),
+      saveDelay(wordEnd.current, Date.now() - pendingSince.current, save === "fail"),
+    );
     return () => clearTimeout(tm);
   }, [snap, locked, flush, save]);
 
@@ -584,7 +603,7 @@ export default function Lembar({
       });
     },
     !fail,
-    800,
+    SYNC_EVERY_MS,
   );
 
   const missing = useMemo(
@@ -654,8 +673,10 @@ export default function Lembar({
     set((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   };
   const valOf = (id: string) => (isOwn(id) ? (ownAns[id] ?? "") : (ans[id] ?? ""));
-  const setVal = (id: string, v: string) =>
-    isOwn(id) ? setOwnAns({ ...ownAns, [id]: v }) : setAns({ ...ans, [id]: v });
+  const setVal = (id: string, v: string) => {
+    wordEnd.current = endsWord(v);
+    return isOwn(id) ? setOwnAns({ ...ownAns, [id]: v }) : setAns({ ...ans, [id]: v });
+  };
   const q = list[Math.min(qi, Math.max(0, list.length - 1))];
   const doneQ = list.filter((x) => valOf(x.id).trim() || skipped(x.id)).length;
   const unanswered = list.length - doneQ;
@@ -1370,7 +1391,10 @@ export default function Lembar({
                 value={cl[p.key] ?? ""}
                 disabled={locked}
                 placeholder={bi(p.eg, lang)}
-                onChange={(e) => setCl({ ...cl, [p.key]: e.target.value })}
+                onChange={(e) => {
+                  wordEnd.current = endsWord(e.target.value);
+                  setCl({ ...cl, [p.key]: e.target.value });
+                }}
               />
             </label>
           </section>
@@ -1441,7 +1465,10 @@ export default function Lembar({
           disabled={locked}
           aria-label={mg ? M.baPh : L.baPh}
           placeholder={mg ? M.baPh : L.baPh}
-          onChange={(e) => setBa(e.target.value)}
+          onChange={(e) => {
+            wordEnd.current = endsWord(e.target.value);
+            setBa(e.target.value);
+          }}
         />
         {!locked && (
           <span>
