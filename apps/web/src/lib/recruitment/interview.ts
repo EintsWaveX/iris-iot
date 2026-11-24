@@ -1277,6 +1277,26 @@ export function cleanSizes(v: unknown, booths: number, per: number): number[] | 
   return out.length ? out : null;
 }
 
+/**
+ * One CaAs's seats lowered to `size`: the roster after it, and who stepped out. The roster is in booth order
+ * (each booth takes its `before[i]` examiners in turn), so only the tail of this CaAs's own seats leaves and
+ * everyone seated for the CaAs after keeps the same booth.
+ */
+export function seatShrink(
+  roster: readonly string[],
+  before: readonly number[],
+  index: number,
+  size: number,
+): { nims: string[]; out: string[] } {
+  const at = before.slice(0, index).reduce((a, x) => a + x, 0);
+  const seated = Math.max(0, Math.min(before[index] ?? 0, roster.length - at));
+  const out = roster.slice(at + size, at + seated);
+  return {
+    nims: out.length ? [...roster.slice(0, at + size), ...roster.slice(at + seated)] : [...roster],
+    out: [...out],
+  };
+}
+
 /** Turns that fit in a window of `window` minutes (panel mode): n turns and n-1 changeovers. */
 export const turnsFit = (window: number, t: Pick<IvTemplate, "minutes" | "gap">): number =>
   Math.max(1, Math.floor((window + t.gap) / (t.minutes + t.gap)));

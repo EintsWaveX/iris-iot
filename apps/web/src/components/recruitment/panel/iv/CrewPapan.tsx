@@ -206,7 +206,7 @@ export function CrewLane({ env, s }: { env: LaneEnv; s: IvCrewSlot }) {
                           <button
                             type="button"
                             aria-label={t.sizeLess(r.booth)}
-                            disabled={env.busy || r.size <= 1 || r.size <= r.members.length}
+                            disabled={env.busy || r.size <= 1}
                             onClick={() => env.onSize(s, ri, r.size - 1)}
                           >
                             −

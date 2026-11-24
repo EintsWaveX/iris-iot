@@ -14,6 +14,7 @@ import {
   MAX_GROUPS,
   moveGroup,
   removeGroup,
+  seatShrink,
   setReveal,
   sortByGroups,
   labelOf,
@@ -141,6 +142,25 @@ describe("sections (groups)", () => {
     expect(t.questions.filter((q) => q.reveal).map((q) => q.id)).toEqual([id]);
     expect(setReveal(t, id, false).questions.some((q) => q.reveal)).toBe(false);
     expect(checkTemplate(t)).not.toBeNull();
+  });
+});
+
+describe("lowering one CaAs's seats", () => {
+  it("lets the last examiner seated at that CaAs step out, and nobody else moves", () => {
+    const r = ["A", "B", "C", "D", "E", "F"];
+    expect(seatShrink(r, [6], 0, 5)).toEqual({ nims: ["A", "B", "C", "D", "E"], out: ["F"] });
+    expect(seatShrink(r, [6], 0, 2)).toEqual({ nims: ["A", "B"], out: ["C", "D", "E", "F"] });
+    // booth 2 of 3: only its own tail leaves; booth 3 keeps C-booth members in place
+    expect(seatShrink(["A", "B", "C", "D", "E", "F"], [2, 2, 2], 1, 1)).toEqual({
+      nims: ["A", "B", "C", "E", "F"],
+      out: ["D"],
+    });
+  });
+
+  it("takes nobody out when there is a free seat to give up", () => {
+    expect(seatShrink(["A", "B"], [6], 0, 3)).toEqual({ nims: ["A", "B"], out: [] });
+    expect(seatShrink(["A", "B", "C"], [2, 2], 1, 1)).toEqual({ nims: ["A", "B", "C"], out: [] });
+    expect(seatShrink([], [2], 0, 1)).toEqual({ nims: [], out: [] });
   });
 });
 
