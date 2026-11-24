@@ -373,7 +373,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
   const bank = !!sc.data?.can.bank;
   const st = useScoreStats(bank);
   const [bagian, setBagian] = useState<Bagian>("scores");
-  const [dlg, setDlg] = useState<null | "final" | "buka" | { void: StatRow }>(null);
+  const [dlg, setDlg] = useState<null | "final" | "paksa" | "buka" | { void: StatRow }>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -435,13 +435,20 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
               <button type="button" className="btn" onClick={() => setDlg("buka")}>
                 <span className="btn__label">{t.unfreeze}</span>
               </button>
+            ) : d.blockers.length > 0 ? (
+              // Something still stops it: the plain button waits, the forced one is for a decision made on purpose.
+              <>
+                <button type="button" className="btn btn--primary" disabled>
+                  <span className="btn__label">{t.finalize}</span>
+                </button>
+                {d.blockers.some((b) => b.kode !== "tanpa_kursi") && (
+                  <button type="button" className="btn" onClick={() => setDlg("paksa")}>
+                    <span className="btn__label">{t.force}</span>
+                  </button>
+                )}
+              </>
             ) : (
-              <button
-                type="button"
-                className="btn btn--primary"
-                disabled={d.blockers.length > 0}
-                onClick={() => setDlg("final")}
-              >
+              <button type="button" className="btn btn--primary" onClick={() => setDlg("final")}>
                 <span className="btn__label">{t.finalize}</span>
               </button>
             ))}
@@ -453,6 +460,7 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
           {d.final.note ? `. ${d.final.note}` : ""}
         </span>
       )}
+      {bank && !beku && d.blockers.length > 0 && <span className="hint">{t.forceHint}</span>}
       {bank && !beku && d.blockers.length > 0 && (
         <ul className="sc-blockers">
           {d.blockers.map((b) => (
@@ -509,6 +517,48 @@ export default function PenilaianTab({ lang }: { lang: Lang }) {
       >
         <label className="stack stack--sm">
           <span className="label-caps">{t.finalizeNote}</span>
+          <textarea
+            className="field__input"
+            rows={3}
+            maxLength={500}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </label>
+      </Dialog>
+
+      <Dialog
+        open={dlg === "paksa"}
+        onOpenChange={(o) => !o && tutup()}
+        title={t.forceTitle}
+        description={t.forceBody}
+        lang={lang}
+        size="sm"
+        actions={
+          <>
+            <button type="button" className="btn btn--ghost" disabled={busy} onClick={tutup}>
+              {t.cancel}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={busy || note.trim() === ""}
+              onClick={() =>
+                void kirim("score-finalize", { note: note.trim(), force: true }, t.done)
+              }
+            >
+              {busy ? t.saving : t.forceGo}
+            </button>
+          </>
+        }
+      >
+        <ul className="sc-blockers">
+          {d.blockers.map((b) => (
+            <li key={b.kode}>{t.blockers(b)}</li>
+          ))}
+        </ul>
+        <label className="stack stack--sm">
+          <span className="label-caps">{t.forceNote}</span>
           <textarea
             className="field__input"
             rows={3}

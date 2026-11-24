@@ -16,6 +16,7 @@ import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
 import { useMinWidth } from "../../../../lib/hooks";
 import type { IvCrewResponse, IvCrewSlot } from "../../../../lib/recruitment/iv-client";
+import { boothSize } from "../../../../lib/recruitment/interview";
 import { warnaDivisi } from "../divisi";
 import { CB, type CrewBoardWords } from "./crewBoardStrings";
 import { IV } from "./ivStrings";
@@ -60,6 +61,8 @@ export interface LaneEnv {
   when: (s: IvCrewSlot) => string;
   onRemove: (s: IvCrewSlot, nim: string) => void;
   onPlus: (s: IvCrewSlot) => void;
+  /** Seat `size` examiners with the CaAs at booth `index` of the slot */
+  onSize: (s: IvCrewSlot, index: number, size: number) => void;
 }
 
 function useBoth<T extends HTMLElement>(a: (n: T | null) => void, b: (n: T | null) => void) {
@@ -73,10 +76,47 @@ function useBoth<T extends HTMLElement>(a: (n: T | null) => void, b: (n: T | nul
   }).current;
 }
 
-function LaneChip({ env, s, nim, i }: { env: LaneEnv; s: IvCrewSlot; nim: string; i: number }) {
+/** Where each booth's examiners start in the roster: roster index to booth number (the slot's own sizes, else the template's). */
+function boothStarts(s: IvCrewSlot, per: number): Map<number, number> {
+  const m = new Map<number, number>();
+  let at = 0;
+  for (let b = 0; at < s.penguji.length; b++) {
+    m.set(at, b + 1);
+    at += boothSize(s.crewSizes, b, per);
+  }
+  return m;
+}
+
+/** The examiners of each CaAs of a slot, in booth order: the group each CaAs sits with and how many seats it has. */
+function boothRows(s: IvCrewSlot, per: number) {
+  const out: { booth: number; name: string; size: number; members: string[] }[] = [];
+  let at = 0;
+  for (let i = 0; i < s.booths.length; i++) {
+    const size = boothSize(s.crewSizes, i, per);
+    out.push({
+      booth: i + 1,
+      name: s.booths[i].nama,
+      size,
+      members: s.penguji.slice(at, at + size),
+    });
+    at += size;
+  }
+  return out;
+}
+
+function LaneChip({
+  env,
+  s,
+  nim,
+  booth,
+}: {
+  env: LaneEnv;
+  s: IvCrewSlot;
+  nim: string;
+  booth: number | undefined;
+}) {
   const t = CB(env.lang);
   const panel = env.d.template.mode === "panel";
-  const per = Math.max(1, env.d.template.per);
   const drag = useDraggable({
     id: `exl:${s.id}:${nim}`,
     data: { ex: true, nim, from: s.id } satisfies ExData,
@@ -91,7 +131,7 @@ function LaneChip({ env, s, nim, i }: { env: LaneEnv; s: IvCrewSlot; nim: string
       ref={ref}
       className="r4ex"
       data-clash={clash ? "yes" : undefined}
-      data-b={!panel && i % per === 0 ? Math.floor(i / per) + 1 : undefined}
+      data-b={!panel ? booth : undefined}
       data-static={env.can ? undefined : "yes"}
       style={drag.isDragging ? { opacity: 0.4 } : undefined}
       {...(env.can ? { ...drag.attributes, ...drag.listeners } : {})}
@@ -119,38 +159,127 @@ export function CrewLane({ env, s }: { env: LaneEnv; s: IvCrewSlot }) {
   const panel = env.d.template.mode === "panel";
   const want = env.want(s);
   const zone = useDroppable({ id: `ex:${s.id}`, disabled: !env.can });
+  const per = Math.max(1, env.d.template.per);
+  const starts = boothStarts(s, per);
+  // Booth mode with candidates: one row per CaAs with a column for each examiner set for them, so a CaAs
+  // with one examiner has one column and a CaAs with three has three. Open seats show as dashed cells.
+  const rows = !panel && s.booths.length > 0 ? boothRows(s, per) : null;
   return (
-    <div
-      className={`r4lane${panel ? " r6lane" : ""}`}
-      data-short={s.penguji.length < want ? "yes" : undefined}
-    >
-      <span className="r4lane__l">
-        {panel ? t.lanePanel : t.laneBooth}{" "}
-        <span className="r4lane__n num">
-          {s.penguji.length}/{want || env.d.template.per}
-        </span>
-      </span>
+    <>
       <div
-        ref={zone.setNodeRef}
-        className="r4lane__z"
-        data-over={zone.isOver && env.can ? "yes" : undefined}
+        className={`r4lane${panel ? " r6lane" : ""}`}
+        data-short={s.penguji.length < want ? "yes" : undefined}
       >
-        {s.penguji.map((n, i) => (
-          <LaneChip key={n} env={env} s={s} nim={n} i={i} />
-        ))}
-        {!s.penguji.length && <span className="r4lane__none">{t.empty}</span>}
-      </div>
-      {env.can && (
-        <span className="r4lane__add">
-          <IconButton
-            sm
-            icon={PlusIcon}
-            label={t.add(s.room, env.when(s))}
-            onClick={() => env.onPlus(s)}
-          />
+        <span className="r4lane__l">
+          {panel ? t.lanePanel : t.laneBooth}{" "}
+          <span className="r4lane__n num">
+            {s.penguji.length}/{want || env.d.template.per}
+          </span>
         </span>
-      )}
-    </div>
+        <div
+          ref={zone.setNodeRef}
+          className="r4lane__z"
+          data-rows={rows ? "yes" : undefined}
+          data-over={zone.isOver && env.can ? "yes" : undefined}
+        >
+          {rows ? (
+            <>
+              {rows.map((r, ri) => {
+                const next = rows.findIndex((x) => x.members.length < x.size) === ri;
+                return (
+                  <div
+                    key={r.booth}
+                    className="r4lane__booth"
+                    data-short={r.members.length < r.size ? "yes" : undefined}
+                  >
+                    <div className="r4lane__bh">
+                      <span className="r4lane__bn num">{r.booth}</span>
+                      <span className="r4lane__nm" title={r.name}>
+                        {r.name}
+                      </span>
+                      {env.can && (
+                        <span
+                          className="r4lane__step"
+                          role="group"
+                          aria-label={t.sizeTip(r.booth, r.name, r.size)}
+                        >
+                          <button
+                            type="button"
+                            aria-label={t.sizeLess(r.booth)}
+                            disabled={env.busy || r.size <= 1 || r.size <= r.members.length}
+                            onClick={() => env.onSize(s, ri, r.size - 1)}
+                          >
+                            −
+                          </button>
+                          <b className="num">{r.size}</b>
+                          <button
+                            type="button"
+                            aria-label={t.sizeMore(r.booth)}
+                            disabled={env.busy || r.size >= 8}
+                            onClick={() => env.onSize(s, ri, r.size + 1)}
+                          >
+                            +
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className="r4lane__row"
+                      style={{ gridTemplateColumns: `repeat(${r.size}, minmax(0, 1fr))` }}
+                    >
+                      {r.members.map((n) => (
+                        <LaneChip key={n} env={env} s={s} nim={n} booth={undefined} />
+                      ))}
+                      {Array.from({ length: r.size - r.members.length }, (_, j) =>
+                        env.can && next ? (
+                          <button
+                            key={`open${j}`}
+                            type="button"
+                            className="r4lane__open"
+                            data-next="yes"
+                            aria-label={t.add(s.room, env.when(s))}
+                            onClick={() => env.onPlus(s)}
+                          >
+                            <PlusIcon size={14} aria-hidden="true" />
+                          </button>
+                        ) : (
+                          <span key={`open${j}`} className="r4lane__open" aria-hidden="true" />
+                        ),
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {s.penguji.length > want && (
+                <div
+                  className="r4lane__row"
+                  style={{ gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))` }}
+                >
+                  {s.penguji.slice(want).map((n) => (
+                    <LaneChip key={n} env={env} s={s} nim={n} booth={undefined} />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            s.penguji.map((n, i) => (
+              <LaneChip key={n} env={env} s={s} nim={n} booth={starts.get(i)} />
+            ))
+          )}
+          {!s.penguji.length && !rows && <span className="r4lane__none">{t.empty}</span>}
+        </div>
+        {env.can && (
+          <span className="r4lane__add">
+            <IconButton
+              sm
+              icon={PlusIcon}
+              label={t.add(s.room, env.when(s))}
+              onClick={() => env.onPlus(s)}
+            />
+          </span>
+        )}
+      </div>
+    </>
   );
 }
 

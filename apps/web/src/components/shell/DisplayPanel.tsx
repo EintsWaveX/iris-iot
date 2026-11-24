@@ -5,7 +5,7 @@
  * bottom sheet on phones. Every choice applies in place, so the panel
  * stays open while the reader tries things.
  */
-import { CheckIcon, DesktopIcon, MoonIcon, SunIcon } from "@phosphor-icons/react";
+import { CheckIcon, DesktopIcon, MoonIcon, SunHorizonIcon, SunIcon } from "@phosphor-icons/react";
 import { dict } from "../../lib/app";
 import { ZH_ENABLED, type Lang } from "../../lib/kelas";
 import {
@@ -19,6 +19,8 @@ import {
   type ClockPref,
   type DetailPref,
   type ThemePref,
+  setLangit,
+  type LangitPref,
 } from "../../lib/prefs";
 
 import BetaBadge from "../ui/BetaBadge";
@@ -32,6 +34,14 @@ const T = dict({
     dark: "Gelap",
     light: "Terang",
     system: "Sistem",
+    matahari: "Matahari",
+    langit: "Langit",
+    malam: "Malam",
+    senja: "Senja",
+    siang: "Siang",
+    fajar: "Fajar",
+    matahariNow: (r: string, s: string) =>
+      `Langit mengikuti matahari di atas lab (Bandung): fajar sekitar ${r}, senja sekitar ${s}.`,
     detail: "Detail latar",
     detailAuto: "Normal, atau Low Detail kalau perangkatmu terasa berat. Bawaan.",
     autoNow: "Sekarang:",
@@ -69,6 +79,14 @@ const T = dict({
     dark: "Dark",
     light: "Light",
     system: "System",
+    matahari: "Sun",
+    langit: "Sky",
+    malam: "Night",
+    senja: "Dusk",
+    siang: "Day",
+    fajar: "Dawn",
+    matahariNow: (r: string, s: string) =>
+      `The sky follows the sun over the lab (Bandung): dawn around ${r}, dusk around ${s}.`,
     detail: "Background detail",
     detailAuto: "Normal, or Low Detail if your device feels heavy. The default.",
     autoNow: "Right now:",
@@ -103,6 +121,14 @@ const T = dict({
     dark: "深色",
     light: "浅色",
     system: "跟随系统",
+    matahari: "日光",
+    langit: "天空",
+    malam: "夜晚",
+    senja: "黄昏",
+    siang: "白天",
+    fajar: "黎明",
+    matahariNow: (r: string, s: string) =>
+      `天空跟随实验室（万隆）上空的太阳：约 ${r} 日出，约 ${s} 日落。`,
     detail: "背景细节",
     detailAuto: "普通；如果设备较卡则自动降为低细节。默认。",
     autoNow: "当前：",
@@ -155,7 +181,19 @@ export default function DisplayPanel({
     { v: "dark", l: t.dark, Icon: MoonIcon },
     { v: "light", l: t.light, Icon: SunIcon },
     { v: "system", l: t.system, Icon: DesktopIcon },
+    { v: "matahari", l: t.matahari, Icon: SunHorizonIcon },
   ];
+  const sunLine = (() => {
+    const times = p.theme === "matahari" ? window.IrisPrefs?.sunTimes(Date.now()) : undefined;
+    if (!times) return null;
+    const hm = (ms: number) =>
+      new Date(ms).toLocaleTimeString(lang === "id" ? "id-ID" : lang === "zh" ? "zh-CN" : "en-GB", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    return t.matahariNow(hm(times.rise), hm(times.set));
+  })();
   const levelName = { ldm: "Low Detail", normal: "Normal", hd: "High Detail" }[p.level];
   const details: { v: DetailPref; l: string; tag?: string; d: string }[] = [
     { v: "auto", l: t.auto, d: `${t.detailAuto} ${t.autoNow} ${levelName}.` },
@@ -188,7 +226,42 @@ export default function DisplayPanel({
             </button>
           ))}
         </div>
+        {sunLine && <p className="hint">{sunLine}</p>}
       </div>
+
+      {(p.theme === "dark" || p.theme === "light") && (
+        <div className="disp__group">
+          <span className="disp__label" id="disp-langit">
+            {t.langit}
+          </span>
+          <div className="seg seg--wide" role="radiogroup" aria-labelledby="disp-langit">
+            {(p.theme === "dark"
+              ? ([
+                  ["", t.malam],
+                  ["senja", t.senja],
+                ] as const)
+              : ([
+                  ["", t.siang],
+                  ["fajar", t.fajar],
+                ] as const)
+            ).map(([v, l]) => {
+              const on =
+                v === "" ? p.langit !== (p.theme === "dark" ? "senja" : "fajar") : p.langit === v;
+              return (
+                <button
+                  key={v || "plain"}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setLangit(v as LangitPref)}
+                >
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="disp__group">
         <span className="disp__label" id="disp-detail">
@@ -350,7 +423,7 @@ export default function DisplayPanel({
 export function DisplaySummary({ lang, wide = false }: { lang: Lang; wide?: boolean }) {
   const t = T[lang];
   const p = usePrefs();
-  const theme = { dark: t.dark, light: t.light, system: t.system }[p.theme];
+  const theme = { dark: t.dark, light: t.light, system: t.system, matahari: t.matahari }[p.theme];
   const names = { ldm: "Low Detail", normal: "Normal", hd: "High Detail" };
   const detail = p.detail === "auto" ? `${t.auto} (${names[p.level]})` : names[p.detail];
   const clock = { auto: t.auto, on: t.on, off: t.off }[p.clock];

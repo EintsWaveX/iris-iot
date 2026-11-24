@@ -3,7 +3,8 @@
  * localStorage so they work signed out and apply before the first paint
  * (public/theme-init.js reads the same keys):
  *
- *   iris-theme      dark | light | system   (dark by default)
+ *   iris-theme      dark | light | system | matahari   (dark by default; matahari follows the sun over the lab)
+ *   iris-langit     "" | senja | fajar   Gelap held at dusk, or Terang held at dawn ("" = Malam / Siang)
  *   iris-detail     auto | ldm | normal | hd   (auto by default; cosmos-router.js owns it)
  *   iris-auto-ldm   a time: the speed watcher demoted Otomatis to Low Detail then (14 days)
  *   iris-zh-weight  700 | 500               Mandarin headings only
@@ -17,7 +18,9 @@
  */
 import { useEffect, useState } from "react";
 
-export type ThemePref = "dark" | "light" | "system";
+export type ThemePref = "dark" | "light" | "system" | "matahari";
+/** The sky inside a theme: Gelap is Malam or Senja, Terang is Siang or Fajar (iris-langit). "" = the plain sky. */
+export type LangitPref = "" | "senja" | "fajar";
 /** What the reader chose. Otomatis resolves to the level in force: Normal, or Low Detail on a weak or slow device. */
 export type DetailPref = "auto" | "ldm" | "normal" | "hd";
 export type DetailLevel = "ldm" | "normal" | "hd";
@@ -54,6 +57,7 @@ export function parseBgBlur(v: string | null): number {
 
 export interface Prefs {
   theme: ThemePref;
+  langit: LangitPref;
   bgBlur: number;
   /** The choice, which can be Otomatis */
   detail: DetailPref;
@@ -70,7 +74,8 @@ export function readPrefs(): Prefs {
   const level = window.CosmosRouter?.getDetail() ?? document.documentElement.dataset.detail;
   const clock = read("iris-clock");
   return {
-    theme: theme === "light" || theme === "system" ? theme : "dark",
+    theme: theme === "light" || theme === "system" || theme === "matahari" ? theme : "dark",
+    langit: ((v) => (v === "senja" || v === "fajar" ? v : ""))(read("iris-langit")),
     detail: detail === "ldm" || detail === "normal" || detail === "hd" ? detail : "auto",
     level: level === "ldm" || level === "hd" ? level : "normal",
     clock: clock === "on" || clock === "off" ? clock : "auto",
@@ -81,6 +86,7 @@ export function readPrefs(): Prefs {
 }
 
 export const setTheme = (v: ThemePref) => write("iris-theme", v);
+export const setLangit = (v: LangitPref) => write("iris-langit", v);
 export const setShortcuts = (on: boolean) => write("iris-keys", on ? "on" : "off");
 
 /** Keyboard shortcuts are on unless the reader turned them off. */
@@ -112,6 +118,7 @@ export function setDetail(v: DetailPref) {
 export function usePrefs(): Prefs {
   const [p, setP] = useState<Prefs>({
     theme: "dark",
+    langit: "",
     detail: "auto",
     level: "normal",
     clock: "auto",

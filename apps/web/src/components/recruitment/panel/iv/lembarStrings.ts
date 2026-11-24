@@ -40,7 +40,11 @@ interface LmWords {
   en: string;
   about: (m: number) => string;
   shownBecause: (c: string) => string;
-  cond: { fm: string; lab: string };
+  cond: { fm: string; lab: string; a24: string; te: string };
+  /** Wajib, Penting, Bisa dilewati: how much a card matters when time is short */
+  prio: { wajib: string; penting: string; lewat: string };
+  /** A special card shown because the form did not say whether it applies */
+  checkData: string;
   revealBtn: string;
   revealTotal: string;
   revealRank: string;
@@ -104,6 +108,8 @@ interface LmWords {
   back: string;
   send: string;
   sendLeft: (n: number) => string;
+  /** The held send button: pressing it is not enough */
+  sendHold: string;
   saveChanges: string;
   changesSaved: string;
   withdraw: string;
@@ -135,9 +141,10 @@ export const LM = dict<LmWords>({
     filesHint: "Kalau ada yang kurang, tanyakan di akhir wawancara.",
     filesNone: "CaAs ini belum punya berkas.",
     fileOpened: (n) => `${n} dibuka di tab baru.`,
-    recOn: "Merekam",
-    recOff: "Rekaman mati",
-    recTip: "Merekam suara wajib. Kalau rekamannya hilang, catatan jawaban harus lengkap.",
+    recOn: "Rekaman suara: nyala",
+    recOff: "Rekaman suara: mati",
+    recTip:
+      "Penanda bahwa wawancara direkam (wajib). Menyala sendiri saat kamu menekan Mulai rekam suara; nyalakan manual hanya jika kamu merekam di perangkat lain. Tersimpan di lembar supaya panitia tahu ada rekamannya atau tidak.",
     clockOf: (m) => `dari ${m}`,
     clockTip: (a, b) => `Rencana ${a}. Maksimal ${b}.`,
     clockMax: (m) => `maks ${m}`,
@@ -165,7 +172,14 @@ export const LM = dict<LmWords>({
     about: (m) => `sekitar ${m} menit`,
     shownBecause: (c) =>
       `Muncul karena: ${c}. Datanya dari kehadiran First Meet dan data pendaftaran.`,
-    cond: { fm: "tidak ikut atau telat First Meet", lab: "mendaftar lab lain" },
+    cond: {
+      fm: "tidak ikut atau telat First Meet",
+      lab: "mendaftar lab lain",
+      a24: "angkatan 24 yang mengambil mata kuliah IoT",
+      te: "Teknik Elektro yang mengambil praktikum IoT",
+    },
+    prio: { wajib: "Wajib", penting: "Penting", lewat: "Bisa dilewati" },
+    checkData: "Formulirnya tidak bilang apakah ini berlaku. Tanyakan langsung.",
     revealBtn: "Tampilkan Nilai Sebenarnya",
     revealTotal: "Total Tes Tulis dan Program",
     revealRank: "Peringkat",
@@ -241,7 +255,8 @@ export const LM = dict<LmWords>({
     toVerdict: "Ke Keputusan",
     back: "Kembali",
     send: "Kirim Lembar",
-    sendLeft: (n) => `Kirim Lembar · ${n} lagi`,
+    sendHold: "Tahan untuk Kirim Lembar",
+    sendLeft: (n) => `Lengkapi dulu · ${n} lagi`,
     saveChanges: "Simpan Perubahan",
     changesSaved: "Perubahan lembar tersimpan.",
     withdraw: "Tarik Lembar",
@@ -271,10 +286,10 @@ export const LM = dict<LmWords>({
     filesHint: "If something is missing, ask at the end of the interview.",
     filesNone: "This CaAs has no files yet.",
     fileOpened: (n) => `${n} opened in a new tab.`,
-    recOn: "Recording",
-    recOff: "Not recording",
+    recOn: "Voice recording: on",
+    recOff: "Voice recording: off",
     recTip:
-      "Voice recording is required. If the recording is lost, the written answers must be complete.",
+      "Marker that the interview is recorded (required). It turns on by itself when you press Start voice recording; turn it on by hand only if you record on another device. It is saved on the sheet so the committee knows whether a recording exists.",
     clockOf: (m) => `of ${m}`,
     clockTip: (a, b) => `Planned ${a}. Maximum ${b}.`,
     clockMax: (m) => `max ${m}`,
@@ -302,7 +317,14 @@ export const LM = dict<LmWords>({
     about: (m) => `about ${m} minutes`,
     shownBecause: (c) =>
       `Shown because: ${c}. From First Meet attendance and the application form.`,
-    cond: { fm: "missed or late for First Meet", lab: "applying to another lab" },
+    cond: {
+      fm: "missed or late for First Meet",
+      lab: "applying to another lab",
+      a24: "angkatan 24 taking the IoT course",
+      te: "Teknik Elektro taking the IoT practicum",
+    },
+    prio: { wajib: "Must ask", penting: "Important", lewat: "Can skip" },
+    checkData: "The form did not say whether this applies. Ask them directly.",
     revealBtn: "Show the Real Scores",
     revealTotal: "Written and Coding Test total",
     revealRank: "Rank",
@@ -374,7 +396,8 @@ export const LM = dict<LmWords>({
     toVerdict: "To the Verdict",
     back: "Back",
     send: "Send Sheet",
-    sendLeft: (n) => `Send Sheet · ${n} to go`,
+    sendHold: "Hold to Send Sheet",
+    sendLeft: (n) => `Finish first · ${n} to go`,
     saveChanges: "Save Changes",
     changesSaved: "Sheet changes saved.",
     withdraw: "Withdraw Sheet",
@@ -400,9 +423,10 @@ export const LM = dict<LmWords>({
     filesHint: "如有缺少，请在面试结束时询问。",
     filesNone: "这位 CaAs 还没有文件。",
     fileOpened: (n) => `${n} 已在新标签页打开。`,
-    recOn: "录音中",
-    recOff: "未录音",
-    recTip: "必须录音。若录音丢失，书面记录必须完整。",
+    recOn: "录音：开",
+    recOff: "录音：关",
+    recTip:
+      "表示面试已录音的标记（必须录音）。点击“开始录音”时会自动打开；只有在其他设备上录音时才需手动打开。标记会保存在表格上，方便委员会知道是否有录音。",
     clockOf: (m) => `共 ${m}`,
     clockTip: (a, b) => `计划 ${a}。硬性上限 ${b}。`,
     clockMax: (m) => `上限 ${m}`,
@@ -428,7 +452,14 @@ export const LM = dict<LmWords>({
     en: "EN",
     about: (m) => `约 ${m} 分钟`,
     shownBecause: (c) => `显示原因：${c}。数据来自 First Meet 出席和报名资料。`,
-    cond: { fm: "缺席或迟到 First Meet", lab: "报名其他实验室" },
+    cond: {
+      fm: "缺席或迟到 First Meet",
+      lab: "报名其他实验室",
+      a24: "修读物联网课程的 24 届学生",
+      te: "修读物联网实验课的电气工程学生",
+    },
+    prio: { wajib: "必问", penting: "重要", lewat: "可跳过" },
+    checkData: "表格没有说明是否适用，请直接询问。",
     revealBtn: "显示真实分数",
     revealTotal: "笔试与编程总分",
     revealRank: "排名",
@@ -494,7 +525,8 @@ export const LM = dict<LmWords>({
     toVerdict: "前往结果",
     back: "返回",
     send: "提交表格",
-    sendLeft: (n) => `提交表格 · 还差 ${n} 项`,
+    sendHold: "按住提交表格",
+    sendLeft: (n) => `请先补全 · 还差 ${n} 项`,
     saveChanges: "保存修改",
     changesSaved: "表格修改已保存。",
     withdraw: "撤回表格",

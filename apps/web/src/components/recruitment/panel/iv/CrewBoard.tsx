@@ -15,7 +15,7 @@ import {
   type IvCrewResponse,
   type IvCrewSlot,
 } from "../../../../lib/recruitment/iv-client";
-import { crewNeed, type IvStage } from "../../../../lib/recruitment/interview";
+import { boothSize, crewNeed, type IvStage } from "../../../../lib/recruitment/interview";
 import type { RecRights } from "../../../../lib/recruitment/types";
 import { IV } from "./ivStrings";
 import { CB } from "./crewBoardStrings";
@@ -124,7 +124,7 @@ export default function CrewBoard({
           go: s.id,
           slotId: s.id,
         });
-      const kurang = crewNeed(s.booths.length, d.template) - s.penguji.length;
+      const kurang = crewNeed(s.booths.length, d.template, s.crewSizes) - s.penguji.length;
       if (kurang > 0)
         out.push({
           tone: "warn",
@@ -240,7 +240,7 @@ export default function CrewBoard({
     busy,
     kodeOf,
     clashAt,
-    want: (s) => crewNeed(s.booths.length, d.template),
+    want: (s) => crewNeed(s.booths.length, d.template, s.crewSizes),
     when,
     onRemove: (s, nim) =>
       void change(
@@ -249,7 +249,19 @@ export default function CrewBoard({
         "ok",
       ),
     onPlus: (s) => setPick({ role: "penguji", slots: [s] }),
+    onSize: (s, index, size) => void setSize(s, index, size),
   };
+  /** One CaAs gets `size` examiners (one when the shift is short of Asisten); the others keep theirs. */
+  async function setSize(s: IvCrewSlot, index: number, size: number) {
+    const per = Math.max(1, d!.template.per);
+    const sizes = s.booths.map((_, i) => (i === index ? size : boothSize(s.crewSizes, i, per)));
+    setBusy(true);
+    const r = await recPost<{ ok: true }>("iv-crew-size", { stage, slotId: s.id, sizes });
+    setBusy(false);
+    crew.refresh();
+    if (isFail(r)) return toast(w.err[r.kode] ?? t.saveFail, "danger");
+    toast(cb.sizeSaved(index + 1, size), "ok");
+  }
   /** Saves each slot's new list in turn, then says what happened with one Urungkan that restores them. */
   async function change(
     edits: { s: IvCrewSlot; nims: string[] }[],

@@ -27,7 +27,8 @@ if (canvas && scene) {
   let h = 0;
 
   const theme = (): Theme => (html.dataset.theme === "light" ? "day" : "night");
-  // A page that turned the sky off (exam rooms, the Konsol, the QR wall: Base's `sky={false}`) gets none of it
+  // A page that turned the sky off (exam rooms, the QR wall: Base's `sky={false}`) gets none of it. The Konsol's
+  // `sky="still"` is painted once like Low Detail and then never moves (the CSS, sky-fx and the pointer lean skip it).
   const off = () => html.dataset.sky === "off";
 
   // Ask for the sprites straight away: a worker draws them while the page hydrates, so the main thread never
@@ -81,21 +82,119 @@ if (canvas && scene) {
     }
   };
 
+  // Matahari (public/theme-init.js): at dawn and dusk the other theme's painting lies over this one and fades by
+  // html's --sun, so the sky turns over gradually while the UI flips at the halfway point. Only the backdrop and the
+  // sprites are painted for it (no sparkle loop), and it exists only inside the two windows.
+  const sky = canvas.parentElement;
+  let alt: { el: HTMLDivElement; T: Theme; w: number; h: number } | null = null;
+  let altBuilding: Theme | null = null;
+  const dropAlt = () => {
+    altBuilding = null;
+    alt?.el.remove();
+    alt = null;
+  };
+  // Put every sprite of the overlay painting on exactly the same motion as its twin in the main painting (matched by data-s):
+  // the same period, depth, amplitude and phase (the two paintings differ a little, e.g. the clouds drift at 36 s and 38.4 s),
+  // then on the same animation clock. Otherwise each sprite is drawn twice, drifting in and out of step.
+  const syncAltClock = (base: HTMLElement, over: HTMLElement) => {
+    const pairs: Array<[HTMLElement, HTMLElement]> = [];
+    base.querySelectorAll<HTMLElement>(".sp[data-s]").forEach((e) => {
+      const twin = over.querySelector<HTMLElement>(`.sp[data-s="${e.dataset.s}"]`);
+      if (!twin) return;
+      for (const v of ["--t", "--d", "--amp", "--dl"])
+        twin.style.setProperty(v, e.style.getPropertyValue(v));
+      pairs.push([e, twin]);
+    });
+    void over.offsetHeight; // apply the new variables to the running animations before touching their clocks
+    for (const [e, twin] of pairs) {
+      const a = e.getAnimations()[0];
+      const b = twin.getAnimations()[0];
+      if (a && b && a.startTime !== null) b.startTime = a.startTime;
+    }
+  };
+  const syncSun = () => {
+    const phase = html.dataset.sun;
+    const s = Number.parseFloat(html.style.getPropertyValue("--sun"));
+    if (off() || !sky || (phase !== "dawn" && phase !== "dusk") || !Number.isFinite(s)) {
+      dropAlt();
+      return;
+    }
+    const main = theme();
+    const other: Theme = main === "day" ? "night" : "day";
+    const opacity = (main === "night" ? s : 1 - s).toFixed(3);
+    if (alt && alt.T === other) {
+      if (alt.w !== w || alt.h !== h) {
+        const c = alt.el.querySelector("canvas");
+        const sc = alt.el.querySelector<HTMLElement>(".scene");
+        const g = c?.getContext("2d");
+        if (c && sc && g) {
+          const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+          c.width = Math.round(w * dpr);
+          c.height = Math.round(h * dpr);
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+          paintBg(g, w, h, other);
+          layoutScene(sc, w, h);
+        }
+        alt.w = w;
+        alt.h = h;
+      }
+      alt.el.style.opacity = opacity;
+      return;
+    }
+    if (altBuilding === other || !w || !h) return;
+    dropAlt();
+    altBuilding = other;
+    void loadSprites(other).then((set) => {
+      if (altBuilding !== other) return;
+      altBuilding = null;
+      const el = document.createElement("div");
+      el.className = "sky-alt";
+      const c = document.createElement("canvas");
+      const sc = document.createElement("div");
+      sc.className = "scene";
+      sc.innerHTML = sceneHTML(other, set);
+      sc.querySelectorAll("canvas.fx").forEach((f) => f.remove());
+      el.append(c, sc);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      c.width = Math.round(w * dpr);
+      c.height = Math.round(h * dpr);
+      const g = c.getContext("2d");
+      if (g) {
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintBg(g, w, h, other);
+      }
+      sky.insertBefore(el, scene.nextSibling);
+      layoutScene(sc, w, h);
+      alt = { el, T: other, w, h };
+      // Both paintings give a sprite the same timing now (painters.ts), but the overlay's CSS animations start when it is inserted.
+      // Start each on its twin's clock so the two copies coincide, then let the browser lay it out at 0 first so it fades in rather than popping.
+      requestAnimationFrame(() => {
+        syncAltClock(scene, sc);
+        syncSun();
+      });
+    });
+  };
+  window.addEventListener("iris-sun", syncSun);
+
   // First paint after the page itself, so the sky never delays the content.
   const idle = (window as unknown as { requestIdleCallback?: (cb: () => void) => void })
     .requestIdleCallback;
-  if (idle) idle(paint);
-  else setTimeout(paint, 30);
+  const paintAll = () => {
+    paint();
+    syncSun();
+  };
+  if (idle) idle(paintAll);
+  else setTimeout(paintAll, 30);
 
   let rz = 0;
   window.addEventListener("resize", () => {
     window.clearTimeout(rz);
-    rz = window.setTimeout(paint, 200);
+    rz = window.setTimeout(paintAll, 200);
   });
   // data-theme: the reader switched theme. data-sky: a navigation to or from a page that has no sky.
-  new MutationObserver(paint).observe(html, {
+  new MutationObserver(paintAll).observe(html, {
     attributes: true,
-    attributeFilter: ["data-theme", "data-sky"],
+    attributeFilter: ["data-theme", "data-sky", "data-sun"],
   });
 
   // Nothing to animate in a hidden tab.
@@ -114,6 +213,7 @@ if (canvas && scene) {
         html.dataset.detail === "ldm" ||
         html.dataset.motionTier === "0" ||
         html.dataset.sky === "off" ||
+        html.dataset.sky === "still" ||
         reduce.matches ||
         raf
       )

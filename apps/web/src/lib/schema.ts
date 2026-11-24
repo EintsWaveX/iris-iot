@@ -53,6 +53,7 @@ import type {
   CTest,
   Outcome,
 } from "./recruitment/c-problem.js";
+import type { Catatan } from "./recruitment/interview.js";
 import type { KitBoard, RoomHotspot, SeatCheckin } from "./recruitment/room-types.js";
 import type { ScoreRow, StatRow } from "./recruitment/score-api.js";
 import {
@@ -2422,6 +2423,8 @@ export const recSlot = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     capacity: integer("capacity").notNull(),
+    /** Examiners per CaAs for this slot's booths, in booth order; null follows the template's `per` (a short shift seats one) */
+    crewSizes: jsonb("crew_sizes").$type<number[]>(),
   },
   (t) => [
     index("rec_slot_stage_idx").on(t.editionId, t.stage, t.startsAt),
@@ -3147,6 +3150,12 @@ export const recSheet = pgTable(
     /** Level per parameter key */
     levels: jsonb("levels").$type<Record<string, number>>().notNull().default({}),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    /**
+     * The last time this sheet was changed after it was sent, or pulled back to be edited (and sent again).
+     * editCount counts editing sittings, not saves: a new sitting starts when the last mark is 10 minutes old.
+     */
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    editCount: integer("edit_count").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("rec_sheet_unik").on(t.candidateId, t.stage, t.graderNim)],
@@ -3172,6 +3181,11 @@ export const recSheetShared = pgTable(
     recording: boolean("recording").notNull().default(false),
     startedAt: timestamp("started_at", { withTimezone: true }),
     caseInfo: jsonb("case_info").$type<SheetCase | null>(),
+    /**
+     * Catatan Khusus (the interview workbook): red notes, plus points, a label picked by hand, notes by who
+     * wrote them and the committee's conclusion. Kept apart from the sheet so a PJ can write without one.
+     */
+    catatan: jsonb("catatan").$type<Partial<Catatan>>().notNull().default({}),
     /** Bumps on every write, so two examiners saving at once are told */
     version: integer("version").notNull().default(1),
     updatedBy: text("updated_by"),
@@ -3463,3 +3477,31 @@ export const berkas = pgTable("berkas", {
   pemilik: text("pemilik"),
   dibuat: timestamp("dibuat", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * The voice recording of a Wawancara, kept as evidence for Penilaian to hear. The examiner's browser records
+ * in parts of a few minutes (each part plays on its own, so a crash or a closed tab costs at most the part
+ * in progress) and uploads each one as it ends; a CaAs's recording is its parts in order. The bytes live here
+ * (like `berkas`) and are served only through iv-audio, never by an open address: Never `select()` the whole
+ * row in a list, `isi` is the audio.
+ */
+export const recIvAudio = pgTable(
+  "rec_iv_audio",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    /** The examiner whose device recorded it */
+    recordedBy: text("recorded_by").notNull(),
+    mime: text("mime").notNull(),
+    durationMs: integer("duration_ms").notNull(),
+    size: integer("size").notNull(),
+    isi: bytea("isi").notNull(),
+    /** When the part began, by the recording device's clock */
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_iv_audio_kandidat_idx").on(t.candidateId, t.stage, t.startedAt)],
+);

@@ -148,6 +148,7 @@ export interface ReasonRow {
   berkas: { status: string; score: number | null } | null;
   iv?: {
     wide: boolean;
+    flag?: boolean;
     verdict: "lolos" | "ragu" | "cut" | null;
     sheets: number;
     expected: number;
@@ -195,6 +196,7 @@ export type ReasonKey =
   | "noTt"
   | "noScore"
   | "wide"
+  | "flag"
   | "ragu"
   | "susulan"
   | "gugur"
@@ -224,6 +226,7 @@ export function reasonsOf(
     if (o.ivStage) {
       if (r.iv?.case?.status === "gugur") out.push({ key: "gugur" });
       else if (r.iv?.case?.status === "susulan") out.push({ key: "susulan" });
+      if (r.iv?.flag) out.push({ key: "flag" });
       if (r.iv?.wide) out.push({ key: "wide" });
       if (r.iv?.verdict === "ragu") out.push({ key: "ragu" });
       if (r.iv && !r.iv.case?.status && r.iv.sheets < r.iv.expected)
