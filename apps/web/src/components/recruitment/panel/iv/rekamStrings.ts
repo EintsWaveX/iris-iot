@@ -31,7 +31,7 @@ export const RK = dict<RekamWords>({
     recording: (t) => `Merekam ${t}`,
     saved: (n) => `${n} bagian tersimpan`,
     uploading: (n) => `Mengirim ${n} bagian…`,
-    failed: (n) => `${n} bagian belum terkirim`,
+    failed: (n) => `${n} bagian belum terkirim, dicoba lagi otomatis`,
     retry: "Kirim ulang",
     download: "Simpan ke perangkat",
     denied:
@@ -54,7 +54,7 @@ export const RK = dict<RekamWords>({
     recording: (t) => `Recording ${t}`,
     saved: (n) => `${n} part${n === 1 ? "" : "s"} saved`,
     uploading: (n) => `Sending ${n} part${n === 1 ? "" : "s"}…`,
-    failed: (n) => `${n} part${n === 1 ? "" : "s"} not sent`,
+    failed: (n) => `${n} part${n === 1 ? "" : "s"} not sent, retrying by itself`,
     retry: "Send again",
     download: "Save to this device",
     denied:
@@ -77,7 +77,7 @@ export const RK = dict<RekamWords>({
     recording: (t) => `录音中 ${t}`,
     saved: (n) => `已保存 ${n} 段`,
     uploading: (n) => `正在上传 ${n} 段…`,
-    failed: (n) => `${n} 段未上传`,
+    failed: (n) => `${n} 段未上传，将自动重试`,
     retry: "重新上传",
     download: "保存到本机",
     denied: "麦克风被禁用。请在浏览器设置中允许本站使用麦克风，然后重试。",
