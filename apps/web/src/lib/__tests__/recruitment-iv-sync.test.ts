@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { baseOf, mixSheet, sheetDelta, type SheetBase } from "../recruitment/iv-sync";
+import {
+  SAVE_MAX_MS,
+  SAVE_PAUSE_MS,
+  SAVE_RETRY_MS,
+  SAVE_WORD_MS,
+  baseOf,
+  endsWord,
+  mixSheet,
+  saveDelay,
+  sheetDelta,
+  type SheetBase,
+} from "../recruitment/iv-sync";
 
 const empty = (): SheetBase => baseOf(null);
 
@@ -60,5 +71,30 @@ describe("mixSheet", () => {
     const mixed = mixSheet(loc, old, nu).next;
     const d = sheetDelta(nu, { ...mixed, levels: nu.levels });
     expect(d?.body.shared).toEqual({ answers: { q1: "a (diketik)" } });
+  });
+});
+
+describe("how fast typing is shared", () => {
+  it("saves soon after a word ends and after a short pause otherwise", () => {
+    expect(saveDelay(true, 0, false)).toBe(SAVE_WORD_MS);
+    expect(saveDelay(false, 0, false)).toBe(SAVE_PAUSE_MS);
+    expect(SAVE_WORD_MS).toBeLessThan(SAVE_PAUSE_MS);
+  });
+
+  it("never lets continuous typing wait longer than the maximum", () => {
+    expect(saveDelay(false, SAVE_MAX_MS - 100, false)).toBe(100);
+    expect(saveDelay(false, SAVE_MAX_MS, false)).toBe(0);
+    expect(saveDelay(true, SAVE_MAX_MS + 500, false)).toBe(0);
+  });
+
+  it("waits longer to try again after a failed save", () => {
+    expect(saveDelay(true, 0, true)).toBe(SAVE_RETRY_MS);
+    expect(saveDelay(false, SAVE_MAX_MS, true)).toBe(SAVE_RETRY_MS);
+  });
+
+  it("knows a finished word", () => {
+    for (const t of ["halo ", "halo.", "halo,", "halo)", "halo\n", "a:", "b?"])
+      expect(endsWord(t)).toBe(true);
+    for (const t of ["halo", "", "h", "123"]) expect(endsWord(t)).toBe(false);
   });
 });
