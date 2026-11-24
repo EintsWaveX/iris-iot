@@ -64,6 +64,7 @@ import {
 } from "../../../../lib/recruitment/interview";
 import { IV, STEP, bi, kasusText } from "./ivStrings";
 import { LM } from "./lembarStrings";
+import ResetSheet from "./ResetSheet";
 import { M6 } from "./lembar6Strings";
 import { ASKED_PREFIX, CATATAN_KEY, Catatan, T5, readAsked } from "./TubesParts";
 import {
@@ -535,6 +536,11 @@ export default function Lembar({
   }, [data, locked, stage, id, snap]);
 
   /** Closing the sheet sends what is still typed first; if that fails the examiner is asked. */
+  /** After a reset the sheet is read again as the server has it now. */
+  const muatUlang = () =>
+    void fetchIvSheet(stage, id).then((r) => {
+      if (!isFail(r)) init(r);
+    });
   const tutup = useCallback(async () => {
     if (inflight.current) await inflight.current;
     const ok = await flush();
@@ -1001,6 +1007,9 @@ export default function Lembar({
               </button>
             )
           ))}
+        {data.penuh && started && !locked && (
+          <ResetSheet lang={lang} stage={stage} id={id} scope="start" onDone={muatUlang} />
+        )}
       </div>
     </header>
   );
@@ -1434,6 +1443,14 @@ export default function Lembar({
               <WarningIcon size={18} aria-hidden="true" />
               <span className="btn__label">{L.caseBtn}</span>
             </button>
+          </span>
+        )}
+        {data.penuh && !locked && (
+          <span className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            {started && (
+              <ResetSheet lang={lang} stage={stage} id={id} scope="start" onDone={muatUlang} />
+            )}
+            <ResetSheet lang={lang} stage={stage} id={id} scope="all" onDone={muatUlang} />
           </span>
         )}
       </section>
