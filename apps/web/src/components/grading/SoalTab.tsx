@@ -39,6 +39,7 @@ import { useMinWidth } from "../../lib/hooks";
 import BetaBadge from "../ui/BetaBadge";
 import IconButton from "../ui/IconButton";
 import Confirm from "../ui/Confirm";
+import HoldButton from "../ui/HoldButton";
 import Dialog from "../ui/Dialog";
 import Drawer from "../ui/Drawer";
 import PdfViewer from "../ui/PdfViewer";
@@ -307,14 +308,13 @@ export default function SoalTab({
       {boleh && (
         <div className="row tpbank__acts">
           {!data.paket.bawaan && (
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              onClick={() => setKembali(true)}
-            >
-              <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
-              {t.kembalikan}
-            </button>
+            <HoldButton
+              label={t.kembalikan}
+              tint="warn"
+              size="compact"
+              icon={ArrowCounterClockwiseIcon}
+              onDone={() => setKembali(true)}
+            />
           )}
           {kotor && (
             <button type="button" className="btn btn--sm" onClick={() => ambil(data.paket)}>

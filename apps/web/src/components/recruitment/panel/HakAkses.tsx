@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowCounterClockwiseIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
+import HoldButton from "../../ui/HoldButton";
 import { Checkbox, Switch } from "../../ui/Controls";
 import Skeleton from "../../ui/Skeleton";
 import { dict } from "../../../lib/app";
@@ -291,15 +292,14 @@ export default function HakAkses({ lang }: { lang: Lang }) {
 
       {bisa ? (
         <div className="rec-hak__bar">
-          <button
-            type="button"
-            className="btn btn--ghost"
+          <HoldButton
+            label={t.reset}
+            tint="warn"
+            size="compact"
+            icon={ArrowCounterClockwiseIcon}
             disabled={sibuk || (!data.custom && !kotor)}
-            onClick={() => setTanya("reset")}
-          >
-            <ArrowCounterClockwiseIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{t.reset}</span>
-          </button>
+            onDone={() => setTanya("reset")}
+          />
           <span className="rec-hak__gap" />
           {kotor && <span className="hint">{t.unsaved}</span>}
           <button
