@@ -51,6 +51,7 @@ import {
   boothSize,
   cleanSizes,
   crewFor,
+  rolesIn,
   isIvStage,
   isLabel,
   labelOf,
@@ -593,41 +594,39 @@ async function handleMine(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       // The rubric is still the sample one: the mockup shows a "Rubrik Contoh" badge until Akademik replaces it
       example: t.params.some((p) => p.example),
     },
-    slots: mine.map((x) => {
-      const role = x.penguji.includes(s.nim)
-        ? "penguji"
-        : x.pjIn.includes(s.nim)
-          ? "pj_dalam"
-          : "pj_luar";
-      return {
-        id: x.id,
-        room: x.room,
-        startsAt: x.startsAt.toISOString(),
-        endsAt: x.endsAt.toISOString(),
-        role,
-        penguji: x.penguji.map((n) => ({ nim: n, kode: kode.get(n) ?? n })),
-        pjOut: x.pjOut.map((n) => kode.get(n) ?? n),
-        pjIn: x.pjIn.map((n) => kode.get(n) ?? n),
-        booths: x.booths.map((bth, i) => {
-          const crew = crewFor(x.penguji, i, t, x.crewSizes);
-          const mineBooth = crew.includes(s.nim);
-          const sh = sheets.filter((r) => r.candidateId === bth.id);
-          const sd = shared.find((r) => r.candidateId === bth.id);
-          return {
-            index: i,
-            candidate: role === "penguji" && !mineBooth ? null : bth,
-            mine: mineBooth,
-            pair: crew.map((n) => kode.get(n) ?? n),
-            here: hadir.find((h) => h.cid === bth.id)?.at.toISOString() ?? null,
-            sent: sh.filter((r) => r.sentAt).length,
-            need: crew.length,
-            mineSent: !!sh.find((r) => r.graderNim === s.nim)?.sentAt,
-            verdict: sd?.verdict ?? null,
-            case: sd?.caseInfo ? { kind: sd.caseInfo.kind, status: sd.caseInfo.status } : null,
-          };
-        }),
-      };
-    }),
+    // One card per role: a person may examine and be PJ in the same slot, so a slot can come back more than once.
+    slots: mine.flatMap((x) =>
+      rolesIn(x, s.nim).map((role) => {
+        return {
+          id: x.id,
+          room: x.room,
+          startsAt: x.startsAt.toISOString(),
+          endsAt: x.endsAt.toISOString(),
+          role,
+          penguji: x.penguji.map((n) => ({ nim: n, kode: kode.get(n) ?? n })),
+          pjOut: x.pjOut.map((n) => kode.get(n) ?? n),
+          pjIn: x.pjIn.map((n) => kode.get(n) ?? n),
+          booths: x.booths.map((bth, i) => {
+            const crew = crewFor(x.penguji, i, t, x.crewSizes);
+            const mineBooth = crew.includes(s.nim);
+            const sh = sheets.filter((r) => r.candidateId === bth.id);
+            const sd = shared.find((r) => r.candidateId === bth.id);
+            return {
+              index: i,
+              candidate: role === "penguji" && !mineBooth ? null : bth,
+              mine: mineBooth,
+              pair: crew.map((n) => kode.get(n) ?? n),
+              here: hadir.find((h) => h.cid === bth.id)?.at.toISOString() ?? null,
+              sent: sh.filter((r) => r.sentAt).length,
+              need: crew.length,
+              mineSent: !!sh.find((r) => r.graderNim === s.nim)?.sentAt,
+              verdict: sd?.verdict ?? null,
+              case: sd?.caseInfo ? { kind: sd.caseInfo.kind, status: sd.caseInfo.status } : null,
+            };
+          }),
+        };
+      }),
+    ),
   });
 }
 

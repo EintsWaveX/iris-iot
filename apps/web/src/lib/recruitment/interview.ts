@@ -1277,6 +1277,33 @@ export function cleanSizes(v: unknown, booths: number, per: number): number[] | 
   return out.length ? out : null;
 }
 
+export type SlotRole = "penguji" | "pj_luar" | "pj_dalam";
+
+/**
+ * Every role this person has in one slot, the examiner first. One person may examine and also be PJ inside
+ * and/or outside the same shift, which is how the crew often works, so a slot can give them several cards.
+ */
+export function rolesIn(
+  s: { penguji: readonly string[]; pjOut: readonly string[]; pjIn: readonly string[] },
+  nim: string,
+): SlotRole[] {
+  const out: SlotRole[] = [];
+  if (s.penguji.includes(nim)) out.push("penguji");
+  if (s.pjIn.includes(nim)) out.push("pj_dalam");
+  if (s.pjOut.includes(nim)) out.push("pj_luar");
+  return out;
+}
+
+/**
+ * Does `x` (another slot at an overlapping time) clash with putting `nim` in `role`? Only two examiners'
+ * rooms at once clash: an examiner may also be PJ in this room or the next, and a PJ list is one per shift.
+ */
+export const examinerClash = (
+  role: SlotRole,
+  x: { penguji: readonly string[] },
+  nim: string,
+): boolean => role === "penguji" && x.penguji.includes(nim);
+
 /** Turns that fit in a window of `window` minutes (panel mode): n turns and n-1 changeovers. */
 export const turnsFit = (window: number, t: Pick<IvTemplate, "minutes" | "gap">): number =>
   Math.max(1, Math.floor((window + t.gap) / (t.minutes + t.gap)));

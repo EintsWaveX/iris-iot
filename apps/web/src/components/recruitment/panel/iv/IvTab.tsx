@@ -245,6 +245,7 @@ function PjCard({
   qr,
   refresh,
   catatan,
+  me,
 }: {
   lang: Lang;
   stage: IvStage;
@@ -253,9 +254,12 @@ function PjCard({
   refresh: () => void;
   /** The stage has Catatan Khusus: each CaAs of the room gets a note button */
   catatan: boolean;
+  /** This person's NIM: someone who examines this slot cannot also stand in for an examiner of it */
+  me: string;
 }) {
   const k = SK[lang];
   const luar = s.role === "pj_luar";
+  const examinesHere = s.penguji.some((p) => p.nim === me);
   const [dlg, setDlg] = useState(false);
   const [catId, setCatId] = useState<number | null>(null);
   const room = s.booths.filter((b) => b.candidate);
@@ -307,18 +311,18 @@ function PjCard({
         </ul>
       )}
       <div className="row r4slot__acts">
-        {luar ? (
-          qr && (
-            <a className="btn btn--inverse" href={href(lang, "/recruitment/qr")}>
-              <span className="btn__label">{k.qrShift}</span>
-            </a>
-          )
-        ) : (
-          <button type="button" className="btn btn--inverse" onClick={() => setDlg(true)}>
-            <UserSwitchIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{k.standIn}</span>
-          </button>
-        )}
+        {luar
+          ? qr && (
+              <a className="btn btn--inverse" href={href(lang, "/recruitment/qr")}>
+                <span className="btn__label">{k.qrShift}</span>
+              </a>
+            )
+          : !examinesHere && (
+              <button type="button" className="btn btn--inverse" onClick={() => setDlg(true)}>
+                <UserSwitchIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{k.standIn}</span>
+              </button>
+            )}
       </div>
       <Dialog
         open={catId !== null}
@@ -463,6 +467,7 @@ function Slotku({
             qr={qr || (qrPj && s.role === "pj_luar")}
             refresh={mine.refresh}
             catatan={mine.data!.template.catatan}
+            me={mine.data!.me.nim}
           />
         ))}
       </div>
