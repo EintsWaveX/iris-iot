@@ -7,12 +7,7 @@
  */
 import Pager, { NOUN, Paged, usePager } from "../../../ui/Pager";
 import { Fragment, useEffect, useState } from "react";
-import {
-  CaretDownIcon,
-  CaretUpIcon,
-  FileTextIcon,
-  MagnifyingGlassIcon,
-} from "@phosphor-icons/react";
+import { CaretDownIcon, CaretUpIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import Dropdown from "../../../ui/Dropdown";
 import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
@@ -590,8 +585,9 @@ export default function Penilaian({
                 <button
                   type="button"
                   className="r4crow__b"
-                  aria-expanded={openK === r.id}
-                  onClick={() => toggle(r.id)}
+                  aria-expanded={onLihat ? undefined : openK === r.id}
+                  aria-label={onLihat ? p.openSheet(r.nama.split(" ")[0]) : undefined}
+                  onClick={() => (onLihat ? onLihat(r.id) : toggle(r.id))}
                 >
                   <span className="num hint r4crow__r">
                     {absent(r) ? "" : rank.indexOf(r.id) + 1}
@@ -610,18 +606,16 @@ export default function Penilaian({
                   <Chips r={r} me={me} lang={lang} />
                   <Verd r={r} lang={lang} />
                   <Marks r={r} lang={lang} />
+                  {onLihat && r.detail.length > 0 && (
+                    <IconButton
+                      sm
+                      icon={openK === r.id ? CaretUpIcon : CaretDownIcon}
+                      label={openK === r.id ? p.hideDetails : p.detailsOf(r.nama.split(" ")[0])}
+                      pressed={openK === r.id}
+                      onClick={() => toggle(r.id)}
+                    />
+                  )}
                 </div>
-                {onLihat && (
-                  <button
-                    type="button"
-                    className="btn btn--ghost btn--sm"
-                    style={{ justifySelf: "start" }}
-                    onClick={() => onLihat(r.id)}
-                  >
-                    <FileTextIcon size={18} aria-hidden="true" />
-                    <span className="btn__label">{p.openSheet(r.nama.split(" ")[0])}</span>
-                  </button>
-                )}
                 {openK === r.id && r.detail.length > 0 && (
                   <Rincian r={r} d={d} me={me} lang={lang} stage={stage} />
                 )}
@@ -654,13 +648,38 @@ export default function Penilaian({
                       <tr
                         data-open={openK === r.id ? "yes" : undefined}
                         data-wide={r.wide ? "yes" : undefined}
+                        data-sheet={onLihat ? "yes" : undefined}
+                        onClick={
+                          onLihat
+                            ? (e) => {
+                                // The arrow and any other control keep their own job.
+                                if ((e.target as HTMLElement).closest("button, a, input, select"))
+                                  return;
+                                onLihat(r.id);
+                              }
+                            : undefined
+                        }
                       >
                         <td className="num hint">{absent(r) ? "" : rank.indexOf(r.id) + 1}</td>
                         <td>
-                          <span className="stack" style={{ gap: 0 }}>
-                            <b>{r.nama}</b>
-                            <span className="hint">{where(r)}</span>
-                          </span>
+                          {onLihat ? (
+                            <button
+                              type="button"
+                              className="r4tab__open"
+                              aria-label={p.openSheet(r.nama.split(" ")[0])}
+                              onClick={() => onLihat(r.id)}
+                            >
+                              <span className="stack" style={{ gap: 0 }}>
+                                <b>{r.nama}</b>
+                                <span className="hint">{where(r)}</span>
+                              </span>
+                            </button>
+                          ) : (
+                            <span className="stack" style={{ gap: 0 }}>
+                              <b>{r.nama}</b>
+                              <span className="hint">{where(r)}</span>
+                            </span>
+                          )}
                         </td>
                         <td>
                           {absent(r) ? (
@@ -694,14 +713,6 @@ export default function Penilaian({
                           </td>
                         )}
                         <td>
-                          {onLihat && (
-                            <IconButton
-                              sm
-                              icon={FileTextIcon}
-                              label={p.openSheet(r.nama.split(" ")[0])}
-                              onClick={() => onLihat(r.id)}
-                            />
-                          )}
                           {r.detail.length > 0 && (
                             <IconButton
                               sm
