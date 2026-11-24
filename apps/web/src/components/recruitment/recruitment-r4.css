@@ -765,6 +765,24 @@
 .r4tab tr[data-open] > td {
   background: var(--surface-2);
 }
+/* The whole row opens the CaAs's sheet; the name inside is the keyboard way in. */
+.r4tab tr[data-sheet] {
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .r4tab tr[data-sheet]:hover > td {
+    background: var(--surface-2);
+  }
+}
+.r4tab__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
 .r4tab__bd > td {
   padding: 4px 16px 18px !important;
   background: var(--surface-2);
