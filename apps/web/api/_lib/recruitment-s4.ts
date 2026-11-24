@@ -13,6 +13,7 @@
  * POST /api/recruitment/iv-sheet-save       { id, stage, shared?, levels? }  autosave
  * POST /api/recruitment/iv-sheet-send       { id, stage }
  * POST /api/recruitment/iv-sheet-reopen     { id, stage }   take my sheet back to edit it
+ * POST /api/recruitment/iv-sheet-reset      { id, stage, scope: "start" | "all", preview? }  a control seat starts one CaAs over
  * POST /api/recruitment/iv-case             { id, stage, kind, minutes?, why? }
  * GET  /api/recruitment/iv-nilai?stage=     Penilaian: sheets, mean, spread, verdict (Ketua, Akademik, Admin)
  *
@@ -1141,6 +1142,98 @@ async function handleTes(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   });
 }
 
+/**
+ * A control seat starts one CaAs's interview over: what was left by testing, or a sheet opened by mistake.
+ * `scope: "start"` only stops the running clock (Mulai Wawancara is back to not started); `scope: "all"`
+ * also clears the shared sheet (answers, conclusions, verdict, berita acara, the recording mark, the case),
+ * every examiner's levels and sent marks, and the voice recording parts of that CaAs. `preview: true`
+ * only counts. What is cleared goes into the audit row, so it can be read back. The stage result, the slot
+ * and the attendance are not touched: this is the sheet, not the CaAs's standing.
+ */
+async function handleSheetReset(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const a = await bukaAkses(res, s, b.stage, b.id, true);
+  if (!a) return;
+  if (!a.penuh) return void tolak(res, "tanpa_hak", 403);
+  if (b.scope !== "start" && b.scope !== "all")
+    return void tolak(res, "data_salah", 400, { field: "scope" });
+  const scope: "start" | "all" = b.scope;
+  const stage = b.stage as IvStage;
+  const db = getDb();
+  const cand = a.kandidat.id;
+  const [shared] = await db
+    .select()
+    .from(recSheetShared)
+    .where(and(eq(recSheetShared.candidateId, cand), eq(recSheetShared.stage, stage)))
+    .limit(1);
+  const sheets = await db
+    .select()
+    .from(recSheet)
+    .where(and(eq(recSheet.candidateId, cand), eq(recSheet.stage, stage)));
+  const audio = await db
+    .select({
+      id: recIvAudio.id,
+      by: recIvAudio.recordedBy,
+      ms: recIvAudio.durationMs,
+      size: recIvAudio.size,
+      at: recIvAudio.startedAt,
+    })
+    .from(recIvAudio)
+    .where(and(eq(recIvAudio.candidateId, cand), eq(recIvAudio.stage, stage)));
+  const count = {
+    started: !!shared?.startedAt,
+    answers: Object.values(shared?.answers ?? {}).filter((v) => String(v).trim()).length,
+    conclusions: Object.values(shared?.concl ?? {}).filter((v) => String(v).trim()).length,
+    verdict: shared?.verdict ?? null,
+    case: !!shared?.caseInfo,
+    levels: sheets.filter((r) => Object.keys(r.levels ?? {}).length).length,
+    sent: sheets.filter((r) => r.sentAt).length,
+    audio: audio.length,
+  };
+  if (b.preview === true) return void res.status(200).json({ ok: true, scope, count });
+  await db.transaction(async (tx) => {
+    if (scope === "start") {
+      await tx
+        .update(recSheetShared)
+        .set({ startedAt: null, updatedBy: s.nim, updatedAt: new Date() })
+        .where(and(eq(recSheetShared.candidateId, cand), eq(recSheetShared.stage, stage)));
+      return;
+    }
+    await tx.delete(recSheet).where(and(eq(recSheet.candidateId, cand), eq(recSheet.stage, stage)));
+    await tx
+      .delete(recSheetShared)
+      .where(and(eq(recSheetShared.candidateId, cand), eq(recSheetShared.stage, stage)));
+    await tx
+      .delete(recIvAudio)
+      .where(and(eq(recIvAudio.candidateId, cand), eq(recIvAudio.stage, stage)));
+  });
+  await writeAudit(s.nim, "rec_iv_reset", {
+    stage,
+    candidateId: cand,
+    scope,
+    count,
+    // Kept so a reset can be read back: the shared sheet, each examiner's levels, the audio parts' sizes.
+    before: {
+      shared: shared
+        ? {
+            answers: shared.answers,
+            skipped: shared.skipped,
+            concl: shared.concl,
+            other: shared.other,
+            verdict: shared.verdict,
+            ba: shared.ba,
+            recording: shared.recording,
+            startedAt: shared.startedAt,
+            caseInfo: shared.caseInfo,
+          }
+        : null,
+      sheets: sheets.map((r) => ({ grader: r.graderNim, levels: r.levels, sentAt: r.sentAt })),
+      audio,
+    },
+  });
+  return void res.status(200).json({ ok: true, scope, count });
+}
+
 async function handleCase(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const b = jsonBody(req);
   const a = await bukaAkses(res, s, b.stage, b.id, true);
@@ -1648,6 +1741,7 @@ export const S4_POST: Record<string, H> = {
   "iv-sheet-save": handleSheetSave,
   "iv-sheet-send": handleSheetSend,
   "iv-sheet-reopen": handleSheetReopen,
+  "iv-sheet-reset": handleSheetReset,
   "iv-case": handleCase,
   "iv-catatan-save": handleCatatanSave,
 };
