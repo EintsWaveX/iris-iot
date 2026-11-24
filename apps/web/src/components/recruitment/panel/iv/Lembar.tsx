@@ -298,10 +298,13 @@ export default function Lembar({
   id,
   onClose,
   onNext,
+  lihat = false,
 }: {
   lang: Lang;
   stage: IvStage;
   id: number;
+  /** Only to read (from Penilaian): nothing can be typed, started, sent or reset, and nothing is saved */
+  lihat?: boolean;
   onClose: () => void;
   /** Open the sheet of the next CaAs in the slot (the teaching test's Giliran Berikutnya) */
   onNext?: (id: number) => void;
@@ -496,7 +499,7 @@ export default function Lembar({
   };
 
   const tpl = data?.template ?? null;
-  const locked = !!data?.locked;
+  const locked = !!data?.locked || lihat;
   const snap = JSON.stringify([ans, skip, lv, cl, other, verdict, ba, rec]);
   now_.current = { ans, skip, cl, other, verdict, ba, rec };
 
@@ -949,6 +952,7 @@ export default function Lembar({
             {ED[lang].mark(fmtEdit(data.mine.editedAt, lang), data.mine.edits || 1)}
           </Pill>
         )}
+        {lihat && <Pill tone="warn">{L.viewOnly}</Pill>}
         {!mg && !tb && files}
         {!mg && !tb && (
           <VoiceRecorder

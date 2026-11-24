@@ -7,7 +7,12 @@
  */
 import Pager, { NOUN, Paged, usePager } from "../../../ui/Pager";
 import { Fragment, useEffect, useState } from "react";
-import { CaretDownIcon, CaretUpIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import {
+  CaretDownIcon,
+  CaretUpIcon,
+  FileTextIcon,
+  MagnifyingGlassIcon,
+} from "@phosphor-icons/react";
 import Dropdown from "../../../ui/Dropdown";
 import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
@@ -382,7 +387,16 @@ function Lembarku({ d, lang }: { d: IvLembarkuResponse; lang: Lang }) {
   );
 }
 
-export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage }) {
+export default function Penilaian({
+  lang,
+  stage,
+  onLihat,
+}: {
+  lang: Lang;
+  stage: IvStage;
+  /** Open one CaAs's whole sheet (read only) */
+  onLihat?: (id: number) => void;
+}) {
   const p = PN[lang];
   const w = IV(lang).nilai;
   const nilai = useIvNilai(stage);
@@ -597,6 +611,17 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
                   <Verd r={r} lang={lang} />
                   <Marks r={r} lang={lang} />
                 </div>
+                {onLihat && (
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    style={{ justifySelf: "start" }}
+                    onClick={() => onLihat(r.id)}
+                  >
+                    <FileTextIcon size={18} aria-hidden="true" />
+                    <span className="btn__label">{p.openSheet(r.nama.split(" ")[0])}</span>
+                  </button>
+                )}
                 {openK === r.id && r.detail.length > 0 && (
                   <Rincian r={r} d={d} me={me} lang={lang} stage={stage} />
                 )}
@@ -669,6 +694,14 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
                           </td>
                         )}
                         <td>
+                          {onLihat && (
+                            <IconButton
+                              sm
+                              icon={FileTextIcon}
+                              label={p.openSheet(r.nama.split(" ")[0])}
+                              onClick={() => onLihat(r.id)}
+                            />
+                          )}
                           {r.detail.length > 0 && (
                             <IconButton
                               sm
