@@ -10,6 +10,8 @@ import {
   cleanSizes,
   crewFor,
   crewNeed,
+  examinerClash,
+  rolesIn,
   groupKey,
   MAX_GROUPS,
   moveGroup,
@@ -142,6 +144,30 @@ describe("sections (groups)", () => {
     expect(t.questions.filter((q) => q.reveal).map((q) => q.id)).toEqual([id]);
     expect(setReveal(t, id, false).questions.some((q) => q.reveal)).toBe(false);
     expect(checkTemplate(t)).not.toBeNull();
+  });
+});
+
+describe("one person in several roles of a slot", () => {
+  const slot = { penguji: ["A", "B"], pjOut: ["A", "C"], pjIn: ["B"] };
+
+  it("lists every role, the examiner first", () => {
+    expect(rolesIn(slot, "A")).toEqual(["penguji", "pj_luar"]);
+    expect(rolesIn(slot, "B")).toEqual(["penguji", "pj_dalam"]);
+    expect(rolesIn(slot, "C")).toEqual(["pj_luar"]);
+    expect(rolesIn(slot, "Z")).toEqual([]);
+    expect(rolesIn({ penguji: ["A"], pjOut: ["A"], pjIn: ["A"] }, "A")).toEqual([
+      "penguji",
+      "pj_dalam",
+      "pj_luar",
+    ]);
+  });
+
+  it("only two rooms of examining at once clash; PJ and examiner together never do", () => {
+    expect(examinerClash("penguji", slot, "A")).toBe(true);
+    expect(examinerClash("penguji", slot, "C")).toBe(false);
+    expect(examinerClash("pj_luar", slot, "A")).toBe(false);
+    expect(examinerClash("pj_dalam", slot, "B")).toBe(false);
+    expect(examinerClash("penguji", { penguji: [] }, "A")).toBe(false);
   });
 });
 

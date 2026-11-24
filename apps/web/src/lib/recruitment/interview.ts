@@ -1277,6 +1277,33 @@ export function cleanSizes(v: unknown, booths: number, per: number): number[] | 
   return out.length ? out : null;
 }
 
+export type SlotRole = "penguji" | "pj_luar" | "pj_dalam";
+
+/**
+ * Every role this person has in one slot, the examiner first. One person may examine and also be PJ inside
+ * and/or outside the same shift, which is how the crew often works, so a slot can give them several cards.
+ */
+export function rolesIn(
+  s: { penguji: readonly string[]; pjOut: readonly string[]; pjIn: readonly string[] },
+  nim: string,
+): SlotRole[] {
+  const out: SlotRole[] = [];
+  if (s.penguji.includes(nim)) out.push("penguji");
+  if (s.pjIn.includes(nim)) out.push("pj_dalam");
+  if (s.pjOut.includes(nim)) out.push("pj_luar");
+  return out;
+}
+
+/**
+ * Does `x` (another slot at an overlapping time) clash with putting `nim` in `role`? Only two examiners'
+ * rooms at once clash: an examiner may also be PJ in this room or the next, and a PJ list is one per shift.
+ */
+export const examinerClash = (
+  role: SlotRole,
+  x: { penguji: readonly string[] },
+  nim: string,
+): boolean => role === "penguji" && x.penguji.includes(nim);
+
 /**
  * One CaAs's seats lowered to `size`: the roster after it, and who stepped out. The roster is in booth order
  * (each booth takes its `before[i]` examiners in turn), so only the tail of this CaAs's own seats leaves and

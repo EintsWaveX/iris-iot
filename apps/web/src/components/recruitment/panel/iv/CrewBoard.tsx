@@ -18,6 +18,7 @@ import {
 import {
   boothSize,
   crewNeed,
+  examinerClash,
   seatShrink,
   type IvStage,
 } from "../../../../lib/recruitment/interview";
@@ -110,17 +111,6 @@ export default function CrewBoard({
             slotId: s.id,
           });
       }
-      for (const n of [...s.pjOut, ...s.pjIn]) {
-        const o = slots.find((x) => (x.id === s.id || overlap(s, x)) && x.penguji.includes(n));
-        if (o)
-          out.push({
-            tone: "danger",
-            text: t.clashPj(kodeOf(n), o.room),
-            at: at(s),
-            go: s.id,
-            slotId: null,
-          });
-      }
       if (s.booths.length > s.capacity)
         out.push({
           tone: "danger",
@@ -187,9 +177,8 @@ export default function CrewBoard({
       (x) =>
         !slots.some((s) => s.id === x.id) &&
         slots.some((s) => overlap(s, x)) &&
-        (role === "penguji"
-          ? x.penguji.includes(nim) || x.pjOut.includes(nim) || x.pjIn.includes(nim)
-          : x.penguji.includes(nim)),
+        // An examiner may also be PJ in this room or the next; only two rooms of examining at once clash.
+        examinerClash(role, x, nim),
     );
 
   const chip = (nim: string, onX: () => void, clash: boolean) => (
@@ -380,7 +369,7 @@ export default function CrewBoard({
         o.id !== dst.id &&
         o.id !== src?.id &&
         overlap(dst, o) &&
-        (o.penguji.includes(x.nim) || o.pjOut.includes(x.nim) || o.pjIn.includes(x.nim)),
+        examinerClash("penguji", o, x.nim),
     );
     const edits = [{ s: dst, nims: next }];
     if (src) edits.unshift({ s: src, nims: src.penguji.filter((n) => n !== x.nim) });
