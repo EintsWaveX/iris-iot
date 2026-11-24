@@ -529,6 +529,9 @@ function RoomDlg({
             moreLabel="+"
             onChange={setCap}
           />
+          {ed && ed.taken > 0 && cap <= ed.taken && (
+            <span className="hint">{t.capacityFloor(ed.taken)}</span>
+          )}
         </span>
       </div>
     </Dialog>

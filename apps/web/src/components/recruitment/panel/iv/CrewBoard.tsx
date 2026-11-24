@@ -15,7 +15,12 @@ import {
   type IvCrewResponse,
   type IvCrewSlot,
 } from "../../../../lib/recruitment/iv-client";
-import { boothSize, crewNeed, type IvStage } from "../../../../lib/recruitment/interview";
+import {
+  boothSize,
+  crewNeed,
+  seatShrink,
+  type IvStage,
+} from "../../../../lib/recruitment/interview";
 import type { RecRights } from "../../../../lib/recruitment/types";
 import { IV } from "./ivStrings";
 import { CB } from "./crewBoardStrings";
@@ -251,16 +256,50 @@ export default function CrewBoard({
     onPlus: (s) => setPick({ role: "penguji", slots: [s] }),
     onSize: (s, index, size) => void setSize(s, index, size),
   };
-  /** One CaAs gets `size` examiners (one when the shift is short of Asisten); the others keep theirs. */
+  /**
+   * One CaAs gets `size` examiners (one when the shift is short of Asisten); the others keep theirs.
+   * Fewer seats than examiners seated: the last ones seated at this CaAs step out to the pool first, in the
+   * same step, and one Urungkan puts them and the old count back.
+   */
   async function setSize(s: IvCrewSlot, index: number, size: number) {
     const per = Math.max(1, d!.template.per);
-    const sizes = s.booths.map((_, i) => (i === index ? size : boothSize(s.crewSizes, i, per)));
+    const before = s.booths.map((_, i) => boothSize(s.crewSizes, i, per));
+    const sizes = before.map((x, i) => (i === index ? size : x));
+    const { nims, out } = seatShrink(s.penguji, before, index, size);
     setBusy(true);
+    if (out.length) {
+      const r0 = await recPost<{ ok: true }>("iv-crew-set", {
+        stage,
+        slotIds: [s.id],
+        role: "penguji",
+        nims,
+      });
+      if (isFail(r0)) {
+        setBusy(false);
+        crew.refresh();
+        return toast(w.err[r0.kode] ?? t.saveFail, "danger");
+      }
+    }
     const r = await recPost<{ ok: true }>("iv-crew-size", { stage, slotId: s.id, sizes });
     setBusy(false);
     crew.refresh();
     if (isFail(r)) return toast(w.err[r.kode] ?? t.saveFail, "danger");
-    toast(cb.sizeSaved(index + 1, size), "ok");
+    if (!out.length) return toast(cb.sizeSaved(index + 1, size), "ok");
+    window.Toast?.show(`${cb.sizeSaved(index + 1, size)} ${out.map(kodeOf).join(", ")}`, "ok", {
+      action: {
+        label: cb.undo,
+        onClick: async () => {
+          await recPost("iv-crew-size", { stage, slotId: s.id, sizes: before });
+          await recPost("iv-crew-set", {
+            stage,
+            slotIds: [s.id],
+            role: "penguji",
+            nims: s.penguji,
+          });
+          crew.refresh();
+        },
+      },
+    } as never);
   }
   /** Saves each slot's new list in turn, then says what happened with one Urungkan that restores them. */
   async function change(
