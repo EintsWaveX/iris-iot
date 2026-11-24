@@ -706,6 +706,65 @@ const bi = (v: unknown, max: number): Bi | null => {
   return id && en ? { id, en } : null;
 };
 
+/** How many sections (groups) a template may have. */
+export const MAX_GROUPS = 16;
+
+/** A group key from a label: letters and digits only, never one already taken. */
+export function groupKey(label: string, taken: readonly string[]): string {
+  const base =
+    label
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .replace(/^[0-9]+/, "")
+      .slice(0, 20) || "bagian";
+  let key = base;
+  for (let n = 2; taken.includes(key); n++) key = `${base.slice(0, 20)}_${n}`;
+  return key;
+}
+
+/** The questions put in the order of the groups, each group's cards keeping their own order. */
+export function sortByGroups(t: IvTemplate): IvTemplate {
+  const at = (k: string) => t.groups.findIndex((g) => g.key === k);
+  return {
+    ...t,
+    questions: t.questions
+      .map((q, i) => ({ q, i }))
+      .sort((a, b) => at(a.q.g) - at(b.q.g) || a.i - b.i)
+      .map((x) => x.q),
+  };
+}
+
+/** One group moved up (-1) or down (1); its cards move with it. */
+export function moveGroup(t: IvTemplate, key: string, dir: -1 | 1): IvTemplate {
+  const i = t.groups.findIndex((g) => g.key === key);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= t.groups.length) return t;
+  const groups = t.groups.slice();
+  [groups[i], groups[j]] = [groups[j], groups[i]];
+  return sortByGroups({ ...t, groups });
+}
+
+/** A group removed, or null while a card still sits in it. */
+export function removeGroup(t: IvTemplate, key: string): IvTemplate | null {
+  if (t.questions.some((q) => q.g === key)) return null;
+  return { ...t, groups: t.groups.filter((g) => g.key !== key) };
+}
+
+/** The card that shows the real test scores gets the flag; no other card keeps it. */
+export function setReveal(t: IvTemplate, id: string, on: boolean): IvTemplate {
+  return {
+    ...t,
+    questions: t.questions.map((q) => {
+      const { reveal: _drop, ...rest } = q;
+      void _drop;
+      return on && q.id === id ? { ...rest, reveal: true } : rest;
+    }),
+  };
+}
+
 /** The cleaned template, or null when something in it cannot be used. */
 export function checkTemplate(v: unknown): IvTemplate | null {
   if (!isObj(v)) return null;
@@ -760,9 +819,10 @@ export function checkTemplate(v: unknown): IvTemplate | null {
     const key =
       typeof raw.key === "string" && /^[a-z][a-z0-9_]{0,23}$/.test(raw.key) ? raw.key : null;
     const label = bi(raw.label, 60);
-    if (!key || !label) return null;
+    if (!key || !label || groups.some((x) => x.key === key)) return null;
     groups.push({ key, label });
   }
+  if (groups.length > MAX_GROUPS) return null;
   const questions: IvQuestion[] = [];
   const qids = new Set<string>();
   for (const raw of Array.isArray(v.questions) ? v.questions : []) {

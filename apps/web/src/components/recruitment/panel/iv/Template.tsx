@@ -27,7 +27,12 @@ import type { Lang } from "../../../../lib/kelas";
 import { unduhDocx, type DocxLine } from "../../../../lib/docx-min";
 import { isFail, recPost, useRecSettings } from "../../../../lib/recruitment/client";
 import {
+  MAX_GROUPS,
   checkTemplate,
+  groupKey,
+  moveGroup,
+  removeGroup,
+  setReveal,
   type Bi,
   type IvParam,
   type IvQuestion,
@@ -218,6 +223,23 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
     [a[i], a[j]] = [a[j], a[i]];
     patch({ questions: a });
     setEd((e) => (e === i ? j : e === j ? i : e));
+  };
+
+  const tambahGroup = () => {
+    if (d.groups.length >= MAX_GROUPS) return toast(p.groups.full, "warn");
+    const key = groupKey(
+      p.newGroup,
+      d.groups.map((x) => x.key),
+    );
+    patch({
+      groups: [...d.groups, { key, label: { id: TP.id.newGroup, en: TP.en.newGroup } }],
+    });
+  };
+  const hapusGroup = (key: string) => {
+    const next = removeGroup(d, key);
+    if (!next) return toast(p.groups.inUse, "warn");
+    setD(next);
+    undoable(p.removedGroup, d);
   };
 
   const unduh = () => {
@@ -546,6 +568,80 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
         </div>
       </section>
 
+      {!mg && (
+        <section className="panel r4tpl__sum">
+          <div className="panel__head">
+            <div className="stack" style={{ gap: 2 }}>
+              <h2 className="panel__title">{p.groups.title}</h2>
+              <span className="hint">{p.groups.hint}</span>
+            </div>
+            {can && (
+              <button
+                type="button"
+                className="btn btn--inverse btn--sm"
+                onClick={tambahGroup}
+                disabled={d.groups.length >= MAX_GROUPS}
+              >
+                <PlusIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{p.groups.add}</span>
+              </button>
+            )}
+          </div>
+          <ul className="r4ptl">
+            {d.groups.map((x, i) => {
+              const n = d.questions.filter((q) => q.g === x.key).length;
+              return (
+                <li key={x.key} data-item="">
+                  <label className="stack stack--sm">
+                    <span className="hint">{p.groups.name}</span>
+                    <input
+                      className="field__input input"
+                      value={x.label[lg(lang)]}
+                      maxLength={60}
+                      disabled={!can}
+                      onChange={(e) =>
+                        patch({
+                          groups: d.groups.map((y, j) =>
+                            j === i ? { ...y, label: setBi(y.label, e.target.value, lang) } : y,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <span className="hint num">{p.groups.cards(n)}</span>
+                  {can && (
+                    <span className="r6ptl__a">
+                      <IconButton
+                        sm
+                        icon={ArrowUpIcon}
+                        label={p.up}
+                        disabled={i === 0}
+                        onClick={() => setD(moveGroup(d, x.key, -1))}
+                      />
+                      <IconButton
+                        sm
+                        icon={ArrowDownIcon}
+                        label={p.down}
+                        disabled={i === d.groups.length - 1}
+                        onClick={() => setD(moveGroup(d, x.key, 1))}
+                      />
+                      <IconButton
+                        sm
+                        kind="danger"
+                        icon={TrashIcon}
+                        label={n ? p.groups.inUse : p.groups.del}
+                        disabled={n > 0}
+                        onClick={() => hapusGroup(x.key)}
+                      />
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {d.groups.length > 0 && (
         <>
           <section className="panel r4tpl__sum">
@@ -718,6 +814,17 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
                                 />
                               </div>
                             </label>
+                            {!mg && (
+                              <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                                <span className="hint">{p.q.reveal}</span>
+                                <Switch
+                                  on={x.reveal === true}
+                                  onChange={(v) => setD(setReveal(d, x.id, v))}
+                                  label={p.q.reveal}
+                                  disabled={!can}
+                                />
+                              </div>
+                            )}
                             <span className="grow" />
                             {can && (
                               <button

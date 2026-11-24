@@ -39,6 +39,7 @@ import Tooltip from "../../../ui/Tooltip";
 import { RB } from "../rollback/rollbackStrings";
 import { Checkbox, Stepper, TimeField } from "../../../ui/Controls";
 import { localeOf } from "../../../../lib/app";
+import { jamServer } from "../../../../lib/jam";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
 import {
@@ -139,15 +140,33 @@ function Kasus({
 }) {
   const t = IV(lang).kasus;
   const tpl = data.template;
-  const [kind, setKind] = useState<CaseKind>("telat");
+  // Nothing is picked until the examiner picks it: the first kind must never be recorded by a reflex.
+  const [kind, setKind] = useState<CaseKind | null>(null);
+  const [sure, setSure] = useState(false);
   const [min, setMin] = useState(tpl.late + 2);
   const [why, setWhy] = useState("akademik");
   const [izin, setIzin] = useState("kuliah");
   const [busy, setBusy] = useState(false);
   const alasan = kind === "telat" ? why : kind === "absen" ? izin : undefined;
-  const out = caseOutcome({ kind, minutes: min, why: alasan }, tpl);
+  const out = caseOutcome({ kind: kind ?? "telat", minutes: min, why: alasan }, tpl);
+  const verb = out.end ? (out.status === "gugur" ? t.recordGugur : t.recordEnd) : t.record;
+  const outText = kasusText(
+    t.out[out.code],
+    stage,
+    lang,
+    data.makeup
+      ? new Intl.DateTimeFormat(localeOf(lang), {
+          timeZone: "Asia/Jakarta",
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(new Date(`${data.makeup}T12:00:00+07:00`))
+      : null,
+  );
   const tone = out.status === "gugur" ? "danger" : out.status === "susulan" ? "warn" : "ok";
   const simpan = async () => {
+    if (!kind) return;
     setBusy(true);
     const r = await recPost<{ ok: true }>("iv-case", {
       stage,
@@ -176,10 +195,10 @@ function Kasus({
           <button
             type="button"
             className={`btn ${out.status === "gugur" ? "btn--danger" : "btn--primary"}`}
-            disabled={busy}
-            onClick={() => void simpan()}
+            disabled={busy || !kind}
+            onClick={() => (out.end ? setSure(true) : void simpan())}
           >
-            {out.end ? (out.status === "gugur" ? t.recordGugur : t.recordEnd) : t.record}
+            {verb}
           </button>
         </>
       }
@@ -234,32 +253,31 @@ function Kasus({
             options={EXCUSE_WHY.map((w) => ({ value: w, label: t.excuseWhy[w] }))}
           />
         )}
-        <div className={`rec-note r4cases__out`} data-t={tone}>
-          <b>
-            {out.status === "gugur"
-              ? t.tag.gugur
-              : out.status === "susulan"
-                ? t.tag.susulan
-                : t.tag.carry}
-          </b>
-          <span>
-            {kasusText(
-              t.out[out.code],
-              stage,
-              lang,
-              data.makeup
-                ? new Intl.DateTimeFormat(localeOf(lang), {
-                    timeZone: "Asia/Jakarta",
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  }).format(new Date(`${data.makeup}T12:00:00+07:00`))
-                : null,
-            )}
-          </span>
-        </div>
+        {kind && (
+          <div className={`rec-note r4cases__out`} data-t={tone}>
+            <b>
+              {out.status === "gugur"
+                ? t.tag.gugur
+                : out.status === "susulan"
+                  ? t.tag.susulan
+                  : t.tag.carry}
+            </b>
+            <span>{outText}</span>
+          </div>
+        )}
       </div>
+      <Confirm
+        open={sure}
+        onOpenChange={setSure}
+        title={verb}
+        body={outText}
+        confirmLabel={verb}
+        lang={lang}
+        onConfirm={async () => {
+          setSure(false);
+          await simpan();
+        }}
+      />
     </Dialog>
   );
 }
@@ -301,7 +319,19 @@ export default function Lembar({
   const [kasus, setKasus] = useState(false);
   const [miss, setMiss] = useState<string | null>(null);
   const [score, setScore] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => jamServer());
+  /** When the last save went through, by the server's clock (the tick only runs after Start) */
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 900,
+  );
+  const inflight = useRef<Promise<boolean> | null>(null);
+  const [leave, setLeave] = useState(false);
+  useEffect(() => {
+    const on = () => setNarrow(window.innerWidth < 900);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
   const [started, setStarted] = useState<string | null>(null);
   const [partnerAt, setPartnerAt] = useState(0);
   const [view, setView] = useState<View>("sheet");
@@ -425,7 +455,7 @@ export default function Lembar({
 
   useEffect(() => {
     if (!started) return;
-    const i = setInterval(() => setNow(Date.now()), 1000);
+    const i = setInterval(() => setNow(jamServer()), 1000);
     return () => clearInterval(i);
   }, [started]);
 
@@ -460,6 +490,9 @@ export default function Lembar({
 
   const flush = useCallback(async (): Promise<boolean> => {
     if (!data || locked) return true;
+    // One save at a time: a slow answer must not send the same change twice.
+    // Whatever changed meanwhile goes out when this one is done (the save state changes, which re-arms the autosave).
+    if (inflight.current) return inflight.current;
     const sent_ = sheetDelta(base.current, {
       answers: ans,
       skipped: skip,
@@ -472,16 +505,33 @@ export default function Lembar({
     });
     if (!sent_) return true;
     setSave("saving");
-    const r = await recPost<{ ok: true }>("iv-sheet-save", { stage, id, ...sent_.body });
-    if (isFail(r)) {
-      setSave("fail");
-      return false;
+    const run = (async (): Promise<boolean> => {
+      const r = await recPost<{ ok: true }>("iv-sheet-save", { stage, id, ...sent_.body });
+      if (isFail(r)) {
+        setSave("fail");
+        return false;
+      }
+      // Only what was sent counts as saved; a change made meanwhile is still pending.
+      base.current = sent_.next;
+      setSavedAt(jamServer());
+      setSave("saved");
+      return true;
+    })();
+    inflight.current = run;
+    try {
+      return await run;
+    } finally {
+      inflight.current = null;
     }
-    // Only what was sent counts as saved; a change made meanwhile is still pending.
-    base.current = sent_.next;
-    setSave("saved");
-    return true;
   }, [data, locked, stage, id, snap]);
+
+  /** Closing the sheet sends what is still typed first; if that fails the examiner is asked. */
+  const tutup = useCallback(async () => {
+    if (inflight.current) await inflight.current;
+    const ok = await flush();
+    if (ok) onClose();
+    else setLeave(true);
+  }, [flush, onClose]);
 
   // Autosave 1.2 s after the last change; a failed save tries again.
   useEffect(() => {
@@ -590,6 +640,7 @@ export default function Lembar({
   const sc = sheetScore(lv, tpl.params);
   const elapsed = started ? Math.max(0, Math.floor((now - new Date(started).getTime()) / 1000)) : 0;
   const over = started ? elapsed > tpl.minutes * 60 : false;
+  const overMax = started ? elapsed > tpl.maxMinutes * 60 : false;
   const grup = (k: string) => {
     if (k === "saya") return L.mine;
     const g = tpl.groups.find((x) => x.key === k);
@@ -666,9 +717,9 @@ export default function Lembar({
   };
   const removeNote = (nid: string) => setAns({ ...ans, [NOTE_PREFIX + nid]: "" });
   const togglePause = () => {
-    if (pauseAt === null) setPauseAt(Date.now());
+    if (pauseAt === null) setPauseAt(jamServer());
     else {
-      setPausedMs((m) => m + (Date.now() - pauseAt));
+      setPausedMs((m) => m + (jamServer() - pauseAt));
       setPauseAt(null);
     }
   };
@@ -766,7 +817,7 @@ export default function Lembar({
   const mulai = async () => {
     const r = await recPost<{ ok: true }>("iv-sheet-save", { stage, id, shared: { start: true } });
     if (isFail(r)) return toast(w.err[r.kode] ?? r.kode, "danger");
-    setStarted(new Date().toISOString());
+    setStarted(new Date(jamServer()).toISOString());
   };
   const tambahKartu = () => {
     const tx = ownText.trim();
@@ -794,7 +845,7 @@ export default function Lembar({
       : save === "fail"
         ? t.saveFail
         : save === "saved"
-          ? L.saved(hm(new Date(now).toISOString()))
+          ? L.saved(hm(new Date(savedAt ?? now).toISOString()))
           : "";
   const nextSlot = mine.data?.slots
     .filter((s) => s.role === "penguji" && Date.parse(s.startsAt) > Date.parse(data.slot.startsAt))
@@ -904,8 +955,9 @@ export default function Lembar({
                 className="hint num"
                 title={L.clockTip(durText(tpl.minutes), durText(tpl.maxMinutes))}
               >
-                {L.clockOf(durShort(tpl.minutes))}
+                {L.clockOf(durShort(tpl.minutes))} · {L.clockMax(durShort(tpl.maxMinutes))}
               </span>
+              {overMax && <Pill tone="danger">{L.overMax}</Pill>}
             </span>
           ) : (
             !locked && (
@@ -947,7 +999,41 @@ export default function Lembar({
   );
 
   let lastG: string | null = null;
-  const narrow = typeof window !== "undefined" && window.innerWidth < 900;
+  const ownBox = (
+    <>
+      {!locked && (
+        <div className="r4own">
+          <input
+            className="field__input input"
+            value={ownText}
+            onChange={(e) => setOwnText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              tambahKartu();
+            }}
+            placeholder={L.own}
+            aria-label={L.ownAria}
+          />
+          <IconButton
+            icon={PlusIcon}
+            label={L.ownAdd}
+            onClick={tambahKartu}
+            disabled={!ownText.trim()}
+          />
+        </div>
+      )}
+      {!locked && (
+        <div style={{ marginTop: 8 }}>
+          <Checkbox
+            checked={ans._lab === "1"}
+            onChange={(v) => setAns({ ...ans, _lab: v ? "1" : "" })}
+            label={L.labToggle}
+          />
+        </div>
+      )}
+    </>
+  );
   const rail = (
     <aside className="r4rail" aria-label={L.rail}>
       <div className="r4rail__sum">
@@ -994,37 +1080,7 @@ export default function Lembar({
           );
         })}
       </ol>
-      {!locked && (
-        <div className="r4own">
-          <input
-            className="field__input input"
-            value={ownText}
-            onChange={(e) => setOwnText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              tambahKartu();
-            }}
-            placeholder={L.own}
-            aria-label={L.ownAria}
-          />
-          <IconButton
-            icon={PlusIcon}
-            label={L.ownAdd}
-            onClick={tambahKartu}
-            disabled={!ownText.trim()}
-          />
-        </div>
-      )}
-      {!locked && (
-        <div style={{ marginTop: 8 }}>
-          <Checkbox
-            checked={ans._lab === "1"}
-            onChange={(v) => setAns({ ...ans, _lab: v ? "1" : "" })}
-            label={L.labToggle}
-          />
-        </div>
-      )}
+      {ownBox}
     </aside>
   );
   const pilih = narrow && list.length > 0 && (
@@ -1043,6 +1099,7 @@ export default function Lembar({
       {!narrow && rail}
       <div className="stack" style={{ minWidth: 0 }}>
         {pilih}
+        {narrow && <div className="stack stack--sm">{ownBox}</div>}
         {q && (
           <section className="panel r4qc" data-key="q">
             <div className="row r4qc__top">
@@ -1574,7 +1631,7 @@ export default function Lembar({
     : mySent
       ? L.sentAt(hm(data.mine.sentAt ?? new Date(now).toISOString()))
       : Object.keys(ans).length || Object.keys(lv).length
-        ? L.saved(hm(new Date(now).toISOString()))
+        ? L.saved(hm(new Date(savedAt ?? now).toISOString()))
         : L.empty;
   const goEdit = () => {
     setView("sheet");
@@ -1702,7 +1759,7 @@ export default function Lembar({
   return (
     <Dialog
       open
-      onOpenChange={(o) => !o && onClose()}
+      onOpenChange={(o) => !o && void tutup()}
       title={tb ? T.sheet : mg ? M.title : L.title[stage]}
       description={subLine}
       lang={lang}
@@ -1730,6 +1787,18 @@ export default function Lembar({
           </>
         )}
       </div>
+      <Confirm
+        open={leave}
+        onOpenChange={setLeave}
+        title={L.unsavedTitle}
+        body={L.unsavedBody}
+        confirmLabel={L.closeAnyway}
+        lang={lang}
+        onConfirm={() => {
+          setLeave(false);
+          onClose();
+        }}
+      />
       <Confirm
         open={!!bukaLain}
         onOpenChange={(o) => !o && setBukaLain(null)}

@@ -32,6 +32,7 @@ interface TpWords {
   };
   removedParam: string;
   removedQuestion: string;
+  removedGroup: string;
   undo: string;
   rules: { title: string; hint: string };
   late: { name: string; hint: string };
@@ -75,7 +76,19 @@ interface TpWords {
     lab: string;
     del: string;
     special: string;
+    reveal: string;
   };
+  groups: {
+    title: string;
+    hint: string;
+    add: string;
+    name: string;
+    cards: (n: number) => string;
+    del: string;
+    inUse: string;
+    full: string;
+  };
+  newGroup: string;
   newQ: string;
   newParam: string;
   newInd: string;
@@ -113,6 +126,7 @@ export const TP = dict<TpWords>({
       one: "Paling sedikit satu parameter",
     },
     removedParam: "Parameter dihapus dari template. Lembar yang sudah terkirim tidak berubah.",
+    removedGroup: "Bagian dihapus dari template.",
     removedQuestion: "Pertanyaan dihapus dari template.",
     undo: "Urungkan",
     rules: {
@@ -167,7 +181,19 @@ export const TP = dict<TpWords>({
       lab: "Mendaftar lab lain",
       del: "Hapus",
       special: "Khusus",
+      reveal: "Tampilkan nilai tes asli di kartu ini",
     },
+    groups: {
+      title: "Bagian",
+      hint: "Bagian mengelompokkan kartu di lembar pewawancara. Menggeser bagian ikut menggeser kartunya. Bagian baru bisa dipakai lewat menu Kelompok di tiap kartu.",
+      add: "Tambah Bagian",
+      name: "Nama bagian",
+      cards: (n) => `${n} kartu`,
+      del: "Hapus",
+      inUse: "Pindahkan dulu kartunya ke bagian lain.",
+      full: "Jumlah bagian sudah maksimal.",
+    },
+    newGroup: "Bagian baru",
     newQ: "Pertanyaan baru",
     newParam: "Parameter baru",
     newInd: "Indikator pertama",
@@ -207,6 +233,7 @@ export const TP = dict<TpWords>({
       one: "At least one parameter",
     },
     removedParam: "Parameter removed from the template. Sheets already sent don't change.",
+    removedGroup: "Section removed from the template.",
     removedQuestion: "Question removed from the template.",
     undo: "Undo",
     rules: {
@@ -261,7 +288,19 @@ export const TP = dict<TpWords>({
       lab: "Applying to another lab",
       del: "Delete",
       special: "Special",
+      reveal: "Show the real test scores on this card",
     },
+    groups: {
+      title: "Sections",
+      hint: "Sections group the cards in the interviewer sheet. Moving a section moves its cards. Use the Group menu on each card to put it in a new section.",
+      add: "Add Section",
+      name: "Section name",
+      cards: (n) => `${n} ${n === 1 ? "card" : "cards"}`,
+      del: "Delete",
+      inUse: "Move its cards to another section first.",
+      full: "The section limit is reached.",
+    },
+    newGroup: "New section",
     newQ: "New question",
     newParam: "New parameter",
     newInd: "First indicator",
@@ -301,6 +340,7 @@ export const TP = dict<TpWords>({
       one: "至少保留一个参数",
     },
     removedParam: "参数已从模板中删除。已提交的表格不受影响。",
+    removedGroup: "环节已从模板中删除。",
     removedQuestion: "问题已从模板中删除。",
     undo: "撤销",
     rules: {
@@ -352,7 +392,19 @@ export const TP = dict<TpWords>({
       lab: "报名其他实验室",
       del: "删除",
       special: "特殊",
+      reveal: "在此卡片显示真实考试分数",
     },
+    groups: {
+      title: "环节",
+      hint: "环节用于在面试官表格中给卡片分组。移动环节时其卡片一同移动。可通过每张卡片的分组菜单把卡片放入新环节。",
+      add: "添加环节",
+      name: "环节名称",
+      cards: (n) => `${n} 张卡片`,
+      del: "删除",
+      inUse: "请先把其中的卡片移到其他环节。",
+      full: "环节数量已达上限。",
+    },
+    newGroup: "新环节",
     newQ: "新问题",
     newParam: "新参数",
     newInd: "第一个指标",

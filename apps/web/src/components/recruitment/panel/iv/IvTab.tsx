@@ -14,6 +14,7 @@ import { Checkbox } from "../../../ui/Controls";
 import Pill from "../../../ui/Pill";
 import TabLine from "../../../ui/TabLine";
 import { href, useTick } from "../../../../lib/app";
+import { selisihJam } from "../../../../lib/jam";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
 import "../../recruitment-cutting.css";
 import type { Lang } from "../../../../lib/kelas";
@@ -27,7 +28,7 @@ import { TeachCard, TeachPj, teachSample, teachTop } from "./TeachSlotku";
 import { PN } from "./penilaianStrings";
 import { IV } from "./ivStrings";
 import { SK } from "./slotStrings";
-import Skeleton from "../../../ui/Skeleton";
+import Memuat from "./Memuat";
 import "../../recruitment-r4.css";
 
 const hari = (iso: string, lang: Lang) =>
@@ -115,7 +116,7 @@ function SlotCard({
 }) {
   const w = IV(lang).mine;
   const k = SK[lang];
-  const now = useTick(30_000);
+  const now = useTick(30_000) + selisihJam();
   const mulai = Date.parse(s.startsAt);
   const selesai = Date.parse(s.endsAt);
   const live = now >= mulai && now <= selesai;
@@ -357,7 +358,7 @@ function Slotku({
   useEffect(() => {
     if (kosong) onEmpty?.();
   }, [kosong]);
-  if (!mine.data) return <Skeleton height={240} />;
+  if (!mine.data) return <Memuat lang={lang} poll={mine} height={240} />;
   if (!mine.data.slots.length)
     return (
       <div className="empty-note">

@@ -17,6 +17,11 @@ interface LmWords {
   recTip: string;
   clockOf: (m: string) => string;
   clockTip: (a: string, b: string) => string;
+  clockMax: (m: string) => string;
+  overMax: string;
+  unsavedTitle: string;
+  unsavedBody: string;
+  closeAnyway: string;
   clock: string;
   start: string;
   stepsAria: string;
@@ -135,6 +140,12 @@ export const LM = dict<LmWords>({
     recTip: "Merekam suara wajib. Kalau rekamannya hilang, catatan jawaban harus lengkap.",
     clockOf: (m) => `dari ${m}`,
     clockTip: (a, b) => `Rencana ${a}. Maksimal ${b}.`,
+    clockMax: (m) => `maks ${m}`,
+    overMax: "Batas waktu lewat",
+    unsavedTitle: "Belum tersimpan",
+    unsavedBody:
+      "Perubahan terakhir belum terkirim ke server. Kalau ditutup sekarang, ketikan terakhir bisa hilang.",
+    closeAnyway: "Tutup Saja",
     clock: "Lama wawancara",
     start: "Mulai Wawancara",
     stepsAria: "Langkah lembar",
@@ -266,6 +277,12 @@ export const LM = dict<LmWords>({
       "Voice recording is required. If the recording is lost, the written answers must be complete.",
     clockOf: (m) => `of ${m}`,
     clockTip: (a, b) => `Planned ${a}. Maximum ${b}.`,
+    clockMax: (m) => `max ${m}`,
+    overMax: "Time limit passed",
+    unsavedTitle: "Not saved yet",
+    unsavedBody:
+      "The last changes did not reach the server. Closing now may lose what you just typed.",
+    closeAnyway: "Close Anyway",
     clock: "Interview time",
     start: "Start Interview",
     stepsAria: "Sheet steps",
@@ -388,6 +405,11 @@ export const LM = dict<LmWords>({
     recTip: "必须录音。若录音丢失，书面记录必须完整。",
     clockOf: (m) => `共 ${m}`,
     clockTip: (a, b) => `计划 ${a}。硬性上限 ${b}。`,
+    clockMax: (m) => `上限 ${m}`,
+    overMax: "已超过时间上限",
+    unsavedTitle: "尚未保存",
+    unsavedBody: "最近的修改还没有发送到服务器。现在关闭可能会丢失刚输入的内容。",
+    closeAnyway: "仍然关闭",
     clock: "面试时长",
     start: "开始面试",
     stepsAria: "表格步骤",
