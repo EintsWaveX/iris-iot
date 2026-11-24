@@ -769,8 +769,10 @@
 .r4tab tr[data-sheet] {
   cursor: pointer;
 }
-.r4tab tr[data-sheet]:hover > td {
-  background: var(--surface-2);
+@media (hover: hover) {
+  .r4tab tr[data-sheet]:hover > td {
+    background: var(--surface-2);
+  }
 }
 .r4tab__open {
   padding: 0;
