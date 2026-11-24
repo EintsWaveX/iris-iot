@@ -15,6 +15,7 @@
  * every Pin dan Skema card follow (api/_lib/pin.ts).
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import HoldConfirm from "../ui/HoldConfirm";
 import { ArrowCounterClockwiseIcon, WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Pill from "../ui/Pill";
@@ -168,15 +169,26 @@ export default function PinDialog({
       lang={lang}
       alt={
         boleh ? (
-          <button
-            type="button"
-            className="btn btn--ghost"
-            disabled={busy || !bedaBawaan}
-            onClick={() => (simpan ? void kirim(null) : (setBaris(bawaan), setPapan(bawaanPapan)))}
-          >
-            <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
-            {t.restore}
-          </button>
+          simpan ? (
+            // A saved version goes back to the default on the server at once: hold, then confirm.
+            <HoldConfirm
+              lang={lang}
+              label={t.restore}
+              what={t.title(label)}
+              disabled={busy || !bedaBawaan}
+              onConfirm={() => kirim(null)}
+            />
+          ) : (
+            <button
+              type="button"
+              className="btn btn--ghost"
+              disabled={busy || !bedaBawaan}
+              onClick={() => (setBaris(bawaan), setPapan(bawaanPapan))}
+            >
+              <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
+              {t.restore}
+            </button>
+          )
         ) : undefined
       }
       actions={

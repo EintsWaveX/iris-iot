@@ -9,8 +9,8 @@
  * Both save through the settings API (audited with before and after).
  */
 import { useState } from "react";
-import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import Dialog from "../../../ui/Dialog";
+import HoldConfirm from "../../../ui/HoldConfirm";
 import SegmentedControl from "../../../ui/SegmentedControl";
 import TabLine from "../../../ui/TabLine";
 import { Stepper } from "../../../ui/Controls";
@@ -257,10 +257,13 @@ export function AturTitikAwal({
       size="lg"
       lang={lang}
       alt={
-        <button type="button" className="btn btn--ghost" disabled={busy || sama} onClick={pulihkan}>
-          <ArrowCounterClockwiseIcon size={18} aria-hidden="true" />
-          <span className="btn__label">{s.restore}</span>
-        </button>
+        <HoldConfirm
+          lang={lang}
+          label={s.restore}
+          what={s.short[stage]}
+          disabled={busy || sama}
+          onConfirm={pulihkan}
+        />
       }
       actions={
         <>
@@ -447,9 +450,13 @@ export function UbahTeksAmplop({
       size="form"
       lang={lang}
       alt={
-        <button type="button" className="btn btn--ghost" disabled={busy} onClick={pulihkanSemua}>
-          {t.reset}
-        </button>
+        <HoldConfirm
+          lang={lang}
+          label={t.reset}
+          what={w.title}
+          disabled={busy}
+          onConfirm={pulihkanSemua}
+        />
       }
       actions={
         <>

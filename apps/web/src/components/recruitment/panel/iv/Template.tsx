@@ -19,6 +19,7 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react";
 import Disclose from "../../../ui/Disclose";
+import HoldConfirm from "../../../ui/HoldConfirm";
 import Dropdown from "../../../ui/Dropdown";
 import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
@@ -1074,14 +1075,24 @@ export default function Template({ lang, stage }: { lang: Lang; stage: IvStage }
           >
             {t.save}
           </button>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            disabled={busy || (!view.custom && !dirty)}
-            onClick={() => (dirty ? setD(structuredClone(saved)) : void pulihkan())}
-          >
-            {dirty ? w.kasus.cancel : t.reset}
-          </button>
+          {dirty ? (
+            <button
+              type="button"
+              className="btn btn--ghost"
+              disabled={busy}
+              onClick={() => setD(structuredClone(saved))}
+            >
+              {w.kasus.cancel}
+            </button>
+          ) : (
+            <HoldConfirm
+              lang={lang}
+              label={t.reset}
+              what={w.title[stage]}
+              disabled={busy || !view.custom}
+              onConfirm={pulihkan}
+            />
+          )}
           {dirty && <span className="hint">{valid ? t.changed : t.invalid}</span>}
           {stage === "wawancara" && (
             <span title={SK[lang].proposalTip}>
