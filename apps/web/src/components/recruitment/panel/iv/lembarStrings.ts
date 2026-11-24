@@ -144,7 +144,7 @@ export const LM = dict<LmWords>({
     recOn: "Rekaman suara: nyala",
     recOff: "Rekaman suara: mati",
     recTip:
-      "Penanda bahwa wawancara direkam (wajib). Menyala sendiri saat kamu menekan Mulai rekam suara; nyalakan manual hanya jika kamu merekam di perangkat lain. Tersimpan di lembar supaya panitia tahu ada rekamannya atau tidak.",
+      "Status rekaman suara, hanya penanda (rekaman bersifat opsional). Menyala selama mikrofon sedang direkam lewat Mulai rekam suara, dan mati bila tidak.",
     clockOf: (m) => `dari ${m}`,
     clockTip: (a, b) => `Rencana ${a}. Maksimal ${b}.`,
     clockMax: (m) => `maks ${m}`,
@@ -289,7 +289,7 @@ export const LM = dict<LmWords>({
     recOn: "Voice recording: on",
     recOff: "Voice recording: off",
     recTip:
-      "Marker that the interview is recorded (required). It turns on by itself when you press Start voice recording; turn it on by hand only if you record on another device. It is saved on the sheet so the committee knows whether a recording exists.",
+      "Voice recording status, display only (recording is optional). It is on while the microphone is being recorded through Start voice recording, and off when it is not.",
     clockOf: (m) => `of ${m}`,
     clockTip: (a, b) => `Planned ${a}. Maximum ${b}.`,
     clockMax: (m) => `max ${m}`,
@@ -425,8 +425,7 @@ export const LM = dict<LmWords>({
     fileOpened: (n) => `${n} 已在新标签页打开。`,
     recOn: "录音：开",
     recOff: "录音：关",
-    recTip:
-      "表示面试已录音的标记（必须录音）。点击“开始录音”时会自动打开；只有在其他设备上录音时才需手动打开。标记会保存在表格上，方便委员会知道是否有录音。",
+    recTip: "录音状态，仅作显示（录音为可选）。通过“开始录音”录制麦克风时为开，否则为关。",
     clockOf: (m) => `共 ${m}`,
     clockTip: (a, b) => `计划 ${a}。硬性上限 ${b}。`,
     clockMax: (m) => `上限 ${m}`,

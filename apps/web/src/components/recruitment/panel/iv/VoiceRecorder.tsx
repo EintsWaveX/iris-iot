@@ -33,6 +33,7 @@ export default function VoiceRecorder({
   id,
   disabled,
   onStart,
+  onLive,
 }: {
   lang: Lang;
   /** The CaAs being interviewed */
@@ -41,10 +42,17 @@ export default function VoiceRecorder({
   disabled: boolean;
   /** The recording began: the sheet's "recording" marker goes on */
   onStart: () => void;
+  /** Whether the microphone is being recorded right now (the sheet's status chip follows it) */
+  onLive?: (on: boolean) => void;
 }) {
   const w = RK[lang];
   const mime = useRef<string | null>(null);
   const [fase, setFase] = useState<Fase>("diam");
+  const live = useRef(onLive);
+  live.current = onLive;
+  useEffect(() => {
+    live.current?.(fase === "rekam");
+  }, [fase]);
   const [galat, setGalat] = useState<"ditolak" | "tak_bisa" | null>(null);
   const [lama, setLama] = useState(0);
   const [kirim, setKirim] = useState(0);

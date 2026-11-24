@@ -318,6 +318,8 @@ export default function Lembar({
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [ba, setBa] = useState("");
   const [rec, setRec] = useState(false);
+  /** The voice recorder is recording right now: the status chip shows exactly this */
+  const [recLive, setRecLive] = useState(false);
   const [tes, setTes] = useState<TesDetail | null>(null);
   const [tesBusy, setTesBusy] = useState(false);
   const [step, setStep] = useState<Step>("tanya");
@@ -955,21 +957,21 @@ export default function Lembar({
             id={id}
             disabled={locked || mySent}
             onStart={() => setRec(true)}
+            onLive={setRecLive}
           />
         )}
         {!mg && !tb && (
-          <button
-            type="button"
+          // A status, not a switch: it is on while the microphone is being recorded, off when it is not (recording is optional).
+          <span
             className="r4rec"
-            aria-pressed={rec}
-            data-warn={!rec && !!started ? "yes" : undefined}
+            role="status"
+            data-on={recLive ? "yes" : undefined}
+            data-warn={!recLive && !!started ? "yes" : undefined}
             title={L.recTip}
-            disabled={locked}
-            onClick={() => setRec(!rec)}
           >
             <RecordIcon size={18} aria-hidden="true" />
-            <span>{rec ? L.recOn : L.recOff}</span>
-          </button>
+            <span>{recLive ? L.recOn : L.recOff}</span>
+          </span>
         )}
         {!mySent &&
           (mg && started ? (
