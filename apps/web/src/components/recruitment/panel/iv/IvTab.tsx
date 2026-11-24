@@ -502,6 +502,8 @@ export default function IvTab({
     ["lead", "mine", "nilai", "template"],
   );
   const [buka, setBuka] = useState<number | null>(null);
+  /** A sheet opened from Penilaian, to read only */
+  const [lihat, setLihat] = useState<number | null>(null);
   const sudahLompat = useRef(false);
   const aktif =
     bag === "template" && !bisaTemplate ? "mine" : bag === "lead" && !lead ? "mine" : bag;
@@ -548,9 +550,19 @@ export default function IvTab({
           }
         />
       ) : aktif === "nilai" ? (
-        <Penilaian lang={lang} stage={stage} />
+        <Penilaian lang={lang} stage={stage} onLihat={setLihat} />
       ) : (
         <Template lang={lang} stage={stage} />
+      )}
+      {lihat !== null && (
+        <Lembar
+          lang={lang}
+          stage={stage}
+          id={lihat}
+          key={`lihat-${lihat}`}
+          lihat
+          onClose={() => setLihat(null)}
+        />
       )}
       {buka !== null && (
         <Lembar

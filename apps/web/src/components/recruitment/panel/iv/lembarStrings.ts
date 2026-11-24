@@ -20,6 +20,7 @@ interface LmWords {
   clockMax: (m: string) => string;
   overMax: string;
   unsavedTitle: string;
+  viewOnly: string;
   unsavedBody: string;
   closeAnyway: string;
   clock: string;
@@ -150,6 +151,7 @@ export const LM = dict<LmWords>({
     clockMax: (m) => `maks ${m}`,
     overMax: "Batas waktu lewat",
     unsavedTitle: "Belum tersimpan",
+    viewOnly: "Hanya dilihat",
     unsavedBody:
       "Perubahan terakhir belum terkirim ke server. Kalau ditutup sekarang, ketikan terakhir bisa hilang.",
     closeAnyway: "Tutup Saja",
@@ -295,6 +297,7 @@ export const LM = dict<LmWords>({
     clockMax: (m) => `max ${m}`,
     overMax: "Time limit passed",
     unsavedTitle: "Not saved yet",
+    viewOnly: "View only",
     unsavedBody:
       "The last changes did not reach the server. Closing now may lose what you just typed.",
     closeAnyway: "Close Anyway",
@@ -431,6 +434,7 @@ export const LM = dict<LmWords>({
     clockMax: (m) => `上限 ${m}`,
     overMax: "已超过时间上限",
     unsavedTitle: "尚未保存",
+    viewOnly: "仅查看",
     unsavedBody: "最近的修改还没有发送到服务器。现在关闭可能会丢失刚输入的内容。",
     closeAnyway: "仍然关闭",
     clock: "面试时长",
