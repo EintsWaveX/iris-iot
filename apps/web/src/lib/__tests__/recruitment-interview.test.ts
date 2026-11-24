@@ -10,6 +10,12 @@ import {
   cleanSizes,
   crewFor,
   crewNeed,
+  groupKey,
+  MAX_GROUPS,
+  moveGroup,
+  removeGroup,
+  setReveal,
+  sortByGroups,
   labelOf,
   levelsDone,
   meanScore,
@@ -81,6 +87,60 @@ describe("checkTemplate", () => {
   it("refuses a question that points at a parameter or group that is gone", () => {
     expect(checkTemplate({ ...W, questions: [{ ...W.questions[0], p: "nope" }] })).toBeNull();
     expect(checkTemplate({ ...W, questions: [{ ...W.questions[0], g: "nope" }] })).toBeNull();
+  });
+});
+
+describe("sections (groups)", () => {
+  const lbl = (x: string) => ({ id: x, en: x });
+
+  it("makes a key from a label that passes the check and is never taken", () => {
+    expect(groupKey("Tes Tulis dan Koding", [])).toBe("tes_tulis_dan_koding");
+    expect(groupKey("Tes Tulis dan Koding", ["tes_tulis_dan_koding"])).toBe(
+      "tes_tulis_dan_koding_2",
+    );
+    expect(groupKey("123 ???", [])).toBe("bagian");
+    expect(groupKey("Kerja Tim", [])).toMatch(/^[a-z][a-z0-9_]{0,23}$/);
+  });
+
+  it("moves a section with its cards, keeping the order inside each", () => {
+    const a = W.groups[0].key;
+    const b = W.groups[1].key;
+    const t = moveGroup(W, a, 1);
+    expect(t.groups[0].key).toBe(b);
+    expect(t.groups[1].key).toBe(a);
+    const seen = t.questions.map((q) => q.g);
+    expect(seen.indexOf(b)).toBeLessThan(seen.indexOf(a));
+    expect(t.questions.filter((q) => q.g === a).map((q) => q.id)).toEqual(
+      W.questions.filter((q) => q.g === a).map((q) => q.id),
+    );
+    expect(checkTemplate(t)).not.toBeNull();
+    expect(moveGroup(W, a, -1)).toBe(W);
+    expect(sortByGroups(W).questions.map((q) => q.id)).toEqual(W.questions.map((q) => q.id));
+  });
+
+  it("deletes only a section no card sits in", () => {
+    expect(removeGroup(W, W.groups[0].key)).toBeNull();
+    const t = { ...W, groups: [...W.groups, { key: "kosong", label: lbl("Kosong") }] };
+    expect(removeGroup(t, "kosong")?.groups).toEqual(W.groups);
+  });
+
+  it("keeps a renamed or added section valid, and refuses a duplicate key or too many", () => {
+    const t = { ...W, groups: [...W.groups, { key: "baru", label: lbl("Baru") }] };
+    expect(checkTemplate(t)).not.toBeNull();
+    expect(checkTemplate({ ...W, groups: [...W.groups, W.groups[0]] })).toBeNull();
+    const many = Array.from({ length: MAX_GROUPS + 1 }, (_, i) => ({
+      key: `g${i}`,
+      label: lbl(`G${i}`),
+    }));
+    expect(checkTemplate({ ...W, groups: many, questions: [] })).toBeNull();
+  });
+
+  it("flags one card to show the real scores, and no other", () => {
+    const id = W.questions[2].id;
+    const t = setReveal(W, id, true);
+    expect(t.questions.filter((q) => q.reveal).map((q) => q.id)).toEqual([id]);
+    expect(setReveal(t, id, false).questions.some((q) => q.reveal)).toBe(false);
+    expect(checkTemplate(t)).not.toBeNull();
   });
 });
 

@@ -886,15 +886,12 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
   const upd: Partial<typeof recSheetShared.$inferInsert> = {};
   const qIds = new Set(a.t.questions.map((q) => q.id));
   const pKeys = new Set(a.t.params.map((x) => x.key));
-  const [old] = await db
-    .select()
-    .from(recSheetShared)
-    .where(and(eq(recSheetShared.candidateId, a.kandidat.id), eq(recSheetShared.stage, stage)))
-    .limit(1);
+  // Only the keys sent are written, and the database merges them into the row in one
+  // statement (jsonb ||), so two examiners saving at once never drop each other's keys.
   if (sh.answers !== undefined) {
     if (typeof sh.answers !== "object" || sh.answers === null || Array.isArray(sh.answers))
       return void tolak(res, "data_salah", 400, { field: "answers" });
-    const merged = { ...(old?.answers ?? {}) };
+    const merged: Record<string, string> = {};
     for (const [k, v] of Object.entries(sh.answers as Record<string, unknown>)) {
       // Cards of the template, and the examiner's own marks (underscore) are the only keys.
       if (!qIds.has(k) && !k.startsWith("_")) continue;
@@ -908,7 +905,7 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
   if (sh.concl !== undefined) {
     if (typeof sh.concl !== "object" || sh.concl === null || Array.isArray(sh.concl))
       return void tolak(res, "data_salah", 400, { field: "concl" });
-    const merged = { ...(old?.concl ?? {}) };
+    const merged: Record<string, string> = {};
     for (const [k, v] of Object.entries(sh.concl as Record<string, unknown>)) {
       if (!pKeys.has(k)) continue;
       const t = bersih(v, 1000);
@@ -933,7 +930,7 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
     upd.verdict = sh.verdict as Verdict | null;
   }
   if (typeof sh.recording === "boolean") upd.recording = sh.recording;
-  if (sh.start === true && !old?.startedAt) upd.startedAt = new Date();
+  if (sh.start === true) upd.startedAt = new Date();
   // Levels are checked before anything is written, so a refused level never leaves a half-saved sheet.
   let levelsBaru: Record<string, number> | null = null;
   if (b.levels !== undefined) {
@@ -964,11 +961,21 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
         )
         .limit(1)
     : [];
+  const [old] = await db
+    .select()
+    .from(recSheetShared)
+    .where(and(eq(recSheetShared.candidateId, a.kandidat.id), eq(recSheetShared.stage, stage)))
+    .limit(1);
   const beda = (x: unknown, y: unknown) => JSON.stringify(x) !== JSON.stringify(y);
+  // Answers and conclusions arrive as the keys that changed, so each key is compared with the row.
+  const kunciBeda = (kirim?: Record<string, string>, ada?: Record<string, string>) =>
+    kirim !== undefined && Object.entries(kirim).some(([k, v]) => (ada?.[k] ?? "") !== v);
   const diubah =
     (levelsBaru !== null &&
       Object.entries(levelsBaru).some(([k, v]) => ownRow?.levels?.[k] !== v)) ||
-    (["answers", "skipped", "concl", "other", "ba", "verdict", "recording"] as const).some(
+    kunciBeda(upd.answers, old?.answers) ||
+    kunciBeda(upd.concl, old?.concl) ||
+    (["skipped", "other", "ba", "verdict", "recording"] as const).some(
       (k) => k in upd && beda(upd[k], old?.[k]),
     );
   const [row] = await db
@@ -983,7 +990,18 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
     })
     .onConflictDoUpdate({
       target: [recSheetShared.candidateId, recSheetShared.stage],
-      set: { ...upd, version: (old?.version ?? 0) + 1, updatedBy: s.nim, updatedAt: now },
+      set: {
+        ...upd,
+        ...(upd.answers ? { answers: sql`${recSheetShared.answers} || excluded.answers` } : {}),
+        ...(upd.concl ? { concl: sql`${recSheetShared.concl} || excluded.concl` } : {}),
+        // The first Start stays; a second press never moves it.
+        ...(upd.startedAt
+          ? { startedAt: sql`coalesce(${recSheetShared.startedAt}, excluded.started_at)` }
+          : {}),
+        version: sql`${recSheetShared.version} + 1`,
+        updatedBy: s.nim,
+        updatedAt: now,
+      },
     })
     .returning({ version: recSheetShared.version });
   if (levelsBaru) {

@@ -19,6 +19,7 @@ import { boothSize, crewNeed, type IvStage } from "../../../../lib/recruitment/i
 import type { RecRights } from "../../../../lib/recruitment/types";
 import { IV } from "./ivStrings";
 import { CB } from "./crewBoardStrings";
+import Memuat from "./Memuat";
 import {
   CrewLane,
   CrewTop,
@@ -27,7 +28,6 @@ import {
   type ExData,
   type LaneEnv,
 } from "./CrewPapan";
-import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
 type Role = "penguji" | "pj_luar" | "pj_dalam";
@@ -162,7 +162,7 @@ export default function CrewBoard({
     return out.sort((x, y) => (x.tone === y.tone ? 0 : x.tone === "danger" ? -1 : 1));
   }, [d, shifts, lang]);
 
-  if (!d) return <Skeleton height={320} />;
+  if (!d) return <Memuat lang={lang} poll={crew} height={320} />;
   const simpan = async (slots: IvCrewSlot[], role: Role, nims: string[]) => {
     setBusy(true);
     const r = await recPost<{ ok: true }>("iv-crew-set", {
@@ -194,7 +194,7 @@ export default function CrewBoard({
         <button
           type="button"
           className="r4ex__x"
-          aria-label={`${t.save} ${kodeOf(nim)}`}
+          aria-label={CB(lang).remove(kodeOf(nim))}
           onClick={onX}
           disabled={busy}
         >

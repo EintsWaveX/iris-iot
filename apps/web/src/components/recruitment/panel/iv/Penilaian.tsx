@@ -31,7 +31,7 @@ import { CK } from "./catatanStrings";
 import EditedMark from "./EditedMark";
 import { ED, fmtEdit } from "./editedStrings";
 import { SK } from "./slotStrings";
-import Skeleton from "../../../ui/Skeleton";
+import Memuat from "./Memuat";
 import "../../recruitment-r4.css";
 
 const TONE = { lolos: "ok", ragu: "warn", cut: "danger" } as const;
@@ -393,7 +393,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
   const [sort, setSort] = useState<Sort>("rata");
   const [openK, setOpenK] = useState<number | null>(null);
   const d = nilai.data;
-  if (!d) return <Skeleton height={240} />;
+  if (!d) return <Memuat lang={lang} poll={nilai} height={240} />;
   if ("mine" in d) return <Lembarku d={d} lang={lang} />;
   if (!d.rows.length) return <p className="empty-note">{w.none}</p>;
 
@@ -591,7 +591,7 @@ export default function Penilaian({ lang, stage }: { lang: Lang; stage: IvStage 
                     <Spread r={r} lang={lang} />
                   </span>
                 </button>
-                <Dots r={r} wide lang={lang} />
+                <Dots r={r} wide={r.wide} lang={lang} />
                 <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                   <Chips r={r} me={me} lang={lang} />
                   <Verd r={r} lang={lang} />
