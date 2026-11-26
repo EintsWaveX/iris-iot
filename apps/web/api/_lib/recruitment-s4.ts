@@ -47,6 +47,8 @@ import {
   LATE_WHY,
   FINAL_MAX,
   NOTE_MAX,
+  SHEET_CONCL_MAX,
+  SHEET_TEXT_MAX,
   caseOutcome,
   checkCatatan,
   boothSize,
@@ -94,7 +96,7 @@ const ROLES = ["penguji", "pj_luar", "pj_dalam"] as const;
 type CrewRole = (typeof ROLES)[number];
 const isRole = (v: unknown): v is CrewRole => (ROLES as readonly unknown[]).includes(v);
 const VERDICTS = ["lolos", "ragu", "cut"] as const;
-const MAX_TEXT = 4000;
+const MAX_TEXT = SHEET_TEXT_MAX;
 
 /** Who may read Penilaian: the Ketua, Akademik and Admin seats, and hakPenuh. */
 const bolehNilai = (p: Awaited<ReturnType<typeof muatPelaku>>): boolean =>
@@ -908,7 +910,7 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
     const merged: Record<string, string> = {};
     for (const [k, v] of Object.entries(sh.concl as Record<string, unknown>)) {
       if (!pKeys.has(k)) continue;
-      const t = bersih(v, 1000);
+      const t = bersih(v, SHEET_CONCL_MAX);
       if (t === null) return void tolak(res, "data_salah", 400, { field: "concl" });
       merged[k] = t;
     }

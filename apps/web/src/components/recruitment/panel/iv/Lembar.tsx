@@ -63,8 +63,12 @@ import {
   EXCUSE_WHY,
   LATE_WHY,
   caseOutcome,
+  SHEET_CONCL_MAX,
+  SHEET_TEXT_MAX,
   sheetMissing,
   sheetScore,
+  viewDone,
+  viewSheets,
   type CaseKind,
   type IvQuestion,
   type IvStage,
@@ -700,7 +704,17 @@ export default function Lembar({
   const pairMeFirst = [...data.pair].sort(
     (a, b) => Number(b.nim === data.me) - Number(a.nim === data.me),
   );
-  const doneParams = tpl.params.filter((p) => lv[p.key] != null && (cl[p.key] ?? "").trim()).length;
+  /** Read only (Penilaian): the viewer has no levels of their own, so the examiners' levels are what is shown. */
+  const vs = lihat
+    ? viewSheets({
+        meKode,
+        mine: { levels: lv, sentAt: data.mine.sentAt },
+        others: data.others,
+      })
+    : [];
+  const doneParams = lihat
+    ? viewDone(vs, cl, tpl.params)
+    : tpl.params.filter((p) => lv[p.key] != null && (cl[p.key] ?? "").trim()).length;
   const simpulLeft = tpl.params.length - doneParams;
   const hm = (iso: string) =>
     new Intl.DateTimeFormat("en-GB", {
@@ -1241,6 +1255,7 @@ export default function Lembar({
               <textarea
                 className="field__input r4qc__a"
                 rows={6}
+                maxLength={SHEET_TEXT_MAX}
                 value={valOf(q.id)}
                 disabled={skipped(q.id) || locked}
                 placeholder={skipped(q.id) ? L.skippedPh : L.answerPh}
@@ -1326,15 +1341,17 @@ export default function Lembar({
               <h3 className="h3">
                 {bi(p.label, lang)} {mg && p.example && <Pill tone="warn">{M.sample}</Pill>}
               </h3>
-              <span className="r4row__v">
-                {v == null ? (
-                  <span className="hint">{L.notYet}</span>
-                ) : (
-                  <>
-                    <b className="num">{v}</b> <span>{bi(tpl.levels[v - p.min], lang)}</span>
-                  </>
-                )}
-              </span>
+              {!lihat && (
+                <span className="r4row__v">
+                  {v == null ? (
+                    <span className="hint">{L.notYet}</span>
+                  ) : (
+                    <>
+                      <b className="num">{v}</b> <span>{bi(tpl.levels[v - p.min], lang)}</span>
+                    </>
+                  )}
+                </span>
+              )}
             </div>
             {p.ind.length > 0 && (
               <ul className="r4ind">
@@ -1354,31 +1371,67 @@ export default function Lembar({
                   ))}
               </ul>
             )}
-            <div
-              className="r4row"
-              data-key={`lv-${p.key}`}
-              data-miss={miss === `lv-${p.key}` ? "yes" : undefined}
-              data-set={v != null ? "yes" : undefined}
-            >
-              <span className="hint">{L.myLevel}</span>
-              <div className="r4seg" role="radiogroup" aria-label={bi(p.label, lang)}>
-                {levels.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    role="radio"
-                    className="r4seg__b"
-                    aria-checked={v === n}
-                    aria-label={`${n}, ${bi(tpl.levels[n - p.min], lang)}`}
-                    disabled={locked}
-                    onClick={() => setLv({ ...lv, [p.key]: n })}
+            {lihat ? (
+              <div
+                className="r4row"
+                data-key={`lv-${p.key}`}
+                data-set={vs.length ? "yes" : undefined}
+              >
+                <span className="hint">{L.lvAll}</span>
+                {vs.length === 0 ? (
+                  <span className="hint">{L.notYet}</span>
+                ) : (
+                  <ul
+                    className="stack stack--sm"
+                    style={{ listStyle: "none", margin: 0, padding: 0 }}
                   >
-                    <b className="num">{n}</b>
-                    <span className="r4seg__w">{bi(tpl.levels[n - p.min], lang)}</span>
-                  </button>
-                ))}
+                    {vs.map((x) => {
+                      const n = x.levels[p.key];
+                      return (
+                        <li key={x.kode} className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                          <b>{x.kode}</b>
+                          {n == null ? (
+                            <span className="hint">{L.notYet}</span>
+                          ) : (
+                            <>
+                              <b className="num">{n}</b>{" "}
+                              <span>{bi(tpl.levels[n - p.min], lang)}</span>
+                            </>
+                          )}
+                          {!x.sentAt && <span className="hint">({L.unsent})</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
-            </div>
+            ) : (
+              <div
+                className="r4row"
+                data-key={`lv-${p.key}`}
+                data-miss={miss === `lv-${p.key}` ? "yes" : undefined}
+                data-set={v != null ? "yes" : undefined}
+              >
+                <span className="hint">{L.myLevel}</span>
+                <div className="r4seg" role="radiogroup" aria-label={bi(p.label, lang)}>
+                  {levels.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      role="radio"
+                      className="r4seg__b"
+                      aria-checked={v === n}
+                      aria-label={`${n}, ${bi(tpl.levels[n - p.min], lang)}`}
+                      disabled={locked}
+                      onClick={() => setLv({ ...lv, [p.key]: n })}
+                    >
+                      <b className="num">{n}</b>
+                      <span className="r4seg__w">{bi(tpl.levels[n - p.min], lang)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <label
               className="stack stack--sm r4row"
               data-key={`cl-${p.key}`}
@@ -1388,6 +1441,7 @@ export default function Lembar({
               <textarea
                 className="field__input"
                 rows={2}
+                maxLength={SHEET_CONCL_MAX}
                 value={cl[p.key] ?? ""}
                 disabled={locked}
                 placeholder={bi(p.eg, lang)}
@@ -1406,6 +1460,7 @@ export default function Lembar({
           <textarea
             className="field__input"
             rows={3}
+            maxLength={SHEET_TEXT_MAX}
             value={other}
             disabled={locked}
             placeholder={mg ? M.otherPh : L.otherPh}
@@ -1461,6 +1516,7 @@ export default function Lembar({
         <textarea
           className="field__input"
           rows={3}
+          maxLength={SHEET_TEXT_MAX}
           value={ba}
           disabled={locked}
           aria-label={mg ? M.baPh : L.baPh}

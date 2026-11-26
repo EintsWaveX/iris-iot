@@ -1177,6 +1177,15 @@ export const NOTE_ROLES = ["pjDalam", "pjLuar", "lain"] as const;
 export const NOTE_MAX = 800;
 export const FINAL_MAX = 1500;
 
+/**
+ * What the sheet's save endpoint accepts (iv-sheet-save). One text over its limit makes the server refuse the
+ * WHOLE autosave, so nothing else on the sheet is saved either; the inputs hold the same limits so that
+ * can never be typed. A note or a question is stored as JSON, so its draft keeps room for that.
+ */
+export const SHEET_TEXT_MAX = 4000;
+export const SHEET_CONCL_MAX = 1000;
+export const SHEET_DRAFT_MAX = 600;
+
 /** The cleaned Catatan from anything stored or sent. Keys the template does not know are dropped. */
 export function checkCatatan(v: unknown, tags: IvTags | null): Catatan {
   if (!isObj(v)) return { ...CATATAN_EMPTY, notes: {} };
@@ -1412,4 +1421,39 @@ export function sheetMissing(d: SheetDraft, params: readonly IvParam[]): string[
   }
   if (!d.verdict) out.push("verdict");
   return out;
+}
+
+/** One examiner's levels, as a read-only view lists them. */
+export interface ViewSheet {
+  kode: string;
+  levels: Record<string, number>;
+  sentAt: string | null;
+}
+
+/**
+ * The examiners whose 1 to 5 levels a read-only view (Penilaian, "Lihat lembar") shows: the viewer's own
+ * sheet when it has levels, then every other examiner's. A viewer outside the pair has no sheet of their own,
+ * so reading only their own levels shows the whole Kesimpulan step empty although the scores are saved.
+ */
+export function viewSheets(f: {
+  meKode: string;
+  mine: { levels: Record<string, number>; sentAt: string | null };
+  others: readonly ViewSheet[];
+}): ViewSheet[] {
+  const own = Object.keys(f.mine.levels).length
+    ? [{ kode: f.meKode, levels: f.mine.levels, sentAt: f.mine.sentAt }]
+    : [];
+  return [...own, ...f.others];
+}
+
+/** Parameters with a conclusion and a level from every examiner shown: the Kesimpulan step's progress in a read-only view. */
+export function viewDone(
+  sheets: readonly ViewSheet[],
+  concl: Record<string, string>,
+  params: readonly IvParam[],
+): number {
+  if (!sheets.length) return 0;
+  return params.filter(
+    (p) => (concl[p.key] ?? "").trim() && sheets.every((x) => x.levels[p.key] != null),
+  ).length;
 }

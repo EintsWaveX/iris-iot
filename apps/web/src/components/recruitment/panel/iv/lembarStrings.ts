@@ -58,6 +58,9 @@ interface LmWords {
   mateLive: (m: string) => string;
   levelHint: (m: string) => string;
   myLevel: string;
+  /** Read-only view: each examiner's level, and a sheet not sent yet */
+  lvAll: string;
+  unsent: string;
   sharedConcl: string;
   other: string;
   otherPh: string;
@@ -197,6 +200,8 @@ export const LM = dict<LmWords>({
     levelHint: (m) =>
       `Tingkat 1 sampai 5 hanya terlihat olehmu sampai ${m} dan kamu sama-sama mengirim, supaya tidak saling memengaruhi. Kesimpulan dan keputusan ditulis berdua.`,
     myLevel: "Tingkatmu (privat)",
+    lvAll: "Tingkat tiap penguji",
+    unsent: "belum dikirim",
     sharedConcl: "Kesimpulan bersama",
     other: "Kesimpulan Lainnya",
     otherPh:
@@ -341,6 +346,8 @@ export const LM = dict<LmWords>({
     levelHint: (m) =>
       `Levels stay hidden from ${m} until you both send, so you don't sway each other. Conclusions and the verdict are written together.`,
     myLevel: "Your level (private)",
+    lvAll: "Each examiner's level",
+    unsent: "not sent yet",
     sharedConcl: "Shared conclusion",
     other: "Other Conclusions",
     otherPh:
@@ -476,6 +483,8 @@ export const LM = dict<LmWords>({
     levelHint: (m) =>
       `在你和 ${m} 都提交之前，等级只有你自己看得到，以免互相影响。结论和结果由两人一起写。`,
     myLevel: "你的等级（私密）",
+    lvAll: "各考官的等级",
+    unsent: "未提交",
     sharedConcl: "共同结论",
     other: "其他结论",
     otherPh: "例如：建议通过，因为五个参数的面试表现都很有希望。",

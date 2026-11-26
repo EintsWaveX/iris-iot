@@ -23,8 +23,13 @@ import {
   levelsDone,
   meanScore,
   redFlag,
+  SHEET_CONCL_MAX,
+  SHEET_DRAFT_MAX,
+  SHEET_TEXT_MAX,
   sheetMissing,
   sheetScore,
+  viewDone,
+  viewSheets,
   spreadScore,
   suggestVerdict,
   turnsFit,
@@ -515,5 +520,66 @@ describe("the cases of the teaching test", () => {
       end: false,
       code: "lewat",
     });
+  });
+});
+
+describe("a read-only view of a sheet (Penilaian, Lihat lembar)", () => {
+  const concl = Object.fromEntries(W.params.map((p) => [p.key, "ok"]));
+  const examiner = (kode: string, n: number, sentAt: string | null = "2026-11-26T10:00:00Z") => ({
+    kode,
+    levels: all(n),
+    sentAt,
+  });
+  const none = { levels: {}, sentAt: null };
+
+  it("a viewer outside the pair has no levels of their own: the examiners' levels are what is shown", () => {
+    const v = viewSheets({
+      meKode: "NUE",
+      mine: none,
+      others: [examiner("TWT", 4), examiner("OCU", 3)],
+    });
+    expect(v.map((x) => x.kode)).toEqual(["TWT", "OCU"]);
+    expect(v[0].levels[W.params[0].key]).toBe(4);
+  });
+  it("a viewer who is also an examiner of the sheet is listed first, with their own levels", () => {
+    const v = viewSheets({
+      meKode: "NUE",
+      mine: { levels: all(5), sentAt: "2026-11-26T09:00:00Z" },
+      others: [examiner("TWT", 4)],
+    });
+    expect(v.map((x) => x.kode)).toEqual(["NUE", "TWT"]);
+    expect(v[0].sentAt).toBe("2026-11-26T09:00:00Z");
+  });
+  it("an examiner who has not sent keeps the mark, so a draft is not read as final", () => {
+    const v = viewSheets({ meKode: "NUE", mine: none, others: [examiner("TWT", 4, null)] });
+    expect(v[0].sentAt).toBeNull();
+  });
+  it("no sheet at all shows nothing and counts nothing", () => {
+    expect(viewSheets({ meKode: "NUE", mine: none, others: [] })).toEqual([]);
+    expect(viewDone([], concl, W.params)).toBe(0);
+  });
+  it("the Kesimpulan progress counts a parameter once every examiner shown has a level and it has a conclusion", () => {
+    const sheets = [examiner("TWT", 4), examiner("OCU", 3)];
+    expect(viewDone(sheets, concl, W.params)).toBe(W.params.length);
+    const k = W.params[0].key;
+    const { [k]: _gone, ...rest } = sheets[1].levels;
+    const partial = [sheets[0], { ...sheets[1], levels: rest }];
+    expect(viewDone(partial, concl, W.params)).toBe(W.params.length - 1);
+    expect(viewDone(sheets, { ...concl, [k]: "  " }, W.params)).toBe(W.params.length - 1);
+  });
+});
+
+describe("the sheet's text limits", () => {
+  it("a conclusion is held tighter than a free text, and both are positive", () => {
+    expect(SHEET_CONCL_MAX).toBeGreaterThan(0);
+    expect(SHEET_CONCL_MAX).toBeLessThan(SHEET_TEXT_MAX);
+  });
+  it("a note or question draft at its limit still fits the free-text limit once stored as JSON, even all quotes", () => {
+    const worst = JSON.stringify({
+      t: "99:59",
+      row: "x".repeat(40),
+      text: '"'.repeat(SHEET_DRAFT_MAX),
+    });
+    expect(worst.length).toBeLessThanOrEqual(SHEET_TEXT_MAX);
   });
 });

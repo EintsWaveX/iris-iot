@@ -11,7 +11,11 @@ import Dropdown from "../../../ui/Dropdown";
 import IconButton from "../../../ui/IconButton";
 import Pill from "../../../ui/Pill";
 import type { Lang } from "../../../../lib/kelas";
-import type { IvTemplate } from "../../../../lib/recruitment/interview";
+import {
+  SHEET_DRAFT_MAX,
+  SHEET_TEXT_MAX,
+  type IvTemplate,
+} from "../../../../lib/recruitment/interview";
 import { IV, bi } from "./ivStrings";
 import { M6 } from "./lembar6Strings";
 
@@ -168,6 +172,7 @@ export function Amati({
             <input
               className="field__input input"
               value={topic}
+              maxLength={SHEET_TEXT_MAX}
               disabled={locked}
               onChange={(e) => setTopic(e.target.value)}
               placeholder={m.topicPh}
@@ -179,6 +184,7 @@ export function Amati({
                 <input
                   className="field__input input"
                   value={txt}
+                  maxLength={SHEET_DRAFT_MAX}
                   onChange={(e) => setTxt(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key !== "Enter") return;
