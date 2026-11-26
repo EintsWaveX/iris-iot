@@ -101,6 +101,16 @@ describe("modulTanggal", () => {
       sumber: null,
     });
   });
+  it("after the last module's week, with every window set: the practicum is over", () => {
+    // Module 2 is taught 26 Oct to 31 Oct; this week (2 Nov) all modules are done.
+    const f = { hariIni: "2026-11-04", jendela, terbuka: [1, 2] };
+    expect(modulTanggal({ ...f, tanggal: "2026-11-04" })).toEqual({ modul: null, sumber: null });
+    expect(modulTanggal({ ...f, tanggal: "2026-10-31" }).modul).toBe(2);
+    // A module still without a window keeps the open-module fallback.
+    expect(
+      modulTanggal({ ...f, jendela: { ...jendela, 3: null }, tanggal: "2026-11-04" }).modul,
+    ).toBe(2);
+  });
   it("on a Sunday the week ahead still counts as this week", () => {
     const r = modulTanggal({
       hariIni: "2026-10-18",

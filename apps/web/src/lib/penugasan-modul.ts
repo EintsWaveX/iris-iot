@@ -147,7 +147,10 @@ export function mingguModulSemua(
  * Which module a slot's date teaches: the session already started there,
  * else the module whose practicum week (mingguModulSemua) holds the date,
  * else the highest open module. A date past every known window and past
- * this week, or in a postponed week, has none.
+ * this week, or in a postponed week, has none. So has a date after the
+ * semester's last module's week once every module has its window (user,
+ * 2026-11-26: the practicum was over after Module 4, yet this week still
+ * ran it through the "highest open module" fallback).
  */
 export function modulTanggal(f: {
   tanggal: string;
@@ -163,14 +166,22 @@ export function modulTanggal(f: {
   const h = hariKe(f.hariIni);
   let akhir = tambahHari(f.hariIni, h === 7 ? 6 : 6 - h);
   const minggu = mingguModulSemua(f.jendela, f.tunda);
+  let terakhir = "";
+  let lengkap = true;
   for (const m of Object.keys(minggu)
     .map(Number)
     .sort((a, b) => a - b)) {
     const w = minggu[m];
-    if (!w) continue;
+    if (!w) {
+      lengkap = false;
+      continue;
+    }
     if (f.tanggal >= w.senin && f.tanggal <= w.sabtu) return { modul: m, sumber: "tp" };
     if (w.sabtu > akhir) akhir = w.sabtu;
+    if (w.sabtu > terakhir) terakhir = w.sabtu;
   }
+  // Every module has had its week: the practicum is over.
+  if (lengkap && terakhir && f.tanggal > terakhir) return { modul: null, sumber: null };
   if (f.tanggal <= akhir && f.terbuka.length)
     return { modul: Math.max(...f.terbuka), sumber: "terbuka" };
   return { modul: null, sumber: null };
