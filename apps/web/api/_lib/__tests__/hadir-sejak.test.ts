@@ -140,7 +140,10 @@ describe("HADIR_SEJAK", () => {
       kunciSlot(1, HADIR_SEJAK),
       new Date(`${HADIR_SEJAK}T12:00:00+07:00`),
     );
-    expect(r).toEqual([expect.objectContaining({ nim: "2020", status: "mangkir" })]);
+    // Everyone reads On Time since 2026-11-16 (SEMUA_TEPAT), even with no check-in.
+    expect(r).toEqual([
+      expect.objectContaining({ nim: "2020", status: "tepat", nolkanUnit: false }),
+    ]);
   });
 
   it("keeps the units of a session from before it that has no check-in rows", async () => {
@@ -150,10 +153,25 @@ describe("HADIR_SEJAK", () => {
     expect(nolTercatat()).toEqual([]);
   });
 
-  it("zeroes the units of a Mangkir on or after it", async () => {
+  it("zeroes nobody's units on or after it: a no-show reads On Time and is paid", async () => {
     isi(HADIR_SEJAK);
     await sinkronUnit(db as never, 5, ctx as never);
+    expect(unitBaru()).toEqual([expect.objectContaining({ nimPenilai: "2020" })]);
+    expect(nolTercatat()).toEqual([]);
+  });
+
+  it("pays a group scored only in SeeLabs (no Kirim Nilai) as a BAP", async () => {
+    isi("2026-10-15");
+    data.set(S.nilaiKirim, []);
+    data.set(S.seelabsBaca, [{ nomor: 1 }]);
+    await sinkronUnit(db as never, 5, ctx as never);
+    expect(unitBaru()).toEqual([expect.objectContaining({ nimPenilai: "2020", kelompokNomor: 1 })]);
+  });
+
+  it("pays nothing for a group neither sent nor in SeeLabs", async () => {
+    isi("2026-10-15");
+    data.set(S.nilaiKirim, []);
+    await sinkronUnit(db as never, 5, ctx as never);
     expect(unitBaru()).toEqual([]);
-    expect(nolTercatat()).toHaveLength(1);
   });
 });

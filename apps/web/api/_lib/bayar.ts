@@ -45,13 +45,19 @@ import {
   kasTarif,
   nilaiKirim,
   pengaturan,
+  seelabsBaca,
   sesi,
   transfer,
   unitBayar,
 } from "../../src/lib/schema.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { boleh } from "../../src/lib/hak.js";
-import { bacaPotongan, riwayatBaru, type StatusHadir } from "../../src/lib/hadir-mengajar.js";
+import {
+  SEMUA_TEPAT,
+  bacaPotongan,
+  riwayatBaru,
+  type StatusHadir,
+} from "../../src/lib/hadir-mengajar.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { bacaAdmin } from "./seelabs-baca.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
@@ -126,7 +132,9 @@ export async function sinkronUnit(
     ]),
   );
   // A group earns its unit once its scores are sent (Kirim Nilai,
-  // 2026-10-09), not at the first score typed.
+  // 2026-10-09), not at the first score typed. A group the read-back found
+  // only in SeeLabs (typed there by hand) counts the same, as a BAP IRIS
+  // records and pays (2026-11-16).
   const terkirim = new Set(
     (
       await db
@@ -135,6 +143,11 @@ export async function sinkronUnit(
         .where(eq(nilaiKirim.sesiId, sesiId))
     ).map((r) => r.nomor),
   );
+  const hanyaSeelabs = await db
+    .select({ nomor: seelabsBaca.kelompokNomor })
+    .from(seelabsBaca)
+    .where(and(eq(seelabsBaca.sesiId, sesiId), eq(seelabsBaca.status, "hanya_seelabs")));
+  for (const r of hanyaSeelabs) terkirim.add(r.nomor);
   // Mangkir zeroes the person's units for this session (2026-10-16).
   const hadir =
     s.status === "selesai" ? await hadirSesi(db, s) : { kunci: null, rows: [] as BarisHadir[] };
@@ -238,6 +251,28 @@ async function sinkronYangBerubah(db: Db, dari: string, sampai: string) {
             and k.jenis in ('akun_seelabs', 'jam_geser', 'hadir_status', 'hadir_izin', 'hadir_tandai')),
           (select max(x.dikirim_pada) from nilai_kirim x where x.sesi_id = s.id)
         )
+        -- a group the read-back found only in SeeLabs, read after the last
+        -- rebuild, that has no unit yet (2026-11-16)
+        or exists (
+          select 1 from seelabs_baca b
+          where b.sesi_id = s.id and b.status = 'hanya_seelabs'
+            and b.dibaca_pada > s.bayar_sinkron_pada
+            and not exists (
+              select 1 from unit_bayar u
+              where u.sesi_id = s.id and u.kelompok_nomor = b.kelompok_nomor
+            )
+        )
+        ${
+          // Everyone is on time (SEMUA_TEPAT): a cut or a zeroed session stored
+          // from the old clock rule, with no PJ status behind it, is rebuilt.
+          SEMUA_TEPAT
+            ? sql`or exists (
+                select 1 from hadir_mengajar h
+                where h.sesi_id = s.id and h.ubah_status is null
+                  and (h.potong_tercatat > 0 or h.nolkan_tercatat or h.unit_hilang > 0)
+              )`
+            : sql``
+        }
       )
     order by s.tanggal
     limit ${SINKRON_PER_PERMINTAAN}`);

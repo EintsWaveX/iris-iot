@@ -337,8 +337,10 @@ async function muatBaris(db: Db, dariSemester: string, sampai: string, nim?: str
     });
     const hitungan = potonganHadir(hitung, h.hitungMangkir, potonganPada(p?.nilai, r.tanggal));
     // What Bayar stored at its last rebuild wins over a recomputation.
-    const nolkan = h.nolkanTercatat ?? hitungan.nolkanUnit;
-    const potong = nolkan ? 0 : (h.potongTercatat ?? hitungan.potong);
+    // A Tepat or Izin row never costs, whatever an older rebuild stored.
+    const bebas = hitung.status === "tepat" || hitung.status === "izin";
+    const nolkan = bebas ? false : (h.nolkanTercatat ?? hitungan.nolkanUnit);
+    const potong = nolkan || bebas ? 0 : (h.potongTercatat ?? hitungan.potong);
     out.push({
       nim: h.nim,
       kunci: h.kunci,

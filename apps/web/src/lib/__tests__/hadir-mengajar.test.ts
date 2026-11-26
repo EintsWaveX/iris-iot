@@ -9,6 +9,7 @@ import {
   baseSlot,
   baseSusulan,
   hitungHadir,
+  hitungHadirJam,
   instanWib,
   potonganHadir,
   saringRp,
@@ -39,44 +40,53 @@ describe("baseSlot / baseSusulan / instanWib", () => {
   });
 });
 
-describe("hitungHadir", () => {
+describe("hitungHadirJam (the clock rule)", () => {
   it("judges the check-in against the base", () => {
-    expect(hitungHadir({ ...dasar, hadir: at("12:25:59") })).toEqual({
+    expect(hitungHadirJam({ ...dasar, hadir: at("12:25:59") })).toEqual({
       status: "tepat",
       menit: null,
     });
-    expect(hitungHadir({ ...dasar, hadir: at("12:26:00") })).toEqual({ status: "telat", menit: 1 });
-    expect(hitungHadir({ ...dasar, hadir: at("12:35:59") })).toEqual({
+    expect(hitungHadirJam({ ...dasar, hadir: at("12:26:00") })).toEqual({
+      status: "telat",
+      menit: 1,
+    });
+    expect(hitungHadirJam({ ...dasar, hadir: at("12:35:59") })).toEqual({
       status: "telat",
       menit: 10,
     });
-    expect(hitungHadir({ ...dasar, hadir: at("12:36:00") })).toEqual({ status: "mm", menit: 10 });
+    expect(hitungHadirJam({ ...dasar, hadir: at("12:36:00") })).toEqual({
+      status: "mm",
+      menit: 10,
+    });
   });
   it("tracks a session with no check-in", () => {
-    expect(hitungHadir({ ...dasar, now: at("12:25:30") }).status).toBe("belum");
-    expect(hitungHadir({ ...dasar, now: at("12:31:40") })).toEqual({
+    expect(hitungHadirJam({ ...dasar, now: at("12:25:30") }).status).toBe("belum");
+    expect(hitungHadirJam({ ...dasar, now: at("12:31:40") })).toEqual({
       status: "berjalan",
       menit: 6,
     });
-    expect(hitungHadir({ ...dasar, now: at("12:44:00") })).toEqual({ status: "lewat", menit: 10 });
-    expect(hitungHadir({ ...dasar, selesai: true }).status).toBe("mangkir");
+    expect(hitungHadirJam({ ...dasar, now: at("12:44:00") })).toEqual({
+      status: "lewat",
+      menit: 10,
+    });
+    expect(hitungHadirJam({ ...dasar, selesai: true }).status).toBe("mangkir");
   });
   it("lets izin and not-expected come first", () => {
-    expect(hitungHadir({ ...dasar, hadir: at("12:40:00"), izin: true }).status).toBe("izin");
-    expect(hitungHadir({ ...dasar, hadir: at("12:40:00"), diharapkan: false }).status).toBe(
+    expect(hitungHadirJam({ ...dasar, hadir: at("12:40:00"), izin: true }).status).toBe("izin");
+    expect(hitungHadirJam({ ...dasar, hadir: at("12:40:00"), diharapkan: false }).status).toBe(
       "lepas",
     );
-    expect(hitungHadir({ ...dasar, selesai: true, diharapkan: false }).status).toBe("lepas");
+    expect(hitungHadirJam({ ...dasar, selesai: true, diharapkan: false }).status).toBe("lepas");
   });
   it("is tepat when the base moves after the check-in", () => {
     const b = instanWib(TGL, 12 * 60 + 45);
-    expect(hitungHadir({ ...dasar, base: b, hadir: at("12:29:31") }).status).toBe("tepat");
+    expect(hitungHadirJam({ ...dasar, base: b, hadir: at("12:29:31") }).status).toBe("tepat");
   });
   it("lets a PJ override win over the clock", () => {
     const x = { ...dasar, hadir: at("12:25:10"), ubah: { status: "telat" as const, menit: 3 } };
-    expect(hitungHadir(x)).toEqual({ status: "telat", menit: 3 });
-    expect(hitungHadir({ ...x, ubah: { status: "mm" } })).toEqual({ status: "mm", menit: 10 });
-    expect(hitungHadir({ ...x, ubah: { status: "mangkir" } })).toEqual({
+    expect(hitungHadirJam(x)).toEqual({ status: "telat", menit: 3 });
+    expect(hitungHadirJam({ ...x, ubah: { status: "mm" } })).toEqual({ status: "mm", menit: 10 });
+    expect(hitungHadirJam({ ...x, ubah: { status: "mangkir" } })).toEqual({
       status: "mangkir",
       menit: null,
     });
@@ -197,5 +207,35 @@ describe("saringRp", () => {
       nim: "3",
       telat: 2,
     });
+  });
+});
+
+describe("hitungHadir (everyone is on time, 2026-11-16)", () => {
+  it("reads a late check-in, a Mangkir Mengajar and a no-show as Tepat with no minutes", () => {
+    expect(hitungHadir({ ...dasar, hadir: at("12:30:00") })).toEqual({
+      status: "tepat",
+      menit: null,
+    });
+    expect(hitungHadir({ ...dasar, hadir: at("12:40:00") })).toEqual({
+      status: "tepat",
+      menit: null,
+    });
+    expect(hitungHadir({ ...dasar, selesai: true })).toEqual({ status: "tepat", menit: null });
+  });
+  it("costs nothing", () => {
+    const h = hitungHadir({ ...dasar, selesai: true });
+    expect(potonganHadir(h, true, { perMenit: 2000, maks: 10 })).toEqual({
+      nolkanUnit: false,
+      potong: 0,
+    });
+  });
+  it("leaves Izin, not expected, the live waiting states and a PJ's own status alone", () => {
+    expect(hitungHadir({ ...dasar, izin: true, selesai: true }).status).toBe("izin");
+    expect(hitungHadir({ ...dasar, diharapkan: false, selesai: true }).status).toBe("lepas");
+    expect(hitungHadir({ ...dasar, now: at("12:25:30") }).status).toBe("belum");
+    expect(hitungHadir({ ...dasar, now: at("12:31:40") }).status).toBe("berjalan");
+    expect(
+      hitungHadir({ ...dasar, hadir: at("12:30:00"), ubah: { status: "telat", menit: 3 } }),
+    ).toEqual({ status: "telat", menit: 3 });
   });
 });

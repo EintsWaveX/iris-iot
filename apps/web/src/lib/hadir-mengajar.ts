@@ -99,8 +99,16 @@ export function instanWib(tanggal: string, menit: number): Date {
 
 type Ubah = { status: StatusHadir; menit?: number | null };
 
-/** Status of one Asisten in one session; a PJ override wins over the clock. */
-export function hitungHadir(x: {
+/**
+ * 2026-11-16 (user): every Asisten's attendance reads On Time in every
+ * session. The clock no longer judges anyone Telat, Mangkir Mengajar or
+ * Mangkir, so nothing is cut and no unit is zeroed by it. Izin stays Izin,
+ * and a status a PJ set by hand (Ubah Status) still wins. Set to false to
+ * bring the clock rule back; nothing else needs to change.
+ */
+export const SEMUA_TEPAT = true;
+
+type MasukanHadir = {
   hadir: Date | null;
   base: Date;
   izin: boolean;
@@ -108,7 +116,19 @@ export function hitungHadir(x: {
   selesai: boolean;
   now: Date;
   ubah?: Ubah | null;
-}): { status: StatusLive; menit: number | null } {
+};
+
+/** Status of one Asisten in one session; a PJ override wins over the clock. */
+export function hitungHadir(x: MasukanHadir): { status: StatusLive; menit: number | null } {
+  const h = hitungHadirJam(x);
+  if (!SEMUA_TEPAT || x.ubah) return h;
+  if (h.status === "telat" || h.status === "mm" || h.status === "mangkir")
+    return { status: "tepat", menit: null };
+  return h;
+}
+
+/** The clock's own judgement (the rule in the header), before SEMUA_TEPAT. */
+export function hitungHadirJam(x: MasukanHadir): { status: StatusLive; menit: number | null } {
   if (x.izin) return { status: "izin", menit: null };
   if (!x.diharapkan) return { status: "lepas", menit: null };
   if (x.ubah) {
