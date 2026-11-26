@@ -8,6 +8,7 @@ import { PlusIcon, XIcon } from "@phosphor-icons/react";
 import IconButton from "../../../ui/IconButton";
 import { dict } from "../../../../lib/app";
 import type { Lang } from "../../../../lib/kelas";
+import { SHEET_DRAFT_MAX, SHEET_TEXT_MAX } from "../../../../lib/recruitment/interview";
 
 export const CATATAN_KEY = "_catatan";
 export const ASKED_PREFIX = "_q:";
@@ -127,6 +128,7 @@ export function Catatan({
         <textarea
           className="field__input r4qc__a"
           rows={10}
+          maxLength={SHEET_TEXT_MAX}
           value={text}
           disabled={locked}
           placeholder={t.ph}
@@ -154,6 +156,7 @@ export function Catatan({
             <input
               className="field__input input"
               value={draft}
+              maxLength={SHEET_DRAFT_MAX}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key !== "Enter") return;
