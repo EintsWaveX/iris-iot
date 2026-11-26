@@ -1475,6 +1475,12 @@ export default function Lembar({
   const kurangSimpul = missing.filter((m) => m !== "verdict").length;
   const putus = (
     <div className="r4end">
+      {mate && (
+        <div className="rec-note r4mate">
+          <span className="r4mate__d" aria-hidden="true" />
+          <span>{partnerAt ? L.mateEndLive(mate) : L.mateEnd(mate)}</span>
+        </div>
+      )}
       <section
         className="panel r4p"
         data-key="verdict"

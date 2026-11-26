@@ -56,6 +56,9 @@ interface LmWords {
   skippedPh: string;
   mate: (m: string) => string;
   mateLive: (m: string) => string;
+  /** The Keputusan step: the verdict, Catatan Khusus and berita acara are shared and live too */
+  mateEnd: (m: string) => string;
+  mateEndLive: (m: string) => string;
   levelHint: (m: string) => string;
   myLevel: string;
   /** Read-only view: each examiner's level, and a sheet not sent yet */
@@ -197,6 +200,9 @@ export const LM = dict<LmWords>({
     mate: (m) => `${m} mengisi dokumen yang sama. Jawaban dan kesimpulan dibagi berdua.`,
     mateLive: (m) =>
       `${m} baru saja menulis di dokumen yang sama. Jawaban dan kesimpulan dibagi berdua.`,
+    mateEnd: (m) => `Keputusan, catatan khusus, dan berita acara dibagi dengan ${m}, langsung.`,
+    mateEndLive: (m) =>
+      `${m} baru saja mengubah sesuatu di sini. Keputusan, catatan khusus, dan berita acara dibagi berdua.`,
     levelHint: (m) =>
       `Tingkat 1 sampai 5 hanya terlihat olehmu sampai ${m} dan kamu sama-sama mengirim, supaya tidak saling memengaruhi. Kesimpulan dan keputusan ditulis berdua.`,
     myLevel: "Tingkatmu (privat)",
@@ -343,6 +349,9 @@ export const LM = dict<LmWords>({
     skippedPh: "This card is skipped.",
     mate: (m) => `${m} is in the same document. Answers and conclusions are shared.`,
     mateLive: (m) => `${m} just wrote in the same document. Answers and conclusions are shared.`,
+    mateEnd: (m) => `The verdict, special notes and berita acara are shared with ${m}, live.`,
+    mateEndLive: (m) =>
+      `${m} just changed something here. The verdict, special notes and berita acara are shared.`,
     levelHint: (m) =>
       `Levels stay hidden from ${m} until you both send, so you don't sway each other. Conclusions and the verdict are written together.`,
     myLevel: "Your level (private)",
@@ -480,6 +489,8 @@ export const LM = dict<LmWords>({
     skippedPh: "这张卡片已跳过。",
     mate: (m) => `${m} 在同一份文件中。回答和结论由两人共享。`,
     mateLive: (m) => `${m} 刚在同一份文件中写了内容。回答和结论由两人共享。`,
+    mateEnd: (m) => `结果、特别备注和会议记录与 ${m} 实时共享。`,
+    mateEndLive: (m) => `${m} 刚在这里做了修改。结果、特别备注和会议记录由两人共享。`,
     levelHint: (m) =>
       `在你和 ${m} 都提交之前，等级只有你自己看得到，以免互相影响。结论和结果由两人一起写。`,
     myLevel: "你的等级（私密）",

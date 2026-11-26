@@ -4,6 +4,7 @@
  */
 import { usePoll } from "../hooks";
 import { isFail, recGet } from "./client";
+import { SYNC_EVERY_MS } from "./iv-sync";
 import type { TesDetail } from "./score-api";
 import type {
   Bi,
@@ -280,7 +281,7 @@ export const useCatatan = (stage: IvStage, id: number, enabled = true) =>
     300_000,
     enabled,
     ["recsheet", "reciv"],
-    1_000,
+    SYNC_EVERY_MS,
     `${stage}:${id}`,
   );
 
