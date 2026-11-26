@@ -2,14 +2,17 @@
  * Catatan Khusus (the interview workbook, 22 Nov 2026): the red notes and plus points a committee member ticks
  * about one CaAs, the label that follows from the ticks, a note of their own and (control seats) the label by
  * hand and the committee's conclusion. Every change is saved on its own, so two people writing about the same
- * CaAs never overwrite each other. Used in the interview sheet, in the PJ's room list and in Penilaian.
+ * CaAs never overwrite each other. A note and the conclusion are saved while they are typed (as the sheet's
+ * answers are), so the other examiner reads them as they are written; leaving the box still saves at once.
+ * Used in the interview sheet, in the PJ's room list and in Penilaian.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Dropdown from "../../../ui/Dropdown";
 import Pill from "../../../ui/Pill";
 import { Checkbox } from "../../../ui/Controls";
 import type { Lang } from "../../../../lib/kelas";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
+import { endsWord, saveDelay } from "../../../../lib/recruitment/iv-sync";
 import { useCatatan, type CatatanResponse } from "../../../../lib/recruitment/iv-client";
 import {
   labelOf,
@@ -46,6 +49,23 @@ export default function CatatanKhusus({
   const [note, setNote] = useState<string | null>(null);
   const [fin, setFin] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const latest = useRef({ note, fin });
+  latest.current = { note, fin };
+  const busy = useRef(false);
+  const flushRef = useRef<() => void>(() => {});
+  const mineNow = d?.catatan.notes.find((n) => n.mine)?.text ?? "";
+  const finNow = d?.catatan.final ?? "";
+  const dirty =
+    (note !== null && note.trim() !== mineNow) || (fin !== null && fin.trim() !== finNow);
+
+  // Typed text goes out soon after a word, or after a short pause, while it is typed. The local copy stays
+  // until the box loses focus: the server keeps the text trimmed, and swapping it in mid-typing would eat a space.
+  useEffect(() => {
+    if (!dirty || state === "saving") return;
+    const word = endsWord(fin !== null && fin.trim() !== finNow ? fin : (note ?? ""));
+    const tm = setTimeout(() => flushRef.current(), saveDelay(word, 0, state === "failed"));
+    return () => clearTimeout(tm);
+  }, [dirty, note, fin, state, finNow]);
 
   if (!d)
     return (
@@ -63,6 +83,18 @@ export default function CatatanKhusus({
   const eff = labelOf(c, d.tags);
 
   const patch = (f: (o: CatatanResponse) => CatatanResponse) => q.ubah((o) => (o ? f(o) : o));
+  flushRef.current = () => {
+    if (busy.current) return;
+    const { note: n, fin: f } = latest.current;
+    const body: Record<string, unknown> = {};
+    if (n !== null && n.trim() !== mine) body.note = n;
+    if (f !== null && f.trim() !== c.final) body.final = f;
+    if (!Object.keys(body).length) return;
+    busy.current = true;
+    void send(body).finally(() => {
+      busy.current = false;
+    });
+  };
 
   const send = async (body: Record<string, unknown>): Promise<boolean> => {
     setState("saving");
