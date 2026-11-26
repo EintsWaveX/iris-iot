@@ -3,8 +3,6 @@
 .minibar {
   align-items: center;
   background: var(--nav-bg-scrolled);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--hairline);
   display: flex;
   gap: 10px;
@@ -69,10 +67,6 @@
   border-radius: 50%;
   height: 8px;
   width: 8px;
-}
-
-:root:not([data-motion-tier="0"]) .minibar__dot {
-  animation: appnav-live 2s ease-out infinite;
 }
 
 .minibar__time {

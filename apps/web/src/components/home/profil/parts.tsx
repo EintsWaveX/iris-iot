@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { useMotionTier } from "../../../lib/hooks";
+import SectionBand from "../../ui/SectionBand";
 import type { Foto, OrangProfil } from "../../../lib/profil";
 
 /**
@@ -99,21 +100,21 @@ export function Kepala({
   ubah?: { href: string; label: string };
 }) {
   return (
-    <div className="pl-head" data-rv>
-      <span className="eyebrow">{eyebrow}</span>
-      <div className="pl-head__row">
-        <h2 className="home__h1" id={id}>
-          {title}
-        </h2>
-        {ubah && (
+    <SectionBand
+      reveal
+      id={id}
+      eyebrow={eyebrow}
+      title={title}
+      lede={lede}
+      action={
+        ubah && (
           <a className="btn btn--ghost btn--sm" href={ubah.href}>
             <span className="btn__label">{ubah.label}</span>
             <CaretRightIcon size={16} weight="bold" aria-hidden="true" />
           </a>
-        )}
-      </div>
-      {lede && <p className="pl-head__lede">{lede}</p>}
-    </div>
+        )
+      }
+    />
   );
 }
 

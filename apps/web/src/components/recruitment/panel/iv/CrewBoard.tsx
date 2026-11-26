@@ -15,10 +15,17 @@ import {
   type IvCrewResponse,
   type IvCrewSlot,
 } from "../../../../lib/recruitment/iv-client";
-import { crewNeed, type IvStage } from "../../../../lib/recruitment/interview";
+import {
+  boothSize,
+  crewNeed,
+  examinerClash,
+  seatShrink,
+  type IvStage,
+} from "../../../../lib/recruitment/interview";
 import type { RecRights } from "../../../../lib/recruitment/types";
 import { IV } from "./ivStrings";
 import { CB } from "./crewBoardStrings";
+import Memuat from "./Memuat";
 import {
   CrewLane,
   CrewTop,
@@ -27,7 +34,6 @@ import {
   type ExData,
   type LaneEnv,
 } from "./CrewPapan";
-import Skeleton from "../../../ui/Skeleton";
 import "../../recruitment-r4.css";
 
 type Role = "penguji" | "pj_luar" | "pj_dalam";
@@ -105,17 +111,6 @@ export default function CrewBoard({
             slotId: s.id,
           });
       }
-      for (const n of [...s.pjOut, ...s.pjIn]) {
-        const o = slots.find((x) => (x.id === s.id || overlap(s, x)) && x.penguji.includes(n));
-        if (o)
-          out.push({
-            tone: "danger",
-            text: t.clashPj(kodeOf(n), o.room),
-            at: at(s),
-            go: s.id,
-            slotId: null,
-          });
-      }
       if (s.booths.length > s.capacity)
         out.push({
           tone: "danger",
@@ -124,7 +119,7 @@ export default function CrewBoard({
           go: s.id,
           slotId: s.id,
         });
-      const kurang = crewNeed(s.booths.length, d.template) - s.penguji.length;
+      const kurang = crewNeed(s.booths.length, d.template, s.crewSizes) - s.penguji.length;
       if (kurang > 0)
         out.push({
           tone: "warn",
@@ -162,7 +157,7 @@ export default function CrewBoard({
     return out.sort((x, y) => (x.tone === y.tone ? 0 : x.tone === "danger" ? -1 : 1));
   }, [d, shifts, lang]);
 
-  if (!d) return <Skeleton height={320} />;
+  if (!d) return <Memuat lang={lang} poll={crew} height={320} />;
   const simpan = async (slots: IvCrewSlot[], role: Role, nims: string[]) => {
     setBusy(true);
     const r = await recPost<{ ok: true }>("iv-crew-set", {
@@ -182,9 +177,8 @@ export default function CrewBoard({
       (x) =>
         !slots.some((s) => s.id === x.id) &&
         slots.some((s) => overlap(s, x)) &&
-        (role === "penguji"
-          ? x.penguji.includes(nim) || x.pjOut.includes(nim) || x.pjIn.includes(nim)
-          : x.penguji.includes(nim)),
+        // An examiner may also be PJ in this room or the next; only two rooms of examining at once clash.
+        examinerClash(role, x, nim),
     );
 
   const chip = (nim: string, onX: () => void, clash: boolean) => (
@@ -194,7 +188,7 @@ export default function CrewBoard({
         <button
           type="button"
           className="r4ex__x"
-          aria-label={`${t.save} ${kodeOf(nim)}`}
+          aria-label={CB(lang).remove(kodeOf(nim))}
           onClick={onX}
           disabled={busy}
         >
@@ -240,7 +234,7 @@ export default function CrewBoard({
     busy,
     kodeOf,
     clashAt,
-    want: (s) => crewNeed(s.booths.length, d.template),
+    want: (s) => crewNeed(s.booths.length, d.template, s.crewSizes),
     when,
     onRemove: (s, nim) =>
       void change(
@@ -249,7 +243,53 @@ export default function CrewBoard({
         "ok",
       ),
     onPlus: (s) => setPick({ role: "penguji", slots: [s] }),
+    onSize: (s, index, size) => void setSize(s, index, size),
   };
+  /**
+   * One CaAs gets `size` examiners (one when the shift is short of Asisten); the others keep theirs.
+   * Fewer seats than examiners seated: the last ones seated at this CaAs step out to the pool first, in the
+   * same step, and one Urungkan puts them and the old count back.
+   */
+  async function setSize(s: IvCrewSlot, index: number, size: number) {
+    const per = Math.max(1, d!.template.per);
+    const before = s.booths.map((_, i) => boothSize(s.crewSizes, i, per));
+    const sizes = before.map((x, i) => (i === index ? size : x));
+    const { nims, out } = seatShrink(s.penguji, before, index, size);
+    setBusy(true);
+    if (out.length) {
+      const r0 = await recPost<{ ok: true }>("iv-crew-set", {
+        stage,
+        slotIds: [s.id],
+        role: "penguji",
+        nims,
+      });
+      if (isFail(r0)) {
+        setBusy(false);
+        crew.refresh();
+        return toast(w.err[r0.kode] ?? t.saveFail, "danger");
+      }
+    }
+    const r = await recPost<{ ok: true }>("iv-crew-size", { stage, slotId: s.id, sizes });
+    setBusy(false);
+    crew.refresh();
+    if (isFail(r)) return toast(w.err[r.kode] ?? t.saveFail, "danger");
+    if (!out.length) return toast(cb.sizeSaved(index + 1, size), "ok");
+    window.Toast?.show(`${cb.sizeSaved(index + 1, size)} ${out.map(kodeOf).join(", ")}`, "ok", {
+      action: {
+        label: cb.undo,
+        onClick: async () => {
+          await recPost("iv-crew-size", { stage, slotId: s.id, sizes: before });
+          await recPost("iv-crew-set", {
+            stage,
+            slotIds: [s.id],
+            role: "penguji",
+            nims: s.penguji,
+          });
+          crew.refresh();
+        },
+      },
+    } as never);
+  }
   /** Saves each slot's new list in turn, then says what happened with one Urungkan that restores them. */
   async function change(
     edits: { s: IvCrewSlot; nims: string[] }[],
@@ -329,7 +369,7 @@ export default function CrewBoard({
         o.id !== dst.id &&
         o.id !== src?.id &&
         overlap(dst, o) &&
-        (o.penguji.includes(x.nim) || o.pjOut.includes(x.nim) || o.pjIn.includes(x.nim)),
+        examinerClash("penguji", o, x.nim),
     );
     const edits = [{ s: dst, nims: next }];
     if (src) edits.unshift({ s: src, nims: src.penguji.filter((n) => n !== x.nim) });

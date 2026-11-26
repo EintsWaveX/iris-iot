@@ -5,7 +5,14 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 
 export default [
   {
-    ignores: ["dist/**", ".astro/**", "node_modules/**", "drizzle/**", ".remember/**"],
+    ignores: [
+      "dist/**",
+      "dist-profile/**",
+      ".astro/**",
+      "node_modules/**",
+      "drizzle/**",
+      ".remember/**",
+    ],
   },
   ...eslintPluginAstro.configs.recommended,
   {

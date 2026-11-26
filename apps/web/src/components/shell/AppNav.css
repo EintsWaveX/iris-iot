@@ -36,8 +36,8 @@
   content: "";
   height: 22px;
   left: 0;
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
-  mask-image: linear-gradient(to bottom, #000, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, var(--hex-000000), transparent);
+  mask-image: linear-gradient(to bottom, var(--hex-000000), transparent);
   pointer-events: none;
   position: absolute;
   right: 0;
@@ -120,8 +120,10 @@
   right: var(--space-3);
 }
 
+/* One pass when the page opens, then still: a loop here sat under the navbar's blur on every page and
+   repainted it on every frame (see the sweep note in controls.css). */
 :root:not([data-motion-tier="0"]) .appnav__link[aria-current="page"]::after {
-  animation: aurora-sweep 5s linear infinite;
+  animation: aurora-sweep 3s ease-out 1;
 }
 
 /* Desktop links are words only; the icons belong to the phone tab bar.
@@ -170,8 +172,10 @@
 .labmenu__t .hint {
   font-size: 0.84rem;
 }
+/* In the menu row the dot sits in the flow. relative, not static: its pulse ring (a ::after, styles/app.css) is
+   positioned against the dot, and against a static dot it was sized to the whole navbar. */
 .labmenu__dot {
-  position: static;
+  position: relative;
 }
 .labmenu__o:active {
   transform: scale(0.98);
@@ -191,19 +195,6 @@
 /* Phase 9 Stage 9: a Konsol PC request waiting for this DEV. */
 .appnav__live-dot--warn {
   background: var(--warn);
-}
-
-:root:not([data-motion-tier="0"]) .appnav__live-dot {
-  animation: appnav-live 2s ease-out infinite;
-}
-
-@keyframes appnav-live {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 8px transparent;
-  }
 }
 
 .appnav__side {
@@ -270,7 +261,7 @@
 }
 
 :root:not([data-motion-tier="0"]) .appnav__tot[aria-current="page"]::after {
-  animation: aurora-sweep 5s linear infinite;
+  animation: aurora-sweep 3s ease-out 1;
 }
 
 .appnav__tot-lamp {
@@ -306,7 +297,8 @@
   left: 50%;
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + var(--nav-size) / 2);
-  transform: translate(-50%, -50%);
+  /* translate, not transform: a button's hover and press lift owns transform, and would drop the centring. */
+  translate: -50% -50%;
 }
 
 .appnav__center .appnav__signin {
@@ -357,6 +349,24 @@
 .disp {
   display: grid;
   gap: 16px;
+}
+
+.disp__range {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.disp__range input[type="range"] {
+  accent-color: var(--accent);
+  flex: 1;
+  min-width: 0;
+}
+
+.disp__range output {
+  color: var(--text);
+  min-width: 3.2ch;
+  text-align: right;
 }
 
 .disp__group {
@@ -493,7 +503,7 @@
 .appnav__avatar[data-pencipta="yes"] {
   box-shadow:
     0 0 0 2px var(--surface-2),
-    0 0 0 4px #ffb36b;
+    0 0 0 4px var(--hex-ffb36b);
 }
 
 .appnav__avatar--lg {
@@ -637,9 +647,11 @@
 /* --------------------------------------------------------- bottom bar */
 
 .appbar {
-  background: var(--panel-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* Mostly solid: at 55% glass, a large heading scrolling under the bar stayed legible through it and fought the
+     tab labels (Beranda over "Integration System"). The blur still lets the sky's colour through. */
+  background: color-mix(in srgb, var(--panel-bg-solid) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
   border-top: 1px solid var(--hairline);
   bottom: 0;
   display: none;
@@ -790,10 +802,13 @@
     left: 50%;
     position: absolute;
     top: calc(env(safe-area-inset-top, 0px) + var(--nav-size) / 2);
-    transform: translate(-50%, -50%);
+    /* The bug the Praktikum button had: this was a transform, so hover and press replaced it and the button jumped sideways. */
+    translate: -50% -50%;
   }
   .appnav__me--mobile {
     display: inline-flex;
+    min-height: 44px;
+    min-width: 44px;
   }
   .appnav__disp-mobile {
     display: inline-grid;
@@ -992,6 +1007,10 @@
   animation: none;
   position: static;
 }
+/* The "Langsung" dot does not pulse (above), so it gets no ring either */
+:root:not([data-motion-tier="0"]) .appnav__langsung .appnav__live-dot::after {
+  content: none;
+}
 
 @media (max-width: 899px) {
   .appnav__langsung-teks {
@@ -1038,5 +1057,12 @@
 @media (max-width: 479px) {
   .appnav[data-tamu="yes"] .navclock--mobile {
     display: none;
+  }
+}
+
+/* The TOT Mode notice sits under the nav on every page: its button is a finger target too. */
+@media (pointer: coarse) {
+  .offline.banner .btn {
+    min-height: 44px;
   }
 }

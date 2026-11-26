@@ -197,7 +197,7 @@
 .day__now b {
   background: var(--ok);
   border-radius: 6px;
-  color: #04130b;
+  color: var(--hex-04130b);
   font-size: 0.72rem;
   left: 50%;
   padding: 1px 6px;
@@ -495,7 +495,7 @@
 .seq__st[data-state="ok"] .seq__node {
   background: var(--ok);
   border-color: var(--ok);
-  color: #04130b;
+  color: var(--hex-04130b);
 }
 
 .seq__st[data-state="warn"] .seq__node {
@@ -1147,4 +1147,11 @@
 .h11card .wclock .mclock__left {
   font-size: 0.6rem;
   max-width: 62px;
+}
+
+/* A finger needs a 44 px target, also on the quiet slots. */
+@media (pointer: coarse) {
+  .day__blk.slot {
+    min-height: 44px;
+  }
 }

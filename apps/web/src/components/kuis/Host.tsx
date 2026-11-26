@@ -14,9 +14,19 @@ import {
   type PengaturanKuis,
 } from "../../lib/kuis/types";
 import type { MotionLevel } from "../recruitment/reveal/fx";
+import Fade from "../ui/Fade";
 import { rayakan, bunyi } from "./fx";
 import type { KuisTeks } from "./kuisStrings";
-import { Angka, Avatar, Cincin, DaftarPapan, Pilihan, useDetikSisa } from "./parts";
+import {
+  Angka,
+  Avatar,
+  Cincin,
+  DaftarPapan,
+  Pilihan,
+  Selimut,
+  useDaftarKeluar,
+  useDetikSisa,
+} from "./parts";
 import type { Aku, Kuis } from "./useKuis";
 
 interface Props {
@@ -90,7 +100,14 @@ function TombolYakin({
   );
 }
 
-function BilahAksi({ v, k, aku, t }: Pick<Props, "v" | "k" | "aku" | "t">) {
+function BilahAksi({
+  v,
+  k,
+  aku,
+  t,
+  ta,
+  setTa,
+}: Pick<Props, "v" | "k" | "aku" | "t"> & { ta: boolean; setTa: (b: boolean) => void }) {
   if (aku.peran === "penonton") {
     return (
       <div className="kz__aksi kz__aksi--info">
@@ -118,14 +135,16 @@ function BilahAksi({ v, k, aku, t }: Pick<Props, "v" | "k" | "aku" | "t">) {
         }
       : f === "buka" || f === "papan"
         ? { label: t.lanjut, tip: t.tip.lanjut, jalan: () => k.kirim({ t: "lanjut" }), mati: false }
-        : f === "podium"
-          ? {
-              label: t.mainLagi,
-              tip: t.tip.mainLagi,
-              jalan: () => k.kirim({ t: "main-lagi" }),
-              mati: false,
-            }
-          : null;
+        : f === "podium" && !ta
+          ? { label: t.lihatTA, tip: t.tip.lihatTA, jalan: () => setTa(true), mati: false }
+          : f === "podium"
+            ? {
+                label: t.mainLagi,
+                tip: t.tip.mainLagi,
+                jalan: () => k.kirim({ t: "main-lagi" }),
+                mati: false,
+              }
+            : null;
   const berjalan = f === "hitung" || f === "soal";
 
   // Space is the host's "next", so the projector never needs a mouse.
@@ -148,6 +167,16 @@ function BilahAksi({ v, k, aku, t }: Pick<Props, "v" | "k" | "aku" | "t">) {
   return (
     <div className="kz__aksi">
       <div className="kz__aksi-kiri">
+        {f === "podium" && ta && (
+          <button
+            type="button"
+            className="btn btn--secondary"
+            data-tip={t.tip.kembaliSkor}
+            onClick={() => setTa(false)}
+          >
+            {t.kembaliSkor}
+          </button>
+        )}
         {f !== "lobi" && f !== "podium" && (
           <TombolYakin
             label={t.selesaikan}
@@ -237,6 +266,7 @@ function Lobi({ v, k, aku, t, kodeSesi }: Props) {
   const alamat = typeof location === "undefined" ? "" : location.host;
   const jumlahOpsi = [5, 10, 15, 25].filter((n) => n <= maks);
   if (!jumlahOpsi.includes(maks)) jumlahOpsi.push(maks);
+  const dinding = useDaftarKeluar(v.pemain, (p) => p.nim);
 
   return (
     <div className="kz__lobi">
@@ -265,18 +295,31 @@ function Lobi({ v, k, aku, t, kodeSesi }: Props) {
           <p className="kz__kosong">{t.belumAda}</p>
         ) : (
           <ul className="kz__dinding-isi">
-            {v.pemain.map((p) => (
-              <li key={p.nim} data-online={p.online ? "1" : "0"} className="kz__pemain-chip">
-                <Avatar nim={p.nim} nama={p.nama} ukuran={30} />
+            {dinding.map(({ item: p, keluar }) => (
+              <li
+                key={p.nim}
+                data-online={p.online ? "1" : "0"}
+                data-keluar={keluar ? "1" : undefined}
+                className="kz__pemain-chip"
+              >
+                <Avatar nim={p.nim} nama={p.nama} ukuran={34} />
                 <span>{p.nama}</span>
-                {bisa && (
+                {bisa && !keluar && (
                   <button
                     type="button"
                     className="kz__x"
                     aria-label={`${t.keluarkan} ${p.nama}`}
                     onClick={() => k.kirim({ t: "tendang", nim: p.nim })}
                   >
-                    ×
+                    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                      <path
+                        d="M6 6l12 12M18 6L6 18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.6"
+                        strokeLinecap="round"
+                      />
+                    </svg>
                   </button>
                 )}
               </li>
@@ -354,7 +397,11 @@ export function Hitung({ detik, siap }: { detik: number | null; siap: string }) 
   return (
     <div className="kz__hitung">
       <span className="kz__hitung-siap">{siap}</span>
-      <b key={detik ?? "x"} className="kz__hitung-angka">
+      <b
+        key={detik ?? "x"}
+        className="kz__hitung-angka"
+        data-go={detik && detik > 0 ? undefined : "1"}
+      >
         {detik && detik > 0 ? detik : "GO!"}
       </b>
     </div>
@@ -406,7 +453,9 @@ function Soal({ v, k, t }: Props) {
         </div>
         <span>{t.terjawabN(v.terjawab, v.jumlahOnline)}</span>
       </div>
-      {v.dijeda && <div className="kz__jeda">{t.jeda}</div>}
+      <Selimut tampil={v.dijeda} kelas="kz__jeda" role="status">
+        {t.jeda}
+      </Selimut>
     </div>
   );
 }
@@ -477,13 +526,35 @@ function Papan({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
 
 // -------------------------------------------------------------- podium
 
-function Podium({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
+function Podium({ v, t, m, ta }: Pick<Props, "v" | "t" | "m"> & { ta: boolean }) {
   useEffect(() => {
     bunyi("juara");
     void rayakan(m, true);
   }, [m]);
   const top = v.papan.slice(0, 3);
   const urutan = [top[1], top[0], top[2]];
+  // The next button swaps the podium for each player's final TA score; the swap fades like every other screen.
+  return (
+    <Fade k={ta ? "ta" : "skor"} className="kz__podium-ganti">
+      {ta ? (
+        <NilaiTA v={v} t={t} m={m} />
+      ) : (
+        <PodiumSkor v={v} t={t} m={m} top={top} urutan={urutan} />
+      )}
+    </Fade>
+  );
+}
+
+function PodiumSkor({
+  v,
+  t,
+  m,
+  top,
+  urutan,
+}: Pick<Props, "v" | "t" | "m"> & {
+  top: LihatHost["papan"];
+  urutan: (LihatHost["papan"][number] | undefined)[];
+}) {
   return (
     <div className="kz__podium-layar">
       <h2 className="kz__judul-besar">{t.podiumTitle}</h2>
@@ -527,9 +598,37 @@ function Podium({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
       </div>
       {v.papan.length > 3 && (
         <div className="kz__podium-sisa">
-          <DaftarPapan baris={v.papan.slice(3)} m={m} t={t} maks={5} />
+          <DaftarPapan baris={v.papan.slice(3)} m={m} t={t} maks={v.papan.length} />
         </div>
       )}
+    </div>
+  );
+}
+
+/** Everyone's final TA score, 0 to 100: right answers first, speed a small bonus (see lib/kuis/ta.ts). */
+function NilaiTA({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
+  return (
+    <div className="kz__podium-layar kz__ta">
+      <h2 className="kz__judul-besar">{t.taTitle}</h2>
+      <p className="kz__ta-rumus">{t.taRumus(v.total)}</p>
+      <ol className="kz__ta-daftar">
+        {v.papan.map((b) => (
+          <li key={b.nim} data-top={b.peringkat <= 3 ? b.peringkat : undefined}>
+            <span className="kz__papan-rank">{b.peringkat}</span>
+            <Avatar nim={b.nim} nama={b.nama} />
+            <span className="kz__papan-nama">
+              <b>{b.nama}</b>
+              {b.kelompok !== null && <small>{t.rataKelompok(b.kelompok)}</small>}
+            </span>
+            <span className="kz__ta-poin mono">
+              {b.skor.toLocaleString()} <small>{t.skor}</small>
+            </span>
+            <b className="kz__ta-nilai" aria-label={`${t.taNilai} ${b.ta}`}>
+              <Angka nilai={b.ta} m={m} durasi={1.1} awal={0} />
+            </b>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -540,28 +639,32 @@ export default function HostLayar(p: Props) {
   const { v, k, t, m } = p;
   const sisaHitung = useDetikSisa(v.akhir, v.sisa, k.sekarang, v.fase === "hitung");
   const lalu = useRef<number | null>(null);
+  const [ta, setTa] = useState(false);
+  useEffect(() => {
+    if (v.fase !== "podium") setTa(false);
+  }, [v.fase]);
   useEffect(() => {
     if (v.fase !== "hitung" || sisaHitung === null || sisaHitung === lalu.current) return;
     lalu.current = sisaHitung;
     bunyi(sisaHitung > 0 ? "tik" : "go");
   }, [v.fase, sisaHitung]);
 
+  // Each phase fades out and the next fades in (Fade holds the old one 120 ms); the frame and the bar stay put.
   return (
     <>
-      <main
-        className="kz__tubuh"
-        data-fase={v.fase}
-        key={`${v.fase}-${v.nomor}`}
-        data-anim={m === "reduce" ? undefined : "1"}
-      >
-        {v.fase === "lobi" && <Lobi {...p} />}
-        {v.fase === "hitung" && <Hitung detik={sisaHitung} siap={t.siap} />}
-        {v.fase === "soal" && v.soal && <Soal {...p} />}
-        {v.fase === "buka" && v.soal && v.buka && <Buka v={v} t={t} />}
-        {v.fase === "papan" && <Papan v={v} t={t} m={m} />}
-        {v.fase === "podium" && <Podium v={v} t={t} m={m} />}
+      <main className="kz__tubuh" data-fase={v.fase}>
+        <Fade k={`${v.fase}-${v.nomor}`} className="kz__tahap">
+          {v.fase === "lobi" && <Lobi {...p} />}
+          {v.fase === "hitung" && <Hitung detik={sisaHitung} siap={t.siap} />}
+          {v.fase === "soal" && v.soal && <Soal {...p} />}
+          {v.fase === "buka" && v.soal && v.buka && <Buka v={v} t={t} />}
+          {v.fase === "papan" && <Papan v={v} t={t} m={m} />}
+          {v.fase === "podium" && <Podium v={v} t={t} m={m} ta={ta} />}
+        </Fade>
       </main>
-      <BilahAksi v={v} k={k} aku={p.aku} t={t} />
+      <Fade k={v.fase} className="kz__aksi-wrap">
+        <BilahAksi v={v} k={k} aku={p.aku} t={t} ta={ta} setTa={setTa} />
+      </Fade>
     </>
   );
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "rec_slot" ADD COLUMN "crew_sizes" jsonb;

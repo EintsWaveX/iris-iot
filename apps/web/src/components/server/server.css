@@ -71,6 +71,20 @@
   text-transform: uppercase;
 }
 
+/* The label sits on the painted sky (Nov 2026), so it is a small frosted chip. */
+.seplabel > span {
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: 999px;
+  color: var(--text);
+  padding: 4px 14px;
+}
+
+:root[data-detail="ldm"] .seplabel > span,
+:root[data-motion-tier="0"] .seplabel > span {
+  background: var(--surface-1);
+}
+
 .seplabel::before,
 .seplabel::after {
   background: var(--hairline-strong);

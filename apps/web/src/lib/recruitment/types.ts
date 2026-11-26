@@ -798,6 +798,12 @@ export interface CutRowView {
     mean: number | null;
     spread: number | null;
     wide: boolean;
+    /** A red flag: Attitude or Komitmen rated low, so a Fix Lolos is held at Ragu-ragu */
+    flag: boolean;
+    /** Catatan Khusus: the label and how many red notes and plus points (null with no checklist) */
+    label: "jago" | "perhatian" | "banyak" | "standar" | null;
+    red: number;
+    plus: number;
     verdict: "lolos" | "ragu" | "cut" | null;
     suggested: "lolos" | "ragu" | "cut" | null;
     sheets: number;
@@ -894,13 +900,25 @@ export interface CutDetailResponse {
     mean: number | null;
     spread: number | null;
     wide: boolean;
+    flag: boolean;
     verdict: "lolos" | "ragu" | "cut" | null;
     suggested: "lolos" | "ragu" | "cut" | null;
-    sheets: { by: string; score: number }[];
+    sheets: { by: string; score: number; editedAt?: string | null; edits?: number }[];
     expected: number;
     case: { kind: string; status: "susulan" | "gugur" | null } | null;
     /** The examiners' shared conclusion per parameter, empty text when none was written */
     conclusions: { label: { id: string; en: string }; text: string }[];
+    /** Catatan Khusus written out: null when the template has no checklist */
+    catatan: {
+      label: "jago" | "perhatian" | "banyak" | "standar";
+      /** The label was picked by hand */
+      manual: boolean;
+      red: { id: string; en: string }[];
+      plus: { id: string; en: string }[];
+      /** `who` is an examiner's code, or pjDalam, pjLuar, lain */
+      notes: { who: string; text: string }[];
+      final: string;
+    } | null;
   } | null;
   /** Who proposed what and when in this stage, newest first */
   history: { proposal: Proposal | null; by: string; at: string; note: string | null }[];

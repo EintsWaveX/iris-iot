@@ -19,6 +19,7 @@ import {
 } from "react";
 import { DoorOpenIcon } from "@phosphor-icons/react";
 import { getJson, href, tanggalPanjang, type Me } from "../../../lib/app";
+import { hariIniWib } from "../../../lib/jadwal";
 import type { Lang } from "../../../lib/kelas";
 import { openSignIn } from "../../../lib/signin";
 import { useSegar } from "../../../lib/siaran";
@@ -34,6 +35,7 @@ import {
 import Dialog from "../../ui/Dialog";
 import LihatGrup, { type Grup } from "./LihatGrup";
 import Lightbox, { type FotoLihat } from "./Lightbox";
+import SectionBand from "../../ui/SectionBand";
 import { Avatar, Gambar, Hitung, Kepala, miring, useGerakProfil, useMuncul } from "./parts";
 import { P } from "./profilStrings";
 import { FilosofiLogo, TentangLab } from "./Tentang";
@@ -41,6 +43,8 @@ import RecBanner from "../../recruitment/home-banner/RecBanner";
 import type { PollState } from "../../../lib/hooks";
 import type { BannerResponse } from "../../../lib/recruitment/types";
 import "./profil.css";
+// After profil.css on purpose: the glass readouts and spacing of the Nov 2026 hero override its rules.
+import "../observatory.css";
 
 // Swiper loads only when the events come into the page, not with every
 // page's shared chunk.
@@ -78,26 +82,49 @@ export function HeroLab({ lang, data }: { lang: Lang; data: ProfilData | null | 
     (e.target as HTMLElement).classList.add("is-set");
   return (
     <section className="pl-hero" onAnimationEnd={set} aria-labelledby="pl-hero-title">
-      <div
-        className="pl-hero__mark pl-blend"
-        style={{ "--i": 0 } as CSSProperties}
-        aria-hidden="true"
-      >
-        <span className="pl-hero__aura">
-          <i />
-          <i />
-          <i />
-        </span>
-        <img
-          src="/brand/iris-logo-1200.webp"
-          srcSet="/brand/iris-logo-640.webp 640w, /brand/iris-logo-1200.webp 1200w"
-          sizes="(max-width: 720px) 78vw, 560px"
-          alt=""
-          width={1200}
-          height={567}
-          fetchPriority="high"
-        />
-        <span className="pl-hero__shine" />
+      <div className="pl-hero__stage">
+        <div
+          className="pl-hero__mark pl-blend"
+          style={{ "--i": 0 } as CSSProperties}
+          aria-hidden="true"
+        >
+          <span className="pl-hero__aura">
+            <i />
+            <i />
+            <i />
+          </span>
+          <img
+            src="/brand/iris-logo-1200.webp"
+            srcSet="/brand/iris-logo-640.webp 640w, /brand/iris-logo-1200.webp 1200w"
+            sizes="(max-width: 720px) 78vw, 560px"
+            alt=""
+            width={1200}
+            height={567}
+            fetchPriority="high"
+          />
+          <span className="pl-hero__shine" />
+        </div>
+        {/* Glass readouts around the logo; 3 mirrors 1 and 4 mirrors 2 (see observatory.css). */}
+        <dl className="pl-orbit pl-blend" style={{ "--i": 4 } as CSSProperties}>
+          <div className="pl-orb pl-orb--1">
+            <Hitung to={asisten} tier={tier} />
+            <dt>{t.statAsisten}</dt>
+          </div>
+          <div className="pl-orb pl-orb--2">
+            <Hitung to={6} tier={tier} />
+            <dt>{t.statDivisi}</dt>
+          </div>
+          <div className="pl-orb pl-orb--3">
+            <Hitung to={4} tier={tier} />
+            <dt>{t.statModul}</dt>
+          </div>
+          {acara !== 0 && (
+            <div className="pl-orb pl-orb--4">
+              <Hitung to={acara} tier={tier} />
+              <dt>{t.statAcara}</dt>
+            </div>
+          )}
+        </dl>
       </div>
       <h1
         className="home__display pl-hero__title pl-blend"
@@ -120,26 +147,6 @@ export function HeroLab({ lang, data }: { lang: Lang; data: ProfilData | null | 
           <DoorOpenIcon size={20} weight="bold" aria-hidden="true" />
         </button>
       </div>
-      <dl className="pl-stats pl-blend" style={{ "--i": 4 } as CSSProperties}>
-        <div className="pl-stat">
-          <Hitung to={asisten} tier={tier} />
-          <dt>{t.statAsisten}</dt>
-        </div>
-        <div className="pl-stat">
-          <Hitung to={6} tier={tier} />
-          <dt>{t.statDivisi}</dt>
-        </div>
-        <div className="pl-stat">
-          <Hitung to={4} tier={tier} />
-          <dt>{t.statModul}</dt>
-        </div>
-        {acara !== 0 && (
-          <div className="pl-stat">
-            <Hitung to={acara} tier={tier} />
-            <dt>{t.statAcara}</dt>
-          </div>
-        )}
-      </dl>
     </section>
   );
 }
@@ -377,6 +384,41 @@ function DialogAcara({ lang, a, onClose }: { lang: Lang; a: Acara; onClose: () =
   );
 }
 
+/* ============================================================ closing */
+
+/** A visitor's last section: the two ways in again, and the next event if one is coming. */
+function PenutupLab({ lang, data }: { lang: Lang; data: ProfilData }) {
+  const t = P[lang];
+  const hariIni = hariIniWib();
+  const next = data.acara
+    .filter((a) => a.tanggal.slice(0, 10) >= hariIni)
+    .sort((a, b) => a.tanggal.localeCompare(b.tanggal))[0];
+  const lede = next
+    ? t.closeNext(teksDi(next.judul, lang), tanggalPanjang(next.tanggal, lang))
+    : t.closeLede;
+  return (
+    <section className="pl-sec pl-close" aria-labelledby="pl-close">
+      <SectionBand
+        reveal
+        id="pl-close"
+        title={t.closeTitle}
+        lede={lede}
+        action={
+          <div className="pl-close__cta">
+            <a className="btn btn--lg" href={href(lang, "/modules")}>
+              {t.browse}
+            </a>
+            <button type="button" className="btn btn--primary btn--lg" onClick={() => openSignIn()}>
+              <span className="btn__label">{t.praktikum}</span>
+              <DoorOpenIcon size={20} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
+        }
+      />
+    </section>
+  );
+}
+
 /* ================================================================ page */
 
 export default function ProfilLab({
@@ -488,6 +530,8 @@ export default function ProfilLab({
               </Suspense>
             </section>
           )}
+
+          {hero && <PenutupLab lang={lang} data={data} />}
         </>
       )}
       {divNow && <LihatGrup lang={lang} g={divNow} onClose={() => setDiv(null)} />}

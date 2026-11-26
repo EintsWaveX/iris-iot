@@ -1,0 +1,403 @@
+/* =====================================================================
+   Observatory layer (17 Nov 2026). The hunt wears the IRIS site's Home
+   Observatory look: a painted sky (Night Watch in dark, Golden Hour in
+   light), glass bars and cards with solid reading plates inside them, and
+   fades on everything that comes and goes. Written for a phone on a
+   hotspot: the sky is plain CSS gradients (no canvas, no image, nothing to
+   download), the only thing that moves is one slow cloud drift on the
+   compositor, and blur is kept to the few bars and sheets. Sun mode
+   (outdoors) keeps its solid white `.hunt` page on top of the sky, so
+   nothing here can lower its contrast. Loaded after app.css.
+   ===================================================================== */
+.huntapp[data-sun="no"] {
+  --glass-card: rgba(15, 18, 34, 0.8);
+  --glass-bd: rgba(205, 220, 255, 0.28);
+  --glass-hi: rgba(255, 255, 255, 0.09);
+  --glass-sh: rgba(2, 3, 12, 0.5);
+  --glass-bar: rgba(10, 12, 24, 0.78);
+  background:
+    radial-gradient(
+      1.2px 1.2px at 9% 16%,
+      rgba(255, 255, 255, 0.9) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1px 1px at 23% 7%,
+      rgba(255, 255, 255, 0.7) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1.4px 1.4px at 41% 13%,
+      rgba(255, 255, 255, 0.85) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1px 1px at 57% 5%,
+      rgba(255, 255, 255, 0.65) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1.2px 1.2px at 71% 19%,
+      rgba(255, 255, 255, 0.8) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1px 1px at 93% 9%,
+      rgba(255, 255, 255, 0.7) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1px 1px at 15% 38%,
+      rgba(255, 255, 255, 0.5) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1.2px 1.2px at 86% 33%,
+      rgba(255, 255, 255, 0.55) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      circle at 86% 9%,
+      rgba(255, 238, 196, 0.34),
+      transparent 11%
+    ),
+    linear-gradient(
+      112deg,
+      transparent 18%,
+      rgba(94, 234, 212, 0.1) 34%,
+      rgba(167, 139, 250, 0.15) 50%,
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse 140% 46% at 50% 110%,
+      rgba(251, 113, 133, 0.36),
+      rgba(139, 92, 246, 0.28) 46%,
+      transparent 74%
+    ),
+    linear-gradient(180deg, #060818 0%, #0e1030 46%, #1b1544 100%);
+}
+.huntapp[data-sun="no"][data-t="light"] {
+  --glass-card: rgba(255, 255, 255, 0.88);
+  --glass-bd: rgba(16, 34, 70, 0.2);
+  --glass-hi: rgba(255, 255, 255, 0.9);
+  --glass-sh: rgba(40, 70, 120, 0.22);
+  --glass-bar: rgba(247, 251, 255, 0.82);
+  background:
+    radial-gradient(
+      circle at 12% 7%,
+      rgba(255, 244, 190, 0.95),
+      rgba(255, 226, 160, 0.4) 9%,
+      transparent 22%
+    ),
+    radial-gradient(
+      ellipse 150% 40% at 50% 108%,
+      rgba(255, 190, 150, 0.7),
+      transparent 70%
+    ),
+    linear-gradient(180deg, #a6d4ff 0%, #cde6ff 40%, #ffeccf 80%, #ffd8b6 100%);
+}
+
+/* one slow drift of soft clouds, behind everything, on the compositor */
+.huntapp[data-sun="no"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    radial-gradient(
+      ellipse 14% 7% at 12% 24%,
+      rgba(190, 170, 255, 0.5),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 18% 8% at 37% 62%,
+      rgba(150, 190, 255, 0.4),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 15% 7% at 62% 30%,
+      rgba(210, 170, 255, 0.45),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 20% 9% at 86% 70%,
+      rgba(170, 200, 255, 0.4),
+      transparent 70%
+    );
+}
+.huntapp[data-sun="no"][data-t="light"]::before {
+  opacity: 0.9;
+  background:
+    radial-gradient(
+      ellipse 14% 7% at 12% 24%,
+      rgba(255, 255, 255, 0.85),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 18% 8% at 37% 62%,
+      rgba(255, 255, 255, 0.7),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 15% 7% at 62% 30%,
+      rgba(255, 255, 255, 0.8),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 20% 9% at 86% 70%,
+      rgba(255, 255, 255, 0.7),
+      transparent 70%
+    );
+}
+.huntapp[data-sun="no"] .huntapp__scroll {
+  position: relative;
+  z-index: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .huntapp[data-sun="no"]:not(.reduce)::before {
+    animation: hsky-drift 150s linear infinite alternate;
+  }
+}
+@keyframes hsky-drift {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Glass: the bars and the top-level cards. Cards are dense (no blur, easy on a
+   phone); the bars and the sheets blur a little. Anything inside a card stays a
+   solid reading plate, so text never sits on a light-on-light stack. */
+.huntapp[data-sun="no"] .hbar,
+.huntapp[data-sun="no"] .hbottom {
+  background: var(--glass-bar);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+}
+.huntapp[data-sun="no"] .hbar {
+  border-bottom-color: var(--glass-bd);
+  box-shadow: inset 0 -1px 0 var(--glass-hi);
+}
+.huntapp[data-sun="no"] .hbottom {
+  border-top-color: var(--glass-bd);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
+}
+.huntapp[data-sun="no"] .card,
+.huntapp[data-sun="no"] .card--raised,
+.huntapp[data-sun="no"] .slane,
+.huntapp[data-sun="no"] .smeta {
+  background: var(--glass-card);
+  border-color: var(--glass-bd);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
+}
+/* the glass border must not erase the group colour the race card, the award card and the projector lanes carry */
+.huntapp[data-sun="no"] .hrace,
+.huntapp[data-sun="no"] .haward {
+  border-top-color: var(--g);
+}
+.huntapp[data-sun="no"] .slane {
+  border-left-color: var(--g);
+}
+.huntapp[data-sun="no"] .card .card {
+  background: var(--surface-2);
+  box-shadow: none;
+}
+.huntapp[data-sun="no"] .hann {
+  background: color-mix(in srgb, var(--warn-soft) 70%, var(--glass-card));
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.huntapp[data-sun="no"] .sheet,
+.huntapp[data-sun="no"] .dialog,
+.huntapp[data-sun="no"] .drawer {
+  background: var(--glass-card);
+  border-color: var(--glass-bd);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+}
+.huntapp[data-sun="no"] .toast {
+  background: var(--glass-card);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.huntapp[data-sun="no"] .hbottom button {
+  min-height: 64px;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+.huntapp[data-sun="no"] .hbottom button[aria-current="page"] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 14px;
+  margin: 6px 8px;
+  min-height: 52px;
+}
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .huntapp[data-sun="no"] .hbar,
+  .huntapp[data-sun="no"] .hbottom {
+    background: var(--nav-bg-scrolled);
+  }
+  .huntapp[data-sun="no"] .sheet,
+  .huntapp[data-sun="no"] .dialog,
+  .huntapp[data-sun="no"] .drawer {
+    background: var(--surface-2);
+  }
+}
+
+/* ---- Phone conventions: no tap flash, no double-tap zoom, the page scroll stays
+   inside its box, every sheet reaches the screen's bottom edge and clears the home
+   indicator. A dialog on a phone is a bottom sheet with a handle. ---- */
+.huntapp button,
+.huntapp a,
+.huntapp [role="button"],
+.huntapp .rolecard {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.huntapp__scroll {
+  overscroll-behavior: contain;
+}
+.huntapp .hint,
+.huntapp .lede {
+  text-wrap: pretty;
+}
+.huntapp h1,
+.huntapp h2,
+.huntapp .h-title {
+  text-wrap: balance;
+}
+@container huntapp (max-width: 639px) {
+  .dialog,
+  .dialog--sm,
+  .dialog--lg {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 88%;
+    transform: none;
+    border-bottom: 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .dialog[data-state="open"] {
+    animation: rise 300ms var(--ease) both;
+  }
+  .dialog[data-state="closed"] {
+    animation: sink 200ms ease-in both;
+  }
+  .dialog[data-shake] {
+    animation: none;
+  }
+  .dialog::before {
+    content: "";
+    flex: none;
+    align-self: center;
+    width: 46px;
+    height: 5px;
+    margin-top: 9px;
+    border-radius: 9px;
+    background: var(--hairline-strong);
+  }
+  .sheet {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .toasts {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* The sign-in and the reveal sit in the optical middle of a tall phone, not glued to the
+   top; the Start button follows the thumb while a long member list scrolls under it. */
+.hpage__in--narrow {
+  padding-top: clamp(20px, 9dvh, 84px);
+}
+@container huntapp (max-width: 639px) {
+  .hjoin.hreveal > .btn--primary {
+    position: sticky;
+    bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    z-index: 2;
+    box-shadow:
+      0 10px 28px var(--glass-sh, rgba(0, 0, 0, 0.4)),
+      0 0 0 6px
+        color-mix(in srgb, var(--glass-card, var(--surface-2)) 88%, transparent);
+  }
+}
+
+/* ---- Fades. A screen leaves in 110 ms and the next one rises in 240 ms with its
+   cards a beat apart (one orchestrated moment per screen); toasts leave the way they
+   came; sheets, dialogs, drawers and scrims already had both directions. Calm mode
+   (Display > Reduce Motion, or the phone's own setting) switches all of it off. ---- */
+@keyframes hroute-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes hroute-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes hcard-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes htoast-out {
+  to {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .huntapp:not(.reduce) .hpage {
+    animation: hroute-in 240ms var(--ease) both;
+  }
+  .huntapp:not(.reduce) .hpage[data-leaving] {
+    animation: hroute-out 110ms ease-in both;
+    pointer-events: none;
+  }
+  .huntapp:not(.reduce) .hpage__in > * {
+    animation: hcard-in 320ms var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+  .huntapp:not(.reduce) .hpage__in > :nth-child(1) {
+    --i: 0;
+  }
+  .huntapp:not(.reduce) .hpage__in > :nth-child(2) {
+    --i: 1;
+  }
+  .huntapp:not(.reduce) .hpage__in > :nth-child(3) {
+    --i: 2;
+  }
+  .huntapp:not(.reduce) .hpage__in > :nth-child(4) {
+    --i: 3;
+  }
+  .huntapp:not(.reduce) .hpage__in > :nth-child(n + 5) {
+    --i: 4;
+  }
+  .huntapp:not(.reduce) .toast[data-leaving] {
+    animation: htoast-out 180ms ease-in both;
+  }
+  .huntapp:not(.reduce) .hann {
+    animation: hcard-in 260ms var(--ease) both;
+  }
+}
+.reduce .hpage,
+.reduce .hpage__in > *,
+.reduce .toast {
+  animation: none !important;
+}

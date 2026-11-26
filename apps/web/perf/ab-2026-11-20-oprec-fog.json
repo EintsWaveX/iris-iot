@@ -1,0 +1,19 @@
+{
+  "what": "Oprec fog: mask-position loops on 3 layers + blurred wisps (Journey) and 35 animated calendar cells, vs transform-only drift, one layer below High Detail, static calendar cells",
+  "method": "synthetic page loading the real stylesheets (old = origin/main 303d1700, new = this branch), headless Chrome 1280x720, CPU throttle x4, 300 rAF frames after 2.5 s, interleaved twice; task = main-thread busy share from CDP Performance.getMetrics",
+  "results": {
+    "ldm": {
+      "old": { "fps": [61.2, 64.8], "main_thread_busy_pct": 100 },
+      "new": { "fps": [142.8, 141.9], "main_thread_busy_pct": [19, 17.8] }
+    },
+    "normal": {
+      "old": { "fps": [52.5, 51], "main_thread_busy_pct": 100 },
+      "new": { "fps": [143.9, 143.9], "main_thread_busy_pct": [38.5, 35.3] }
+    },
+    "hd": {
+      "old": { "fps": [52.1, 48.7], "main_thread_busy_pct": 100 },
+      "new": { "fps": [143.9, 143.9], "main_thread_busy_pct": [46.5, 41.6] }
+    }
+  },
+  "note": "The synthetic page has only the fog on it; the new main-thread share is mostly the measuring loop itself. The old fog kept the main thread at 100 % at every tier, including Low Detail, because the calendar fog had no Low Detail gate."
+}

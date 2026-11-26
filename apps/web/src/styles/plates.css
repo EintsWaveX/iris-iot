@@ -1,0 +1,77 @@
+/* =========================================================================
+   THE BLUR DIET (Nov 2026): real `backdrop-filter` only at High Detail, and only on a handful of elements.
+
+   Why: a backdrop blur re-samples whatever is behind the element on every frame it changes, and the sky behind
+   this app always moves. Measured on the lab laptop at High Detail (1920x935, 26 blurred elements on Home):
+   switching every backdrop blur off took the page from 62 to 74 fps idle and 41 to 57 fps scrolling. A phone's
+   GPU is weaker still. The glass look is mostly the tint, the highlight edge and the shadow, so below High Detail
+   the glass tokens turn into near-opaque plates and the blur is simply not applied.
+
+     Low Detail, Normal     no backdrop blur anywhere; the glass tokens are plates (alpha >= 0.86)
+     High Detail            blur only on PLATES_BLUR below: the navbar, the phone bottom bar, whichever dialog,
+                            drawer or menu is open, and the page heading. Everything else is a plate too.
+
+   This file loads last and decides by selector. The older per-component `backdrop-filter` declarations were
+   deleted (Nov 2026, Phase 2); what is left outside this file is the allowlist itself (AppNav.css, glass.css for
+   dialogs, drawers and menus, page-header.css) plus the resets that keep those from blurring inside a panel.
+   src/lib/__tests__/blur-diet.test.ts parses this file and fails on any other blur, and the perf harness counts
+   computed blurs.
+   ========================================================================= */
+
+/* ---- 1. the glass tokens become plates below High Detail ---- */
+/* (html:root beats the :root and :root[data-theme] rules in glass.css and theme.css wherever they load) */
+html:root:not([data-detail="hd"]),
+html:root[data-motion-tier="0"] {
+  --glass-panel:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
+    rgba(14, 18, 40, 0.93);
+  --glass-frost:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
+    rgba(16, 20, 44, 0.96);
+  --glass-clear:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.03)),
+    rgba(12, 16, 34, 0.88);
+  --nav-bg: rgba(10, 12, 20, 0.86);
+  --nav-bg-scrolled: rgba(10, 12, 20, 0.94);
+  --panel-bg: rgba(24, 28, 44, 0.92);
+}
+html:root[data-theme="light"]:not([data-detail="hd"]),
+html:root[data-theme="light"][data-motion-tier="0"] {
+  --glass-panel:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.88)),
+    rgba(255, 255, 255, 0.5);
+  --glass-frost:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.92)),
+    rgba(255, 255, 255, 0.6);
+  --glass-clear:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.8)),
+    rgba(255, 255, 255, 0.5);
+  --nav-bg: rgba(246, 250, 255, 0.86);
+  --nav-bg-scrolled: rgba(246, 250, 255, 0.94);
+  --panel-bg: rgba(255, 255, 255, 0.94);
+}
+
+/* ---- 2. no blur below High Detail ---- */
+:root:not([data-detail="hd"]) *,
+:root:not([data-detail="hd"]) *::before,
+:root:not([data-detail="hd"]) *::after,
+:root[data-motion-tier="0"] *,
+:root[data-motion-tier="0"] *::before,
+:root[data-motion-tier="0"] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ---- 3. High Detail: blur on PLATES_BLUR only ---- */
+:root[data-detail="hd"]:not([data-motion-tier="0"])
+  *:not(.appnav, .appbar, .dialog__panel, .drawer, .popover__panel, .page-header),
+:root[data-detail="hd"] *::before,
+:root[data-detail="hd"] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Not declared here on purpose: the navbar's blur is written in AppNav.css as the plain property before the
+   -webkit- one, the CSS minifier keeps only the -webkit- line, and Chrome ignores that prefix, so Chrome has never
+   blurred the navbar (Safari does). Making it work on Chrome cost ~15 fps idle at High Detail on the lab laptop
+   (measured 20 Nov 2026), so it stays off there. */

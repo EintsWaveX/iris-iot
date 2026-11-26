@@ -63,7 +63,12 @@ import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 import { muatNilaiCutting, muatRinciTes } from "./recruitment-score.js";
 import { muatNilaiTahap } from "./recruitment-s4.js";
-import { isIvStage } from "../../src/lib/recruitment/interview.js";
+import {
+  NOTE_ROLES,
+  checkCatatan,
+  isIvStage,
+  labelOf,
+} from "../../src/lib/recruitment/interview.js";
 import { muatKonteks, muatTubesCutting } from "./recruitment-s7.js";
 import { cuttingFor } from "../../src/lib/recruitment/settings.js";
 
@@ -263,6 +268,10 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
           mean: iv.get(r.id)!.mean,
           spread: iv.get(r.id)!.spread,
           wide: iv.get(r.id)!.wide,
+          flag: iv.get(r.id)!.flag,
+          label: iv.get(r.id)!.label,
+          red: iv.get(r.id)!.red,
+          plus: iv.get(r.id)!.plus,
           verdict: iv.get(r.id)!.verdict,
           suggested: iv.get(r.id)!.suggested,
           sheets: iv.get(r.id)!.sheets.length,
@@ -440,14 +449,18 @@ export async function handleCuttingRinci(req: ApiRequest, res: ApiResponse, s: S
     if (x) {
       const t = await bacaSetting(db, stage);
       const [bersama] = await db
-        .select({ concl: recSheetShared.concl })
+        .select({ concl: recSheetShared.concl, catatan: recSheetShared.catatan })
         .from(recSheetShared)
         .where(and(eq(recSheetShared.candidateId, k.id), eq(recSheetShared.stage, stage)))
         .limit(1);
+      // Catatan Khusus, written out for the drawer: the ticked notes by name, who wrote what, the conclusion.
+      const ct = t.tags ? checkCatatan(bersama?.catatan, t.tags) : null;
+      const penulis = ct ? await kodePerNim(db, Object.keys(ct.notes)) : new Map<string, string>();
       iv = {
         mean: x.mean,
         spread: x.spread,
         wide: x.wide,
+        flag: x.flag,
         verdict: x.verdict,
         suggested: x.suggested,
         sheets: x.sheets,
@@ -457,6 +470,20 @@ export async function handleCuttingRinci(req: ApiRequest, res: ApiResponse, s: S
           label: { id: q.label.id, en: q.label.en },
           text: bersama?.concl?.[q.key]?.trim() ?? "",
         })),
+        catatan:
+          ct && t.tags
+            ? {
+                label: labelOf(ct, t.tags),
+                manual: ct.label !== null,
+                red: t.tags.red.filter((g) => ct.red.includes(g.key)).map((g) => g.label),
+                plus: t.tags.plus.filter((g) => ct.plus.includes(g.key)).map((g) => g.label),
+                notes: Object.entries(ct.notes).map(([key, text]) => ({
+                  who: NOTE_ROLES.some((n) => n === key) ? key : (penulis.get(key) ?? key),
+                  text,
+                })),
+                final: ct.final,
+              }
+            : null,
       };
     }
   }

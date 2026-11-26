@@ -1,5 +1,5 @@
 /* Dropdown.tsx's styling, as a plain CSS import (a .tsx file has no
-   template for a scoped Astro <style> block to attach to -- see
+   template for a scoped Astro \3c style> block to attach to -- see
    controls.css's own docblock for why this matters project-wide). */
 
 .dropdown {
@@ -65,8 +65,8 @@
   content: "";
   inset: 0;
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;

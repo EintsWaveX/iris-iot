@@ -4,8 +4,13 @@ import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
 import { phosphorWeights } from "./vite/phosphor-weights.ts";
 
+// IRIS_PROFILE_BUILD=1 builds for CPU profiling: unminified with sourcemaps, into dist-profile/ so it never
+// touches dist/. It changes nothing unless that variable is set (see perf/README or scripts/render-harness.mjs).
+const profile = process.env.IRIS_PROFILE_BUILD === "1";
+
 // https://astro.build/config
 export default defineConfig({
+  ...(profile ? { outDir: "./dist-profile" } : {}),
   integrations: [react()],
   // No `prefetch` option on purpose: <ClientRouter /> (Base.astro) already switches prefetch on, hover
   // strategy, every link (checked in the built ClientRouter script). Setting it here as well adds an
@@ -35,6 +40,7 @@ export default defineConfig({
       exclude: ["@novnc/novnc"],
     },
     build: {
+      ...(profile ? { minify: false, sourcemap: true } : {}),
       // Fonts always ship as files. A few Noto Sans SC subsets are under
       // Vite's 4 KB inline limit and became data: URLs, which the CSP's
       // `font-src 'self'` blocks on every page.

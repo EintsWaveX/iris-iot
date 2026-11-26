@@ -94,6 +94,13 @@
   z-index: 0;
 }
 
+/* On a phone the blurred glow stops at the screen's edge: it stuck out 5 px and the page scrolled sideways. */
+@media (max-width: 639px) {
+  .pl-hero__aura {
+    inset: -38% 0;
+  }
+}
+
 .pl-hero__aura i {
   border-radius: 50%;
   mix-blend-mode: screen;
@@ -152,6 +159,13 @@
   opacity: 0.22;
 }
 
+/* The logo is a light neon outline made for the night sky; on Daylight's pale blue it washed out to a ghost.
+   By day it runs a little deeper, with a thin dark-blue rim so every stroke keeps its edge. */
+:root[data-theme="light"] .pl-hero__mark img {
+  filter: saturate(1.35) brightness(0.82) drop-shadow(0 0 1px rgb(var(--rgb-7-91-159) / 0.55))
+    drop-shadow(0 2px 8px rgb(var(--rgb-7-91-159) / 0.25));
+}
+
 /* Low Detail keeps the aurora, standing still. */
 :root[data-detail="ldm"] .pl-hero__aura i {
   animation: none;
@@ -159,7 +173,12 @@
 
 .pl-hero__shine {
   animation: pl-shine 1600ms var(--ease-out-expo) 1500ms forwards;
-  background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.85) 50%, transparent 62%)
+  background: linear-gradient(
+      105deg,
+      transparent 38%,
+      rgb(var(--rgb-255-255-255) / 0.85) 50%,
+      transparent 62%
+    )
     no-repeat;
   background-position: 150% 0;
   background-size: 260% 100%;
@@ -178,11 +197,17 @@
 }
 
 .pl-hero__title {
-  font-size: clamp(2.3rem, 6.4vw, 4.6rem);
+  /* Layout kit: 64 px at most and weight 700 (it was 73.6 px / 800); a phone keeps 32 */
+  font-size: clamp(32px, 5vw, 64px);
+  font-weight: 700;
 }
 
+/* The hero title: one slow pass of the rainbow after it appears, then still. A looping gradient on clipped
+   text repainted the title on every frame (see the sweep note in controls.css). */
+:root:not([data-motion-tier="0"]) .pl-sweep {
+  animation: kit-sweep 6s ease-out 1;
+}
 .pl-sweep {
-  animation: kit-sweep 9s linear infinite;
   background: var(--sweep);
   background-clip: text;
   background-size: 300% 100%;
@@ -191,8 +216,41 @@
 }
 
 .pl-hero .home__lede {
-  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.15rem);
+  font-size: 1rem;
   max-width: 60ch;
+  /* The lede sits straight on the sky: the aurora band by night, the sun's glare by day (phones). Full-strength
+     text and a soft halo in the ground's colour keep it legible whatever is behind it. */
+  color: var(--text);
+  text-shadow:
+    0 1px 2px rgb(var(--rgb-5-6-11) / 0.55),
+    0 0 18px rgb(var(--rgb-10-12-20) / 0.6);
+}
+:root[data-theme="light"] .pl-hero .home__lede {
+  text-shadow:
+    0 0 2px rgb(var(--rgb-255-255-255) / 0.9),
+    0 0 18px rgb(var(--rgb-246-250-255) / 0.85);
+}
+@media (min-width: 640px) {
+  .pl-hero .home__lede {
+    font-size: 1.125rem;
+  }
+}
+
+/* The closing band's two buttons: side by side on a laptop, stacked full width on a phone. */
+.pl-close__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+@media (max-width: 639px) {
+  .pl-close__cta {
+    flex-direction: column;
+    width: 100%;
+  }
+  .pl-close__cta > .btn {
+    justify-content: center;
+    width: 100%;
+  }
 }
 
 .pl-hero__cta {
@@ -307,29 +365,6 @@
 
 /* ------------------------------------------------------ section heads */
 
-.pl-head {
-  display: grid;
-  gap: 8px;
-  max-width: 760px;
-}
-
-.pl-head__row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.pl-head .home__h1 {
-  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem);
-}
-
-.pl-head__lede {
-  color: var(--text-muted);
-  font-size: 1.02rem;
-  margin: 0;
-}
-
 .pl-emptyed {
   align-items: center;
   border-style: dashed;
@@ -418,7 +453,7 @@
 
 .pl-about__pics img:last-child {
   bottom: 0;
-  box-shadow: 0 22px 48px rgb(0 0 0 / 0.38);
+  box-shadow: 0 22px 48px rgb(var(--rgb-0-0-0) / 0.38);
   position: absolute;
   right: 0;
   width: 60%;
@@ -463,7 +498,7 @@
 
 /* The logo always sits on the night panel it was drawn for. */
 .pl-logo__stage {
-  background: radial-gradient(ellipse at 50% 40%, #142441 0%, #080d1a 70%);
+  background: radial-gradient(ellipse at 50% 40%, var(--hex-142441) 0%, var(--hex-080d1a) 70%);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-xl);
   order: -1;
@@ -489,14 +524,14 @@
   -webkit-mask-image: radial-gradient(
     ellipse var(--srx) var(--sry) at var(--sx) var(--sy),
     transparent 55%,
-    #000 100%
+    var(--hex-000000) 100%
   );
-  background: rgb(8 13 26 / 0.84);
+  background: rgb(var(--rgb-8-13-26) / 0.84);
   inset: 0;
   mask-image: radial-gradient(
     ellipse var(--srx) var(--sry) at var(--sx) var(--sy),
     transparent 55%,
-    #000 100%
+    var(--hex-000000) 100%
   );
   opacity: 0;
   pointer-events: none;
@@ -509,7 +544,7 @@
 }
 
 .pl-logo__stage[data-sorot="warna"] img {
-  filter: drop-shadow(0 0 14px rgb(56 189 248 / 0.75)) saturate(1.25);
+  filter: drop-shadow(0 0 14px rgb(var(--rgb-56-189-248) / 0.75)) saturate(1.25);
 }
 
 .pl-logo__card {
@@ -550,7 +585,7 @@
 }
 
 .pl-logo__swatch {
-  background: linear-gradient(90deg, #2f80ff, #a5f3fc);
+  background: linear-gradient(90deg, var(--hex-2f80ff), var(--hex-a5f3fc));
   border-radius: var(--radius-pill);
   height: 10px;
   max-width: 180px;
@@ -769,26 +804,26 @@
   .pl-div--big .pl-div__photo {
     -webkit-mask-image: linear-gradient(
       90deg,
-      #000 0%,
-      #000 48%,
-      rgb(0 0 0 / 0.92) 58%,
-      rgb(0 0 0 / 0.74) 68%,
-      rgb(0 0 0 / 0.5) 77%,
-      rgb(0 0 0 / 0.28) 85%,
-      rgb(0 0 0 / 0.11) 92%,
-      rgb(0 0 0 / 0.03) 97%,
+      var(--hex-000000) 0%,
+      var(--hex-000000) 48%,
+      rgb(var(--rgb-0-0-0) / 0.92) 58%,
+      rgb(var(--rgb-0-0-0) / 0.74) 68%,
+      rgb(var(--rgb-0-0-0) / 0.5) 77%,
+      rgb(var(--rgb-0-0-0) / 0.28) 85%,
+      rgb(var(--rgb-0-0-0) / 0.11) 92%,
+      rgb(var(--rgb-0-0-0) / 0.03) 97%,
       transparent 100%
     );
     mask-image: linear-gradient(
       90deg,
-      #000 0%,
-      #000 48%,
-      rgb(0 0 0 / 0.92) 58%,
-      rgb(0 0 0 / 0.74) 68%,
-      rgb(0 0 0 / 0.5) 77%,
-      rgb(0 0 0 / 0.28) 85%,
-      rgb(0 0 0 / 0.11) 92%,
-      rgb(0 0 0 / 0.03) 97%,
+      var(--hex-000000) 0%,
+      var(--hex-000000) 48%,
+      rgb(var(--rgb-0-0-0) / 0.92) 58%,
+      rgb(var(--rgb-0-0-0) / 0.74) 68%,
+      rgb(var(--rgb-0-0-0) / 0.5) 77%,
+      rgb(var(--rgb-0-0-0) / 0.28) 85%,
+      rgb(var(--rgb-0-0-0) / 0.11) 92%,
+      rgb(var(--rgb-0-0-0) / 0.03) 97%,
       transparent 100%
     );
   }
@@ -862,7 +897,7 @@
 
 /* On the light theme's pale fade the hue alone is too faint. */
 :root[data-theme="light"] .pl-div__code {
-  color: color-mix(in srgb, var(--c) 55%, #0b1020);
+  color: color-mix(in srgb, var(--c) 55%, var(--hex-0b1020));
 }
 
 .pl-div__body {
@@ -954,7 +989,7 @@
 
 /* On the light theme's pale fade the hue alone is too faint. */
 :root[data-theme="light"] .pl-div__code {
-  color: color-mix(in srgb, var(--c) 55%, #0b1020);
+  color: color-mix(in srgb, var(--c) 55%, var(--hex-0b1020));
 }
 
 .pl-div__body {
@@ -1166,12 +1201,12 @@
 }
 
 .pl[data-tier="2"] [data-rv].pl-group .pl-group__frame {
-  clip-path: inset(10% 8% round 20px);
+  clip-path: inset(10% 8% round 16px);
   transition: clip-path 1100ms var(--ease-out-expo);
 }
 
 .pl[data-tier="2"] [data-rv].pl-group.is-in .pl-group__frame {
-  clip-path: inset(0 round 20px);
+  clip-path: inset(0 round 16px);
 }
 
 .pl-group__cap {
@@ -1350,16 +1385,22 @@
 
 .pl-lb__overlay {
   animation: pl-fadein 200ms var(--ease-out-expo);
-  backdrop-filter: blur(6px);
-  background: rgb(3 5 12 / 0.94);
+  background: rgb(var(--rgb-3-5-12) / 0.94);
   inset: 0;
   position: fixed;
   /* above the kit's dialogs (100, 101), under popovers (150) */
   z-index: 120;
 }
 
+.pl-lb__overlay[data-state="closed"] {
+  animation: dialog-fade-out 150ms ease both;
+}
+.pl-lb[data-state="closed"] {
+  animation: dialog-fade-out 150ms ease both;
+  pointer-events: none;
+}
 .pl-lb {
-  color: #eef1f6;
+  color: var(--hex-eef1f6);
   display: grid;
   gap: 10px;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -1431,7 +1472,7 @@
 }
 
 .pl-lb__fig figcaption {
-  color: #b0b8c8;
+  color: var(--hex-b0b8c8);
   text-align: center;
 }
 
@@ -1511,7 +1552,7 @@
 }
 
 .pl-gv .pl-lb__count {
-  color: #b0b8c8;
+  color: var(--hex-b0b8c8);
 }
 
 /* A page: the photo as large as the screen allows, its words under it on
@@ -1547,7 +1588,7 @@
 .pl-gv__fig img,
 .pl-gv__kode {
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+  box-shadow: 0 24px 60px rgb(var(--rgb-0-0-0) / 0.5);
   max-height: 100%;
   max-width: 100%;
 }
@@ -1559,7 +1600,7 @@
 .pl-gv__kode {
   align-items: center;
   aspect-ratio: 4 / 5;
-  background: color-mix(in srgb, var(--c) 18%, #0d1220);
+  background: color-mix(in srgb, var(--c) 18%, var(--hex-0d1220));
   color: var(--c);
   display: flex;
   font-size: clamp(2.4rem, 8vw, 4.5rem);
@@ -1601,7 +1642,7 @@
 }
 
 .pl-gv__muted {
-  color: #b0b8c8;
+  color: var(--hex-b0b8c8);
   margin: 0;
   max-width: 60ch;
   text-wrap: pretty;
@@ -1664,8 +1705,8 @@
 
 .pl-gv__strip button span {
   align-items: center;
-  background: color-mix(in srgb, var(--c) 22%, #1a2030);
-  color: #eef1f6;
+  background: color-mix(in srgb, var(--c) 22%, var(--hex-1a2030));
+  color: var(--hex-eef1f6);
   display: flex;
   font-size: 0.72rem;
   font-weight: 700;

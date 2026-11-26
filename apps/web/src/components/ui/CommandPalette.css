@@ -83,3 +83,34 @@
   padding: var(--space-5);
   text-align: center;
 }
+
+/* Enter and exit (Radix keeps it mounted while data-state="closed" animates). The panel already owns `transform`
+   for its centring, so it moves with the individual `translate` property. Reduced motion has no animation, so
+   it closes at once. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion-tier="0"]) .palette__overlay[data-state="open"] {
+    animation: dialog-fade-in 160ms ease both;
+  }
+  :root:not([data-motion-tier="0"]) .palette__overlay[data-state="closed"] {
+    animation: dialog-fade-out 120ms ease both;
+  }
+  :root:not([data-motion-tier="0"]) .palette[data-state="open"] {
+    animation: palette-in 160ms var(--ease-out-expo) both;
+  }
+  :root:not([data-motion-tier="0"]) .palette[data-state="closed"] {
+    animation: palette-out 120ms var(--ease-out-expo) both;
+    pointer-events: none;
+  }
+}
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+@keyframes palette-out {
+  to {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}

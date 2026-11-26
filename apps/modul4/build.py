@@ -46,6 +46,7 @@ LOGO_PATH = SRC_DIR / "logo.webp"
 STYLE_FILES = [
     "style/mockup.css",
     "style/app.css",
+    "style/observatory.css",
 ]
 
 # Third-party bundles, unmodified (see src/vendor/README.md).

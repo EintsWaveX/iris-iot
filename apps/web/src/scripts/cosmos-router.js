@@ -12,7 +12,8 @@
  * ::view-transition-* rules); the sky never reacts to a page change.
  *
  * Phase 9: detail levels. The reader picks one in the nav's Tampilan
- * panel, and Low Detail (LDM) is the default:
+ * panel; Otomatis is the default (Nov 2026: it is Normal, or Low Detail on a weak or slow device,
+ * see theme-init.js and scripts/auto-detail.ts):
  *   ldm     the still, painted sky (motion tier 0), the lightest
  *   normal  twinkling stars and the odd meteor (tier 1 at most)
  *   hd      everything, including planets, comets and the moving aurora
@@ -27,19 +28,18 @@
   "use strict";
 
   var STORAGE_KEY = "iris-detail";
-  var LEGACY_KEY = "iris-kurangi-efek";
-  var LEVELS = ["ldm", "normal", "hd"];
+  var CHOICES = ["auto", "ldm", "normal", "hd"];
 
+  // The level IN FORCE (public/theme-init.js decides it: the reader's choice, or what Otomatis resolves to)
   function readDetail() {
-    try {
-      var v = window.localStorage.getItem(STORAGE_KEY);
-      if (LEVELS.indexOf(v) !== -1) return v;
-      var old = window.localStorage.getItem(LEGACY_KEY);
-      if (old === "penuh" || old === "0") return "hd";
-    } catch (e) {
-      /* storage disabled (private mode, locked-down browser): fall through */
-    }
-    return "ldm";
+    if (window.IrisPrefs) return window.IrisPrefs.detail();
+    return document.documentElement.getAttribute("data-detail") || "normal";
+  }
+
+  // What the reader chose, which can be "auto"
+  function readChoice() {
+    if (window.IrisPrefs) return window.IrisPrefs.detailPref();
+    return "auto";
   }
 
   function applyDetail() {
@@ -49,14 +49,16 @@
   }
 
   function setDetail(level) {
-    if (LEVELS.indexOf(level) === -1) return;
+    if (CHOICES.indexOf(level) === -1) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, level);
+      // Choosing Otomatis again gives the device a fresh start
+      if (level === "auto") window.localStorage.removeItem("iris-auto-ldm");
     } catch (e) {
       /* the setting still works for this page load, it just won't persist */
     }
     if (window.IrisPrefs) window.IrisPrefs.apply();
-    else document.documentElement.setAttribute("data-detail", level);
+    else document.documentElement.setAttribute("data-detail", level === "auto" ? "normal" : level);
     applyDetail();
     window.IrisMotionTier?.reapply();
   }
@@ -64,6 +66,7 @@
   window.CosmosRouter = {
     setDetail: setDetail,
     getDetail: readDetail,
+    getChoice: readChoice,
   };
 
   function sceneOf(doc) {

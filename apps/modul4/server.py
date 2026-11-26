@@ -202,6 +202,11 @@ KUNCI_LEN = 8
 KUNCI_MAKS_GRUP = 10        # kelompok yang kuncinya dilaporkan ke situs
 MAX_KUNCI_SALAH = 50        # pesan papan berkunci salah per soket sebelum ditutup
 KUNCI_SALAH_DETIK = 10.0    # berapa lama "kunci salah" tampak di papan skor
+KUNCI_BALAS_DETIK = 5.0     # jeda antar balasan "kunci salah" ke papan yang sama
+WAKTU_MAKS_SOKET = 30       # permintaan waktu yang dilayani per soket papan
+PAPAN_SENYAP_SEC = 25.0     # tanpa laporan status selama ini, papan dianggap mati
+PAPAN_PERAN = ("hunter", "beacon")
+PAPAN_JAM = ("ntp", "papan", "-")   # dari mana jam papan: NTP, papan skor, belum ada
 GAGAL_IP_MAKS = 15          # kegagalan per alamat dalam jendelanya sebelum diblokir
 GAGAL_IP_JENDELA = 600.0    # detik
 KONEKSI_IP_MAKS = 40        # soket penonton terbuka per alamat
@@ -430,6 +435,33 @@ def timestamp() -> str:
     return f"{now:%H:%M:%S}:{now.microsecond // 1000:03d}"
 
 
+def _bulat(nilai, rendah: int, tinggi: int) -> int:
+    """Bilangan bulat dari sebuah medan pesan papan, atau ValueError.
+
+    Papan membawa teks dari paket LoRa yang bisa rusak di udara, dan null,
+    teks, atau angka tak hingga di sini dulu mematikan koneksi papan itu
+    (pengecualian yang lolos dari handle() menutup soket dengan kode 1011).
+    Karena itu setiap angka dibaca dan diperiksa lebih dulu, sebelum keadaan
+    apa pun berubah.
+    """
+    if nilai is None or isinstance(nilai, bool):
+        raise ValueError("bukan angka")
+    angka = int(nilai)   # TypeError/ValueError/OverflowError bila rusak
+    if not rendah <= angka <= tinggi:
+        raise ValueError("di luar rentang")
+    return angka
+
+
+def _desimal(nilai, rendah: float, tinggi: float) -> float:
+    """Seperti _bulat, untuk bilangan desimal; menolak NaN dan tak hingga."""
+    if nilai is None or isinstance(nilai, bool):
+        raise ValueError("bukan angka")
+    angka = float(nilai)
+    if not math.isfinite(angka) or not rendah <= angka <= tinggi:
+        raise ValueError("di luar rentang")
+    return angka
+
+
 def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
@@ -449,6 +481,13 @@ class Hunt:
         self.arena_m = ARENA_RADIUS_M
         self.rssi_at_1m = RSSI_AT_1M
         self.path_loss_n = PATH_LOSS_N
+        # Kesehatan papan (Wi-Fi, jam, soket) menurut laporan status tiap papan.
+        # Soketnya hidup melewati "Ronde baru", jadi reset() tidak menyentuhnya.
+        self.papan: dict[int, dict[str, dict]] = {}
+        # Soket papan yang sedang terbuka per (kelompok, peran). Soket lama yang
+        # mati belakangan (ping 40 detik) tidak boleh menandai papan offline selagi
+        # soket baru dari papan yang sama sudah mengirim.
+        self.soket: dict[tuple[int, str], int] = {}
         # Jam dinding (YYYY-MM-DD HH:MM) kalibrasi terakhir; None = bawaan.
         self.kalibrasi_pada: str | None = None
         self.reset()
@@ -594,9 +633,10 @@ class Hunt:
 
     def on_beacon(self, msg: dict, ip: str | None) -> None:
         gid = int(msg["grup"])
+        seq = _bulat(msg.get("seq", 0), 0, 2 ** 31)   # diperiksa sebelum apa pun berubah
         slot = self.group_slot(gid)
         slot["beacon_online"] = True
-        slot["beacon_seq"] = int(msg.get("seq", 0))
+        slot["beacon_seq"] = seq
         slot["beacon_tx"] = msg.get("tx")
         slot["beacon_ip"] = ip
         slot["beacon_last"] = time.monotonic()
@@ -608,6 +648,12 @@ class Hunt:
 
     def on_hunter(self, msg: dict, ip: str | None) -> None:
         gid = int(msg["grup"])
+        # Semua angka dibaca dan diperiksa DULU. Medan yang rusak (null, teks,
+        # NaN) membatalkan seluruh pesan tanpa menyentuh keadaan kelompok.
+        seq = _bulat(msg.get("seq", 0), 0, 2 ** 31)
+        rssi = _bulat(msg.get("rssi", 0), -200, 50)
+        snr = _desimal(msg.get("snr", 0), -100.0, 100.0)
+        halus_pesan = _desimal(msg.get("halus", 0), -200.0, 50.0)
         slot = self.group_slot(gid)
 
         # Hunter yang tersambung lebih dulu daripada beacon-nya (Wi-Fi beacon
@@ -619,10 +665,10 @@ class Hunt:
 
         was_silent = self._silent(slot)
 
-        slot["seq"] = int(msg.get("seq", 0))
+        slot["seq"] = seq
         if slot["first_seq"] is None:
             slot["first_seq"] = slot["seq"]
-        slot["rssi"] = int(msg.get("rssi", 0))
+        slot["rssi"] = rssi
         # RSSI halus dihitung di sini dari RSSI mentah, bukan dipakai dari hunter: penapis
         # hunter lama butuh sekitar 4 detik untuk mengikuti langkah. Sesudah hening panjang
         # taksirannya dimulai lagi dari paket pertama. Tanpa "rssi" (pesan yang tidak biasa)
@@ -632,8 +678,8 @@ class Hunt:
                 slot["penapis"] = PenapisRssi()
             slot["halus"] = round(slot["penapis"].tambah(float(slot["rssi"])), 1)
         else:
-            slot["halus"] = float(msg.get("halus", 0))
-        slot["snr"] = float(msg.get("snr", 0))
+            slot["halus"] = halus_pesan
+        slot["snr"] = snr
         slot["tx"] = msg.get("tx")
         slot["rx"] = msg.get("rx")
         slot["ip"] = ip or msg.get("ip")
@@ -664,6 +710,49 @@ class Hunt:
         if was_silent:
             self.note("kembali", gid)
         self.rev += 1
+
+    def on_papan(self, peran: str, gid: int, msg: dict) -> None:
+        """Laporan kesehatan satu papan (tiap ~10 detik), bukan data permainan.
+
+        Berguna karena sebuah hunter yang tersambung tetapi tidak mendengar
+        beacon-nya tampak persis seperti hunter yang mati; dengan laporan ini
+        asisten melihat papan mana yang hidup, seberapa kuat Wi-Fi-nya, dari
+        mana jamnya, dan berapa kali soketnya putus. Nilai yang rusak
+        dibuang satu per satu, tidak membatalkan laporannya.
+        """
+        if peran not in PAPAN_PERAN:
+            return
+
+        def aman(baca, *arg):
+            try:
+                return baca(*arg)
+            except (TypeError, ValueError, OverflowError):
+                return None
+
+        jam = msg.get("jam")
+        self.papan.setdefault(gid, {})[peran] = {
+            "wifi": aman(_bulat, msg.get("wifi"), -127, 0),
+            "jam": jam if jam in PAPAN_JAM else None,
+            "naik": aman(_bulat, msg.get("naik"), 0, 10 ** 9),
+            "mem": aman(_bulat, msg.get("mem"), 0, 10 ** 9),
+            "putus": aman(_bulat, msg.get("putus"), 0, 10 ** 9),
+            "terlihat": time.monotonic(),
+        }
+        self.rev += 1
+
+    def papan_ringkas(self) -> dict:
+        """Kesehatan papan per kelompok untuk bingkai siaran."""
+        now = time.monotonic()
+        keluar: dict[str, dict] = {}
+        for gid, peran_map in self.papan.items():
+            baris = {}
+            for peran, info in peran_map.items():
+                baris[peran] = {
+                    "online": (now - info["terlihat"]) < PAPAN_SENYAP_SEC,
+                    **{k: v for k, v in info.items() if k != "terlihat"},
+                }
+            keluar[str(gid)] = baris
+        return keluar
 
     # -- turunan ----------------------------------------------------------
 
@@ -1250,12 +1339,13 @@ class Hunt:
                 # hidup di firmware, bukan sesuatu yang dilaporkan server
                 # tahu.
                 "daya": f"{BEACON_TX_DBM} dBm",
-                "periode": "500 ms / 5 slot",
+                "periode": "500 ms / 10 slot",
             },
             "grup": rows,
             "peristiwa": self.events[-12:],
             "ronde": self.ronde,
             "kunci_epoch": KUNCI["epoch"],
+            "papan": self.papan_ringkas(),
             "antrian": self.antrian(),
             "penghargaan": hadiah,
             # Daftar namanya sendiri TIDAK ikut di sini. Lima kelompok
@@ -2772,15 +2862,23 @@ async def handle(connection: ServerConnection) -> None:
     # tidak boleh ikut tersiar ke papan skor. Alamat yang tampil adalah IP
     # hotspot yang dilaporkan papan itu sendiri.
     print(f"[{timestamp()}] {label} tersambung")
+    dibuka = time.monotonic()
 
-    owned: int | None = None  # Kelompok yang dilaporkan lewat soket ini
-    salah = 0                 # pesan berkunci salah di soket ini
+    owned: int | None = None            # Kelompok yang dilaporkan lewat soket ini
+    dihitung: tuple[int, str] | None = None   # kunci hitungan soket terbuka
+    salah = 0                           # pesan berkunci salah di soket ini
+    pesan_n = 0                         # pesan sah di soket ini
+    dibuang = 0                         # pesan sah-kunci yang isinya rusak
+    waktu_n = 0                         # permintaan waktu yang sudah dilayani
+    balas_kunci_at = 0.0                # kapan balasan "kunci salah" terakhir
+    mengaku: int | None = None          # kelompok yang disebut pesan berkunci salah
+    ditutup_kita: str | None = None     # alasan bila SERVER yang menutup soket ini
 
     try:
         async for raw in connection:
             try:
                 msg = json.loads(raw)
-            except (json.JSONDecodeError, TypeError):
+            except (json.JSONDecodeError, TypeError, UnicodeDecodeError):
                 continue
             if not isinstance(msg, dict):
                 continue
@@ -2789,7 +2887,7 @@ async def handle(connection: ServerConnection) -> None:
             # pesan saja bisa membuat kelompok 10**9 di memori
             try:
                 gid = int(msg.get("grup"))
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 continue
             if not 1 <= gid <= MAX_GRUP_ID:
                 continue
@@ -2798,29 +2896,93 @@ async def handle(connection: ServerConnection) -> None:
             # adalah ponsel hotspot kelompok yang sedang salah menempel kunci,
             # dan ponsel itu juga dipakai anggotanya membuka papan.
             if not kunci_ok(gid, msg.get("k")):
+                mengaku = gid
                 HUNT.kunci_salah[gid] = time.monotonic()
                 HUNT.rev += 1
                 salah += 1
                 if salah >= MAX_KUNCI_SALAH:
+                    ditutup_kita = "kunci salah terus-menerus (1008)"
                     await connection.close(1008, "kunci papan salah")
                     break
+                # Papannya diberi tahu, supaya Serial Monitor-nya menyebut
+                # sebabnya alih-alih tampak tersambung padahal dibuang.
+                if time.monotonic() - balas_kunci_at >= KUNCI_BALAS_DETIK:
+                    balas_kunci_at = time.monotonic()
+                    await kirim(connection, "galat", kode="kunci",
+                                alasan="kunci papan salah: tempel kunci kelompokmu dari "
+                                       "langkah Perburuan situs ke HUNT_KEY / wrong board "
+                                       "key: paste your group's key from the website's "
+                                       "Hunt step into HUNT_KEY")
                 continue
             for medan in ("tx", "rx", "ip"):
                 if medan in msg:
                     msg[medan] = str(msg[medan])[:40]
 
-            if path == "/beacon":
-                owned = gid
-                HUNT.on_beacon(msg, None)
-            else:
-                owned = gid
-                HUNT.on_hunter(msg, None)
+            if dihitung is None:
+                dihitung = (gid, label)
+                HUNT.soket[dihitung] = HUNT.soket.get(dihitung, 0) + 1
+            owned = gid
+            pesan_n += 1
+            tipe = msg.get("tipe")
+
+            if tipe == "waktu":
+                # Jam lewat soket yang sudah dipakai papan (TCP 443), untuk
+                # hotspot yang membuang UDP 123 sehingga NTP tak pernah
+                # menjawab. Ketelitiannya separuh waktu pulang-pergi. Dibuat
+                # padat tanpa spasi supaya mudah dibaca papan.
+                waktu_n += 1
+                if waktu_n <= WAKTU_MAKS_SOKET:
+                    try:
+                        t0 = _bulat(msg.get("t0"), 0, 2 ** 32)
+                    except (TypeError, ValueError, OverflowError):
+                        t0 = 0
+                    await connection.send(
+                        '{"tipe":"waktu","t0":%d,"ts":%d}' % (t0, int(time.time() * 1000)))
+                continue
+            if tipe == "status":
+                HUNT.on_papan(label, gid, msg)
+                continue
+
+            # Satu pesan rusak tidak boleh mematikan soket papan: sebelum ini
+            # pengecualian di sini menutup koneksi dengan kode 1011 dan papan
+            # mengulang tersambung-putus sepanjang sesi.
+            try:
+                if path == "/beacon":
+                    HUNT.on_beacon(msg, None)
+                else:
+                    HUNT.on_hunter(msg, None)
+            except Exception as err:                       # noqa: BLE001
+                dibuang += 1
+                if dibuang <= 3 or dibuang % 100 == 0:
+                    print(f"[{timestamp()}] {label} kelompok {gid}: pesan dibuang "
+                          f"({type(err).__name__}: {err}), ke-{dibuang} di soket ini")
 
     except ConnectionClosed:
         pass
     finally:
-        print(f"[{timestamp()}] {label} terputus")
-        if owned is not None and owned in HUNT.groups:
+        kode = getattr(connection, "close_code", None)
+        # Papan yang hanya pernah mengirim kunci salah tidak punya kelompok
+        # yang sah; sebut kelompok yang diakuinya supaya asisten tahu papan
+        # kelompok mana yang salah menempel HUNT_KEY.
+        siapa = (str(owned) if owned is not None
+                 else f"? (mengaku {mengaku})" if mengaku is not None else "?")
+        print(f"[{timestamp()}] {label} terputus (kelompok "
+              f"{siapa}, hidup "
+              f"{time.monotonic() - dibuka:.1f} dtk, {pesan_n} pesan, "
+              f"{dibuang} dibuang, {salah} kunci salah, kode "
+              f"{kode if kode is not None else '?'}"
+              # "kode" adalah yang dikirim papan; papan yang kita tutup membalas 1000
+              f"{', ditutup server: ' + ditutup_kita if ditutup_kita else ''})")
+        tersisa = 0
+        if dihitung is not None:
+            tersisa = HUNT.soket.get(dihitung, 1) - 1
+            if tersisa > 0:
+                HUNT.soket[dihitung] = tersisa
+            else:
+                HUNT.soket.pop(dihitung, None)
+                tersisa = 0
+        # Hanya soket terakhir papan itu yang menandainya offline
+        if owned is not None and tersisa == 0 and owned in HUNT.groups:
             if path == "/beacon":
                 HUNT.groups[owned]["beacon_online"] = False
                 HUNT.note("beacon-hening", owned)

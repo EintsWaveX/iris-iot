@@ -747,6 +747,10 @@
     grid-template-columns: minmax(0, 1fr) 340px;
     align-items: start;
   }
+  /* No per-examiner panel yet (no sheet is in): the table takes the whole width instead of leaving it empty */
+  .r4nilai[data-solo] {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .r4per {
     position: sticky;
     top: 76px;
@@ -760,6 +764,24 @@
 }
 .r4tab tr[data-open] > td {
   background: var(--surface-2);
+}
+/* The whole row opens the CaAs's sheet; the name inside is the keyboard way in. */
+.r4tab tr[data-sheet] {
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .r4tab tr[data-sheet]:hover > td {
+    background: var(--surface-2);
+  }
+}
+.r4tab__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 .r4tab__bd > td {
   padding: 4px 16px 18px !important;
@@ -1091,19 +1113,19 @@
   background: var(--surface-2);
   color: var(--text-muted);
   font: 600 0.82rem inherit;
-  cursor: pointer;
-  touch-action: manipulation;
+  cursor: default;
+  user-select: none;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
     color 160ms ease;
 }
-.r4rec[aria-pressed="true"] {
+.r4rec[data-on] {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 55%, var(--hairline));
   background: var(--danger-soft);
 }
-.r4rec[aria-pressed="true"] svg {
+.r4rec[data-on] svg {
   animation: rec4-pulse 1.6s ease-in-out infinite;
 }
 .r4rec[data-warn] {
@@ -1120,7 +1142,7 @@
     opacity: 0.35;
   }
 }
-.reduce .r4rec[aria-pressed="true"] svg {
+.reduce .r4rec[data-on] svg {
   animation: none;
 }
 .r4files {
@@ -1193,7 +1215,7 @@
 }
 @media (min-width: 900px) {
   .r4qa {
-    grid-template-columns: 290px minmax(0, 1fr);
+    grid-template-columns: 360px minmax(0, 1fr);
   }
   .r4rail {
     position: sticky;
@@ -1600,6 +1622,13 @@
   align-items: center;
   min-height: 44px;
   padding: 4px 12px;
+}
+/* The Khusus and priority pills share one cell, so a card with two of them keeps the row's six columns */
+.r4tpl__tags {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  justify-content: flex-end;
 }
 .r4tpl__t {
   overflow: hidden;
@@ -2360,7 +2389,7 @@
 .r2board .r2col--pool {
   background: var(--surface-2);
   border-style: dashed;
-  box-shadow: 10px 0 16px -12px rgb(0 0 0 / 0.35);
+  box-shadow: 10px 0 16px -12px rgb(var(--rgb-0-0-0) / 0.35);
   left: 0;
   margin-top: 30px;
   position: sticky;
@@ -2472,4 +2501,246 @@
 .r2board .r2chip__via {
   font-size: 0.8rem;
   padding: 3px 9px;
+}
+
+/* ------------------------------------------------------------ Catatan Khusus */
+
+.ck {
+  display: grid;
+  gap: var(--space-3);
+}
+.ck__top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  justify-content: space-between;
+}
+.ck__label {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ck__cols {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.ck__col {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-3);
+}
+.ck__col[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--hairline));
+}
+.ck__col[data-tone="ok"] {
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--hairline));
+}
+.ck__h {
+  font-weight: 700;
+}
+.ck__note {
+  margin: 0;
+}
+.ck__note b {
+  color: var(--text-muted);
+  margin-right: var(--space-2);
+}
+.ck__ctl {
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+.ck__pick {
+  max-width: 420px;
+}
+.ck__state {
+  min-height: 1.2em;
+}
+
+/* A sheet changed after it was sent: a small amber pencil beside the examiner's code */
+.r4ed {
+  align-items: center;
+  background: color-mix(in srgb, var(--warn) 22%, var(--surface-1));
+  border-radius: 999px;
+  color: var(--warn);
+  display: inline-flex;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
+}
+
+/* the size of each CaAs's examiner group, under a lane (1 when the shift is short of Asisten) */
+.r4lane__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+}
+.r4lane__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--hairline-faint);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.r4lane__size[data-diff] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.r4lane__size:disabled {
+  cursor: default;
+}
+
+/* the voice recorder on the interview sheet, and the player in Penilaian */
+.r4voice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.r4voice[data-on] .r4voice__btn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.r4voice__st {
+  min-width: 0;
+}
+.r4voice__fail {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+}
+.r4voice__err {
+  flex-basis: 100%;
+}
+.r4audio {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--hairline-faint);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.r4audio__parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* the lane in rows, one per CaAs, with a column for each examiner set for that CaAs */
+.r4lane__z[data-rows] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+.r4lane__row {
+  display: grid;
+  gap: 4px;
+  align-items: stretch;
+}
+.r4lane__row[data-short] {
+  padding-bottom: 0;
+}
+.r4lane__open {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 6px;
+  border: 1px dashed color-mix(in srgb, var(--warn) 55%, transparent);
+  border-radius: 8px;
+  background: transparent;
+}
+.r4lane__open[data-b]::before {
+  content: attr(data-b);
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  color: var(--text-muted);
+  font: 700 max(11px, 0.72rem) var(--font-body, inherit);
+}
+
+/* one CaAs in the lane: who it is for, how many examiners sit with them, and the seats */
+.r4lane__booth {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.r4lane__bh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.r4lane__bn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  font: 700 max(11px, 0.72rem) var(--font-body, inherit);
+}
+.r4lane__nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: max(11px, 0.78rem);
+}
+.r4lane__booth[data-short] .r4lane__nm {
+  color: var(--warn);
+}
+.r4lane__step {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+.r4lane__step button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--hairline-faint);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.r4lane__step button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.r4lane__step b {
+  min-width: 16px;
+  text-align: center;
+}
+button.r4lane__open {
+  justify-content: center;
+  color: var(--warn);
+  cursor: pointer;
 }

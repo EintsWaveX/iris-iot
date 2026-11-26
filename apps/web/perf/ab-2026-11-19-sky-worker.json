@@ -1,0 +1,92 @@
+{
+  "note": "Interleaved A/B on one build (render-harness --no-worker deletes window.Worker so the sky is drawn on the main thread, as before the sky worker). Home, signed-in praktikan, Low Detail, 390x844 @2.625x, 6x CPU, headless Chrome, real GPU. Medians of 4 rounds.",
+  "at": "2026-11-19T15:43:48.807Z",
+  "median": {
+    "mainThread": {
+      "longFrameMs": 5126.5,
+      "scriptMs": 2385,
+      "busyUntilMs": 6115.5,
+      "skyScriptMs": 1239.5
+    },
+    "worker": {
+      "longFrameMs": 4437.5,
+      "scriptMs": 1748.5,
+      "busyUntilMs": 5319,
+      "skyScriptMs": 413.5
+    }
+  },
+  "rows": [
+    {
+      "round": 1,
+      "path": "main thread (Worker removed)",
+      "longFrames": 27,
+      "longFrameMs": 7783,
+      "scriptMs": 2793,
+      "busyUntilMs": 9730,
+      "skyScript": 386
+    },
+    {
+      "round": 1,
+      "path": "worker",
+      "longFrames": 20,
+      "longFrameMs": 4883,
+      "scriptMs": 1852,
+      "busyUntilMs": 5896,
+      "skyScript": 550
+    },
+    {
+      "round": 2,
+      "path": "main thread (Worker removed)",
+      "longFrames": 18,
+      "longFrameMs": 5204,
+      "scriptMs": 2511,
+      "busyUntilMs": 6211,
+      "skyScript": 1225
+    },
+    {
+      "round": 2,
+      "path": "worker",
+      "longFrames": 19,
+      "longFrameMs": 4133,
+      "scriptMs": 1592,
+      "busyUntilMs": 5087,
+      "skyScript": 299
+    },
+    {
+      "round": 3,
+      "path": "main thread (Worker removed)",
+      "longFrames": 18,
+      "longFrameMs": 4770,
+      "scriptMs": 2259,
+      "busyUntilMs": 5754,
+      "skyScript": 1254
+    },
+    {
+      "round": 3,
+      "path": "worker",
+      "longFrames": 17,
+      "longFrameMs": 4247,
+      "scriptMs": 1705,
+      "busyUntilMs": 5297,
+      "skyScript": 504
+    },
+    {
+      "round": 4,
+      "path": "main thread (Worker removed)",
+      "longFrames": 19,
+      "longFrameMs": 5049,
+      "scriptMs": 2252,
+      "busyUntilMs": 6020,
+      "skyScript": 1293
+    },
+    {
+      "round": 4,
+      "path": "worker",
+      "longFrames": 17,
+      "longFrameMs": 4628,
+      "scriptMs": 1792,
+      "busyUntilMs": 5341,
+      "skyScript": 323
+    }
+  ]
+}

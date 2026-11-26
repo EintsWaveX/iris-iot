@@ -51,6 +51,7 @@ interface PnWords {
   notYet: string;
   detailsOf: (n: string) => string;
   hideDetails: string;
+  openSheet: (n: string) => string;
   dotsAria: (who: string, mean: string) => string;
   chipTip: (who: string, at: string) => string;
   bd: {
@@ -134,6 +135,7 @@ export const PN = dict<PnWords>({
     notYet: "belum",
     detailsOf: (n) => `Rincian ${n}`,
     hideDetails: "Tutup rincian",
+    openSheet: (n) => `Lihat lembar ${n}`,
     dotsAria: (w, m) => `Skor ${w}, rata-rata ${m}`,
     chipTip: (w, a) => (a ? `${w} · ${a}` : w),
     bd: {
@@ -227,6 +229,7 @@ export const PN = dict<PnWords>({
     notYet: "not yet",
     detailsOf: (n) => `${n}'s details`,
     hideDetails: "Hide details",
+    openSheet: (n) => `View ${n}'s sheet`,
     dotsAria: (w, m) => `Scores ${w}, average ${m}`,
     chipTip: (w, a) => (a ? `${w} · ${a}` : w),
     bd: {
@@ -319,6 +322,7 @@ export const PN = dict<PnWords>({
     notYet: "未提交",
     detailsOf: (n) => `${n} 的详情`,
     hideDetails: "收起详情",
+    openSheet: (n) => `查看 ${n} 的表格`,
     dotsAria: (w, m) => `分数 ${w}，平均 ${m}`,
     chipTip: (w, a) => (a ? `${w} · ${a}` : w),
     bd: {

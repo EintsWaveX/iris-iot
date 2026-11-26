@@ -1,0 +1,285 @@
+/* =========================================================================
+   GLASS KIT (Nov 2026): "glass shell, solid reading plates".
+   The shell (cards, dialogs, drawers, menus, the navbar) is glass over the painted cosmos.
+   Whatever a reader has to read closely sits on a solid plate: tables, forms, scores.
+   The tints are strong enough that --text-muted keeps 4.5:1 over the brightest part of either sky
+   (measured 16 Nov: dark panel 4.7 over the lavender aurora, light panel 5.9 over the deepest blue).
+   NOTE (20 Nov 2026): the blur below is only live at High Detail, on a short list of elements. styles/plates.css
+   is loaded after this file, turns these glass tokens into near-opaque plates below High Detail and removes every
+   other backdrop-filter. Low Detail and motion tier 0 also fall back to the old solid surfaces.
+   ========================================================================= */
+
+:root {
+  --glass-panel:
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.1), rgb(var(--rgb-255-255-255) / 0.02)),
+    rgb(var(--rgb-14-18-40) / 0.8);
+  --glass-frost:
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.14), rgb(var(--rgb-255-255-255) / 0.03)),
+    rgb(var(--rgb-16-20-44) / 0.9);
+  --glass-clear:
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.15), rgb(var(--rgb-255-255-255) / 0.03)),
+    rgb(var(--rgb-12-16-34) / 0.58);
+  --glass-bd: rgb(var(--rgb-255-255-255) / 0.2);
+  --glass-hi: rgb(var(--rgb-255-255-255) / 0.28);
+  --glass-sh: rgb(var(--rgb-0-0-0) / 0.34);
+}
+:root[data-theme="light"] {
+  --glass-panel:
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.9), rgb(var(--rgb-255-255-255) / 0.62)),
+    rgb(var(--rgb-255-255-255) / 0.3);
+  --glass-frost:
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.96), rgb(var(--rgb-255-255-255) / 0.78)),
+    rgb(var(--rgb-255-255-255) / 0.5);
+  --glass-clear:
+    linear-gradient(135deg, rgb(var(--rgb-255-255-255) / 0.8), rgb(var(--rgb-255-255-255) / 0.42)),
+    rgb(var(--rgb-255-255-255) / 0.3);
+  --glass-bd: rgb(var(--rgb-255-255-255) / 0.9);
+  --glass-hi: var(--hex-ffffff);
+  --glass-sh: rgb(var(--rgb-16-34-70) / 0.16);
+}
+
+/* ---- the shell: every card, dialog, drawer and menu ---- */
+.panel,
+.panel--raised {
+  background: var(--glass-panel);
+  border-color: var(--glass-bd);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
+}
+.dialog__panel,
+.drawer,
+.popover__panel {
+  background: var(--glass-frost);
+  border-color: var(--glass-bd);
+  -webkit-backdrop-filter: blur(26px) saturate(1.6);
+  backdrop-filter: blur(26px) saturate(1.6);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    var(--shadow-lift);
+}
+/* ---- reading plates: solid, for whatever is read closely ---- */
+.plate,
+.panel table {
+  background: var(--surface-1);
+}
+.plate {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-5);
+}
+/* ---- lightest machines: no blur, the old solid surfaces ---- */
+:root[data-detail="ldm"] .panel,
+:root[data-detail="ldm"] .panel--raised,
+:root[data-motion-tier="0"] .panel,
+:root[data-motion-tier="0"] .panel--raised {
+  background: var(--surface-1);
+  box-shadow: var(--shadow-panel);
+}
+:root[data-detail="ldm"] :is(.dialog__panel, .drawer, .popover__panel),
+:root[data-motion-tier="0"] :is(.dialog__panel, .drawer, .popover__panel) {
+  background: var(--surface-2);
+}
+
+/* ---- kit variants (opt-in classes) ---- */
+@property --glass-ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.glass {
+  --tc: var(--accent);
+  background: var(--glass-clear);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
+  color: var(--text);
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  transition:
+    transform 260ms var(--ease-out-expo),
+    box-shadow 260ms;
+}
+.glass--tint {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tc) 34%, transparent), transparent 72%),
+    var(--glass-clear);
+  border-color: color-mix(in srgb, var(--tc) 55%, var(--glass-bd));
+}
+.glass--frost {
+  background: var(--glass-frost);
+}
+.glass--aurora::before {
+  background: conic-gradient(
+    from var(--glass-ang),
+    transparent 0 55%,
+    var(--accent-bright),
+    var(--mod-2),
+    var(--mod-3),
+    transparent
+  );
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  -webkit-mask:
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 1.5px;
+  position: absolute;
+  z-index: -1;
+}
+.glass--gleam::after {
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgb(var(--rgb-255-255-255) / 0.35) 50%,
+    transparent 65%
+  );
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-130%);
+}
+@media (hover: hover) {
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass:hover {
+    transform: translateY(-3px);
+  }
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--gleam:hover::after {
+    transform: translateX(130%);
+    transition: transform 800ms var(--ease-out-expo);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-detail="ldm"]):not([data-motion-tier="0"]) .glass--aurora::before {
+    animation: glass-spin 6s linear 2;
+  }
+  @keyframes glass-spin {
+    to {
+      --glass-ang: 360deg;
+    }
+  }
+}
+:root[data-detail="ldm"] .glass,
+:root[data-motion-tier="0"] .glass {
+  background: var(--surface-1);
+}
+
+/* ---- reading plate: long prose or page headings that would otherwise sit straight on the painted sky ---- */
+.reading {
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 14px 34px var(--glass-sh);
+  padding: var(--space-6) var(--space-7);
+}
+:root[data-detail="ldm"] .reading,
+:root[data-motion-tier="0"] .reading {
+  background: var(--surface-1);
+}
+@media (max-width: 759px) {
+  .reading {
+    padding: var(--space-5);
+  }
+}
+
+/* ---- enter and leave: one rhythm for anything glass that appears ---- */
+.glass-in {
+  animation: glass-in 420ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+@keyframes glass-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+    filter: blur(6px);
+  }
+}
+.glass-out {
+  animation: glass-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes glass-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    filter: blur(5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-in,
+  .glass-out {
+    animation: none;
+  }
+}
+
+/* ---- Teaching Schedule (found on the live site, 16 Nov): its heading row, hint line and day/slot grid sat on the bare sky ---- */
+.jpage__head,
+.jhintrow,
+.jgrid-scroll {
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 12px 28px var(--glass-sh);
+}
+.jpage__head {
+  padding: var(--space-4) var(--space-5);
+}
+.jhintrow {
+  padding: var(--space-2) var(--space-4);
+}
+.jgrid-scroll {
+  padding: var(--space-4);
+}
+:root[data-detail="ldm"] :is(.jpage__head, .jhintrow, .jgrid-scroll),
+:root[data-motion-tier="0"] :is(.jpage__head, .jhintrow, .jgrid-scroll) {
+  background: var(--surface-1);
+}
+
+/* ---- loose hints and toolbar labels on the bare sky (found by running the unbacked-text check on the live site) ---- */
+.stack > .hint,
+.rp-toolbar > .hint,
+.rp-toolbar__end > .rp-label {
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-lg);
+  padding: 4px 12px;
+  width: fit-content;
+}
+.panel .stack > .hint,
+.reading .stack > .hint,
+.drawer .stack > .hint,
+.dialog__panel .stack > .hint,
+.plate .stack > .hint {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  width: auto;
+}
+
+/* The Modules list title block (and any heading block like it) rides a plate too. */
+.modlist__head {
+  background: var(--glass-frost);
+  border: 1px solid var(--glass-bd);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    0 12px 28px var(--glass-sh);
+  padding: var(--space-4) var(--space-5);
+  width: fit-content;
+}
+:root[data-detail="ldm"] .modlist__head,
+:root[data-motion-tier="0"] .modlist__head {
+  background: var(--surface-1);
+}

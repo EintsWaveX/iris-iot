@@ -20,6 +20,7 @@ import asyncio
 import json
 import pathlib
 import sys
+import time
 import urllib.request
 
 from websockets.asyncio.client import ClientConnection, connect
@@ -1495,6 +1496,136 @@ async def main() -> int:
         baris is not None and (baris.get("beacon") or {}).get("online") is False
         and baris.get("heat") not in (None, "hilang"),
         str(baris and (baris.get("beacon"), baris.get("heat"))))
+
+    # ---- papan tahan banting: satu pesan rusak tidak mematikan soketnya ----
+    # Paket LoRa bisa rusak di udara. Dulu null/teks/NaN di seq, rssi atau snr
+    # melempar pengecualian yang menutup soket dengan kode 1011, dan papan itu
+    # mengulang tersambung-putus sepanjang sesi tanpa satu baris pun di log.
+    async with connect(args.url + "/hunter") as ws:
+        dasar = {"grup": 6, "seq": 1, "rssi": -60, "halus": -60.0, "snr": 8.0,
+                 "tx": "10:00:00:000", "rx": "10:00:00:010"}
+        rusak = [
+            {**dasar, "seq": None}, {**dasar, "seq": "abc"}, {**dasar, "seq": -5},
+            {**dasar, "rssi": None}, {**dasar, "rssi": 999}, {**dasar, "rssi": "x"},
+            {**dasar, "snr": None}, {**dasar, "snr": "bad"}, {**dasar, "halus": None},
+            {**dasar, "seq": True},
+        ]
+        for pesan in rusak:
+            await ws.send(json.dumps(pesan))
+        await ws.send('{"grup": 6, "seq": 1, "rssi": -60, "snr": NaN}')
+        await ws.send('{"grup": 6, "seq": Infinity, "rssi": -60}')
+        await ws.send('{"grup": Infinity, "k": "AAAAAAAA", "seq": 1, "rssi": -60}')
+        await asyncio.sleep(0.3)
+        nomor, _ = await kelompok_di_papan()
+        cek("pesan hunter yang rusak tidak membuat kelompok dan tidak menutup soket",
+            6 not in nomor and ws.close_code is None, f"{nomor} kode={ws.close_code}")
+        await ws.send(json.dumps({**dasar, "seq": 2, "rssi": -55, "halus": -55.0}))
+        await asyncio.sleep(0.3)
+        nomor, _ = await kelompok_di_papan()
+        cek("soket yang sama tetap melayani pesan sah sesudah yang rusak",
+            6 in nomor and ws.close_code is None, f"{nomor}")
+
+    async with connect(args.url + "/beacon") as ws:
+        await ws.send(json.dumps({"grup": 6, "seq": None, "tx": "10:00:00:000"}))
+        await ws.send(json.dumps({"grup": 6, "seq": "x", "tx": "10:00:00:000"}))
+        await ws.send(json.dumps({"grup": 6, "seq": 3, "tx": "10:00:00:000"}))
+        await asyncio.sleep(0.3)
+        cek("pesan beacon yang rusak tidak menutup soket beacon", ws.close_code is None,
+            f"kode={ws.close_code}")
+
+    # ---- papan dengan kunci salah diberi tahu, bukan dibiarkan mengira berhasil ----
+    TANPA_KUNCI[0] = True
+    async with connect(args.url + "/hunter") as ws:
+        await ws.send(json.dumps({"grup": 6, "seq": 1, "rssi": -60}))
+        try:
+            balasan = json.loads(await asyncio.wait_for(ws.recv(), 2))
+        except (asyncio.TimeoutError, ValueError):
+            balasan = {}
+        await ws.send(json.dumps({"grup": 6, "seq": 2, "rssi": -60}))
+        try:
+            await asyncio.wait_for(ws.recv(), 0.5)
+            kedua = True
+        except asyncio.TimeoutError:
+            kedua = False
+    TANPA_KUNCI[0] = False
+    cek("papan berkunci salah menerima balasan galat yang menyebut HUNT_KEY",
+        balasan.get("tipe") == "galat" and balasan.get("kode") == "kunci"
+        and "HUNT_KEY" in balasan.get("alasan", ""), str(balasan))
+    cek("balasan kunci salah dibatasi, tidak membanjiri papan", kedua is False)
+
+    # ---- jam lewat soket papan: untuk hotspot yang membuang UDP 123 (NTP) ----
+    async with connect(args.url + "/hunter") as ws:
+        await ws.send(json.dumps({"tipe": "waktu", "grup": 10, "t0": 12345}))
+        mentah = await asyncio.wait_for(ws.recv(), 2)
+        balasan = json.loads(mentah)
+        cek("permintaan waktu dibalas dengan t0 yang sama dan jam server",
+            balasan.get("tipe") == "waktu" and balasan.get("t0") == 12345
+            and abs(balasan.get("ts", 0) - time.time() * 1000) < 5000, mentah)
+        cek("balasan waktu padat tanpa spasi, supaya mudah dibaca papan",
+            '"t0":12345' in mentah and '"ts":' in mentah, mentah)
+        await ws.send(json.dumps({"tipe": "waktu", "grup": 10, "t0": "bukan angka"}))
+        balasan = json.loads(await asyncio.wait_for(ws.recv(), 2))
+        cek("t0 yang rusak tidak mematikan soket, dibalas dengan 0",
+            balasan.get("t0") == 0 and ws.close_code is None, str(balasan))
+        for _ in range(60):
+            await ws.send(json.dumps({"tipe": "waktu", "grup": 10, "t0": 1}))
+        await asyncio.sleep(0.4)
+        diterima = 0
+        try:
+            while True:
+                await asyncio.wait_for(ws.recv(), 0.2)
+                diterima += 1
+        except asyncio.TimeoutError:
+            pass
+        cek("permintaan waktu dibatasi per soket", diterima <= 30, f"{diterima} balasan")
+    nomor, _ = await kelompok_di_papan()
+    cek("permintaan waktu tidak membuat kelompok di papan skor", 10 not in nomor, str(nomor))
+    TANPA_KUNCI[0] = True
+    async with connect(args.url + "/hunter") as ws:
+        await ws.send(json.dumps({"tipe": "waktu", "grup": 10, "t0": 1}))
+        balasan = json.loads(await asyncio.wait_for(ws.recv(), 2))
+    TANPA_KUNCI[0] = False
+    cek("permintaan waktu tanpa kunci tidak dilayani", balasan.get("tipe") == "galat", str(balasan))
+
+    # ---- laporan status papan: hunter hidup tapi tak mendengar beacon terlihat ----
+    async with connect(args.url + "/hunter") as ws, connect(args.url + "/beacon") as wb:
+        await ws.send(json.dumps({"tipe": "status", "grup": 10, "peran": "hunter", "wifi": -58,
+                                  "jam": "ntp", "naik": 125, "mem": 150000, "putus": 2}))
+        await wb.send(json.dumps({"tipe": "status", "grup": 10, "peran": "hunter", "wifi": 5,
+                                  "jam": "ngawur", "naik": "x", "mem": None, "putus": -1}))
+        await asyncio.sleep(0.3)
+        async with connect(args.url + "/live") as tamu:
+            isi = await bingkai(tamu)
+    papan = ((isi or {}).get("papan") or {}).get("10", {})
+    cek("laporan status hunter tampil di bingkai dengan nilainya",
+        papan.get("hunter", {}).get("online") is True and papan["hunter"].get("wifi") == -58
+        and papan["hunter"].get("jam") == "ntp" and papan["hunter"].get("putus") == 2,
+        str(papan.get("hunter")))
+    cek("peran status mengikuti jalur soket, bukan medan peran di pesan",
+        "beacon" in papan and "hunter" in papan, str(list(papan)))
+    cek("nilai status yang rusak dibuang satu per satu",
+        papan.get("beacon", {}).get("wifi") is None and papan["beacon"].get("jam") is None
+        and papan["beacon"].get("naik") is None and papan["beacon"].get("putus") is None,
+        str(papan.get("beacon")))
+    nomor = [g.get("grup") for g in (isi or {}).get("grup", [])]
+    cek("laporan status tidak membuat baris kelompok dan tidak dihitung permainan",
+        10 not in nomor, str(nomor))
+
+    # ---- soket lama yang mati belakangan tidak menandai papan offline ----
+    async with connect(args.url + "/hunter") as lama:
+        await lama.send(json.dumps({**dasar, "seq": 10}))
+        async with connect(args.url + "/hunter") as baru:
+            await baru.send(json.dumps({**dasar, "seq": 11}))
+            await asyncio.sleep(0.2)
+            await lama.close()
+            await asyncio.sleep(0.3)
+            async with connect(args.url + "/live") as tamu:
+                isi = await bingkai(tamu)
+    baris = next((g for g in (isi or {}).get("grup", []) if g.get("grup") == 6), None)
+    cek("hunter yang masih punya soket aktif tetap online saat soket lamanya ditutup",
+        baris is not None and baris.get("online") is True,
+        f"baris={baris and baris.get('online')} kelompok={[g.get('grup') for g in (isi or {}).get('grup', [])]} "
+        f"bingkai={'ada' if isi else 'tidak ada'}")
 
     await uji_login(args, T)
     await uji_tot(args, T)

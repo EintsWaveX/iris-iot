@@ -8,6 +8,11 @@ export interface CrewBoardWords {
   poolAll: (n: number) => string;
   laneBooth: string;
   lanePanel: string;
+  sizeHead: string;
+  sizeTip: (n: number, name: string, size: number) => string;
+  sizeSaved: (n: number, size: number) => string;
+  sizeLess: (n: number) => string;
+  sizeMore: (n: number) => string;
   empty: string;
   show: string;
   remove: (code: string) => string;
@@ -42,6 +47,11 @@ const ID: CrewBoardWords = {
   poolAll: (n) => `Semua Asisten aktif (${n})`,
   laneBooth: "Penguji",
   lanePanel: "Panel",
+  sizeHead: "Per CaAs",
+  sizeTip: (n, name, size) => `CaAs ${n} (${name}): ${size} penguji. Klik untuk mengubah.`,
+  sizeSaved: (n, size) => `CaAs ${n} kini diuji ${size} penguji.`,
+  sizeLess: (n) => `Kurangi penguji CaAs ${n}`,
+  sizeMore: (n) => `Tambah penguji CaAs ${n}`,
   empty: "kosong",
   show: "Lihat",
   remove: (c) => `Lepas ${c}`,
@@ -70,6 +80,12 @@ const EN: CrewBoardWords = {
   poolAll: (n) => `Every active Asisten (${n})`,
   laneBooth: "Examiners",
   lanePanel: "Panel",
+  sizeHead: "Per CaAs",
+  sizeTip: (n, name, size) =>
+    `CaAs ${n} (${name}): ${size} examiner${size === 1 ? "" : "s"}. Click to change.`,
+  sizeSaved: (n, size) => `CaAs ${n} now has ${size} examiner${size === 1 ? "" : "s"}.`,
+  sizeLess: (n) => `One fewer examiner for CaAs ${n}`,
+  sizeMore: (n) => `One more examiner for CaAs ${n}`,
   empty: "empty",
   show: "Show",
   remove: (c) => `Remove ${c}`,
@@ -98,6 +114,11 @@ const ZH: CrewBoardWords = {
   poolAll: (n) => `所有在职助教（${n}）`,
   laneBooth: "考官",
   lanePanel: "评审组",
+  sizeHead: "每位 CaAs",
+  sizeTip: (n, name, size) => `CaAs ${n}（${name}）：${size} 位考官。点击修改。`,
+  sizeSaved: (n, size) => `CaAs ${n} 现为 ${size} 位考官。`,
+  sizeLess: (n) => `减少 CaAs ${n} 的考官`,
+  sizeMore: (n) => `增加 CaAs ${n} 的考官`,
   empty: "空",
   show: "查看",
   remove: (c) => `移除 ${c}`,

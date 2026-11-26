@@ -73,7 +73,7 @@ import type {
 import { S2 } from "../../s2Strings";
 import { tgl } from "../../shared";
 import { useRevealMotion } from "../../reveal/fx";
-import Skeleton from "../../../ui/Skeleton";
+import Memuat from "../iv/Memuat";
 import "../../recruitment-plot.css";
 
 type Slot = PlotBoardResponse["slots"][number];
@@ -529,6 +529,9 @@ function RoomDlg({
             moreLabel="+"
             onChange={setCap}
           />
+          {ed && ed.taken > 0 && cap <= ed.taken && (
+            <span className="hint">{t.capacityFloor(ed.taken)}</span>
+          )}
         </span>
       </div>
     </Dialog>
@@ -1184,7 +1187,7 @@ export default function PlottingTab({
   const can = rights.plotting;
   const d = board.data;
   const bukaN = d?.requests.filter((r) => r.status === "open").length ?? 0;
-  if (!d) return <Skeleton height={360} />;
+  if (!d) return <Memuat lang={lang} poll={board} height={360} />;
   return (
     <div className="stack n7-plot" style={{ "--sc": STAGE_C[aktif] } as React.CSSProperties}>
       <div className="n7-bar">

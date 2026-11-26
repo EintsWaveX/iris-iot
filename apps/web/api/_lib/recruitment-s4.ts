@@ -13,6 +13,7 @@
  * POST /api/recruitment/iv-sheet-save       { id, stage, shared?, levels? }  autosave
  * POST /api/recruitment/iv-sheet-send       { id, stage }
  * POST /api/recruitment/iv-sheet-reopen     { id, stage }   take my sheet back to edit it
+ * POST /api/recruitment/iv-sheet-reset      { id, stage, scope: "start" | "all", preview? }  a control seat starts one CaAs over
  * POST /api/recruitment/iv-case             { id, stage, kind, minutes?, why? }
  * GET  /api/recruitment/iv-nilai?stage=     Penilaian: sheets, mean, spread, verdict (Ketua, Akademik, Admin)
  *
@@ -20,7 +21,7 @@
  * a CaAs never sees who examines them. The levels of the other examiners stay
  * hidden until every sheet is sent, unless the template says otherwise.
  */
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
@@ -35,6 +36,7 @@ import {
   recSheetShared,
   recSlot,
   recSlotAssignment,
+  recIvAudio,
   recSlotExaminer,
   recStageResult,
   type SheetCase,
@@ -43,20 +45,40 @@ import {
   caseKindsFor,
   EXCUSE_WHY,
   LATE_WHY,
+  FINAL_MAX,
+  NOTE_MAX,
   caseOutcome,
+  checkCatatan,
+  boothSize,
+  cleanSizes,
   crewFor,
+  rolesIn,
   isIvStage,
+  isLabel,
+  labelOf,
   levelsDone,
   meanScore,
   sheetMissing,
   sheetScore,
   spreadScore,
-  verdictOf,
+  suggestVerdict,
+  type Catatan,
   type CaseKind,
   type IvStage,
   type IvTemplate,
+  type Label,
   type Verdict,
 } from "../../src/lib/recruitment/interview.js";
+import type { Biodata } from "../../src/lib/recruitment/types.js";
+import {
+  AUDIO_BAGIAN_BANYAK,
+  AUDIO_BAGIAN_MAKS,
+  AUDIO_MS_MAKS,
+  AUDIO_TIPE,
+  audioCocok,
+  bacaRentang,
+  tipeDasar,
+} from "./recruitment-iv-audio.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatEvents, muatKolam, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
@@ -64,7 +86,7 @@ import { bebas } from "../../src/lib/recruitment/bebas.js";
 import { KURSI_KENDALI } from "../../src/lib/recruitment/rights.js";
 import { anggotaPanitia, muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { bacaSetting } from "./recruitment-settings.js";
-import { muatNilaiCutting } from "./recruitment-score.js";
+import { muatNilaiCutting, muatRinciTes } from "./recruitment-score.js";
 import { anggotaPerPemimpin, labelTim, muatSemuaPeserta, muatTim } from "./recruitment-tim.js";
 import { muatBarisMakeup, muatMakeupCtx, posisiMakeup } from "./recruitment-makeup.js";
 
@@ -113,6 +135,8 @@ interface SlotCrew {
   endsAt: Date;
   capacity: number;
   booths: Booth[];
+  /** Examiners per CaAs set for this slot's booths (null: the template's `per` everywhere) */
+  crewSizes: number[] | null;
   penguji: string[];
   pjOut: string[];
   pjIn: string[];
@@ -159,6 +183,7 @@ async function muatSlotCrew(db: Db, edisiId: number, stage: IvStage): Promise<Sl
     startsAt: s.startsAt,
     endsAt: s.endsAt,
     capacity: s.capacity,
+    crewSizes: s.crewSizes ?? null,
     booths: asg
       .filter((a) => a.slotId === s.id)
       .map((a) => ({
@@ -184,7 +209,7 @@ async function tempatKandidat(
   const semua = await muatSlotCrew(db, edisiId, stage);
   for (const s of semua) {
     const i = s.booths.findIndex((b) => b.id === kandidatId);
-    if (i >= 0) return { slot: s, index: i, crew: crewFor(s.penguji, i, t) };
+    if (i >= 0) return { slot: s, index: i, crew: crewFor(s.penguji, i, t, s.crewSizes) };
   }
   return null;
 }
@@ -279,6 +304,183 @@ async function handleCrewSet(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   });
   await writeAudit(s.nim, "rec_iv_crew", { stage: b.stage, slotIds, role: b.role, nims });
   return void res.status(200).json({ ok: true });
+}
+
+/**
+ * Examiners per CaAs for one slot: the template says two, but a shift short of Asisten seats one with a CaAs (or
+ * three with a hard one). `sizes` lists the group size of each booth in booth order; null goes back to the
+ * template everywhere. The examiners stay as plotted, so the groups simply re-cut along the same list.
+ */
+async function handleCrewSize(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const slotId = Number(b.slotId);
+  if (!isIvStage(b.stage) || !Number.isInteger(slotId) || slotId <= 0)
+    return void tolak(res, "data_salah", 400);
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (!wajibHak(res, p, "plotPengawas")) return;
+  const t = await bacaSetting(db, b.stage);
+  if (t.mode === "panel") return void tolak(res, "data_salah", 400, { field: "sizes" });
+  const [slot] = await muatSlotCrew(db, edisi.id, b.stage).then((a) =>
+    a.filter((x) => x.id === slotId),
+  );
+  if (!slot) return void tolak(res, "slot_tidak_ada", 404);
+  const sizes = cleanSizes(b.sizes, slot.booths.length, t.per);
+  if (sizes === undefined) return void tolak(res, "data_salah", 400, { field: "sizes" });
+  await db.update(recSlot).set({ crewSizes: sizes }).where(eq(recSlot.id, slotId));
+  await writeAudit(s.nim, "rec_iv_crew_size", { stage: b.stage, slotId, sizes });
+  return void res.status(200).json({ ok: true });
+}
+
+/* ---------------------------------------------------------------- voice recording */
+
+/**
+ * One part of the voice recording of a Wawancara, uploaded by the examiner's browser as the part ends: the
+ * audio bytes in the body (`?stage=wawancara&id=<candidate>&ms=<length>&at=<start, ISO>`). Only an examiner of
+ * that CaAs's booth records; the control seats hear, they do not record. Closed with the sheet's stage lock.
+ */
+async function handleAudioUp(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (req.query?.stage !== "wawancara") return void tolak(res, "data_salah", 400);
+  const tipe = tipeDasar(req.headers["content-type"]);
+  if (!(AUDIO_TIPE as readonly string[]).includes(tipe)) return void tolak(res, "tipe_salah", 415);
+  const isi = Buffer.isBuffer(req.body) ? req.body : null;
+  if (!isi || isi.length === 0) return void tolak(res, "kosong", 400);
+  if (isi.length > AUDIO_BAGIAN_MAKS) return void tolak(res, "terlalu_besar", 413);
+  if (!audioCocok(tipe, isi)) return void tolak(res, "isi_tidak_cocok", 400);
+  const ms = Number(req.query?.ms);
+  const mulai = new Date(String(req.query?.at ?? ""));
+  if (!Number.isInteger(ms) || ms < 1 || ms > AUDIO_MS_MAKS || Number.isNaN(mulai.getTime()))
+    return void tolak(res, "data_salah", 400);
+  const a = await bukaAkses(res, s, "wawancara", req.query?.id, true);
+  if (!a) return;
+  if (!a.penguji) return void tolak(res, "tanpa_hak", 403);
+  const db = getDb();
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(recIvAudio)
+    .where(and(eq(recIvAudio.candidateId, a.kandidat.id), eq(recIvAudio.stage, "wawancara")));
+  if (n >= AUDIO_BAGIAN_BANYAK) return void tolak(res, "terlalu_banyak", 409);
+  const [baris] = await db
+    .insert(recIvAudio)
+    .values({
+      candidateId: a.kandidat.id,
+      stage: "wawancara",
+      recordedBy: s.nim,
+      mime: tipe,
+      durationMs: ms,
+      size: isi.length,
+      isi,
+      startedAt: mulai,
+    })
+    .returning({ id: recIvAudio.id });
+  return void res.status(200).json({ ok: true, id: baris.id });
+}
+
+/** Who may hear a CaAs's recording: the Penilaian seats, and the examiners of that booth. Null after answering a refusal. */
+async function bolehDengar(
+  res: ApiResponse,
+  s: SessionPayload,
+  idRaw: unknown,
+): Promise<number | null> {
+  const id = Number(idRaw);
+  if (!Number.isInteger(id) || id <= 0) {
+    tolak(res, "data_salah", 400);
+    return null;
+  }
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return null;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  if (bolehNilai(p)) {
+    const [k] = await db
+      .select({ id: recCandidate.id })
+      .from(recCandidate)
+      .where(and(eq(recCandidate.id, id), eq(recCandidate.editionId, edisi.id)))
+      .limit(1);
+    if (!k) {
+      tolak(res, "kandidat_tidak_ada", 404);
+      return null;
+    }
+    return k.id;
+  }
+  const a = await bukaAkses(res, s, "wawancara", id, false);
+  return a ? a.kandidat.id : null;
+}
+
+/** The parts of a CaAs's recording in order: who recorded, how long, and the address to play (iv-audio). */
+async function handleAudioList(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (req.query?.stage !== "wawancara") return void tolak(res, "data_salah", 400);
+  const id = await bolehDengar(res, s, req.query?.id);
+  if (id === null) return;
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: recIvAudio.id,
+      by: recIvAudio.recordedBy,
+      ms: recIvAudio.durationMs,
+      size: recIvAudio.size,
+      at: recIvAudio.startedAt,
+    })
+    .from(recIvAudio)
+    .where(and(eq(recIvAudio.candidateId, id), eq(recIvAudio.stage, "wawancara")))
+    .orderBy(asc(recIvAudio.startedAt), asc(recIvAudio.id));
+  const kode = await kodeMap(db);
+  return void res.status(200).json({
+    ok: true,
+    parts: rows.map((r) => ({
+      id: r.id,
+      by: kode.get(r.by) ?? r.by,
+      mine: r.by === s.nim,
+      ms: r.ms,
+      size: r.size,
+      at: r.at.toISOString(),
+    })),
+  });
+}
+
+/** One part's audio, with byte ranges so a player can seek (`?id=<candidate>&part=<id>`). */
+async function handleAudio(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (req.query?.stage !== "wawancara") return void tolak(res, "data_salah", 400);
+  const kandidatId = await bolehDengar(res, s, req.query?.id);
+  if (kandidatId === null) return;
+  const part = Number(req.query?.part);
+  if (!Number.isInteger(part) || part <= 0) return void tolak(res, "data_salah", 400);
+  const db = getDb();
+  const [r] = await db
+    .select({ mime: recIvAudio.mime, isi: recIvAudio.isi })
+    .from(recIvAudio)
+    .where(
+      and(
+        eq(recIvAudio.id, part),
+        eq(recIvAudio.candidateId, kandidatId),
+        eq(recIvAudio.stage, "wawancara"),
+      ),
+    )
+    .limit(1);
+  if (!r) return void tolak(res, "tidak_ada", 404);
+  const size = r.isi.length;
+  const rentang = bacaRentang(req.headers.range, size);
+  res.setHeader("Content-Type", r.mime);
+  res.setHeader("Accept-Ranges", "bytes");
+  // An examiner's recording is an interview: kept in this browser only, for the session.
+  res.setHeader("Cache-Control", "private, max-age=3600");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  if (rentang === "salah") {
+    res.setHeader("Content-Range", `bytes */${size}`);
+    res.statusCode = 416;
+    return void res.end();
+  }
+  if (rentang) {
+    res.statusCode = 206;
+    res.setHeader("Content-Range", `bytes ${rentang.mulai}-${rentang.akhir}/${size}`);
+    res.setHeader("Content-Length", String(rentang.akhir - rentang.mulai + 1));
+    return void res.end(r.isi.subarray(rentang.mulai, rentang.akhir + 1));
+  }
+  res.statusCode = 200;
+  res.setHeader("Content-Length", String(size));
+  return void res.end(r.isi);
 }
 
 /**
@@ -388,44 +590,44 @@ async function handleMine(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       minutes: t.minutes,
       maxMinutes: t.maxMinutes,
       gap: t.gap,
+      // The template has Catatan Khusus checklists: the PJ's room list then offers a note button per CaAs
+      catatan: !!t.tags,
       // The rubric is still the sample one: the mockup shows a "Rubrik Contoh" badge until Akademik replaces it
       example: t.params.some((p) => p.example),
     },
-    slots: mine.map((x) => {
-      const role = x.penguji.includes(s.nim)
-        ? "penguji"
-        : x.pjIn.includes(s.nim)
-          ? "pj_dalam"
-          : "pj_luar";
-      return {
-        id: x.id,
-        room: x.room,
-        startsAt: x.startsAt.toISOString(),
-        endsAt: x.endsAt.toISOString(),
-        role,
-        penguji: x.penguji.map((n) => ({ nim: n, kode: kode.get(n) ?? n })),
-        pjOut: x.pjOut.map((n) => kode.get(n) ?? n),
-        pjIn: x.pjIn.map((n) => kode.get(n) ?? n),
-        booths: x.booths.map((bth, i) => {
-          const crew = crewFor(x.penguji, i, t);
-          const mineBooth = crew.includes(s.nim);
-          const sh = sheets.filter((r) => r.candidateId === bth.id);
-          const sd = shared.find((r) => r.candidateId === bth.id);
-          return {
-            index: i,
-            candidate: role === "penguji" && !mineBooth ? null : bth,
-            mine: mineBooth,
-            pair: crew.map((n) => kode.get(n) ?? n),
-            here: hadir.find((h) => h.cid === bth.id)?.at.toISOString() ?? null,
-            sent: sh.filter((r) => r.sentAt).length,
-            need: crew.length,
-            mineSent: !!sh.find((r) => r.graderNim === s.nim)?.sentAt,
-            verdict: sd?.verdict ?? null,
-            case: sd?.caseInfo ? { kind: sd.caseInfo.kind, status: sd.caseInfo.status } : null,
-          };
-        }),
-      };
-    }),
+    // One card per role: a person may examine and be PJ in the same slot, so a slot can come back more than once.
+    slots: mine.flatMap((x) =>
+      rolesIn(x, s.nim).map((role) => {
+        return {
+          id: x.id,
+          room: x.room,
+          startsAt: x.startsAt.toISOString(),
+          endsAt: x.endsAt.toISOString(),
+          role,
+          penguji: x.penguji.map((n) => ({ nim: n, kode: kode.get(n) ?? n })),
+          pjOut: x.pjOut.map((n) => kode.get(n) ?? n),
+          pjIn: x.pjIn.map((n) => kode.get(n) ?? n),
+          booths: x.booths.map((bth, i) => {
+            const crew = crewFor(x.penguji, i, t, x.crewSizes);
+            const mineBooth = crew.includes(s.nim);
+            const sh = sheets.filter((r) => r.candidateId === bth.id);
+            const sd = shared.find((r) => r.candidateId === bth.id);
+            return {
+              index: i,
+              candidate: role === "penguji" && !mineBooth ? null : bth,
+              mine: mineBooth,
+              pair: crew.map((n) => kode.get(n) ?? n),
+              here: hadir.find((h) => h.cid === bth.id)?.at.toISOString() ?? null,
+              sent: sh.filter((r) => r.sentAt).length,
+              need: crew.length,
+              mineSent: !!sh.find((r) => r.graderNim === s.nim)?.sentAt,
+              verdict: sd?.verdict ?? null,
+              case: sd?.caseInfo ? { kind: sd.caseInfo.kind, status: sd.caseInfo.status } : null,
+            };
+          }),
+        };
+      }),
+    ),
   });
 }
 
@@ -442,7 +644,7 @@ export const sheetBolehKirim = (kurang: readonly unknown[]): boolean =>
 interface Akses {
   t: IvTemplate;
   edisiId: number;
-  kandidat: { id: number; nim: string; bio: { kelas: string } };
+  kandidat: { id: number; nim: string; bio: Biodata };
   tempat: NonNullable<Awaited<ReturnType<typeof tempatKandidat>>>;
   penuh: boolean;
   penguji: boolean;
@@ -502,6 +704,37 @@ async function bukaAkses(
 
 const bersih = (v: unknown, max = MAX_TEXT): string | null =>
   typeof v === "string" && v.length <= max ? v : null;
+
+/** A new editing sitting starts when the last edit mark is older than this. */
+const SITTING_MS = 10 * 60_000;
+
+/**
+ * The edit mark of a sheet changed after it was sent: when, and how many sittings. Typing for ten minutes is
+ * one sitting (autosave must not count each keystroke), coming back later is another.
+ */
+export function tandaiEdit(
+  prev: { editedAt: Date | null; editCount: number },
+  now: Date,
+): { editedAt: Date; editCount: number } {
+  const baru = !prev.editedAt || now.getTime() - prev.editedAt.getTime() > SITTING_MS;
+  return { editedAt: now, editCount: prev.editCount + (baru ? 1 : 0) };
+}
+
+/**
+ * When each special card applies to a CaAs. fm comes from the attendance. a24 (angkatan 24 taking the IoT course)
+ * and te (Teknik Elektro taking the IoT practicum) come from the form the CaAs filled in; null means the form did
+ * not say, and the card then shows anyway with a "check the data" note, because asking is cheaper than skipping.
+ */
+export function kondisiKhusus(
+  bio: Pick<Biodata, "angkatan" | "prodi" | "mkIot" | "praktikumIot">,
+  fm: boolean,
+): { fm: boolean; a24: boolean | null; te: boolean | null } {
+  return {
+    fm,
+    a24: bio.angkatan === 2024 ? (bio.mkIot ?? null) : false,
+    te: bio.prodi === undefined ? null : bio.prodi === "te" ? (bio.praktikumIot ?? null) : false,
+  };
+}
 
 async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const a = await bukaAkses(res, s, req.query?.stage, req.query?.id, false);
@@ -607,7 +840,7 @@ async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     })),
     penuh: a.penuh,
     me: s.nim,
-    cond: { fm: !hadirFm },
+    cond: kondisiKhusus(a.kandidat.bio, !hadirFm),
     locked: a.terkunci,
     shared: shared
       ? {
@@ -623,7 +856,12 @@ async function handleSheet(req: ApiRequest, res: ApiResponse, s: SessionPayload)
           version: shared.version,
         }
       : null,
-    mine: { levels: mine?.levels ?? {}, sentAt: mine?.sentAt?.toISOString() ?? null },
+    mine: {
+      levels: mine?.levels ?? {},
+      sentAt: mine?.sentAt?.toISOString() ?? null,
+      editedAt: mine?.editedAt?.toISOString() ?? null,
+      edits: mine?.editCount ?? 0,
+    },
     // The other examiners' levels stay hidden until every sheet is in.
     others:
       semuaKirim || !a.t.hideLevels || a.penuh
@@ -648,15 +886,12 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
   const upd: Partial<typeof recSheetShared.$inferInsert> = {};
   const qIds = new Set(a.t.questions.map((q) => q.id));
   const pKeys = new Set(a.t.params.map((x) => x.key));
-  const [old] = await db
-    .select()
-    .from(recSheetShared)
-    .where(and(eq(recSheetShared.candidateId, a.kandidat.id), eq(recSheetShared.stage, stage)))
-    .limit(1);
+  // Only the keys sent are written, and the database merges them into the row in one
+  // statement (jsonb ||), so two examiners saving at once never drop each other's keys.
   if (sh.answers !== undefined) {
     if (typeof sh.answers !== "object" || sh.answers === null || Array.isArray(sh.answers))
       return void tolak(res, "data_salah", 400, { field: "answers" });
-    const merged = { ...(old?.answers ?? {}) };
+    const merged: Record<string, string> = {};
     for (const [k, v] of Object.entries(sh.answers as Record<string, unknown>)) {
       // Cards of the template, and the examiner's own marks (underscore) are the only keys.
       if (!qIds.has(k) && !k.startsWith("_")) continue;
@@ -670,7 +905,7 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
   if (sh.concl !== undefined) {
     if (typeof sh.concl !== "object" || sh.concl === null || Array.isArray(sh.concl))
       return void tolak(res, "data_salah", 400, { field: "concl" });
-    const merged = { ...(old?.concl ?? {}) };
+    const merged: Record<string, string> = {};
     for (const [k, v] of Object.entries(sh.concl as Record<string, unknown>)) {
       if (!pKeys.has(k)) continue;
       const t = bersih(v, 1000);
@@ -695,7 +930,7 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
     upd.verdict = sh.verdict as Verdict | null;
   }
   if (typeof sh.recording === "boolean") upd.recording = sh.recording;
-  if (sh.start === true && !old?.startedAt) upd.startedAt = new Date();
+  if (sh.start === true) upd.startedAt = new Date();
   // Levels are checked before anything is written, so a refused level never leaves a half-saved sheet.
   let levelsBaru: Record<string, number> | null = null;
   if (b.levels !== undefined) {
@@ -712,6 +947,37 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
     }
   }
   const now = new Date();
+  // Changing a sheet that is already sent leaves a mark (when, and which sitting), shown to the Penilaian.
+  const [ownRow] = a.penguji
+    ? await db
+        .select()
+        .from(recSheet)
+        .where(
+          and(
+            eq(recSheet.candidateId, a.kandidat.id),
+            eq(recSheet.stage, stage),
+            eq(recSheet.graderNim, s.nim),
+          ),
+        )
+        .limit(1)
+    : [];
+  const [old] = await db
+    .select()
+    .from(recSheetShared)
+    .where(and(eq(recSheetShared.candidateId, a.kandidat.id), eq(recSheetShared.stage, stage)))
+    .limit(1);
+  const beda = (x: unknown, y: unknown) => JSON.stringify(x) !== JSON.stringify(y);
+  // Answers and conclusions arrive as the keys that changed, so each key is compared with the row.
+  const kunciBeda = (kirim?: Record<string, string>, ada?: Record<string, string>) =>
+    kirim !== undefined && Object.entries(kirim).some(([k, v]) => (ada?.[k] ?? "") !== v);
+  const diubah =
+    (levelsBaru !== null &&
+      Object.entries(levelsBaru).some(([k, v]) => ownRow?.levels?.[k] !== v)) ||
+    kunciBeda(upd.answers, old?.answers) ||
+    kunciBeda(upd.concl, old?.concl) ||
+    (["skipped", "other", "ba", "verdict", "recording"] as const).some(
+      (k) => k in upd && beda(upd[k], old?.[k]),
+    );
   const [row] = await db
     .insert(recSheetShared)
     .values({
@@ -724,7 +990,18 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
     })
     .onConflictDoUpdate({
       target: [recSheetShared.candidateId, recSheetShared.stage],
-      set: { ...upd, version: (old?.version ?? 0) + 1, updatedBy: s.nim, updatedAt: now },
+      set: {
+        ...upd,
+        ...(upd.answers ? { answers: sql`${recSheetShared.answers} || excluded.answers` } : {}),
+        ...(upd.concl ? { concl: sql`${recSheetShared.concl} || excluded.concl` } : {}),
+        // The first Start stays; a second press never moves it.
+        ...(upd.startedAt
+          ? { startedAt: sql`coalesce(${recSheetShared.startedAt}, excluded.started_at)` }
+          : {}),
+        version: sql`${recSheetShared.version} + 1`,
+        updatedBy: s.nim,
+        updatedAt: now,
+      },
     })
     .returning({ version: recSheetShared.version });
   if (levelsBaru) {
@@ -748,6 +1025,8 @@ async function handleSheetSave(req: ApiRequest, res: ApiResponse, s: SessionPayl
         set: { levels: lv, updatedAt: now },
       });
   }
+  if (ownRow?.sentAt && diubah)
+    await db.update(recSheet).set(tandaiEdit(ownRow, now)).where(eq(recSheet.id, ownRow.id));
   return void res.status(200).json({ ok: true, version: row.version });
 }
 
@@ -782,7 +1061,12 @@ async function handleSheetSend(req: ApiRequest, res: ApiResponse, s: SessionPayl
   const now = new Date();
   await db
     .update(recSheet)
-    .set({ sentAt: now, updatedAt: now })
+    .set({
+      sentAt: now,
+      updatedAt: now,
+      // Sent again after being pulled back or changed: the edit mark moves to this send.
+      ...(mine && mine.editCount > 0 ? tandaiEdit(mine, now) : {}),
+    })
     .where(
       and(
         eq(recSheet.candidateId, a.kandidat.id),
@@ -794,6 +1078,22 @@ async function handleSheetSend(req: ApiRequest, res: ApiResponse, s: SessionPayl
   return void res.status(200).json({ ok: true });
 }
 
+/** The edit mark for pulling a sent sheet back; nothing when the sheet was not sent. */
+async function tandaiTarik(candidateId: number, stage: IvStage, grader: string, now: Date) {
+  const [r] = await getDb()
+    .select()
+    .from(recSheet)
+    .where(
+      and(
+        eq(recSheet.candidateId, candidateId),
+        eq(recSheet.stage, stage),
+        eq(recSheet.graderNim, grader),
+      ),
+    )
+    .limit(1);
+  return r?.sentAt ? tandaiEdit(r, now) : {};
+}
+
 async function handleSheetReopen(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const b = jsonBody(req);
   const a = await bukaAkses(res, s, b.stage, b.id, true);
@@ -801,9 +1101,15 @@ async function handleSheetReopen(req: ApiRequest, res: ApiResponse, s: SessionPa
   // My own sheet needs me to examine the CaAs; another examiner's (`grader`) needs the control seats.
   const grader = typeof b.grader === "string" && b.grader.trim() ? b.grader.trim() : s.nim;
   if (grader === s.nim ? !a.penguji : !a.penuh) return void tolak(res, "tanpa_hak", 403);
+  const jam = new Date();
   await getDb()
     .update(recSheet)
-    .set({ sentAt: null, updatedAt: new Date() })
+    .set({
+      sentAt: null,
+      updatedAt: jam,
+      // Only a sheet that was sent counts: pulling back one still being written is not an edit.
+      ...(await tandaiTarik(a.kandidat.id, b.stage as IvStage, grader, jam)),
+    })
     .where(
       and(
         eq(recSheet.candidateId, a.kandidat.id),
@@ -817,6 +1123,115 @@ async function handleSheetReopen(req: ApiRequest, res: ApiResponse, s: SessionPa
     ...(grader !== s.nim ? { grader } : {}),
   });
   return void res.status(200).json({ ok: true });
+}
+
+/**
+ * The Tes Tulis and Koding result of the CaAs, for the one interview card that tells it to them: every
+ * part with its score and how many answers were right, partly right, wrong and empty, and the Live Coding
+ * problems with the tests they passed. No question text. Fetched only when the examiner presses the reveal
+ * button, so opening a sheet stays light.
+ */
+async function handleTes(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (req.query?.stage !== "wawancara") return void tolak(res, "data_salah", 400);
+  const a = await bukaAkses(res, s, req.query.stage, req.query?.id, false);
+  if (!a) return;
+  const tes = await muatRinciTes(getDb(), a.edisiId, a.kandidat.id);
+  return void res.status(200).json({
+    ok: true,
+    tes: tes ? { ...tes, parts: tes.parts.map((p) => ({ ...p, questions: [] })) } : null,
+  });
+}
+
+/**
+ * A control seat starts one CaAs's interview over: what was left by testing, or a sheet opened by mistake.
+ * `scope: "start"` only stops the running clock (Mulai Wawancara is back to not started); `scope: "all"`
+ * also clears the shared sheet (answers, conclusions, verdict, berita acara, the recording mark, the case),
+ * every examiner's levels and sent marks, and the voice recording parts of that CaAs. `preview: true`
+ * only counts. What is cleared goes into the audit row, so it can be read back. The stage result, the slot
+ * and the attendance are not touched: this is the sheet, not the CaAs's standing.
+ */
+async function handleSheetReset(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const a = await bukaAkses(res, s, b.stage, b.id, true);
+  if (!a) return;
+  if (!a.penuh) return void tolak(res, "tanpa_hak", 403);
+  if (b.scope !== "start" && b.scope !== "all")
+    return void tolak(res, "data_salah", 400, { field: "scope" });
+  const scope: "start" | "all" = b.scope;
+  const stage = b.stage as IvStage;
+  const db = getDb();
+  const cand = a.kandidat.id;
+  const [shared] = await db
+    .select()
+    .from(recSheetShared)
+    .where(and(eq(recSheetShared.candidateId, cand), eq(recSheetShared.stage, stage)))
+    .limit(1);
+  const sheets = await db
+    .select()
+    .from(recSheet)
+    .where(and(eq(recSheet.candidateId, cand), eq(recSheet.stage, stage)));
+  const audio = await db
+    .select({
+      id: recIvAudio.id,
+      by: recIvAudio.recordedBy,
+      ms: recIvAudio.durationMs,
+      size: recIvAudio.size,
+      at: recIvAudio.startedAt,
+    })
+    .from(recIvAudio)
+    .where(and(eq(recIvAudio.candidateId, cand), eq(recIvAudio.stage, stage)));
+  const count = {
+    started: !!shared?.startedAt,
+    answers: Object.values(shared?.answers ?? {}).filter((v) => String(v).trim()).length,
+    conclusions: Object.values(shared?.concl ?? {}).filter((v) => String(v).trim()).length,
+    verdict: shared?.verdict ?? null,
+    case: !!shared?.caseInfo,
+    levels: sheets.filter((r) => Object.keys(r.levels ?? {}).length).length,
+    sent: sheets.filter((r) => r.sentAt).length,
+    audio: audio.length,
+  };
+  if (b.preview === true) return void res.status(200).json({ ok: true, scope, count });
+  await db.transaction(async (tx) => {
+    if (scope === "start") {
+      await tx
+        .update(recSheetShared)
+        .set({ startedAt: null, updatedBy: s.nim, updatedAt: new Date() })
+        .where(and(eq(recSheetShared.candidateId, cand), eq(recSheetShared.stage, stage)));
+      return;
+    }
+    await tx.delete(recSheet).where(and(eq(recSheet.candidateId, cand), eq(recSheet.stage, stage)));
+    await tx
+      .delete(recSheetShared)
+      .where(and(eq(recSheetShared.candidateId, cand), eq(recSheetShared.stage, stage)));
+    await tx
+      .delete(recIvAudio)
+      .where(and(eq(recIvAudio.candidateId, cand), eq(recIvAudio.stage, stage)));
+  });
+  await writeAudit(s.nim, "rec_iv_reset", {
+    stage,
+    candidateId: cand,
+    scope,
+    count,
+    // Kept so a reset can be read back: the shared sheet, each examiner's levels, the audio parts' sizes.
+    before: {
+      shared: shared
+        ? {
+            answers: shared.answers,
+            skipped: shared.skipped,
+            concl: shared.concl,
+            other: shared.other,
+            verdict: shared.verdict,
+            ba: shared.ba,
+            recording: shared.recording,
+            startedAt: shared.startedAt,
+            caseInfo: shared.caseInfo,
+          }
+        : null,
+      sheets: sheets.map((r) => ({ grader: r.graderNim, levels: r.levels, sentAt: r.sentAt })),
+      audio,
+    },
+  });
+  return void res.status(200).json({ ok: true, scope, count });
 }
 
 async function handleCase(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
@@ -870,13 +1285,19 @@ export interface NilaiBaris {
   nim: string;
   nama: string;
   slotId: number | null;
-  sheets: { by: string; score: number }[];
+  sheets: { by: string; score: number; editedAt: string | null; edits: number }[];
   expected: number;
   mean: number | null;
   spread: number | null;
   wide: boolean;
+  /** A red flag: Attitude or Komitmen rated low by an examiner, so a Fix Lolos is held at Ragu-ragu */
+  flag: boolean;
   verdict: Verdict | null;
   suggested: Verdict | null;
+  /** Catatan Khusus: how many red notes and plus points, and the label they come to (null with no checklist) */
+  red: number;
+  plus: number;
+  label: Label | null;
   case: { kind: string; status: "susulan" | "gugur" | null } | null;
 }
 
@@ -926,29 +1347,45 @@ export async function muatNilaiTahap(
   const out: NilaiBaris[] = [];
   for (const sl of slots)
     sl.booths.forEach((bth, i) => {
-      const crew = crewFor(sl.penguji, i, t);
+      const crew = crewFor(sl.penguji, i, t, sl.crewSizes);
       const dikirim = sheets.filter(
         (r) => r.candidateId === bth.id && r.sentAt && levelsDone(r.levels, t.params),
       );
       const lv = dikirim.map((r) => ({
         by: kode.get(r.graderNim) ?? r.graderNim,
         levels: r.levels,
+        editedAt: r.editedAt?.toISOString() ?? null,
+        edits: r.editCount,
       }));
-      const mean = meanScore(lv, t.params);
+      const mean = meanScore(lv, t.params, t.floor);
       const sd = shared.find((r) => r.candidateId === bth.id);
-      const spread = spreadScore(lv, t.params);
+      const spread = spreadScore(lv, t.params, t.floor);
+      const sug = mean === null ? null : suggestVerdict(mean, lv, t);
+      const ct = checkCatatan(sd?.catatan, t.tags);
       out.push({
         id: bth.id,
         nim: bth.nim,
         nama: bth.nama,
         slotId: sl.id,
-        sheets: lv.map((x) => ({ by: x.by, score: sheetScore(x.levels, t.params) })),
-        expected: Math.max(crew.length, t.mode === "panel" ? t.per : t.per),
+        sheets: lv.map((x) => ({
+          by: x.by,
+          score: sheetScore(x.levels, t.params, t.floor),
+          editedAt: x.editedAt,
+          edits: x.edits,
+        })),
+        expected: Math.max(
+          crew.length,
+          t.mode === "panel" ? t.per : boothSize(sl.crewSizes, i, t.per),
+        ),
         mean,
         spread,
         wide: spread !== null && spread >= t.wide,
+        flag: sug?.flag ?? false,
         verdict: sd?.verdict ?? null,
-        suggested: mean === null ? null : verdictOf(mean, t.cut),
+        suggested: sug?.verdict ?? null,
+        red: ct.red.length,
+        plus: ct.plus.length,
+        label: t.tags ? labelOf(ct, t.tags) : null,
         case: kasusAkhir(
           sd?.caseInfo ?? null,
           posisiMakeup(mctx, mrows.get(bth.id), sl.startsAt, now).state,
@@ -1056,7 +1493,7 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
         room: sl.room,
         startsAt: sl.startsAt.toISOString(),
         booth: i + 1,
-        crew: crewFor(sl.penguji, i, t).map((n) => kode.get(n) ?? n),
+        crew: crewFor(sl.penguji, i, t, sl.crewSizes).map((n) => kode.get(n) ?? n),
       }),
     );
   const rinci = rows.map((r) => {
@@ -1069,6 +1506,8 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
       by: kode.get(x.graderNim) ?? x.graderNim,
       levels: x.levels,
       at: x.sentAt ? x.sentAt.toISOString() : null,
+      editedAt: x.editedAt ? x.editedAt.toISOString() : null,
+      edits: x.editCount,
     }));
     return {
       ...r,
@@ -1080,6 +1519,7 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
       detail: byKode,
       concl: sd?.concl ?? {},
       ba: sd?.ba ?? "",
+      ct: t.tags ? tampilCatatan(checkCatatan(sd?.catatan, t.tags), kode, "") : null,
       waiting: (w?.crew ?? []).filter((c) => !byKode.some((x) => x.by === c)),
     };
   });
@@ -1089,12 +1529,194 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     cut: t.cut,
     wide: t.wide,
     per: t.per,
+    flag: t.flag,
+    tags: t.tags,
     example: t.params.some((x) => x.example),
     params: t.params,
     levels: t.levels,
     rows: rinci,
     penguji: [...perPenguji.entries()].map(([by, c]) => ({ by, n: c.n, avg: c.sum / c.n })),
     avg: all.length ? all.reduce((a, x) => a + x, 0) / all.length : null,
+  });
+}
+
+/* ---------------------------------------------------------------- Catatan Khusus */
+
+type PeranCatatan = "penguji" | "pjDalam" | "pjLuar" | "lain";
+
+/**
+ * A Catatan as the screens read it: the notes as a list (an examiner's NIM shown as their code), and which one is
+ * the reader's own. `mijnKey` is the key the reader's own note is kept under.
+ */
+function tampilCatatan(c: Catatan, kode: Map<string, string>, mijnKey: string) {
+  const roles = ["pjDalam", "pjLuar", "lain"];
+  return {
+    red: c.red,
+    plus: c.plus,
+    label: c.label,
+    final: c.final,
+    notes: Object.entries(c.notes).map(([key, text]) => ({
+      key,
+      who: roles.includes(key) ? key : (kode.get(key) ?? key),
+      text,
+      mine: key === mijnKey,
+    })),
+  };
+}
+
+/**
+ * Who may touch a CaAs's Catatan Khusus: the examiners of the booth, the PJ of its room, any committee member, and
+ * the control seats (who may also set the label and the conclusion). Anyone else is refused. The sheet itself stays
+ * closed to a PJ; only this note is open to them.
+ */
+async function bukaCatatan(
+  res: ApiResponse,
+  s: SessionPayload,
+  stageRaw: unknown,
+  idRaw: unknown,
+  tulis: boolean,
+) {
+  if (!isIvStage(stageRaw)) return void tolak(res, "data_salah", 400);
+  const id = Number(idRaw);
+  if (!Number.isInteger(id) || id <= 0) return void tolak(res, "data_salah", 400);
+  const db = getDb();
+  const edisi = await wajibEdisi(res, db);
+  if (!edisi) return;
+  const p = await muatPelaku(db, edisi.id, s.nim);
+  const [k] = await db
+    .select({ id: recCandidate.id, nim: recCandidate.nim })
+    .from(recCandidate)
+    .where(and(eq(recCandidate.id, id), eq(recCandidate.editionId, edisi.id)))
+    .limit(1);
+  if (!k) return void tolak(res, "kandidat_tidak_ada", 404);
+  const t = await bacaSetting(db, stageRaw);
+  if (!t.tags) return void tolak(res, "tanpa_catatan", 404);
+  const tempat = await tempatKandidat(db, edisi.id, stageRaw, k.id, t);
+  const semua = bolehNilai(p);
+  let peran: PeranCatatan | null = null;
+  if (tempat?.crew.includes(s.nim)) peran = "penguji";
+  else if (tempat?.slot.pjIn.includes(s.nim)) peran = "pjDalam";
+  else if (tempat?.slot.pjOut.includes(s.nim)) peran = "pjLuar";
+  else if (anggotaPanitia(p)) peran = "lain";
+  if (!peran && !semua) return void tolak(res, "tanpa_hak", 403);
+  if (tulis && !semua) {
+    const [hasil] = await db
+      .select({ locked: recStageResult.locked })
+      .from(recStageResult)
+      .where(and(eq(recStageResult.candidateId, k.id), eq(recStageResult.stage, stageRaw)))
+      .limit(1);
+    if (sheetTertutup(true, !!hasil?.locked)) return void tolak(res, "terkunci", 409);
+  }
+  const mijnKey = peran === "penguji" ? s.nim : (peran ?? "lain");
+  return {
+    db,
+    t,
+    tags: t.tags,
+    stage: stageRaw,
+    edisiId: edisi.id,
+    kandidat: k,
+    semua,
+    peran,
+    mijnKey,
+  };
+}
+
+async function handleCatatan(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const a = await bukaCatatan(res, s, req.query?.stage, req.query?.id, false);
+  if (!a) return;
+  const [sd] = await a.db
+    .select({ catatan: recSheetShared.catatan })
+    .from(recSheetShared)
+    .where(and(eq(recSheetShared.candidateId, a.kandidat.id), eq(recSheetShared.stage, a.stage)))
+    .limit(1);
+  const c = checkCatatan(sd?.catatan, a.tags);
+  const kode = await kodeMap(a.db);
+  const nama = (await namaPerNim(a.db, [a.kandidat.nim])).get(a.kandidat.nim) ?? a.kandidat.nim;
+  return void res.status(200).json({
+    ok: true,
+    nama,
+    tags: a.tags,
+    catatan: tampilCatatan(c, kode, a.mijnKey),
+    auto: labelOf({ ...c, label: null }, a.tags),
+    label: labelOf(c, a.tags),
+    peran: a.peran,
+    semua: a.semua,
+    mijnKey: a.mijnKey,
+  });
+}
+
+/**
+ * One change at a time, so two people writing about the same CaAs never overwrite each other: tick (or untick)
+ * a red note or plus point, write your own note, and (control seats only) set the label, the conclusion or
+ * someone else's note. The row is locked while it is read and written back.
+ */
+async function handleCatatanSave(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const a = await bukaCatatan(res, s, b.stage, b.id, true);
+  if (!a) return;
+  const tick = b.tick as { list?: unknown; key?: unknown; on?: unknown } | undefined;
+  if (tick !== undefined) {
+    const ok =
+      (tick.list === "red" || tick.list === "plus") &&
+      typeof tick.key === "string" &&
+      typeof tick.on === "boolean" &&
+      a.tags[tick.list].some((x) => x.key === tick.key);
+    if (!ok) return void tolak(res, "data_salah", 400, { field: "tick" });
+  }
+  if (b.note !== undefined && (typeof b.note !== "string" || b.note.length > NOTE_MAX))
+    return void tolak(res, "data_salah", 400, { field: "note" });
+  // Only a control seat writes under another name; everyone else writes under their own.
+  if (b.noteKey !== undefined && !a.semua) return void tolak(res, "tanpa_hak", 403);
+  const noteKey = typeof b.noteKey === "string" ? b.noteKey : a.mijnKey;
+  if (!/^[A-Za-z0-9_-]{1,24}$/.test(noteKey)) return void tolak(res, "data_salah", 400);
+  if (b.label !== undefined && b.label !== null && !isLabel(b.label))
+    return void tolak(res, "data_salah", 400, { field: "label" });
+  if (b.final !== undefined && (typeof b.final !== "string" || b.final.length > FINAL_MAX))
+    return void tolak(res, "data_salah", 400, { field: "final" });
+  if ((b.label !== undefined || b.final !== undefined) && !a.semua)
+    return void tolak(res, "tanpa_hak", 403);
+  const now = new Date();
+  const saved = await a.db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ catatan: recSheetShared.catatan })
+      .from(recSheetShared)
+      .where(and(eq(recSheetShared.candidateId, a.kandidat.id), eq(recSheetShared.stage, a.stage)))
+      .limit(1)
+      .for("update");
+    const c = checkCatatan(row?.catatan, a.tags);
+    if (tick) {
+      const list = tick.list as "red" | "plus";
+      const rest = c[list].filter((k) => k !== tick.key);
+      c[list] = tick.on ? [...rest, tick.key as string] : rest;
+    }
+    if (typeof b.note === "string") {
+      const text = b.note.trim();
+      if (text) c.notes[noteKey] = text;
+      else delete c.notes[noteKey];
+    }
+    if (b.label !== undefined) c.label = b.label as Label | null;
+    if (typeof b.final === "string") c.final = b.final.trim();
+    const next = checkCatatan(c, a.tags);
+    await tx
+      .insert(recSheetShared)
+      .values({ candidateId: a.kandidat.id, stage: a.stage, catatan: next, updatedAt: now })
+      .onConflictDoUpdate({
+        target: [recSheetShared.candidateId, recSheetShared.stage],
+        set: { catatan: next },
+      });
+    return next;
+  });
+  await writeAudit(s.nim, "rec_iv_catatan", {
+    stage: a.stage,
+    candidateId: a.kandidat.id,
+    peran: a.peran,
+  });
+  const kode = await kodeMap(a.db);
+  return void res.status(200).json({
+    ok: true,
+    catatan: tampilCatatan(saved, kode, a.mijnKey),
+    auto: labelOf({ ...saved, label: null }, a.tags),
+    label: labelOf(saved, a.tags),
   });
 }
 
@@ -1106,12 +1728,20 @@ export const S4_GET: Record<string, H> = {
   "iv-mine": handleMine,
   "iv-sheet": handleSheet,
   "iv-nilai": handleNilai,
+  "iv-catatan": handleCatatan,
+  "iv-tes": handleTes,
+  "iv-audio-list": handleAudioList,
+  "iv-audio": handleAudio,
 };
 export const S4_POST: Record<string, H> = {
   "iv-crew-set": handleCrewSet,
+  "iv-crew-size": handleCrewSize,
+  "iv-audio-up": handleAudioUp,
   "iv-standin": handleStandIn,
   "iv-sheet-save": handleSheetSave,
   "iv-sheet-send": handleSheetSend,
   "iv-sheet-reopen": handleSheetReopen,
+  "iv-sheet-reset": handleSheetReset,
   "iv-case": handleCase,
+  "iv-catatan-save": handleCatatanSave,
 };

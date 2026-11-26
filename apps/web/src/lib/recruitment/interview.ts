@@ -4,10 +4,12 @@
  * levels, question cards, crew size, the minutes and the case rules) is an
  * editable setting with the defaults below, so nothing here is a fixed rule.
  *
- * Defaults follow the mockup (rec4-data.js, rec6-data.js). The reference
- * interview form has no numbers; the 1 to 5 level per parameter is our own
- * proposal so results can be averaged and compared. Mengajar's rubric rows
- * are examples until the Akademik edits them.
+ * Wawancara follows the Wawancara_CaAs_IRIS workbook (22 Nov 2026): the weights,
+ * the 52 and 38 decision lines, the red flag, the 33 question cards with their
+ * priority, and the Catatan Khusus checklists. Mengajar and Tubes follow the
+ * mockup (rec6-data.js, rec5-data.js) and their rubric rows are examples until
+ * the Akademik edits them. A template saved before a field existed keeps working:
+ * every newer field has a default that leaves the old behaviour as it was.
  */
 
 import { isObj } from "../guards.js";
@@ -44,10 +46,12 @@ export interface IvQuestion {
   m: number;
   /** The parameter it feeds */
   p: string;
+  /** Wajib: never skip. Penting: ask if you can. Bisa dilewati: cut first when time runs short. */
+  prio?: IvPrio;
   t: Bi;
   h: Bi | null;
   /** Only asked when this applies to the CaAs */
-  only: "fm" | "lab" | null;
+  only: IvOnly | null;
   /** The card that shows the real test scores */
   reveal?: boolean;
 }
@@ -55,6 +59,43 @@ export interface IvQuestion {
 export interface IvGroup {
   key: string;
   label: Bi;
+}
+
+export const IV_PRIOS = ["wajib", "penting", "lewat"] as const;
+export type IvPrio = (typeof IV_PRIOS)[number];
+
+/**
+ * Who a card is for: fm (missed or late to First Meet), lab (applied to another lab), a24 (angkatan 24 taking
+ * the IoT course), te (Teknik Elektro taking the IoT practicum).
+ */
+export const IV_ONLY = ["fm", "lab", "a24", "te"] as const;
+export type IvOnly = (typeof IV_ONLY)[number];
+
+/**
+ * How a sheet turns levels into a score out of 100. "min": the lowest level is 0 (level 1 of 5 is 0).
+ * "zero": the score is the weighted level over the top level, so level 1 of 5 is 20 (the workbook's formula).
+ */
+export type IvFloor = "min" | "zero";
+
+/** A red flag: a level at or below `max` on any of `keys`, from any examiner, stops a Fix Lolos at Ragu-ragu. */
+export interface IvFlag {
+  keys: string[];
+  max: number;
+}
+
+export interface IvTag {
+  key: string;
+  label: Bi;
+}
+
+/** The Catatan Khusus checklists, and how many red notes or plus points name a label. */
+export interface IvTags {
+  red: IvTag[];
+  plus: IvTag[];
+  /** This many red notes or more is Banyak masalah */
+  many: number;
+  /** This many plus points or more, with no red note, is Jago */
+  jago: number;
 }
 
 /** "booth": the crew splits into pairs, one pair per CaAs. "panel": the whole crew sits every turn. */
@@ -90,6 +131,14 @@ export interface IvTemplate {
   makeupHour: number;
   /** Who sees what */
   hideLevels: boolean;
+  /** How a sheet becomes a score; a template saved without it keeps "min" */
+  floor: IvFloor;
+  /** The red-flag rule, or null for none */
+  flag: IvFlag | null;
+  /** The Catatan Khusus checklists, or null for none */
+  tags: IvTags | null;
+  /** Which edition of the defaults this template came from; a saved one older than the default gets a banner */
+  rev: number;
 }
 
 const b = (id: string, en: string): Bi => ({ id, en });
@@ -102,14 +151,14 @@ export const LEVELS_DEFAULT: Bi[] = [
   b("Sangat Baik", "Very Good"),
 ];
 
-const P = (key: string, label: Bi, ind: Bi[], eg: Bi, example = false): IvParam => ({
+const P = (key: string, label: Bi, ind: Bi[], eg: Bi, example = false, weight = 1): IvParam => ({
   key,
   label,
   ind,
   eg,
   min: 1,
   max: 5,
-  weight: 1,
+  weight,
   ...(example ? { example } : {}),
 });
 
@@ -128,6 +177,8 @@ const WAW_PARAMS: IvParam[] = [
       "Contoh: tidak telat; jujur karena menjelaskan notifikasi yang terlihat saat tes.",
       "E.g. not late; honest, since they explained a notification seen during the test.",
     ),
+    false,
+    30,
   ),
   P(
     "komitmen",
@@ -144,6 +195,8 @@ const WAW_PARAMS: IvParam[] = [
       "Contoh: berkomitmen karena sudah bernazar, dan tidak ragu saat diberi konsekuensi.",
       "E.g. committed: has made a vow, and didn't hesitate at the consequence.",
     ),
+    false,
+    25,
   ),
   P(
     "profesional",
@@ -160,6 +213,19 @@ const WAW_PARAMS: IvParam[] = [
       "Contoh: manajemen waktu baik antara kuliah dan tugas, taat aturan.",
       "E.g. manages time well between classes and tasks, follows the rules.",
     ),
+    false,
+    20,
+  ),
+  P(
+    "konsisten",
+    b("Konsistensi jawaban", "Consistency of answers"),
+    [b("Jawaban cocok dengan data di CV", "Answers match the CV")],
+    b(
+      "Contoh: jawaban sesuai CV dan berkas yang dikumpulkan.",
+      "E.g. answers match the CV and the files handed in.",
+    ),
+    false,
+    15,
   ),
   P(
     "keaktifan",
@@ -173,15 +239,8 @@ const WAW_PARAMS: IvParam[] = [
       "Contoh: aktif di UKM, punya soft skill public speaking.",
       "E.g. active in a club, with public speaking as a soft skill.",
     ),
-  ),
-  P(
-    "konsisten",
-    b("Konsistensi jawaban", "Consistency of answers"),
-    [b("Jawaban cocok dengan data di CV", "Answers match the CV")],
-    b(
-      "Contoh: jawaban sesuai CV dan berkas yang dikumpulkan.",
-      "E.g. answers match the CV and the files handed in.",
-    ),
+    false,
+    10,
   ),
 ];
 
@@ -322,256 +381,251 @@ const TUBES_PARAMS: IvParam[] = [
 
 const GROUPS: IvGroup[] = [
   { key: "buka", label: b("Pembuka", "Opening") },
-  { key: "santai", label: b("Santai", "Relaxed") },
-  { key: "serius", label: b("Lebih serius", "More serious") },
+  { key: "diri", label: b("Tentang diri", "About them") },
+  { key: "waktu", label: b("Waktu dan kesibukan", "Time and other commitments") },
+  { key: "tes", label: b("Tes tulis dan koding", "Written and coding tests") },
+  { key: "lab", label: b("Tentang lab", "About the lab") },
+  { key: "riset", label: b("Riset", "Research") },
+  { key: "kasus", label: b("Studi kasus", "Case study") },
+  { key: "iot", label: b("IoT", "IoT") },
   { key: "inggris", label: b("Bahasa Inggris", "In English") },
   { key: "khusus", label: b("Khusus", "Special") },
   { key: "tutup", label: b("Penutup", "Closing") },
 ];
 
-type Q = [string, number, string, string, string, string?, string?, ("fm" | "lab")?];
-/** [group, minutes, parameter, id, en, hint id, hint en, only-for] */
+type Q = [string, number, string, IvPrio, string, string, string?, string?, IvOnly?];
+/** [group, minutes, parameter, priority, id, en, hint id, hint en, only-for] */
 const QS: Q[] = [
   [
     "buka",
     3,
     "attitude",
+    "penting",
     "Perkenalan dan cerita tentang diri",
     "Introduce yourself",
     "Pertanyaan awal santai. Suasana baru jadi serius mulai pertanyaan tes tulis.",
     "The first questions are relaxed. It turns serious from the test-score questions.",
   ],
-  ["buka", 2, "keaktifan", "Kelebihan (cek CV)", "Strengths (check the CV)"],
+  ["buka", 2, "keaktifan", "penting", "Kelebihan (cek CV)", "Strengths (check the CV)"],
   [
     "buka",
     2,
     "profesional",
+    "penting",
     "Kekurangan dan cara mengatasinya (cek CV)",
     "Weaknesses and how they cope (check the CV)",
   ],
   [
     "buka",
-    1,
-    "keaktifan",
-    "Skill selain bahasa C (minta portofolio)",
-    "Skills beyond C (ask for a portfolio)",
-    "Jangan beri contoh dulu. Beri contoh hanya bila mereka sudah selesai dan tidak menyebut apa pun.",
-    "Don't give examples first. Only if they finish without naming any.",
-  ],
-  [
-    "buka",
-    0.5,
-    "komitmen",
-    "Siap jika bahasa praktikum diganti?",
-    "Ready if the practicum language changes?",
-    "Jawaban yang diharapkan: siap.",
-    "The expected answer: ready.",
-  ],
-  [
-    "buka",
     1.5,
     "profesional",
+    "penting",
     "Sulit bangun pagi?",
     "Hard to wake up early?",
     "Bila menjawab sulit, lanjutkan: bagaimana kalau jadwalnya pagi?",
     "If they say yes, follow up: and if the shift is in the morning?",
   ],
   [
-    "buka",
-    1.5,
-    "komitmen",
-    "Kenapa tertarik pada bahasa C dan pemrograman",
-    "Why they like C and programming",
-  ],
-  [
-    "santai",
+    "diri",
     2,
     "profesional",
+    "penting",
     "Arti pemimpin dan gaya kepemimpinannya",
     "What a leader is and their style",
   ],
   [
-    "santai",
+    "diri",
     2,
     "profesional",
+    "penting",
     "Anggota tim banyak menentang: apa yang dilakukan",
     "Most of the team pushes back: what do they do",
   ],
   [
-    "santai",
-    1.5,
-    "profesional",
-    "Cara mengukur keberhasilan sebuah tim",
-    "How they measure a team's success",
+    "diri",
+    1,
+    "komitmen",
+    "penting",
+    "Riwayat kesehatan dan cara menjaganya",
+    "Health history and how they manage it",
   ],
   [
-    "santai",
-    2,
-    "profesional",
-    "Tim yang tidak sesuai harapan: sikapnya",
-    "A team that falls short: their attitude",
-  ],
-  [
-    "santai",
+    "waktu",
     1.5,
     "komitmen",
+    "wajib",
     "Kesibukan lain sekarang",
     "Other commitments now",
     "Kuliah, UKM, organisasi, rekrutmen lain, dan seterusnya.",
     "Classes, clubs, organisations, other recruitments and so on.",
   ],
-  ["santai", 1.5, "komitmen", "Kegiatan lain setelah diterima", "Other activities after joining"],
   [
-    "serius",
+    "waktu",
     2,
+    "profesional",
+    "penting",
+    "Skala prioritas sekarang, dalam persen",
+    "Priorities today, in percent",
+  ],
+  [
+    "waktu",
+    1.5,
+    "komitmen",
+    "wajib",
+    "Kegiatan lain setelah diterima",
+    "Other activities after joining",
+  ],
+  [
+    "waktu",
+    2,
+    "profesional",
+    "wajib",
+    "Lebih sibuk bila diterima: bagaimana mengatur waktu",
+    "Busier once accepted: how they manage time",
+  ],
+  [
+    "waktu",
+    2,
+    "profesional",
+    "penting",
+    "Skala prioritas setelah jadi asisten, dalam persen",
+    "Priorities as an assistant, in percent",
+    "Bandingkan dengan jawaban skala prioritas sekarang.",
+    "Compare with their priorities today.",
+  ],
+  [
+    "tes",
+    1,
     "attitude",
+    "wajib",
     "Kejujuran saat tes tulis dan tes koding",
     "Honesty during the written and coding tests",
     "Mulai dari sini suasana lebih serius.",
     "From here on, the room is more serious.",
   ],
   [
-    "serius",
+    "tes",
     1,
     "konsisten",
+    "wajib",
     "Tebak nilai tes tulis dan tes koding",
     "Guess the written and coding test scores",
   ],
   [
-    "serius",
-    2,
+    "tes",
+    1,
     "attitude",
+    "wajib",
     "Beri tahu nilai sebenarnya, tanya apakah layak jadi asisten",
     "Tell the real scores; ask if they deserve to be an assistant",
     "Nilai sebenarnya ada di tombol di bawah. Hanya kartu ini yang menampilkannya.",
     "The real scores are behind the button below. Only this card shows them.",
   ],
   [
-    "serius",
+    "lab",
     3,
     "konsisten",
+    "wajib",
     "Tujuan, visi, misi dan motivasi",
     "Goal, vision, mission and motivation",
     "Cocokkan dengan CV: konsisten atau tidak.",
     "Check against the CV: consistent or not.",
   ],
   [
-    "serius",
-    1.5,
-    "keaktifan",
-    "Inovasi untuk lab bila sudah jadi asisten",
-    "Ideas for the lab once an assistant",
-  ],
-  ["serius", 1, "keaktifan", "Pernah terlibat proyek atau riset", "Past projects or research"],
-  ["serius", 1, "komitmen", "Bersedia ikut riset di lab", "Willing to join lab research"],
-  [
-    "serius",
-    2,
-    "keaktifan",
-    "Yang dia ketahui tentang pekerjaan asisten lab",
-    "What they know of an assistant's job",
-    "Kalau hanya menjawab mengajar, tanyakan lagi.",
-    "If they only say teaching, ask again.",
-  ],
-  [
-    "serius",
+    "lab",
     1.5,
     "komitmen",
+    "penting",
     "Kenapa memilih lab ini",
     "Why this lab",
     "Sekitar separuh pertanyaan inti ada di kartu ini.",
     "About half the core questions sit on this card.",
   ],
   [
-    "serius",
-    1.5,
-    "profesional",
-    "Gaji yang diharapkan dan shift per minggu",
-    "Expected pay and shifts a week",
-    "Bila meminta Rp 50.000 atau lebih, tanya apakah itu layak untuknya.",
-    "If they ask for Rp 50,000 or more, ask whether that is fair for them.",
-  ],
-  ["serius", 1, "attitude", "Kode asisten yang diinginkan", "Preferred assistant code"],
-  [
-    "serius",
+    "lab",
     2,
-    "profesional",
-    "Lebih sibuk bila diterima: bagaimana mengatur waktu",
-    "Busier once accepted: how they manage time",
+    "keaktifan",
+    "penting",
+    "Yang dia ketahui tentang pekerjaan asisten lab",
+    "What they know of an assistant's job",
+    "Kalau hanya menjawab mengajar, tanyakan lagi.",
+    "If they only say teaching, ask again.",
   ],
   [
-    "serius",
-    2,
-    "profesional",
-    "Skala prioritas sekarang, dalam persen",
-    "Priorities today, in percent",
-  ],
-  [
-    "serius",
-    2,
-    "profesional",
-    "Skala prioritas setelah jadi asisten, dalam persen",
-    "Priorities as an assistant, in percent",
-  ],
-  [
-    "serius",
+    "riset",
     1,
     "komitmen",
-    "Riwayat kesehatan dan cara menjaganya",
-    "Health history and how they manage it",
+    "penting",
+    "Bila ada riset di lab IRIS, apakah bersedia ikut",
+    "Willing to join research if the IRIS lab runs some",
   ],
   [
-    "serius",
+    "riset",
+    3,
+    "komitmen",
+    "wajib",
+    "Semester depan tidak ada praktikum, hanya riset: apa yang akan dia kerjakan dan riset apa",
+    "Next semester has no practicum, only research: what they will do and which research",
+    "Semester depan tugas asisten hanya riset, jadi rencana konkretnya menunjukkan kesiapan dan komitmen.",
+    "Next semester an assistant only does research, so a concrete plan shows readiness and commitment.",
+  ],
+  [
+    "kasus",
     4,
     "profesional",
-    "Studi kasus praktikan (pilih beberapa saja)",
-    "Praktikan case studies (pick a few)",
+    "penting",
+    "Studi kasus praktikan (contoh: ada kating yang mengulang praktikum IoT dan bersikap seenaknya: tidak mendengarkan, main HP, dan tidak mengerjakan TP. Apa yang kamu lakukan?)",
+    "Praktikan case study (e.g. a senior retaking the IoT practicum behaves as they please: doesn't listen, plays on their phone, skips the TP. What do you do?)",
     "Tidak perlu semuanya. Pilih yang paling relevan dengan jawaban sebelumnya.",
     "Not all of them. Pick what fits their earlier answers.",
   ],
   [
+    "iot",
+    2,
+    "keaktifan",
+    "penting",
+    "Dasar IoT: apa itu IoT dan contoh penerapannya yang dia ketahui",
+    "IoT basics: what IoT is and the uses they know",
+  ],
+  [
+    "iot",
+    1.5,
+    "keaktifan",
+    "penting",
+    "Pengalaman atau minat dengan mikrokontroler, sensor, atau proyek IoT",
+    "Experience or interest in microcontrollers, sensors or IoT projects",
+  ],
+  [
+    "iot",
+    2,
+    "profesional",
+    "penting",
+    "Studi kasus praktikum IoT: rangkaian atau alat praktikan tidak berfungsi, apa langkahnya",
+    "IoT practicum case study: a praktikan's circuit or device doesn't work, what are the steps",
+  ],
+  [
     "inggris",
-    4,
-    "attitude",
-    "In English: asisten ideal menurutmu seperti apa",
-    "In English: what an ideal assistant is",
+    3,
+    "keaktifan",
+    "penting",
+    "In English: jelaskan satu materi IoT kepada praktikan baru, pilih salah satu: apa itu IoT, sensor dan aktuator, atau cara mikrokontroler mengirim data ke server",
+    "In English: explain one IoT topic to a new praktikan, pick one: what IoT is, sensors and actuators, or how a microcontroller sends data to a server",
     "Dua pertanyaan berikutnya dalam bahasa Inggris. Beri tahu CaAs lebih dulu.",
     "The next two are in English. Tell the CaAs first.",
   ],
   [
     "inggris",
-    2.5,
-    "profesional",
-    "In English: sudahkah kamu memenuhi kriteria itu",
-    "In English: do you meet those criteria",
-  ],
-  [
-    "inggris",
-    2.5,
-    "profesional",
-    "Arti sikap profesional menurutnya",
-    "What being professional means to them",
-  ],
-  [
-    "inggris",
     2,
-    "komitmen",
-    "Sikap hilang-hilangan: profesional atau tidak",
-    "Going missing: professional or not",
-  ],
-  [
-    "inggris",
-    3,
-    "komitmen",
-    "Komitmen dan konsekuensi bila hilang-hilangan",
-    "Commitment and the consequence of vanishing",
-    "Bila dia menawarkan keluar atau denda, jawab bahwa konsekuensinya masuk daftar hitam semua rekrutmen lab FTE.",
-    "If they offer to leave or pay a fine, answer that it means a blacklist from every FTE lab recruitment.",
+    "profesional",
+    "penting",
+    "In English: tanya jawab setelah penjelasan, pewawancara pilih 2 sampai 3: (1) What is the difference between a sensor and an actuator? (2) How does a microcontroller send data to a server? (3) What would you check if a sensor gives no reading? Lalu beri kesempatan CaAs bertanya balik.",
+    "In English: Q and A after the explanation, the examiner picks 2 or 3: (1) What is the difference between a sensor and an actuator? (2) How does a microcontroller send data to a server? (3) What would you check if a sensor gives no reading? Then let the CaAs ask back.",
   ],
   [
     "khusus",
     3,
     "komitmen",
+    "wajib",
     "Tidak ikut atau telat First Meet: kenapa",
     "Missing or arriving late to First Meet: why",
     "Kartu ini hanya muncul bila CaAs tidak ikut atau telat First Meet.",
@@ -582,50 +636,96 @@ const QS: Q[] = [
     "khusus",
     3,
     "komitmen",
+    "wajib",
     "Mendaftar lab lain: mana yang diutamakan",
     "Applying to another lab: which comes first",
     "Hanya untuk CaAs yang juga mendaftar lab lain.",
     "Only for CaAs who also applied to another lab.",
     "lab",
   ],
-  ["tutup", 1.5, "komitmen", "Alasan agar kami yakin menerima kamu", "Why we should accept you"],
-  ["tutup", 2, "komitmen", "Nazar bila diterima", "Vow if accepted"],
+  [
+    "khusus",
+    1.5,
+    "komitmen",
+    "wajib",
+    "Khusus angkatan 24, mata kuliah IoT: apakah absensi aman, dan nilainya juga?",
+    "Angkatan 24, IoT course: is attendance safe, and the grade too?",
+    "Wajib untuk CaAs angkatan 24 yang mengambil mata kuliah IoT. Cek risiko bentrok absensi dan nilai.",
+    "Required for angkatan 24 CaAs taking the IoT course. Check the risk of an attendance or grade clash.",
+    "a24",
+  ],
+  [
+    "khusus",
+    1,
+    "komitmen",
+    "wajib",
+    "Khusus Elektro, praktikum IoT: apakah absensi aman?",
+    "Elektro, IoT practicum: is attendance safe?",
+    "Wajib untuk CaAs Elektro yang mengambil praktikum IoT. Cek risiko bentrok absensi.",
+    "Required for Elektro CaAs taking the IoT practicum. Check the risk of an attendance clash.",
+    "te",
+  ],
+  [
+    "tutup",
+    1.5,
+    "komitmen",
+    "penting",
+    "Alasan agar kami yakin menerima kamu",
+    "Why we should accept you",
+  ],
+  ["tutup", 2, "komitmen", "penting", "Nazar bila diterima", "Vow if accepted"],
   [
     "tutup",
     1.5,
     "konsisten",
+    "wajib",
     "Pengecekan berkas (tanya alasannya bila ada yang kurang)",
     "File check (ask why if something is missing)",
   ],
-  [
-    "tutup",
-    0,
-    "keaktifan",
-    "Pertanyaan bebas (opsional, bila waktu masih ada)",
-    "Free questions (optional, if time is left)",
-  ],
-  ["tutup", 0.5, "attitude", "Tahu rekrutmen ini dari mana", "How they heard of this recruitment"],
-  [
-    "tutup",
-    3,
-    "keaktifan",
-    "Ada yang ingin ditanyakan tentang lab",
-    "Anything they want to ask about the lab",
-    "Beri kesempatan. Bila tidak ada, langsung tutup.",
-    "Give them the chance. If none, close.",
-  ],
 ];
 
-const WAW_QUESTIONS: IvQuestion[] = QS.map(([g, m, p, id, en, hid, hen, only], i) => ({
+const WAW_QUESTIONS: IvQuestion[] = QS.map(([g, m, p, prio, id, en, hid, hen, only], i) => ({
   id: `q${i + 1}`,
   g,
   m,
   p,
+  prio,
   t: b(id, en),
   h: hid ? b(hid, hen ?? hid) : null,
   only: only ?? null,
   ...(en.startsWith("Tell the real scores") ? { reveal: true } : {}),
 }));
+
+/** The red notes and plus points of the workbook's Catatan Khusus sheet, and the counts that name a label. */
+const WAW_TAGS: IvTags = {
+  red: [
+    { key: "jujur", label: b("Tidak jujur", "Not honest") },
+    {
+      key: "hilang",
+      label: b("Hilang-hilangan atau sulit dihubungi", "Goes missing or is hard to reach"),
+    },
+    { key: "fm", label: b("Telat atau tidak ikut First Meet", "Late to or missed First Meet") },
+    { key: "bentrok", label: b("Jadwal bentrok atau terlalu sibuk", "Schedule clash or too busy") },
+    { key: "cv", label: b("Jawaban tidak cocok dengan CV", "Answers don't match the CV") },
+    {
+      key: "sikap",
+      label: b("Sikap atau komunikasi bermasalah", "Attitude or communication problem"),
+    },
+  ],
+  plus: [
+    { key: "skill", label: b("Portofolio atau skill kuat", "Strong portfolio or skills") },
+    { key: "proyek", label: b("Pernah proyek atau riset", "Has done a project or research") },
+    { key: "leader", label: b("Leadership kuat", "Strong leadership") },
+    { key: "inggris", label: b("Bahasa Inggris bagus", "Good English") },
+    {
+      key: "sikapbaik",
+      label: b("Sikap dan komunikasi sangat baik", "Excellent attitude and communication"),
+    },
+    { key: "antusias", label: b("Antusias, rasa ingin tahu tinggi", "Enthusiastic, very curious") },
+  ],
+  many: 3,
+  jago: 3,
+};
 
 export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
   wawancara: {
@@ -638,8 +738,8 @@ export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
     questions: WAW_QUESTIONS,
     per: 2,
     pjOut: 1,
-    pjIn: 3,
-    minutes: 105,
+    pjIn: 2,
+    minutes: 90,
     maxMinutes: 120,
     gap: 0,
     late: 10,
@@ -647,6 +747,10 @@ export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
     makeupDays: 1,
     makeupHour: 12,
     hideLevels: true,
+    floor: "zero",
+    flag: { keys: ["attitude", "komitmen"], max: 2 },
+    tags: WAW_TAGS,
+    rev: 2,
   },
   mengajar: {
     mode: "panel",
@@ -667,6 +771,10 @@ export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
     makeupDays: 1,
     makeupHour: 12,
     hideLevels: true,
+    floor: "min",
+    flag: null,
+    tags: null,
+    rev: 0,
   },
   // Presentasi: a table of two examiners sits every turn of its team (12 minutes); no Susulan, the Ketua decides in the Cutting.
   tubes: {
@@ -688,6 +796,10 @@ export const IV_DEFAULT: Record<IvStage, IvTemplate> = {
     makeupDays: 0,
     makeupHour: 12,
     hideLevels: true,
+    floor: "min",
+    flag: null,
+    tags: null,
+    rev: 0,
   },
 };
 
@@ -706,6 +818,65 @@ const bi = (v: unknown, max: number): Bi | null => {
   return id && en ? { id, en } : null;
 };
 
+/** How many sections (groups) a template may have. */
+export const MAX_GROUPS = 16;
+
+/** A group key from a label: letters and digits only, never one already taken. */
+export function groupKey(label: string, taken: readonly string[]): string {
+  const base =
+    label
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .replace(/^[0-9]+/, "")
+      .slice(0, 20) || "bagian";
+  let key = base;
+  for (let n = 2; taken.includes(key); n++) key = `${base.slice(0, 20)}_${n}`;
+  return key;
+}
+
+/** The questions put in the order of the groups, each group's cards keeping their own order. */
+export function sortByGroups(t: IvTemplate): IvTemplate {
+  const at = (k: string) => t.groups.findIndex((g) => g.key === k);
+  return {
+    ...t,
+    questions: t.questions
+      .map((q, i) => ({ q, i }))
+      .sort((a, b) => at(a.q.g) - at(b.q.g) || a.i - b.i)
+      .map((x) => x.q),
+  };
+}
+
+/** One group moved up (-1) or down (1); its cards move with it. */
+export function moveGroup(t: IvTemplate, key: string, dir: -1 | 1): IvTemplate {
+  const i = t.groups.findIndex((g) => g.key === key);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= t.groups.length) return t;
+  const groups = t.groups.slice();
+  [groups[i], groups[j]] = [groups[j], groups[i]];
+  return sortByGroups({ ...t, groups });
+}
+
+/** A group removed, or null while a card still sits in it. */
+export function removeGroup(t: IvTemplate, key: string): IvTemplate | null {
+  if (t.questions.some((q) => q.g === key)) return null;
+  return { ...t, groups: t.groups.filter((g) => g.key !== key) };
+}
+
+/** The card that shows the real test scores gets the flag; no other card keeps it. */
+export function setReveal(t: IvTemplate, id: string, on: boolean): IvTemplate {
+  return {
+    ...t,
+    questions: t.questions.map((q) => {
+      const { reveal: _drop, ...rest } = q;
+      void _drop;
+      return on && q.id === id ? { ...rest, reveal: true } : rest;
+    }),
+  };
+}
+
 /** The cleaned template, or null when something in it cannot be used. */
 export function checkTemplate(v: unknown): IvTemplate | null {
   if (!isObj(v)) return null;
@@ -722,7 +893,7 @@ export function checkTemplate(v: unknown): IvTemplate | null {
     const eg = bi(raw.eg, 240);
     const min = int(raw.min, 0, 9);
     const max = int(raw.max, 1, 10);
-    const weight = num(raw.weight, 0.1, 10);
+    const weight = num(raw.weight, 0.1, 100);
     if (!key || !label || !eg || min === null || max === null || max <= min || weight === null)
       return null;
     if (keys.has(key)) return null;
@@ -760,9 +931,10 @@ export function checkTemplate(v: unknown): IvTemplate | null {
     const key =
       typeof raw.key === "string" && /^[a-z][a-z0-9_]{0,23}$/.test(raw.key) ? raw.key : null;
     const label = bi(raw.label, 60);
-    if (!key || !label) return null;
+    if (!key || !label || groups.some((x) => x.key === key)) return null;
     groups.push({ key, label });
   }
+  if (groups.length > MAX_GROUPS) return null;
   const questions: IvQuestion[] = [];
   const qids = new Set<string>();
   for (const raw of Array.isArray(v.questions) ? v.questions : []) {
@@ -773,10 +945,28 @@ export function checkTemplate(v: unknown): IvTemplate | null {
     const m = num(raw.m, 0, 60);
     const p = typeof raw.p === "string" && keys.has(raw.p) ? raw.p : null;
     const h = raw.h === null || raw.h === undefined ? null : bi(raw.h, 400);
-    const only = raw.only === "fm" || raw.only === "lab" ? raw.only : null;
-    if (!id || !t || !g || m === null || !p || (raw.h && !h) || qids.has(id)) return null;
+    const only = (IV_ONLY as readonly unknown[]).includes(raw.only) ? (raw.only as IvOnly) : null;
+    // A saved card from before the priority existed has none; one with a value we do not know is refused.
+    const prio =
+      raw.prio === undefined || raw.prio === null
+        ? undefined
+        : (IV_PRIOS as readonly unknown[]).includes(raw.prio)
+          ? (raw.prio as IvPrio)
+          : null;
+    if (!id || !t || !g || m === null || !p || prio === null || (raw.h && !h) || qids.has(id))
+      return null;
     qids.add(id);
-    questions.push({ id, g, m, p, t, h, only, ...(raw.reveal === true ? { reveal: true } : {}) });
+    questions.push({
+      id,
+      g,
+      m,
+      p,
+      ...(prio ? { prio } : {}),
+      t,
+      h,
+      only,
+      ...(raw.reveal === true ? { reveal: true } : {}),
+    });
   }
   if (questions.length > 120) return null;
   const per = int(v.per, 1, 8);
@@ -806,6 +996,13 @@ export function checkTemplate(v: unknown): IvTemplate | null {
     return null;
   const wide = num(v.wide, 1, 100);
   if (wide === null) return null;
+  // Saved before these existed: the old behaviour stands in (level 1 is 0, no red flag, no checklists).
+  const floor =
+    v.floor === undefined ? "min" : v.floor === "min" || v.floor === "zero" ? v.floor : null;
+  const flag = checkFlag(v.flag, keys);
+  const tags = checkTags(v.tags);
+  const rev = v.rev === undefined ? 0 : int(v.rev, 0, 99);
+  if (floor === null || flag === undefined || tags === undefined || rev === null) return null;
   return {
     mode,
     params,
@@ -825,19 +1022,67 @@ export function checkTemplate(v: unknown): IvTemplate | null {
     makeupDays,
     makeupHour,
     hideLevels: v.hideLevels !== false,
+    floor,
+    flag,
+    tags,
+    rev,
   };
+}
+
+/** The red-flag rule: null when none, undefined when what was saved cannot be used. */
+function checkFlag(v: unknown, keys: ReadonlySet<string>): IvFlag | null | undefined {
+  if (v === undefined || v === null) return null;
+  if (!isObj(v) || !Array.isArray(v.keys)) return undefined;
+  const max = int(v.max, 0, 9);
+  const list = [...new Set(v.keys)];
+  if (max === null || !list.length || !list.every((k) => typeof k === "string" && keys.has(k)))
+    return undefined;
+  return { keys: list as string[], max };
+}
+
+/** The Catatan Khusus checklists: null when none, undefined when what was saved cannot be used. */
+function checkTags(v: unknown): IvTags | null | undefined {
+  if (v === undefined || v === null) return null;
+  if (!isObj(v) || !Array.isArray(v.red) || !Array.isArray(v.plus)) return undefined;
+  const many = int(v.many, 1, 20);
+  const jago = int(v.jago, 1, 20);
+  if (many === null || jago === null || v.red.length > 20 || v.plus.length > 20) return undefined;
+  const seen = new Set<string>();
+  const list = (raw: unknown[]): IvTag[] | null => {
+    const out: IvTag[] = [];
+    for (const r of raw) {
+      if (!isObj(r)) return null;
+      const key = typeof r.key === "string" && /^[a-z][a-z0-9_]{0,23}$/.test(r.key) ? r.key : null;
+      const label = bi(r.label, 80);
+      if (!key || !label || seen.has(key)) return null;
+      seen.add(key);
+      out.push({ key, label });
+    }
+    return out;
+  };
+  const red = list(v.red);
+  const plus = list(v.plus);
+  return red && plus ? { red, plus, many, jago } : undefined;
 }
 
 /* ------------------------------------------------------------ scoring */
 
-/** Weighted level over min..max per parameter, out of 100. Parameters not yet set are left out. */
-export function sheetScore(levels: Record<string, number>, params: readonly IvParam[]): number {
+/**
+ * Weighted level per parameter, out of 100. Parameters not yet set are left out. With floor "min" the lowest
+ * level counts as 0 (level 1 of 5 scores 0); with "zero" the score is the weighted level over the top level
+ * (level 1 of 5 scores 20), which is the workbook's (sum of weight x level) / 5 x 100.
+ */
+export function sheetScore(
+  levels: Record<string, number>,
+  params: readonly IvParam[],
+  floor: IvFloor = "min",
+): number {
   let num = 0;
   let den = 0;
   for (const p of params) {
     const v = levels[p.key];
     if (typeof v !== "number") continue;
-    num += (p.weight * (v - p.min)) / (p.max - p.min);
+    num += floor === "zero" ? (p.weight * v) / p.max : (p.weight * (v - p.min)) / (p.max - p.min);
     den += p.weight;
   }
   return den ? Math.round((100 * num) / den) : 0;
@@ -862,39 +1107,222 @@ export interface SheetLevels {
 export const meanScore = (
   sheets: readonly SheetLevels[],
   params: readonly IvParam[],
+  floor: IvFloor = "min",
 ): number | null =>
   sheets.length
-    ? sheets.reduce((a, s) => a + sheetScore(s.levels, params), 0) / sheets.length
+    ? sheets.reduce((a, s) => a + sheetScore(s.levels, params, floor), 0) / sheets.length
     : null;
 
 /** The gap between the highest and lowest examiner, or null with fewer than two sheets. */
 export function spreadScore(
   sheets: readonly SheetLevels[],
   params: readonly IvParam[],
+  floor: IvFloor = "min",
 ): number | null {
   if (sheets.length < 2) return null;
-  const sc = sheets.map((s) => sheetScore(s.levels, params));
+  const sc = sheets.map((s) => sheetScore(s.levels, params, floor));
   return Math.max(...sc) - Math.min(...sc);
+}
+
+/** Any examiner rated a flagged parameter at or below the limit. False with no rule. */
+export function redFlag(sheets: readonly SheetLevels[], flag: IvFlag | null): boolean {
+  if (!flag) return false;
+  return sheets.some((s) =>
+    flag.keys.some((k) => typeof s.levels[k] === "number" && s.levels[k] <= flag.max),
+  );
+}
+
+export interface Suggestion {
+  verdict: Verdict;
+  /** A red flag was raised (shown even when the score alone already says Ragu-ragu or Fix Cut) */
+  flag: boolean;
+}
+
+/** The suggested verdict: by the mean, but a red flag stops a Fix Lolos at Ragu-ragu. */
+export function suggestVerdict(
+  mean: number,
+  sheets: readonly SheetLevels[],
+  t: Pick<IvTemplate, "cut" | "flag">,
+): Suggestion {
+  const base = verdictOf(mean, t.cut);
+  const flag = redFlag(sheets, t.flag);
+  return { verdict: base === "lolos" && flag ? "ragu" : base, flag };
+}
+
+/* ------------------------------------------------------------ Catatan Khusus */
+
+export const LABELS = ["jago", "perhatian", "banyak", "standar"] as const;
+export type Label = (typeof LABELS)[number];
+export const isLabel = (v: unknown): v is Label =>
+  typeof v === "string" && (LABELS as readonly string[]).includes(v);
+
+/** What the committee wrote about one CaAs at one stage, beside the sheets. */
+export interface Catatan {
+  /** Keys of the red notes ticked */
+  red: string[];
+  /** Keys of the plus points ticked */
+  plus: string[];
+  /** A label picked by hand; it replaces the automatic one */
+  label: Label | null;
+  /** Notes by who wrote them: an examiner's NIM, "pjDalam", "pjLuar" or "lain" */
+  notes: Record<string, string>;
+  /** The conclusion of the committee */
+  final: string;
+}
+
+export const CATATAN_EMPTY: Catatan = { red: [], plus: [], label: null, notes: {}, final: "" };
+
+/** The note a person may leave under their own name, and the roles that are not an examiner. */
+export const NOTE_ROLES = ["pjDalam", "pjLuar", "lain"] as const;
+export const NOTE_MAX = 800;
+export const FINAL_MAX = 1500;
+
+/** The cleaned Catatan from anything stored or sent. Keys the template does not know are dropped. */
+export function checkCatatan(v: unknown, tags: IvTags | null): Catatan {
+  if (!isObj(v)) return { ...CATATAN_EMPTY, notes: {} };
+  const keep = (raw: unknown, allowed: IvTag[] | undefined): string[] => {
+    const ok = new Set((allowed ?? []).map((x) => x.key));
+    return Array.isArray(raw)
+      ? [...new Set(raw.filter((k): k is string => typeof k === "string" && ok.has(k)))]
+      : [];
+  };
+  const notes: Record<string, string> = {};
+  if (isObj(v.notes))
+    for (const [k, val] of Object.entries(v.notes)) {
+      if (!/^[A-Za-z0-9_-]{1,24}$/.test(k) || typeof val !== "string") continue;
+      const t = val.trim().slice(0, NOTE_MAX);
+      if (t) notes[k] = t;
+    }
+  return {
+    red: keep(v.red, tags?.red),
+    plus: keep(v.plus, tags?.plus),
+    label: isLabel(v.label) ? v.label : null,
+    notes,
+    final: typeof v.final === "string" ? v.final.trim().slice(0, FINAL_MAX) : "",
+  };
+}
+
+/**
+ * The label of a CaAs: the one picked by hand if there is one, else Banyak masalah (enough red notes), Jago
+ * (enough plus points and no red note), Perlu perhatian (any red note), or Standar.
+ */
+export function labelOf(
+  c: Pick<Catatan, "red" | "plus" | "label">,
+  tags: Pick<IvTags, "many" | "jago">,
+): Label {
+  if (c.label) return c.label;
+  if (c.red.length >= tags.many) return "banyak";
+  if (c.red.length === 0 && c.plus.length >= tags.jago) return "jago";
+  return c.red.length >= 1 ? "perhatian" : "standar";
 }
 
 /* ------------------------------------------------------------ who sits with whom */
 
 /**
- * The examiners of the CaAs at `index` in a slot. Booth mode splits the crew in
- * pairs (positions 0 and 1 take the first CaAs); panel mode is the whole crew.
+ * How many examiners sit with the CaAs at `index`: the slot's own size for that booth when someone set one
+ * (a shift short of Asisten seats one examiner instead of two), otherwise the template's `per`.
+ */
+export function boothSize(
+  sizes: readonly number[] | null | undefined,
+  index: number,
+  per: number,
+): number {
+  const n = sizes?.[index];
+  return typeof n === "number" && Number.isInteger(n) && n >= 1 ? n : per;
+}
+
+/**
+ * The examiners of the CaAs at `index` in a slot. Booth mode splits the crew into groups in booth order
+ * (positions 0 and 1 take the first CaAs when the group is two); each group is `per` strong unless the slot
+ * sets its own size for that booth. Panel mode is the whole crew.
  */
 export function crewFor(
   roster: readonly string[],
   index: number,
   t: Pick<IvTemplate, "mode" | "per">,
+  sizes?: readonly number[] | null,
 ): string[] {
   if (t.mode === "panel") return [...roster];
-  return roster.slice(index * t.per, index * t.per + t.per);
+  let from = 0;
+  for (let i = 0; i < index; i++) from += boothSize(sizes, i, t.per);
+  return roster.slice(from, from + boothSize(sizes, index, t.per));
 }
 
 /** Examiners needed for `n` CaAs in a slot. */
-export const crewNeed = (n: number, t: Pick<IvTemplate, "mode" | "per">): number =>
-  t.mode === "panel" ? (n > 0 ? t.per : 0) : t.per * n;
+export function crewNeed(
+  n: number,
+  t: Pick<IvTemplate, "mode" | "per">,
+  sizes?: readonly number[] | null,
+): number {
+  if (t.mode === "panel") return n > 0 ? t.per : 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += boothSize(sizes, i, t.per);
+  return sum;
+}
+
+/**
+ * The sizes to store for a slot: whole numbers 1 to 8, cut to the booths there are, with the template's
+ * size left out at the end (those booths follow the template). Null when nothing differs, so a slot
+ * nobody touched keeps following the template.
+ */
+export function cleanSizes(v: unknown, booths: number, per: number): number[] | null | undefined {
+  if (v === null) return null;
+  if (!Array.isArray(v) || v.length > 100) return undefined;
+  const out: number[] = [];
+  for (const x of v.slice(0, Math.max(0, booths))) {
+    if (typeof x !== "number" || !Number.isInteger(x) || x < 1 || x > 8) return undefined;
+    out.push(x);
+  }
+  while (out.length && out[out.length - 1] === per) out.pop();
+  return out.length ? out : null;
+}
+
+export type SlotRole = "penguji" | "pj_luar" | "pj_dalam";
+
+/**
+ * Every role this person has in one slot, the examiner first. One person may examine and also be PJ inside
+ * and/or outside the same shift, which is how the crew often works, so a slot can give them several cards.
+ */
+export function rolesIn(
+  s: { penguji: readonly string[]; pjOut: readonly string[]; pjIn: readonly string[] },
+  nim: string,
+): SlotRole[] {
+  const out: SlotRole[] = [];
+  if (s.penguji.includes(nim)) out.push("penguji");
+  if (s.pjIn.includes(nim)) out.push("pj_dalam");
+  if (s.pjOut.includes(nim)) out.push("pj_luar");
+  return out;
+}
+
+/**
+ * Does `x` (another slot at an overlapping time) clash with putting `nim` in `role`? Only two examiners'
+ * rooms at once clash: an examiner may also be PJ in this room or the next, and a PJ list is one per shift.
+ */
+export const examinerClash = (
+  role: SlotRole,
+  x: { penguji: readonly string[] },
+  nim: string,
+): boolean => role === "penguji" && x.penguji.includes(nim);
+
+/**
+ * One CaAs's seats lowered to `size`: the roster after it, and who stepped out. The roster is in booth order
+ * (each booth takes its `before[i]` examiners in turn), so only the tail of this CaAs's own seats leaves and
+ * everyone seated for the CaAs after keeps the same booth.
+ */
+export function seatShrink(
+  roster: readonly string[],
+  before: readonly number[],
+  index: number,
+  size: number,
+): { nims: string[]; out: string[] } {
+  const at = before.slice(0, index).reduce((a, x) => a + x, 0);
+  const seated = Math.max(0, Math.min(before[index] ?? 0, roster.length - at));
+  const out = roster.slice(at + size, at + seated);
+  return {
+    nims: out.length ? [...roster.slice(0, at + size), ...roster.slice(at + seated)] : [...roster],
+    out: [...out],
+  };
+}
 
 /** Turns that fit in a window of `window` minutes (panel mode): n turns and n-1 changeovers. */
 export const turnsFit = (window: number, t: Pick<IvTemplate, "minutes" | "gap">): number =>

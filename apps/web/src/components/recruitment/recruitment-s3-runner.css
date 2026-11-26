@@ -8,13 +8,13 @@
 .r3page {
   --r3-ease: cubic-bezier(0.23, 1, 0.32, 1);
   --r3-line: color-mix(in srgb, var(--text) 9%, transparent);
-  --syn-keyword: #c3a6ff;
-  --syn-type: #6fd6e3;
-  --syn-string: #8fe3b0;
-  --syn-number: #f5c77e;
-  --syn-func: #7cc4ff;
-  --syn-preproc: #ff9ecf;
-  --syn-const: #ffb38a;
+  --syn-keyword: var(--hex-c3a6ff);
+  --syn-type: var(--hex-6fd6e3);
+  --syn-string: var(--hex-8fe3b0);
+  --syn-number: var(--hex-f5c77e);
+  --syn-func: var(--hex-7cc4ff);
+  --syn-preproc: var(--hex-ff9ecf);
+  --syn-const: var(--hex-ffb38a);
   --syn-comment: var(--text-faint);
   position: fixed;
   inset: 0;
@@ -24,13 +24,13 @@
   color: var(--text);
 }
 :root[data-theme="light"] .r3page {
-  --syn-keyword: #6a3fc8;
-  --syn-type: #0a6f7c;
-  --syn-string: #1d7a3e;
-  --syn-number: #8a5a00;
-  --syn-func: #0b5ea8;
-  --syn-preproc: #b0236e;
-  --syn-const: #a04a12;
+  --syn-keyword: var(--hex-6a3fc8);
+  --syn-type: var(--hex-0a6f7c);
+  --syn-string: var(--hex-1d7a3e);
+  --syn-number: var(--hex-8a5a00);
+  --syn-func: var(--hex-0b5ea8);
+  --syn-preproc: var(--hex-b0236e);
+  --syn-const: var(--hex-a04a12);
 }
 /* The room that is not open yet keeps the recruitment shell's own page */
 .r3page--shell {
@@ -71,24 +71,24 @@
    Penilaian, a review), not only inside the candidate's page. */
 .r3code,
 .r3hl {
-  --syn-keyword: #c3a6ff;
-  --syn-type: #6fd6e3;
-  --syn-string: #8fe3b0;
-  --syn-number: #f5c77e;
-  --syn-func: #7cc4ff;
-  --syn-preproc: #ff9ecf;
-  --syn-const: #ffb38a;
+  --syn-keyword: var(--hex-c3a6ff);
+  --syn-type: var(--hex-6fd6e3);
+  --syn-string: var(--hex-8fe3b0);
+  --syn-number: var(--hex-f5c77e);
+  --syn-func: var(--hex-7cc4ff);
+  --syn-preproc: var(--hex-ff9ecf);
+  --syn-const: var(--hex-ffb38a);
   --syn-comment: var(--text-faint);
 }
 :root[data-theme="light"] .r3code,
 :root[data-theme="light"] .r3hl {
-  --syn-keyword: #6a3fc8;
-  --syn-type: #0a6f7c;
-  --syn-string: #1d7a3e;
-  --syn-number: #8a5a00;
-  --syn-func: #0b5ea8;
-  --syn-preproc: #b0236e;
-  --syn-const: #a04a12;
+  --syn-keyword: var(--hex-6a3fc8);
+  --syn-type: var(--hex-0a6f7c);
+  --syn-string: var(--hex-1d7a3e);
+  --syn-number: var(--hex-8a5a00);
+  --syn-func: var(--hex-0b5ea8);
+  --syn-preproc: var(--hex-b0236e);
+  --syn-const: var(--hex-a04a12);
 }
 .r3code .tok--keyword,
 .r3hl .tok--keyword {
@@ -1532,21 +1532,21 @@ html:has(.r3page:not(.r3page--shell)) {
   padding: 0 14px;
 }
 .r3seat__c svg {
-  color: var(--gold, #e8b64d);
+  color: var(--gold, var(--hex-e8b64d));
 }
 .r3lobby .r3wait {
-  background: color-mix(in srgb, var(--gold, #e8b64d) 8%, var(--surface-1));
-  border: 1px solid color-mix(in srgb, var(--gold, #e8b64d) 55%, transparent);
+  background: color-mix(in srgb, var(--gold, var(--hex-e8b64d)) 8%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--gold, var(--hex-e8b64d)) 55%, transparent);
   border-radius: 999px;
   justify-self: start;
   padding: 8px 16px;
 }
 .r3lobby .r3wait__dot {
-  background: var(--gold, #e8b64d);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold, #e8b64d) 22%, transparent);
+  background: var(--gold, var(--hex-e8b64d));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold, var(--hex-e8b64d)) 22%, transparent);
 }
 .r3tl__bar li[data-st="next"] i {
-  background: var(--gold, #e8b64d);
+  background: var(--gold, var(--hex-e8b64d));
 }
 .r3rules--grid {
   border-top: 1px solid var(--hairline-faint);
@@ -1602,11 +1602,11 @@ html:has(.r3page:not(.r3page--shell)) {
   content: "";
   inset: -2px;
   -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   padding: 2px;
@@ -1658,7 +1658,7 @@ html:has(.r3page:not(.r3page--shell)) {
 }
 @media (prefers-reduced-motion: no-preference) {
   html:not([data-motion-tier="0"]) .r3bonus__card::before {
-    animation: r3bonus-spin 5s linear infinite;
+    animation: r3bonus-spin 5s linear 2;
   }
   html:not([data-motion-tier="0"]) .r3bonus__bar svg,
   html:not([data-motion-tier="0"]) .r3bonus__star svg {

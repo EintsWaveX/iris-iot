@@ -1,0 +1,5 @@
+{
+  "what": "Skeleton shimmer (background-position) and live-dot pulses (box-shadow) replaced by transform/opacity on a pseudo-element",
+  "method": "synthetic page with the real app.css + Display.css (old = origin/main, new = this branch): 12 skeletons and 2 pulsing dots, headless Chrome 1280x720, CPU throttle x6, main-thread TaskDuration share over 4 s after 2 s, interleaved twice",
+  "main_thread_busy_pct": { "old": [64.89, 69.82], "new": [2.4, 2.75] }
+}

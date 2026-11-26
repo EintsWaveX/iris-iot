@@ -18,6 +18,8 @@ import { tri } from "../lib/labels";
  * not a `<script src>` tag.
  */
 import "../styles/fonts.css";
+// Nov 2026 (colour 3a): the literals the component stylesheets used to write inline, defined once, before anything uses them.
+import "../styles/palette.css";
 import "../../../../packages/kosmik/style/tokens.css";
 // Phase 9: the web app's dark refresh and the Daylight sky light theme,
 // over kosmik's shared tokens (apps/games keeps those untouched).
@@ -29,6 +31,8 @@ import "../../../../packages/kosmik/style/motion.css";
 // classes Button.astro emits, and Astro's per-component scoping could never
 // have reached either one.
 import "../styles/controls.css";
+// Nov 2026: press feedback for every button that has none of its own (zero specificity).
+import "../styles/press.css";
 // Global for the same reason controls.css is (P7.1) -- ReportsView.tsx,
 // ServerCenter.tsx and SessionConsole.tsx apply these classes by hand once
 // each is rebuilt onto PageHeader in P7.4.
@@ -39,7 +43,14 @@ import "../styles/field.css";
 // Phase 8: web-only sky layers, the rainbow sweep and themed scrollbars,
 // added on top of the kosmik baseline rather than replacing any of it.
 import "../styles/sky.css";
+// Nov 2026: the painted cosmos layers (scripts/scene.ts) and the glass kit.
+import "../styles/scene.css";
 import "../styles/app.css";
+import "../styles/glass.css";
+// Nov 2026: the shared column, radius scale and section rhythm (docs/design/home-anatomy.md).
+import "../styles/layout.css";
+// Nov 2026: below High Detail the glass tokens are plates and nothing blurs the backdrop.
+import "../styles/plates.css";
 // Phase 8: the pill is used as a plain class all over the islands.
 import "../components/ui/Pill.css";
 import { ClientRouter } from "astro:transitions";
@@ -85,6 +96,13 @@ interface Props {
   card?: string;
   /** The site footer (lab, privacy, terms); full screen views turn it off */
   footer?: boolean;
+  /**
+   * The painted sky behind the page. A page that needs every frame it can get (an exam room, the QR wall) turns
+   * it off: nothing of the sky is drawn, animated or even built there (scripts/scene.ts honours
+   * html[data-sky="off"]), and the theme's flat ground shows. "still" (the Konsol) paints the sky once and never
+   * moves it: no drifting layers, no sparkle loop, no pointer lean, the same as Low Detail for this one page.
+   */
+  sky?: boolean | "still";
 }
 
 const {
@@ -98,6 +116,7 @@ const {
   noindex = false,
   card = "home",
   footer = true,
+  sky = true,
 } = Astro.props;
 
 // ---------- Search and Link Previews ----------
@@ -121,7 +140,11 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
 ---
 
 <!doctype html>
-<html lang={langTag(lang)} data-cosmos-scene={cosmosScene}>
+<html
+  lang={langTag(lang)}
+  data-cosmos-scene={cosmosScene}
+  data-sky={sky === false ? "off" : sky === "still" ? "still" : undefined}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -186,6 +209,14 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
     <TipLayer client:idle />
     <slot />
     {footer && <SiteFooter lang={lang} />}
+    <script>
+      // ?perf=1 on any page opens the on-device speed test (scripts/perf-bench.ts, Phase 0 of the performance
+      // work). It is a separate chunk, fetched only then, so nobody else downloads or runs any of it.
+      if (/[?&]perf=/.test(location.search)) {
+        const auto = /[?&]perf=auto\b/.test(location.search);
+        void import("../scripts/perf-bench").then((m) => m.mountPerfBench({ autorun: auto }));
+      }
+    </script>
   </body>
 </html>
 
@@ -208,25 +239,26 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
    * attribute selectors can never reach them; this has to be global CSS,
    * hence is:global rather than a second Base.astro <style> block.
    */
+  /* Opacity only: the panels carry the movement themselves (kit-reveal in app.css), so a page change is a
+     Crossfade of the frame plus a Reveal of its cards, not two slides on top of each other. The old page
+     leaves quicker than the new one arrives. */
   ::view-transition-old(root) {
-    animation: iris-crossfade-out 180ms var(--ease-reveal) both;
+    animation: iris-crossfade-out 120ms var(--ease-out-expo) both;
   }
 
   ::view-transition-new(root) {
-    animation: iris-crossfade-in 180ms var(--ease-reveal) both;
+    animation: iris-crossfade-in 200ms var(--ease-out-expo) both;
   }
 
   @keyframes iris-crossfade-out {
     to {
       opacity: 0;
-      transform: translateY(8px);
     }
   }
 
   @keyframes iris-crossfade-in {
     from {
       opacity: 0;
-      transform: translateY(8px);
     }
   }
 
@@ -239,5 +271,10 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
     ::view-transition-new(root) {
       animation: none;
     }
+  }
+  /* Low Detail (motion tier 0): the page just changes. */
+  :root[data-motion-tier="0"]::view-transition-old(root),
+  :root[data-motion-tier="0"]::view-transition-new(root) {
+    animation: none;
   }
 </style>

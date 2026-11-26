@@ -218,8 +218,10 @@ body > .page-main {
   top: 0;
 }
 
-.panel--key::before {
-  animation: kit-sweep 7s linear infinite;
+/* One pass of the rainbow when the card appears, then it stands still: nothing loops while idle (see the
+   sweep note in controls.css). --sweep starts and ends on the same colour, so the pass ends where it began. */
+:root:not([data-motion-tier="0"]) .panel--key::before {
+  animation: kit-sweep 3s ease-out 1;
 }
 
 /* A card alone on its view is centred (round 4). */
@@ -521,8 +523,45 @@ body > .page-main {
   border: 1.5px solid var(--text-faint);
 }
 
-:root:not([data-motion-tier="0"]) .dot--pulse {
-  animation: appnav-live 2s ease-out infinite;
+/* "Live" dots: a ring that grows and fades. It used to animate box-shadow, which the main thread repaints every
+   frame (and kept the page from ever going idle); the ring is now a pseudo-element moved by transform and opacity.
+   The ring takes the dot's own colour. */
+.minibar__dot,
+.dot--pulse,
+.rec-labpc__dot,
+.rec-oprec__dot {
+  position: relative;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion-tier="0"])
+    :is(.appnav__live-dot, .minibar__dot, .dot--pulse, .rec-labpc__dot, .rec-oprec__dot)::after {
+    animation: live-ring 2s ease-out infinite;
+    background: inherit;
+    border-radius: 50%;
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+  :root:not([data-motion-tier="0"]) .rec-labpc[data-tone="retry"] .rec-labpc__dot::after {
+    animation-duration: 0.9s;
+  }
+}
+@keyframes live-ring {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+@keyframes live-pulse {
+  50% {
+    opacity: 0.55;
+    transform: scale(1.5);
+  }
 }
 
 /* Code anywhere reads in the code editor's font (2026-10-18): the browser's
@@ -833,8 +872,8 @@ samp {
   border-radius: inherit;
   content: "";
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
@@ -876,16 +915,16 @@ samp {
   background: var(--surface-4);
   border-color: var(--hairline-strong);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 4px 14px rgba(0, 0, 0, 0.22);
+    0 1px 0 rgb(var(--rgb-255-255-255) / 0.06) inset,
+    0 4px 14px rgb(var(--rgb-0-0-0) / 0.22);
   color: var(--text);
 }
 
 :root[data-theme="light"] .seg button[aria-pressed="true"],
 :root[data-theme="light"] .seg button[aria-selected="true"],
 :root[data-theme="light"] .seg button[aria-checked="true"] {
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(16, 34, 70, 0.14);
+  background: var(--hex-ffffff);
+  box-shadow: 0 2px 8px rgb(var(--rgb-16-34-70) / 0.14);
 }
 
 /* A choice whose value carries meaning (class type, module) keeps its
@@ -962,6 +1001,57 @@ samp {
   to {
     opacity: 0;
     transform: translateY(-4px);
+  }
+}
+
+/* ------------------------------------------------------ page reveal (cards, panels, reading plates)
+   Reveal (opacity plus 8 px of Translate, ease-out-expo, 320 ms) for the outermost panels of a page as they
+   arrive: a route change, or a loading skeleton giving way to the real cards. A light Stagger: the first three
+   siblings follow at 50 ms steps, so a grid never lands all at once nor drags.
+
+   - Only the panel itself animates, never a wrapper: an ancestor with opacity below 1 becomes a backdrop
+     root, and the glass panels inside would lose their blur until the fade ends.
+   - :where() keeps the specificity at zero, so a panel that carries its own animation (a pulse, a live
+     sweep) keeps it.
+   - Not for panels inside a panel, a Fade view (it already fades) or the app's dialogs, drawers and popovers
+     (portaled, with their own in and out).
+   - "backwards", and the keyframes name only the start: nothing is left on the box afterwards.
+   - Reduced motion and Low Detail (motion tier 0) get no reveal at all. */
+@media (prefers-reduced-motion: no-preference) {
+  :where(
+    :root:not([data-motion-tier="0"])
+      .page-main
+      :is(.panel, .reading, .plate):not(:is(.panel, .reading, .plate, .fade) *)
+  ) {
+    animation: kit-reveal 320ms var(--ease-out-expo) backwards;
+  }
+  :where(
+    :root:not([data-motion-tier="0"])
+      .page-main
+      :is(.panel, .reading, .plate):not(:is(.panel, .reading, .plate, .fade) *)
+  ):nth-child(2) {
+    animation-delay: 50ms;
+  }
+  :where(
+    :root:not([data-motion-tier="0"])
+      .page-main
+      :is(.panel, .reading, .plate):not(:is(.panel, .reading, .plate, .fade) *)
+  ):nth-child(3) {
+    animation-delay: 100ms;
+  }
+  :where(
+    :root:not([data-motion-tier="0"])
+      .page-main
+      :is(.panel, .reading, .plate):not(:is(.panel, .reading, .plate, .fade) *)
+  ):nth-child(n + 4) {
+    animation-delay: 150ms;
+  }
+}
+
+@keyframes kit-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
 }
 

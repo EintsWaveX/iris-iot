@@ -90,7 +90,7 @@
   align-items: center;
   background: color-mix(in srgb, var(--m) 22%, var(--surface-1));
   border: 1.5px solid color-mix(in srgb, var(--m) 70%, transparent);
-  border-radius: 14px;
+  border-radius: var(--r-ctl);
   color: var(--m);
   display: inline-grid;
   flex: none;
@@ -194,10 +194,10 @@
   border-radius: 999px;
   color: var(--m);
   display: inline-grid;
-  height: 40px;
+  height: 44px;
   justify-items: center;
   text-decoration: none;
-  width: 40px;
+  width: 44px;
 }
 
 .modcard__cta svg {

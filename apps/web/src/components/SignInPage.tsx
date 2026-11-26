@@ -43,6 +43,7 @@ import {
 } from "../lib/app";
 import { langForKelas, pathForLang, type Lang } from "../lib/kelas";
 import { readLangPref } from "../lib/hooks";
+import { sesiSekarang } from "../lib/sesi-sekarang";
 import { namaAsisten } from "../lib/people";
 import { isSignInPath } from "../lib/signin";
 import "./SignIn.css";
@@ -452,11 +453,12 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
         finish("asisten", null);
         return;
       }
+      // Someone who just typed the right code has joined a running session, so the answer must show it.
+      const gabung = !!kodeSesi && !data.lihat;
       const [now, hasil] = await Promise.all([
-        getJson<{ ok: boolean; sesi: SesiNow | null }>("/api/session/now").catch(() => ({
-          ok: false,
-          sesi: null,
-        })),
+        sesiSekarang(gabung, () =>
+          getJson<{ ok: boolean; sesi: SesiNow | null }>("/api/session/now"),
+        ),
         getJson<{ ok: boolean; asisten?: { kode: string; nama: string } | null }>(
           "/api/session/results",
         ).catch(() => ({ ok: false, asisten: null })),

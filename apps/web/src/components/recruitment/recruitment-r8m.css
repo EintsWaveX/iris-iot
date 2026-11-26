@@ -4,15 +4,15 @@
   --n7-ok: var(--ok);
   --n7-warn: var(--warn);
   --n7-info: var(--accent-bright);
-  --n7-gold: var(--gold, #e8b64d);
+  --n7-gold: var(--gold, var(--hex-e8b64d));
   --n7-bad: var(--danger);
 }
 :root[data-theme="light"] .r8 {
-  --n7-ok: #0b6b5f;
-  --n7-warn: #8a5200;
-  --n7-info: #0a62a3;
-  --n7-gold: #7a5200;
-  --n7-bad: #b42318;
+  --n7-ok: var(--hex-0b6b5f);
+  --n7-warn: var(--hex-8a5200);
+  --n7-info: var(--hex-0a62a3);
+  --n7-gold: var(--hex-7a5200);
+  --n7-bad: var(--hex-b42318);
 }
 /* Open Recruitment R8 (M2, 2026-10-28): Penerimaan and Jadikan Asisten.
    Every keyframes name starts with r8-. State colours use the --n7-* tokens
@@ -23,7 +23,7 @@
   display: grid;
   gap: 14px;
   min-width: 0;
-  --tc: #e879f9;
+  --tc: var(--hex-e879f9);
   --tx: var(--tc);
 }
 :root[data-theme="light"] .r8,
@@ -117,10 +117,10 @@
 .r8-step[data-st="done"] .r8-step__n {
   background: var(--n7-ok);
   border-color: var(--n7-ok);
-  color: #04130f;
+  color: var(--hex-04130f);
 }
 :root[data-theme="light"] .r8-step[data-st="done"] .r8-step__n {
-  color: #fff;
+  color: var(--hex-ffffff);
 }
 .r8-body {
   display: grid;
@@ -153,10 +153,10 @@
   border-radius: var(--radius-lg);
   background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
-  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 -10px 28px rgb(var(--rgb-0-0-0) / 0.28);
 }
 :root[data-theme="light"] .r8-foot {
-  box-shadow: 0 -8px 22px rgba(16, 34, 70, 0.14);
+  box-shadow: 0 -8px 22px rgb(var(--rgb-16-34-70) / 0.14);
 }
 .r8-foot__info {
   font-weight: 600;
@@ -937,8 +937,6 @@
   outline: none;
   container: r8fx / size;
   background: color-mix(in srgb, var(--void) 93%, transparent);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
   animation: r8-fade 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 @keyframes r8-fade {
@@ -970,8 +968,8 @@
     color-mix(in srgb, var(--rec) 55%, transparent) 0deg 5deg,
     transparent 5deg 20deg
   );
-  -webkit-mask: radial-gradient(circle, #000 0, transparent 58%);
-  mask: radial-gradient(circle, #000 0, transparent 58%);
+  -webkit-mask: radial-gradient(circle, var(--hex-000000) 0, transparent 58%);
+  mask: radial-gradient(circle, var(--hex-000000) 0, transparent 58%);
   animation: r8-spin 90s linear infinite;
 }
 @keyframes r8-spin {
@@ -993,14 +991,14 @@
   filter: blur(52px);
   background: conic-gradient(
     from 20deg,
-    #40b0ff,
-    #a78bfa,
-    #e879f9,
-    #fb7185,
-    #f5b544,
-    #5eead4,
-    #7dd3fc,
-    #40b0ff
+    var(--hex-40b0ff),
+    var(--hex-a78bfa),
+    var(--hex-e879f9),
+    var(--hex-fb7185),
+    var(--hex-f5b544),
+    var(--hex-5eead4),
+    var(--hex-7dd3fc),
+    var(--hex-40b0ff)
   );
 }
 .r8fx__fx {
@@ -1063,9 +1061,14 @@
   width: 84px;
   height: 84px;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #ffe2a3, var(--rec) 52%, #a8681a);
+  background: radial-gradient(
+    circle at 34% 30%,
+    var(--hex-ffe2a3),
+    var(--rec) 52%,
+    var(--hex-a8681a)
+  );
   box-shadow:
-    inset 0 -4px 8px rgba(0, 0, 0, 0.25),
+    inset 0 -4px 8px rgb(var(--rgb-0-0-0) / 0.25),
     0 6px 22px color-mix(in srgb, var(--rec) 45%, transparent);
 }
 .r8fx__seal img {
@@ -1203,10 +1206,10 @@
   background: var(--rec);
 }
 .r8fx__still i:nth-child(3n + 1) {
-  background: #40b0ff;
+  background: var(--hex-40b0ff);
 }
 .r8fx__still i:nth-child(3n + 2) {
-  background: #fb7185;
+  background: var(--hex-fb7185);
   width: 9px;
   height: 9px;
 }
@@ -1317,10 +1320,24 @@
   color: var(--n7-gold);
 }
 :root[data-theme="light"] .r8fx__num {
-  background-image: linear-gradient(100deg, #0a62a3, #5b3ec9, #a61d6a, #8a5200, #0b6b5f, #0a62a3);
+  background-image: linear-gradient(
+    100deg,
+    var(--hex-0a62a3),
+    var(--hex-5b3ec9),
+    var(--hex-a61d6a),
+    var(--hex-8a5200),
+    var(--hex-0b6b5f),
+    var(--hex-0a62a3)
+  );
 }
 :root[data-theme="light"] .r8-go__big b {
-  background-image: linear-gradient(100deg, #0a62a3, #5b3ec9, #a61d6a, #8a5200);
+  background-image: linear-gradient(
+    100deg,
+    var(--hex-0a62a3),
+    var(--hex-5b3ec9),
+    var(--hex-a61d6a),
+    var(--hex-8a5200)
+  );
 }
 .r8-go__hint {
   display: flex;
@@ -1488,7 +1505,7 @@
 .r8 .n7-chip[aria-pressed="true"] {
   background: var(--tc);
   border-color: var(--tc);
-  color: #0b0a05;
+  color: var(--hex-0b0a05);
 }
 .r8 .n7-chip b {
   margin-left: 4px;

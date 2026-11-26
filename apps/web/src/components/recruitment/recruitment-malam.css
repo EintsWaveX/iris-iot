@@ -1,22 +1,22 @@
 /* The Tes Tulis landing, matched to the mockup (rec7.css n7-malam): exam-night chips and the room header with its stage rail. */
 .n7-malam {
-  --tc: #8fb0ff;
+  --tc: var(--hex-8fb0ff);
   --tx: var(--tc);
   --n7-ok: var(--ok);
   --n7-warn: var(--warn);
   --n7-info: var(--accent-bright);
-  --n7-gold: var(--gold, #e8b64d);
+  --n7-gold: var(--gold, var(--hex-e8b64d));
   --n7-bad: var(--danger);
   display: grid;
   gap: 18px;
 }
 :root[data-theme="light"] .n7-malam {
   --tx: color-mix(in srgb, var(--tc) 42%, var(--text));
-  --n7-ok: #0b6b5f;
-  --n7-warn: #8a5200;
-  --n7-info: #0a62a3;
-  --n7-gold: #7a5200;
-  --n7-bad: #b42318;
+  --n7-ok: var(--hex-0b6b5f);
+  --n7-warn: var(--hex-8a5200);
+  --n7-info: var(--hex-0a62a3);
+  --n7-gold: var(--hex-7a5200);
+  --n7-bad: var(--hex-b42318);
 }
 .n7-nights {
   display: flex;
@@ -182,7 +182,7 @@
 .n7-rail li[data-st="done"] .n7-rail__dot {
   background: var(--tc);
   border-color: var(--tc);
-  color: #0b0a05;
+  color: var(--hex-0b0a05);
 }
 .n7-rail li[data-st="cur"] {
   color: var(--text);
@@ -348,16 +348,16 @@ button.n7-task {
   border-radius: 5px;
 }
 .n7-budget__bar i:nth-child(1) {
-  background: #5eead4;
+  background: var(--hex-5eead4);
 }
 .n7-budget__bar i:nth-child(2) {
-  background: #7dd3fc;
+  background: var(--hex-7dd3fc);
 }
 .n7-budget__bar i:nth-child(3) {
-  background: #a78bfa;
+  background: var(--hex-a78bfa);
 }
 .n7-budget__bar i:nth-child(4) {
-  background: #e8b64d;
+  background: var(--hex-e8b64d);
 }
 .n7-hr {
   border: 0;

@@ -19,8 +19,6 @@
   overflow: clip; /* the bloom is wider than a phone: nothing may scroll this layer sideways */
   outline: none;
   background: color-mix(in srgb, var(--void) 90%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
   animation: rec-s2-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
@@ -53,7 +51,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: rgba(8, 14, 32, 0.5);
+  background: rgb(var(--rgb-8-14-32) / 0.5);
   opacity: var(--r2-dim, 0);
 }
 .r2stage__bloom {
@@ -69,13 +67,13 @@
   filter: blur(48px);
   background: conic-gradient(
     from 20deg,
-    #40b0ff,
-    #a78bfa,
-    #fb7185,
-    #f5b544,
-    #5eead4,
-    #7dd3fc,
-    #40b0ff
+    var(--hex-40b0ff),
+    var(--hex-a78bfa),
+    var(--hex-fb7185),
+    var(--hex-f5b544),
+    var(--hex-5eead4),
+    var(--hex-7dd3fc),
+    var(--hex-40b0ff)
   );
 }
 .r2stage__fx {
@@ -171,10 +169,10 @@
   pointer-events: none;
   background: var(--sweep);
   background-size: 300% 100%;
-  animation: rec-s2-sweep 9s linear infinite;
+  animation: rec-s2-sweep 9s linear 1;
   -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
 }
@@ -223,7 +221,7 @@
   padding: 12px 14px;
   background: var(--surface-1);
   border-top: 3px solid var(--rec);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 20px rgb(var(--rgb-0-0-0) / 0.3);
 }
 .r2env__peek {
   font-size: max(11px, 0.72rem);
@@ -303,10 +301,15 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #ffe2a3, var(--rec) 52%, #a8681a);
+  background: radial-gradient(
+    circle at 34% 30%,
+    var(--hex-ffe2a3),
+    var(--rec) 52%,
+    var(--hex-a8681a)
+  );
   box-shadow:
-    inset 0 -3px 6px rgba(0, 0, 0, 0.25),
-    0 4px 12px rgba(0, 0, 0, 0.35);
+    inset 0 -3px 6px rgb(var(--rgb-0-0-0) / 0.25),
+    0 4px 12px rgb(var(--rgb-0-0-0) / 0.35);
 }
 .r2env__half--l {
   clip-path: polygon(0 0, 52% 0, 46% 30%, 54% 55%, 47% 100%, 0 100%);
@@ -338,8 +341,8 @@
   background: linear-gradient(
     100deg,
     transparent 47%,
-    rgba(40, 20, 0, 0.6) 48%,
-    rgba(40, 20, 0, 0.6) 50%,
+    rgb(var(--rgb-40-20-0) / 0.6) 48%,
+    rgb(var(--rgb-40-20-0) / 0.6) 50%,
     transparent 51%
   );
   border-radius: 50%;
@@ -353,8 +356,12 @@
     var(--rec) calc(var(--hold, 0) * 360deg),
     color-mix(in srgb, var(--rec) 18%, transparent) 0
   );
-  -webkit-mask: radial-gradient(circle, transparent calc(50% - 4px), #000 calc(50% - 3px));
-  mask: radial-gradient(circle, transparent calc(50% - 4px), #000 calc(50% - 3px));
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent calc(50% - 4px),
+    var(--hex-000000) calc(50% - 3px)
+  );
+  mask: radial-gradient(circle, transparent calc(50% - 4px), var(--hex-000000) calc(50% - 3px));
 }
 
 /* ============================================================ the result card */
@@ -499,7 +506,7 @@
   width: 1.5px;
   height: 9%;
   border-radius: 2px;
-  background: linear-gradient(transparent, #9fb6ff);
+  background: linear-gradient(transparent, var(--hex-9fb6ff));
 }
 /* Kurangi Gerak: still stars printed around the card instead of confetti */
 .r2stage__still {
@@ -519,10 +526,10 @@
   background: var(--rec);
 }
 .r2stage__still i:nth-child(3n + 1) {
-  background: #40b0ff;
+  background: var(--hex-40b0ff);
 }
 .r2stage__still i:nth-child(3n + 2) {
-  background: #fb7185;
+  background: var(--hex-fb7185);
   width: 9px;
   height: 9px;
 }
@@ -596,11 +603,11 @@
     transparent 96%
   );
   -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: rec-s2-edgespin 6s linear infinite;
+  animation: rec-s2-edgespin 6s linear 2;
 }
 .r2inbox__list {
   list-style: none;
@@ -974,30 +981,30 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #fdfcf8;
-  color: #2b2b2b;
+  background: var(--hex-fdfcf8);
+  color: var(--hex-2b2b2b);
   border-radius: 3px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px rgb(var(--rgb-0-0-0) / 0.35);
   font-family: "Inter", system-ui, sans-serif;
 }
 .r2paper__h {
   font-size: 1.3rem;
   font-weight: 800;
-  color: #111;
+  color: var(--hex-111111);
 }
 .r2paper__s {
   font-size: max(11px, 0.72rem);
-  color: #6a6a6a;
+  color: var(--hex-6a6a6a);
 }
 .r2paper__rule {
-  border-top: 1px solid #d6d2c8;
+  border-top: 1px solid var(--hex-d6d2c8);
   margin: 4px 0;
 }
 .r2paper__k {
   font-size: max(11px, 0.72rem);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #8a6d2b;
+  color: var(--hex-8a6d2b);
   margin-top: 6px;
 }
 .r2paper__p {
@@ -1008,7 +1015,7 @@
   display: block;
   height: 7px;
   border-radius: 2px;
-  background: #e8e5dc;
+  background: var(--hex-e8e5dc);
 }
 .r2paper__l:nth-of-type(3n) {
   width: 86%;
@@ -1022,10 +1029,10 @@
     italic 1.7rem/1.2 "Instrument Serif",
     Georgia,
     serif;
-  color: #24357f;
+  color: var(--hex-24357f);
 }
 .r2paper__sign[data-signed="no"] {
-  border-bottom: 1.5px dashed #c43c3c;
+  border-bottom: 1.5px dashed var(--hex-c43c3c);
   width: 46%;
 }
 
@@ -1301,7 +1308,7 @@ li.r2cutline {
   border-radius: 50%;
   background: var(--text);
   border: 4px solid var(--accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgb(var(--rgb-0-0-0) / 0.4);
   cursor: grab;
   transition: transform var(--dur-fast);
 }
@@ -1355,7 +1362,7 @@ li.r2cutline {
 .r2hold__fill {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgb(var(--rgb-255-255-255) / 0.3);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -1675,7 +1682,7 @@ li.r2cutline {
   align-content: start;
   padding: clamp(16px, 3vw, 44px);
   background:
-    radial-gradient(ellipse 70% 60% at 22% 30%, rgba(64, 176, 255, 0.1), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 22% 30%, rgb(var(--rgb-64-176-255) / 0.1), transparent 70%),
     var(--void);
 }
 .r2proj__top {
@@ -1721,7 +1728,7 @@ li.r2cutline {
   aspect-ratio: 1;
   padding: 20px;
   border-radius: 20px;
-  background: #fff;
+  background: var(--hex-ffffff);
 }
 .r2proj__qr {
   width: 100%;
@@ -1745,7 +1752,7 @@ li.r2cutline {
   stroke-width: 1.1;
   stroke-linecap: round;
   stroke-dasharray: 100;
-  animation: rec-s2-drain 20s linear infinite;
+  animation: rec-s2-drain 20s linear 3;
 }
 @keyframes rec-s2-drain {
   to {
@@ -1813,7 +1820,7 @@ li.r2cutline {
 @keyframes rec-s2-pop {
   from {
     transform: scale(0.4);
-    background: #fff;
+    background: var(--hex-ffffff);
   }
 }
 .r2proj[data-still="yes"] .r2proj__dots i[data-new] {
@@ -1878,8 +1885,8 @@ li.r2cutline {
 /* The Papan board scrolls sideways: a soft edge at the right says so, and the end padding lets the last column clear it. */
 .r2board {
   padding-right: 28px;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  -webkit-mask-image: linear-gradient(to right, var(--hex-000000) calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, var(--hex-000000) calc(100% - 28px), transparent);
 }
 .r2scan {
   display: grid;
@@ -2068,8 +2075,8 @@ li.r2cutline {
 /* Berkas drawer: the body scrolls under the footer, and a 28px fade at its bottom edge says there is more. The padding clears the last block of the fade. */
 .drawer:has(.r2rev) .drawer__body {
   padding-bottom: 46px;
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, var(--hex-000000) calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, var(--hex-000000) calc(100% - 28px), transparent);
 }
 
 /* The attendance hub, copied from the mockup (rec2.css M5, rec11.css): two guided steps in a centered modal */
@@ -2220,7 +2227,7 @@ li.r2cutline {
   flex: none;
   padding: 8px;
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--hex-ffffff);
 }
 .r2proj__prev svg {
   display: block;
@@ -2279,7 +2286,7 @@ li.r2cutline {
   animation: rec-s2-twinkle 3s ease-in-out infinite;
 }
 .r2proj__stars i[data-gold] {
-  background: #f5b301;
+  background: var(--hex-f5b301);
 }
 @keyframes rec-s2-twinkle {
   0%,
@@ -2303,21 +2310,21 @@ li.r2cutline {
   pointer-events: none;
   background: conic-gradient(
     from 0deg,
-    #ff5f6d,
-    #ffc371,
-    #f7ff6b,
-    #4ade80,
-    #40b0ff,
-    #a78bfa,
-    #ff5f6d
+    var(--hex-ff5f6d),
+    var(--hex-ffc371),
+    var(--hex-f7ff6b),
+    var(--hex-4ade80),
+    var(--hex-40b0ff),
+    var(--hex-a78bfa),
+    var(--hex-ff5f6d)
   );
   -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   -webkit-mask-composite: xor;
   mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box exclude,
+    linear-gradient(var(--hex-000000) 0 0);
   animation: rec-s2-rainbow 750ms ease-out both;
 }
 @keyframes rec-s2-rainbow {
@@ -2395,7 +2402,7 @@ li.r2cutline {
   height: 32px;
   border-radius: 50%;
   background: hsl(var(--h) 65% 40%);
-  color: #fff;
+  color: var(--hex-ffffff);
   font-size: 0.9rem;
   font-style: normal;
   font-weight: 800;
@@ -2421,8 +2428,20 @@ li.r2cutline {
   color: var(--text-muted);
   font-size: clamp(1.05rem, 1.7vw, 1.35rem);
   white-space: nowrap;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--hex-000000) 6%,
+    var(--hex-000000) 94%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--hex-000000) 6%,
+    var(--hex-000000) 94%,
+    transparent
+  );
 }
 .r2proj__tickrun {
   display: flex;

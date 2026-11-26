@@ -325,6 +325,8 @@ export const S2 = dict({
       seats: "Kursi",
       taken: "Terisi",
       capacity: "Kapasitas",
+      capacityFloor: (n: number) =>
+        `Paling sedikit ${n}: sudah ada ${n} yang terdaftar di slot ini. Pindahkan atau keluarkan dulu bila ingin lebih kecil.`,
       delete: "Hapus slot",
       addRoom: "Tambah Ruang",
       slotRule:
@@ -969,6 +971,8 @@ export const S2 = dict({
       seats: "Seats",
       taken: "Taken",
       capacity: "Capacity",
+      capacityFloor: (n: number) =>
+        `${n} at the least: ${n} are already placed in this slot. Move or remove them first to go lower.`,
       delete: "Delete slot",
       addRoom: "Add a Room",
       slotRule:
@@ -1599,6 +1603,7 @@ export const S2 = dict({
       seats: "座位",
       taken: "已占",
       capacity: "容量",
+      capacityFloor: (n: number) => `最少 ${n}：本时段已有 ${n} 人。要再减少，请先移走或取消他们。`,
       delete: "删除时段",
       addRoom: "添加教室",
       slotRule: "容量不能低于已占座位数，已有人的时段不能删除。请先在看板上把人移走。",

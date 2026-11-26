@@ -1,4 +1,4 @@
-/* The tabs' styling, as a plain CSS import rather than an Astro <style>
+/* The tabs' styling, as a plain CSS import rather than an Astro \3c style>
    block -- a .tsx file has no template to attach one to.
 
    P7.1: `.tabs-scroll` wraps the scrollable `.tabs` list and paints a
@@ -11,41 +11,64 @@
 }
 
 .tabs-scroll {
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 100%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, var(--hex-000000) 0%, var(--hex-000000) 100%);
+  mask-image: linear-gradient(90deg, var(--hex-000000) 0%, var(--hex-000000) 100%);
   transition: -webkit-mask-image var(--dur-fast) var(--ease-reveal);
   transition: mask-image var(--dur-fast) var(--ease-reveal);
 }
 
 .tabs-scroll[data-edge="start"] {
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 24px, #000 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 24px, #000 100%);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hex-000000) 24px,
+    var(--hex-000000) 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hex-000000) 24px,
+    var(--hex-000000) 100%
+  );
 }
 
 .tabs-scroll[data-edge="end"] {
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 24px), transparent 100%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    var(--hex-000000) 0%,
+    var(--hex-000000) calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    var(--hex-000000) 0%,
+    var(--hex-000000) calc(100% - 24px),
+    transparent 100%
+  );
 }
 
 .tabs-scroll[data-edge="both"] {
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent 0%,
-    #000 24px,
-    #000 calc(100% - 24px),
+    var(--hex-000000) 24px,
+    var(--hex-000000) calc(100% - 24px),
     transparent 100%
   );
   mask-image: linear-gradient(
     90deg,
     transparent 0%,
-    #000 24px,
-    #000 calc(100% - 24px),
+    var(--hex-000000) 24px,
+    var(--hex-000000) calc(100% - 24px),
     transparent 100%
   );
 }
 
 .tabs {
+  /* Nov 2026: a tab strip on the bare sky rides a frosted plate (none inside a panel, which is glass already). */
+  background: var(--glass-frost);
   border-bottom: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   display: flex;
   flex-wrap: nowrap;
   gap: 2px;
@@ -56,6 +79,21 @@
 
 .tabs::-webkit-scrollbar {
   display: none;
+}
+
+/* Already inside glass: no second plate. */
+.panel .tabs,
+.reading .tabs,
+.drawer .tabs,
+.dialog__panel .tabs,
+:root[data-detail="ldm"] .panel .tabs,
+:root[data-motion-tier="0"] .panel .tabs {
+  background: none;
+}
+
+:root[data-detail="ldm"] .tabs,
+:root[data-motion-tier="0"] .tabs {
+  background: var(--surface-1);
 }
 
 /* Tabs, underline form (Phase 9 kit): for the main sections of a page. A
@@ -101,8 +139,9 @@
   right: 10px;
 }
 
-.tabs__tab[aria-selected="true"]::after {
-  animation: kit-sweep 6s linear infinite;
+/* One pass when a tab becomes the selected one, then still: nothing loops while idle (see controls.css). */
+:root:not([data-motion-tier="0"]) .tabs__tab[aria-selected="true"]::after {
+  animation: kit-sweep 3s ease-out 1;
 }
 
 /* The swept ring on hover and focus, like every other switch (2026-10-07). */
@@ -112,8 +151,8 @@
   border-radius: var(--radius-md);
   content: "";
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--hex-000000) 0 0) content-box,
+    linear-gradient(var(--hex-000000) 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
@@ -217,9 +256,9 @@
 }
 
 :root[data-theme="light"] .seg button[data-tone="ok"][aria-selected="true"] {
-  background: color-mix(in srgb, var(--ok) 16%, #fff);
+  background: color-mix(in srgb, var(--ok) 16%, var(--hex-ffffff));
 }
 
 :root[data-theme="light"] .seg button[data-tone="warn"][aria-selected="true"] {
-  background: color-mix(in srgb, var(--warn) 16%, #fff);
+  background: color-mix(in srgb, var(--warn) 16%, var(--hex-ffffff));
 }

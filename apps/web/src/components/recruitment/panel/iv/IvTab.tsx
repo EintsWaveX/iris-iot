@@ -14,6 +14,7 @@ import { Checkbox } from "../../../ui/Controls";
 import Pill from "../../../ui/Pill";
 import TabLine from "../../../ui/TabLine";
 import { href, useTick } from "../../../../lib/app";
+import { selisihJam } from "../../../../lib/jam";
 import { isFail, recPost } from "../../../../lib/recruitment/client";
 import "../../recruitment-cutting.css";
 import type { Lang } from "../../../../lib/kelas";
@@ -27,7 +28,9 @@ import { TeachCard, TeachPj, teachSample, teachTop } from "./TeachSlotku";
 import { PN } from "./penilaianStrings";
 import { IV } from "./ivStrings";
 import { SK } from "./slotStrings";
-import Skeleton from "../../../ui/Skeleton";
+import Memuat from "./Memuat";
+import CatatanKhusus from "./CatatanKhusus";
+import { CK } from "./catatanStrings";
 import "../../recruitment-r4.css";
 
 const hari = (iso: string, lang: Lang) =>
@@ -115,7 +118,7 @@ function SlotCard({
 }) {
   const w = IV(lang).mine;
   const k = SK[lang];
-  const now = useTick(30_000);
+  const now = useTick(30_000) + selisihJam();
   const mulai = Date.parse(s.startsAt);
   const selesai = Date.parse(s.endsAt);
   const live = now >= mulai && now <= selesai;
@@ -241,16 +244,25 @@ function PjCard({
   s,
   qr,
   refresh,
+  catatan,
+  me,
 }: {
   lang: Lang;
   stage: IvStage;
   s: IvMineSlot;
   qr: boolean;
   refresh: () => void;
+  /** The stage has Catatan Khusus: each CaAs of the room gets a note button */
+  catatan: boolean;
+  /** This person's NIM: someone who examines this slot cannot also stand in for an examiner of it */
+  me: string;
 }) {
   const k = SK[lang];
   const luar = s.role === "pj_luar";
+  const examinesHere = s.penguji.some((p) => p.nim === me);
   const [dlg, setDlg] = useState(false);
+  const [catId, setCatId] = useState<number | null>(null);
+  const room = s.booths.filter((b) => b.candidate);
   const [siapa, setSiapa] = useState("");
   const [sibuk, setSibuk] = useState(false);
   async function ganti() {
@@ -280,20 +292,47 @@ function PjCard({
           <li key={x}>{x}</li>
         ))}
       </ul>
+      {catatan && room.length > 0 && (
+        <ul className="r4prep r4prep--duty ck__room">
+          {room.map((b) => (
+            <li key={b.index} className="row row--between">
+              <span>
+                <b>{b.candidate!.nama}</b> <span className="hint num">{b.candidate!.nim}</span>
+              </span>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => setCatId(b.candidate!.id)}
+              >
+                <span className="btn__label">{CK[lang].open}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="row r4slot__acts">
-        {luar ? (
-          qr && (
-            <a className="btn btn--inverse" href={href(lang, "/recruitment/qr")}>
-              <span className="btn__label">{k.qrShift}</span>
-            </a>
-          )
-        ) : (
-          <button type="button" className="btn btn--inverse" onClick={() => setDlg(true)}>
-            <UserSwitchIcon size={18} aria-hidden="true" />
-            <span className="btn__label">{k.standIn}</span>
-          </button>
-        )}
+        {luar
+          ? qr && (
+              <a className="btn btn--inverse" href={href(lang, "/recruitment/qr")}>
+                <span className="btn__label">{k.qrShift}</span>
+              </a>
+            )
+          : !examinesHere && (
+              <button type="button" className="btn btn--inverse" onClick={() => setDlg(true)}>
+                <UserSwitchIcon size={18} aria-hidden="true" />
+                <span className="btn__label">{k.standIn}</span>
+              </button>
+            )}
       </div>
+      <Dialog
+        open={catId !== null}
+        onOpenChange={(o) => !o && setCatId(null)}
+        title={CK[lang].title}
+        size="lg"
+        lang={lang}
+      >
+        {catId !== null && <CatatanKhusus stage={stage} id={catId} lang={lang} />}
+      </Dialog>
       <Dialog
         open={dlg}
         onOpenChange={setDlg}
@@ -357,7 +396,7 @@ function Slotku({
   useEffect(() => {
     if (kosong) onEmpty?.();
   }, [kosong]);
-  if (!mine.data) return <Skeleton height={240} />;
+  if (!mine.data) return <Memuat lang={lang} poll={mine} height={240} />;
   if (!mine.data.slots.length)
     return (
       <div className="empty-note">
@@ -427,6 +466,8 @@ function Slotku({
             s={s}
             qr={qr || (qrPj && s.role === "pj_luar")}
             refresh={mine.refresh}
+            catatan={mine.data!.template.catatan}
+            me={mine.data!.me.nim}
           />
         ))}
       </div>
@@ -461,6 +502,8 @@ export default function IvTab({
     ["lead", "mine", "nilai", "template"],
   );
   const [buka, setBuka] = useState<number | null>(null);
+  /** A sheet opened from Penilaian, to read only */
+  const [lihat, setLihat] = useState<number | null>(null);
   const sudahLompat = useRef(false);
   const aktif =
     bag === "template" && !bisaTemplate ? "mine" : bag === "lead" && !lead ? "mine" : bag;
@@ -507,9 +550,19 @@ export default function IvTab({
           }
         />
       ) : aktif === "nilai" ? (
-        <Penilaian lang={lang} stage={stage} />
+        <Penilaian lang={lang} stage={stage} onLihat={setLihat} />
       ) : (
         <Template lang={lang} stage={stage} />
+      )}
+      {lihat !== null && (
+        <Lembar
+          lang={lang}
+          stage={stage}
+          id={lihat}
+          key={`lihat-${lihat}`}
+          lihat
+          onClose={() => setLihat(null)}
+        />
       )}
       {buka !== null && (
         <Lembar

@@ -69,9 +69,9 @@
     "Installing the LoRa library by Sandeep Mistry through the Arduino IDE Library Manager",
     "Installing the WebSockets library by Markus Sattler through the Arduino IDE Library Manager",
     "Selecting the ESP32 Dev Module board in the Arduino IDE",
-    "Joining the hunt network your assistant picked: the PC's IRIS_IOT Wi-Fi, or the IRIS-G<n> hotspot on one of your group's phones (name and password are in the website's Hunt step)",
+    "Joining the hunt network your assistant picked: the PC's IRIS_IOT Wi-Fi, or the IRIS-G<n> hotspot on one of your group's phones (name and password are in the website's Hunt step). A hotspot must be on 2.4 GHz with WPA2 security and mobile data on (iPhone: Maximize Compatibility)",
     "Downloading your group's sketches from the Code step (the board key is filled into HUNT_KEY once your assistant starts the hunt), then uploading hunter.ino and beacon.ino to their boards",
-    "Checking that the Serial Monitor prints an IP address and a synchronised clock",
+    "Checking that the Serial Monitor's [status] line shows Wi-Fi OK, the clock set and the scoreboard connected (a Beacon also prints READY TO HIDE: hide it only after that)",
     "Opening the scoreboard, entering your student ID, and confirming your own group appears",
     "Calibrating the distance reference at 1 metre from the Beacon"
   ],

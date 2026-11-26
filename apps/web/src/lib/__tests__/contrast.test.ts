@@ -153,6 +153,17 @@ describe.each(THEMES)("contrast contract, %s theme", (_name, raw) => {
     expect(worst).toBeGreaterThanOrEqual(AA);
   });
 
+  // The toast (Toast.css) sits on --surface-4, the brightest raised surface: its words and its icons.
+  it.each(["--text", "--text-muted"])(`${"%s"} clears ${AA}:1 on the toast surface`, (ink) => {
+    expect(contrast(color(raw, ink), color(raw, "--surface-4"))).toBeGreaterThanOrEqual(AA);
+  });
+  it.each(["--accent-bright", "--ok", "--warn", "--danger"])(
+    `toast icon %s clears ${UI}:1 on the toast surface`,
+    (ink) => {
+      expect(contrast(color(raw, ink), color(raw, "--surface-4"))).toBeGreaterThanOrEqual(UI);
+    },
+  );
+
   it(`--control-border clears ${UI}:1 on every surface`, () => {
     const worst = Math.min(
       ...SURFACES.map((s) => contrast(color(raw, "--control-border"), color(raw, s))),
@@ -195,6 +206,18 @@ describe.each(THEMES)("contrast contract, %s theme", (_name, raw) => {
   it("--sweep-surface never references a --neb-* token, unlike --sweep-ring which may", () => {
     // A text-bearing gradient must never resolve to a background-only hue.
     expect(raw.get("sweep-surface")!).not.toMatch(/--neb-/);
+  });
+
+  // Matrix extension (colour 3b, Nov 2026): the module hues are written as text ("Modul 3"), and the focus ring
+  // is what a keyboard user finds controls by. (The accent fill is not measured against the surface: a button wears a border
+  // and its label is held to 4.5:1 against the fill by --accent-ink above.)
+  it.each([1, 2, 3, 4].map((n) => `--mod-${n}`))(`%s clears ${AA}:1 on every surface`, (ink) => {
+    const worst = Math.min(...SURFACES.map((s) => contrast(color(raw, ink), color(raw, s))));
+    expect(worst).toBeGreaterThanOrEqual(AA);
+  });
+  it.each(["--focus-ring"])(`%s clears ${UI}:1 on every surface`, (ink) => {
+    const worst = Math.min(...SURFACES.map((s) => contrast(color(raw, ink), color(raw, s))));
+    expect(worst).toBeGreaterThanOrEqual(UI);
   });
 
   it("declares a hue for every group a session can hold (up to ten)", () => {

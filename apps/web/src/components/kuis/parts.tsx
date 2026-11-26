@@ -8,6 +8,7 @@ import gsap from "gsap";
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -16,6 +17,7 @@ import {
 import type { BarisPapan } from "../../lib/kuis/engine";
 import type { SoalPublik } from "../../lib/kuis/types";
 import { warnaUntuk, type WarnaPilihan } from "../../lib/kuis/warna";
+import { calmMotion } from "../../lib/calm-motion";
 import type { MotionLevel } from "../recruitment/reveal/fx";
 import type { KuisTeks } from "./kuisStrings";
 
@@ -28,6 +30,29 @@ export function Bentuk({ bentuk, size = 26 }: { bentuk: WarnaPilihan["bentuk"]; 
       {bentuk === "belah-ketupat" && <polygon points="12,1 23,12 12,23 1,12" />}
       {bentuk === "lingkaran" && <circle cx="12" cy="12" r="10" />}
       {bentuk === "kotak" && <rect x="3" y="3" width="18" height="18" rx="2.5" />}
+    </svg>
+  );
+}
+
+/** Rank movement and streak, drawn (no text glyphs or emoji standing in for icons). */
+export function Panah({ arah, size = 12 }: { arah: "naik" | "turun"; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true">
+      <path
+        d={arah === "naik" ? "M6 2.2l4.2 6.6H1.8z" : "M6 9.8L1.8 3.2h8.4z"}
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+export function Api({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12.5 2.5C13.1 5.7 11.3 7.1 9.8 8.8 8.4 10.4 7 11.8 7 14.3 7 17.4 9.2 20 12 20s5-2.6 5-5.7c0-2.1-1-3.6-2-4.8-.4 1.3-1.1 2-1.8 2.2.5-3-.3-6.3-.7-9.2z"
+        fill="currentColor"
+      />
     </svg>
   );
 }
@@ -71,7 +96,14 @@ export function Cincin({
   detik: number | null;
   kunci: string | number;
 }) {
-  const lewat = sisaMs === null ? 0 : Math.max(0, totalMs - sisaMs);
+  // How far into the phase the sweep starts. It is fixed per phase (and per pause or resume): the clock
+  // ticks ten times a second, and feeding every tick back in as the delay made a running animation jump
+  // ahead by the time already elapsed each time, so the ring sped up and emptied before the number hit 0.
+  const sudahTahu = sisaMs !== null;
+  const lewat = useMemo(
+    () => (sisaMs === null ? 0 : Math.max(0, totalMs - sisaMs)),
+    [kunci, dijeda, totalMs, sudahTahu],
+  );
   const gaya = {
     "--kz-dur": `${totalMs}ms`,
     "--kz-tunda": `${-lewat}ms`,
@@ -86,7 +118,17 @@ export function Cincin({
     >
       <svg viewBox="0 0 100 100" aria-hidden="true">
         <circle className="kz__cincin-alas" cx="50" cy="50" r="44" />
-        <circle key={kunci} className="kz__cincin-isi" cx="50" cy="50" r="44" pathLength="100" />
+        {/* drawn once the clock is known, so the sweep starts at the right point instead of at full */}
+        {sudahTahu && (
+          <circle
+            key={`${kunci}-${dijeda ? "j" : "m"}`}
+            className="kz__cincin-isi"
+            cx="50"
+            cy="50"
+            r="44"
+            pathLength="100"
+          />
+        )}
       </svg>
       <b className="kz__cincin-angka" aria-live="off">
         {detik ?? "·"}
@@ -137,47 +179,87 @@ export function Angka({
 
 // ------------------------------------------------------------- backdrop
 
-const BINTANG = Array.from({ length: 22 }, (_, i) => {
-  const r = (n: number) => Math.abs((Math.sin((i + 3) * n) * 10000) % 1);
-  return {
-    x: Math.round(r(12.9898) * 100),
-    y: Math.round(r(78.233) * 100),
-    s: 7 + Math.round(r(39.346) * 11),
-    d: Math.round(r(11.135) * 60) / 10,
-    t: 3 + Math.round(r(93.989) * 40) / 10,
-  };
-});
+/**
+ * The painted cosmos (Cosmos.astro) is the sky behind the whole game. This is only a soft scrim over it that
+ * deepens the middle of the screen for legibility and warms toward Module 4's colour as the game runs.
+ * Decorative only; costs one gradient, no blur.
+ */
+export function Latar({ fase }: { m?: MotionLevel; fase: string }) {
+  return <div className="kz__latar" aria-hidden="true" data-fase={fase} />;
+}
 
-/** Drifting colour blobs and twinkling stars behind everything. Decorative only. */
-export function Latar({ m, fase }: { m: MotionLevel; fase: string }) {
+// ------------------------------------------------------------ leaving things
+
+/**
+ * Keeps a thing on screen for `ms` after it should go, so it can fade out (the Fade kit's rule: a calm-motion
+ * browser removes it at once). Returns whether to render it, and whether it is on its way out.
+ */
+export function useKeluar(tampil: boolean, ms = 180): { ada: boolean; keluar: boolean } {
+  const [ada, setAda] = useState(tampil);
+  useEffect(() => {
+    if (tampil) return setAda(true);
+    if (calmMotion()) return setAda(false);
+    const id = window.setTimeout(() => setAda(false), ms);
+    return () => window.clearTimeout(id);
+  }, [tampil, ms]);
+  return { ada: ada || tampil, keluar: !tampil };
+}
+
+/** A banner or toast that fades in and out. Holds its last content while it leaves. */
+export function Selimut({
+  tampil,
+  kelas,
+  role,
+  children,
+}: {
+  tampil: boolean;
+  kelas: string;
+  role: "status" | "alert";
+  children: ReactNode;
+}) {
+  const { ada, keluar } = useKeluar(tampil, 200);
+  const terakhir = useRef<ReactNode>(children);
+  if (tampil) terakhir.current = children;
+  if (!ada) return null;
   return (
-    <div className="kz__latar" aria-hidden="true" data-fase={fase}>
-      <i className="kz__blob kz__blob--a" />
-      <i className="kz__blob kz__blob--b" />
-      <i className="kz__blob kz__blob--c" />
-      {m !== "reduce" &&
-        BINTANG.slice(0, m === "full" ? 22 : 10).map((b, i) => (
-          <svg
-            key={i}
-            className="kz__bintang"
-            viewBox="0 0 24 24"
-            width={b.s}
-            height={b.s}
-            style={{
-              left: `${b.x}%`,
-              top: `${b.y}%`,
-              animationDelay: `${b.d}s`,
-              animationDuration: `${b.t}s`,
-            }}
-          >
-            <path
-              d="M12 0 L14.6 9.4 L24 12 L14.6 14.6 L12 24 L9.4 14.6 L0 12 L9.4 9.4 Z"
-              fill="currentColor"
-            />
-          </svg>
-        ))}
+    <div className={kelas} role={role} data-keluar={keluar ? "1" : undefined}>
+      {tampil ? children : terakhir.current}
     </div>
   );
+}
+
+/**
+ * A list that keeps the rows that just left on screen while they fade, so a player dropping out of the lobby
+ * eases away. Rows come back in their last known order with `keluar` set on the ones that went.
+ */
+export function useDaftarKeluar<T>(
+  daftar: readonly T[],
+  kunci: (x: T) => string,
+  ms = 220,
+): { item: T; keluar: boolean }[] {
+  const [sisa, setSisa] = useState<Map<string, T>>(new Map());
+  const lalu = useRef<Map<string, T>>(new Map());
+  const sekarang = new Map(daftar.map((x) => [kunci(x), x]));
+  useEffect(() => {
+    const pergi = new Map<string, T>();
+    for (const [k, x] of lalu.current) if (!sekarang.has(k)) pergi.set(k, x);
+    lalu.current = sekarang;
+    if (pergi.size === 0 || calmMotion()) return;
+    setSisa((m) => new Map([...m, ...pergi]));
+    const id = window.setTimeout(
+      () =>
+        setSisa((m) => {
+          const n = new Map(m);
+          for (const k of pergi.keys()) n.delete(k);
+          return n;
+        }),
+      ms,
+    );
+    return () => window.clearTimeout(id);
+  }, [daftar]);
+  const baris = daftar.map((item) => ({ item, keluar: false }));
+  for (const [k, item] of sisa) if (!sekarang.has(k)) baris.push({ item, keluar: true });
+  return baris;
 }
 
 // ----------------------------------------------------------- the tiles
@@ -336,8 +418,8 @@ export function DaftarPapan({
         if (lama === undefined) {
           gsap.fromTo(
             c,
-            { opacity: 0, x: -40 },
-            { opacity: 1, x: 0, duration: 0.5, delay: idx * 0.07, ease: "back.out(1.6)" },
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.42, delay: idx * 0.05, ease: "power3.out" },
           );
         } else if (lama !== c.offsetTop) {
           gsap.fromTo(c, { y: lama - c.offsetTop }, { y: 0, duration: 0.8, ease: "power3.out" });
@@ -368,13 +450,13 @@ export function DaftarPapan({
               data-arah={b.naik > 0 ? "naik" : "turun"}
               title={b.naik > 0 ? t.naikN(b.naik) : t.turunN(-b.naik)}
             >
-              {b.naik > 0 ? "▲" : "▼"}
+              <Panah arah={b.naik > 0 ? "naik" : "turun"} />
               {Math.abs(b.naik)}
             </span>
           )}
           {b.streak >= 2 && (
             <span className="kz__papan-api" title={t.streakN(b.streak)}>
-              {"🔥"}
+              <Api />
               {b.streak}
             </span>
           )}

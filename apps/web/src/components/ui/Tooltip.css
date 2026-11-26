@@ -5,7 +5,7 @@
   animation: tooltip-in 140ms var(--ease-out-expo) both;
   background: var(--invert-bg);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgb(var(--rgb-0-0-0) / 0.35);
   color: var(--invert-ink);
   font: 600 13px/1.35 var(--font-body);
   max-width: min(280px, calc(100vw - 16px));
@@ -33,8 +33,25 @@
   }
 }
 
+/* Out: a quick fade, shorter than the entrance (Radix keeps the panel mounted while data-state="closed" plays).
+   Once one tip is open, the next one opens with no entrance at all (data-state="instant-open"), so a toolbar
+   sweep feels immediate. */
+.tooltip__panel[data-state="closed"] {
+  animation: tooltip-out 100ms var(--ease-out-expo) both;
+}
+.tooltip__panel[data-state="instant-open"] {
+  animation: none;
+}
+
+@keyframes tooltip-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tooltip__panel {
+  .tooltip__panel,
+  .tooltip__panel[data-state="closed"] {
     animation-duration: 1ms;
   }
 }
@@ -51,5 +68,13 @@
 }
 /* Sliding along a toolbar: once one tip is up, the next appears at once */
 .tiplayer[data-instant] {
+  animation: none;
+}
+/* Leaving (TipLayer holds the panel 100 ms before it hides it) */
+.tiplayer[data-out] {
+  animation: tooltip-out 100ms var(--ease-out-expo) both;
+  pointer-events: none;
+}
+:root[data-motion-tier="0"] .tiplayer[data-out] {
   animation: none;
 }

@@ -406,7 +406,7 @@
   background: var(--bg-elevated);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg, 0 18px 50px rgb(0 0 0 / 45%));
+  box-shadow: var(--shadow-lg, 0 18px 50px rgb(var(--rgb-0-0-0) / 45%));
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -498,7 +498,8 @@
 /* The head uses the body's own columns, so the star path starts exactly
    where the second card below starts (the live card while running). */
 .dash10__head {
-  align-items: end;
+  /* Nov 2026: top-aligned, so the greeting and the module-line card start on one line (it was end, which hung the greeting low). */
+  align-items: start;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr);

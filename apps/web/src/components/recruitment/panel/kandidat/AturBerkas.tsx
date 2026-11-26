@@ -8,14 +8,9 @@
  * spares in types.ts DOC_SPARE): the key is what an upload is stored under.
  */
 import { useEffect, useState } from "react";
-import {
-  ArrowCounterClockwiseIcon,
-  ArrowDownIcon,
-  ArrowUpIcon,
-  PlusIcon,
-  TrashIcon,
-} from "@phosphor-icons/react";
+import { ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import Dialog from "../../../ui/Dialog";
+import HoldConfirm from "../../../ui/HoldConfirm";
 import IconButton from "../../../ui/IconButton";
 import { Stepper, Switch } from "../../../ui/Controls";
 import type { Lang } from "../../../../lib/kelas";
@@ -231,19 +226,17 @@ export default function AturBerkas({
       size="form"
       lang={lang}
       alt={
-        <button
-          type="button"
-          className="btn btn--ghost"
+        <HoldConfirm
+          lang={lang}
+          label={t.reset}
+          what={t.title}
           disabled={diBawaan || busy}
-          onClick={() => {
+          onConfirm={() => {
             setRows(bawaan);
             setMb(MB_DEFAULT);
             window.Toast?.show(t.resetDone, "ok");
           }}
-        >
-          <ArrowCounterClockwiseIcon size={18} aria-hidden="true" />
-          <span className="btn__label">{t.reset}</span>
-        </button>
+        />
       }
       actions={
         <button type="button" className="btn btn--primary" disabled={busy} onClick={selesai}>

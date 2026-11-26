@@ -6,29 +6,29 @@
 .kodeed {
   /* Syntax colours (lib/highlight.ts, also Preparation's code editor), picked from the sky: violet
      keywords, aurora green strings, star gold numbers. */
-  --syn-keyword: #c3a6ff;
-  --syn-type: #6fd6e3;
-  --syn-string: #8fe3b0;
-  --syn-number: #f5c77e;
-  --syn-func: #7cc4ff;
-  --syn-preproc: #ff9ecf;
-  --syn-const: #ffb38a;
+  --syn-keyword: var(--hex-c3a6ff);
+  --syn-type: var(--hex-6fd6e3);
+  --syn-string: var(--hex-8fe3b0);
+  --syn-number: var(--hex-f5c77e);
+  --syn-func: var(--hex-7cc4ff);
+  --syn-preproc: var(--hex-ff9ecf);
+  --syn-const: var(--hex-ffb38a);
   --syn-comment: var(--text-faint);
   /* An Asisten's Show Answers. */
-  --key-c: #c3a6ff;
+  --key-c: var(--hex-c3a6ff);
 }
 
 /* Daylight sky: the same hues, dark enough for 4.5:1 on white. */
 :root[data-theme="light"] .codestep,
 :root[data-theme="light"] .kodeed {
-  --syn-keyword: #6a3fc8;
-  --syn-type: #0a6f7c;
-  --syn-string: #1d7a3e;
-  --syn-number: #8a5a00;
-  --syn-func: #0b5ea8;
-  --syn-preproc: #b0236e;
-  --syn-const: #a04a12;
-  --key-c: #6a3fc8;
+  --syn-keyword: var(--hex-6a3fc8);
+  --syn-type: var(--hex-0a6f7c);
+  --syn-string: var(--hex-1d7a3e);
+  --syn-number: var(--hex-8a5a00);
+  --syn-func: var(--hex-0b5ea8);
+  --syn-preproc: var(--hex-b0236e);
+  --syn-const: var(--hex-a04a12);
+  --key-c: var(--hex-6a3fc8);
 }
 
 .tok--keyword {

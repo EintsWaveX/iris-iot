@@ -18,6 +18,7 @@ const TONE: Record<ReasonKey, Tone> = {
   noTt: "warn",
   noScore: "warn",
   wide: "warn",
+  flag: "danger",
   ragu: "warn",
   susulan: "warn",
   gugur: "danger",

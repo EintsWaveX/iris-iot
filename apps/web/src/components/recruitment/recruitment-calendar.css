@@ -1,12 +1,12 @@
 /* The panel's Kalender card, matched to the mockup (rec9.css rec9-cal): an accent top edge, the bar above the month. */
 .rec9-cal {
-  --a: var(--tc, #5eead4);
+  --a: var(--tc, var(--hex-5eead4));
   --ai: color-mix(in srgb, var(--a) 62%, var(--text));
   border-top: 3px solid var(--a);
   gap: 14px;
 }
 :root[data-theme="light"] .rec9-cal {
-  --ai: color-mix(in srgb, var(--a) 40%, #0a0f1c);
+  --ai: color-mix(in srgb, var(--a) 40%, var(--hex-0a0f1c));
 }
 .rec9-cal__bar {
   align-items: center;
@@ -38,7 +38,7 @@
 .rec9-cal .rkal__d[data-today] > b {
   background: var(--a);
   border-radius: 99px;
-  color: #0a0f1c;
+  color: var(--hex-0a0f1c);
   justify-self: start;
   padding: 0 7px;
 }
@@ -84,7 +84,7 @@
   }
 }
 :root[data-theme="light"] .rec9-cal .rkal__sub {
-  color: color-mix(in srgb, var(--ai) 55%, #0a0f1c);
+  color: color-mix(in srgb, var(--ai) 55%, var(--hex-0a0f1c));
 }
 .rec9-cal__bar .segmented {
   width: auto;
@@ -94,7 +94,7 @@
   min-width: 96px;
 }
 
-/* A candidate's calendar: days that are over sit calm, days still to come with nothing to show wear a drifting fog (mockup n7-day). */
+/* A candidate's calendar: days that are over sit calm, days still to come with nothing to show wear a fog (mockup n7-day). */
 .rkal__d {
   position: relative;
 }
@@ -109,28 +109,18 @@
 .rkal__d[data-fog="yes"] > b {
   color: var(--text-muted);
 }
+/* Still: a fog that drifted in 30 cells at once was the heaviest thing on the page. Each cell shows the noise at its own offset, so they do not look copied. */
 .rkal__d[data-fog="yes"]::after {
-  animation: n7-fog-cell 26s linear infinite;
-  animation-delay: calc(var(--d, 0ms) * -90);
   background: rgb(var(--fogc));
   content: "";
-  filter: blur(2.5px);
   inset: -20%;
   -webkit-mask-image: var(--noise);
   mask-image: var(--noise);
+  -webkit-mask-position: var(--fx, 0) var(--fy, 0);
+  mask-position: var(--fx, 0) var(--fy, 0);
   -webkit-mask-size: 320px 160px;
   mask-size: 320px 160px;
   opacity: calc(var(--fogk) * 1.05);
   pointer-events: none;
   position: absolute;
-}
-@keyframes n7-fog-cell {
-  from {
-    -webkit-mask-position: 0 0;
-    mask-position: 0 0;
-  }
-  to {
-    -webkit-mask-position: 320px 80px;
-    mask-position: 320px 80px;
-  }
 }

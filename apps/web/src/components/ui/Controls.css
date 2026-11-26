@@ -394,7 +394,13 @@
 .ctl-wheel {
   border-radius: var(--radius-md);
   height: calc(44px * 5);
-  mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    var(--hex-000000) 30%,
+    var(--hex-000000) 70%,
+    transparent
+  );
   outline: none;
   overflow-y: auto;
   overscroll-behavior: contain;

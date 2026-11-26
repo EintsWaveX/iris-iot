@@ -63,6 +63,40 @@
     </${H.HuntApp}>`;
   };
 
+  /* ------------------------------------------------ board health */
+  /* Each board sends a short report every 10 s. Without it a hunter that is online but hears no
+     beacon looks exactly like a dead one, and a weak hotspot only shows up as a missing group. */
+  H.boardTip = (g) => {
+    const p = H.papan(g);
+    const r = H.row(g);
+    const h = p && p.hunter;
+    const b = p && p.beacon;
+    if (!h || !h.online)
+      return r && r.online ? null : L("Hunter belum melapor. Periksa hotspot-nya (2,4 GHz, WPA2, data seluler) dan Serial Monitor-nya.", "The hunter isn't reporting. Check its hotspot (2.4 GHz, WPA2, mobile data) and its Serial Monitor.");
+    if (!r || !r.online) return L("Hunter online, tetapi belum mendengar beacon. Periksa beacon menyala, sync word sama, dan jaraknya.", "The hunter is online but hears no beacon. Check the beacon is on, the sync words match, and the distance.");
+    if (h.jam === "-" || (b && b.online && b.jam === "-")) return L("Jam sebuah papan belum ada, jadi delay tidak bisa diukur.", "A board has no clock yet, so the delay can't be measured.");
+    if (h.jam === "papan" || (b && b.online && b.jam === "papan")) return L("Jam disetel papan skor karena NTP diblokir hotspot ini. Kolom delay kurang teliti.", "The clock was set by the scoreboard because this hotspot blocks NTP. The delay column is less exact.");
+    if (h.wifi != null && h.wifi < -80) return L(`Sinyal Wi-Fi hunter lemah (${h.wifi} dBm). Dekatkan ponsel hotspotnya.`, `The hunter's Wi-Fi signal is weak (${h.wifi} dBm). Bring the hotspot phone closer.`);
+    if (h.putus != null && h.putus >= 3) return L(`Soket hunter sudah putus ${h.putus} kali. Tautan hotspotnya tidak stabil.`, `The hunter's socket has dropped ${h.putus} times. The hotspot link is unstable.`);
+    return null;
+  };
+  const BoardChip = ({ role, info }) => {
+    const clock = !info ? "" : info.jam === "ntp" ? "NTP" : info.jam === "papan" ? L("papan skor", "scoreboard") : info.jam === "-" ? L("jam belum ada", "no clock") : "";
+    if (!info || !info.online)
+      return html`<${Badge} tone=${role === "hunter" ? "warn" : undefined}>${role === "hunter" ? "Hunter" : "Beacon"} · ${L("belum melapor", "not reporting")}</${Badge}>`;
+    return html`<${Badge} tone=${info.jam === "-" ? "warn" : "ok"}>${role === "hunter" ? "Hunter" : "Beacon"}${info.wifi != null ? ` · ${info.wifi} dBm` : ""}${clock ? " · " + clock : ""}</${Badge}>`;
+  };
+  const BoardsCard = () => {
+    H.useNet();
+    const ids = H.groups();
+    return html`<section class="card"><div class="card__head"><h2 class="card__title">${H.T("Papan kelompok", "Group boards")}</h2><span class="hint">${L("dilaporkan tiap 10 detik oleh papannya sendiri", "reported every 10 seconds by the boards themselves")}</span></div>
+      ${ids.length ? html`<div class="stack stack--sm">${ids.map((g) => {
+        const p = H.papan(g);
+        const tip = H.boardTip(g);
+        return html`<div class="stack stack--sm" style=${`--g:var(--group-${g})`}><span class="row" style="gap:6px;flex-wrap:wrap"><b>${H.gname(g)}</b><${BoardChip} role="hunter" info=${p && p.hunter} /><${BoardChip} role="beacon" info=${p && p.beacon} /></span>${tip && html`<span class="hint">${tip}</span>`}</div>`;
+      })}</div>` : html`<p class="hint">${L("Belum ada kelompok.", "No groups yet.")}</p>`}</section>`;
+  };
+
   /* ------------------------------------------------ mission control */
   const REASONS = () => [L("Bukan beacon kelompok ini", "Not this group's beacon"), L("Foto buram", "Blurry photo"), L("Beacon dipindah", "The beacon was moved"), L("Lainnya", "Something else")];
   const TokenGate = () => {
@@ -205,6 +239,7 @@
             <span class="hint">${L("Paksa Konfirmasi ada di menu kelompok, untuk beacon yang terbukti ketemu tapi sinyalnya jatuh.", "Force Confirm is in the group menu, for a beacon that was clearly found but whose signal dropped.")}</span></section>
         </div>
         <div class="hgrid hgrid--2">
+          <${BoardsCard} />
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Pengumuman dan hitung mundur", "Announcements and countdown")}</h2></div>
             <label class="field"><span class="label">${L("Pengumuman ke semua ponsel", "Announcement to every phone")}</span><input class="input" id="m-ann" aria-label=${L("Pengumuman ke semua ponsel", "Announcement to every phone")} maxlength="140" value=${ann} onInput=${(e) => setAnn(e.target.value)} placeholder=${L("contoh: 10 menit lagi, kumpul di lobi", "e.g. 10 minutes left, meet at the lobby")} /></label>
             ${f.pengumuman && html`<span class="hint">${L(`Tampil sekarang: ${f.pengumuman.teks}`, `Showing now: ${f.pengumuman.teks}`)}</span>`}

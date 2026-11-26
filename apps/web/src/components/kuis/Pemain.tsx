@@ -6,10 +6,21 @@ import { useEffect, useRef, useState } from "react";
 import type { LihatPemain } from "../../lib/kuis/engine";
 import { warnaUntuk } from "../../lib/kuis/warna";
 import type { MotionLevel } from "../recruitment/reveal/fx";
+import Fade from "../ui/Fade";
 import { bunyi, rayakan } from "./fx";
 import { Hitung } from "./Host";
 import type { KuisTeks } from "./kuisStrings";
-import { Angka, Avatar, Bentuk, Cincin, DaftarPapan, Pilihan, useDetikSisa } from "./parts";
+import {
+  Angka,
+  Api,
+  Avatar,
+  Bentuk,
+  Cincin,
+  DaftarPapan,
+  Panah,
+  Pilihan,
+  useDetikSisa,
+} from "./parts";
 import type { Aku, Kuis } from "./useKuis";
 
 interface Props {
@@ -94,7 +105,9 @@ function Soal({ v, k, t }: Pick<Props, "v" | "k" | "t">) {
           kunci={`${v.nomor}-${v.akhir ?? 0}`}
         />
       </header>
-      <Pilihan soal={soal} t={t} ukuran="ponsel" onPilih={jawab} />
+      <div className="kz__p-jawab">
+        <Pilihan soal={soal} t={t} ukuran="ponsel" onPilih={jawab} />
+      </div>
     </div>
   );
 }
@@ -157,7 +170,10 @@ function Hasil({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
               +<Angka nilai={h.poin + h.bonus} m={m} awal={0} />
             </b>
             {h.bonus > 0 && (
-              <span className="kz__pil-kecil">{`🔥 ${t.streakN(s?.streak ?? 0)} · +${h.bonus}`}</span>
+              <span className="kz__pil-kecil kz__pil-api">
+                <Api size={16} />
+                {`${t.streakN(s?.streak ?? 0)} · +${h.bonus}`}
+              </span>
             )}
           </>
         )}
@@ -166,7 +182,7 @@ function Hasil({ v, t, m }: Pick<Props, "v" | "t" | "m">) {
             {t.peringkatN(s.peringkat, v.jumlahPemain)}
             {s.naik !== 0 && (
               <i data-arah={s.naik > 0 ? "naik" : "turun"}>
-                {s.naik > 0 ? "▲" : "▼"} {Math.abs(s.naik)}
+                <Panah arah={s.naik > 0 ? "naik" : "turun"} /> {Math.abs(s.naik)}
               </i>
             )}
           </span>
@@ -202,7 +218,8 @@ function Papan({ v, t, m, aku }: Pick<Props, "v" | "t" | "m" | "aku">) {
           </span>
           {s.naik !== 0 && (
             <i className="kz__p-delta" data-arah={s.naik > 0 ? "naik" : "turun"}>
-              {s.naik > 0 ? `▲ ${t.naikN(s.naik)}` : `▼ ${t.turunN(-s.naik)}`}
+              <Panah arah={s.naik > 0 ? "naik" : "turun"} />{" "}
+              {s.naik > 0 ? t.naikN(s.naik) : t.turunN(-s.naik)}
             </i>
           )}
         </div>
@@ -210,9 +227,7 @@ function Papan({ v, t, m, aku }: Pick<Props, "v" | "t" | "m" | "aku">) {
       <DaftarPapan baris={v.papan} m={m} t={t} saya={aku.nim} maks={5} />
       {s && s.peringkat > 5 && (
         <>
-          <span className="kz__p-titik" aria-hidden="true">
-            ⋮
-          </span>
+          <span className="kz__p-titik" aria-hidden="true" />
           <DaftarPapan baris={[s]} m={m} t={t} saya={aku.nim} maks={1} />
         </>
       )}
@@ -266,18 +281,15 @@ export default function PemainLayar(p: Props) {
           </span>
         )}
       </div>
-      <main
-        className="kz__tubuh kz__tubuh--p"
-        data-fase={v.fase}
-        key={`${v.fase}-${v.nomor}`}
-        data-anim={m === "reduce" ? undefined : "1"}
-      >
-        {v.fase === "lobi" && <Lobi v={v} aku={aku} t={t} />}
-        {v.fase === "hitung" && <Hitung detik={sisaHitung} siap={t.siap} />}
-        {v.fase === "soal" && v.soal && <Soal v={v} k={k} t={t} />}
-        {v.fase === "buka" && v.soal && v.hasil && <Hasil v={v} t={t} m={m} />}
-        {v.fase === "papan" && <Papan v={v} t={t} m={m} aku={aku} />}
-        {v.fase === "podium" && <Podium v={v} t={t} m={m} aku={aku} />}
+      <main className="kz__tubuh kz__tubuh--p" data-fase={v.fase}>
+        <Fade k={`${v.fase}-${v.nomor}`} className="kz__tahap">
+          {v.fase === "lobi" && <Lobi v={v} aku={aku} t={t} />}
+          {v.fase === "hitung" && <Hitung detik={sisaHitung} siap={t.siap} />}
+          {v.fase === "soal" && v.soal && <Soal v={v} k={k} t={t} />}
+          {v.fase === "buka" && v.soal && v.hasil && <Hasil v={v} t={t} m={m} />}
+          {v.fase === "papan" && <Papan v={v} t={t} m={m} aku={aku} />}
+          {v.fase === "podium" && <Podium v={v} t={t} m={m} aku={aku} />}
+        </Fade>
       </main>
     </>
   );
