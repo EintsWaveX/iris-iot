@@ -35,12 +35,15 @@ export default function CatatanKhusus({
   id,
   lang,
   locked = false,
+  readOnly = false,
 }: {
   stage: IvStage;
   id: number;
   lang: Lang;
   /** The sheet is closed for writing (a control seat may still write) */
   locked?: boolean;
+  /** Only reading (another CaAs's sheet opened from Penilaian): nothing can be ticked or typed, even by a control seat */
+  readOnly?: boolean;
 }) {
   const t = CK[lang];
   const q = useCatatan(stage, id);
@@ -75,7 +78,7 @@ export default function CatatanKhusus({
       </section>
     );
 
-  const closed = locked && !d.semua;
+  const closed = readOnly || (locked && !d.semua);
   const c = d.catatan;
   const mine = c.notes.find((n) => n.mine)?.text ?? "";
   const others = c.notes.filter((n) => !n.mine);
@@ -154,27 +157,30 @@ export default function CatatanKhusus({
         {column("plus", d.tags.plus)}
       </div>
 
-      <label className="stack stack--sm">
-        <b className="ck__h">{t.myNote}</b>
-        <textarea
-          className="field__input"
-          rows={2}
-          maxLength={800}
-          value={note ?? mine}
-          disabled={closed}
-          placeholder={t.myNotePh}
-          onChange={(e) => setNote(e.target.value)}
-          onBlur={() => {
-            if (note === null || note.trim() === mine) return setNote(null);
-            void send({ note }).then((ok) => ok && setNote(null));
-          }}
-        />
-      </label>
+      {!readOnly && (
+        <label className="stack stack--sm">
+          <b className="ck__h">{t.myNote}</b>
+          <textarea
+            className="field__input"
+            rows={2}
+            maxLength={800}
+            value={note ?? mine}
+            disabled={closed}
+            placeholder={t.myNotePh}
+            onChange={(e) => setNote(e.target.value)}
+            onBlur={() => {
+              if (note === null || note.trim() === mine) return setNote(null);
+              void send({ note }).then((ok) => ok && setNote(null));
+            }}
+          />
+        </label>
+      )}
 
-      {others.length > 0 && (
+      {(readOnly || others.length > 0) && (
         <div className="stack stack--sm">
-          <b className="ck__h">{t.otherNotes}</b>
-          {others.map((n) => (
+          <b className="ck__h">{readOnly ? t.allNotes : t.otherNotes}</b>
+          {readOnly && c.notes.length === 0 && <span className="hint">{t.noNotes}</span>}
+          {(readOnly ? c.notes : others).map((n) => (
             <p key={n.key} className="ck__note">
               <b>{t.roles[n.who] ?? n.who}</b> {n.text}
             </p>
@@ -182,7 +188,13 @@ export default function CatatanKhusus({
         </div>
       )}
 
-      {d.semua && (
+      {readOnly && c.final && (
+        <div className="stack stack--sm">
+          <b className="ck__h">{t.final}</b>
+          <p className="ck__note">{c.final}</p>
+        </div>
+      )}
+      {d.semua && !readOnly && (
         <div className="ck__ctl">
           <div className="ck__pick">
             <Dropdown

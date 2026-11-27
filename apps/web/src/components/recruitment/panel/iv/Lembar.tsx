@@ -1522,12 +1522,20 @@ export default function Lembar({
         </div>
         <span className="hint">{mg ? M.verdictHint(mates.join(", ")) : L.verdictHint(mate)}</span>
       </section>
-      {tpl?.tags && <CatatanKhusus stage={stage} id={id} lang={lang} locked={locked} />}
+      {tpl?.tags && (
+        <CatatanKhusus stage={stage} id={id} lang={lang} locked={locked} readOnly={lihat} />
+      )}
       <section className="panel r4p">
         <h3 className="h3">{L.ba}</h3>
         <div className="rec-chips">
           {(mg ? M.baChips : L.baChips).map((x) => (
-            <button key={x} type="button" className="chipbtn" onClick={() => tambahBa(x)}>
+            <button
+              key={x}
+              type="button"
+              className="chipbtn"
+              disabled={locked}
+              onClick={() => tambahBa(x)}
+            >
               {x}
             </button>
           ))}
