@@ -574,6 +574,12 @@
 .r4seg__b[aria-checked="true"] b {
   color: var(--accent-ink);
 }
+.r4seg--ro .r4seg__b {
+  cursor: default;
+}
+.r4seg--ro .r4seg__b:active {
+  transform: none;
+}
 .r4seg__w {
   display: none;
   font-size: max(11px, 0.72rem);
