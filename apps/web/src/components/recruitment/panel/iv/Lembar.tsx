@@ -1381,28 +1381,41 @@ export default function Lembar({
                 {vs.length === 0 ? (
                   <span className="hint">{L.notYet}</span>
                 ) : (
-                  <ul
-                    className="stack stack--sm"
-                    style={{ listStyle: "none", margin: 0, padding: 0 }}
-                  >
+                  <div className="stack stack--sm">
                     {vs.map((x) => {
                       const n = x.levels[p.key];
                       return (
-                        <li key={x.kode} className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-                          <b>{x.kode}</b>
-                          {n == null ? (
-                            <span className="hint">{L.notYet}</span>
-                          ) : (
-                            <>
-                              <b className="num">{n}</b>{" "}
-                              <span>{bi(tpl.levels[n - p.min], lang)}</span>
-                            </>
-                          )}
-                          {!x.sentAt && <span className="hint">({L.unsent})</span>}
-                        </li>
+                        <div key={x.kode} className="stack stack--sm">
+                          <span className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                            <span className={`acode${x.kode === meKode ? " acode--me" : ""}`}>
+                              {x.kode}
+                            </span>
+                            {n == null && <span className="hint">{L.notYet}</span>}
+                            {!x.sentAt && <span className="hint">({L.unsent})</span>}
+                          </span>
+                          <div
+                            className="r4seg r4seg--ro"
+                            role="radiogroup"
+                            aria-readonly="true"
+                            aria-label={`${x.kode}, ${bi(p.label, lang)}`}
+                          >
+                            {levels.map((m) => (
+                              <div
+                                key={m}
+                                role="radio"
+                                className="r4seg__b"
+                                aria-checked={n === m}
+                                aria-label={`${m}, ${bi(tpl.levels[m - p.min], lang)}`}
+                              >
+                                <b className="num">{m}</b>
+                                <span className="r4seg__w">{bi(tpl.levels[m - p.min], lang)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       );
                     })}
-                  </ul>
+                  </div>
                 )}
               </div>
             ) : (
