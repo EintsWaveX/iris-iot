@@ -23,6 +23,9 @@ interface Words {
   myNote: string;
   myNotePh: string;
   otherNotes: string;
+  /** Read-only view: every note, the reader's own among them */
+  allNotes: string;
+  noNotes: string;
   roles: Record<string, string>;
   final: string;
   finalPh: string;
@@ -64,6 +67,8 @@ export const CK = dict<Words>({
     myNote: "Catatanmu",
     myNotePh: "Hal yang menurutmu perlu diketahui panitia soal CaAs ini.",
     otherNotes: "Catatan dari yang lain",
+    allNotes: "Semua catatan",
+    noNotes: "Belum ada catatan.",
     roles: { pjDalam: "PJ dalam ruangan", pjLuar: "PJ luar ruangan", lain: "Panitia lain" },
     final: "Kesimpulan akhir panitia",
     finalPh: "Contoh: disarankan lolos, cocok diarahkan ke tim riset.",
@@ -101,6 +106,8 @@ export const CK = dict<Words>({
     myNote: "Your note",
     myNotePh: "What you think the committee should know about this CaAs.",
     otherNotes: "Notes from others",
+    allNotes: "All notes",
+    noNotes: "No notes yet.",
     roles: {
       pjDalam: "PJ inside the room",
       pjLuar: "PJ outside the room",
@@ -137,6 +144,8 @@ export const CK = dict<Words>({
     myNote: "你的备注",
     myNotePh: "你认为委员会应该了解这位 CaAs 的什么。",
     otherNotes: "其他人的备注",
+    allNotes: "所有备注",
+    noNotes: "还没有备注。",
     roles: { pjDalam: "教室内负责人", pjLuar: "教室外负责人", lain: "其他委员" },
     final: "委员会最终结论",
     finalPh: "例如：建议通过，适合安排到研究组。",
